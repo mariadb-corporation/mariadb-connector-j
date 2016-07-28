@@ -52,17 +52,19 @@ package org.mariadb.jdbc.internal.packet.dao.parameters;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 
-public class StreamParameter extends LongDataParameterHolder {
+public class StreamParameter implements ParameterHolder {
     private InputStream is;
     private long length;
     private boolean noBackslashEscapes;
-    private ArrayList<byte[]> readArrays = null;
 
     /**
      * Constructor.
@@ -74,6 +76,7 @@ public class StreamParameter extends LongDataParameterHolder {
         this.is = is;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
+        if (is.markSupported()) is.mark(1024);
     }
 
     public StreamParameter(InputStream is, boolean noBackSlashEscapes) {
@@ -82,19 +85,26 @@ public class StreamParameter extends LongDataParameterHolder {
 
     /**
      * Write stream in text format.
+     *
      * @param os database outputStream
      * @throws IOException if any error occur when reader stream
      */
-    public void writeTo(final OutputStream os) throws IOException {
-        if (readArrays != null) {
-            ParameterWriter.writeBytesArray(os, readArrays, noBackslashEscapes);
+    public void writeTo(final PacketOutputStream os) throws IOException {
+        if (length == Long.MAX_VALUE) {
+            ParameterWriter.write(os, is, noBackslashEscapes);
         } else {
-            if (length == Long.MAX_VALUE) {
-                ParameterWriter.write(os, is, noBackslashEscapes);
-            } else {
-                ParameterWriter.write(os, is, length, noBackslashEscapes);
-            }
+            ParameterWriter.write(os, is, length, noBackslashEscapes);
         }
+    }
+
+    /**
+     * Write stream in text format without checking buffer size.
+     *
+     * @param os database outputStream
+     * @throws IOException if any error occur when reader stream
+     */
+    public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
+        throw new IOException("Cannot use unsafe with Stream");
     }
 
     /**
@@ -104,23 +114,7 @@ public class StreamParameter extends LongDataParameterHolder {
      * @throws IOException if error reading stream
      */
     public long getApproximateTextProtocolLength() throws IOException {
-        if (length == Long.MAX_VALUE) {
-            readArrays = new ArrayList<>();
-            int length = 0;
-            int len;
-            byte[] buffer = new byte[1024];
-            while ((len = is.read(buffer)) >= 0) {
-                readArrays.add(buffer);
-                buffer = new byte[1024];
-                length += len;
-            }
-            is = null;
-            //length * 2 due to escape done after
-            return 2 + length * 2;
-
-        } else {
-            return length;
-        }
+        return -1;
     }
 
     /**
@@ -128,7 +122,7 @@ public class StreamParameter extends LongDataParameterHolder {
      * @param os database outputStream
      * @throws IOException if any error occur when reader stream
      */
-    public void writeBinary(PacketOutputStream os) throws IOException {
+    public void writeBinary(final PacketOutputStream os) throws IOException {
         if (length == Long.MAX_VALUE) {
             os.sendStream(is);
         } else {
@@ -138,12 +132,42 @@ public class StreamParameter extends LongDataParameterHolder {
     }
 
 
+    @Override
     public String toString() {
-        return "<Stream> " + is;
+        try {
+            if (is.markSupported()) {
+                is.reset();
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                if (length == Long.MAX_VALUE) {
+                    ParameterWriter.write(baos, is, noBackslashEscapes);
+                } else {
+                    ParameterWriter.write(baos, is, length, noBackslashEscapes);
+                }
+                byte[] bytes = baos.toByteArray();
+                if (bytes.length < 1024) {
+                    return "<Stream:" + new String(bytes, StandardCharsets.UTF_8) + ">";
+                } else {
+                    // cut overlong strings.
+                    return "<Stream:" + new String(bytes, 0, 1024, StandardCharsets.UTF_8) + "...>";
+                }
+            } else {
+                return "<Stream>";
+            }
+        } catch (Exception e) {
+            return "";
+        }
     }
 
     public MariaDbType getMariaDbType() {
         return MariaDbType.BLOB;
+    }
+
+    public boolean isLongData() {
+        return true;
+    }
+
+    public boolean isNullData() {
+        return false;
     }
 
 }

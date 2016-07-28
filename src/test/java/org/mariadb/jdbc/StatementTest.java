@@ -17,6 +17,7 @@ public class StatementTest extends BaseTest {
     private static final int ER_BAD_FIELD_ERROR = 1054;
     private static final int ER_NON_INSERTABLE_TABLE = 1471;
     private static final int ER_NO_SUCH_TABLE = 1146;
+    private static final int ER_CMD_NOT_PERMIT = 1148;
     private static final int ER_NONUPDATEABLE_COLUMN = 1348;
     private static final int ER_PARSE_ERROR = 1064;
     private static final int ER_NO_PARTITION_FOR_GIVEN_VALUE = 1526;
@@ -133,7 +134,10 @@ public class StatementTest extends BaseTest {
             statement.execute("SELECT * FROM vendor_code_test_");
             fail("The above statement should result in an exception");
         } catch (SQLException sqlException) {
-            assertEquals(ER_NO_SUCH_TABLE, sqlException.getErrorCode());
+            if (sqlException.getErrorCode() != ER_NO_SUCH_TABLE) {
+                //mysql and mariadb < 10.1.14 wrong message
+                if (sqlException.getErrorCode() != ER_CMD_NOT_PERMIT) fail("Wrong error code message");
+            }
             assertEquals(ER_NO_SUCH_TABLE_STATE, sqlException.getSQLState());
         }
     }
@@ -147,7 +151,10 @@ public class StatementTest extends BaseTest {
             statement.executeBatch();
             fail("The above statement should result in an exception");
         } catch (SQLException sqlException) {
-            assertEquals(ER_NO_SUCH_TABLE, sqlException.getErrorCode());
+            if (sqlException.getErrorCode() != ER_NO_SUCH_TABLE) {
+                //mysql and mariadb < 10.1.14 wrong message
+                if (sqlException.getErrorCode() != ER_CMD_NOT_PERMIT) fail("Wrong error code message");
+            }
             assertEquals(ER_NO_SUCH_TABLE_STATE, sqlException.getSQLState());
         }
     }
@@ -207,7 +214,11 @@ public class StatementTest extends BaseTest {
     @Test
     public void testLoadDataInvalidColumn() throws SQLException, UnsupportedEncodingException {
         Statement statement = sharedConnection.createStatement();
-        statement.execute("drop view if exists v2");
+        try {
+            statement.execute("drop view if exists v2");
+        } catch (SQLException e) {
+            //if view doesn't exist, and mode throw warning as error
+        }
         statement.execute("CREATE VIEW v2 AS SELECT 1 + 2 AS c0, c1, c2 FROM StatementTestt1;");
         try {
             MariaDbStatement mysqlStatement;
@@ -235,7 +246,11 @@ public class StatementTest extends BaseTest {
                 assertEquals(ER_LOAD_DATA_INVALID_COLUMN_STATE, sqlException.getSQLState());
             }
         } finally {
-            statement.execute("drop view if exists v2");
+            try {
+                statement.execute("drop view if exists v2");
+            } catch (SQLException e) {
+                //if view doesn't exist, and mode throw warning as error
+            }
         }
     }
 
@@ -263,4 +278,36 @@ public class StatementTest extends BaseTest {
         }
     }
 
+    @Test
+    public void closeOnCompletion() throws SQLException {
+        Statement statement = sharedConnection.createStatement();
+        assertFalse(statement.isCloseOnCompletion());
+        ResultSet rs = statement.executeQuery("SELECT 1");
+        statement.closeOnCompletion();
+        assertTrue(statement.isCloseOnCompletion());
+        assertFalse(statement.isClosed());
+        rs.close();
+        assertTrue(statement.isClosed());
+    }
+
+    @Test
+    public void testFractionalTimeBatch() throws SQLException {
+        createTable("testFractionalTimeBatch", "tt TIMESTAMP(6)");
+        Timestamp currTime = new Timestamp(System.currentTimeMillis());
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                "INSERT INTO testFractionalTimeBatch (tt) values (?)")) {
+            for (int i = 0; i < 2; i++) {
+                preparedStatement.setTimestamp(1, currTime);
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+        }
+
+        try (Statement statement = sharedConnection.createStatement()) {
+            try (ResultSet resultSet = statement.executeQuery("SELECT * from testFractionalTimeBatch")) {
+                assertTrue(resultSet.next());
+                assertEquals(resultSet.getTimestamp(1).getNanos(), currTime.getNanos());
+            }
+        }
+    }
 }

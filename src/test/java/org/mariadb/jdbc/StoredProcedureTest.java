@@ -13,19 +13,19 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.Properties;
+import java.util.Random;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.*;
 
-public class CallableStatementTest extends BaseTest {
+public class StoredProcedureTest extends BaseTest {
     /**
      * Initialisation.
      * @throws SQLException exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        createProcedure("withResultSet", "(a int) begin select a; end");
         createProcedure("useParameterName", "(a int) begin select a; end");
         createProcedure("useWrongParameterName", "(a int) begin select a; end");
         createProcedure("multiResultSets", "() BEGIN  SELECT 1; SELECT 2; END");
@@ -52,32 +52,126 @@ public class CallableStatementTest extends BaseTest {
         st.execute();
         int result = st.getInt(1);
         assertEquals(result, 4);
+    }
 
+    @Test
+    public void stmtSimple() throws SQLException {
+        createProcedure("stmtSimple", "(IN p1 INT, IN p2 INT) begin SELECT p1 + p2; end\n");
+        ResultSet rs = sharedConnection.createStatement().executeQuery("{call stmtSimple(2,2)}");
+        rs.next();
+        int result = rs.getInt(1);
+        assertEquals(result, 4);
+        executeAnotherRequest();
+    }
+
+    /**
+     * Execute another query to verify exchange integrity.
+     **/
+    private void executeAnotherRequest() throws SQLException {
+        //another request to verify packet exchange integrity
+        Random random = new Random();
+        int value = random.nextInt();
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT " + value);
+        ResultSet rs = preparedStatement.executeQuery();
+        rs.next();
+        assertEquals(value, rs.getInt(1));
+    }
+
+    @Test
+    public void prepareStmtSimple() throws SQLException {
+        createProcedure("prepareStmtSimple", "(IN p1 INT, IN p2 INT) begin SELECT p1 + p2; end\n");
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call prepareStmtSimple(?,?)}");
+        preparedStatement.setInt(1, 2);
+        preparedStatement.setInt(2, 2);
+        ResultSet rs = preparedStatement.executeQuery();
+        rs.next();
+        int result = rs.getInt(1);
+        assertEquals(result, 4);
+        executeAnotherRequest();
+    }
+
+    @Test
+    public void stmtSimpleFunction() throws SQLException {
+        try {
+            createFunction("stmtSimpleFunction", "(a float, b bigint, c int) RETURNS INT NO SQL\nBEGIN\nRETURN a;\nEND");
+            sharedConnection.createStatement().execute("{call stmtSimpleFunction(2,2,2)}");
+            fail("call mustn't work for function, use SELECT <function>");
+        } catch (SQLSyntaxErrorException sqle) {
+            assertTrue(sqle.getMessage().contains("PROCEDURE testj.stmtSimpleFunction does not exist"));
+        }
+        executeAnotherRequest();
+    }
+
+    @Test
+    public void prepareStmtSimpleFunction() throws SQLException {
+        try {
+            createFunction("stmtSimpleFunction", "(a float, b bigint, c int) RETURNS INT NO SQL\nBEGIN\nRETURN a;\nEND");
+            PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call stmtSimpleFunction(?,?,?)}");
+            preparedStatement.setInt(1, 2);
+            preparedStatement.setInt(2, 2);
+            preparedStatement.setInt(3, 2);
+            preparedStatement.execute();
+            fail("call mustn't work for function, use SELECT <function>");
+        } catch (SQLSyntaxErrorException sqle) {
+            assertTrue(sqle.getMessage().contains("PROCEDURE testj.stmtSimpleFunction does not exist"));
+        }
+        executeAnotherRequest();
     }
 
 
     @Test
-    public void withResultSet() throws Exception {
+    public void callWithOutParameter() throws SQLException {
+        createProcedure("prepareStmtWithOutParameter", "(x int, INOUT y int)\n"
+                + "BEGIN\n"
+                + "SELECT 1;end\n");
+        CallableStatement callableStatement = sharedConnection.prepareCall("{call prepareStmtWithOutParameter(?,?)}");
+        callableStatement.registerOutParameter(2, Types.INTEGER);
+        callableStatement.setInt(1, 2);
+        callableStatement.setInt(2, 3);
+        callableStatement.execute();
+        assertEquals(3, callableStatement.getInt(2));
+
+        executeAnotherRequest();
+    }
+
+    @Test
+    public void prepareStmtWithOutParameter() throws SQLException {
+        createProcedure("prepareStmtWithOutParameter", "(x int, INOUT y int)\n"
+                + "BEGIN\n"
+                + "SELECT 1;end\n");
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call prepareStmtWithOutParameter(?,?)}");
+        preparedStatement.setInt(1, 2);
+        preparedStatement.setInt(2, 3);
+        preparedStatement.execute();
+
+        executeAnotherRequest();
+    }
+
+    @Test
+    public void callWithResultSet() throws Exception {
+        createProcedure("withResultSet", "(a int) begin select a; end");
         CallableStatement stmt = sharedConnection.prepareCall("{call withResultSet(?)}");
         stmt.setInt(1, 1);
         ResultSet rs = stmt.executeQuery();
         rs.next();
         int res = rs.getInt(1);
         assertEquals(res, 1);
+        executeAnotherRequest();
     }
 
     @Test
-    public void useParameterName() throws Exception {
+    public void callUseParameterName() throws Exception {
         CallableStatement stmt = sharedConnection.prepareCall("{call useParameterName(?)}");
         stmt.setInt("a", 1);
         ResultSet rs = stmt.executeQuery();
         rs.next();
         int res = rs.getInt(1);
         assertEquals(res, 1);
+        executeAnotherRequest();
     }
 
     @Test(expected = SQLException.class)
-    public void useWrongParameterName() throws Exception {
+    public void callUseWrongParameterName() throws Exception {
         CallableStatement stmt = sharedConnection.prepareCall("{call useParameterName(?)}");
         stmt.setInt("b", 1);
         fail("must fail");
@@ -85,8 +179,16 @@ public class CallableStatementTest extends BaseTest {
 
 
     @Test
-    public void multiResultSets() throws Exception {
-        CallableStatement stmt = sharedConnection.prepareCall("{call multiResultSets()}");
+    public void callMultiResultSets() throws Exception {
+        executeAndCheckResult(sharedConnection.prepareCall("{call multiResultSets()}"));
+    }
+
+    @Test
+    public void prepareMultiResultSets() throws Exception {
+        executeAndCheckResult(sharedConnection.prepareStatement("{call multiResultSets()}"));
+    }
+
+    private void executeAndCheckResult(PreparedStatement stmt) throws Exception {
         stmt.execute();
         ResultSet rs = stmt.getResultSet();
         assertTrue(rs.next());
@@ -97,19 +199,83 @@ public class CallableStatementTest extends BaseTest {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
         assertFalse(rs.next());
+        executeAnotherRequest();
     }
 
     @Test
-    public void inoutParam() throws SQLException {
-        CallableStatement storedProc = null;
+    public void prepareBatchMultiResultSets() throws Exception {
+        PreparedStatement stmt = sharedConnection.prepareStatement("{call multiResultSets()}");
+        stmt.addBatch();
+        stmt.addBatch();
+        try {
+            stmt.executeBatch();
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Select command are not permitted via executeBatch() command"));
+        }
+        executeAnotherRequest();
+    }
+
+    @Test
+    public void stmtMultiResultSets() throws Exception {
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("{call multiResultSets()}");
+        ResultSet rs = stmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertFalse(rs.next());
+        assertTrue(stmt.getMoreResults());
+        rs = stmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertFalse(rs.next());
+        executeAnotherRequest();
+    }
+
+    @Test
+    public void prepareStmtMultiResultSets() throws Exception {
+        PreparedStatement stmt = sharedConnection.prepareStatement("{call multiResultSets()}");
+        stmt.execute();
+        ResultSet rs = stmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertFalse(rs.next());
+        assertTrue(stmt.getMoreResults());
+        rs = stmt.getResultSet();
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertFalse(rs.next());
+        executeAnotherRequest();
+    }
 
 
-        storedProc = sharedConnection.prepareCall("{call inOutParam(?)}");
-
-        storedProc.setInt(1, 1);
+    @Test
+    public void callInoutParam() throws SQLException {
+        CallableStatement storedProc = sharedConnection.prepareCall("{call inOutParam(?)}");
         storedProc.registerOutParameter(1, Types.INTEGER);
+        storedProc.setInt(1, 1);
         storedProc.execute();
         assertEquals(2, storedProc.getObject(1));
+    }
+
+    @Test
+    public void stmtInoutParam() throws SQLException {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("{call inOutParam(1)}");
+            fail("must fail : statement cannot be use when there is out parameter");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("OUT or INOUT argument 1 for routine testj.inOutParam is not a variable or NEW pseudo-variable in BEFORE trigger\n"
+                    + "Query is : call inOutParam(1)", e.getMessage());
+        }
+    }
+
+    @Test
+    public void prepareStmtInoutParam() throws SQLException {
+        //must work, but out parameter isn't accessible
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call inOutParam(?)}");
+        preparedStatement.setInt(1, 1);
+        preparedStatement.execute();
+        executeAnotherRequest();
     }
 
     @Test
@@ -125,10 +291,11 @@ public class CallableStatementTest extends BaseTest {
                 rs.getObject(i);
             }
         }
+        executeAnotherRequest();
     }
 
     @Test
-    public void withStrangeParameter() throws SQLException {
+    public void callWithStrangeParameter() throws SQLException {
         CallableStatement stmt = sharedConnection.prepareCall("{call withStrangeParameter(?)}");
         double expected = 5.43;
         stmt.setDouble("a", expected);
@@ -144,10 +311,11 @@ public class CallableStatementTest extends BaseTest {
         assertThat(rs.getDouble(1), is(not(tooMuch)));
         rs.close();
         stmt.close();
+        executeAnotherRequest();
     }
 
     @Test
-    public void test1() throws Exception {
+    public void meta() throws Exception {
         createProcedure("callabletest1", "()\nBEGIN\nSELECT 1;end\n");
         ResultSet rs = sharedConnection.getMetaData().getProcedures(null, null, "callabletest1");
         if (rs.next()) {
@@ -203,12 +371,12 @@ public class CallableStatementTest extends BaseTest {
     public void testMetaCatalogNoAccessToProcedureBodies() throws Exception {
         Statement statement = sharedConnection.createStatement();
         try {
-            statement.execute("DROP USER 'test_jdbc'@'localhost'");
+            statement.execute("DROP USER 'test_jdbc'@'%'");
         } catch (SQLException e) {
             //eat exception
         }
-        statement.execute("CREATE USER 'test_jdbc'@'localhost' IDENTIFIED BY 'test_jdbc'");
-        statement.execute("GRANT ALL PRIVILEGES ON testj.* TO 'test_jdbc'@'localhost' IDENTIFIED BY 'test_jdbc' WITH GRANT OPTION");
+        statement.execute("CREATE USER 'test_jdbc'@'%' IDENTIFIED BY 'test_jdbc'");
+        statement.execute("GRANT ALL PRIVILEGES ON testj.* TO 'test_jdbc'@'%' IDENTIFIED BY 'test_jdbc' WITH GRANT OPTION");
         Properties properties = new Properties();
         properties.put("user", "test_jdbc");
         properties.put("password", "test_jdbc");
@@ -246,7 +414,7 @@ public class CallableStatementTest extends BaseTest {
                 fail();
             }
         }
-        statement.execute("DROP USER 'test_jdbc'@'localhost'");
+        statement.execute("DROP USER 'test_jdbc'@'%'");
     }
 
     @Test
@@ -264,13 +432,13 @@ public class CallableStatementTest extends BaseTest {
                         + "\nEND");
 
         try (CallableStatement callableStatement = sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?, ?) }")) {
-            callableStatement.registerOutParameter(1, java.sql.Types.VARCHAR);
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.setString(2, "mike");
             callableStatement.execute();
         }
         sharedConnection.setCatalog("testj2");
         try (CallableStatement callableStatement = sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?, ?) }")) {
-            callableStatement.registerOutParameter(1, java.sql.Types.VARCHAR);
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.setString(2, "mike");
             try {
                 callableStatement.execute();
@@ -281,7 +449,7 @@ public class CallableStatementTest extends BaseTest {
         }
 
         try (CallableStatement callableStatement = sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?) }")) {
-            callableStatement.registerOutParameter(1, java.sql.Types.VARCHAR);
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.execute();
         }
         sharedConnection.setCatalog("testj");
@@ -318,7 +486,7 @@ public class CallableStatementTest extends BaseTest {
 
         assertEquals(4, callableStatement.getParameterMetaData().getParameterCount());
         assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(1));
-        java.sql.DatabaseMetaData dbmd = sharedConnection.getMetaData();
+        DatabaseMetaData dbmd = sharedConnection.getMetaData();
 
         ResultSet rs = dbmd.getFunctionColumns(sharedConnection.getCatalog(), null, "testFunctionCall", "%");
         ResultSetMetaData rsmd = rs.getMetaData();
@@ -368,7 +536,7 @@ public class CallableStatementTest extends BaseTest {
         rs = dbmd.getProcedures(sharedConnection.getCatalog(), null, "testFunctionCall");
         rs.next();
         assertEquals("testFunctionCall", rs.getString("PROCEDURE_NAME"));
-        assertEquals(java.sql.DatabaseMetaData.procedureReturnsResult, rs.getShort("PROCEDURE_TYPE"));
+        assertEquals(DatabaseMetaData.procedureReturnsResult, rs.getShort("PROCEDURE_TYPE"));
         callableStatement.setNull(2, Types.FLOAT);
         callableStatement.setInt(3, 1);
         callableStatement.setInt(4, 1);
@@ -402,6 +570,7 @@ public class CallableStatementTest extends BaseTest {
         assertEquals(Types.FLOAT, callableStatement.getParameterMetaData().getParameterType(2));
         assertEquals(Types.BIGINT, callableStatement.getParameterMetaData().getParameterType(3));
         assertEquals(Types.INTEGER, callableStatement.getParameterMetaData().getParameterType(4));
+        executeAnotherRequest();
     }
 
     @Test
@@ -413,9 +582,8 @@ public class CallableStatementTest extends BaseTest {
             noDbConn.prepareCall("{call `testj2`.otherDbProcedure()}").execute();
         }
         sharedConnection.createStatement().executeUpdate("DROP DATABASE testj2");
+        executeAnotherRequest();
     }
-
-
 
     @Test
     public void testMultiResultset() throws Exception {
@@ -450,15 +618,30 @@ public class CallableStatementTest extends BaseTest {
     }
 
     @Test
-    public void testFunctionWithNoParameters() throws SQLException {
-        createFunction("testFunctionWithNoParameters", "()\n"
+    public void callFunctionWithNoParameters() throws SQLException {
+        createFunction("callFunctionWithNoParameters", "()\n"
                 + "    RETURNS CHAR(50) DETERMINISTIC\n"
                 + "    RETURN 'mike';");
 
-        CallableStatement callableStatement = sharedConnection.prepareCall("{? = call testFunctionWithNoParameters()}");
-        callableStatement.registerOutParameter(1, java.sql.Types.VARCHAR);
+        CallableStatement callableStatement = sharedConnection.prepareCall("{? = call callFunctionWithNoParameters()}");
+        callableStatement.registerOutParameter(1, Types.VARCHAR);
         callableStatement.execute();
         Assert.assertEquals("mike", callableStatement.getString(1));
+        executeAnotherRequest();
+    }
+
+    @Test
+    public void prepareWithNoParameters() throws SQLException {
+        createProcedure("prepareWithNoParameters", "()\n"
+                + "begin\n"
+                + "    SELECT 'mike';"
+                + "end\n");
+
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call prepareWithNoParameters()}");
+        ResultSet rs = preparedStatement.executeQuery();
+        rs.next();
+        Assert.assertEquals("mike", rs.getString(1));
+        executeAnotherRequest();
     }
 
     @Test
@@ -468,7 +651,7 @@ public class CallableStatementTest extends BaseTest {
                 + "    RETURN CONCAT(s,' and ', s2)");
 
         CallableStatement callableStatement = sharedConnection.prepareCall("{? = call testFunctionWith2parameters(?, ?)}");
-        callableStatement.registerOutParameter(1, java.sql.Types.VARCHAR);
+        callableStatement.registerOutParameter(1, Types.VARCHAR);
         callableStatement.setString(2, "mike");
         callableStatement.setString(3, "bart");
         callableStatement.execute();
@@ -482,7 +665,7 @@ public class CallableStatementTest extends BaseTest {
                 + "    RETURN CONCAT(s,' and ', s2)");
 
         CallableStatement callableStatement = sharedConnection.prepareCall("{? = call testFunctionWith2parameters('mike', ?)}");
-        callableStatement.registerOutParameter(1, java.sql.Types.VARCHAR);
+        callableStatement.registerOutParameter(1, Types.VARCHAR);
         callableStatement.setString(2, "bart");
         callableStatement.execute();
         Assert.assertEquals("mike and bart", callableStatement.getString(1));
@@ -498,7 +681,7 @@ public class CallableStatementTest extends BaseTest {
                 + " SET testValue = UPPER(testValue);\n"
                 + "END");
         CallableStatement cstmt = sharedConnection.prepareCall("{call testResultsetWithInoutParameter(?)}");
-        cstmt.registerOutParameter(1, java.sql.Types.VARCHAR);
+        cstmt.registerOutParameter(1, Types.VARCHAR);
         cstmt.setString(1, "mike");
         //assertEquals(1, cstmt.executeUpdate());
         cstmt.executeUpdate();
@@ -516,6 +699,7 @@ public class CallableStatementTest extends BaseTest {
         } else {
             fail();
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -530,8 +714,8 @@ public class CallableStatementTest extends BaseTest {
 
             final long startTime = System.nanoTime();
             CallableStatement callableStatement = connection.prepareCall("{call simpleproc('mike', ?, ?)}");
-            callableStatement.registerOutParameter(1, java.sql.Types.VARCHAR);
-            callableStatement.registerOutParameter(2, java.sql.Types.VARCHAR);
+            callableStatement.registerOutParameter(1, Types.VARCHAR);
+            callableStatement.registerOutParameter(2, Types.VARCHAR);
             callableStatement.setString(1, "toto");
             callableStatement.execute();
             String result = callableStatement.getString(1);
@@ -541,6 +725,7 @@ public class CallableStatementTest extends BaseTest {
             }
             callableStatement.close();
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -589,6 +774,7 @@ public class CallableStatementTest extends BaseTest {
             callableStatement.registerOutParameter(274, Types.VARCHAR);
             callableStatement.execute();
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -624,6 +810,7 @@ public class CallableStatementTest extends BaseTest {
 
             cstmt.close();
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -632,6 +819,7 @@ public class CallableStatementTest extends BaseTest {
         stmt.executeUpdate("DROP PROCEDURE IF EXISTS testDefinerCallableStatement");
         stmt.executeUpdate("CREATE DEFINER=CURRENT_USER PROCEDURE testDefinerCallableStatement(I INT) COMMENT 'abcdefg'\nBEGIN\nSELECT I * 10;\nEND");
         sharedConnection.prepareCall("{call testDefinerCallableStatement(?)}").close();
+        executeAnotherRequest();
     }
 
     @Test
@@ -650,6 +838,7 @@ public class CallableStatementTest extends BaseTest {
                 fail("must have a result !");
             }
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -700,18 +889,18 @@ public class CallableStatementTest extends BaseTest {
                         Types.VARCHAR, Types.VARCHAR, Types.INTEGER, Types.VARCHAR, Types.VARCHAR },
                 new int[] { 20, 10, 10, 10, 10, 10, 2000, 2000, 8000, 10, 2000, 10 },
                 new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                new int[] { java.sql.DatabaseMetaData.procedureColumnIn,
-                        java.sql.DatabaseMetaData.procedureColumnIn,
-                        java.sql.DatabaseMetaData.procedureColumnIn,
-                        java.sql.DatabaseMetaData.procedureColumnIn,
-                        java.sql.DatabaseMetaData.procedureColumnIn,
-                        java.sql.DatabaseMetaData.procedureColumnIn,
-                        java.sql.DatabaseMetaData.procedureColumnIn,
-                        java.sql.DatabaseMetaData.procedureColumnIn,
-                        java.sql.DatabaseMetaData.procedureColumnOut,
-                        java.sql.DatabaseMetaData.procedureColumnIn,
-                        java.sql.DatabaseMetaData.procedureColumnIn,
-                        java.sql.DatabaseMetaData.procedureColumnOut });
+                new int[] { DatabaseMetaData.procedureColumnIn,
+                        DatabaseMetaData.procedureColumnIn,
+                        DatabaseMetaData.procedureColumnIn,
+                        DatabaseMetaData.procedureColumnIn,
+                        DatabaseMetaData.procedureColumnIn,
+                        DatabaseMetaData.procedureColumnIn,
+                        DatabaseMetaData.procedureColumnIn,
+                        DatabaseMetaData.procedureColumnIn,
+                        DatabaseMetaData.procedureColumnOut,
+                        DatabaseMetaData.procedureColumnIn,
+                        DatabaseMetaData.procedureColumnIn,
+                        DatabaseMetaData.procedureColumnOut });
 
         sharedConnection.prepareCall("{call testCommentParser_1(?, ?)}").close();
         rs = sharedConnection.getMetaData().getProcedureColumns(sharedConnection.getCatalog(), null, "testCommentParser_1", "%");
@@ -720,7 +909,8 @@ public class CallableStatementTest extends BaseTest {
                 new int[] { Types.VARCHAR, Types.DECIMAL },
                 new int[] { 20, 10 },
                 new int[] { 0, 2 },
-                new int[] { java.sql.DatabaseMetaData.procedureColumnIn, java.sql.DatabaseMetaData.procedureColumnOut });
+                new int[] { DatabaseMetaData.procedureColumnIn, DatabaseMetaData.procedureColumnOut });
+        executeAnotherRequest();
     }
 
     private void validateResult(ResultSet rs, String[] parameterNames, int[] parameterTypes, int[] precision,
@@ -747,6 +937,7 @@ public class CallableStatementTest extends BaseTest {
             index++;
         }
         rs.close();
+        executeAnotherRequest();
 
     }
 
@@ -772,6 +963,7 @@ public class CallableStatementTest extends BaseTest {
         try (CallableStatement callable = sharedConnection.prepareCall("{call testCallableNullSettersProc(?,?,?)}")) {
             testSetter(callable);
         }
+        executeAnotherRequest();
     }
 
     private void testSetter(CallableStatement callable) throws Throwable {
@@ -886,6 +1078,7 @@ public class CallableStatementTest extends BaseTest {
                 }
             }
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -929,6 +1122,7 @@ public class CallableStatementTest extends BaseTest {
                 assertEquals("23000", sqlEx.getSQLState());
             }
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -942,9 +1136,9 @@ public class CallableStatementTest extends BaseTest {
         CallableStatement callableStatement = sharedConnection.prepareCall("{call Bit_Proc(?,?,?)}");
 
         System.out.println("register the output parameters");
-        callableStatement.registerOutParameter(1, java.sql.Types.BIT);
-        callableStatement.registerOutParameter(2, java.sql.Types.BIT);
-        callableStatement.registerOutParameter(3, java.sql.Types.BIT);
+        callableStatement.registerOutParameter(1, Types.BIT);
+        callableStatement.registerOutParameter(2, Types.BIT);
+        callableStatement.registerOutParameter(3, Types.BIT);
 
         System.out.println("execute the procedure");
         callableStatement.executeUpdate();
@@ -957,8 +1151,8 @@ public class CallableStatementTest extends BaseTest {
             System.out.println("getBoolean returns the Minimum value ");
         } else {
             System.out.println("getBoolean() did not return the Minimum value, getBoolean Failed!");
-
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -968,6 +1162,7 @@ public class CallableStatementTest extends BaseTest {
         } catch (Exception exception) {
             assertTrue(exception.getMessage().startsWith("invalid callable syntax"));
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -981,6 +1176,7 @@ public class CallableStatementTest extends BaseTest {
             callable.setString(3, "BAR");
             callable.executeUpdate();
         }
+        executeAnotherRequest();
     }
 
 
@@ -1031,9 +1227,9 @@ public class CallableStatementTest extends BaseTest {
         try {
             CallableStatement callSt = conn1.prepareCall("{ call testParameterNumber_1(?, ?, ?, ?) }");
             callSt.setString(2, "xxx");
-            callSt.registerOutParameter(1, java.sql.Types.VARCHAR);
-            callSt.registerOutParameter(3, java.sql.Types.VARCHAR);
-            callSt.registerOutParameter(4, java.sql.Types.VARCHAR);
+            callSt.registerOutParameter(1, Types.VARCHAR);
+            callSt.registerOutParameter(3, Types.VARCHAR);
+            callSt.registerOutParameter(4, Types.VARCHAR);
             callSt.execute();
 
             assertEquals("ncfact string", callSt.getString(1));
@@ -1043,9 +1239,9 @@ public class CallableStatementTest extends BaseTest {
             CallableStatement callSt2 = conn1.prepareCall("{ call testParameterNumber_2(?, ?, ?, ?, ?) }");
             callSt2.setString(1, "xxx");
             callSt2.setString(2, "yyy");
-            callSt2.registerOutParameter(3, java.sql.Types.VARCHAR);
-            callSt2.registerOutParameter(4, java.sql.Types.VARCHAR);
-            callSt2.registerOutParameter(5, java.sql.Types.VARCHAR);
+            callSt2.registerOutParameter(3, Types.VARCHAR);
+            callSt2.registerOutParameter(4, Types.VARCHAR);
+            callSt2.registerOutParameter(5, Types.VARCHAR);
             callSt2.execute();
 
             assertEquals("ncfact string", callSt2.getString(3));
@@ -1055,9 +1251,9 @@ public class CallableStatementTest extends BaseTest {
             CallableStatement callSt3 = conn1.prepareCall("{ call testParameterNumber_2(?, 'yyy', ?, ?, ?) }");
             callSt3.setString(1, "xxx");
             // callSt3.setString(2, "yyy");
-            callSt3.registerOutParameter(2, java.sql.Types.VARCHAR);
-            callSt3.registerOutParameter(3, java.sql.Types.VARCHAR);
-            callSt3.registerOutParameter(4, java.sql.Types.VARCHAR);
+            callSt3.registerOutParameter(2, Types.VARCHAR);
+            callSt3.registerOutParameter(3, Types.VARCHAR);
+            callSt3.registerOutParameter(4, Types.VARCHAR);
             callSt3.execute();
 
             assertEquals("ncfact string", callSt3.getString(2));
@@ -1066,6 +1262,7 @@ public class CallableStatementTest extends BaseTest {
         } finally {
             conn1.close();
         }
+        executeAnotherRequest();
     }
 
     @Test
@@ -1110,12 +1307,12 @@ public class CallableStatementTest extends BaseTest {
             sharedConnection.setCatalog(originalCatalog);
             sharedConnection.createStatement().executeUpdate("DROP DATABASE testProcMultiDb");
         }
-
+        executeAnotherRequest();
     }
 
 
     @Test
-    public void testProcSendNullInOut() throws Exception {
+    public void callProcSendNullInOut() throws Exception {
         createProcedure("testProcSendNullInOut_1", "(INOUT x INTEGER)\nBEGIN\nSET x = x + 1;\nEND");
         createProcedure("testProcSendNullInOut_2", "(x INTEGER, OUT y INTEGER)\nBEGIN\nSET y = x + 1;\nEND");
         createProcedure("testProcSendNullInOut_3", "(INOUT x INTEGER)\nBEGIN\nSET x = 10;\nEND");
@@ -1151,9 +1348,8 @@ public class CallableStatementTest extends BaseTest {
         call.setNull(1, Types.INTEGER);
         call.execute();
         assertEquals(10, call.getInt(1));
-
+        executeAnotherRequest();
     }
-
 
     /**
      * CONJ-263: Error in stored procedure or SQL statement with allowMultiQueries does not raise Exception
@@ -1171,5 +1367,24 @@ public class CallableStatementTest extends BaseTest {
             //must have thrown error.
             assertTrue(sqle.getMessage().contains("Test error from SP"));
         }
+        executeAnotherRequest();
     }
+
+    /**
+     * CONJ-298 : Callable function exception when no parameter and space before parenthesis.
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void testFunctionWithSpace() throws SQLException {
+        createFunction("hello", "()\n"
+                + "    RETURNS CHAR(50) DETERMINISTIC\n"
+                + "    RETURN CONCAT('Hello, !');");
+        CallableStatement callableStatement = sharedConnection.prepareCall("{? = call `hello` ()}");
+        callableStatement.registerOutParameter(1, Types.INTEGER);
+        assertFalse(callableStatement.execute());
+        assertEquals("Hello, !", callableStatement.getString(1));
+        executeAnotherRequest();
+    }
+
 }

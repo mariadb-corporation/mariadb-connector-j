@@ -3,10 +3,7 @@ package org.mariadb.jdbc;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 import static org.junit.Assert.assertEquals;
 
@@ -24,6 +21,8 @@ public class UnicodeTest extends BaseTest {
         createTable("umlaut_test", "id varchar(100), test_text varchar(100), t int", "charset utf8");
         createTable("unicode_test2", "id int not null primary key auto_increment, test_text varchar(100)",
                 "charset=utf8");
+        createTable("unicode_test3", "id int not null primary key auto_increment, test_text varchar(100)",
+                "charset utf8mb4");
     }
 
     @Test
@@ -62,4 +61,38 @@ public class UnicodeTest extends BaseTest {
         assertEquals(true, rs.next());
         assertEquals(jaString, rs.getString(1));
     }
+
+    @Test
+    public void unicodeTests() throws SQLException {
+        String unicodeString = "";
+        unicodeString += "\uD83D\uDE0E"; // 😎 unicode 6 smiling face with sunglasses
+        unicodeString += "\uD83C\uDF36"; // 🌶 unicode 7 hot pepper
+        unicodeString += "\uD83C\uDFA4"; // 🎤 unicode 8 no microphones
+        unicodeString += "\uD83E\uDD42"; // 🥂 unicode 9 clinking glasses
+
+        //test binary protocol
+        try (Connection connection = setConnection("")) {
+            connection.createStatement().execute("SET NAMES utf8mb4");
+            checkSendAndRetrieve(connection, unicodeString);
+        }
+
+        //test prepare text protocol
+        try (Connection connection = setConnection("&allowMultiQueries=true")) {
+            connection.createStatement().execute("SET NAMES utf8mb4");
+            checkSendAndRetrieve(connection, unicodeString);
+        }
+
+    }
+
+    private void checkSendAndRetrieve(Connection connection, String unicodeString) throws SQLException {
+        Statement stmt = connection.createStatement();
+        PreparedStatement ps = connection.prepareStatement("insert into unicode_test3 (test_text) values (?)");
+        ps.setString(1, unicodeString);
+        ps.executeUpdate();
+        ResultSet rs = stmt.executeQuery("select test_text from unicode_test3");
+        assertEquals(true, rs.next());
+        String returnString = rs.getString(1);
+        assertEquals(unicodeString, returnString);
+    }
+
 }

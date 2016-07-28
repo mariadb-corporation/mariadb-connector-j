@@ -10,6 +10,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
+import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder.SchedulerProvider;
 import org.threadly.concurrent.DoNothingRunnable;
@@ -76,6 +77,11 @@ public class SchedulerServiceProviderHolderTest {
 
             @Override
             public ScheduledThreadPoolExecutor getTimeoutScheduler() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public ScheduledThreadPoolExecutor getBulkScheduler() {
                 throw new UnsupportedOperationException();
             }
         };

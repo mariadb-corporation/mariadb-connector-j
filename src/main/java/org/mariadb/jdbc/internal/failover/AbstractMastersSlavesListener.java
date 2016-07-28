@@ -50,6 +50,8 @@ OF SUCH DAMAGE.
 */
 
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
@@ -61,6 +63,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {
 
+
+    private static Logger logger = LoggerFactory.getLogger(AbstractMastersSlavesListener.class);
     /* =========================== Failover variables ========================================= */
     private volatile long secondaryHostFailNanos = 0;
     private AtomicBoolean secondaryHostFail = new AtomicBoolean();
@@ -85,19 +89,24 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
      * @return HandleErrorResult object to indicate if query has finally been relaunched or exception if not.
      * @throws Throwable if method with parameters doesn't exist
      */
-    public HandleErrorResult handleFailover(Method method, Object[] args, Protocol protocol) throws Throwable {
+    public HandleErrorResult handleFailover(QueryException qe, Method method, Object[] args, Protocol protocol) throws Throwable {
         if (isExplicitClosed()) {
             throw new QueryException("Connection has been closed !");
         }
         if (protocol.mustBeMasterConnection()) {
             if (setMasterHostFail()) {
-                //SQL Primary node connection fail ");
+                logger.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString()
+                        + ", conn " + this.currentProtocol.getServerThreadId()
+                        + " ] connection fail. Reason : " + qe.getMessage());
+
                 addToBlacklist(protocol.getHostAddress());
             }
             return primaryFail(method, args);
         } else {
             if (setSecondaryHostFail()) {
-                //SQL secondary node connection fail ");
+                logger.warn("SQL secondary node [" + this.currentProtocol.getHostAddress().toString()
+                        + ", conn " + this.currentProtocol.getServerThreadId()
+                        + " ] connection fail. Reason : " + qe.getMessage());
                 addToBlacklist(protocol.getHostAddress());
             }
             return secondaryFail(method, args);

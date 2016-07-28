@@ -140,19 +140,19 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals(rs.getString("FUNCTION_SCHEM"), null);
         assertEquals(rs.getString("COLUMN_NAME"), null); /* No name, since it is return value */
         assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionReturn);
-        assertEquals(rs.getInt("DATA_TYPE"), java.sql.Types.CHAR);
+        assertEquals(rs.getInt("DATA_TYPE"), Types.CHAR);
         assertEquals(rs.getString("TYPE_NAME"), "char");
 
         rs.next();
         assertEquals(rs.getString("COLUMN_NAME"), "s"); /* input parameter 's' (CHAR) */
         assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionColumnIn);
-        assertEquals(rs.getInt("DATA_TYPE"), java.sql.Types.CHAR);
+        assertEquals(rs.getInt("DATA_TYPE"), Types.CHAR);
         assertEquals(rs.getString("TYPE_NAME"), "char");
 
         rs.next();
         assertEquals(rs.getString("COLUMN_NAME"), "i"); /* input parameter 'i' (INT) */
         assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionColumnIn);
-        assertEquals(rs.getInt("DATA_TYPE"), java.sql.Types.INTEGER);
+        assertEquals(rs.getInt("DATA_TYPE"), Types.INTEGER);
         assertEquals(rs.getString("TYPE_NAME"), "int");
         stmt.execute("DROP FUNCTION IF EXISTS hello");
     }
@@ -392,26 +392,30 @@ public class DatabaseMetadataTest extends BaseTest {
             int columnType = rsmd.getColumnType(col);
             if (type.equals("String")) {
                 assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected String",
-                        columnType == java.sql.Types.VARCHAR
-                                || columnType == java.sql.Types.NULL
+                        columnType == Types.VARCHAR
+                                || columnType == Types.NULL
                                 || columnType == Types.LONGVARCHAR);
-            } else if ("int".equals(type) || "short".equals(type)) {
+            } else if ("decimal".equals(type)) {
+                assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
+                                + rsmd.getColumnLabel(col) + ",expected decimal",
+                        columnType == Types.DECIMAL);
 
+            } else if ("int".equals(type) || "short".equals(type)) {
                 assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
                                 + rsmd.getColumnLabel(col) + ",expected numeric",
-                        columnType == java.sql.Types.BIGINT
-                                || columnType == java.sql.Types.INTEGER
-                                || columnType == java.sql.Types.SMALLINT
-                                || columnType == java.sql.Types.TINYINT);
+                        columnType == Types.BIGINT
+                                || columnType == Types.INTEGER
+                                || columnType == Types.SMALLINT
+                                || columnType == Types.TINYINT);
 
             } else if (type.equals("boolean")) {
                 assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
                                 + rsmd.getColumnLabel(col) + ",expected boolean",
-                        columnType == java.sql.Types.BOOLEAN || columnType == java.sql.Types.BIT);
+                        columnType == Types.BOOLEAN || columnType == Types.BIT);
 
             } else if (type.equals("null")) {
                 assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected null",
-                        columnType == java.sql.Types.NULL);
+                        columnType == Types.NULL);
             } else {
                 assertTrue("invalid type '" + type + "'", false);
             }
@@ -522,16 +526,29 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getColumnsBasic() throws SQLException {
         cancelForVersion(10, 1); //due to server error MDEV-8984
-        testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
-                "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
-                        + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE int,BUFFER_LENGTH int,"
-                        + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
-                        + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
-                        + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH int,"
-                        + "ORDINAL_POSITION int,IS_NULLABLE String,"
-                        + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
-                        + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
+        if (sharedConnection.getMetaData().getDatabaseProductVersion().startsWith("10.2")) {
+            testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
+                    "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
+                            + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE decimal,BUFFER_LENGTH int,"
+                            + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
+                            + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
+                            + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH decimal,"
+                            + "ORDINAL_POSITION int,IS_NULLABLE String,"
+                            + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
+                            + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
+        } else {
+            testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
+                    "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
+                            + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE int,BUFFER_LENGTH int,"
+                            + "DECIMAL_DIGITS int,NUM_PREC_RADIX int,NULLABLE int,"
+                            + "REMARKS String,COLUMN_DEF String,SQL_DATA_TYPE int,"
+                            + "SQL_DATETIME_SUB int, CHAR_OCTET_LENGTH int,"
+                            + "ORDINAL_POSITION int,IS_NULLABLE String,"
+                            + "SCOPE_CATALOG String,SCOPE_SCHEMA String,"
+                            + "SCOPE_TABLE String,SOURCE_DATA_TYPE null");
+        }
     }
+
 
     @Test
     public void getProcedureColumnsBasic() throws SQLException {

@@ -28,7 +28,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     /**
      * Initialisation.
      *
-     * @throws java.sql.SQLException exception
+     * @throws SQLException exception
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
@@ -425,14 +425,14 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             pst.setTimestamp(2, vt1);
             pst.setTime(3, new Time(quarterBeforeChangingHour.getTimeInMillis()));
             pst.setTimestamp(4, Timestamp.valueOf("2015-03-29 01:45:00"));
-            pst.setDate(5, new java.sql.Date(quarterBeforeChangingHour.getTimeInMillis()));
+            pst.setDate(5, new Date(quarterBeforeChangingHour.getTimeInMillis()));
             pst.addBatch();
 
             pst.setInt(1, 2);
             pst.setTimestamp(2, Timestamp.valueOf("2015-03-29 03:15:00"));
             pst.setTime(3, new Time(quarterAfterChangingHour.getTimeInMillis()));
             pst.setTimestamp(4, Timestamp.valueOf("2015-03-29 03:15:00"));
-            pst.setDate(5, new java.sql.Date(quarterAfterChangingHour.getTimeInMillis()));
+            pst.setDate(5, new Date(quarterAfterChangingHour.getTimeInMillis()));
             pst.addBatch();
             pst.executeBatch();
 
@@ -470,8 +470,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         Timestamp t3 = rs.getTimestamp(4);
         assertEquals(dateFormatISO8601.format(t3), "2015-03-29T01:45:00+0100");
 
-        java.sql.Date t4 = rs.getDate(5);
-        assertEquals(t4, new java.sql.Date(2015 - 1900, 2, 29));
+        Date t4 = rs.getDate(5);
+        assertEquals(t4, new Date(2015 - 1900, 2, 29));
         assertEquals(rs.getString(5), "2015-03-29");
 
         rs.next();
@@ -493,7 +493,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         assertEquals(dateFormatISO8601.format(t3), "2015-03-29T03:15:00+0200");
 
 
-        assertEquals(t4, new java.sql.Date(2015 - 1900, 2, 29));
+        assertEquals(t4, new Date(2015 - 1900, 2, 29));
         assertEquals(rs.getString(5), "2015-03-29");
 
     }
@@ -654,17 +654,17 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             Timestamp vt1 = new Timestamp(quarterBeforeChangingHour.getTimeInMillis());
             vt1.setNanos(12340000);
             PreparedStatement pst = connection.prepareStatement("INSERT INTO daylightMysql VALUES (?)");
-            pst.setDate(1, new java.sql.Date(quarterBeforeChangingHour.getTimeInMillis()));
+            pst.setDate(1, new Date(quarterBeforeChangingHour.getTimeInMillis()));
             pst.addBatch();
             pst.executeBatch();
 
             Statement st = connection.createStatement();
             ResultSet rs = st.executeQuery("SELECT * from daylightMysql");
             rs.next();
-            java.sql.Date t4 = rs.getDate(1);
+            Date t4 = rs.getDate(1);
 
             //2015-02-29 0h45 UTC -> 2015-02-28 21h45 Canada time
-            java.util.Date dt = new java.sql.Date(2015 - 1900, 2, 29);
+            java.util.Date dt = new Date(2015 - 1900, 2, 29);
             assertEquals(t4, dt);
             assertEquals(rs.getString(1), "2015-03-29");
         } finally {

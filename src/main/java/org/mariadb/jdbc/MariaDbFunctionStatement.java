@@ -55,9 +55,7 @@ import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.Calendar;
 
 public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement implements CloneableCallableStatement {
 
@@ -99,11 +97,11 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
     }
 
     /**
-     * Executes the CALL statement
+     * Executes the CALL statement.
      *
      * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements
      * that return nothing
-     * @throws java.sql.SQLException if a database access error occurs; this method is called on a closed
+     * @throws SQLException if a database access error occurs; this method is called on a closed
      *                               <code>PreparedStatement</code> or the SQL statement returns a
      *                               <code>ResultSet</code> object
      */
@@ -113,7 +111,7 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
         try {
             super.execute();
             retrieveOutputResult();
-            if (executionResult != null && executionResult.getResult() == null) {
+            if (executionResult != null && executionResult.getResultSet() == null) {
                 return 0;
             }
             return getUpdateCount();
@@ -124,7 +122,7 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
 
 
     private void retrieveOutputResult() throws SQLException {
-        outputResultSet = executionResult.getResult();
+        outputResultSet = executionResult.getResultSet();
         if (outputResultSet != null) {
             outputResultSet.next();
         }
@@ -141,8 +139,8 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
         try {
             super.execute();
             retrieveOutputResult();
-            if (executionResult != null && executionResult.getResult() == null) {
-                return executionResult.getResult();
+            if (executionResult != null && executionResult.getResultSet() == null) {
+                return executionResult.getResultSet();
             }
             return MariaSelectResultSet.EMPTY;
         } finally {
@@ -156,7 +154,7 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
         try {
             super.execute();
             retrieveOutputResult();
-            return executionResult != null && executionResult.getResult() == null;
+            return executionResult != null && executionResult.getResultSet() == null;
         } finally {
             connection.lock.unlock();
         }

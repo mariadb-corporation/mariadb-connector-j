@@ -52,16 +52,15 @@ package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.sql.Time;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 
-public class TimeParameter extends NotLongDataParameterHolder {
+public class TimeParameter implements ParameterHolder, Cloneable {
     private Time time;
     private Calendar calendar;
     private boolean fractionalSeconds;
@@ -78,8 +77,37 @@ public class TimeParameter extends NotLongDataParameterHolder {
         this.fractionalSeconds = fractionalSeconds;
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
-        ParameterWriter.writeTime(os, time, calendar, fractionalSeconds);
+    /**
+     * Write Time parameter to outputStream.
+     *
+     * @param os the stream to write to
+     */
+    public void writeTo(final PacketOutputStream os) {
+        os.write(ParameterWriter.QUOTE);
+        os.write(dateToBytes());
+        ParameterWriter.formatMicroseconds(os, (int) (time.getTime() % 1000) * 1000, fractionalSeconds);
+        os.write(ParameterWriter.QUOTE);
+    }
+
+    /**
+     * Write time parameter to outputStream without checking buffer size.
+     * @param os the stream to write to
+     */
+    public void writeUnsafeTo(final PacketOutputStream os) {
+        os.writeUnsafe(ParameterWriter.QUOTE);
+        os.writeUnsafe(dateToBytes());
+        ParameterWriter.formatMicrosecondsUnsafe(os, (int) (time.getTime() % 1000) * 1000, fractionalSeconds);
+        os.writeUnsafe(ParameterWriter.QUOTE);
+    }
+
+    private byte[] dateToBytes() {
+        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+        if (calendar != null) sdf.setCalendar(calendar);
+        String dateString = sdf.format(time);
+        if (time.getTime() < 0) {
+            dateString = "-" + dateString;
+        }
+        return dateString.getBytes();
     }
 
     public long getApproximateTextProtocolLength() throws IOException {
@@ -90,7 +118,7 @@ public class TimeParameter extends NotLongDataParameterHolder {
      * Write time in binary format.
      * @param writeBuffer write buffer
      */
-    public void writeBinary(PacketOutputStream writeBuffer) {
+    public void writeBinary(final PacketOutputStream writeBuffer) {
         calendar = Calendar.getInstance();
         calendar.setTime(time);
         calendar.set(Calendar.DAY_OF_MONTH, 1);
@@ -105,4 +133,13 @@ public class TimeParameter extends NotLongDataParameterHolder {
     public String toString() {
         return time.toString();
     }
+
+    public boolean isLongData() {
+        return false;
+    }
+
+    public boolean isNullData() {
+        return false;
+    }
+
 }

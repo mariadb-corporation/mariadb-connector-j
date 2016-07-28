@@ -51,10 +51,11 @@ package org.mariadb.jdbc.internal.failover.impl;
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.AbstractMastersSlavesListener;
 import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
@@ -75,6 +76,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * this class handle the operation when multiple hosts.
  */
 public class MastersSlavesListener extends AbstractMastersSlavesListener {
+    private static Logger logger = LoggerFactory.getLogger(MastersSlavesListener.class);
     private static final double POOL_SIZE_TO_LISTENER_RATIO = 0.3d;
     private static final double FAIL_LOOP_TO_LISTENER_RATIO = 0.3d;
 
@@ -590,7 +592,10 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     || alreadyClosed //connection was already close
                     || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args) )) { //connection was not in transaction
 
-                    //can relaunch query
+                //can relaunch query
+                logger.info("Connection to master lost, new master " + currentProtocol.getHostAddress() + ", conn:"
+                        + currentProtocol.getServerThreadId() + " found"
+                        + ", query type permit to be re-execute on new server without throwing exception");
                 return relaunchOperation(method, args);
             }
             //throw Exception because must inform client, even if connection is reconnected
@@ -704,6 +709,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     proxy.lock.unlock();
                 }
             }
+            logger.info("Connection to slave lost, new slave " + currentProtocol.getHostAddress() + ", conn:"
+                    + currentProtocol.getServerThreadId() + " found"
+                    + ", query is re-execute on new server without throwing exception");
             return relaunchOperation(method, args); //now that we are reconnect, relaunched result if the result was not crashing the node
         } catch (Exception ee) {
             //we will throw a Connection exception that will close connection
@@ -743,7 +751,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     }
 
     @Override
-    public void rePrepareOnSlave(PrepareResult oldPrepareResult, String sql, MariaDbType[] parameterTypeHeader) throws QueryException {
+    public void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustBeOnMaster) throws QueryException {
         if (isSecondaryHostFail()) {
             Protocol waitingProtocol = waitNewSecondaryProtocol.getAndSet(null);
             if (waitingProtocol != null) {
@@ -760,22 +768,17 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
         if (secondaryProtocol != null && !isSecondaryHostFail()) {
             //prepare on slave
-            PrepareResult prepareResult = secondaryProtocol.prepare(sql, true, oldPrepareResult.isExecuteOnMaster());
-
-            //reset header status
-            for (int i = 0; i < parameterTypeHeader.length; i++) {
-                parameterTypeHeader[i] = null;
-            }
+            ServerPrepareResult serverPrepareResult = secondaryProtocol.prepare(oldServerPrepareResult.getSql(), mustBeOnMaster);
 
             //release prepare on master
             try {
-                prepareResult.getUnProxiedProtocol().releasePrepareStatement(prepareResult, sql);
+                serverPrepareResult.getUnProxiedProtocol().releasePrepareStatement(serverPrepareResult);
             } catch (QueryException exception) {
                 //released failed.
             }
 
             //replace prepare data
-            oldPrepareResult.failover(prepareResult.getStatementId(), secondaryProtocol);
+            oldServerPrepareResult.failover(serverPrepareResult.getStatementId(), secondaryProtocol);
         }
     }
 }

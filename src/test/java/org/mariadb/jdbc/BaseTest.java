@@ -8,7 +8,7 @@ import org.junit.runner.Description;
 import org.mariadb.jdbc.failover.TcpProxy;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.Options;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -24,7 +24,7 @@ import java.util.*;
  */
 @Ignore
 public class BaseTest {
-    protected static final String mDefUrl = "jdbc:mysql://localhost:3306/testj?user=root";
+    protected static final String mDefUrl = "jdbc:mysql://localhost:3306/testj?user=root&profileSql=true";
     protected static String connU;
     protected static String connUri;
     protected static String hostname;
@@ -39,14 +39,31 @@ public class BaseTest {
     private static Deque<String> tempProcedureList = new ArrayDeque<>();
     private static Deque<String> tempFunctionList = new ArrayDeque<>();
     private static TcpProxy proxy = null;
+    private static UrlParser urlParser;
+    protected static boolean runLongTest = false;
 
     @Rule
     public TestRule watcher = new TestWatcher() {
-//        protected void starting(Description description) {
-//            if (testSingleHost) {
-//                System.out.println("start test : " + description.getClassName() + "." + description.getMethodName());
-//            }
-//        }
+        protected void starting(Description description) {
+            if (testSingleHost) {
+                System.out.println("start test : " + description.getClassName() + "." + description.getMethodName());
+            }
+        }
+
+        //execute another query to ensure connection is stable
+        protected void finished(Description description) {
+            Random random = new Random();
+            int randInt = random.nextInt();
+
+            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT " + randInt)) {
+                ResultSet rs = preparedStatement.executeQuery();
+                Assert.assertTrue(rs.next());
+                Assert.assertEquals(randInt, rs.getInt(1));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
 
         protected void succeeded(Description description) {
             if (testSingleHost) {
@@ -127,9 +144,10 @@ public class BaseTest {
     @BeforeClass()
     public static void beforeClassBaseTest() throws SQLException {
         String url = System.getProperty("dbUrl", mDefUrl);
+        runLongTest = Boolean.getBoolean(System.getProperty("runLongTest", "false"));
         testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
         if (testSingleHost) {
-            UrlParser urlParser = UrlParser.parse(url);
+            urlParser = UrlParser.parse(url);
 
             hostname = urlParser.getHostAddresses().get(0).host;
             port = urlParser.getHostAddresses().get(0).port;
@@ -393,6 +411,10 @@ public class BaseTest {
     }
 
     boolean checkMaxAllowedPacketMore20m(String testName) throws SQLException {
+        return checkMaxAllowedPacketMore20m(testName, true);
+    }
+
+    boolean checkMaxAllowedPacketMore20m(String testName, boolean displayMessage) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         rs.next();
@@ -404,17 +426,21 @@ public class BaseTest {
 
         if (maxAllowedPacket < 20 * 1024 * 1024) {
 
-            System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 20M");
+            if (displayMessage) System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 20M");
             return false;
         }
         if (innodbLogFileSize < 200 * 1024 * 1024) {
-            System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 200M");
+            if (displayMessage) System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 200M");
             return false;
         }
         return true;
     }
 
     boolean checkMaxAllowedPacketMore40m(String testName) throws SQLException {
+        return checkMaxAllowedPacketMore40m(testName, true);
+    }
+
+    boolean checkMaxAllowedPacketMore40m(String testName, boolean displayMsg) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         rs.next();
@@ -426,11 +452,11 @@ public class BaseTest {
 
 
         if (maxAllowedPacket < 40 * 1024 * 1024) {
-            System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 40M");
+            if (displayMsg) System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 40M");
             return false;
         }
         if (innodbLogFileSize < 400 * 1024 * 1024) {
-            System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 400M");
+            if (displayMsg) System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 400M");
             return false;
         }
 
@@ -575,4 +601,41 @@ public class BaseTest {
         }
         throw new SQLException("No table " + tableName + " found");
     }
+
+    /**
+     * Permit to know if sharedConnection will use Prepare.
+     * (in case dbUrl modify default options)
+     * @return true if PreparedStatement will use Prepare.
+     */
+    public boolean sharedUsePrepare() {
+        return urlParser.getOptions().useServerPrepStmts
+                && !urlParser.getOptions().rewriteBatchedStatements;
+    }
+
+    /**
+     * Permit access to current sharedConnection options.
+     * @return Options
+     */
+    public Options sharedOptions() {
+        return urlParser.getOptions();
+    }
+
+    /**
+     * Permit to know if sharedConnection use rewriteBatchedStatements.
+     *
+     * @return true if option rewriteBatchedStatements is set to true
+     */
+    public boolean sharedIsRewrite() {
+        return urlParser.getOptions().rewriteBatchedStatements;
+    }
+
+    /**
+     * Has server bulk capacity.
+     *
+     * @return true if server has bulk capacity and option not disabled
+     */
+    public boolean sharedBulkCapacity() {
+        return urlParser.getOptions().useBatchMultiSend;
+    }
+
 }

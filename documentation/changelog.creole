@@ -1,0 +1,247 @@
+= Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#150|1.5.0]] RC1 released on 28-07-2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#146|1.4.6]] Released on 13 june 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#146|1.4.5]] Released on 18 mai 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#144|1.4.4]] Released on 04 mai 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#143|1.4.3]] Released on 22 april 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#142|1.4.2]] Released on 08 april 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#141|1.4.1]] Released on 07 april 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
+
+---
+== 1.5.0
+
+=== Use native SSPI windows implementation
+CONJ-295.\\
+
+Java kerberos implementation is not well implemented with windows :
+* need a windows registry entry (HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\Kerberos\Parameters\AllowTGTSessionKey) so windows shared current ticket to java.
+* java kinit must be executed to create a Ticket.
+* restriction when client with local admin rights
+* ...
+
+[[https://bugs.openjdk.java.net/browse/JDK-6722928|see openJDK issue]] for more informations
+
+Kerberos GSSAPI implementation on windows in now based on [[https://github.com/dblock/waffle|Waffle]] that support windows SSPI based on [[https://github.com/java-native-access/jna|JNA]].\\
+if waffle-jna (and dependencies) is on classpath, native implementation will automatically be used.
+
+This removes all those problems
+
+=== Support for TLSv1.1 and TLSv1.2
+CONJ-249/CONJ-301\\
+
+Driver before version 1.5 support only TLSv1.\\ 
+Default supported protocol are now TLSv1 and TLSv1.1, other protocols can be activated by options.
+
+MariaDB and MySQL community server permit TLSv1 and TLSv1.1.\\
+MariaDB server from version 10.0.15 is using the openSSL library permitting TLSv1.2 (>= 5.5.41 for the 5.5 branch).
+//YaSSL doesn't support TLSv1.2, so if MariaDB server is build from sources with YaSSL, only TLSv1 and TLSv1.1 will be available, even for version > 10.0.15//
+
+TLSv1.2 can be enabled by setting option {{{enabledSslProtocolSuites}}} to values {{{"TLSv1, TLSv1.1, TLSv1.2"}}}.
+
+A new option {{{enabledSslCipherSuites}}} permit to set specific cipher.
+
+New Options :
+ |=enabledSslProtocolSuites|Force TLS/SSL protocol to a specific set of TLS versions (comma separated list). \\Example : "TLSv1, TLSv1.1, TLSv1.2"\\//Default: TLSv1, TLSv1.1. Since 1.5.0//|
+ |=enabledSslCipherSuites|Force TLS/SSL cipher (comma separated list).\\ Example : "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_DHE_DSS_WITH_AES_256_GCM_SHA384"\\//Default: use JRE ciphers. Since 1.5.0//|
+
+=== Performance improvement
+[CONJ-291]\\
+
+Different performance improvement have been done :
+* Using PreparedStatement on client side use a simple query parser to identify query parameters. This parsing was taking up to 7% of query time, reduced to 3%.
+* Better UTF-8 decoding avoiding memory consumption and gain 1-2% query time for big String.
+* client parsing optimization : rewriteBatchedStatements (insert into ab (i) values (1) and insert into ab (i) values (2) rewritten as insert into ab (i) values (1), (2))
+    is now 19% faster (Depending on queries 40-50% of CPU time was spend testing that buffer size is big enough to contain query).
+* there was some memory wastage when query return big resultset (> 10kb), slowing query.
+* ...
+
+[CONJ-320]
+Send X well established MySQL protocol without reading results, and read those X results afterwhile.
+Basically that permit to avoid a lot of 'ping-pong' between driver and server.
+
+New Options :
+ |=useBatchMultiSend|PreparedStatement.executeBatch() will send many QUERY before reading result packets.//Default: true. Since 1.5.0//|
+ |=useBatchMultiSendNumber|When using useBatchMultiSend, indicate maximum query that can be send at a time.\\//Default: 100. Since 1.5.0//|
+
+=== Prepare + execute in one call
+CONJ-296
+
+When using MySQL/MariaDB prepared statement, there will be 3 exchanges with server :
+* PREPARE - Prepares statement for execution.
+* EXECUTE - Executes a prepared statement preparing by a PREPARE statement.
+* DEALLOCATE PREPARE - Releases a prepared statement.
+
+See [[https://mariadb.com/kb/en/mariadb/prepare-statement/|Server prepare documentation]] for more information.
+
+PREPARE and DEALLOCATE PREPARE are 2 additional client-server round-trip.
+Since MariaDB 10.2, a new functionality named COM-MULTI to permitting to send different task to server in one round-trip.
+Driver is using this functionality to PREPARE and EXECUTE in one client-server round-trip.
+
+=== Client logging
+
+Client logging can be enable, permitting to log query information, execution time and different failover information.
+This implementation need the standard SLF4J dependency.
+
+New Options :
+ |=log|Enable log information. require Slf4j version > 1.4 dependency.\\//Default: false. Since 1.5.0//|
+ |=maxQuerySizeToLog|Only the first characters corresponding to this options size will be displayed in logs\\//Default: 1024. Since 1.5.0//|
+ |=slowQueryThresholdNanos|Will log query with execution time superior to this value (if defined )\\//Default: 1024. Since 1.5.0//|
+ |=profileSql|log query execution time.\\//Default: false. Since 1.5.0//|
+
+
+=== "LOAD DATA INFILE" Interceptors
+CONJ-305
+LOAD DATA INFILE The fastest way to load many datas is using query [[https://mariadb.com/kb/en/mariadb/load-data-infile/|LOAD DATA INFILE]].
+\\Problem is using "LOAD DATA LOCAL INFILE" (ie : loading a file from client), may be a security problem :
+* A "man in the middle" proxy server can change the actual file asked from server so client will send a Local file to this proxy.
+* If someone has can execute query from client, he can have access to any file on client (according to the rights of the user running the client process).
+
+See [[./use-mariadb-connector-j-driver.creole#load-data-infile|load-data-infile documentation]] for more information.
+
+Interceptors can now filter LOAD DATA LOCAL INFILE query's file location to validate path / file name.
+Those interceptors:
+* Must implement interface {{{org.mariadb.jdbc.LocalInfileInterceptor}}}.
+* Use [[http://docs.oracle.com/javase/7/docs/api/java/util/ServiceLoader.html|ServiceLoader]] implementation, so interceptors classes must be listed in file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor.
+
+Example:
+{{{
+package org.project;
+public class LocalInfileInterceptorImpl implements LocalInfileInterceptor {
+    @Override
+    public boolean validate(String fileName) {
+        File file = new File(fileName);
+        String absolutePath = file.getAbsolutePath();
+        String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
+        return filePath.equals("/var/tmp/exchanges");
+    }
+}
+}}}
+file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor must exist with content {{{org.project.LocalInfileInterceptorImpl}}}.
+
+You can get ride of defining the META-INF/services file using [[https://github.com/google/auto/tree/master/service|google auto-service]] framework, permitting to use annotation {{{@AutoService(LocalInfileInterceptor.class)}}} that will register the implementation as a service automatically.  
+
+Using the previous example: 
+{{{
+@AutoService(LocalInfileInterceptor.class)
+public class LocalInfileInterceptorImpl implements LocalInfileInterceptor {
+    @Override
+    public boolean validate(String fileName) {
+        File file = new File(fileName);
+        String absolutePath = file.getAbsolutePath();
+        String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
+        return filePath.equals("/var/tmp/exchanges");
+    }
+}
+}}}
+
+
+
+=== Minor evolution
+* CONJ-260 : Add jdbc nString, nCharacterStream, nClob implementation
+
+=== Bugfix
+* CONJ-316 : Wrong Exception thrown for ScrollType TYPE_SCROLL_INSENSITIVE
+* CONJ-298 : Error on Callable function exception when no parameter and space before parenthesis
+* CONJ-314 : Permit using Call with Statement / Prepare Statement
+\\\\\\
+== 1.4.6
+* [CONJ-293] Permit named pipe connection without host
+* [CONJ-309] Possible NPE on aurora when failover occur during connection initialisation
+* [CONJ-312] NPE while loading a null from TIMESTAMP field using binary protocol
+* [misc] batch with one parameter correction (using rewriteBatchedStatements option)
+
+== 1.4.5
+* [CONJ-297] Useless memory consumption when using Statement.setQueryTimeout
+* [CONJ-294] PrepareStatement on master reconnection after a failover
+* [CONJ-288] using SHOW VARIABLES to replace SELECT on connection to permit connection on a galera non primary node
+* [CONJ-290] Timestamps format error when using prepareStatement with options useFractionalSeconds and useServerPrepStmts
+
+== 1.4.4
+* [CONJ-289] PrepareStatement on master reconnection after a failover
+* [CONJ-288] using SHOW VARIABLES to replace SELECT on connection to permit connection on a galera non primary node
+
+== 1.4.3
+
+* [CONJ-284] Cannot read autoincremented IDs bigger than Short.MAX_VALUE
+* [CONJ-283] Parsing correction on MariaDbClientPreparedStatement - syntax error on insert values
+* [CONJ-282] Handling YEARs with binary prepareStatement
+* [CONJ-281] Connector/J is incompatible with Google App Engine correction
+* [CONJ-278] Improve prepared statement on failover
+
+== 1.4.2
+
+* [CONJ-275] Streaming result without result throw "Current position is before the first row"
+
+
+== 1.4.1
+
+
+* [CONJ-274] correction to permit connection to MySQL 5.1 server
+* [CONJ-273] correction when using prepareStatement without parameters and option rewriteBatchedStatements to true
+* [CONJ-270] permit 65535 parameters to server preparedStatement
+* [CONJ-268] update license header
+* [misc] when option rewriteBatchedStatements is set to true, correction of packet separation when query size > max_allow_packet
+* [misc] performance improvement for select result.
+
+== 1.4.0
+
+=== Complete implementation of fetch size.
+CONJ-26
+JDBC allows to specify the number of rows fetched for a query, and this number is referred to as the fetch size
+Before version 1.4.0, query were loading all results or row by row using Statement.setFetchSize(Integer.MIN_VALUE).
+Now it's possible to set fetch size according to your need. 
+Loading all results for large result sets is using a lot of memory. This functionality permit to save memory without having performance decrease.
+
+=== Memory footprint improvement
+CONJ-125
+Buffers have been optimized to reduced memory footprint
+
+=== CallableStatement  performance improvement.
+CONJ-209
+Calling function / procedure performance is now optimized according to query. Depending on queries, difference can be up to 300%.
+
+=== Authentication evolution
+CONJ-251 Permit now new authentication possibility : [[https://mariadb.com/kb/en/mariadb/pam-authentication-plugin/|PAM authentication]], and GSSAPI/SSPI authentication.
+
+GSSAPI/SSPI authentication authentication plugin for MariaDB permit a passwordless login.
+
+On Unix systems, GSSAPI is usually synonymous with Kerberos authentication. Windows has slightly different but very similar API called SSPI, that along with Kerberos, also supports NTLM authentication.
+See more detail in [[https://github.com/MariaDB/mariadb-connector-j/blob/master/documentation/plugin/GSSAPI|GSSAPI/SSPI configuration]]
+
+=== Connection attributes
+CONJ-217
+Driver information informations are now send to [[https://mariadb.com/kb/en/mariadb/performance-schema-session_connect_attrs-table/|connection attributes tables]] (performance_schema must be activated).
+A new option "connectionAttributes" permit to add client specifics data.
+
+For example when connecting with the following connection string {{{"jdbc:mysql://localhost:3306/testj?user=root&connectionAttributes=myOption:1,mySecondOption:'jj'"}}}, 
+if performance_schema is activated, information about this connection will be available during the time this connection is active :
+{{{
+select * from performance_schema.session_connect_attrs where processList_id = 5
++----------------+-----------------+---------------------+------------------+
+| PROCESSLIST_ID | ATTR_NAME       | ATTR_VALUE          | ORDINAL_POSITION |
++----------------+-----------------+---------------------+------------------+
+|5               |_client_name     |MariaDB connector/J  |0                 |
+|5               |_client_version  |1.4.0-SNAPSHOT       |1                 |
+|5               |_os              |Windows 8.1          |2                 | 
+|5               |_pid             |14124@portable-diego |3                 |
+|5               |_thread          |5                    |4                 |
+|5               |_java_vendor     |Oracle Corporation	 |5                 |
+|5               |_java_version    |1.7.0_79	         |6                 |
+|5               |myOption         |1	                 |7                 |
+|5               |mySecondOption   |'jj'                 |8                 |
++----------------+-----------------+---------------------+------------------+
+}}}
+
+
+== Minor evolution
+* CONJ-210 : adding a "jdbcCompliantTruncation" option to force truncation warning as SQLException.
+* CONJ-211 : when in master/slave configuration, option "assureReadOnly" will ensure that slaves are in read-only mode ( forcing transaction by a query "SET SESSION TRANSACTION READ ONLY"). 
+* CONJ-213 : new option "continueBatchOnError". Permit to continue batch when an exception occur : When executing a batch and an error occur, must the batch stop immediatly (default) or finish remaining batch before throwing exception.
+
+== Bugfix
+* CONJ-236 : Using a parametrized query with a smallint -1 does return the unsigned value
+* CONJ-250 : Tomcat doesn't stop when using Aurora failover configuration
+* CONJ-260 : Add jdbc nString, nCharacterStream, nClob implementation
+* CONJ-269 : handle server configuration autocommit=0
+* CONJ-271 : ResultSet.first() may throw SQLDataException: Current position is before the first row

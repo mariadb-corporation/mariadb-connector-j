@@ -51,11 +51,13 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 
-public class ByteArrayParameter extends NotLongDataParameterHolder {
+public class ByteArrayParameter implements ParameterHolder, Cloneable {
 
     private byte[] bytes;
     private boolean noBackslashEscapes;
@@ -65,16 +67,19 @@ public class ByteArrayParameter extends NotLongDataParameterHolder {
         this.noBackslashEscapes = noBackslashEscapes;
     }
 
-    public void writeTo(OutputStream os) throws IOException {
+    public void writeTo(final PacketOutputStream os) throws IOException {
         ParameterWriter.write(os, bytes, noBackslashEscapes);
     }
 
+    public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
+        ParameterWriter.writeUnsafe(os, bytes, noBackslashEscapes);
+    }
 
     public long getApproximateTextProtocolLength() {
         return bytes.length * 2;
     }
 
-    public void writeBinary(PacketOutputStream writeBuffer) {
+    public void writeBinary(final PacketOutputStream writeBuffer) {
         writeBuffer.writeByteArrayLength(bytes);
     }
 
@@ -84,6 +89,19 @@ public class ByteArrayParameter extends NotLongDataParameterHolder {
 
     @Override
     public String toString() {
-        return "<bytearray> " + new String(bytes);
+        if (bytes.length > 1024) {
+            return "<bytearray:" + new String(Arrays.copyOfRange(bytes, 0, 1024)) + "...>";
+        } else {
+            return "<bytearray:" + new String(bytes) + ">";
+        }
     }
+
+    public boolean isLongData() {
+        return false;
+    }
+
+    public boolean isNullData() {
+        return false;
+    }
+
 }

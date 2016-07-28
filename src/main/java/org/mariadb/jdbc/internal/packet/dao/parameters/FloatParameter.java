@@ -53,19 +53,19 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
 
-import java.io.IOException;
-import java.io.OutputStream;
-
-
-public class FloatParameter extends NotLongDataParameterHolder {
+public class FloatParameter implements ParameterHolder, Cloneable {
     private float value;
 
     public FloatParameter(float value) {
         this.value = value;
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
+    public void writeTo(final PacketOutputStream os) {
         os.write(String.valueOf(value).getBytes());
+    }
+
+    public void writeUnsafeTo(final PacketOutputStream os) {
+        os.writeUnsafe(String.valueOf(value).getBytes());
     }
 
     public long getApproximateTextProtocolLength() {
@@ -73,7 +73,7 @@ public class FloatParameter extends NotLongDataParameterHolder {
     }
 
 
-    public void writeBinary(PacketOutputStream writeBuffer) {
+    public void writeBinary(final PacketOutputStream writeBuffer) {
         writeBuffer.writeInt(Float.floatToIntBits(value));
     }
 
@@ -84,6 +84,14 @@ public class FloatParameter extends NotLongDataParameterHolder {
     @Override
     public String toString() {
         return Float.toString(value);
+    }
+
+    public boolean isLongData() {
+        return false;
+    }
+
+    public boolean isNullData() {
+        return false;
     }
 
 }

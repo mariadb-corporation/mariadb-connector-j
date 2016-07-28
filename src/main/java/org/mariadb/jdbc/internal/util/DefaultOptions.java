@@ -65,7 +65,7 @@ public enum DefaultOptions {
      */
     PASSWORD("password", "1.0.0"),
 
-    CONNECT_TIMOUT("connectTimeout", (Integer) null, new Integer(0), Integer.MAX_VALUE, "1.1.8"),
+    CONNECT_TIMEOUT("connectTimeout", (Integer) null, new Integer(0), Integer.MAX_VALUE, "1.1.8"),
 
     /**
      * On Windows, specify named pipe name to connect to mysqld.exe.
@@ -86,7 +86,7 @@ public enum DefaultOptions {
     /**
      * Sets corresponding option on the connection socket.
      */
-    TCP_NO_DELAY("tcpNoDelay", Boolean.FALSE, "1.0.0"),
+    TCP_NO_DELAY("tcpNoDelay", Boolean.TRUE, "1.0.0"),
 
     /**
      * Sets corresponding option on the connection socket.
@@ -292,7 +292,7 @@ public enum DefaultOptions {
 
     /**
      * useServerPrepStmts must prepared statements be prepared on server side, or just faked on client side.
-     * if allowMultiQueries or rewriteBatchedStatements is set to true, this options will be set to false.
+     * if rewriteBatchedStatements is set to true, this options will be set to false.
      * default to true.
      */
     USESERVERPREPSTMTS("useServerPrepStmts", Boolean.TRUE, "1.3.0"),
@@ -318,6 +318,18 @@ public enum DefaultOptions {
     CLIENT_CERTIFICATE_KEYSTORE_PASSWORD("clientCertificateKeyStorePassword", "1.3.0"),
 
     /**
+     * Force TLS/SSL protocol to a specific set of TLS versions (comma separated list)
+     * example : "TLSv1, TLSv1.1, TLSv1.2"
+     */
+    ENABLED_SSL_PROTOCOL_SUITES("enabledSslProtocolSuites", "1.5.0"),
+
+    /**
+     * Force TLS/SSL cipher. (comma separated list)
+     * example : "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_DHE_DSS_WITH_AES_256_GCM_SHA384"
+     */
+    ENABLED_SSL_CIPHER_SUITES("enabledSslCipherSuites", "1.5.0"),
+
+    /**
      * When executing batch queries, must batch continue on error.
      * default to true.
      */
@@ -339,13 +351,53 @@ public enum DefaultOptions {
      * default to 150.
      */
     CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", new Integer(150), new Integer(0), Integer.MAX_VALUE, "1.4.0"),
+
     /**
      * Indicate to server some client information in a key;value pair.
      * for example connectionAttributes=key1:value1,key2,value2.
      * Those information can be retrieved on server within tables mysql.session_connect_attrs and mysql.session_account_connect_attrs.
      * This can permit from server an identification of client.
      */
-    CONNECTION_ATTRIBUTES("connectionAttributes", "1.4.0");
+    CONNECTION_ATTRIBUTES("connectionAttributes", "1.4.0"),
+
+    /**
+     * PreparedStatement.executeBatch() will send many QUERY before reading result packets.
+     * default to true.
+     */
+    USE_BATCH_MULTI_SEND("useBatchMultiSend", Boolean.TRUE, "1.5.0"),
+
+    /**
+     * When using useBatchMultiSend, indicate maximum query that can be send at a time.
+     * default to 100
+     */
+    USE_BATCH_MULTI_SEND_NUMBER("useBatchMultiSendNumber", new Integer(100), new Integer(1), Integer.MAX_VALUE, "1.5.0"),
+
+    /**
+     * Enable log information. require Slf4j version &gt; 1.4 dependency.
+     * log informations :
+     *  - info : query log
+     *  -
+     * default to false.
+     */
+    LOGGING("log", Boolean.FALSE, "1.5.0"),
+
+    /**
+     * log query execution time.
+     */
+    PROFILESQL("profileSql", Boolean.FALSE, "1.5.0"),
+
+    /**
+     * Max query log size.
+     * default to 1024.
+     */
+    MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", new Integer(1024), new Integer(0), Integer.MAX_VALUE, "1.5.0"),
+
+    /**
+     * Will log query with execution time superior to this value (if defined )
+     * default to null.
+     */
+    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, new Long(0), Long.MAX_VALUE, "1.5.0");
+
 
     protected final String name;
     protected final Object objType;
@@ -374,6 +426,15 @@ public enum DefaultOptions {
     }
 
     DefaultOptions(String name, Integer defaultValue, Integer minValue, Integer maxValue, String implementationVersion) {
+        this.name = name;
+        this.objType = Integer.class;
+        this.defaultValue = defaultValue;
+        this.minValue = minValue;
+        this.maxValue = maxValue;
+        this.implementationVersion = implementationVersion;
+    }
+
+    DefaultOptions(String name, Long defaultValue, Long minValue, Long maxValue, String implementationVersion) {
         this.name = name;
         this.objType = Integer.class;
         this.defaultValue = defaultValue;
@@ -464,6 +525,10 @@ public enum DefaultOptions {
                         propertyValue = properties.getProperty("createDB");
                     } else if (o.name.equals("useSsl")) {
                         propertyValue = properties.getProperty("useSSL");
+                    } else if (o.name.equals("profileSql")) {
+                        propertyValue = properties.getProperty("profileSQL");
+                    } else if (o.name.equals("enabledSslCipherSuites")) {
+                        propertyValue = properties.getProperty("enabledSSLCipherSuites");
                     }
                 }
 
@@ -493,6 +558,18 @@ public enum DefaultOptions {
                             Options.class.getField(o.name).set(options, value);
                         } catch (NumberFormatException n) {
                             throw new IllegalArgumentException("Optional parameter " + o.name + " must be Integer, was \"" + propertyValue + "\"");
+                        }
+                    } else if (o.objType.equals(Long.class)) {
+                        try {
+                            Long value = Long.parseLong(propertyValue);
+                            if (value.compareTo((Long) o.minValue) < 0 || value.compareTo((Long) o.maxValue) > 0) {
+                                throw new IllegalArgumentException("Optional parameter " + o.name + " must be greater or equal to " + o.minValue
+                                        + ((((Long) o.maxValue).intValue() != Long.MAX_VALUE) ? " and smaller than " + o.maxValue : " ")
+                                        + ", was \"" + propertyValue + "\"");
+                            }
+                            Options.class.getField(o.name).set(options, value);
+                        } catch (NumberFormatException n) {
+                            throw new IllegalArgumentException("Optional parameter " + o.name + " must be Long, was \"" + propertyValue + "\"");
                         }
                     }
                 } else {

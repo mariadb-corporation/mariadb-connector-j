@@ -50,25 +50,25 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.util;
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 
-public final class PrepareStatementCache extends LinkedHashMap<String, PrepareResult> {
+public final class ServerPrepareStatementCache extends LinkedHashMap<String, ServerPrepareResult> {
     private final int maxSize;
     private final Protocol protocol;
 
-    private PrepareStatementCache(int size, Protocol protocol) {
+    private ServerPrepareStatementCache(int size, Protocol protocol) {
         super(size, .75f, true);
         this.maxSize = size;
         this.protocol = protocol;
     }
 
-    public static PrepareStatementCache newInstance(int size, Protocol protocol) {
-        return new PrepareStatementCache(size, protocol);
+    public static ServerPrepareStatementCache newInstance(int size, Protocol protocol) {
+        return new ServerPrepareStatementCache(size, protocol);
     }
 
     /**
@@ -81,11 +81,11 @@ public final class PrepareStatementCache extends LinkedHashMap<String, PrepareRe
         boolean mustBeRemoved = this.size() > maxSize;
 
         if (mustBeRemoved) {
-            PrepareResult prepareResult = ((PrepareResult) eldest.getValue());
-            prepareResult.setRemoveFromCache();
-            if (prepareResult.canBeDeallocate()) {
+            ServerPrepareResult serverPrepareResult = ((ServerPrepareResult) eldest.getValue());
+            serverPrepareResult.setRemoveFromCache();
+            if (serverPrepareResult.canBeDeallocate()) {
                 try {
-                    protocol.forceReleasePrepareStatement(prepareResult.getStatementId());
+                    protocol.forceReleasePrepareStatement(serverPrepareResult.getStatementId());
                 } catch (QueryException e) {
                     //eat exception
                 }
@@ -100,16 +100,13 @@ public final class PrepareStatementCache extends LinkedHashMap<String, PrepareRe
      * the existing cached prepared result shared counter will be incremented.
      * @param key key
      * @param result new prepare result.
-     * @param force flag to indicate if cache must be forced (after a failover)
      * @return the previous value associated with key if not been deallocate, or null if there was no mapping for key.
      */
-    public synchronized PrepareResult put(String key, PrepareResult result, boolean force) {
-        if (!force) {
-            PrepareResult cachedPrepareResult = super.get(key);
-            //if there is already some cached data (and not been deallocate), return existing cached data
-            if (cachedPrepareResult != null && cachedPrepareResult.incrementShareCounter()) {
-                return cachedPrepareResult;
-            }
+    public synchronized ServerPrepareResult put(String key, ServerPrepareResult result) {
+        ServerPrepareResult cachedServerPrepareResult = super.get(key);
+        //if there is already some cached data (and not been deallocate), return existing cached data
+        if (cachedServerPrepareResult != null && cachedServerPrepareResult.incrementShareCounter()) {
+            return cachedServerPrepareResult;
         }
         //if no cache data, or been deallocate, put new result in cache
         result.setAddToCache();
@@ -119,8 +116,8 @@ public final class PrepareStatementCache extends LinkedHashMap<String, PrepareRe
 
     @Override
     public String toString() {
-        StringBuilder stringBuilder = new StringBuilder("PrepareStatementCache.map[");
-        for (Map.Entry<String, PrepareResult> entry : this.entrySet()) {
+        StringBuilder stringBuilder = new StringBuilder("ServerPrepareStatementCache.map[");
+        for (Map.Entry<String, ServerPrepareResult> entry : this.entrySet()) {
             stringBuilder.append("\n").append(entry.getKey()).append("-").append(entry.getValue().getShareCounter());
         }
         stringBuilder.append("]");

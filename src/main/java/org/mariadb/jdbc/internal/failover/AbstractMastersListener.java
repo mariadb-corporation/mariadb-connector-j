@@ -53,9 +53,12 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.thread.ConnectionValidator;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -64,6 +67,7 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
@@ -73,6 +77,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractMastersListener implements Listener {
 
+    private static Logger logger = LoggerFactory.getLogger(AbstractMastersListener.class);
     /**
      * List the recent failedConnection.
      */
@@ -157,12 +162,14 @@ public abstract class AbstractMastersListener implements Listener {
      * @return a HandleErrorResult object to indicate if query has been relaunched, and the exception if not
      * @throws Throwable when method and parameters does not exist.
      */
-    public HandleErrorResult handleFailover(Method method, Object[] args, Protocol protocol) throws Throwable {
+    public HandleErrorResult handleFailover(QueryException qe, Method method, Object[] args, Protocol protocol) throws Throwable {
         if (isExplicitClosed()) {
             throw new QueryException("Connection has been closed !");
         }
         if (setMasterHostFail()) {
-//            log.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString() + "] connection fail ");
+            logger.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString()
+                    + ", conn " + this.currentProtocol.getServerThreadId()
+                    + " ] connection fail. Reason : " + qe.getMessage());
             addToBlacklist(currentProtocol.getHostAddress());
         }
         return primaryFail(method, args);
@@ -266,28 +273,33 @@ public abstract class AbstractMastersListener implements Listener {
     public HandleErrorResult relaunchOperation(Method method, Object[] args) throws IllegalAccessException, InvocationTargetException {
         HandleErrorResult handleErrorResult = new HandleErrorResult(true);
         if (method != null) {
-            if ("executeQuery".equals(method.getName())) {
-                if (args[1] instanceof String) {
-                    String query = ((String) args[1]).toUpperCase();
-                    if (!query.equals("ALTER SYSTEM CRASH")
-                            && !query.startsWith("KILL")) {
+            switch (method.getName()) {
+                case "executeQuery":
+                    if (args[2] instanceof String) {
+                        String query = ((String) args[2]).toUpperCase();
+                        if (!query.equals("ALTER SYSTEM CRASH")
+                                && !query.startsWith("KILL")) {
+                            handleErrorResult.resultObject = method.invoke(currentProtocol, args);
+                            handleErrorResult.mustThrowError = false;
+                        }
+                    }
+                    break;
+                case "prepareAndExecutesComMulti":
+                case "executePreparedQuery":
+                    //the statementId has been discarded with previous session
+                    try {
+                        boolean mustBeOnMaster = (Boolean) args[0];
+                        ServerPrepareResult oldServerPrepareResult = (ServerPrepareResult) args[1];
+                        ServerPrepareResult serverPrepareResult = currentProtocol.prepare(oldServerPrepareResult.getSql(), mustBeOnMaster);
+                        oldServerPrepareResult.failover(serverPrepareResult.getStatementId(), currentProtocol);
                         handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                         handleErrorResult.mustThrowError = false;
+                    } catch (Exception e) {
                     }
-                }
-            } else if ("executePreparedQuery".equals(method.getName())) {
-                //the statementId has been discarded with previous session
-                try {
-                    handleErrorResult.resultObject = null;
-                    currentProtocol.executePreparedQueryAfterFailover(((PrepareResult) args[0]),
-                            ((ExecutionResult) args[1]), ((String) args[2]),
-                            ((ParameterHolder[]) args[3]), ((MariaDbType[]) args[4]), ((int) args[5]));
+                    break;
+                default:
+                    handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                     handleErrorResult.mustThrowError = false;
-                } catch (Exception e) {
-                }
-            } else {
-                handleErrorResult.resultObject = method.invoke(currentProtocol, args);
-                handleErrorResult.mustThrowError = false;
             }
         }
         return handleErrorResult;
@@ -301,16 +313,33 @@ public abstract class AbstractMastersListener implements Listener {
      */
     public boolean isQueryRelaunchable(Method method, Object[] args) {
         if (method != null) {
-            if ("executeQuery".equals(method.getName()) && args[1] instanceof String) {
-                return ((String) args[1]).toUpperCase().startsWith("SELECT");
-            } else if (("executePreparedQuery".equals(method.getName()) || "executePreparedQueryAfterFailover".equals(method.getName()))
-                    && args[2] instanceof String) {
-                PrepareResult prepareResult = (PrepareResult) args[1];
-                if (!prepareResult.isExecuteOnMaster()) {
-                    //query must normally be launched on slave.
-                    return true;
-                }
-                return ((String) args[2]).toUpperCase().startsWith("SELECT");
+            switch (method.getName()) {
+                case "executeQuery":
+                    if (!((Boolean) args[0])) return true; //launched on slave connection
+                    if (args[2] instanceof String) {
+                        return ((String) args[2]).toUpperCase().startsWith("SELECT");
+                    } else if (args[2] instanceof ClientPrepareResult) {
+                        @SuppressWarnings("unchecked")
+                        String query = new String(((ClientPrepareResult) args[2]).getQueryParts().get(0)).toUpperCase();
+                        return query.startsWith("SELECT");
+                    }
+                    break;
+                case "executePreparedQuery":
+                    if (!((Boolean) args[0])) return true; //launched on slave connection
+                    ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
+                    return (serverPrepareResult.getSql()).toUpperCase().startsWith("SELECT");
+                case "prepareAndExecute":
+                    if (!((Boolean) args[0])) return true; //launched on slave connection
+                    return ((String) args[2]).toUpperCase().startsWith("SELECT");
+                case "executeBatch":
+                case "executeBatchMultiple":
+                case "executeBatchRewrite":
+                case "prepareAndExecutes":
+                case "executeBatchMulti":
+                    if (!((Boolean) args[0])) return true; //launched on slave connection
+                    return false;
+                default:
+                    return false;
             }
         }
         return false;

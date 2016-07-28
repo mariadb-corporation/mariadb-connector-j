@@ -20,7 +20,7 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
-Copyright (c) 2009-2011, Marcus Eriksson , Stephane Giron
+Copyright (c) 2009-2011, Marcus Eriksson
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -47,32 +47,38 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.packet.send;
+package org.mariadb.jdbc.internal.util;
 
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterWriter;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
-public class SendClosePrepareStatementPacket implements InterfaceSendPacket {
 
-    private int statementId;
+public final class ClientPrepareStatementCache extends LinkedHashMap<String, ClientPrepareResult> {
+    private final int maxSize;
 
-    public SendClosePrepareStatementPacket(int statementId) {
-        this.statementId = statementId;
+    private ClientPrepareStatementCache(int size) {
+        super(size, .75f, true);
+        this.maxSize = size;
     }
 
-    /**
-     * Send close preparedStatement stream.
-     * @param os database socket.
-     * @throws IOException if a connection error occur
-     */
-    public void send(final OutputStream os) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream) os;
-        pos.startPacket(0);
-        pos.write(0x19);
-        pos.write(ParameterWriter.writeLittleEndian(statementId));
-        pos.finishPacket();
+    @Override
+    protected boolean removeEldestEntry(Map.Entry<String, ClientPrepareResult> eldest) {
+        return size() > maxSize;
+    }
+
+    public static ClientPrepareStatementCache newInstance(int size) {
+        return new ClientPrepareStatementCache(size);
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder stringBuilder = new StringBuilder("ClientPrepareStatementCache.map[");
+        for (Map.Entry<String, ClientPrepareResult> entry : this.entrySet()) {
+            stringBuilder.append("\n").append(entry.getKey());
+        }
+        stringBuilder.append("]");
+        return stringBuilder.toString();
     }
 }

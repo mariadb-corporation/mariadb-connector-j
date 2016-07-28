@@ -11,6 +11,27 @@ remove_mysql(){
 }
 remove_mysql
 
+case "$TYPE" in
+ "REWRITE" )
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&rewriteBatchedStatements=true'
+   ;;
+ "MULTI" )
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&allowMultiQueries=true'
+   ;;
+ "BULK_CLIENT" )
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=true&useServerPrepStmts=false'
+   ;;
+ "NO_BULK_CLIENT" )
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false&useServerPrepStmts=false'
+   ;;
+ "NO_BULK_SERVER" )
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false'
+   ;;
+ "COMPRESSION" )
+   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useCompression=true'
+   ;;
+esac;
+
 if [ -n "$AURORA" ]
 then
     # AURORA tests doesn't need an installation
@@ -18,16 +39,14 @@ then
 else
     if [ -n "$MYSQL_VERSION" ]
     then
-        export MYSQ_GPG_KEY=5072E1F5
         sudo tee /etc/apt/sources.list.d/mysql.list << END
 deb http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL_VERSION
 deb-src http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL_VERSION
 END
+        sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 5072E1F5
 
-        sudo apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys $MYSQ_GPG_KEY
-
-        sudo apt-get -qq update
-        sudo apt-get -qq install mysql-server
+        sudo apt-get -qq update --force-yes
+        sudo apt-get -qq install mysql-server --force-yes
 
         dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL_VERSION/-dmr/}
 

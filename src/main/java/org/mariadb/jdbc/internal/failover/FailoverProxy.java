@@ -51,9 +51,11 @@ package org.mariadb.jdbc.internal.failover;
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.lang.reflect.InvocationHandler;
@@ -64,6 +66,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 public class FailoverProxy implements InvocationHandler {
+    private static Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
     public static final String METHOD_IS_EXPLICIT_CLOSED = "isExplicitClosed";
     public static final String METHOD_GET_OPTIONS = "getOptions";
     public static final String METHOD_GET_PROXY = "getProxy";
@@ -73,6 +76,7 @@ public class FailoverProxy implements InvocationHandler {
     public static final String METHOD_CLOSED_EXPLICIT = "closeExplicit";
     public static final String METHOD_IS_CLOSED = "isClosed";
     public static final String METHOD_EXECUTE_PREPARED_QUERY = "executePreparedQuery";
+    public static final String METHOD_COM_MULTI_PREPARE_EXECUTES = "prepareAndExecutesComMulti";
     public static final String METHOD_PROLOG_PROXY = "prologProxy";
 
 
@@ -133,26 +137,49 @@ public class FailoverProxy implements InvocationHandler {
             case METHOD_CLOSED_EXPLICIT:
                 this.listener.preClose();
                 return null;
+            case METHOD_COM_MULTI_PREPARE_EXECUTES:
             case METHOD_EXECUTE_PREPARED_QUERY:
-                if (((PrepareResult) args[0]).mustRePrepareOnSlave() && !this.listener.hasHostFail()) {
-                    //PrepareStatement was to be executed on slave, but since a failover was running on master connection. Slave connection is up
-                    // again, so has to be reprepared on slave
+                boolean mustBeOnMaster = (Boolean) args[0];
+                ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
+                if (serverPrepareResult != null) {
+                    if (!mustBeOnMaster && serverPrepareResult.getUnProxiedProtocol().isMasterConnection() && !this.listener.hasHostFail()) {
+                        //PrepareStatement was to be executed on slave, but since a failover was running on master connection. Slave connection is up
+                        // again, so has to be re-prepared on slave
+                        try {
+                            logger.trace("re-prepare query \"" + serverPrepareResult.getSql() + "\" on slave (was "
+                                    + "temporary on master since failover)");
+                            this.listener.rePrepareOnSlave(serverPrepareResult, mustBeOnMaster);
+                        } catch (QueryException q) {
+                            //error during re-prepare, will do executed on master.
+                        }
+                    }
                     try {
-                        this.listener.rePrepareOnSlave(((PrepareResult) args[0]), (String) args[2], (MariaDbType[]) args[4]);
-                    } catch (QueryException q) {
-                        //error during reprepare, will do executed on master.
+                        return listener.invoke(method, args, serverPrepareResult.getUnProxiedProtocol());
+                    } catch (InvocationTargetException e) {
+                        if (e.getTargetException() != null) {
+                            if (e.getTargetException() instanceof QueryException) {
+                                if (hasToHandleFailover((QueryException) e.getTargetException())) {
+                                    return handleFailOver((QueryException) e.getTargetException(), method, args,
+                                            serverPrepareResult.getUnProxiedProtocol());
+                                }
+                            }
+                            throw e.getTargetException();
+                        }
+                        throw e;
                     }
                 }
-                //No break, must continue
+                break;
             case METHOD_PROLOG_PROXY:
                 try {
-                    return listener.invoke(method, args, ((PrepareResult) args[0]).getUnProxiedProtocol());
+                    if (args[0] != null) {
+                        return listener.invoke(method, args, ((ServerPrepareResult) args[0]).getUnProxiedProtocol());
+                    }
                 } catch (InvocationTargetException e) {
                     if (e.getTargetException() != null) {
                         if (e.getTargetException() instanceof QueryException) {
                             if (hasToHandleFailover((QueryException) e.getTargetException())) {
                                 return handleFailOver((QueryException) e.getTargetException(), method, args,
-                                        ((PrepareResult) args[0]).getUnProxiedProtocol());
+                                        ((ServerPrepareResult) args[0]).getUnProxiedProtocol());
                             }
                         }
                         throw e.getTargetException();
@@ -194,7 +221,7 @@ public class FailoverProxy implements InvocationHandler {
             failHostAddress = protocol.getHostAddress();
             failIsMaster = protocol.isMasterConnection();
         }
-        HandleErrorResult handleErrorResult = listener.handleFailover(method, args, protocol);
+        HandleErrorResult handleErrorResult = listener.handleFailover(qe, method, args, protocol);
         if (handleErrorResult.mustThrowError) {
             listener.throwFailoverMessage(failHostAddress, failIsMaster, qe, handleErrorResult.isReconnected);
         }

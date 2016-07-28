@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.send;
 
-import org.mariadb.jdbc.internal.packet.read.Packet;
+import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;

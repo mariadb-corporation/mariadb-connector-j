@@ -71,7 +71,7 @@ public class CallableStatementCache extends LinkedHashMap<CallableStatementCache
      * Add prepared statement to cache.
      * @param key sql
      * @param value prepareResult
-     * @return PrepareResult to avoid to prepare statement.
+     * @return ServerPrepareResult to avoid to prepare statement.
      */
     public CallableStatement putIfNone(CallableStatementCacheKey key, CallableStatement value) {
         if (!containsKey(key)) {

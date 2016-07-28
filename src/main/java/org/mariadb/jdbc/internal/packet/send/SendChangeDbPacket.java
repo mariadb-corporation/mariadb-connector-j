@@ -49,6 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.send;
 
+import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
@@ -71,7 +72,7 @@ public class SendChangeDbPacket implements InterfaceSendPacket {
     public void send(final OutputStream outputStream) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) outputStream;
         pos.startPacket(0);
-        pos.write(0x02);
+        pos.write(Packet.COM_INIT_DB);
         pos.write(database.getBytes("UTF-8"));
         pos.finishPacket();
     }

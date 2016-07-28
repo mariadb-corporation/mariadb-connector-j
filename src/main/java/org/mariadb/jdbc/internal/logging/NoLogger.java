@@ -1,9 +1,10 @@
-package org.mariadb.jdbc.internal.packet.dao.parameters;
+package org.mariadb.jdbc.internal.logging;
 
 /*
 MariaDB Client for Java
 
 Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (c) 2014-2016 MariaDB Corporation AB
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -49,17 +50,76 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+public class NoLogger implements Logger {
 
-import java.io.IOException;
-
-
-public abstract class LongDataParameterHolder extends ParameterHolder {
-
-    public abstract void writeBinary(PacketOutputStream writeBuffer) throws IOException;
-
-    public boolean isLongData() {
-        return true;
+    public boolean isTraceEnabled() {
+        return false;
     }
+
+    public void trace(String msg) { }
+
+    public void trace(String format, Object arg) { }
+
+    public void trace(String format, Object arg1, Object arg2) { }
+
+    public void trace(String format, Object... arguments) { }
+
+    public void trace(String msg, Throwable throwable) { }
+
+    public boolean isDebugEnabled() {
+        return false;
+    }
+
+    public void debug(String msg) { }
+
+    public void debug(String format, Object arg) { }
+
+    public void debug(String format, Object arg1, Object arg2) { }
+
+    public void debug(String format, Object... arguments) { }
+
+    public void debug(String msg, Throwable throwable) { }
+
+    public boolean isInfoEnabled() {
+        return false;
+    }
+
+    public void info(String msg) { }
+
+    public void info(String format, Object arg) { }
+
+    public void info(String format, Object arg1, Object arg2) { }
+
+    public void info(String format, Object... arguments) { }
+
+    public void info(String msg, Throwable throwable) { }
+
+    public boolean isWarnEnabled() {
+        return false;
+    }
+
+    public void warn(String msg) { }
+
+    public void warn(String format, Object arg) { }
+
+    public void warn(String format, Object... arguments) { }
+
+    public void warn(String format, Object arg1, Object arg2) { }
+
+    public void warn(String msg, Throwable throwable) { }
+
+    public boolean isErrorEnabled() {
+        return false;
+    }
+
+    public void error(String msg) { }
+
+    public void error(String format, Object arg) { }
+
+    public void error(String format, Object arg1, Object arg2) { }
+
+    public void error(String format, Object... arguments) { }
+
+    public void error(String msg, Throwable throwable) { }
 
 }

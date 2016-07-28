@@ -33,7 +33,7 @@ public abstract class BaseReplication extends BaseMonoServer {
 
             //prepareStatement on slave connection
             PreparedStatement preparedStatement = connection.prepareStatement("SELECT test from replicationFailoverBinary" + jobId + " where id = ?");
-            final int currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
+            final long currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
             int slaveServerId = getServerId(connection);
             Assert.assertFalse(masterServerId == slaveServerId);
             //stop slave for a few seconds

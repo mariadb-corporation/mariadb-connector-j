@@ -14,7 +14,7 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -61,6 +61,10 @@ public class BaseMultiHostTest {
 
     @Rule
     public TestRule watcher = new TestWatcher() {
+        protected void starting(Description description) {
+            System.out.println("start test : " + description.getClassName() + "." + description.getMethodName());
+        }
+
         protected void succeeded(Description description) {
             System.out.println("finished test success : " + description.getClassName() + "." + description.getMethodName());
         }
@@ -345,9 +349,9 @@ public class BaseMultiHostTest {
         return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
     }
 
-    PrepareResult getPrepareResult(MariaDbServerPreparedStatement preparedStatement) throws IllegalAccessException, NoSuchFieldException {
-        Field prepareResultField = MariaDbServerPreparedStatement.class.getDeclaredField("prepareResult"); //NoSuchFieldException
+    ServerPrepareResult getPrepareResult(MariaDbServerPreparedStatement preparedStatement) throws IllegalAccessException, NoSuchFieldException {
+        Field prepareResultField = MariaDbServerPreparedStatement.class.getDeclaredField("serverPrepareResult"); //NoSuchFieldException
         prepareResultField.setAccessible(true);
-        return (PrepareResult) prepareResultField.get(preparedStatement); //IllegalAccessException
+        return (ServerPrepareResult) prepareResultField.get(preparedStatement); //IllegalAccessException
     }
 }

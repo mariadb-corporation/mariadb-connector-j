@@ -91,7 +91,7 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
     private String username;
     private String password;
     private byte[] seed;
-    private final int clientCapabilities;
+    private long clientCapabilities;
     private final byte serverLanguage;
     private String database;
     private String plugin;
@@ -117,7 +117,7 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
     public SendHandshakeResponsePacket(final String username,
                                        final String password,
                                        final String database,
-                                       final int clientCapabilities,
+                                       final long clientCapabilities,
                                        final byte serverLanguage,
                                        final byte[] seed,
                                        byte packetSeq,
@@ -161,12 +161,16 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
                 authData = new byte[0];
         }
 
-
-        writeBuffer.writeInt(clientCapabilities)
+        writeBuffer.writeInt((int) clientCapabilities)
                 .writeInt(1024 * 1024 * 1024)
-                .writeByte(serverLanguage) //1
-                .writeBytes((byte) 0, 23)    //23
-                .writeString(username)     //strlen username
+                .writeByte(serverLanguage); //1
+
+        writeBuffer.writeBytes((byte) 0, 19)    //19
+                .writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
+
+        if (username == null || "".equals(username)) username = System.getProperty("user.name"); //permit SSO
+        
+        writeBuffer.writeString(username)     //strlen username
                 .writeByte((byte) 0);        //1
 
         if ((clientCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {

@@ -2,6 +2,7 @@
 MariaDB Client for Java
 
 Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (c) 2015-2016 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -47,21 +48,10 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.packet.read;
+package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.packet.result.*;
-import org.mariadb.jdbc.internal.util.buffer.Buffer;
+public interface LocalInfileInterceptor {
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
+    boolean validate(String fileName) ;
 
-/**
- * Creates result packets only handles error, ok, eof and result set packets since field and row packets require a
- * previous result set stream.
- */
-public class Packet {
-    public static final byte ERROR = (byte) 0xff;
-    public static final byte OK = (byte) 0x00;
-    public static final byte EOF = (byte) 0xfe;
-    public static final byte LOCAL_INFILE = (byte) 0xfb;
 }

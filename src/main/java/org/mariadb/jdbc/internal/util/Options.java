@@ -62,6 +62,7 @@ public class Options {
     public String trustCertificateKeyStorePassword;
     public String clientCertificateKeyStoreUrl;
     public String clientCertificateKeyStorePassword;
+    public String enabledSslProtocolSuites;
     public boolean useFractionalSeconds;
     public boolean pinGlobalTxToPhysicalConnection;
     public String socketFactory;
@@ -80,8 +81,9 @@ public class Options {
     public boolean rewriteBatchedStatements;
     public boolean useCompression;
     public boolean interactiveClient;
-    /*public boolean useSSL;*/
+
     public boolean useSsl;
+    public String enabledSslCipherSuites;
     public String sessionVariables;
     public boolean tinyInt1isBit;
     public boolean yearIsDateType;
@@ -102,6 +104,14 @@ public class Options {
     public boolean cacheCallableStmts;
     public Integer callableStmtCacheSize;
     public String connectionAttributes;
+    public boolean useBatchMultiSend;
+    public int useBatchMultiSendNumber;
+
+    //logging options
+    public boolean log;
+    public boolean profileSql;
+    public Integer maxQuerySizeToLog;
+    public Long slowQueryThresholdNanos;
 
     //HA options
     public boolean assureReadOnly;
@@ -126,6 +136,7 @@ public class Options {
                 + ", trustCertificateKeyStorePassword='" + trustCertificateKeyStorePassword + '\''
                 + ", clientCertificateKeyStoreUrl='" + clientCertificateKeyStoreUrl + '\''
                 + ", clientCertificateKeyStorePassword='" + clientCertificateKeyStorePassword + '\''
+                + ", enabledSslProtocolSuites='" + enabledSslProtocolSuites + '\''
                 + ", socketFactory='" + socketFactory + '\''
                 + ", connectTimeout=" + connectTimeout
                 + ", pipe='" + pipe + '\''
@@ -143,6 +154,7 @@ public class Options {
                 + ", useCompression=" + useCompression
                 + ", interactiveClient=" + interactiveClient
                 + ", useSsl=" + useSsl
+                + ", enabledSslCipherSuites='" + enabledSslCipherSuites + '\''
                 + ", sessionVariables='" + sessionVariables + '\''
                 + ", tinyInt1isBit=" + tinyInt1isBit
                 + ", yearIsDateType=" + yearIsDateType
@@ -166,11 +178,16 @@ public class Options {
                 + ", continueBatchOnError=" + continueBatchOnError
                 + ", jdbcCompliantTruncation=" + jdbcCompliantTruncation
                 + ", cacheCallableStmts=" + cacheCallableStmts
+                + ", useBatchMultiSend=" + useBatchMultiSend
+                + ", useBatchMultiSendNumber=" + useBatchMultiSendNumber
                 + ", callableStmtCacheSize=" + callableStmtCacheSize
                 + ", connectionAttributes=" + connectionAttributes
+                + ", log=" + log
+                + ", profileSql=" + profileSql
+                + ", maxQuerySizeToLog=" + maxQuerySizeToLog
+                + ", slowQueryThresholdNanos=" + slowQueryThresholdNanos
                 + "}";
     }
-
 
     @Override
     public boolean equals(Object obj) {
@@ -183,154 +200,77 @@ public class Options {
 
         Options options = (Options) obj;
 
-        if (trustServerCertificate != options.trustServerCertificate) {
+        if (trustServerCertificate != options.trustServerCertificate) return false;
+        if (useFractionalSeconds != options.useFractionalSeconds) return false;
+        if (pinGlobalTxToPhysicalConnection != options.pinGlobalTxToPhysicalConnection) return false;
+        if (tcpNoDelay != options.tcpNoDelay) return false;
+        if (tcpKeepAlive != options.tcpKeepAlive) return false;
+        if (tcpAbortiveClose != options.tcpAbortiveClose) return false;
+        if (allowMultiQueries != options.allowMultiQueries) return false;
+        if (rewriteBatchedStatements != options.rewriteBatchedStatements) return false;
+        if (useCompression != options.useCompression) return false;
+        if (interactiveClient != options.interactiveClient) return false;
+        if (useSsl != options.useSsl) return false;
+        if (enabledSslCipherSuites != options.enabledSslCipherSuites) return false;
+        if (tinyInt1isBit != options.tinyInt1isBit) return false;
+        if (yearIsDateType != options.yearIsDateType) return false;
+        if (createDatabaseIfNotExist != options.createDatabaseIfNotExist) return false;
+        if (nullCatalogMeansCurrent != options.nullCatalogMeansCurrent) return false;
+        if (dumpQueriesOnException != options.dumpQueriesOnException) return false;
+        if (useOldAliasMetadataBehavior != options.useOldAliasMetadataBehavior) return false;
+        if (allowLocalInfile != options.allowLocalInfile) return false;
+        if (cachePrepStmts != options.cachePrepStmts) return false;
+        if (useLegacyDatetimeCode != options.useLegacyDatetimeCode) return false;
+        if (maximizeMysqlCompatibility != options.maximizeMysqlCompatibility) return false;
+        if (useServerPrepStmts != options.useServerPrepStmts) return false;
+        if (assureReadOnly != options.assureReadOnly) return false;
+        if (log != options.log) return false;
+        if (profileSql != options.profileSql) return false;
+        if (autoReconnect != options.autoReconnect) return false;
+        if (failOnReadOnly != options.failOnReadOnly) return false;
+        if (retriesAllDown != options.retriesAllDown) return false;
+        if (validConnectionTimeout != options.validConnectionTimeout) return false;
+        if (loadBalanceBlacklistTimeout != options.loadBalanceBlacklistTimeout) return false;
+        if (failoverLoopRetries != options.failoverLoopRetries) return false;
+        if (user != null ? !user.equals(options.user) : options.user != null) return false;
+        if (password != null ? !password.equals(options.password) : options.password != null) return false;
+        if (serverSslCert != null ? !serverSslCert.equals(options.serverSslCert) : options.serverSslCert != null) return false;
+        if (enabledSslProtocolSuites != null
+                ? !enabledSslProtocolSuites.equals(options.enabledSslProtocolSuites)
+                : options.enabledSslProtocolSuites != null) {
             return false;
         }
-        if (useFractionalSeconds != options.useFractionalSeconds) {
-            return false;
-        }
-        if (pinGlobalTxToPhysicalConnection != options.pinGlobalTxToPhysicalConnection) {
-            return false;
-        }
-        if (tcpNoDelay != options.tcpNoDelay) {
-            return false;
-        }
-        if (tcpKeepAlive != options.tcpKeepAlive) {
-            return false;
-        }
-        if (tcpAbortiveClose != options.tcpAbortiveClose) {
-            return false;
-        }
-        if (allowMultiQueries != options.allowMultiQueries) {
-            return false;
-        }
-        if (rewriteBatchedStatements != options.rewriteBatchedStatements) {
-            return false;
-        }
-        if (useCompression != options.useCompression) {
-            return false;
-        }
-        if (interactiveClient != options.interactiveClient) {
-            return false;
-        }
-        if (useSsl != options.useSsl) {
-            return false;
-        }
-        if (tinyInt1isBit != options.tinyInt1isBit) {
-            return false;
-        }
-        if (yearIsDateType != options.yearIsDateType) {
-            return false;
-        }
-        if (createDatabaseIfNotExist != options.createDatabaseIfNotExist) {
-            return false;
-        }
-        if (nullCatalogMeansCurrent != options.nullCatalogMeansCurrent) {
-            return false;
-        }
-        if (dumpQueriesOnException != options.dumpQueriesOnException) {
-            return false;
-        }
-        if (useOldAliasMetadataBehavior != options.useOldAliasMetadataBehavior) {
-            return false;
-        }
-        if (allowLocalInfile != options.allowLocalInfile) {
-            return false;
-        }
-        if (cachePrepStmts != options.cachePrepStmts) {
-            return false;
-        }
-        if (useLegacyDatetimeCode != options.useLegacyDatetimeCode) {
-            return false;
-        }
-        if (maximizeMysqlCompatibility != options.maximizeMysqlCompatibility) {
-            return false;
-        }
-        if (useServerPrepStmts != options.useServerPrepStmts) {
-            return false;
-        }
-        if (assureReadOnly != options.assureReadOnly) {
-            return false;
-        }
-        if (autoReconnect != options.autoReconnect) {
-            return false;
-        }
-        if (failOnReadOnly != options.failOnReadOnly) {
-            return false;
-        }
-        if (retriesAllDown != options.retriesAllDown) {
-            return false;
-        }
-        if (validConnectionTimeout != options.validConnectionTimeout) {
-            return false;
-        }
-        if (loadBalanceBlacklistTimeout != options.loadBalanceBlacklistTimeout) {
-            return false;
-        }
-        if (failoverLoopRetries != options.failoverLoopRetries) {
-            return false;
-        }
-        if (user != null ? !user.equals(options.user) : options.user != null) {
-            return false;
-        }
-        if (password != null ? !password.equals(options.password) : options.password != null) {
-            return false;
-        }
-        if (serverSslCert != null ? !serverSslCert.equals(options.serverSslCert) : options.serverSslCert != null) {
-            return false;
-        }
-        if (socketFactory != null ? !socketFactory.equals(options.socketFactory) : options.socketFactory != null) {
-            return false;
-        }
-        if (connectTimeout != null ? !connectTimeout.equals(options.connectTimeout) : options.connectTimeout != null) {
-            return false;
-        }
-        if (pipe != null ? !pipe.equals(options.pipe) : options.pipe != null) {
-            return false;
-        }
-        if (localSocket != null ? !localSocket.equals(options.localSocket) : options.localSocket != null) {
-            return false;
-        }
-        if (sharedMemory != null ? !sharedMemory.equals(options.sharedMemory) : options.sharedMemory != null) {
-            return false;
-        }
-        if (tcpRcvBuf != null ? !tcpRcvBuf.equals(options.tcpRcvBuf) : options.tcpRcvBuf != null) {
-            return false;
-        }
-        if (tcpSndBuf != null ? !tcpSndBuf.equals(options.tcpSndBuf) : options.tcpSndBuf != null) {
-            return false;
-        }
-        if (localSocketAddress != null ? !localSocketAddress.equals(options.localSocketAddress) : options.localSocketAddress != null) {
-            return false;
-        }
-        if (socketTimeout != null ? !socketTimeout.equals(options.socketTimeout) : options.socketTimeout != null) {
-            return false;
-        }
-        if (sessionVariables != null ? !sessionVariables.equals(options.sessionVariables) : options.sessionVariables != null) {
-            return false;
-        }
-        if (serverTimezone != null ? !serverTimezone.equals(options.serverTimezone) : options.serverTimezone != null) {
-            return false;
-        }
-        if (prepStmtCacheSize != null ? !prepStmtCacheSize.equals(options.prepStmtCacheSize) : options.prepStmtCacheSize != null) {
-            return false;
-        }
-        if (continueBatchOnError != options.continueBatchOnError) {
-            return false;
-        }
-        if (jdbcCompliantTruncation != options.jdbcCompliantTruncation) {
-            return false;
-        }
-        if (cacheCallableStmts != options.cacheCallableStmts) {
-            return false;
-        }
-
+        if (socketFactory != null ? !socketFactory.equals(options.socketFactory) : options.socketFactory != null) return false;
+        if (connectTimeout != null ? !connectTimeout.equals(options.connectTimeout) : options.connectTimeout != null) return false;
+        if (pipe != null ? !pipe.equals(options.pipe) : options.pipe != null) return false;
+        if (localSocket != null ? !localSocket.equals(options.localSocket) : options.localSocket != null) return false;
+        if (sharedMemory != null ? !sharedMemory.equals(options.sharedMemory) : options.sharedMemory != null) return false;
+        if (tcpRcvBuf != null ? !tcpRcvBuf.equals(options.tcpRcvBuf) : options.tcpRcvBuf != null) return false;
+        if (tcpSndBuf != null ? !tcpSndBuf.equals(options.tcpSndBuf) : options.tcpSndBuf != null) return false;
+        if (localSocketAddress != null ? !localSocketAddress.equals(options.localSocketAddress) : options.localSocketAddress != null) return false;
+        if (socketTimeout != null ? !socketTimeout.equals(options.socketTimeout) : options.socketTimeout != null) return false;
+        if (sessionVariables != null ? !sessionVariables.equals(options.sessionVariables) : options.sessionVariables != null) return false;
+        if (serverTimezone != null ? !serverTimezone.equals(options.serverTimezone) : options.serverTimezone != null) return false;
+        if (prepStmtCacheSize != null ? !prepStmtCacheSize.equals(options.prepStmtCacheSize) : options.prepStmtCacheSize != null) return false;
+        if (continueBatchOnError != options.continueBatchOnError) return false;
+        if (jdbcCompliantTruncation != options.jdbcCompliantTruncation) return false;
+        if (cacheCallableStmts != options.cacheCallableStmts) return false;
         if (callableStmtCacheSize != null ? !callableStmtCacheSize.equals(options.callableStmtCacheSize) : options.callableStmtCacheSize != null) {
+            return false;
+        }
+        if (maxQuerySizeToLog != null ? !maxQuerySizeToLog.equals(options.maxQuerySizeToLog) : options.maxQuerySizeToLog != null) {
             return false;
         }
         if (connectionAttributes != null ? !connectionAttributes.equals(options.connectionAttributes) : options.connectionAttributes != null) {
             return false;
         }
+        if (slowQueryThresholdNanos != null
+                ? !slowQueryThresholdNanos.equals(options.slowQueryThresholdNanos) : options.slowQueryThresholdNanos != null) {
+            return false;
+        }
+        if (useBatchMultiSend != options.useBatchMultiSend) return false;
+        if (useBatchMultiSendNumber != options.useBatchMultiSendNumber) return false;
+
         return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)
                 : options.prepStmtCacheSqlLimit != null);
 

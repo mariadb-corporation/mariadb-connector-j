@@ -3,21 +3,20 @@ package org.mariadb.jdbc;
 import org.junit.*;
 
 import java.io.*;
+import java.lang.reflect.Field;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
-import java.lang.reflect.Field;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Collection;
 import java.util.Properties;
 import java.util.UUID;
 
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.Assert.assertEquals;
 
 public class SslTest extends BaseTest {
@@ -33,7 +32,7 @@ public class SslTest extends BaseTest {
         try {
             Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
             field.setAccessible(true);
-            field.set(null, java.lang.Boolean.FALSE);
+            field.set(null, Boolean.FALSE);
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -69,6 +68,172 @@ public class SslTest extends BaseTest {
             connection.createStatement().execute("select 1");
         } finally {
             connection.close();
+        }
+    }
+
+    protected void useSslForceTls(String tls) throws Exception {
+        useSslForceTls(tls, null);
+    }
+
+    /**
+     * Helper method when checking/enabling secure connections for a specific TLS protocol suite.
+     **/
+    protected void useSslForceTls(String tls, String ciphers) throws Exception {
+        Assume.assumeTrue(haveSsl(sharedConnection));
+        //Skip SSL test on java 7 since SSL stream size JDK-6521495).
+        Assume.assumeFalse(System.getProperty("java.version").contains("1.7."));
+        Properties info = new Properties();
+        info.setProperty("useSSL", "true");
+        info.setProperty("trustServerCertificate", "true");
+        info.setProperty("enabledSslProtocolSuites", tls);
+        if (ciphers != null) info.setProperty("enabledSslCipherSuites", ciphers);
+
+        Connection connection = setConnection(info);
+        try {
+            connection.createStatement().execute("select 1");
+        } finally {
+            connection.close();
+        }
+    }
+
+    @Test
+    public void testBadOptionEnabledSslProtocolSuites() throws Exception {
+        try {
+            useSslForceTls("TLSv1,TLSv1.5");
+            fail("Must have thrown error since protocol unknown");
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Unsupported SSL protocol 'TLSv1.5'. Supported protocols : "));
+        }
+    }
+
+    @Test
+    public void testUnknownProtocol() throws Exception {
+        try {
+            useSslForceTls("TLSv0");
+            fail("Must have thrown error since protocol not set");
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Unsupported SSL protocol 'TLSv0'. Supported protocols : "));
+        }
+    }
+
+    @Test
+    public void testServerRefuseProtocol() throws Exception {
+        try {
+            useSslForceTls("SSLv3");
+            fail("Must have thrown error since protocol is refused by server");
+        } catch (SQLNonTransientConnectionException e) {
+            assertTrue(e.getMessage().contains("No appropriate protocol "
+                    + "(protocol is disabled or cipher suites are inappropriate)"));
+        }
+    }
+
+    @Test
+    public void useSslForceTlsV1() throws Exception {
+        useSslForceTls("TLSv1");
+    }
+
+    @Test
+    public void useSslForceTlsV11() throws Exception {
+        // must either be mariadb or mysql version 5.7.10
+        if (isMariadbServer() || minVersion(5, 7)) useSslForceTls("TLSv1.1");
+    }
+
+    @Test
+    public void useSslForceTlsV12() throws Exception {
+        // Only test with MariaDB since MySQL community is compiled with yaSSL
+        if (isMariadbServer()) useSslForceTls("TLSv1.2");
+    }
+
+    @Test
+    public void useSslForceTlsV12AndCipher() throws Exception {
+        // Only test with MariaDB since MySQL community is compiled with yaSSL
+        if (isMariadbServer()) {
+            useSslForceTls("TLSv1.2", "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384");
+        }
+    }
+
+    @Test
+    public void wrongCipher() throws Exception {
+        // Only test with MariaDB since MySQL community is compiled with yaSSL
+        try {
+            if (isMariadbServer()) {
+                useSslForceTls("TLSv1.2", "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, UNKNOWN_CIPHER");
+                fail("Must have thrown error since cipher is refused by server");
+            }
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Unsupported SSL cipher 'UNKNOWN_CIPHER'."));
+        }
+    }
+
+
+    @Test
+    public void wrongCipherForTls11() throws Exception {
+        // Only test with MariaDB since MySQL community is compiled with yaSSL
+        try {
+            if (isMariadbServer()) {
+                useSslForceTls("TLSv1.1", "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
+                fail("Must have thrown error since cipher aren't TLSv1.1 ciphers");
+            }
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("No appropriate protocol (protocol is disabled or cipher suites are inappropriate)"));
+        }
+    }
+
+    @Test
+    public void wrongCipherMysqlOptionCompatibility() throws Exception {
+        // Only test with MariaDB since MySQL community is compiled with yaSSL
+        try {
+            if (isMariadbServer()) {
+                Assume.assumeTrue(haveSsl(sharedConnection));
+                //Skip SSL test on java 7 since SSL stream size JDK-6521495).
+                Assume.assumeFalse(System.getProperty("java.version").contains("1.7."));
+                Properties info = new Properties();
+                info.setProperty("useSSL", "true");
+                info.setProperty("trustServerCertificate", "true");
+                info.setProperty("enabledSslProtocolSuites", "TLSv1.1");
+                //enabledSSLCipherSuites, not enabledSslCipherSuites (different case)
+                info.setProperty("enabledSSLCipherSuites", "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
+
+                Connection connection = setConnection(info);
+                try {
+                    connection.createStatement().execute("select 1");
+                    fail("Must have thrown error since cipher aren't TLSv1.1 ciphers");
+                } finally {
+                    connection.close();
+                }
+            }
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("No appropriate protocol (protocol is disabled or cipher suites are inappropriate)"));
+        }
+    }
+
+
+
+    @Test
+    public void useSslForceTlsCombination() throws Exception {
+        if (isMariadbServer()) {
+            useSslForceTls("TLSv1,TLSv1.1,TLSv1.2");
+        } else {
+            useSslForceTls("TLSv1,TLSv1");
+        }
+    }
+
+    @Test
+    public void useSslForceTlsCombinationWithSpace() throws Exception {
+        if (isMariadbServer()) {
+            useSslForceTls("TLSv1, TLSv1.1, TLSv1.2");
+        } else {
+            useSslForceTls("TLSv1, TLSv1");
+        }
+    }
+
+
+    @Test
+    public void useSslForceTlsCombinationWithOnlySpace() throws Exception {
+        if (isMariadbServer()) {
+            useSslForceTls("TLSv1 TLSv1.1 TLSv1.2");
+        } else {
+            useSslForceTls("TLSv1 TLSv1");
         }
     }
 

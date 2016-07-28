@@ -84,11 +84,11 @@ public class MariaDbPooledConnection implements PooledConnection {
      * The connection pool manager calls this method when an application has
      * called the method <code>DataSource.getConnection</code> and there are
      * no <code>PooledConnection</code> objects available. See the
-     * {@link javax.sql.PooledConnection interface description} for more information.
+     * {@link PooledConnection interface description} for more information.
      *
      * @return a <code>Connection</code> object that is a handle to
      * this <code>PooledConnection</code> object
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      *                               if the JDBC driver does not support
      *                               this method
      * @since 1.4
@@ -102,10 +102,10 @@ public class MariaDbPooledConnection implements PooledConnection {
      * object represents.  An application never calls this method directly;
      * it is called by the connection pool module, or manager.
      * <br>
-     * See the {@link javax.sql.PooledConnection interface description} for more
+     * See the {@link PooledConnection interface description} for more
      * information.
      *
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      *                               if the JDBC driver does not support
      *                               this method
      * @since 1.4

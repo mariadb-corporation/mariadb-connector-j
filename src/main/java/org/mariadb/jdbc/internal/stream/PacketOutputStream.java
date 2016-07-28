@@ -50,17 +50,26 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.stream;
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import java.lang.reflect.Field;
+import java.lang.reflect.ReflectPermission;
+import java.nio.*;
+import java.security.Permission;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.zip.DeflaterOutputStream;
 
 public class PacketOutputStream extends OutputStream {
+
+    private static Logger logger = LoggerFactory.getLogger(PacketOutputStream.class);
+
     private static final int MIN_COMPRESSION_SIZE = 16 * 1024;
     private static final float MIN_COMPRESSION_RATIO = 0.9f;
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;
@@ -78,20 +87,22 @@ public class PacketOutputStream extends OutputStream {
     int maxAllowedPacket = MAX_PACKET_LENGTH;
     int maxPacketSize = MAX_PACKET_LENGTH;
     boolean checkPacketLength;
-    int maxRewritableLengthAllowed;
     boolean useCompression;
+    boolean logQuery;
     public OutputStream outputStream;
     private volatile boolean closed = false;
 
     /**
      * Initialization with server outputStream.
-     * @param outputStream server outPutStream
+     * @param outputStream server outputStream
+     * @param logQuery is query logging enable ?
      */
-    public PacketOutputStream(OutputStream outputStream) {
+    public PacketOutputStream(OutputStream outputStream, boolean logQuery) {
         this.outputStream = outputStream;
         buffer = firstBuffer = ByteBuffer.allocate(BUFFER_DEFAULT_SIZE).order(ByteOrder.LITTLE_ENDIAN);
         useCompression = false;
         buffer.position(4);
+        this.logQuery = logQuery;
     }
 
     protected void increase(int newCapacity) {
@@ -120,7 +131,6 @@ public class PacketOutputStream extends OutputStream {
         this.checkPacketLength = checkPacketLength;
         buffer.clear();
         buffer.position(4);
-
     }
 
     /**
@@ -163,7 +173,10 @@ public class PacketOutputStream extends OutputStream {
             header[3] = ((byte) seqNo);
             outputStream.write(header, 0, 4);
         }
-        outputStream.flush();
+    }
+
+    public void setCompressSeqNo(int compressSeqNo) {
+        this.compressSeqNo = compressSeqNo;
     }
 
     /**
@@ -174,7 +187,6 @@ public class PacketOutputStream extends OutputStream {
      */
     public void sendFile(InputStream is, int seq) throws IOException {
         this.seqNo = seq;
-        this.compressSeqNo = 2;
         if (!useCompression) {
             buffer.clear();
             //reserve the 4th first bytes for header
@@ -317,49 +329,95 @@ public class PacketOutputStream extends OutputStream {
     }
 
     /**
+     * Reinitialized buffer to smaller size if needed to avoid memory consumption.
+     */
+    public void releaseBuffer() {
+        //save big buffer next query to avoid new allocation if next query size is similar
+        if ((buffer.capacity() > 4194304 && buffer.limit() * BIG_SIZE_INCREASE < buffer.capacity())
+                || (buffer.capacity() <= 4194304 && buffer.limit() * NORMAL_INCREASE < buffer.capacity())) {
+            buffer = firstBuffer;
+        }
+    }
+
+    /**
+     * If logging is not active, release buffer.
+     * (if logging is active, it will use the buffer to know send query and release buffer after a while)
+     */
+    public void releaseBufferIfNotLogging() {
+        //save big buffer next query to avoid new allocation if next query size is similar
+        if (!logQuery && buffer != null && ((buffer.capacity() > 4194304 && buffer.limit() * BIG_SIZE_INCREASE < buffer.capacity())
+                || (buffer.capacity() <= 4194304 && buffer.limit() * NORMAL_INCREASE < buffer.capacity()))) {
+            buffer = firstBuffer;
+        }
+    }
+
+    /**
+     * Ending command that tell to send buffer to server.
+     *
+     * @throws IOException if any connection error occur
+     */
+    public void finishPacketWithoutRelease() throws IOException {
+        if (buffer.position() > 4) {
+            checkPacketMaxSize(buffer.position() - 4);
+
+            if (useCompression) {
+                generatePacketWithCompression();
+            } else {
+                generatePacket();
+            }
+        }
+        this.lastSeq =  (useCompression) ? this.compressSeqNo : this.seqNo;
+    }
+
+    /**
      * Ending command that tell to send buffer to server.
      * @throws IOException if any connection error occur
      */
     public void finishPacket() throws IOException {
-        if (buffer.position() > 4) {
-            checkPacketMaxSize(buffer.position());
+        finishPacketWithoutRelease();
+        releaseBuffer();
+    }
 
-            if (useCompression) {
-                flushWithCompression();
-            } else {
-                flushDirect();
-            }
-        }
-
-        //save big buffer next query to avoid new allocation if next query size is similar
-        if (buffer.limit() * 2 < buffer.capacity()) {
-            buffer = firstBuffer;
-        }
-
-        this.lastSeq =  (useCompression) ? this.compressSeqNo : this.seqNo;
+    /**
+     * Force buffer cleanup.
+     */
+    public void forceCleanupBuffer() {
+        Arrays.fill(buffer.array(), (byte) 0x00);
     }
 
     @Override
-    public void write(byte[] bytes) throws IOException {
+    public void write(byte[] bytes) {
         write(bytes, 0, bytes.length);
     }
 
     @Override
-    public void write(int byteInt) throws IOException {
-        byte[] byteArray = {(byte) byteInt};
-        write(byteArray);
+    public void write(int byteInt) {
+        assureBufferCapacity(1);
+        buffer.put((byte) byteInt);
     }
 
     @Override
-    public void write(byte[] bytes, int off, int len) throws IOException {
+    public void write(byte[] bytes, int off, int len) {
         assureBufferCapacity(len);
         buffer.put(bytes, off, len);
     }
 
+    /**
+     * Write byte value directly to buffer.
+     * (buffer size must have been checked beforeheand !)
+     *
+     * @param value byte value
+     */
+    public void writeUnsafe(int value) {
+        buffer.put((byte) value);
+    }
 
-    @Override
-    public void flush() throws IOException {
-        throw new AssertionError("Do not call flush() on PacketOutputStream. use finishPacket() instead.");
+    public void writeUnsafe(byte[] bytes, int off, int len) {
+        buffer.put(bytes, off, len);
+    }
+
+    public void writeUnsafe(byte[] bytes) {
+        writeUnsafe(bytes, 0, bytes.length);
     }
 
     /**
@@ -369,7 +427,7 @@ public class PacketOutputStream extends OutputStream {
      * @return true if with this additional length stream can be send in the same stream
      */
     public boolean checkRewritableLength(int length) {
-        if (checkPacketLength && buffer.position() + length > maxRewritableLengthAllowed) {
+        if (checkPacketLength && (buffer.position() + length > maxAllowedPacket - 1)) {
             return false;
         }
         return true;
@@ -380,12 +438,12 @@ public class PacketOutputStream extends OutputStream {
                 && maxAllowedPacket > 0
                 && limit > (maxAllowedPacket - 1)) {
             this.seqNo = -1;
-            throw new MaxAllowedPacketException("max_allowed_packet=" + maxAllowedPacket + ". stream size " + limit
+            throw new MaxAllowedPacketException("max_allowed_packet=" + (maxAllowedPacket - 1) + ". stream size " + limit
                     + " is > to max_allowed_packet", this.seqNo != 0);
         }
     }
 
-    private void flushDirect() throws IOException {
+    private void generatePacket() throws IOException {
         buffer.flip();
         // the 4th first byte are reserved for first header.
         int dataLength = buffer.remaining() - 4;
@@ -396,9 +454,7 @@ public class PacketOutputStream extends OutputStream {
                     .put((byte) (dataLength >>> 8))
                     .put((byte) (dataLength >>> 16))
                     .put((byte) seqNo++);
-
             outputStream.write(buffer.array(), 0, buffer.limit());
-            outputStream.flush();
         } else {
 
             //multiple packet. Send first one
@@ -406,22 +462,19 @@ public class PacketOutputStream extends OutputStream {
                     .put((byte) (maxPacketSize >>> 8))
                     .put((byte) (maxPacketSize >>> 16))
                     .put((byte) seqNo++);
-
             outputStream.write(buffer.array(), 0, maxPacketSize + 4);
-            outputStream.flush();
             buffer.position(maxPacketSize + 4);
 
             while (buffer.remaining() > 0 ) {
                 int length = buffer.remaining();
                 buffer.position(buffer.position() - 4);
+
                 if (length > maxPacketSize) {
                     buffer.put((byte) (maxPacketSize & 0xff))
                             .put((byte) (maxPacketSize >>> 8))
                             .put((byte) (maxPacketSize >>> 16))
                             .put((byte) seqNo++);
-
                     outputStream.write(buffer.array(), buffer.position() - 4, maxPacketSize + 4);
-                    outputStream.flush();
                     buffer.position(buffer.position() + maxPacketSize);
                 } else {
                     buffer.put((byte) (length & 0xff))
@@ -429,7 +482,6 @@ public class PacketOutputStream extends OutputStream {
                             .put((byte) (length >>> 16))
                             .put((byte) seqNo++);
                     outputStream.write(buffer.array(), buffer.position() - 4, length + 4);
-                    outputStream.flush();
                     break;
                 }
             }
@@ -437,7 +489,7 @@ public class PacketOutputStream extends OutputStream {
     }
 
 
-    private void flushWithCompression() throws IOException {
+    private void generatePacketWithCompression() throws IOException {
         buffer.flip();
         int limit = buffer.limit();
         buffer.position(4);
@@ -470,7 +522,7 @@ public class PacketOutputStream extends OutputStream {
      * @param bufferBytes not compressed data buffer
      * @throws IOException if any compression or connection error occur
      */
-    private void compressedAndSend(int notCompressPosition, byte[] bufferBytes) throws IOException {
+    public void compressedAndSend(int notCompressPosition, byte[] bufferBytes) throws IOException {
         int position = 0;
         int packetLength;
 
@@ -504,7 +556,6 @@ public class PacketOutputStream extends OutputStream {
             }
 
             position += packetLength;
-            outputStream.flush();
         }
     }
 
@@ -519,8 +570,6 @@ public class PacketOutputStream extends OutputStream {
         header[6] = (byte) ((initialLength >> 16) & 0xff);
         outputStream.write(header);
     }
-
-
 
     @Override
     public void close() throws IOException {
@@ -537,8 +586,7 @@ public class PacketOutputStream extends OutputStream {
     public void setMaxAllowedPacket(int maxAllowedPacket) {
         this.maxAllowedPacket = maxAllowedPacket;
         if (maxAllowedPacket > 0) {
-            maxPacketSize = Math.min(maxAllowedPacket - 1, MAX_PACKET_LENGTH);
-            maxRewritableLengthAllowed = (int) (maxAllowedPacket - 4 * Math.ceil(((double)maxAllowedPacket) / maxPacketSize));
+            maxPacketSize = Math.min(maxAllowedPacket, MAX_PACKET_LENGTH);
         } else {
             maxPacketSize = MAX_PACKET_LENGTH;
         }
@@ -551,7 +599,7 @@ public class PacketOutputStream extends OutputStream {
     public void assureBufferCapacity(final int len) {
         while (len > buffer.remaining()) {
             int newCapacity = Math.max(
-                    (int)(len + buffer.position() * NORMAL_INCREASE),
+                    (int)(len + buffer.position() * BIG_SIZE_INCREASE),
                     (int) ((buffer.capacity() > 4194304) ? buffer.capacity() * BIG_SIZE_INCREASE : buffer.capacity() * NORMAL_INCREASE));
             increase(newCapacity);
         }
@@ -763,62 +811,138 @@ public class PacketOutputStream extends OutputStream {
         return this;
     }
 
+    public boolean isClosed() {
+        return closed;
+    }
+
+    public int getMaxAllowedPacket() {
+        return maxAllowedPacket;
+    }
 
     /**
-     * Send directly to socket the sql data.
-     * @param sql the query
-     * @throws IOException if connection error occur
-     * @throws QueryException if packet max size is to big.
+     * Send bytes according to compression.
+     * @param packetBuffer data to write
+     * @param packetSize packet size
+     * @throws IOException if connection to server fail
      */
-    public void sendPreparePacket(String sql) throws IOException, QueryException {
-        if (closed) {
-            throw new IOException("Stream has already closed");
-        }
-        compressSeqNo = 0;
-        byte[] sqlBytes = sql.getBytes("UTF-8");
-        int sqlLength = sqlBytes.length + 1;
-        if (sqlLength > maxAllowedPacket) {
-            throw new QueryException("Could not send query: max_allowed_packet=" + maxAllowedPacket + " but packet size is : "
-                    + sqlLength, -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
-        }
-        byte[] packetBuffer = new byte[sqlLength + 4];
-        packetBuffer[0] = (byte) (sqlLength & 0xff);
-        packetBuffer[1] = (byte) (sqlLength >>> 8);
-        packetBuffer[2] = (byte) (sqlLength >>> 16);
-        packetBuffer[3] = (byte) 0;
-        packetBuffer[4] = (byte) 0x16;
-
-        System.arraycopy(sqlBytes, 0, packetBuffer, 5, sqlLength - 1);
-
+    public void send(byte[] packetBuffer, int packetSize) throws IOException {
         if (!useCompression) {
-            outputStream.write(packetBuffer);
-            outputStream.flush();
+            outputStream.write(packetBuffer, 0, packetSize);
         } else {
-            compressedAndSend(sqlLength + 4, packetBuffer);
+            this.setCompressSeqNo(0);
+            compressedAndSend(packetSize, packetBuffer);
         }
     }
 
+    /**
+     * Send SQL string to outputStream.
+     * SQL will be transform to UTF-8 byte buffer, and if possible this buffer will be send to stream directly.
+     *
+     * @param sql sql
+     * @param commandType command type
+     * @throws IOException if connection error occur.
+     * @throws QueryException if query size is to big according to server max_allowed_size
+     */
+    public void send(String sql, byte commandType) throws IOException, QueryException {
+        //get char array
+        char[] chars;
+        if (charsFieldValue != null) {
+            try {
+                chars = (char[]) charsFieldValue.get(sql);
+            } catch (IllegalAccessException e) {
+                chars = sql.toCharArray();
+            }
+        } else {
+            chars = sql.toCharArray();
+        }
+
+        int charsLength = chars.length;
+        int charsPosition = 0;
+        int position = 5;
+
+        //create UTF-8 byte array
+        //since java char are internally using UTF-16 using surrogate's pattern, 4 bytes unicode characters will
+        //represent 2 characters : example "\uD83C\uDFA4" = 🎤 unicode 8 "no microphones"
+        //so max size is 3 * charLength + 3 bytes packet length + 1 byte sequence number + 1 byte COM_STMT_PREPARE flag
+        byte[] packetBuffer = new byte[(charsLength * 3) + 5];
+
+        while (charsPosition < charsLength) {
+            char currChar = chars[charsPosition++];
+            if (currChar < 0x80) {
+                packetBuffer[position++] = (byte) currChar;
+            } else if (currChar < 0x800) {
+                packetBuffer[position++] = (byte) (0xc0 | (currChar >> 6));
+                packetBuffer[position++] = (byte) (0x80 | (currChar & 0x3f));
+            } else if (currChar >= 0xD800 && currChar < 0xE000) {
+                //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
+                if (currChar >= 0xD800 && currChar < 0xDC00) {
+                    //is high surrogate
+                    if (charsPosition + 1 >= charsLength) {
+                        packetBuffer[position++] = (byte)0x63;
+                        break;
+                    }
+                    char nextChar = chars[charsPosition];
+                    if (nextChar >= 0xDC00 && nextChar < 0xE000) {
+                        //is low surrogate
+                        int surrogatePairs =  ((currChar << 10) + nextChar) + (0x010000 - (0xD800 << 10) - 0xDC00);
+                        packetBuffer[position++] = (byte) (0xf0 | ((surrogatePairs >> 18)));
+                        packetBuffer[position++] = (byte) (0x80 | ((surrogatePairs >> 12) & 0x3f));
+                        packetBuffer[position++] = (byte) (0x80 | ((surrogatePairs >> 6) & 0x3f));
+                        packetBuffer[position++] = (byte) (0x80 | (surrogatePairs & 0x3f));
+                        charsPosition++;
+                    } else {
+                        //must have low surrogate
+                        packetBuffer[position++] = (byte)0x63;
+                    }
+                } else {
+                    //low surrogate without high surrogate before
+                    packetBuffer[position++] = (byte)0x63;
+                }
+            } else {
+                packetBuffer[position++] = (byte) (0xe0 | ((currChar >> 12)));
+                packetBuffer[position++] = (byte) (0x80 | ((currChar >> 6) & 0x3f));
+                packetBuffer[position++] = (byte) (0x80 | (currChar & 0x3f));
+            }
+        }
+
+        if (position - 4 > getMaxAllowedPacket()) {
+            throw new QueryException("Could not send query: max_allowed_packet=" + getMaxAllowedPacket() + " but packet size is : "
+                    + (position - 4), -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
+        }
+
+        if (position - 4 < maxPacketSize) {
+            packetBuffer[0] = (byte) ((position - 4) & 0xff);
+            packetBuffer[1] = (byte) ((position - 4) >>> 8);
+            packetBuffer[2] = (byte) ((position - 4) >>> 16);
+            packetBuffer[3] = (byte) 0;
+            packetBuffer[4] = commandType;
+            send(packetBuffer, position);
+        } else {
+            sendDirect(packetBuffer, 5, position - 5, commandType);
+        }
+
+    }
 
     /**
-     * Send directly to socket the sql data.
-     * @param sql the query
+     * Send buffer to outputStream.
+     *
+     * @param sqlBytes buffer
+     * @param offset offset
+     * @param sqlLength length to send to stream
+     * @param commandType command type
      * @throws IOException if connection error occur
-     * @throws QueryException if packet max size is to big.
+     * @throws QueryException if query size is to big according to server max_allowed_size
      */
-    public void sendTextPacket(String sql) throws IOException, QueryException {
-        if (closed) {
-            throw new IOException("Stream has already closed");
-        }
-        seqNo = 0;
-        compressSeqNo = 0;
-        byte[] sqlBytes = sql.getBytes("UTF-8");
-        int sqlLength = sqlBytes.length;
+    public void sendDirect(byte[] sqlBytes, int offset, int sqlLength, byte commandType) throws IOException, QueryException {
+        if (isClosed()) throw new IOException("Stream has already closed");
+        int seqNo = 0;
+        setCompressSeqNo(0);
 
-        if (sqlLength + 1 > maxAllowedPacket) {
-            throw new QueryException("Could not send query: max_allowed_packet=" + maxAllowedPacket + " but packet size is : "
+        if (sqlLength + 1 > getMaxAllowedPacket()) {
+            throw new QueryException("Could not send query: max_allowed_packet=" + getMaxAllowedPacket() + " but packet size is : "
                     + (sqlLength + 1), -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
         }
-        if (!useCompression) {
+        if (!isUseCompression()) {
 
             if (sqlLength + 1 <= maxPacketSize) {
                 byte[] packetBuffer = new byte[sqlLength + 5];
@@ -826,12 +950,10 @@ public class PacketOutputStream extends OutputStream {
                 packetBuffer[1] = (byte) ((sqlLength + 1) >>> 8);
                 packetBuffer[2] = (byte) ((sqlLength + 1) >>> 16);
                 packetBuffer[3] = (byte) seqNo++;
-                packetBuffer[4] = (byte) 0x03; //TEXT protocol
+                packetBuffer[4] = commandType;
 
-                System.arraycopy(sqlBytes, 0, packetBuffer, 5, sqlLength);
-
+                System.arraycopy(sqlBytes, offset, packetBuffer, 5, sqlLength);
                 outputStream.write(packetBuffer);
-                outputStream.flush();
             } else {
                 //send first packet
                 byte[] packetBuffer = new byte[maxPacketSize + 4];
@@ -839,30 +961,29 @@ public class PacketOutputStream extends OutputStream {
                 packetBuffer[1] = (byte) (maxPacketSize >>> 8);
                 packetBuffer[2] = (byte) (maxPacketSize >>> 16);
                 packetBuffer[3] = (byte) seqNo++;
-                packetBuffer[4] = (byte) 0x03; //TEXT protocol
-                System.arraycopy(sqlBytes, 0, packetBuffer, 5, maxPacketSize - 1);
-                int sqlBytesPosition = maxPacketSize - 1;
+                packetBuffer[4] = commandType;
+
+                System.arraycopy(sqlBytes, offset, packetBuffer, 5, maxPacketSize - 1);
+                int lengthAlreadySend = maxPacketSize - 1;
                 outputStream.write(packetBuffer);
-                outputStream.flush();
                 int length;
-                while ((length = sqlLength - sqlBytesPosition) > 0) {
+
+                while ((length = sqlLength - lengthAlreadySend) > 0) {
                     if (length > maxPacketSize) {
                         packetBuffer[0] = (byte) (maxPacketSize & 0xff);
                         packetBuffer[1] = (byte) (maxPacketSize >>> 8);
                         packetBuffer[2] = (byte) (maxPacketSize >>> 16);
                         packetBuffer[3] = (byte) seqNo++;
-                        System.arraycopy(sqlBytes, sqlBytesPosition, packetBuffer, 4, maxPacketSize);
+                        System.arraycopy(sqlBytes, offset + lengthAlreadySend, packetBuffer, 4, maxPacketSize);
                         outputStream.write(packetBuffer);
-                        outputStream.flush();
-                        sqlBytesPosition += maxPacketSize;
+                        lengthAlreadySend += maxPacketSize;
                     } else {
                         packetBuffer[0] = (byte) (length & 0xff);
                         packetBuffer[1] = (byte) (length >>> 8);
                         packetBuffer[2] = (byte) (length >>> 16);
                         packetBuffer[3] = (byte) seqNo++;
-                        System.arraycopy(sqlBytes, sqlBytesPosition, packetBuffer, 4, length);
+                        System.arraycopy(sqlBytes, offset + lengthAlreadySend, packetBuffer, 4, length);
                         outputStream.write(packetBuffer, 0, length + 4);
-                        outputStream.flush();
                         break;
                     }
                 }
@@ -875,9 +996,9 @@ public class PacketOutputStream extends OutputStream {
                 packetBuffer[1] = (byte) ((sqlLength + 1) >>> 8);
                 packetBuffer[2] = (byte) ((sqlLength + 1) >>> 16);
                 packetBuffer[3] = (byte) seqNo++;
-                packetBuffer[4] = (byte) 0x03;
+                packetBuffer[4] = Packet.COM_QUERY;
 
-                System.arraycopy(sqlBytes, 0, packetBuffer, 5, sqlLength);
+                System.arraycopy(sqlBytes, offset, packetBuffer, 5, sqlLength);
                 compressedAndSend(sqlLength + 5, packetBuffer);
 
             } else {
@@ -889,8 +1010,8 @@ public class PacketOutputStream extends OutputStream {
                 packetBuffer[1] = (byte) (maxPacketSize >>> 8);
                 packetBuffer[2] = (byte) (maxPacketSize >>> 16);
                 packetBuffer[3] = (byte) seqNo++;
-                packetBuffer[4] = (byte) 0x03;
-                System.arraycopy(sqlBytes, 0, packetBuffer, 5, maxPacketSize - 1);
+                packetBuffer[4] = Packet.COM_QUERY;
+                System.arraycopy(sqlBytes, offset, packetBuffer, 5, maxPacketSize - 1);
 
                 int sqlBytesPosition = maxPacketSize - 1;
                 int positionDest = maxPacketSize + 4;
@@ -902,7 +1023,7 @@ public class PacketOutputStream extends OutputStream {
                         packetBuffer[positionDest++] = (byte) (maxPacketSize >>> 8);
                         packetBuffer[positionDest++] = (byte) (maxPacketSize >>> 16);
                         packetBuffer[positionDest++] = (byte) seqNo++;
-                        System.arraycopy(sqlBytes, sqlBytesPosition, packetBuffer, positionDest, maxPacketSize);
+                        System.arraycopy(sqlBytes, offset + sqlBytesPosition, packetBuffer, positionDest, maxPacketSize);
                         sqlBytesPosition += maxPacketSize;
                         positionDest += maxPacketSize;
                     } else {
@@ -910,12 +1031,56 @@ public class PacketOutputStream extends OutputStream {
                         packetBuffer[positionDest++] = (byte) (length >>> 8);
                         packetBuffer[positionDest++] = (byte) (length >>> 16);
                         packetBuffer[positionDest++] = (byte) seqNo++;
-                        System.arraycopy(sqlBytes, sqlBytesPosition, packetBuffer, positionDest, length);
+                        System.arraycopy(sqlBytes, offset + sqlBytesPosition, packetBuffer, positionDest, length);
                         break;
                     }
                 }
                 compressedAndSend(expectedPacketSize, packetBuffer);
             }
+        }
+    }
+
+    public OutputStream getOutputStream() {
+        return outputStream;
+    }
+
+    public int getMaxPacketSize() {
+        return maxPacketSize;
+    }
+
+    public boolean isUseCompression() {
+        return useCompression;
+    }
+
+
+    private static Field charsFieldValue;
+
+    static {
+        RuntimePermission runtimePermission = new RuntimePermission("accessDeclaredMembers");
+        Permission accessPermission = new ReflectPermission("suppressAccessChecks");
+        boolean securityException = false;
+
+        //check security
+        SecurityManager securityManager = System.getSecurityManager();
+        if (securityManager != null) {
+            try {
+
+                if (runtimePermission != null) securityManager.checkPermission(runtimePermission);
+                if (accessPermission != null) securityManager.checkPermission(accessPermission);
+            } catch (SecurityException exception) {
+                securityException = true;
+            }
+        }
+
+        if (!securityException) {
+            try {
+                charsFieldValue = String.class.getDeclaredField("value");
+                charsFieldValue.setAccessible(true);
+            } catch (NoSuchFieldException e) {
+                charsFieldValue = null;
+            }
+        } else {
+            charsFieldValue = null;
         }
     }
 }

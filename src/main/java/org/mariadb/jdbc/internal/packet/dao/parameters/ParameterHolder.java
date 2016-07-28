@@ -52,50 +52,29 @@ package org.mariadb.jdbc.internal.packet.dao.parameters;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 
-
-public abstract class ParameterHolder implements Cloneable {
+public interface ParameterHolder {
     /**
      * Write parameter value.
      *
      * @param os the stream to write to
      * @throws IOException when something goes wrong
      */
-    public abstract void writeTo(OutputStream os) throws IOException;
+    void writeTo(final PacketOutputStream os) throws IOException;
 
-    public abstract long getApproximateTextProtocolLength() throws IOException;
+    void writeUnsafeTo(final PacketOutputStream os) throws IOException;
 
-    /**
-     * Nice formatting of prepared statements using PreparedStatement.toString().
-     * @return formatted value
-     */
-    public String toString() {
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            writeTo(baos);
-            byte[] bytes = baos.toByteArray();
-            if (bytes.length < 1024) {
-                return new String(bytes, StandardCharsets.UTF_8);
-            } else {
-                // cut overlong strings.
-                return new String(bytes, 0, 1024, StandardCharsets.UTF_8) + "<cut>...'";
-            }
-        } catch (Exception e) {
-            return "";
-        }
+    void writeBinary(PacketOutputStream writeBuffer) throws IOException;
 
-    }
+    long getApproximateTextProtocolLength() throws IOException;
 
-    public abstract boolean isLongData();
+    String toString();
 
+    boolean isLongData();
 
-    public abstract MariaDbType getMariaDbType();
+    boolean isNullData();
 
-    public void writeBufferType(final PacketOutputStream buffer) {
-        buffer.writeShort((short) getMariaDbType().getType());
-    }
+    MariaDbType getMariaDbType();
+
 }

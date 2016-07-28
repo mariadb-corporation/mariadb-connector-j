@@ -1,0 +1,264 @@
+= Using the driver
+
+The following subsections show the formatting of JDBC connection strings for
+MariaDB and MySQL database servers. Additionally, sample code is provided that
+demonstrates how to connect to one of these servers and create a table.
+
+== Getting a new connection
+
+There are two standard ways to get a connection:
+
+=== Using DriverManager
+The prefered way to connect is to use [[https://docs.oracle.com/javase/7/docs/api/java/sql/DriverManager.html|DriverManager]].
+Applications designed to use the driver manager to locate the entry point need
+no further configuration. MariaDB Connector/J will
+automatically be loaded and used in the way any previous MySQL driver would
+have been.
+
+Example:
+{{{
+Connection connection = DriverManager.getConnection("jdbc:mariadb://localhost:3306/DB?user=root&password=myPwd");
+}}}
+
+//The legacy way of loading a JDBC driver (using Class.forName("org.mariadb.jdbc.Driver")) still works.//
+
+=== Using external pool
+
+When using an external connection pool, the mariadb Driver class {{{org.mariadb.jdbc.Driver}}} must be configured.
+
+Example using [[https://github.com/brettwooldridge/HikariCP|hikariCP JDBC connection pool]] :
+
+{{{
+        final HikariDataSource ds = new HikariDataSource();
+        ds.setMaximumPoolSize(20);
+        ds.setDriverClassName("org.mariadb.jdbc.Driver");
+        ds.setJdbcUrl("jdbc:mariadb://localhost:3306/db");
+        ds.addDataSourceProperty("user", "root");
+        ds.addDataSourceProperty("password", "myPwd");
+        ds.setAutoCommit(false);
+}}}
+
+Please note that the driver class provided by MariaDB Connector/J **is not {{{com.mysql.jdbc.Driver}}} but {{{org.mariadb.jdbc.Driver}}}**!
+
+The {{{org.mariadb.jdbc.MariaDbDataSource}}} class can be used when the pool datasource configuration only permits the java.sql.Datasource implementation.
+
+== Connection strings
+
+The format of the JDBC connection string is
+{{{
+jdbc:(mysql|mariadb):[replication:|failover:|sequential:|aurora:]//<hostDescription>[,<hostDescription>...]/[database][?<key1>=<value1>[&<key2>=<value2>]]
+}}}
+
+ HostDescription:
+{{{
+<host>[:<portnumber>]  or address=(host=<host>)[(port=<portnumber>)][(type=(master|slave))]
+}}}
+
+Host must be a DNS name or IP address. In case of ipv6 and simple host
+description, the IP address must be written inside brackets. The default port
+is {{{3306}}}. The default type is {{{master}}}. If {{{replication}}} failover is
+set, by default the first host is master, and the others are slaves.
+
+Examples :
+* {{{localhost:3306}}}
+* {{{[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}}}
+* {{{somehost.com:3306}}}
+* {{{address=(host=localhost)(port=3306)(type=master)}}}
+
+== Failover parameters
+
+Failover was introduced in Connector/J 1.2.0.
+
+|=sequential |Failover support for master replication cluster (for example Galera) without High availability. The hosts will be connected in the order in which they were declared.\\\\Example when using the jdbc url string "jdbc:mysql:replication:host1,host2,host3/test" : \\When connecting, the driver will always first try host1, and if not available host2 and so on. After a host fail, the driver will reconnect according to this order. \\//since 1.3.0//|
+|=failover | High availability (random picking connection initialisation) with failover support for master replication cluster (for example Galera). \\//since 1.2.0//|
+|=replication | High availability (random picking connection initialisation) with failover support for master/slave replication cluster (one or multiple masters) \\//since 1.2.0//|
+|=aurora | High availability (random picking connection initialisation) with failover support for Amazon Aurora replication cluster \\//since 1.2.0//|
+
+See [[failover-and-high-availability-with-mariadb-connector-j|failover description]] for more information.
+\\\\
+== Optional URL parameters
+
+General remark: Unknown options are accepted and silently ignored.
+
+The following options are currently supported.
+=== Essential options
+|=user|Database user name. \\//since 1.0.0//|
+|=password|Password of database user.\\//since 1.0.0//|
+|=rewriteBatchedStatements| For insert queries, rewrite batchedStatement to execute in a single executeQuery.\\example:\\{{{insert into ab (i) values (?)}}} with first batch values = 1, second = 2 will be rewritten\\{{{insert into ab (i) values (1), (2)}}}. \\\\If query cannot be rewriten in "multi-values", rewrite will use multi-queries : {{{INSERT INTO TABLE(col1) VALUES (?) ON DUPLICATE KEY UPDATE col2=?}}} with values [1,2] and [2,3]" will be rewritten\\{{{INSERT INTO TABLE(col1) VALUES (1) ON DUPLICATE KEY UPDATE col2=2;INSERT INTO TABLE(col1) VALUES (3) ON DUPLICATE KEY UPDATE col2=4}}}\\\\when active, the useServerPrepStmts option is set to false\\//Default: false. Since 1.1.8//|
+|=connectTimeout| The connect timeout value, in milliseconds, or zero for no timeout.\\//Default: 0. Since 1.1.8//|
+|=useServerPrepStmts|Queries are prepared on the server side before executing, permitting faster execution next time. \\if rewriteBatchedStatements is set to true, this option will be set to false.\\//Default: true. Since 1.3.0//|
+
+\\
+
+=== TLS (SSL)
+
+|=useSSL|Force [[https://mariadb.com/kb/en/mariadb/secure-connections-overview/secure-connections-overview|SSL/TLS on  connection]].\\//Default: false. Since 1.1.0//|
+|=trustServerCertificate|When using SSL/TLS, do not check server's certificate.\\//Default: false. Since 1.1.1//|
+|=serverSslCert|Server's certificate in DER form, or server's CA certificate. \\Can be used in one of 3 forms : \\* sslServerCert=/path/to/cert.pem (full path to certificate)\\* sslServerCert=classpath:relative/cert.pem (relative to current classpath)\\* or as verbatim DER-encoded certificate string "------BEGING CERTIFICATE-----" .\\//since 1.1.3//|
+|=clientCertificateKeyStoreUrl|Use the specified keystore for client certificates (can be the same as the trusted root certificate keystore).\\//Default: false. since 1.3.4//|
+|=clientCertificateKeyStorePassword|Password for the client certificate keystore.\\//Default: false. since 1.3.4//|
+|=trustCertificateKeyStoreUrl|Use the specified keystore for trusted root certificates. Overrides serverSslCert.\\//Default: false. Since 1.3.4//|
+|=trustCertificateKeyStorePassword|Password for the trusted root certificate keystore.\\//Default: false. Since 1.3.4//|
+|=enabledSslProtocolSuites|Force TLS/SSL protocol to a specific set of TLS versions (comma separated list). \\Example : "TLSv1, TLSv1.1, TLSv1.2"\\//Default: TLSv1, TLSv1.1. Since 1.5.0//|
+|=enabledSslCipherSuites|Force TLS/SSL cipher (comma separated list).\\ Example : "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_DHE_DSS_WITH_AES_256_GCM_SHA384"\\//Default: use JRE ciphers. Since 1.5.0//|
+
+\\
+
+=== Log
+ |=log|Enable log information. require Slf4j version > 1.4 dependency.\\//Default: false. Since 1.5.0//|
+ |=maxQuerySizeToLog|Only the first characters corresponding to this options size will be displayed in logs\\//Default: 1024. Since 1.5.0//|
+ |=slowQueryThresholdNanos|Will log query with execution time superior to this value (if defined )\\//Default: 1024. Since 1.5.0//|
+ |=profileSql|log query execution time.\\//Default: false. Since 1.5.0//|
+
+\\
+=== Infrequently used
+
+|=useFractionalSeconds| Correctly handle subsecond precision in timestamps (feature available with MariaDB 5.3 and later).\\May confuse 3rd party components (Hibernated).\\//Default: true. Since 1.0.0//|
+|=allowMultiQueries| permit multi-queries like {{{insert into ab (i) values (1); insert into ab (i) values (2)}}}. //Default: false. Since 1.0.0//|
+|=dumpQueriesOnException|If set to 'true', an exception is thrown during query execution containing a query string.\\//Default: false. Since 1.1.0//|
+|=useCompression|allow compression in the MySQL Protocol.\\//Default: false. Since 1.0.0//|
+|=socketFactory| to use a custom socket factory, set it to the  full name of the class that implements javax.net.SocketFactory.\\//since 1.0.0//|
+|=tcpNoDelay|Sets corresponding option on the connection socket.\\//since 1.0.0//|
+|=tcpKeepAlive|Sets corresponding option on the connection socket.\\//since 1.0.0//|
+|=tcpAbortiveClose|Sets corresponding option on the connection socket.\\//since 1.1.1//|
+|=tcpRcvBuf| set buffer size for TCP buffer (SO_RCVBUF).\\//since 1.0.0//|
+|=tcpSndBuf| set buffer size for TCP buffer (SO_SNDBUF).\\//since 1.0.0//|
+|=pipe| On Windows, specify named pipe name to connect to mysqld.exe.\\//since 1.1.3//|
+|=tinyInt1isBit| Datatype mapping flag, handle MySQL Tiny as BIT(boolean).\\//Default: true. Since 1.0.0//|
+|=yearIsDateType|Year is date type, rather than numerical.\\//Default: true. Since 1.0.0//|
+|=sessionVariables|<var>=<value> pairs separated by comma, mysql session variables, set upon establishing successful connection.\\//since 1.1.0//|
+|=localSocket|Permits connecting to the database via Unix domain socket, if the server allows it. \\The value is the path of Unix domain socket (i.e "socket" database parameter : select @@socket) .\\//since 1.1.4//|
+|=sharedMemory|Permits connecting to the database via shared memory, if the server allows it. \\The value is the base name of the shared memory.\\//since 1.1.4//|
+|=localSocketAddress|Hostname or IP address to bind the connection socket to a local (UNIX domain) socket.\\//since 1.1.7//|
+|=socketTimeout|Defined the network socket timeout (SO_TIMEOUT) in milliseconds. \\Default: 0 milliseconds(0 disable this timeout).\\//since 1.1.7//|
+|=interactiveClient|Session timeout is defined by the [[https://mariadb.com/kb/en/server-system-variables/#wait_timeout|wait_timeout]] server variable. Setting interactiveClient to true will tell the server to use the [[https://mariadb.com/kb/en/mariadb/server-system-variables/#interactive_timeout|interactive_timeout]] server variable.\\//Default: false. Since 1.1.7//|
+|=useOldAliasMetadataBehavior|Metadata ResultSetMetaData.getTableName() returns the physical table name. "useOldAliasMetadataBehavior" permits activating the legacy code that sends the table alias if set. \\//Default: false. Since 1.1.9//|
+|=createDatabaseIfNotExist|the specified database in the url will be created if nonexistent.\\//Default: false. Since 1.1.7//|
+|=serverTimezone|Defines the server time zone.\\to use only if the jre server has a different time implementation of the server.\\(best to have the same server time zone when possible).\\//since 1.1.7//|
+|=prepStmtCacheSize| if useServerPrepStmts = true, defines the prepared statement cache size. \\//Default: 250. Since 1.3.0//|
+|=prepStmtCacheSqlLimit| if useServerPrepStmts = true, defined queries larger than this size will not be cached. \\//Default: 2048. Since 1.3.0//|
+|=jdbcCompliantTruncation| Truncation error ("Data truncated for column '%' at row %", "Out of range value for column '%' at row %") will be thrown as an error, and not as a warning.\\//Default: true. Since 1.4.0//|
+|=cacheCallableStmts| enable/disable callable Statement cache\\//Default: true. Since 1.4.0//|
+|=callableStmtCacheSize| This sets the number of callable statements that the driver will cache per VM if "cacheCallableStmts" is enabled.\\//Default: true. Since 1.4.0//|
+
+
+\\\\
+== Failover/High availability URL parameters
+
+|=autoReconnect|With basic failover: if true, will attempt to recreate connection after a failover. \\With standard failover: if true, will attempt to recreate connection even if there is a temporary solution (like using a master connection temporary until reconnect to a slave connection) \\//Default is false. Since 1.1.7//|
+|=retriesAllDown|When searching a valid host, maximum number of connection attempts before throwing an exception.\\//Default: 120 seconds. Since 1.2.0//|
+|=failoverLoopRetries|When searching silently for a valid host, maximum number of connection attempts.\\This differs from the "retriesAllDown" parameter because this silent search is for example used after a disconnection of a slave connection when using the master connection\\//Default: 120. Since 1.2.0//|
+|=validConnectionTimeout|With multiple hosts, after this time in seconds has elapsed, verifies that the connections haven’t been lost.\\When 0, no verification will be done. \\//Default:120 seconds. Since 1.2.0//|
+|=loadBalanceBlacklistTimeout|When a connection fails, this host will be blacklisted for the "loadBalanceBlacklistTimeout" amount of time.\\When connecting to a host, the driver will try to connect to a host in the list of non-blacklisted hosts and, only if none are found, attempt blacklisted ones.\\This blacklist is shared inside the classloader.\\//Default: 50 seconds. Since 1.2.0//|
+|=assureReadOnly|If true, in high availability, and switching to a read-only host, assure that this host is in read-only mode by setting the session to read-only.\\//Default to false. Since 1.3.0//|
+\\\\
+= JDBC API implementation notes
+
+== "LOAD DATA INFILE"
+The fastest way to load many datas is using query [[https://mariadb.com/kb/en/mariadb/load-data-infile/|LOAD DATA INFILE]]. \\Problem is using "LOAD DATA LOCAL INFILE" (ie : loading a file from client), may be a security problem :
+* A "man in the middle" proxy server can change the actual file asked from server so client will send a Local file to
+ this proxy.
+* if someone has can execute query from client, he can have access to any file on client (according to the rights of the user running the client process).
+
+A specific option "allowLocalInfile" (default to true) can deactivate functionality on client side.
+The global variable [[https://mariadb.com/kb/en/mariadb/server-system-variables/#local_infile|local_infile]] can disable LOAD DATA LOCAL INFILE on server side.
+
+A non-JDBC method can permit to use this kind of query without those security issue: The application has to create a InputStream with the file to load. If MariaDbStatement.setLocalInfileInputStream(InputStream inputStream) is set, the inputStream will be send to server, replacing the file content (working even with option  "allowLocalInfile" disabled).
+
+Code example:
+{{{
+        Statement statement = ...
+        InputStream in = new FileInputStream("/file.sql");
+
+        if (statement.isWrapperFor(MariaDbStatement.class)) {
+            MariaDbStatement mariaDbStatement = statement.unwrap(MariaDbStatement.class);
+            mariaDbStatement.setLocalInfileInputStream(in);
+            String sql = "LOAD DATA LOCAL INFILE 'dummyFileName'"
+                        + " INTO TABLE gigantic_load_data_infile "
+                        + " FIELDS TERMINATED BY '\\t' ENCLOSED BY ''"
+                        + " ESCAPED BY '\\\\' LINES TERMINATED BY '\\n'";
+            statement.execute(sql);
+        } else {
+            in.close();
+            throw new RuntimeException("Mariadb JDBC adaptor must be used");
+        }
+
+}}}
+
+Since 1.5.0 version, Interceptors can now filter LOAD DATA LOCAL INFILE query according to filename.
+
+Thoses interceptors must implement interface {{{org.mariadb.jdbc.LocalInfileInterceptor}}}.
+Interceptors are  using the [[http://docs.oracle.com/javase/7/docs/api/java/util/ServiceLoader.html|ServiceLoader]] pattern, so interceptors must be defined in file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor.
+
+Example :
+create file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor with content org.project.LocalInfileInterceptorImpl.
+{{{
+ public class LocalInfileInterceptorImpl implements LocalInfileInterceptor {
+     @Override
+     public boolean validate(String fileName) {
+         File file = new File(fileName);
+         String absolutePath = file.getAbsolutePath();
+         String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
+         return filePath.equals("/var/tmp/exchanges");
+     }
+ }
+}}}
+
+You can get ride of defining the META-INF/services file using [[https://github.com/google/auto/tree/master/service|google auto-service] framework
+Using the previous example, just add {{{@AutoService(LocalInfileInterceptor.class)}}}, and your interceptor will be automatically defined.
+{{{
+ @AutoService(LocalInfileInterceptor.class)
+ public class LocalInfileInterceptorImpl implements LocalInfileInterceptor {
+     @Override
+     public boolean validate(String fileName) {
+         File file = new File(fileName);
+         String absolutePath = file.getAbsolutePath();
+         String filePath = absolutePath.substring(0,absolutePath.lastIndexOf(File.separator));
+         return filePath.equals("/var/tmp/exchanges");
+     }
+ }
+}}}
+
+
+
+== Streaming result sets
+By default, {{{Statement.executeQuery()}}} will read the full result set
+from the server before returning. With large result sets, this will require large
+amounts of memory. Better behavior in this case would be reading row-by-row,
+with {{{ResultSet.next()}}}, so called "streaming". This is
+activated using {{{Statement.setFetchSize(Integer.MIN_VALUE) }}}
+
+== Prepared statements
+The driver uses server prepared statements as a standard to communicate with the database (since 1.3.0). If the "rewriteBatchedStatements" options are set to true, the driver will only use text protocol. Prepared statements (parameter substitution) is handled by the driver, on the client side.
+
+== CallableStatement
+Callable statement implementation won't need to access stored procedure
+metadata ([[https://mariadb.com/kb/en/mariadb/mysqlproc-table/|mysql.proc]]) table if both of following are true
+
+* CallableStatement.getMetadata() is not used
+* Parameters are accessed by index, not by name
+
+When possible, following the two rules above provides both better speed and
+eliminates concerns about SELECT privileges on the
+[[https://mariadb.com/kb/en/mariadb/mysqlproc-table/|mysql.proc]] table.
+
+== Optional JDBC classes
+The following optional interfaces are implemented by the
+org.mariadb.jdbc.MariaDbDataSource class : javax.sql.DataSource,
+javax.sql.ConnectionPoolDataSource, javax.sql.XADataSource
+
+careful : org.mariadb.jdbc.MySQLDataSource doesn't exist anymore and should be replaced with org.mariadb.jdbc.MariaDbDataSource since v1.3.0
+
+== Usage examples
+
+The following code provides a basic example of how to connect to a MariaDB or
+MySQL server and create a table.
+
+=== Creating a table on a MariaDB or MySQL server
+{{{
+try (Connection  connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test", "username", "password")) {
+    try (Statement stmt = connection.createStatement()) {
+        stmt.executeUpdate("CREATE TABLE a (id int not null primary key, value varchar(20))");
+    }
+}
+}}}

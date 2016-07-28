@@ -2,6 +2,7 @@
 MariaDB Client for Java
 
 Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (c) 2015-2016 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -47,15 +48,34 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.packet.dao.parameters;
+package org.mariadb.jdbc.internal.packet;
 
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import java.io.IOException;
 
+public class ComStmtClose {
 
-public abstract class NotLongDataParameterHolder extends ParameterHolder {
-    public abstract void writeBinary(PacketOutputStream outputStream);
+    /**
+     * Send a COM_STMT_CLOSE command, to close a PREPARE statement.
+     *
+     * @param pos packetOutput Stream
+     * @param statementId statement id to close
+     * @throws IOException if connection has error.
+     */
+    public static void send(final PacketOutputStream pos, int statementId) throws IOException {
 
-    public boolean isLongData() {
-        return false;
+        byte[] packetBuffer = new byte[9];
+        packetBuffer[0] = (byte) 5; //packet length 1st byte
+//        packetBuffer[1] = (byte) (0 >>> 8); //packet length 2nd byte
+//        packetBuffer[2] = (byte) (0 >>> 16); //packet length 3rd byte
+//        packetBuffer[3] = (byte) 0; //sequence no
+        packetBuffer[4] = Packet.COM_STMT_CLOSE;
+        packetBuffer[5] = (byte) (statementId & 0xff);
+        packetBuffer[6] = (byte) ((statementId >> 8) & 0xff);
+        packetBuffer[7] = (byte) ((statementId >> 16) & 0xff);
+        packetBuffer[8] = (byte) ((statementId >> 24) & 0xff);
+
+        pos.send(packetBuffer, 9);
     }
+
 }

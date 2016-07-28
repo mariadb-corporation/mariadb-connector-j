@@ -64,6 +64,7 @@ import java.util.Calendar;
 
 public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement implements PreparedStatement, Cloneable {
     protected boolean useFractionalSeconds;
+    protected boolean hasLongData = false;
 
     public AbstractMariaDbPrepareStatement(MariaDbConnection connection, int resultSetScrollType) {
         super(connection, resultSetScrollType);
@@ -92,7 +93,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param reader         the <code>java.io.Reader</code> object that contains the Unicode data
      * @param length         the number of characters in the stream
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -102,6 +103,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             return;
         }
         setParameter(parameterIndex, new ReaderParameter(reader, length, isNoBackslashEscapes()));
+        hasLongData = true;
     }
 
     /**
@@ -117,7 +119,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param reader         the <code>java.io.Reader</code> object that contains the Unicode data
      * @param length         the number of characters in the stream
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -127,6 +129,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             return;
         }
         setParameter(parameterIndex, new ReaderParameter(reader, length, isNoBackslashEscapes()));
+        hasLongData = true;
     }
 
 
@@ -142,10 +145,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param reader         the <code>java.io.Reader</code> object that contains the Unicode data
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setCharacterStream(final int parameterIndex, final Reader reader) throws SQLException {
         if (reader == null) {
@@ -153,6 +156,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             return;
         }
         setParameter(parameterIndex, new ReaderParameter(reader, isNoBackslashEscapes()));
+        hasLongData = true;
     }
 
     /**
@@ -161,10 +165,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param ref              an SQL <code>REF</code> value
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setRef(final int parameterIndex, final Ref ref) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("REF not supported");
@@ -176,10 +180,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param blob              a <code>Blob</code> object that maps an SQL <code>BLOB</code> value
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setBlob(final int parameterIndex, final Blob blob) throws SQLException {
         if (blob == null) {
@@ -187,6 +191,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             return;
         }
         setParameter(parameterIndex, new StreamParameter(blob.getBinaryStream(), isNoBackslashEscapes()));
+        hasLongData = true;
     }
 
     /**
@@ -201,11 +206,11 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex index of the first parameter is 1, the second is 2, ...
      * @param inputStream    An object that contains the data to set the parameter value to.
      * @param length         the number of bytes in the parameter data.
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs; this method is called on a closed
      *                                                  <code>PreparedStatement</code>; if the length specified is less than zero or if the
      *                                                  number of bytes in the inputstream does not match the specfied length.
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setBlob(final int parameterIndex, final InputStream inputStream, final long length) throws SQLException {
         if (inputStream == null) {
@@ -213,6 +218,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             return;
         }
         setParameter(parameterIndex, new StreamParameter(inputStream, length, isNoBackslashEscapes()));
+        hasLongData = true;
     }
 
     /**
@@ -227,11 +233,11 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex index of the first parameter is 1, the second is 2, ...
      * @param inputStream    An object that contains the data to set the parameter value to.
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs; this method is called on a closed
      *                                                  <code>PreparedStatement</code> or if parameterIndex does not correspond to a
      *                                                  parameter marker in the SQL statement,
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setBlob(final int parameterIndex, final InputStream inputStream) throws SQLException {
         if (inputStream == null) {
@@ -240,6 +246,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
         }
 
         setParameter(parameterIndex, new StreamParameter(inputStream, isNoBackslashEscapes()));
+        hasLongData = true;
     }
 
     /**
@@ -248,10 +255,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param clob              a <code>Clob</code> object that maps an SQL <code>CLOB</code> value
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
     public void setClob(final int parameterIndex, final Clob clob) throws SQLException {
@@ -261,6 +268,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
         }
 
         setParameter(parameterIndex, new ReaderParameter(clob.getCharacterStream(), clob.length(), isNoBackslashEscapes()));
+        hasLongData = true;
     }
 
     /**
@@ -275,10 +283,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex index of the first parameter is 1, the second is 2, ...
      * @param reader         An object that contains the data to set the parameter value to.
      * @param length         the number of characters in the parameter data.
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs; this method is called on a closed
      *                                                  <code>PreparedStatement</code> or if the length specified is less than zero.
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setClob(final int parameterIndex, final Reader reader, final long length) throws SQLException {
         setCharacterStream(parameterIndex, reader, length);
@@ -296,11 +304,11 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex index of the first parameter is 1, the second is 2, ...
      * @param reader         An object that contains the data to set the parameter value to.
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs; this method is called on a closed
      *                                                  <code>PreparedStatement</code>or if parameterIndex does not correspond to a
      *                                                  parameter marker in the SQL statement
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setClob(final int parameterIndex, final Reader reader) throws SQLException {
         setCharacterStream(parameterIndex, reader);
@@ -313,10 +321,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param array              an <code>Array</code> object that maps an SQL <code>ARRAY</code> value
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setArray(final int parameterIndex, final Array array) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("Arrays not supported");
@@ -333,7 +341,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param date           the parameter value
      * @param cal            the <code>Calendar</code> object the driver will use to construct the date
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -352,11 +360,11 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param date           the parameter value
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
-    public void setDate(int parameterIndex, java.sql.Date date) throws SQLException {
+    public void setDate(int parameterIndex, Date date) throws SQLException {
         setDate(parameterIndex, date, cal());
     }
 
@@ -370,7 +378,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param time           the parameter value
      * @param cal            the <code>Calendar</code> object the driver will use to construct the time
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -398,7 +406,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param timestamp      the parameter value
      * @param cal            the <code>Calendar</code> object the driver will use to construct the timestamp
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -417,7 +425,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param timestamp      the parameter value
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -432,10 +440,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param sqlType        the SQL type code defined in <code>java.sql.Types</code>
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if <code>sqlType</code> is a <code>ARRAY</code>, <code>BLOB</code>,
+     * @throws SQLFeatureNotSupportedException if <code>sqlType</code> is a <code>ARRAY</code>, <code>BLOB</code>,
      *                                                  <code>CLOB</code>, <code>DATALINK</code>, <code>JAVA_OBJECT</code>,
      *                                                  <code>NCHAR</code>, <code>NCLOB</code>, <code>NVARCHAR</code>,
      *                                                  <code>LONGNVARCHAR</code>, <code>REF</code>, <code>ROWID</code>,
@@ -453,10 +461,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param mysqlType      the type code defined in <code> MariaDbType</code>
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if <code>sqlType</code> is a <code>ARRAY</code>, <code>BLOB</code>,
+     * @throws SQLFeatureNotSupportedException if <code>sqlType</code> is a <code>ARRAY</code>, <code>BLOB</code>,
      *                                                  <code>CLOB</code>, <code>DATALINK</code>, <code>JAVA_OBJECT</code>,
      *                                                  <code>NCHAR</code>, <code>NCLOB</code>, <code>NVARCHAR</code>,
      *                                                  <code>LONGNVARCHAR</code>, <code>REF</code>, <code>ROWID</code>,
@@ -484,10 +492,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param sqlType        a value from <code>java.sql.Types</code>
      * @param typeName       the fully-qualified name of an SQL user-defined type; ignored if the parameter is not a
      *                       user-defined type or REF
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if <code>sqlType</code> is a <code>ARRAY</code>, <code>BLOB</code>,
+     * @throws SQLFeatureNotSupportedException if <code>sqlType</code> is a <code>ARRAY</code>, <code>BLOB</code>,
      *                                                  <code>CLOB</code>, <code>DATALINK</code>, <code>JAVA_OBJECT</code>,
      *                                                  <code>NCHAR</code>, <code>NCLOB</code>, <code>NVARCHAR</code>,
      *                                                  <code>LONGNVARCHAR</code>, <code>REF</code>, <code>ROWID</code>,
@@ -507,10 +515,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param url              the <code>java.net.URL</code> object to be set
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     @Override
     public void setURL(final int parameterIndex, final URL url) throws SQLException {
@@ -526,9 +534,9 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @return a <code>ParameterMetaData</code> object that contains information about the number, types and properties
      * for each parameter marker of this <code>PreparedStatement</code> object
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed
+     * @throws SQLException if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
-     * @see java.sql.ParameterMetaData
+     * @see ParameterMetaData
      */
     public abstract ParameterMetaData getParameterMetaData() throws SQLException;
 
@@ -538,12 +546,12 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param rowid              the parameter value
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
-    public void setRowId(final int parameterIndex, final java.sql.RowId rowid) throws SQLException {
+    public void setRowId(final int parameterIndex, final RowId rowid) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
     }
 
@@ -554,15 +562,15 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex of the first parameter is 1, the second is 2, ...
      * @param value          the parameter value
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if the driver does not support national character sets;  if the driver can detect
      *                                                  that a data conversion error could occur; if a database access error occurs; or
      *                                                  this method is called on a closed <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.6
      */
     public void setNString(final int parameterIndex, final String value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NStrings not supported");
+        setString(parameterIndex, value);
     }
 
     /**
@@ -573,14 +581,14 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex of the first parameter is 1, the second is 2, ...
      * @param value          the parameter value
      * @param length         the number of characters in the parameter data.
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if the driver does not support national character sets;  if the driver can detect
      *                                                  that a data conversion error could occur; if a database access error occurs; or
      *                                                  this method is called on a closed <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setNCharacterStream(final int parameterIndex, final Reader value, final long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NCharstreams not supported");
+        setCharacterStream(parameterIndex, value, length);
     }
 
 
@@ -595,11 +603,11 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex of the first parameter is 1, the second is 2, ...
      * @param value          the parameter value
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if the driver does not support national character sets;  if the driver can detect
      *                                                  that a data conversion error could occur; if a database access error occurs; or
      *                                                  this method is called on a closed <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setNCharacterStream(final int parameterIndex, final Reader value) throws SQLException {
         setCharacterStream(parameterIndex, value);
@@ -611,14 +619,14 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex of the first parameter is 1, the second is 2, ...
      * @param value          the parameter value
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if the driver does not support national character sets;  if the driver can detect
      *                                                  that a data conversion error could occur; if a database access error occurs; or
      *                                                  this method is called on a closed <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setNClob(final int parameterIndex, final java.sql.NClob value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NClobs not supported");
+        setClob(parameterIndex, value);
     }
 
     /**
@@ -633,15 +641,15 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex index of the first parameter is 1, the second is 2, ...
      * @param reader         An object that contains the data to set the parameter value to.
      * @param length         the number of characters in the parameter data.
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if the length specified is less than zero; if the driver does not support national
      *                                                  character sets; if the driver can detect that a data conversion error could occur;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setNClob(final int parameterIndex, final Reader reader, final long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("NClobs not supported");
+        setClob(parameterIndex, reader, length);
     }
 
 
@@ -656,11 +664,11 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex index of the first parameter is 1, the second is 2, ...
      * @param reader         An object that contains the data to set the parameter value to.
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if the driver does not support national character sets; if the driver can detect
      *                                                  that a data conversion error could occur;  if a database access error occurs or
      *                                                  this method is called on a closed <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setNClob(final int parameterIndex, final Reader reader) throws SQLException {
         setClob(parameterIndex, reader);
@@ -674,12 +682,12 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex index of the first parameter is 1, the second is 2, ...
      * @param xmlObject      a <code>SQLXML</code> object that maps an SQL <code>XML</code> value
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs; this method is called on a closed
      *                                                  <code>PreparedStatement</code> or the <code>java.xml.transform.Result</code>,
      *                                                  <code>Writer</code> or <code>OutputStream</code> has not been closed for the
      *                                                  <code>SQLXML</code> object
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     @Override
     public void setSQLXML(final int parameterIndex, final SQLXML xmlObject) throws SQLException {
@@ -713,21 +721,21 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *                       is the number of digits after the decimal point. For Java Object types
      *                       <code>InputStream</code> and <code>Reader</code>, this is the length of the data in the
      *                       stream or reader.  For all other types, this value will be ignored.
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs; this method is called on a closed
      *                                                  <code>PreparedStatement</code> or if the Java Object specified by x is an
      *                                                  InputStream or Reader object and the value of the scale parameter is less than
      *                                                  zero
-     * @throws java.sql.SQLFeatureNotSupportedException if <code>targetSqlType</code> is a <code>ARRAY</code>, <code>BLOB</code>,
+     * @throws SQLFeatureNotSupportedException if <code>targetSqlType</code> is a <code>ARRAY</code>, <code>BLOB</code>,
      *                                                  <code>CLOB</code>, <code>DATALINK</code>, <code>JAVA_OBJECT</code>,
      *                                                  <code>NCHAR</code>, <code>NCLOB</code>, <code>NVARCHAR</code>,
      *                                                  <code>LONGNVARCHAR</code>, <code>REF</code>, <code>ROWID</code>,
      *                                                  <code>SQLXML</code> or  <code>STRUCT</code> data type and the JDBC driver does not
      *                                                  support this data type
-     * @see java.sql.Types
+     * @see Types
      */
     public void setObject(final int parameterIndex, final Object obj, final int targetSqlType, final int scaleOrLength) throws SQLException {
-        setObject(parameterIndex, obj, targetSqlType);
+        setInternalObject(parameterIndex, obj, targetSqlType, scaleOrLength);
     }
 
     /**
@@ -737,28 +745,108 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param obj              the object containing the input parameter value
      * @param targetSqlType  the SQL type (as defined in java.sql.Types) to be sent to the database
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if <code>targetSqlType</code> is a <code>ARRAY</code>, <code>BLOB</code>,
+     * @throws SQLFeatureNotSupportedException if <code>targetSqlType</code> is a <code>ARRAY</code>, <code>BLOB</code>,
      *                                                  <code>CLOB</code>, <code>DATALINK</code>, <code>JAVA_OBJECT</code>,
      *                                                  <code>NCHAR</code>, <code>NCLOB</code>, <code>NVARCHAR</code>,
      *                                                  <code>LONGNVARCHAR</code>, <code>REF</code>, <code>ROWID</code>,
      *                                                  <code>SQLXML</code> or  <code>STRUCT</code> data type and the JDBC driver does not
      *                                                  support this data type
-     * @see java.sql.Types
+     * @see Types
      */
     public void setObject(final int parameterIndex, final Object obj, final int targetSqlType) throws SQLException {
+        setInternalObject(parameterIndex, obj, targetSqlType, Long.MAX_VALUE);
+    }
 
+    /**
+     * <p>Sets the value of the designated parameter using the given object. The second parameter must be of type
+     * <code>Object</code>; therefore, the <code>java.lang</code> equivalent objects should be used for built-in types.
+     * <br>
+     * <p>The JDBC specification specifies a standard mapping from Java <code>Object</code> types to SQL types.  The
+     * given argument will be converted to the corresponding SQL type before being sent to the database.
+     * <br>
+     * <p>Note that this method may be used to pass datatabase- specific abstract data types, by using a driver-specific
+     * Java type.
+     * <br>
+     * If the object is of a class implementing the interface <code>SQLData</code>, the JDBC driver should call the
+     * method <code>SQLData.writeSQL</code> to write it to the SQL data stream. If, on the other hand, the object is of
+     * a class implementing <code>Ref</code>, <code>Blob</code>, <code>Clob</code>,  <code>NClob</code>,
+     * <code>Struct</code>, <code>java.net.URL</code>, <code>RowId</code>, <code>SQLXML</code> or <code>Array</code>,
+     * the driver should pass it to the database as a value of the corresponding SQL type.
+     * <br>
+     * <b>Note:</b> Not all databases allow for a non-typed Null to be sent to the backend. For maximum portability, the
+     * <code>setNull</code> or the <code>setObject(int parameterIndex, Object x, int sqlType)</code> method should be
+     * used instead of <code>setObject(int parameterIndex, Object x)</code>.
+     * <br>
+     * <b>Note:</b> This method throws an exception if there is an ambiguity, for example, if the object is of a class
+     * implementing more than one of the interfaces named above.
+     *
+     * @param parameterIndex the first parameter is 1, the second is 2, ...
+     * @param obj              the object containing the input parameter value
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     *                               if a database access error occurs; this method is called on a closed
+     *                               <code>PreparedStatement</code> or the type of the given object is ambiguous
+     */
+    public void setObject(final int parameterIndex, final Object obj) throws SQLException {
+        if (obj == null) {
+            setNull(parameterIndex, Types.INTEGER);
+        } else if (obj instanceof String) {
+            setString(parameterIndex, (String) obj);
+        } else if (obj instanceof Integer) {
+            setInt(parameterIndex, (Integer) obj);
+        } else if (obj instanceof Long) {
+            setLong(parameterIndex, (Long) obj);
+        } else if (obj instanceof Short) {
+            setShort(parameterIndex, (Short) obj);
+        } else if (obj instanceof Double) {
+            setDouble(parameterIndex, (Double) obj);
+        } else if (obj instanceof Float) {
+            setFloat(parameterIndex, (Float) obj);
+        } else if (obj instanceof Byte) {
+            setByte(parameterIndex, (Byte) obj);
+        } else if (obj instanceof byte[]) {
+            setBytes(parameterIndex, (byte[]) obj);
+        } else if (obj instanceof Date) {
+            setDate(parameterIndex, (Date) obj);
+        } else if (obj instanceof Time) {
+            setTime(parameterIndex, (Time) obj);
+        } else if (obj instanceof Timestamp) {
+            setTimestamp(parameterIndex, (Timestamp) obj);
+        } else if (obj instanceof java.util.Date) {
+            setTimestamp(parameterIndex, new Timestamp(((java.util.Date) obj).getTime()));
+        } else if (obj instanceof Boolean) {
+            setBoolean(parameterIndex, (Boolean) obj);
+        } else if (obj instanceof Blob) {
+            setBlob(parameterIndex, (Blob) obj);
+        } else if (obj instanceof InputStream) {
+            setBinaryStream(parameterIndex, (InputStream) obj);
+        } else if (obj instanceof Reader) {
+            setCharacterStream(parameterIndex, (Reader) obj);
+        } else if (obj instanceof BigDecimal) {
+            setBigDecimal(parameterIndex, (BigDecimal) obj);
+        } else if (obj instanceof BigInteger) {
+            setString(parameterIndex, obj.toString());
+        } else if (obj instanceof Clob) {
+            setClob(parameterIndex, (Clob) obj);
+        } else {
+            try {
+                setParameter(parameterIndex, new SerializableParameter(obj, isNoBackslashEscapes()));
+                hasLongData = true;
+            } catch (IOException e) {
+                throw ExceptionMapper.getSqlException("Could not set serializable parameter in setObject: " + e.getMessage(), e);
+            }
+        }
+
+    }
+
+    private void setInternalObject(final int parameterIndex, final Object obj, final int targetSqlType,
+                                   final long scaleOrLength) throws SQLException {
         switch (targetSqlType) {
             case Types.ARRAY:
-            case Types.CLOB:
             case Types.DATALINK:
             case Types.JAVA_OBJECT:
-            case Types.NCHAR:
-            case Types.NCLOB:
-            case Types.NVARCHAR:
-            case Types.LONGNVARCHAR:
             case Types.REF:
             case Types.ROWID:
             case Types.SQLXML:
@@ -803,9 +891,14 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
                     case Types.NUMERIC:
                         setBigDecimal(parameterIndex, new BigDecimal(str));
                         break;
+                    case Types.CLOB:
+                    case Types.NCLOB:
                     case Types.CHAR:
                     case Types.VARCHAR:
                     case Types.LONGVARCHAR:
+                    case Types.NCHAR:
+                    case Types.NVARCHAR:
+                    case Types.LONGNVARCHAR:
                         setString(parameterIndex, str);
                         break;
                     case Types.TIMESTAMP:
@@ -879,12 +972,12 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             setTime(parameterIndex, (Time) obj);      // it is just a string anyway
         } else if (obj instanceof Timestamp) {
             setTimestamp(parameterIndex, (Timestamp) obj);
-        } else if (obj instanceof java.sql.Date) {
-            setDate(parameterIndex, (java.sql.Date) obj);
+        } else if (obj instanceof Date) {
+            setDate(parameterIndex, (Date) obj);
         } else if (obj instanceof java.util.Date) {
             long timemillis = ((java.util.Date) obj).getTime();
             if (targetSqlType == Types.DATE) {
-                setDate(parameterIndex, new java.sql.Date(timemillis));
+                setDate(parameterIndex, new Date(timemillis));
             } else if (targetSqlType == Types.TIME) {
                 setTime(parameterIndex, new Time(timemillis));
             } else if (targetSqlType == Types.TIMESTAMP) {
@@ -897,92 +990,18 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             setBlob(parameterIndex, (Blob) obj);
         } else if (obj instanceof BigInteger) {
             setString(parameterIndex, obj.toString());
+        } else if (obj instanceof Clob) {
+            setClob(parameterIndex, (Clob) obj);
+        } else if (obj instanceof InputStream) {
+            setBinaryStream(parameterIndex, (InputStream) obj, scaleOrLength);
+        } else if (obj instanceof Reader) {
+            setCharacterStream(parameterIndex, (Reader) obj, scaleOrLength);
         } else {
             throw ExceptionMapper.getSqlException("Could not set parameter in setObject, could not convert: " + obj.getClass() + " to "
                     + targetSqlType);
         }
-
     }
 
-    /**
-     * <p>Sets the value of the designated parameter using the given object. The second parameter must be of type
-     * <code>Object</code>; therefore, the <code>java.lang</code> equivalent objects should be used for built-in types.
-     * <br>
-     * <p>The JDBC specification specifies a standard mapping from Java <code>Object</code> types to SQL types.  The
-     * given argument will be converted to the corresponding SQL type before being sent to the database.
-     * <br>
-     * <p>Note that this method may be used to pass datatabase- specific abstract data types, by using a driver-specific
-     * Java type.
-     * <br>
-     * If the object is of a class implementing the interface <code>SQLData</code>, the JDBC driver should call the
-     * method <code>SQLData.writeSQL</code> to write it to the SQL data stream. If, on the other hand, the object is of
-     * a class implementing <code>Ref</code>, <code>Blob</code>, <code>Clob</code>,  <code>NClob</code>,
-     * <code>Struct</code>, <code>java.net.URL</code>, <code>RowId</code>, <code>SQLXML</code> or <code>Array</code>,
-     * the driver should pass it to the database as a value of the corresponding SQL type.
-     * <br>
-     * <b>Note:</b> Not all databases allow for a non-typed Null to be sent to the backend. For maximum portability, the
-     * <code>setNull</code> or the <code>setObject(int parameterIndex, Object x, int sqlType)</code> method should be
-     * used instead of <code>setObject(int parameterIndex, Object x)</code>.
-     * <br>
-     * <b>Note:</b> This method throws an exception if there is an ambiguity, for example, if the object is of a class
-     * implementing more than one of the interfaces named above.
-     *
-     * @param parameterIndex the first parameter is 1, the second is 2, ...
-     * @param obj              the object containing the input parameter value
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
-     *                               if a database access error occurs; this method is called on a closed
-     *                               <code>PreparedStatement</code> or the type of the given object is ambiguous
-     */
-    public void setObject(final int parameterIndex, final Object obj) throws SQLException {
-        if (obj == null) {
-            setNull(parameterIndex, Types.INTEGER);
-        } else if (obj instanceof String) {
-            setString(parameterIndex, (String) obj);
-        } else if (obj instanceof Integer) {
-            setInt(parameterIndex, (Integer) obj);
-        } else if (obj instanceof Long) {
-            setLong(parameterIndex, (Long) obj);
-        } else if (obj instanceof Short) {
-            setShort(parameterIndex, (Short) obj);
-        } else if (obj instanceof Double) {
-            setDouble(parameterIndex, (Double) obj);
-        } else if (obj instanceof Float) {
-            setFloat(parameterIndex, (Float) obj);
-        } else if (obj instanceof Byte) {
-            setByte(parameterIndex, (Byte) obj);
-        } else if (obj instanceof byte[]) {
-            setBytes(parameterIndex, (byte[]) obj);
-        } else if (obj instanceof Date) {
-            setDate(parameterIndex, (Date) obj);
-        } else if (obj instanceof Time) {
-            setTime(parameterIndex, (Time) obj);
-        } else if (obj instanceof Timestamp) {
-            setTimestamp(parameterIndex, (Timestamp) obj);
-        } else if (obj instanceof java.util.Date) {
-            setTimestamp(parameterIndex, new Timestamp(((java.util.Date) obj).getTime()));
-        } else if (obj instanceof Boolean) {
-            setBoolean(parameterIndex, (Boolean) obj);
-        } else if (obj instanceof Blob) {
-            setBlob(parameterIndex, (Blob) obj);
-        } else if (obj instanceof InputStream) {
-            setBinaryStream(parameterIndex, (InputStream) obj);
-        } else if (obj instanceof Reader) {
-            setCharacterStream(parameterIndex, (Reader) obj);
-        } else if (obj instanceof BigDecimal) {
-            setBigDecimal(parameterIndex, (BigDecimal) obj);
-        } else if (obj instanceof BigInteger) {
-            setString(parameterIndex, obj.toString());
-        } else if (obj instanceof Clob) {
-            setClob(parameterIndex, (Clob) obj);
-        } else {
-            try {
-                setParameter(parameterIndex, new SerializableParameter(obj, isNoBackslashEscapes()));
-            } catch (IOException e) {
-                throw ExceptionMapper.getSqlException("Could not set serializable parameter in setObject: " + e.getMessage(), e);
-            }
-        }
-
-    }
 
     /**
      * Sets the designated parameter to the given input stream, which will have the specified number of bytes. When a
@@ -996,7 +1015,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param stream              the Java input stream that contains the ASCII parameter value
      * @param length         the number of bytes in the stream
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -1006,6 +1025,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             return;
         }
         setParameter(parameterIndex, new StreamParameter(stream, length, isNoBackslashEscapes()));
+        hasLongData = true;
     }
 
     /**
@@ -1023,10 +1043,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param stream              the Java input stream that contains the ASCII parameter value
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setAsciiStream(final int parameterIndex, final InputStream stream) throws SQLException {
         if (stream == null) {
@@ -1034,6 +1054,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             return;
         }
         setParameter(parameterIndex, new StreamParameter(stream, isNoBackslashEscapes()));
+        hasLongData = true;
     }
 
     /**
@@ -1048,7 +1069,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param stream              the Java input stream that contains the ASCII parameter value
      * @param length         the number of bytes in the stream
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -1058,6 +1079,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             return;
         }
         setParameter(parameterIndex, new StreamParameter(stream, length, isNoBackslashEscapes()));
+        hasLongData = true;
     }
 
     /**
@@ -1072,7 +1094,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param stream              the java input stream which contains the binary parameter value
      * @param length         the number of bytes in the stream
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -1082,6 +1104,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             return;
         }
         setParameter(parameterIndex, new StreamParameter(stream, length, isNoBackslashEscapes()));
+        hasLongData = true;
     }
 
     /**
@@ -1098,10 +1121,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param stream              the java input stream which contains the binary parameter value
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setBinaryStream(final int parameterIndex, final InputStream stream) throws SQLException {
         if (stream == null) {
@@ -1109,6 +1132,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             return;
         }
         setParameter(parameterIndex, new StreamParameter(stream, isNoBackslashEscapes()));
+        hasLongData = true;
     }
 
 
@@ -1124,7 +1148,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param stream              the java input stream which contains the binary parameter value
      * @param length         the number of bytes in the stream
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -1134,6 +1158,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             return;
         }
         setParameter(parameterIndex, new StreamParameter(stream, length, isNoBackslashEscapes()));
+        hasLongData = true;
     }
 
 
@@ -1164,7 +1189,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param bit              the parameter value
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -1178,7 +1203,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param value              the parameter value
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -1211,7 +1236,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param bytes              the parameter value
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -1244,10 +1269,10 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param x              a <code>java.io.InputStream</code> object that contains the Unicode parameter value
      * @param length         the number of bytes in the stream
-     * @throws java.sql.SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                                  if a database access error occurs or this method is called on a closed
      *                                                  <code>PreparedStatement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @deprecated
      */
     public void setUnicodeStream(final int parameterIndex, final InputStream x, final int length) throws SQLException {
@@ -1256,6 +1281,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             return;
         }
         setParameter(parameterIndex, new StreamParameter(x, length, isNoBackslashEscapes()));
+        hasLongData = true;
     }
 
 
@@ -1286,7 +1312,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param value              the parameter value
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -1300,7 +1326,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param value              the parameter value
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -1314,7 +1340,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param value              the parameter value
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */
@@ -1328,7 +1354,7 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param bigDecimal              the parameter value
-     * @throws java.sql.SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                               if a database access error occurs or this method is called on a closed
      *                               <code>PreparedStatement</code>
      */

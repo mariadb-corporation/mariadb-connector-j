@@ -1,7 +1,8 @@
 /*
 MariaDB Client for Java
 
-Copyright (c) 2016 MariaDB Corporation AB
+Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (c) 2015-2016 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -20,7 +21,7 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
-Copyright (c) 2009-2011, Marcus Eriksson
+Copyright (c) 2009-2011, Marcus Eriksson , Stephane Giron
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -47,38 +48,49 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.packet.dao.parameters;
+package org.mariadb.jdbc.internal.packet.send.gssapi;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import com.sun.jna.platform.win32.Sspi;
+import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.buffer.Buffer;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
+import waffle.windows.auth.IWindowsSecurityContext;
+import waffle.windows.auth.impl.WindowsSecurityContextImpl;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 
+public class WindowsNativeSspiAuthentication extends GssapiAuth {
 
-public class VariableParameter extends NotLongDataParameterHolder {
-    private String string;
-    private boolean noBackslashEscapes;
-
-    public VariableParameter(String string, boolean noBackslashEscapes) {
-        this.string = string;
-        this.noBackslashEscapes = noBackslashEscapes;
+    public WindowsNativeSspiAuthentication(ReadPacketFetcher packetFetcher, int packSeq) {
+        super(packetFetcher, packSeq);
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
-        ParameterWriter.writeBytesEscaped(os, string.getBytes("UTF-8"), noBackslashEscapes);
-    }
+    @Override
+    public void authenticate(PacketOutputStream writer, String serverPrincipalName, String mechanisms) throws QueryException, IOException {
 
-    public long getApproximateTextProtocolLength() throws IOException {
-        return String.valueOf(string).getBytes().length * 2;
-    }
+        // initialize a security context on the client
+        IWindowsSecurityContext clientContext = WindowsSecurityContextImpl.getCurrent( mechanisms, serverPrincipalName );
 
-    public void writeBinary(PacketOutputStream writeBuffer) {
-        writeBuffer.writeStringLength(string);
-    }
+        do {
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.VARCHAR;
-    }
+            // Step 1: send token to server
+            byte[] tokenForTheServerOnTheClient = clientContext.getToken();
+            writer.startPacket(packSeq);
+            writer.write(tokenForTheServerOnTheClient);
+            writer.finishPacket();
 
+            // Step 2: read server response token
+            if (clientContext.isContinue()) {
+                Buffer buffer = packetFetcher.getReusableBuffer();
+                packSeq = packetFetcher.getLastPacketSeq() + 1;
+                byte[] tokenForTheClientOnTheServer = buffer.readRawBytes(buffer.remaining());
+                Sspi.SecBufferDesc continueToken = new Sspi.SecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
+                clientContext.initialize(clientContext.getHandle(), continueToken, serverPrincipalName);
+            }
+
+        } while (clientContext.isContinue());
+
+        clientContext.dispose();
+    }
 }

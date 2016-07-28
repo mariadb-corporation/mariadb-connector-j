@@ -77,6 +77,13 @@ public class SchedulerServiceProviderHolder {
             timeoutScheduler.setRemoveOnCancelPolicy(true);
             return timeoutScheduler;
         }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public ThreadPoolExecutor getBulkScheduler() {
+            return new ThreadPoolExecutor(5, 100, 1, TimeUnit.MINUTES, new SynchronousQueue(), new MariaDbThreadFactory());
+        }
+
     };
 
     private static volatile SchedulerProvider currentProvider = null;
@@ -136,6 +143,10 @@ public class SchedulerServiceProviderHolder {
         return getSchedulerProvider().getTimeoutScheduler();
     }
 
+    public static ThreadPoolExecutor getBulkScheduler() {
+        return getSchedulerProvider().getBulkScheduler();
+    }
+
     /**
      * <p>Provider for thread pools which allow scheduling capabilities.  It is expected that the
      * thread pools entire lifecycle (start to stop) is done through the same provider instance.</p>
@@ -161,6 +172,8 @@ public class SchedulerServiceProviderHolder {
          * @return A new scheduler that is ready to accept tasks
          */
         public ScheduledThreadPoolExecutor getTimeoutScheduler();
+
+        public ThreadPoolExecutor getBulkScheduler();
     }
 
 

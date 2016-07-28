@@ -51,6 +51,7 @@ OF SUCH DAMAGE.
 
 
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
+import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
 import java.io.IOException;
@@ -60,5 +61,5 @@ public interface RowPacket {
 
     byte[][] getRow(ReadPacketFetcher packetFetcher, Buffer buffer) throws IOException;
 
-    byte[][] getRow(ReadPacketFetcher packetFetcher, InputStream inputStream, int remaining, int read) throws IOException;
+    byte[][] getRow(ReadPacketFetcher packetFetcher, MariaDbInputStream inputStream, int remaining, int read) throws IOException;
 }

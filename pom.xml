@@ -6,13 +6,13 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>1.4.6</version>
+    <version>1.5.0-RC1</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jna.version>3.3.0</jna.version>
+        <jna.version>4.2.1</jna.version>
         <version.template.file>src/main/resources/Version.java.template</version.template.file>
         <version.file>src/main/java/org/mariadb/jdbc/internal/util/constant/Version.java</version.file>
         <checkstyleVersion>6.11.2</checkstyleVersion>
@@ -321,12 +321,18 @@
 
     <dependencies>
         <dependency>
+            <groupId>com.github.dblock.waffle</groupId>
+            <artifactId>waffle-jna</artifactId>
+            <version>1.8.1</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.12</version>
             <scope>test</scope>
         </dependency>
-         <dependency>
+        <dependency>
             <groupId>org.threadly</groupId>
             <artifactId>threadly</artifactId>
             <version>4.4.3</version>
@@ -340,10 +346,22 @@
         </dependency>
         <dependency>
             <groupId>net.java.dev.jna</groupId>
-            <artifactId>jna</artifactId>
+            <artifactId>jna-platform</artifactId>
             <version>${jna.version}</version>
-            <classifier>platform</classifier>
             <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>[1.4.0,)</version>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.0.13</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>commons-dbcp</groupId>

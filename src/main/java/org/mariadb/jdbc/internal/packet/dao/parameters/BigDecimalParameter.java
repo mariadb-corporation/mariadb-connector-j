@@ -51,19 +51,21 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.math.BigDecimal;
 
-public class BigDecimalParameter extends NotLongDataParameterHolder {
+public class BigDecimalParameter implements ParameterHolder, Cloneable {
     private BigDecimal bigDecimal;
 
     public BigDecimalParameter(final BigDecimal bigDecimal) {
         this.bigDecimal = bigDecimal;
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
-        ParameterWriter.write(os, bigDecimal);
+    public void writeTo(final PacketOutputStream os) {
+        os.write(bigDecimal.toPlainString().getBytes());
+    }
+
+    public void writeUnsafeTo(final PacketOutputStream os) {
+        os.writeUnsafe(bigDecimal.toPlainString().getBytes());
     }
 
     public long getApproximateTextProtocolLength() {
@@ -78,6 +80,13 @@ public class BigDecimalParameter extends NotLongDataParameterHolder {
         return MariaDbType.DECIMAL;
     }
 
+    public boolean isLongData() {
+        return false;
+    }
+
+    public boolean isNullData() {
+        return false;
+    }
 
     @Override
     public String toString() {

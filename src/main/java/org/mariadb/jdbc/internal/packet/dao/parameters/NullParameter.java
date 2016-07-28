@@ -50,12 +50,13 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
 import java.io.OutputStream;
 
 
-public class NullParameter extends ParameterHolder {
+public class NullParameter implements ParameterHolder, Cloneable {
     private static final byte[] NULL = {'N', 'U', 'L', 'L'};
     private MariaDbType type;
 
@@ -67,14 +68,21 @@ public class NullParameter extends ParameterHolder {
         this.type = type;
     }
 
-    public void writeTo(final OutputStream os) throws IOException {
+    public void writeTo(final PacketOutputStream os) {
         os.write(NULL);
+    }
+
+    public void writeUnsafeTo(final PacketOutputStream os) {
+        os.buffer.put(NULL, 0, 4);
     }
 
     public long getApproximateTextProtocolLength() {
         return 4;
     }
 
+    public void writeBinary(final PacketOutputStream writeBuffer) {
+        //null data are not send in binary format.
+    }
 
     @Override
     public boolean isLongData() {
@@ -88,6 +96,10 @@ public class NullParameter extends ParameterHolder {
     @Override
     public String toString() {
         return "<null>";
+    }
+
+    public boolean isNullData() {
+        return true;
     }
 
 }

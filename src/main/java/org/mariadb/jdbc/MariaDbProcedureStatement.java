@@ -78,9 +78,6 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
                                      String arguments) throws SQLException {
         super(connection, query, ResultSet.TYPE_FORWARD_ONLY);
         this.parameterMetadata = new CallableParameterMetaData(connection, database, procedureName, false);
-        if (parameterCount == 0) {
-            currentParameterHolder = new ParameterHolder[parameterCount];
-        }
         setParamsAccordingToSetArguments();
         setParametersVariables();
     }
@@ -171,7 +168,7 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
             validAllParameters();
             super.executeInternal(0, hasOutParameters);
             retrieveOutputResult();
-            return executionResult != null && executionResult.getResult() != null;
+            return executionResult != null && executionResult.getResultSet() != null;
         } finally {
             connection.lock.unlock();
         }

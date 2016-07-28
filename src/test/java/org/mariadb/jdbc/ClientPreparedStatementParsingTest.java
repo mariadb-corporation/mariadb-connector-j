@@ -12,30 +12,45 @@ import static org.junit.Assert.*;
 
 public class ClientPreparedStatementParsingTest extends BaseTest {
 
-    private void checkParsing(String sql, int paramNumber, boolean rewritable, String[] parts) throws SQLException {
+    private void checkParsing(String sql, int paramNumber, boolean rewritable, boolean allowMultiqueries, String[] partsRewrite,
+                              String[] partsMulti) throws Exception {
+
         MariaDbClientPreparedStatement statement = new MariaDbClientPreparedStatement((MariaDbConnection) sharedConnection, sql,
                 ResultSet.FETCH_FORWARD);
-        assertEquals(paramNumber, statement.getParamCount());
-        for (int i = 0; i < parts.length; i++) {
-            Assert.assertEquals(parts[i], statement.getQueryParts().get(i));
+        assertEquals(paramNumber, statement.getParameterCount());
+
+        if (sharedIsRewrite()) {
+            for (int i = 0; i < partsRewrite.length; i++) {
+                Assert.assertEquals(partsRewrite[i], new String(statement.getPrepareResult().getQueryParts().get(i)));
+            }
+            assertEquals(rewritable, statement.getPrepareResult().isRewritableValuesQuery());
+        } else {
+            for (int i = 0; i < partsMulti.length; i++) {
+                Assert.assertEquals(partsMulti[i], new String(statement.getPrepareResult().getQueryParts().get(i)));
+            }
+            assertEquals(allowMultiqueries, statement.getPrepareResult().isRewritableMultipleQuery());
+
         }
-        assertEquals(rewritable, statement.isReWritablePrepare());
     }
 
     @Test
-    public void testRewritableWithConstantParameter() throws SQLException {
+    public void testRewritableWithConstantParameter() throws Exception {
         checkParsing("INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE col2=col2+10",
-                2, true,
+                2, true, true,
                 new String[] {
                         "INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES",
                         " (9, ",
                         ", 5, ",
                         ", 8)",
-                        " ON DUPLICATE KEY UPDATE col2=col2+10"});
+                        " ON DUPLICATE KEY UPDATE col2=col2+10"},
+                new String[] {
+                        "INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ",
+                        ", 5, ",
+                        ", 8) ON DUPLICATE KEY UPDATE col2=col2+10"});
     }
 
     @Test
-    public void testComment() throws SQLException {
+    public void testComment() throws Exception {
         checkParsing("/* insert Select INSERT INTO tt VALUES (?,?,?,?)  */"
                 + " INSERT into "
                 + "/* insert Select INSERT INTO tt VALUES (?,?,?,?)  */"
@@ -43,7 +58,7 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
                 + "/* insert Select INSERT INTO tt VALUES (?,?,?,?)  */"
                 + " (?) "
                 + "/* insert Select INSERT INTO tt VALUES (?,?,?,?)  */",
-                1, true,
+                1, true, true,
                 new String[] {
                         "/* insert Select INSERT INTO tt VALUES (?,?,?,?)  */"
                                 + " INSERT into "
@@ -51,26 +66,38 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
                                 + " tt VALUES",
                         " /* insert Select INSERT INTO tt VALUES (?,?,?,?)  */ (",
                         ")",
-                        " /* insert Select INSERT INTO tt VALUES (?,?,?,?)  */"});
+                        " /* insert Select INSERT INTO tt VALUES (?,?,?,?)  */"},
+                new String[] {"/* insert Select INSERT INTO tt VALUES (?,?,?,?)  */"
+                        + " INSERT into "
+                        + "/* insert Select INSERT INTO tt VALUES (?,?,?,?)  */"
+                        + " tt VALUES "
+                        + "/* insert Select INSERT INTO tt VALUES (?,?,?,?)  */"
+                        + " (",
+                        ") "
+                        + "/* insert Select INSERT INTO tt VALUES (?,?,?,?)  */"});
     }
 
     @Test
-    public void testRewritableWithConstantParameterAndParamAfterValue() throws SQLException {
+    public void testRewritableWithConstantParameterAndParamAfterValue() throws Exception {
         checkParsing("INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE col2=?",
-                3, false,
+                3, false, true,
                 new String[] {
                         "INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES",
                         " (9, ",
                         ", 5, ",
                         ", 8) ON DUPLICATE KEY UPDATE col2=",
                         "",
+                        ""},
+                new String[] {"INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ",
+                        ", 5, ",
+                        ", 8) ON DUPLICATE KEY UPDATE col2=",
                         ""});
     }
 
     @Test
-    public void testRewritableMultipleInserts() throws SQLException {
+    public void testRewritableMultipleInserts() throws Exception {
         checkParsing("INSERT INTO TABLE(col1,col2) VALUES (?, ?), (?, ?)",
-                4, false,
+                4, false, true,
                 new String[] {
                         "INSERT INTO TABLE(col1,col2) VALUES",
                         " (",
@@ -78,120 +105,173 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
                         "), (",
                         ", ",
                         ")",
-                        ""});
+                        ""},
+                new String[] {"INSERT INTO TABLE(col1,col2) VALUES (",
+                        ", ",
+                        "), (",
+                        ", ",
+                        ")"});
     }
 
+
     @Test
-    public void testCall() throws SQLException {
+    public void testCall() throws Exception {
         checkParsing("CALL dsdssd(?,?)",
-                2, false,
+                2, false, true,
                 new String[] {
                         "CALL dsdssd(",
                         "",
                         ",",
                         ")",
-                        ""});
+                        ""},
+                new String[] {"CALL dsdssd(",
+                        ",",
+                        ")"});
     }
 
     @Test
-    public void testUpdate() throws SQLException {
+    public void testUpdate() throws Exception {
         checkParsing("UPDATE MultiTestt4 SET test = ? WHERE test = ?",
-                2, false,
+                2, false, true,
                 new String[] {
                         "UPDATE MultiTestt4 SET test = ",
                         "",
                         " WHERE test = ",
                         "",
+                        ""},
+                new String[] {"UPDATE MultiTestt4 SET test = ",
+                        " WHERE test = ",
                         ""});
     }
 
     @Test
-    public void testInsertSelect() throws SQLException {
-        checkParsing("insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)",
-                1, false,
+    public void testInsertSelect() throws Exception {
+        checkParsing("insert into test_insert_select ( field1) (select  TMP.field1 from (select CAST(? as binary) `field1` from dual) TMP)",
+                1, false, true,
                 new String[] {
-                        "insert into test_insert_select ( field1) (select  TMP.field1 from (select ",
+                        "insert into test_insert_select ( field1) (select  TMP.field1 from (select CAST(",
                         "",
-                        " `field1` from dual) TMP)",
-                        ""});
+                        " as binary) `field1` from dual) TMP)",
+                        ""},
+                new String[] {"insert into test_insert_select ( field1) (select  TMP.field1 from (select CAST(",
+                        " as binary) `field1` from dual) TMP)"});
     }
 
     @Test
-    public void testWithoutParameter() throws SQLException {
+    public void testWithoutParameter() throws Exception {
         checkParsing("SELECT testFunction()",
-                0, false,
+                0, false, true,
                 new String[] {
-                        "",
                         "SELECT testFunction()",
-                        ""});
-    }
-
-    @Test
-    public void testWithoutParameterAndParenthesis() throws SQLException {
-        checkParsing("SELECT 1",
-                0, false,
-                new String[] {
                         "",
-                        "SELECT 1",
-                        ""});
+                        ""},
+                new String[] {"SELECT testFunction()"});
     }
 
     @Test
-    public void testWithoutParameterAndValues() throws SQLException {
+    public void testWithoutParameterAndParenthesis() throws Exception {
+        checkParsing("SELECT 1",
+                0, false, true,
+                new String[] {
+                        "SELECT 1",
+                        "",
+                        ""},
+                new String[] {"SELECT 1"});
+    }
+
+    @Test
+    public void testWithoutParameterAndValues() throws Exception {
         checkParsing("INSERT INTO tt VALUES (1)",
-                0, true,
+                0, true, true,
                 new String[] {
                         "INSERT INTO tt VALUES",
                         " (1)",
-                        ""});
+                        ""},
+                new String[] {"INSERT INTO tt VALUES (1)"});
     }
 
     @Test
-    public void testSemiColon() throws SQLException {
+    public void testSemiColon() throws Exception {
         checkParsing("INSERT INTO tt (tt) VALUES (?); INSERT INTO tt (tt) VALUES ('multiple')",
-                1, false,
+                1, false, true,
                 new String[] {
                         "INSERT INTO tt (tt) VALUES",
                         " (",
                         ")",
-                        "; INSERT INTO tt (tt) VALUES ('multiple')"});
+                        "; INSERT INTO tt (tt) VALUES ('multiple')"},
+                new String[] {"INSERT INTO tt (tt) VALUES (",
+                        "); INSERT INTO tt (tt) VALUES ('multiple')"});
     }
 
     @Test
-    public void testSemicolonRewritableIfAtEnd() throws SQLException {
+    public void testSemicolonRewritableIfAtEnd() throws Exception {
         checkParsing("INSERT INTO table (column1) VALUES (?); ",
-                1, true,
+                1, true, false,
                 new String[] {
                         "INSERT INTO table (column1) VALUES",
                         " (",
                         ")",
-                        "; "});
+                        "; "},
+                new String[] {"INSERT INTO table (column1) VALUES (",
+                        "); "});
     }
 
     @Test
-    public void testSemicolonNotRewritableIfNotAtEnd() throws SQLException {
+    public void testSemicolonNotRewritableIfNotAtEnd() throws Exception {
         checkParsing("INSERT INTO table (column1) VALUES (?); SELECT 1",
-                1, false,
+                1, false, true,
                 new String[] {
                         "INSERT INTO table (column1) VALUES",
                         " (",
                         ")",
-                        "; SELECT 1"});
+                        "; SELECT 1"},
+                new String[] {"INSERT INTO table (column1) VALUES (",
+                        "); SELECT 1"});
     }
 
     @Test
-    public void testError() throws SQLException {
+    public void testError() throws Exception {
         checkParsing("INSERT INTO tt (tt) VALUES (?); INSERT INTO tt (tt) VALUES ('multiple')",
-                1, false,
+                1, false, true,
                 new String[] {
                         "INSERT INTO tt (tt) VALUES",
                         " (",
                         ")",
-                        "; INSERT INTO tt (tt) VALUES ('multiple')"});
+                        "; INSERT INTO tt (tt) VALUES ('multiple')"},
+                new String[] {"INSERT INTO tt (tt) VALUES (",
+                        "); INSERT INTO tt (tt) VALUES ('multiple')"});
+    }
+
+
+    @Test
+    public void testLineComment() throws Exception {
+        checkParsing("INSERT INTO tt (tt) VALUES (?) --fin",
+                1, true, false,
+                new String[] {
+                        "INSERT INTO tt (tt) VALUES",
+                        " (",
+                        ")",
+                        " --fin"},
+                new String[] {"INSERT INTO tt (tt) VALUES (",
+                        ") --fin"});
     }
 
     @Test
-    public void rewriteBatchedError() throws SQLException {
+    public void testLineCommentFinished() throws Exception {
+        checkParsing("INSERT INTO tt (tt) VALUES --fin\n (?)",
+                1, true, true,
+                new String[] {
+                        "INSERT INTO tt (tt) VALUES",
+                        " --fin\n (",
+                        ")",
+                        ""},
+                new String[] {"INSERT INTO tt (tt) VALUES --fin\n (",
+                        ")"});
+    }
+
+
+    @Test
+    public void rewriteBatchedError() throws Exception {
         try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
             PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO errorTable (a, b) VALUES (?, ?, ?)");
 

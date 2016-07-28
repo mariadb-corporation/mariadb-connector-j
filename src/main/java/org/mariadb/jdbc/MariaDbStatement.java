@@ -50,11 +50,12 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
-import org.mariadb.jdbc.internal.queryresults.MultiIntExecutionResult;
-import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
+import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
@@ -80,14 +81,12 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     protected MariaDbConnection connection;
     protected Future<?> timerTaskFuture;
-    private boolean isRewriteable = true;
-    protected int rewriteOffset = -1;
     protected ResultSet batchResultSet = null;
     protected volatile boolean closed = false;
     boolean isTimedout;
     volatile boolean executing;
     private List<String> batchQueries;
-    Deque<ExecutionResult> cachedExecutionResults;
+
     //are warnings cleared?
     private boolean warningsCleared;
     protected int queryTimeout;
@@ -96,7 +95,8 @@ public class MariaDbStatement implements Statement, Cloneable {
     protected final ReentrantLock lock;
     protected ExecutionResult executionResult = null;
     protected int resultSetScrollType;
-
+    protected boolean mustCloseOnCompletion = false;
+    protected Options options;
     /**
      * Creates a new Statement.
      *
@@ -109,7 +109,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         this.connection = connection;
         this.resultSetScrollType = resultSetScrollType;
         this.lock = this.connection.lock;
-        cachedExecutionResults = new ArrayDeque<>();
+        this.options = this.protocol.getOptions();
     }
 
     /**
@@ -124,13 +124,11 @@ public class MariaDbStatement implements Statement, Cloneable {
         clone.protocol = protocol;
         clone.timerTaskFuture = null;
         clone.batchQueries = new ArrayList<>();
-        clone.cachedExecutionResults = new ArrayDeque<>();
         clone.executionResult = null;
         clone.closed = false;
         clone.warningsCleared = true;
         clone.fetchSize = 0;
         clone.maxRows = 0;
-        clone.isRewriteable = true;
         return clone;
     }
 
@@ -172,27 +170,8 @@ public class MariaDbStatement implements Statement, Cloneable {
             throw new SQLException("execute() is called on closed statement");
         }
         protocol.prolog(executionResult, maxRows, protocol.getProxy() != null, connection, this);
-        cachedExecutionResults.clear();
         if (queryTimeout != 0) {
             setTimerTask();
-        }
-    }
-
-    // must have "lock" locked before invoking
-    protected void cacheMoreResults(ExecutionResult execResult, int fetchSize, boolean canHaveCallableResult) throws SQLException {
-        if (fetchSize != 0) {
-            return;
-        }
-        if (execResult.hasMoreResultAvailable()) {
-            try {
-                while (protocol.hasMoreResults()) {
-                    SingleExecutionResult executionResult = new SingleExecutionResult(this, 0, true, canHaveCallableResult);
-                    protocol.getMoreResults(executionResult);
-                    cachedExecutionResults.add(executionResult);
-                }
-            } catch (QueryException e) {
-                throw ExceptionMapper.createException(e, connection, this);
-            }
         }
     }
 
@@ -257,11 +236,17 @@ public class MariaDbStatement implements Statement, Cloneable {
         try {
             executeQueryProlog();
             batchResultSet = null;
-            SingleExecutionResult internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, false);
-            protocol.executeQuery(internalExecutionResult, sql, resultSetScrollType);
-            cacheMoreResults(internalExecutionResult, fetchSize, false);
+            ExecutionResult internalExecutionResult;
+            if (options.allowMultiQueries || options.rewriteBatchedStatements) {
+                //permit multi query in one execution
+                internalExecutionResult = new MultiVariableIntExecutionResult(this, 1, fetchSize, true);
+            } else {
+                internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, false, true);
+            }
+            protocol.executeQuery(protocol.isMasterConnection(), internalExecutionResult,
+                    Utils.nativeSql(sql, connection.noBackslashEscapes), resultSetScrollType);
             executionResult = internalExecutionResult;
-            return executionResult.getResult() != null;
+            return executionResult.getResultSet() != null;
         } catch (QueryException e) {
             exception = e;
             return false;
@@ -298,9 +283,9 @@ public class MariaDbStatement implements Statement, Cloneable {
      * <code>Statement.NO_GENERATED_KEYS</code>
      * @return <code>true</code> if the first result is a <code>ResultSet</code> object; <code>false</code> if it is an update count or there are no
      * results
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the second
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the second
      * parameter supplied to this method is not <code>Statement.RETURN_GENERATED_KEYS</code> or <code>Statement.NO_GENERATED_KEYS</code>.
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method with a constant of
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method with a constant of
      * Statement.RETURN_GENERATED_KEYS
      * @see #getResultSet
      * @see #getUpdateCount
@@ -328,9 +313,9 @@ public class MariaDbStatement implements Statement, Cloneable {
      * method <code>getGeneratedKeys</code>
      * @return <code>true</code> if the first result is a <code>ResultSet</code> object; <code>false</code> if it is an update count or there are no
      * results
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the elements in
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the elements in
      * the <code>int</code> array passed to this method are not valid column indexes
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see #getResultSet
      * @see #getUpdateCount
      * @see #getMoreResults
@@ -358,9 +343,9 @@ public class MariaDbStatement implements Statement, Cloneable {
      * <code>getGeneratedKeys</code>
      * @return <code>true</code> if the next result is a <code>ResultSet</code> object; <code>false</code> if it is an update count or there are no
      * more results
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the elements of
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the elements of
      * the <code>String</code> array passed to this method are not valid column names
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see #getResultSet
      * @see #getUpdateCount
      * @see #getMoreResults
@@ -381,7 +366,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     public ResultSet executeQuery(String sql) throws SQLException {
         if (executeInternal(sql, fetchSize)) {
-            return executionResult.getResult();
+            return executionResult.getResultSet();
         }
         //throw new SQLException("executeQuery() with query '" + query +"' did not return a result set");
         return MariaSelectResultSet.EMPTY;
@@ -413,9 +398,9 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @param autoGeneratedKeys a flag indicating whether auto-generated keys should be made available for retrieval; one of the following constants:
      * <code>Statement.RETURN_GENERATED_KEYS</code> <code>Statement.NO_GENERATED_KEYS</code>
      * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements that return nothing
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>, the given SQL
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>, the given SQL
      * statement returns a <code>ResultSet</code> object, or the given constant is not one of those allowed
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method with a constant of
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method with a constant of
      * Statement.RETURN_GENERATED_KEYS
      * @since 1.4
      */
@@ -437,10 +422,10 @@ public class MariaDbStatement implements Statement, Cloneable {
      * SQL statement that returns nothing, such as a DDL statement.
      * @param columnIndexes an array of column indexes indicating the columns that should be returned from the inserted row
      * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements that return nothing
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>, the SQL statement
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>, the SQL statement
      * returns a <code>ResultSet</code> object, or the second argument supplied to this method is not an <code>int</code> array whose elements are
      * valid column indexes
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public int executeUpdate(final String sql, final int[] columnIndexes) throws SQLException {
@@ -461,10 +446,10 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @param columnNames an array of the names of the columns that should be returned from the inserted row
      * @return either the row count for <code>INSERT</code>, <code>UPDATE</code>, or <code>DELETE</code> statements, or 0 for SQL statements that
      * return nothing
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>, the SQL statement
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>, the SQL statement
      * returns a <code>ResultSet</code> object, or the second argument supplied to this method is not a <code>String</code> array whose elements are
      * valid column names
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public int executeUpdate(final String sql, final String[] columnNames) throws SQLException {
@@ -480,7 +465,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * resources. Calling the method <code>close</code> on a <code>Statement</code> object that is already closed has no effect. <B>Note:</B>When a
      * <code>Statement</code> object is closed, its current <code>ResultSet</code> object, if one exists, is also closed.
      *
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      */
     public void close() throws SQLException {
         lock.lock();
@@ -494,11 +479,6 @@ public class MariaDbStatement implements Statement, Cloneable {
                 }
                 executionResult = null;
             }
-
-            // No possible future use for the cached results, so these can be cleared
-            // This makes the cache eligible for garbage collection earlier if the statement is not
-            // immediately garbage collected
-            cachedExecutionResults.clear();
 
             if (hasMoreResult) {
                 connection.lock.lock();
@@ -527,18 +507,18 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException if any error occur
      */
     protected ResultSet retrieveCallableResult() throws SQLException {
-        if (executionResult != null && executionResult.getResult() != null
-                && executionResult.getResult().isCallableResult()) {
-            MariaSelectResultSet resultSet = executionResult.getResult();
+        if (executionResult != null && executionResult.getResultSet() != null
+                && executionResult.getResultSet().isCallableResult()) {
+            MariaSelectResultSet resultSet = executionResult.getResultSet();
             getMoreResults();
             return resultSet;
         }
-        for (ExecutionResult batchExecutionResult : cachedExecutionResults) {
-            if (batchExecutionResult.getResult() != null
-                    && batchExecutionResult.getResult() != null
-                    && batchExecutionResult.getResult().isCallableResult()) {
-                MariaSelectResultSet resultSet = batchExecutionResult.getResult();
-                cachedExecutionResults.remove(batchExecutionResult);
+        for (ExecutionResult batchExecutionResult : executionResult.getCachedExecutionResults()) {
+            if (batchExecutionResult.getResultSet() != null
+                    && batchExecutionResult.getResultSet() != null
+                    && batchExecutionResult.getResultSet().isCallableResult()) {
+                MariaSelectResultSet resultSet = batchExecutionResult.getResultSet();
+                executionResult.getCachedExecutionResults().remove(batchExecutionResult);
                 return resultSet;
             }
         }
@@ -552,7 +532,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * columns.  If the limit is exceeded, the excess data is silently discarded.
      *
      * @return the current column size limit for columns storing character and binary values; zero means there is no limit
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @see #setMaxFieldSize
      */
     public int getMaxFieldSize() throws SQLException {
@@ -567,7 +547,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * than 256.
      *
      * @param max the new column size limit in bytes; zero means there is no limit
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the condition max
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the condition max
      * &gt;= 0 is not satisfied
      * @see #getMaxFieldSize
      */
@@ -581,7 +561,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      *
      * @return the current maximum number of rows for a <code>ResultSet</code> object produced by this <code>Statement</code> object; zero means there
      * is no limit
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @see #setMaxRows
      */
     public int getMaxRows() throws SQLException {
@@ -593,7 +573,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * contain to the given number. If the limit is exceeded, the excess rows are silently dropped.
      *
      * @param max the new max rows limit; zero means there is no limit
-     * @throws java.sql.SQLException if the condition max &gt;= 0 is not satisfied
+     * @throws SQLException if the condition max &gt;= 0 is not satisfied
      * @see #getMaxRows
      */
     public void setMaxRows(final int max) throws SQLException {
@@ -609,7 +589,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * <code>PreparedStatements</code> objects will have no effect.
      *
      * @param enable <code>true</code> to enable escape processing; <code>false</code> to disable it
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      */
     public void setEscapeProcessing(final boolean enable) throws SQLException {
 
@@ -620,7 +600,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * <code>SQLException</code> is thrown.
      *
      * @return the current query timeout limit in seconds; zero means there is no limit
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @see #setQueryTimeout
      */
     public int getQueryTimeout() throws SQLException {
@@ -634,7 +614,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * driver vendor documentation for details).
      *
      * @param seconds the new query timeout limit in seconds; zero means there is no limit
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the condition
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the condition
      * seconds &gt;= 0 is not satisfied
      * @see #getQueryTimeout
      */
@@ -647,7 +627,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * ignored.
      *
      * @param inputStream inputStream instance, that will be used to send data to server
-     * @throws java.sql.SQLException if statement is closed
+     * @throws SQLException if statement is closed
      */
     public void setLocalInfileInputStream(InputStream inputStream) throws SQLException {
         checkClose();
@@ -658,8 +638,8 @@ public class MariaDbStatement implements Statement, Cloneable {
      * Cancels this <code>Statement</code> object if both the DBMS and driver support aborting an SQL statement. This method can be used by one thread
      * to cancel a statement that is being executed by another thread.
      *
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void cancel() throws SQLException {
         checkClose();
@@ -683,7 +663,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * will be chained on it rather than on the <code>Statement</code> object that produced it.</p>
      *
      * @return the first <code>SQLWarning</code> object or <code>null</code> if there are no warnings
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      */
     public SQLWarning getWarnings() throws SQLException {
         checkClose();
@@ -697,7 +677,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * Clears all the warnings reported on this <code>Statement</code> object. After a call to this method, the method <code>getWarnings</code> will
      * return <code>null</code> until a new warning is reported for this <code>Statement</code> object.
      *
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      */
     public void clearWarnings() throws SQLException {
         warningsCleared = true;
@@ -713,8 +693,8 @@ public class MariaDbStatement implements Statement, Cloneable {
      * object being used for positioning. Also, cursor names must be unique within a connection.</p>
      *
      * @param name the new cursor name, which must be unique within a connection
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setCursorName(final String name) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("Cursors are not supported");
@@ -736,24 +716,24 @@ public class MariaDbStatement implements Statement, Cloneable {
      * keys were not specified, the JDBC driver implementation will determine the columns which best represent the auto-generated keys.</p>
      *
      * @return a <code>ResultSet</code> object containing the auto-generated key(s) generated by the execution of this <code>Statement</code> object
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if the JDBC driver does not support this method
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
-        if (executionResult != null && executionResult.getResult() == null) {
+        if (executionResult != null && executionResult.getResultSet() == null) {
             int autoIncrementIncrement = connection.getAutoIncrementIncrement();
             //multi insert in one execution. will create result based on autoincrement
             if (executionResult.hasMoreThanOneAffectedRows()) {
                 long[] data;
-                if (executionResult instanceof  SingleExecutionResult) {
+                if (executionResult.isSingleExecutionResult()) {
                     int updateCount = executionResult.getFirstAffectedRows();
                     data = new long[updateCount];
                     for (int i = 0; i < updateCount; i++) {
                         data[i] = ((SingleExecutionResult) executionResult).getInsertId() + i * autoIncrementIncrement;
                     }
                 } else {
-                    MultiIntExecutionResult multiExecution = (MultiIntExecutionResult) executionResult;
+                    MultiVariableIntExecutionResult multiExecution = (MultiVariableIntExecutionResult) executionResult;
                     int size = 0;
                     int affectedRowslength = multiExecution.getAffectedRows().length;
                     for (int i = 0; i < affectedRowslength; i++) {
@@ -777,7 +757,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * Retrieves the result set holdability for <code>ResultSet</code> objects generated by this <code>Statement</code> object.
      *
      * @return either <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @since 1.4
      */
     public int getResultSetHoldability() throws SQLException {
@@ -789,7 +769,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * it, or if it is automatically closed.
      *
      * @return true if this <code>Statement</code> object is closed; false if it is still open
-     * @throws java.sql.SQLException if a database access error occurs
+     * @throws SQLException if a database access error occurs
      * @since 1.6
      */
     public boolean isClosed() throws SQLException {
@@ -800,8 +780,8 @@ public class MariaDbStatement implements Statement, Cloneable {
      * Returns a  value indicating whether the <code>Statement</code> is poolable or not.
      *
      * @return <code>true</code> if the <code>Statement</code> is poolable; <code>false</code> otherwise
-     * @throws java.sql.SQLException if this method is called on a closed <code>Statement</code>
-     * @see java.sql.Statement#setPoolable(boolean) setPoolable(boolean)
+     * @throws SQLException if this method is called on a closed <code>Statement</code>
+     * @see Statement#setPoolable(boolean) setPoolable(boolean)
      * @since 1.6
      */
     @Override
@@ -817,7 +797,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * created, and a <code>PreparedStatement</code> and <code>CallableStatement</code> are poolable when created.</p>
      *
      * @param poolable requests that the statement be pooled if true and that the statement not be pooled if false
-     * @throws java.sql.SQLException if this method is called on a closed <code>Statement</code>
+     * @throws SQLException if this method is called on a closed <code>Statement</code>
      * @since 1.6
      */
     @Override
@@ -833,7 +813,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     public ResultSet getResultSet() throws SQLException {
         checkClose();
         if (executionResult != null) {
-            return executionResult.getResult();
+            return executionResult.getResultSet();
         }
         return null;
     }
@@ -846,13 +826,13 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException if a database access error occurs or this method is called on a closed Statement
      */
     public int getUpdateCount() throws SQLException {
-        if (executionResult == null || executionResult.getResult() != null) {
+        if (executionResult == null) {
             return -1;  /* Result comes from SELECT , or there are no more results */
         }
-        if (executionResult instanceof SingleExecutionResult) {
+        if (executionResult.isSingleExecutionResult()) {
             return (int) ((SingleExecutionResult) executionResult).getAffectedRows();
         } else {
-            return ((MultiIntExecutionResult) executionResult).getAffectedRows()[0];
+            return ((MultiExecutionResult) executionResult).getAffectedRows()[0];
         }
     }
 
@@ -874,7 +854,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      *
      * @return <code>true</code> if the next result is a <code>ResultSet</code> object; <code>false</code> if it is an update count or there are no
      * more results
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @see #execute
      */
     public boolean getMoreResults() throws SQLException {
@@ -892,10 +872,10 @@ public class MariaDbStatement implements Statement, Cloneable {
      * or <code>Statement.CLOSE_ALL_RESULTS</code>
      * @return <code>true</code> if the next result is a <code>ResultSet</code> object; <code>false</code> if it is an update count or there are no
      * more results
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the argument
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the argument
      * supplied is not one of the following: <code>Statement.CLOSE_CURRENT_RESULT</code>, <code>Statement.KEEP_CURRENT_RESULT</code> or
      * <code>Statement.CLOSE_ALL_RESULTS</code>
-     * @throws java.sql.SQLFeatureNotSupportedException if <code>DatabaseMetaData.supportsMultipleOpenResults</code> returns <code>false</code> and
+     * @throws SQLFeatureNotSupportedException if <code>DatabaseMetaData.supportsMultipleOpenResults</code> returns <code>false</code> and
      * either <code>Statement.KEEP_CURRENT_RESULT</code> or <code>Statement.CLOSE_ALL_RESULTS</code> are supplied as the argument.
      * @see #execute
      * @since 1.4
@@ -904,8 +884,9 @@ public class MariaDbStatement implements Statement, Cloneable {
         //if fetch size is set to read fully, other resultset are put in cache
         if (executionResult != null) {
             if (executionResult.getFetchSize() == 0) {
-                executionResult = cachedExecutionResults.poll();
-                return executionResult != null && executionResult.getResult() != null;
+                executionResult = (executionResult.getCachedExecutionResults() == null)
+                        ? null : executionResult.getCachedExecutionResults().poll();
+                return executionResult != null && executionResult.getResultSet() != null;
             }
 
             //must fetch new data
@@ -917,7 +898,7 @@ public class MariaDbStatement implements Statement, Cloneable {
                 if (internalExecutionResult.hasMoreResultAvailable()) {
                     protocol.getMoreResults(internalExecutionResult);
                     executionResult = internalExecutionResult;
-                    return executionResult.getResult() != null;
+                    return executionResult.getResultSet() != null;
                 } else {
                     executionResult = null;
                     return false;
@@ -942,7 +923,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * value is implementation-specific.
      *
      * @return the default fetch direction for result sets generated from this <code>Statement</code> object
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @see #setFetchDirection
      * @since 1.2
      */
@@ -958,7 +939,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * fetch direction. </p>
      *
      * @param direction the initial direction for processing rows
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the given
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the given
      * direction is not one of <code>ResultSet.FETCH_FORWARD</code>, <code>ResultSet.FETCH_REVERSE</code>, or <code>ResultSet.FETCH_UNKNOWN</code>
      * @see #getFetchDirection
      * @since 1.2
@@ -973,7 +954,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * the return value is implementation-specific.
      *
      * @return the default fetch size for result sets generated from this <code>Statement</code> object
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @see #setFetchSize
      * @since 1.2
      */
@@ -987,7 +968,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * value is zero.
      *
      * @param rows the number of rows to fetch
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the condition
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the condition
      * <code>rows &gt;= 0</code> is not satisfied.
      * @see #getFetchSize
      * @since 1.2
@@ -1007,7 +988,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * Retrieves the result set concurrency for <code>ResultSet</code> objects generated by this <code>Statement</code> object.
      *
      * @return either <code>ResultSet.CONCUR_READ_ONLY</code> or <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @since 1.2
      */
     public int getResultSetConcurrency() throws SQLException {
@@ -1019,12 +1000,11 @@ public class MariaDbStatement implements Statement, Cloneable {
      *
      * @return one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
      * <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @throws java.sql.SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @since 1.2
      */
     public int getResultSetType() throws SQLException {
-        // TODO: this will change when the async protocol is implemented
-        return ResultSet.TYPE_SCROLL_INSENSITIVE;
+        return resultSetScrollType;
     }
 
     /**
@@ -1032,44 +1012,29 @@ public class MariaDbStatement implements Statement, Cloneable {
      * as a batch by calling the method <code>executeBatch</code>.
      *
      * @param sql typically this is a SQL <code>INSERT</code> or <code>UPDATE</code> statement
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the driver does
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the driver does
      * not support batch updates
      * @see #executeBatch
-     * @see java.sql.DatabaseMetaData#supportsBatchUpdates
+     * @see DatabaseMetaData#supportsBatchUpdates
      * @since 1.2
      */
     public void addBatch(final String sql) throws SQLException {
-        if (batchQueries == null) {
-            batchQueries = new ArrayList<>();
-        }
-        String sqlQuery = sql;
-        if (isRewriteable && (protocol.getOptions().rewriteBatchedStatements || protocol.getOptions().allowMultiQueries)) {
-            int sqlRewriteOffset = isRewritable(sql, connection.noBackslashEscapes);
-            if (rewriteOffset == -1) {
-                rewriteOffset = sqlRewriteOffset;
-            } else {
-                isRewriteable = isRewriteable && rewriteOffset == sqlRewriteOffset;
-            }
-        }
-
-        batchQueries.add(sqlQuery);
+        if (batchQueries == null) batchQueries = new ArrayList<>();
+        if (sql == null) throw ExceptionMapper.getSqlException("null cannot be set to addBatch( String sql)");
+        batchQueries.add(sql);
     }
 
     /**
      * Empties this <code>Statement</code> object's current list of SQL send.
      *
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the driver does
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the driver does
      * not support batch updates
      * @see #addBatch
-     * @see java.sql.DatabaseMetaData#supportsBatchUpdates
+     * @see DatabaseMetaData#supportsBatchUpdates
      * @since 1.2
      */
     public void clearBatch() throws SQLException {
-        if (batchQueries != null) {
-            batchQueries.clear();
-        }
-        isRewriteable = true;
-        rewriteOffset = -1;
+        if (batchQueries != null) batchQueries.clear();
     }
 
     /**
@@ -1083,11 +1048,11 @@ public class MariaDbStatement implements Statement, Cloneable {
      *
      * @return an array of update counts containing one element for each command in the batch.  The elements of the array are ordered according to the
      * order in which send were added to the batch.
-     * @throws java.sql.SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the driver does
-     * not support batch statements. Throws {@link java.sql.BatchUpdateException} (a subclass of <code>SQLException</code>) if one of the send
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the driver does
+     * not support batch statements. Throws {@link BatchUpdateException} (a subclass of <code>SQLException</code>) if one of the send
      * sent to the database fails to execute properly or attempts to return a result set.
      * @see #addBatch
-     * @see java.sql.DatabaseMetaData#supportsBatchUpdates
+     * @see DatabaseMetaData#supportsBatchUpdates
      * @since 1.3
      */
     public int[] executeBatch() throws SQLException {
@@ -1095,33 +1060,39 @@ public class MariaDbStatement implements Statement, Cloneable {
         if (batchQueries == null || batchQueries.size() == 0) {
             return new int[0];
         }
-        MultiIntExecutionResult internalExecutionResult = new MultiIntExecutionResult(this, batchQueries.size(), 0, false);
+        MultiFixedIntExecutionResult internalExecutionResult = new MultiFixedIntExecutionResult(this, batchQueries.size(), 0, false);
+        boolean multipleExecution = false;
         lock.lock();
         try {
-            cachedExecutionResults.clear();
             QueryException exception = null;
             executing = true;
             executeQueryProlog();
             try {
-                if (isRewriteable && (getProtocol().getOptions().allowMultiQueries || getProtocol().getOptions().rewriteBatchedStatements)) {
-                    boolean rewrittenBatch = isRewriteable && getProtocol().getOptions().rewriteBatchedStatements;
-                    protocol.executeQueriesRewrite(internalExecutionResult, batchQueries, resultSetScrollType, rewrittenBatch,
-                            (rewrittenBatch && rewriteOffset != -1) ? rewriteOffset : 0);
-                    cacheMoreResults(internalExecutionResult, 0, false);
-                    if (rewrittenBatch) {
-                        //operation will be done on first execution ( or a few execution if max packet size is not enought for one operation)
-                        internalExecutionResult.updateResultsForRewrite();
+                if (this.options.rewriteBatchedStatements) {
+                    //check that queries are rewritable
+                    boolean batchQueryMultiRewritable = true;
+                    for (String query : batchQueries) {
+                        if (!ClientPrepareResult.isRewritableBatch(query, connection.noBackslashEscapes)) {
+                            batchQueryMultiRewritable = false;
+                            break;
+                        }
+                    }
+                    if (batchQueryMultiRewritable) {
+                        multipleExecution = true;
+                        protocol.executeBatchMultiple(protocol.isMasterConnection(), internalExecutionResult, batchQueries, resultSetScrollType);
+                        internalExecutionResult.updateResultsMultiple(batchQueries.size(), false);
                     } else {
-                        //set update result right (first will have one operation, others are on moreResultPacket).
-                        internalExecutionResult.updateResultsMultiple(cachedExecutionResults);
+                        protocol.executeBatch(protocol.isMasterConnection(), internalExecutionResult, batchQueries, resultSetScrollType);
                     }
                 } else {
-                    protocol.executeQueries(internalExecutionResult, batchQueries, resultSetScrollType);
-                    cacheMoreResults(internalExecutionResult, 0, false);
+                    protocol.executeBatch(protocol.isMasterConnection(), internalExecutionResult, batchQueries, resultSetScrollType);
                 }
             } catch (QueryException e) {
                 exception = e;
             } finally {
+                if (exception != null && multipleExecution) {
+                    internalExecutionResult.updateResultsMultiple(batchQueries.size(), true);
+                }
                 executionResult = internalExecutionResult;
                 executing = false;
                 executeQueryEpilog(exception);
@@ -1147,7 +1118,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      *
      * @param iface A Class defining an interface that the result must implement.
      * @return an object that implements the interface. May be a proxy for the actual implementing object.
-     * @throws java.sql.SQLException If no object found that implements the interface
+     * @throws SQLException If no object found that implements the interface
      * @since 1.6
      */
     @SuppressWarnings("unchecked")
@@ -1172,7 +1143,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      *
      * @param interfaceOrWrapper a Class defining an interface.
      * @return true if this implements the interface or directly or indirectly wraps an object that does.
-     * @throws java.sql.SQLException if an error occurs while determining whether this is a wrapper for an object with the given interface.
+     * @throws SQLException if an error occurs while determining whether this is a wrapper for an object with the given interface.
      * @since 1.6
      */
     public boolean isWrapperFor(final Class<?> interfaceOrWrapper) throws SQLException {
@@ -1180,13 +1151,24 @@ public class MariaDbStatement implements Statement, Cloneable {
     }
 
     public void closeOnCompletion() throws SQLException {
-        // TODO Auto-generated method stub
-
+        mustCloseOnCompletion = true;
     }
 
     public boolean isCloseOnCompletion() throws SQLException {
-        // TODO Auto-generated method stub
-        return false;
+        return mustCloseOnCompletion;
+    }
+
+    /**
+     * Check that close on completion is asked, and close if so.
+     * @param resultSet resultset
+     * @throws SQLException if close has error
+     */
+    public void checkCloseOnCompletion(ResultSet resultSet) throws SQLException {
+        if (mustCloseOnCompletion && !closed && executionResult != null) {
+            if (resultSet.equals(executionResult.getResultSet())) {
+                close();
+            }
+        }
     }
 
     /**
@@ -1199,157 +1181,4 @@ public class MariaDbStatement implements Statement, Cloneable {
         }
     }
 
-    private int isRewritable(String queryString, boolean noBackslashEscapes) {
-        isRewriteable = true;
-        LexState state = LexState.Normal;
-        char lastChar = '\0';
-
-        boolean singleQuotes = false;
-        int valueIndex = -1;
-        boolean isFirstChar = true;
-        boolean isInsert = false;
-        boolean semicolon = false;
-
-        char[] query = queryString.toCharArray();
-
-        for (int i = 0; i < query.length; i++) {
-            if (state == LexState.Escape) {
-                state = LexState.String;
-                continue;
-            }
-
-            char car = query[i];
-            switch (car) {
-                case '*':
-                    if (state == LexState.Normal && lastChar == '/') {
-                        state = LexState.SlashStarComment;
-                    }
-                    break;
-                case '/':
-                    if (state == LexState.SlashStarComment && lastChar == '*') {
-                        state = LexState.Normal;
-                    } else if (state == LexState.Normal && lastChar == '/') {
-                        state = LexState.EOLComment;
-                    }
-                    break;
-
-                case '#':
-                    if (state == LexState.Normal) {
-                        state = LexState.EOLComment;
-                    }
-                    break;
-
-                case '-':
-                    if (state == LexState.Normal && lastChar == '-') {
-                        state = LexState.EOLComment;
-                    }
-                    break;
-
-                case '\n':
-                    if (state == LexState.EOLComment) {
-                        state = LexState.Normal;
-                    }
-                    break;
-
-                case '"':
-                    if (state == LexState.Normal) {
-                        state = LexState.String;
-                        singleQuotes = false;
-                    } else if (state == LexState.String && !singleQuotes) {
-                        state = LexState.Normal;
-                    }
-                    break;
-                case ';':
-                    if (state == LexState.Normal) {
-                        semicolon = true;
-                    }
-                    break;
-                case '\'':
-                    if (state == LexState.Normal) {
-                        state = LexState.String;
-                        singleQuotes = true;
-                    } else if (state == LexState.String && singleQuotes) {
-                        state = LexState.Normal;
-                    }
-                    break;
-
-                case '\\':
-                    if (noBackslashEscapes) {
-                        break;
-                    }
-                    if (state == LexState.String) {
-                        state = LexState.Escape;
-                    }
-                    break;
-                case '`':
-                    if (state == LexState.Backtick) {
-                        state = LexState.Normal;
-                    } else if (state == LexState.Normal) {
-                        state = LexState.Backtick;
-                    }
-                    break;
-
-                case 's':
-                case 'S':
-                    if (state == LexState.Normal) {
-                        if (valueIndex == -1
-                                && query.length > i + 6
-                                && (query[i + 1] == 'e' || query[i + 1] == 'E')
-                                && (query[i + 2] == 'l' || query[i + 2] == 'L')
-                                && (query[i + 3] == 'e' || query[i + 3] == 'E')
-                                && (query[i + 4] == 'c' || query[i + 4] == 'C')
-                                && (query[i + 5] == 't' || query[i + 5] == 'T')) {
-                            //SELECT queries, INSERT FROM SELECT not rewritable
-                            isRewriteable = false;
-                        }
-                    }
-                    break;
-                case 'v':
-                case 'V':
-                    if (state == LexState.Normal) {
-                        if (valueIndex == -1
-                                && (lastChar == ')' || ((byte) lastChar <= 40))
-                                && query.length > i + 7
-                                && (query[i + 1] == 'a' || query[i + 1] == 'A')
-                                && (query[i + 2] == 'l' || query[i + 2] == 'L')
-                                && (query[i + 3] == 'u' || query[i + 3] == 'U')
-                                && (query[i + 4] == 'e' || query[i + 4] == 'E')
-                                && (query[i + 5] == 's' || query[i + 5] == 'S')
-                                && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40))) {
-                            valueIndex = i + 6;
-                            i = i + 6;
-                        }
-                    }
-                    break;
-                default:
-                    if (state == LexState.Normal && isFirstChar && (lastChar == '\0' || ((byte) lastChar >= 40))) {
-                        if (car == 'I' || car == 'i') {
-                            isInsert = true;
-                            isFirstChar = false;
-                        }
-                    }
-                    if (state == LexState.Normal && semicolon && ((byte) lastChar >= 40)) {
-                        //multiple queries
-                        isRewriteable = false;
-                    }
-                    break;
-            }
-            lastChar = car;
-        }
-
-        if (semicolon || !isInsert || valueIndex == -1) {
-            isRewriteable = false;
-        }
-        return valueIndex;
-    }
-
-    enum LexState {
-        Normal, /* inside  query */
-        String, /* inside string */
-        SlashStarComment, /* inside slash-star comment */
-        Escape, /* found backslash */
-        Parameter, /* parameter placeholder found */
-        EOLComment, /* # comment, or // comment, or -- comment */
-        Backtick /* found backtick */
-    }
 }

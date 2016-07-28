@@ -50,6 +50,9 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.stream;
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -58,7 +61,7 @@ import java.security.InvalidParameterException;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
-public class DecompressInputStream extends InputStream {
+public class DecompressInputStream extends InputStream implements MariaDbInputStream {
     private InputStream baseStream;
     private int remainingBytes;
     private byte[] header;
@@ -68,6 +71,23 @@ public class DecompressInputStream extends InputStream {
     public DecompressInputStream(InputStream baseStream) {
         this.baseStream = baseStream;
         header = new byte[7];
+    }
+
+    /**
+     * Permit to return mysql packet header length.
+     * @return header length
+     * @throws IOException if socket error happen
+     */
+    public int readHeader() throws IOException {
+        int read = 0;
+        do {
+            int count = read(header, read, 4 - read);
+            if (count <= 0) {
+                throw new EOFException("unexpected end of stream, read " + read + " bytes from " + 4);
+            }
+            read += count;
+        } while (read < 4);
+        return (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
     }
 
     @Override
@@ -161,7 +181,6 @@ public class DecompressInputStream extends InputStream {
             }
             inflater.end();
             decompressedByteStream = new ByteArrayInputStream(decompressedBuffer);
-
         } else {
             doDecompress = false;
             remainingBytes += compressedLength;

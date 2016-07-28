@@ -2,6 +2,7 @@
 MariaDB Client for Java
 
 Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (c) 2015-2016 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -47,12 +48,10 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.packet.result;
+package org.mariadb.jdbc.internal.util;
 
-public abstract class AbstractResultPacket {
-    public abstract ResultType getResultType();
+public class BulkStatus {
+    public int sendSubCmdCounter;
+    public int sendCmdCounter = 0;
 
-    public enum ResultType {
-        OK, ERROR, EOF, RESULTSET, LOCALINFILE, FIELD
-    }
 }

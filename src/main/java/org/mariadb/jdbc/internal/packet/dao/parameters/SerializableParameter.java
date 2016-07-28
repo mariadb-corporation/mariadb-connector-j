@@ -55,10 +55,9 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 
 
-public class SerializableParameter extends LongDataParameterHolder {
+public class SerializableParameter implements ParameterHolder {
     private Object object;
     private boolean noBackSlashEscapes;
     private byte[] loadedStream = null;
@@ -73,12 +72,27 @@ public class SerializableParameter extends LongDataParameterHolder {
      * @param os the stream to write to
      * @throws IOException if error reading stream
      */
-    public void writeTo(OutputStream os) throws IOException {
-        if (loadedStream != null) {
-            ParameterWriter.write(os, loadedStream, noBackSlashEscapes);
-        } else {
-            ParameterWriter.writeObject(os, object, noBackSlashEscapes);
-        }
+    public void writeTo(final PacketOutputStream os) throws IOException {
+        if (loadedStream == null) writeObjectToBytes();
+        ParameterWriter.write(os, loadedStream, noBackSlashEscapes);
+    }
+
+    /**
+     * Write object to buffer for text protocol without checking buffer size.
+     * @param os the stream to write to
+     * @throws IOException if error reading stream
+     */
+    public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
+        if (loadedStream == null) writeObjectToBytes();
+        ParameterWriter.writeUnsafe(os, loadedStream, noBackSlashEscapes);
+    }
+
+    private void writeObjectToBytes() throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(object);
+        loadedStream = baos.toByteArray();
+        object = null;
     }
 
     /**
@@ -88,11 +102,7 @@ public class SerializableParameter extends LongDataParameterHolder {
      * @throws IOException if error reading stream
      */
     public long getApproximateTextProtocolLength() throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ObjectOutputStream oos = new ObjectOutputStream(baos);
-        oos.writeObject(object);
-        loadedStream = baos.toByteArray();
-        object = null;
+        writeObjectToBytes();
         return loadedStream.length;
     }
 
@@ -102,19 +112,28 @@ public class SerializableParameter extends LongDataParameterHolder {
      * @param os buffer
      * @throws IOException exception
      */
-    public void writeBinary(PacketOutputStream os) throws IOException {
+    public void writeBinary(final PacketOutputStream os) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(object);
         os.write(baos.toByteArray());
     }
 
+    @Override
     public String toString() {
-        return "<Serializable> " + object;
+        return "<Serializable:" + object.toString() + ">";
     }
 
     public MariaDbType getMariaDbType() {
         return MariaDbType.BLOB;
+    }
+
+    public boolean isLongData() {
+        return true;
+    }
+
+    public boolean isNullData() {
+        return false;
     }
 
 }

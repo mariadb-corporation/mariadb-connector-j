@@ -446,7 +446,7 @@ public class DataTypeUnsignedTest extends BaseTest {
         }
 
         try (ResultSet rs = DatatypeTest.getResultSet("select * from unsignedFloatTest", true)) {
-            unsignedFloatTestResult(rs, true);
+            unsignedFloatTestResult(rs, sharedUsePrepare());
         }
     }
 
