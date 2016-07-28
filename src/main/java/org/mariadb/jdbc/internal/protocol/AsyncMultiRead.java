@@ -9,15 +9,13 @@ import org.mariadb.jdbc.internal.util.dao.QueryException;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-public class AsyncMultiRead implements Callable<PrepareResult> {
+public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
 
     private final ComStmtPrepare comStmtPrepare;
     private final int nbResult;
     private final int sendCmdCounter;
-    private final boolean handleMinusOnePrepare;
     private final Protocol protocol;
     private final boolean readPrepareStmtResult;
-    private PrepareResult prepareResult;
     private ExecutionResult executionResult;
     private final int resultSetScrollType;
     private boolean binaryProtocol;
@@ -25,6 +23,7 @@ public class AsyncMultiRead implements Callable<PrepareResult> {
     private int paramCount;
     private final List<ParameterHolder[]> parametersList;
     private final List<String> queries;
+    private AsyncMultiReadResult asyncMultiReadResult;
 
 
     /**
@@ -33,7 +32,6 @@ public class AsyncMultiRead implements Callable<PrepareResult> {
      * @param comStmtPrepare current prepare
      * @param nbResult number of command send
      * @param sendCmdCounter initial command counter
-     * @param handleMinusOnePrepare can use "-1" as last prepared query
      * @param protocol protocol
      * @param readPrepareStmtResult must read prepare statement result
      * @param bulkSend bulk sender object
@@ -45,14 +43,13 @@ public class AsyncMultiRead implements Callable<PrepareResult> {
      * @param queries queries
      * @param prepareResult prepare result
      */
-    public AsyncMultiRead(ComStmtPrepare comStmtPrepare, int nbResult, int sendCmdCounter, boolean handleMinusOnePrepare,
+    public AsyncMultiRead(ComStmtPrepare comStmtPrepare, int nbResult, int sendCmdCounter,
                           Protocol protocol, boolean readPrepareStmtResult, AbstractMultiSend bulkSend, int paramCount,
                           int resultSetScrollType, boolean binaryProtocol, ExecutionResult executionResult,
                           List<ParameterHolder[]> parametersList, List<String> queries, PrepareResult prepareResult) {
         this.comStmtPrepare = comStmtPrepare;
         this.nbResult = nbResult;
         this.sendCmdCounter = sendCmdCounter;
-        this.handleMinusOnePrepare = handleMinusOnePrepare;
         this.protocol = protocol;
         this.readPrepareStmtResult = readPrepareStmtResult;
         this.bulkSend = bulkSend;
@@ -62,18 +59,17 @@ public class AsyncMultiRead implements Callable<PrepareResult> {
         this.executionResult = executionResult;
         this.parametersList = parametersList;
         this.queries = queries;
-        this.prepareResult = prepareResult;
+        this.asyncMultiReadResult = new AsyncMultiReadResult(prepareResult);
     }
 
     @Override
-    public PrepareResult call() throws Exception {
-        QueryException exception = null;
+    public AsyncMultiReadResult call() throws Exception {
 
         if (readPrepareStmtResult) {
             try {
-                prepareResult = comStmtPrepare.read(protocol.getPacketFetcher());
+                asyncMultiReadResult.setPrepareResult(comStmtPrepare.read(protocol.getPacketFetcher()));
             } catch (QueryException queryException) {
-                exception = queryException;
+                asyncMultiReadResult.setException(queryException);
             }
         }
 
@@ -82,16 +78,15 @@ public class AsyncMultiRead implements Callable<PrepareResult> {
             try {
                 protocol.getResult(executionResult, resultSetScrollType, binaryProtocol, true);
             } catch (QueryException qex) {
-                if (exception == null) {
-                    exception = bulkSend.handleResultException(qex, executionResult, parametersList, queries, counter,
-                            sendCmdCounter, paramCount, prepareResult);
+                if (asyncMultiReadResult.getException() == null) {
+                    asyncMultiReadResult.setException(bulkSend.handleResultException(qex, executionResult,
+                            parametersList, queries, counter, sendCmdCounter, paramCount,
+                            asyncMultiReadResult.getPrepareResult()));
                 }
             }
         }
 
-        if (exception != null) throw exception;
-
-        return prepareResult;
+        return asyncMultiReadResult;
     }
 
 }

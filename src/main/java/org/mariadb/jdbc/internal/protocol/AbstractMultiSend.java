@@ -209,14 +209,14 @@ public abstract class AbstractMultiSend {
         }
 
         ComStmtPrepare comStmtPrepare = null;
-        FutureTask<PrepareResult> futureReadTask = null;
+        FutureTask<AsyncMultiReadResult> futureReadTask = null;
 
         int requestNumberByBulk;
         try {
             do {
                 status.sendSubCmdCounter = 0;
                 requestNumberByBulk = Math.min(totalExecutionNumber - status.sendCmdCounter, protocol.getOptions().useBatchMultiSendNumber);
-                protocol.changeSocketTcpNoDelay(false);
+                protocol.changeSocketTcpNoDelay(false); //enable NAGLE algorithm temporary.
                 //add prepare sub-command
                 if (readPrepareStmtResult && prepareResult == null) {
 
@@ -234,7 +234,7 @@ public abstract class AbstractMultiSend {
                         }
                     } else {
                         futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, requestNumberByBulk, status.sendCmdCounter,
-                                handleMinusOnePrepare, protocol, readPrepareStmtResult && prepareResult == null, this, paramCount,
+                                protocol, readPrepareStmtResult && prepareResult == null, this, paramCount,
                                 resultSetScrollType, binaryProtocol, executionResult, parametersList, queries, prepareResult));
                         readScheduler.execute(futureReadTask);
                     }
@@ -248,7 +248,7 @@ public abstract class AbstractMultiSend {
 
                     if (futureReadTask == null) {
                         futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, requestNumberByBulk, (status.sendCmdCounter - 1),
-                                handleMinusOnePrepare, protocol, false, this, paramCount,
+                                protocol, false, this, paramCount,
                                 resultSetScrollType, binaryProtocol, executionResult, parametersList, queries, prepareResult));
                         readScheduler.execute(futureReadTask);
                     }
@@ -256,23 +256,22 @@ public abstract class AbstractMultiSend {
 
                 protocol.changeSocketTcpNoDelay(protocol.getOptions().tcpNoDelay);
                 try {
-                    PrepareResult readPrepareResult = futureReadTask.get();
-                    if (binaryProtocol && readPrepareResult != null) {
-                        prepareResult = readPrepareResult;
+                    AsyncMultiReadResult asyncMultiReadResult = futureReadTask.get();
+
+                    if (binaryProtocol && asyncMultiReadResult.getPrepareResult() != null) {
+                        prepareResult = asyncMultiReadResult.getPrepareResult();
                         statementId = ((ServerPrepareResult) prepareResult).getStatementId();
                         paramCount = getParamCount();
                     }
-                } catch (ExecutionException executionException) {
-                    if (executionException.getCause() instanceof QueryException) {
+
+                    if (asyncMultiReadResult.getException() != null) {
                         if (((readPrepareStmtResult && prepareResult == null) || !protocol.getOptions().continueBatchOnError)) {
-                            throw (QueryException) executionException.getCause();
+                            throw asyncMultiReadResult.getException();
                         } else {
-                            exception = (QueryException) executionException.getCause();
+                            exception = asyncMultiReadResult.getException();
                         }
-                        break;
-                    } else if (executionException.getCause() instanceof IOException) {
-                        throw (IOException) executionException.getCause();
                     }
+                } catch (ExecutionException executionException) {
                     if (executionException.getCause() == null) {
                         throw new QueryException("Error reading results " + executionException.getMessage());
                     }
