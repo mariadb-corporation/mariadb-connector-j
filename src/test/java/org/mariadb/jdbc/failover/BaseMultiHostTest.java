@@ -127,6 +127,7 @@ public class BaseMultiHostTest {
     public void afterBaseTest() throws SQLException {
         assureProxy();
         assureBlackList();
+        System.out.println("BLACKLIST : " + AbstractMastersListener.getBlacklist().size());
     }
 
     /**
@@ -148,6 +149,7 @@ public class BaseMultiHostTest {
     private static String createProxies(String tmpUrl, HaMode proxyType) throws SQLException {
         UrlParser tmpUrlParser;
         if (proxyType == HaMode.AURORA) {
+            //if using cluster end-point, permit to retrieve current master and replica instances
             tmpUrlParser = retrieveEndpointsForProxies(tmpUrl);
         } else {
             tmpUrlParser = UrlParser.parse(tmpUrl);
@@ -185,9 +187,6 @@ public class BaseMultiHostTest {
             try {
                 Protocol protocol = (new BaseMultiHostTest().getProtocolFromConnection(connection));
                 UrlParser urlParser = protocol.getUrlParser();
-                List<HostAddress> hostAddresses = urlParser.getHostAddresses();
-                hostAddresses.add(((AuroraListener) protocol.getProxy().getListener()).getClusterHostAddress());
-                urlParser.setHostAddresses(hostAddresses);
                 return urlParser;
             } catch (Throwable throwable) {
                 connection.close();

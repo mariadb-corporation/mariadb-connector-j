@@ -38,7 +38,6 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
      */
     @BeforeClass()
     public static void beforeClass2() throws SQLException {
-        System.setProperty("auroraFailoverTesting", "true");
         proxyUrl = proxyAuroraUrl;
         System.out.println("environment variable \"AURORA\" value : " + System.getenv("AURORA"));
         Assume.assumeTrue(initialAuroraUrl != null && System.getenv("AURORA") != null && amazonRDSClient != null);

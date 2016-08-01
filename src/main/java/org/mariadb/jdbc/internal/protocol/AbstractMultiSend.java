@@ -258,10 +258,10 @@ public abstract class AbstractMultiSend {
                 try {
                     AsyncMultiReadResult asyncMultiReadResult = futureReadTask.get();
 
-                    if (binaryProtocol && asyncMultiReadResult.getPrepareResult() != null) {
+                    if (binaryProtocol && prepareResult == null && asyncMultiReadResult.getPrepareResult() != null) {
                         prepareResult = asyncMultiReadResult.getPrepareResult();
                         statementId = ((ServerPrepareResult) prepareResult).getStatementId();
-                        paramCount = getParamCount();
+                        paramCount = prepareResult.getParamCount();
                     }
 
                     if (asyncMultiReadResult.getException() != null) {

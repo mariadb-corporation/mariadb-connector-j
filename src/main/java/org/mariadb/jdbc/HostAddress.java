@@ -50,13 +50,19 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class HostAddress {
+    private static Logger logger = LoggerFactory.getLogger(HostAddress.class);
+
     public String host;
     public int port;
     public String type = null;
@@ -106,6 +112,18 @@ public class HostAddress {
         }
         String[] tokens = spec.trim().split(",");
         List<HostAddress> arr = new ArrayList<>(tokens.length);
+
+        // Aurora using cluster end point mustn't have any other host
+        if (haMode == HaMode.AURORA) {
+            Pattern clusterPattern = Pattern.compile("(.+)\\.cluster-([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)");
+            Matcher matcher = clusterPattern.matcher(spec);
+
+            if (!matcher.find()) {
+                logger.warn("Aurora recommended connection URL must only use cluster end-point like "
+                        + "\"jdbc:mariadb://xx.cluster-yy.zz.rds.amazonaws.com\". "
+                        + "Using end-point permit auto-discovery of new replicas");
+            }
+        }
 
         for (String token : tokens) {
             if (token.startsWith("address=")) {
@@ -242,7 +260,8 @@ public class HostAddress {
 
         HostAddress that = (HostAddress) obj;
 
-        return port == that.port && (host != null ? host.equals(that.host) : that.host == null && !(type != null ? !type.equals(that.type) : that.type != null));
+        return port == that.port && (host != null ? host.equals(that.host) : that.host == null
+                && !(type != null ? !type.equals(that.type) : that.type != null));
 
     }
 

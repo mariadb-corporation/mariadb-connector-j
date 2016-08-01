@@ -18,7 +18,7 @@ public abstract class BaseReplication extends BaseMonoServer {
     public void failoverSlaveToMasterPrepareStatement() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
+            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000&useBatchMultiSend=false", true);
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists replicationFailoverBinary" + jobId);
             stmt.execute("create table replicationFailoverBinary" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
@@ -156,7 +156,7 @@ public abstract class BaseReplication extends BaseMonoServer {
     public void failoverSlaveAndMasterWithoutAutoConnect() throws Throwable {
         Connection connection = null;
         try {
-            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
+            connection = getNewConnection("&retriesAllDown=20&connectTimeout=1000&socketTimeout=1000", true);
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int firstSlaveId = getServerId(connection);
@@ -168,6 +168,7 @@ public abstract class BaseReplication extends BaseMonoServer {
                 //will connect to second slave that isn't stopped
                 connection.createStatement().executeQuery("SELECT CONNECTION_ID()");
             } catch (SQLException e) {
+                e.printStackTrace();
                 Assert.fail();
             }
         } finally {

@@ -218,16 +218,12 @@ public class AuroraListener extends MastersSlavesListener {
     public void retrieveAllEndpointsAndSet(Protocol protocol) throws QueryException {
         // For a given cluster, same port for all endpoints and same end host address
         int port = protocol.getPort();
-        if (urlEndStr.equals("") && protocol.getHost().indexOf(".") > -1){
+        if ("".equals(urlEndStr) && protocol.getHost().indexOf(".") > -1){
             urlEndStr = protocol.getHost().substring(protocol.getHost().indexOf("."));
         }
 
         List<String> endpoints = getCurrentEndpointIdentifiers(protocol);
-        if (System.getProperty("auroraFailoverTesting") != null) {
-            if (urlParser.getHostAddresses().size() != endpoints.size()+1) {
-                setUrlParserFromEndpoints(endpoints, port);
-            }
-        } else {
+        if (!"".equals(urlEndStr)) {
             setUrlParserFromEndpoints(endpoints, port);
         }
 
@@ -252,11 +248,11 @@ public class AuroraListener extends MastersSlavesListener {
                 sqlDateFormat.setTimeZone(TimeZone.getTimeZone(protocol.getServerData("system_time_zone")));
 
                 SingleExecutionResult queryResult = new SingleExecutionResult(null, 0, true, false);
-                protocol.executeQuery(queryResult,
+                protocol.executeQuery(false, queryResult,
                         "select server_id, session_id from " + dbName + ".replica_host_status " +
                                 "where last_update_timestamp > '" + sqlDateFormat.format(currentTime) + "'",
                         ResultSet.TYPE_FORWARD_ONLY);
-                MariaSelectResultSet resultSet = queryResult.getResult();
+                MariaSelectResultSet resultSet = queryResult.getResultSet();
 
                 while (resultSet.next()) {
                     endpoints.add(resultSet.getString(1) + urlEndStr);
@@ -335,7 +331,7 @@ public class AuroraListener extends MastersSlavesListener {
 
             do {
                 try {
-                    currentWriter = searchForMasterHostAddress(false, secondaryProtocol, loopAddress);
+                    currentWriter = searchForMasterHostAddress(secondaryProtocol, loopAddress);
                 } catch (QueryException qe) {
                     if (proxy.hasToHandleFailover(qe) && setSecondaryHostFail()) {
                         addToBlacklist(secondaryProtocol.getHostAddress());
@@ -386,7 +382,7 @@ public class AuroraListener extends MastersSlavesListener {
             sqlDateFormat.setTimeZone(TimeZone.getTimeZone(protocol.getServerData("system_time_zone")));
 
             SingleExecutionResult executionResult = new SingleExecutionResult(null, 0, true, false);
-            protocol.executeQuery(executionResult,
+            protocol.executeQuery(false, executionResult,
                     "select server_id from " + dbName + ".replica_host_status " +
                             "where session_id = 'MASTER_SESSION_ID' " +
                             "and last_update_timestamp = (" +
@@ -394,7 +390,7 @@ public class AuroraListener extends MastersSlavesListener {
                             "where session_id = 'MASTER_SESSION_ID' " +
                             "and last_update_timestamp > '" + currentTime + "')",
                     ResultSet.TYPE_FORWARD_ONLY);
-            MariaSelectResultSet queryResult = executionResult.getResult();
+            MariaSelectResultSet queryResult = executionResult.getResultSet();
 
             if (!queryResult.isBeforeFirst()) {
                 return null;
