@@ -471,12 +471,12 @@ public class BaseTest {
         // first test for specific user and host combination
         ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '" + hostname + "'");
         if (rs.next()) {
-            superPrivilege = (rs.getString(1).equals("Y") ? true : false);
+            superPrivilege = (rs.getString(1).equals("Y"));
         } else {
             // then check for user on whatever (%) host
             rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'");
             if (rs.next()) {
-                superPrivilege = (rs.getString(1).equals("Y") ? true : false);
+                superPrivilege = (rs.getString(1).equals("Y"));
             }
         }
 
@@ -502,7 +502,7 @@ public class BaseTest {
             // do nothing
         }
 
-        if (isLocal == false) {
+        if (!isLocal) {
             System.out.println("test '" + testName + "' skipped because connection is not local");
         }
 

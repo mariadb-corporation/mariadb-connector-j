@@ -1,14 +1,11 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public abstract class BaseMonoServer extends BaseMultiHostTest {
@@ -66,7 +63,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
             st.execute("INSERT INTO baseReplicationTransaction" + jobId + "(test) VALUES ('test')");
             int masterServerId = getServerId(connection);
             st.execute("SELECT 1");
-            long startTime = System.currentTimeMillis();;
+            long startTime = System.currentTimeMillis();
             stopProxy(masterServerId, 2000);
             try {
                 st.execute("SELECT 1");

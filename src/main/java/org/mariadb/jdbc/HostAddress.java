@@ -50,8 +50,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -107,11 +107,11 @@ public class HostAddress {
         String[] tokens = spec.trim().split(",");
         List<HostAddress> arr = new ArrayList<>(tokens.length);
 
-        for (int i = 0; i < tokens.length; i++) {
-            if (tokens[i].startsWith("address=")) {
-                arr.add(parseParameterHostAddress(tokens[i]));
+        for (String token : tokens) {
+            if (token.startsWith("address=")) {
+                arr.add(parseParameterHostAddress(token));
             } else {
-                arr.add(parseSimpleHostAddress(tokens[i]));
+                arr.add(parseSimpleHostAddress(token));
             }
         }
 
@@ -242,13 +242,7 @@ public class HostAddress {
 
         HostAddress that = (HostAddress) obj;
 
-        if (port != that.port) {
-            return false;
-        }
-        if (host != null ? !host.equals(that.host) : that.host != null) {
-            return false;
-        }
-        return !(type != null ? !type.equals(that.type) : that.type != null);
+        return port == that.port && (host != null ? host.equals(that.host) : that.host == null && !(type != null ? !type.equals(that.type) : that.type != null));
 
     }
 
@@ -261,4 +255,3 @@ public class HostAddress {
 
 
 }
-

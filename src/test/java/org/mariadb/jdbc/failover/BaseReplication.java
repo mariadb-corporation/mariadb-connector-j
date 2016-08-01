@@ -281,9 +281,7 @@ public abstract class BaseReplication extends BaseMonoServer {
                 }
             } finally {
                 if (connection != null) {
-                    if (connection != null) {
-                        connection.close();
-                    }
+                    connection.close();
                 }
             }
         }

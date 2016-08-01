@@ -1,5 +1,6 @@
 package org.mariadb.jdbc.failover;
 
+import com.amazonaws.services.rds.model.InvalidDBClusterStateException;
 import org.junit.*;
 import org.mariadb.jdbc.MariaDbServerPreparedStatement;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -9,7 +10,6 @@ import java.sql.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Aurora test suite.
@@ -30,6 +30,7 @@ public class AuroraFailoverTest extends BaseReplication {
      */
     @BeforeClass()
     public static void beforeClass2() throws SQLException {
+        System.setProperty("auroraFailoverTesting", "true");
         proxyUrl = proxyAuroraUrl;
         System.out.println("environment variable \"AURORA\" value : " + System.getenv("AURORA"));
         Assume.assumeTrue(initialAuroraUrl != null && System.getenv("AURORA") != null && amazonRDSClient != null);
@@ -101,19 +102,23 @@ public class AuroraFailoverTest extends BaseReplication {
         Connection connection = null;
         try {
             connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000", true);
+            int previousPort = getProtocolFromConnection(connection).getPort();
             Statement stmt = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
             long stopTime = System.nanoTime();
             try {
+                // Handles failover so may connect to another and is still able to execute
                 stmt.execute("SELECT 1");
-                Assert.fail();
+                if (getProtocolFromConnection(connection).getPort() == previousPort) {
+                    Assert.fail();
+                }
             } catch (SQLException e) {
                 //normal error
             }
             Assert.assertTrue(!connection.isReadOnly());
             long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stopTime);
-            Assert.assertTrue(duration < 20 * 1000);
+            Assert.assertTrue(duration < 25 * 1000);
         } finally {
             if (connection != null) {
                 connection.close();
@@ -268,8 +273,18 @@ public class AuroraFailoverTest extends BaseReplication {
                     nbExecutionOnMasterFirstFailover++;
                 }
             }
-            launchAuroraFailover();
-            while (nbExecutionOnSlave + nbExecutionOnMasterSecondFailover < 5000) {
+
+            boolean invalidClusterState;
+            do {
+                try {
+                    launchAuroraFailover();
+                    invalidClusterState = false;
+                } catch (InvalidDBClusterStateException e) {
+                    invalidClusterState = true;
+                }
+            } while (invalidClusterState);
+
+            while (nbExecutionOnSlave + nbExecutionOnMasterSecondFailover < 1000) {
                 ResultSet rs = preparedStatement.executeQuery();
                 rs.next();
                 if (rs.getInt(1) == 1) {
