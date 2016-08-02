@@ -122,12 +122,6 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         QueryException lastQueryException = null;
         HostAddress probableMasterHost = null;
 
-        // Only one address means cluster so only possible connection
-        if (listener.getClusterHostAddress() != null && loopAddresses.size() < 2
-                && !loopAddresses.contains(listener.getClusterHostAddress())) {
-                loopAddresses.add(listener.getClusterHostAddress());
-        }
-
         while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
             protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
 
@@ -166,11 +160,15 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                     if (searchFilter.isFineIfFoundOnlyMaster() && listener.getUrlParser().getHostAddresses().size() <= 1
                             && protocol.getHostAddress().equals(listener.getClusterHostAddress())) {
                         listener.retrieveAllEndpointsAndSet(protocol);
+
                         if (listener.getUrlParser().getHostAddresses().size() > 1) {
-                            searchFilter = new SearchFilter(false);
+                            //add newly discovered end-point to loop
                             loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
+                            //since there is more than one end point, reactivate connection to a read-only host
+                            searchFilter = new SearchFilter(false);
                         }
                     }
+
                     if (foundMaster(listener, protocol, searchFilter)) {
                         return;
                     }

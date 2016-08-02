@@ -473,9 +473,7 @@ public abstract class AbstractMastersListener implements Listener {
     public static void clearBlacklist() {
         blacklist.clear();
     }
-    public static Set<HostAddress> getBlacklist() {
-        return blacklist.keySet();
-    }
+
     public long getLastQueryNanos() {
         return lastQueryNanos;
     }

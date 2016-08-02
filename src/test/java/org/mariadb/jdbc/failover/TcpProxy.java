@@ -1,11 +1,15 @@
 package org.mariadb.jdbc.failover;
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 
 public class TcpProxy {
+    private static Logger logger = LoggerFactory.getLogger(TcpProxy.class);
 
     String host;
     int remoteport;
@@ -30,6 +34,7 @@ public class TcpProxy {
 
     public void restart(long sleepTime) {
         socket.kill();
+        logger.trace("host proxy port " + socket.localport + " for " + host + " started");
         Executors.newSingleThreadScheduledExecutor().schedule(socket, sleepTime, TimeUnit.MILLISECONDS);
     }
 

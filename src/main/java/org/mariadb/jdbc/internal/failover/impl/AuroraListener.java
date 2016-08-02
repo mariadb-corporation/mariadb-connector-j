@@ -180,9 +180,7 @@ public class AuroraListener extends MastersSlavesListener {
             }
         }
 
-        if (urlParser.getHostAddresses().size() < 2
-                || (urlParser.getHostAddresses().size() == 2
-                && urlParser.getHostAddresses().contains(getClusterHostAddress()))) {
+        if (urlParser.getHostAddresses().size() <= 1) {
             searchFilter = new SearchFilter(true, false);
         }
         if ((isMasterHostFail() || isSecondaryHostFail())
@@ -279,39 +277,20 @@ public class AuroraListener extends MastersSlavesListener {
     }
 
     /**
-     * Sets urlParser if there are any changes in the instance endpoints available.
+     * Sets urlParser accordingly to discovered hosts.
      *
      * @param endpoints     instance identifiers
      * @param port          port that is common to all endpoints
      */
     private void setUrlParserFromEndpoints(List<String> endpoints, int port) {
-        List<HostAddress> addresses = Collections.synchronizedList(urlParser.getHostAddresses());
-
-        List<String> currentHosts = new ArrayList<>();
-        synchronized (addresses) {
-            for (HostAddress address : addresses) {
-                currentHosts.add(address.host);
-            }
+        List<HostAddress> addresses = new ArrayList<>();
+        for (String endpoint : endpoints) {
+            HostAddress newHostAddress = new HostAddress(endpoint, port, null);
+            addresses.add(newHostAddress);
         }
 
-        synchronized (addresses) {
-            Iterator<HostAddress> iterator = addresses.iterator();
-            while (iterator.hasNext() && endpoints.size() > 0) {
-                HostAddress address = iterator.next();
-                if (!endpoints.contains(address.host)) {
-                    removeFromBlacklist(address);
-                    iterator.remove();
-                }
-            }
-        }
-
-        synchronized (addresses) {
-            for (String endpoint : endpoints) {
-                if (!currentHosts.contains(endpoint)) {
-                    HostAddress newHostAddress = new HostAddress(endpoint, port, null);
-                    addresses.add(newHostAddress);
-                }
-            }
+        synchronized (urlParser) {
+            urlParser.setHostAddresses(addresses);
         }
     }
 

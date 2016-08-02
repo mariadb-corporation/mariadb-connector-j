@@ -127,7 +127,6 @@ public class BaseMultiHostTest {
     public void afterBaseTest() throws SQLException {
         assureProxy();
         assureBlackList();
-        System.out.println("BLACKLIST : " + AbstractMastersListener.getBlacklist().size());
     }
 
     /**
