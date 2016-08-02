@@ -151,7 +151,7 @@ public class DatatypeTest extends BaseTest {
         checkClass("timestamp0", Timestamp.class, "TIMESTAMP", Types.TIMESTAMP);
         checkClass("timestamp_zero", Timestamp.class, "TIMESTAMP", Types.TIMESTAMP);
 
-        if (!minVersion(5, 6) && !minVersion(5, 7)) {
+        if (minVersion(5, 6) && beforeVersion(10, 0)) {
             //MySQL deprecated YEAR(2) since 5.6
             checkClass("year2",
                     yearIsDateType ? Date.class : Short.class, "YEAR",

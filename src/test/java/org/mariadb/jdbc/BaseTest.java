@@ -537,6 +537,21 @@ public class BaseTest {
     }
 
     /**
+     * Check if version if before the version asked.
+     * @param major database major version
+     * @param minor database minor version
+     * @throws SQLException exception
+     */
+    public boolean beforeVersion(int major, int minor) throws SQLException {
+        DatabaseMetaData md = sharedConnection.getMetaData();
+        int dbMajor = md.getDatabaseMajorVersion();
+        int dbMinor = md.getDatabaseMinorVersion();
+        return (dbMajor < major
+                || (dbMajor == major && dbMinor < minor));
+
+    }
+
+    /**
      * Cancel if database version match.
      * @param major db major version
      * @param minor db minor version
