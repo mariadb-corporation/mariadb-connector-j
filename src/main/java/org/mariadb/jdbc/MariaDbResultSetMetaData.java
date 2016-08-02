@@ -249,7 +249,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      * @throws SQLException if a database access error occurs
      */
     public String getTableName(final int column) throws SQLException {
-        if (returnTableAlias == true) {
+        if (returnTableAlias) {
             return getColumnInformation(column).getTable();
         } else {
             return getColumnInformation(column).getOriginalTable();

@@ -85,7 +85,7 @@ public class FailoverProxy implements InvocationHandler {
     private Listener listener;
 
     /**
-     * Procy constructor.
+     * Proxy constructor.
      * @param listener failover implementation.
      * @param lock synchronisation lock
      * @throws QueryException if connection error occur
@@ -245,10 +245,7 @@ public class FailoverProxy implements InvocationHandler {
      * @return true if there has been a connection error that must be handled by failover
      */
     public boolean hasToHandleFailover(QueryException exception) {
-        if (exception.getSqlState() != null && exception.getSqlState().startsWith("08")) {
-            return true;
-        }
-        return false;
+        return exception.getSqlState() != null && exception.getSqlState().startsWith("08");
     }
 
     /**

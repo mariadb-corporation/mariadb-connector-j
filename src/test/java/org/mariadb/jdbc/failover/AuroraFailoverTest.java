@@ -9,7 +9,6 @@ import java.sql.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Aurora test suite.
@@ -82,7 +81,7 @@ public class AuroraFailoverTest extends BaseReplication {
             stmt.execute("create table auroraReadSlave" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
 
             //wait to be sure slave have replicate data
-            Thread.sleep(200);
+            Thread.sleep(1500);
 
             connection.setReadOnly(true);
             ResultSet rs = stmt.executeQuery("Select count(*) from auroraReadSlave" + jobId);
@@ -101,19 +100,23 @@ public class AuroraFailoverTest extends BaseReplication {
         Connection connection = null;
         try {
             connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000", true);
+            int previousPort = getProtocolFromConnection(connection).getPort();
             Statement stmt = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
             long stopTime = System.nanoTime();
             try {
+                // Handles failover so may connect to another and is still able to execute
                 stmt.execute("SELECT 1");
-                Assert.fail();
+                if (getProtocolFromConnection(connection).getPort() == previousPort) {
+                    Assert.fail();
+                }
             } catch (SQLException e) {
                 //normal error
             }
             Assert.assertTrue(!connection.isReadOnly());
             long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stopTime);
-            Assert.assertTrue(duration < 20 * 1000);
+            Assert.assertTrue(duration < 25 * 1000);
         } finally {
             if (connection != null) {
                 connection.close();
@@ -182,6 +185,8 @@ public class AuroraFailoverTest extends BaseReplication {
             DriverManager.getConnection(defaultUrl + "&retriesAllDown=6", "foouser", "foopwd");
             Assert.fail();
         } catch (SQLException e) {
+            System.out.println(e.getSQLState());
+            System.out.println(e.getErrorCode());
             Assert.assertTrue("28000".equals(e.getSQLState()));
             Assert.assertEquals(1045, e.getErrorCode());
         }
@@ -216,11 +221,13 @@ public class AuroraFailoverTest extends BaseReplication {
 
     @Test
     public void testCloseFail() throws Throwable {
+        assureBlackList();
         Connection connection = getNewConnection(true);
         connection.setReadOnly(true);
         int current = getServerId(connection);
         Protocol protocol = getProtocolFromConnection(connection);
-        Assert.assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
+        Assert.assertTrue("Blacklist would normally be zero, but was " + protocol.getProxy().getListener().getBlacklistKeys().size(),
+                protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
         stopProxy(current);
         connection.close();
         //check that after error connection have not been put to blacklist
@@ -245,7 +252,13 @@ public class AuroraFailoverTest extends BaseReplication {
             connection.setReadOnly(true);
 
             //prepareStatement on slave connection
-            PreparedStatement preparedStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");
+            PreparedStatement preparedStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only, CONNECTION_ID() as connId");
+            ResultSet rs1 = preparedStatement.executeQuery();
+            rs1.next();
+            int currentConnectionId = rs1.getInt(2);
+            boolean isMaster;
+
+            int lastConnectionId = currentConnectionId;
 
             launchAuroraFailover();
 
@@ -256,35 +269,67 @@ public class AuroraFailoverTest extends BaseReplication {
 
             //Goal is to check that on a failover, master connection will be used, and slave will be used back when up.
             //check on 2 failover
-            while (nbExecutionOnSlave + nbExecutionOnMasterFirstFailover < 5000) {
+            while (nbExecutionOnSlave + nbExecutionOnMasterFirstFailover < 500) {
                 ResultSet rs = preparedStatement.executeQuery();
                 rs.next();
-                if (rs.getInt(1) == 1) {
-                    nbExecutionOnSlave++;
-                    if (nbExecutionOnMasterFirstFailover > 0) {
+                isMaster = rs.getInt(1) != 1;
+                currentConnectionId = rs.getInt(2);
+
+                if (lastConnectionId != currentConnectionId) {
+                    lastConnectionId = currentConnectionId;
+                    if (isMaster) {
+                        //temporary use master, wait for au back on slave when reconnected
+                        nbExecutionOnMasterFirstFailover++;
+                    } else {
+                        //master wasn't available too, so reconnected another slave (rare)
+                        nbExecutionOnSlave++;
                         break;
                     }
                 } else {
-                    nbExecutionOnMasterFirstFailover++;
+                    if (isMaster) {
+                        nbExecutionOnMasterFirstFailover++;
+                    } else {
+                        nbExecutionOnSlave++;
+                        if (nbExecutionOnMasterFirstFailover > 0) break;
+                    }
                 }
             }
+
+            assertTrue("prepare never get back on slave", nbExecutionOnSlave + nbExecutionOnMasterFirstFailover < 500);
+
             launchAuroraFailover();
-            while (nbExecutionOnSlave + nbExecutionOnMasterSecondFailover < 5000) {
+            nbExecutionOnSlave = 0;
+
+
+            while (nbExecutionOnSlave + nbExecutionOnMasterSecondFailover < 500) {
                 ResultSet rs = preparedStatement.executeQuery();
                 rs.next();
-                if (rs.getInt(1) == 1) {
-                    nbExecutionOnSlave++;
-                    if (nbExecutionOnMasterSecondFailover > 0) {
+                isMaster = rs.getInt(1) != 1;
+                currentConnectionId = rs.getInt(2);
+
+                if (lastConnectionId != currentConnectionId) {
+                    if (isMaster) {
+                        //temporary use master, wait for au back on slave when reconnected
+                        nbExecutionOnMasterSecondFailover++;
+                    } else {
+                        //master wasn't available too, so reconnected another slave (rare)
+                        nbExecutionOnSlave++;
                         break;
                     }
                 } else {
-                    nbExecutionOnMasterSecondFailover++;
+                    if (isMaster) {
+                        nbExecutionOnMasterSecondFailover++;
+                    } else {
+                        nbExecutionOnSlave++;
+                        if (nbExecutionOnMasterSecondFailover > 0) break;
+                    }
                 }
             }
-            System.out.println("back using slave connection. nbExecutionOnSlave=" + nbExecutionOnSlave
-                    + " nbExecutionOnMasterFirstFailover=" + nbExecutionOnMasterFirstFailover
-                    + " nbExecutionOnMasterSecondFailover=" + nbExecutionOnMasterSecondFailover);
-            assertTrue(nbExecutionOnSlave + nbExecutionOnMasterFirstFailover + nbExecutionOnMasterSecondFailover < 2000);
+
+
+            assertTrue("prepare never get back on slave", nbExecutionOnSlave + nbExecutionOnMasterSecondFailover < 500);
+
+            Thread.sleep(2000); //sleep because failover may not be completely finished
         } finally {
             if (connection != null) {
                 connection.close();
@@ -307,7 +352,8 @@ public class AuroraFailoverTest extends BaseReplication {
                     + "&socketTimeout=1000"
                     + "&failoverLoopRetries=120"
                     + "&connectTimeout=250"
-                    + "&loadBalanceBlacklistTimeout=50", false);
+                    + "&loadBalanceBlacklistTimeout=50"
+                    + "&useBatchMultiSend=false", false);
 
             int nbExceptionBeforeUp = 0;
             boolean failLaunched = false;
@@ -355,7 +401,8 @@ public class AuroraFailoverTest extends BaseReplication {
                     + "&socketTimeout=1000"
                     + "&failoverLoopRetries=120"
                     + "&connectTimeout=250"
-                    + "&loadBalanceBlacklistTimeout=50", false);
+                    + "&loadBalanceBlacklistTimeout=50"
+                    + "&useBatchMultiSend=false", false);
 
             int nbExecutionBeforeRePrepared = 0;
             boolean failLaunched = false;

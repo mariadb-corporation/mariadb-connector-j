@@ -51,10 +51,10 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.util.constant;
 
 public final class Version {
-    public static final String version = "1.5.0-RC1";
+    public static final String version = "1.5.0-RC2-SNAPSHOT";
     public static final int majorVersion = 1;
     public static final int minorVersion = 5;
     public static final int patchVersion = 0;
-    public static final String qualifier = "RC1";
+    public static final String qualifier = "RC2-SNAPSHOT";
 
 }

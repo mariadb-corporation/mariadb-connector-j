@@ -66,6 +66,7 @@ import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
+
     public AuroraProtocol(final UrlParser url, final ReentrantLock lock) {
         super(url, lock);
     }
@@ -76,11 +77,8 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      *
      * @param listener aurora failover to call back if master is found
      * @param probableMaster probable master host
-     * @param searchFilter search filter
-     * @throws QueryException exception
      */
-    public static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster,
-                                            SearchFilter searchFilter) throws QueryException {
+    public static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster) {
         AuroraProtocol protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
         try {
 
@@ -122,6 +120,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         }
         int maxConnectionTry = listener.getRetriesAllDown();
         QueryException lastQueryException = null;
+        HostAddress probableMasterHost = null;
 
         while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
             protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
@@ -134,7 +133,16 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             try {
                 HostAddress host = loopAddresses.pollFirst();
                 if (host == null) {
-                    loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
+                    for (HostAddress hostAddress : listener.getUrlParser().getHostAddresses()) {
+                        if (!hostAddress.equals(listener.getClusterHostAddress())) {
+                            loopAddresses.add(hostAddress);
+                        }
+                    }
+                    // Use cluster last as backup
+                    if (listener.getClusterHostAddress() != null && listener.getUrlParser().getHostAddresses().size() < 2) {
+                        loopAddresses.add(listener.getClusterHostAddress());
+                    }
+
                     host = loopAddresses.pollFirst();
                 }
                 protocol.setHostAddress(host);
@@ -148,24 +156,45 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 listener.removeFromBlacklist(protocol.getHostAddress());
 
                 if (listener.isMasterHostFailReconnect() && protocol.isMasterConnection()) {
+                    // Look for secondary when only known endpoint is the cluster endpoint
+                    if (searchFilter.isFineIfFoundOnlyMaster() && listener.getUrlParser().getHostAddresses().size() <= 1
+                            && protocol.getHostAddress().equals(listener.getClusterHostAddress())) {
+                        listener.retrieveAllEndpointsAndSet(protocol);
+
+                        if (listener.getUrlParser().getHostAddresses().size() > 1) {
+                            //add newly discovered end-point to loop
+                            loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
+                            //since there is more than one end point, reactivate connection to a read-only host
+                            searchFilter = new SearchFilter(false);
+                        }
+                    }
+
                     if (foundMaster(listener, protocol, searchFilter)) {
                         return;
                     }
-                } else if (listener.isSecondaryHostFailReconnect() && !protocol.isMasterConnection()) {
-                    if (foundSecondary(listener, protocol, searchFilter)) {
-                        return;
-                    }
-                    HostAddress probableMasterHost = listener.searchByStartName(protocol, listener.getUrlParser().getHostAddresses());
-                    if (probableMasterHost != null) {
-                        loopAddresses.remove(probableMasterHost);
-                        AuroraProtocol.searchProbableMaster(listener, probableMasterHost, searchFilter);
-                        if (listener.isMasterHostFailReconnect() && searchFilter.isFineIfFoundOnlySlave()) {
+
+                } else if (!protocol.isMasterConnection()) {
+                    if (listener.isSecondaryHostFailReconnect()) {
+                        if (foundSecondary(listener, protocol, searchFilter)) {
                             return;
+                        }
+                    }
+
+                    if (listener.isSecondaryHostFailReconnect()
+                            || (listener.isMasterHostFailReconnect() && probableMasterHost == null)) {
+                        probableMasterHost = listener.searchByStartName(protocol, listener.getUrlParser().getHostAddresses());
+                        if (probableMasterHost != null) {
+                            loopAddresses.remove(probableMasterHost);
+                            AuroraProtocol.searchProbableMaster(listener, probableMasterHost);
+                            if (listener.isMasterHostFailReconnect() && searchFilter.isFineIfFoundOnlySlave()) {
+                                return;
+                            }
                         }
                     }
                 } else {
                     protocol.close();
                 }
+
             } catch (QueryException e) {
                 lastQueryException = e;
                 listener.addToBlacklist(protocol.getHostAddress());
@@ -181,9 +210,14 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 loopAddresses = new ArrayDeque<>(listener.getBlacklistKeys());
             }
 
+            // Try to connect to the cluster if no other connection is good
+            if (maxConnectionTry == 0 && !loopAddresses.contains(listener.getClusterHostAddress()) && listener.getClusterHostAddress() != null) {
+                loopAddresses.add(listener.getClusterHostAddress());
+            }
+
         }
 
-        if (listener.isMasterHostFailReconnect() || listener.isMasterHostFailReconnect()) {
+        if (listener.isMasterHostFailReconnect() || listener.isSecondaryHostFailReconnect()) {
             String error = "No active connection found for replica";
             if (listener.isMasterHostFailReconnect())  {
                 error = "No active connection found for master";
@@ -196,7 +230,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     }
 
     /**
-     * Initilize new protocol instance.
+     * Initialize new protocol instance.
      * @param proxy proxy
      * @param urlParser connection string data's
      * @return new AuroraProtocol

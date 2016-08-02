@@ -282,7 +282,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
      * @throws QueryException if reconnect a new connection but there was an active transaction.
      */
     public void reconnect() throws QueryException {
-        boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();;
+        boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();
         reconnectFailedConnection(new SearchFilter(true, false));
         handleFailLoop();
         if (inTransaction) {

@@ -301,7 +301,7 @@ public class Utils {
 
     /**
      * Escape sql String
-     * @param sql intial sql
+     * @param sql initial sql
      * @param noBackslashEscapes must backslash be escape
      * @return escaped sql string
      * @throws SQLException if escape sequence is incorrect.
@@ -433,7 +433,7 @@ public class Utils {
     }
 
     /**
-     * Retreive protocol corresponding to the failover options.
+     * Retrieve protocol corresponding to the failover options.
      * if no failover option, protocol will not be proxied.
      * if a failover option is precised, protocol will be proxied so that any connection error will be handle directly.
      *
@@ -447,13 +447,6 @@ public class Utils {
         Protocol protocol;
         switch (urlParser.getHaMode()) {
             case AURORA:
-                if (urlParser.getHostAddresses().size() == 1) {
-                    //single node cluster consider like "FAILOVER"
-                    return getProxyLoggingIfNeeded(urlParser, (Protocol) Proxy.newProxyInstance(
-                            MasterProtocol.class.getClassLoader(),
-                            new Class[]{Protocol.class},
-                            new FailoverProxy(new MastersFailoverListener(urlParser), lock)));
-                }
                 return getProxyLoggingIfNeeded(urlParser, (Protocol) Proxy.newProxyInstance(
                             AuroraProtocol.class.getClassLoader(),
                             new Class[]{Protocol.class},
