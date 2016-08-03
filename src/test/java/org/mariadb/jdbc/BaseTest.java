@@ -542,7 +542,7 @@ public class BaseTest {
      * @param minor database minor version
      * @throws SQLException exception
      */
-    public boolean beforeVersion(int major, int minor) throws SQLException {
+    public boolean strictBeforeVersion(int major, int minor) throws SQLException {
         DatabaseMetaData md = sharedConnection.getMetaData();
         int dbMajor = md.getDatabaseMajorVersion();
         int dbMinor = md.getDatabaseMinorVersion();
