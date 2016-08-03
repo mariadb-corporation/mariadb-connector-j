@@ -32,6 +32,10 @@ public class TcpProxy {
         socket.kill();
     }
 
+    /**
+     * Stop proxy and restart after X milliseconds.
+     * @param sleepTime sleep time in milliseconds
+     */
     public void restart(long sleepTime) {
         socket.kill();
         logger.trace("host proxy port " + socket.localport + " for " + host + " started");

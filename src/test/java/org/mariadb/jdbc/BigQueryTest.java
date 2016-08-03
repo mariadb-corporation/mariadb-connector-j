@@ -92,7 +92,9 @@ public class BigQueryTest extends BaseTest {
             rs.next();
             assertEquals(arr.length, rs.getString(1).length());
         } finally {
-            if (connection != null) { connection.close(); }
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 

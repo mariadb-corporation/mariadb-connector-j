@@ -56,8 +56,9 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
     /**
      * Creates a mock replica_host_status table to imitate the database used to retrieve information about the endpoints.
+     *
      * @param insertEntryQuery - Query to insert a new entry into the table before running the tests
-     * @throws SQLException
+     * @throws SQLException if unexpected error occur
      */
     private Connection tableSetup(String insertEntryQuery) throws Throwable {
         Connection connection = null;
@@ -67,21 +68,22 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             connection = getNewConnection(true);
             statement = connection.createStatement();
             statement.executeQuery("DROP TABLE IF EXISTS replica_host_status");
-            statement.executeQuery("CREATE TABLE replica_host_status (SERVER_ID VARCHAR(255), SESSION_ID VARCHAR(255), LAST_UPDATE_TIMESTAMP TIMESTAMP DEFAULT NOW())");
+            statement.executeQuery("CREATE TABLE replica_host_status (SERVER_ID VARCHAR(255), SESSION_ID VARCHAR(255), "
+                    + "LAST_UPDATE_TIMESTAMP TIMESTAMP DEFAULT NOW())");
 
-            ResultSet resultSet = statement.executeQuery("SELECT SERVER_ID, SESSION_ID, LAST_UPDATE_TIMESTAMP " +
-                    "FROM information_schema.replica_host_status " +
-                    "WHERE LAST_UPDATE_TIMESTAMP = (" +
-                    "SELECT MAX(LAST_UPDATE_TIMESTAMP) " +
-                    "FROM information_schema.replica_host_status)");
+            ResultSet resultSet = statement.executeQuery("SELECT SERVER_ID, SESSION_ID, LAST_UPDATE_TIMESTAMP "
+                    + "FROM information_schema.replica_host_status "
+                    + "WHERE LAST_UPDATE_TIMESTAMP = ("
+                    + "SELECT MAX(LAST_UPDATE_TIMESTAMP) "
+                    + "FROM information_schema.replica_host_status)");
 
             while (resultSet.next()) {
                 String values = "";
                 for (int i = 1; i < 4; i++) {
                     values += (i == 1) ? "'localhost'" : ",'" + resultSet.getString(i) + "'";
                 }
-                statement.executeQuery("INSERT INTO replica_host_status (SERVER_ID, SESSION_ID, LAST_UPDATE_TIMESTAMP) " +
-                        "VALUES (" + values + ")");
+                statement.executeQuery("INSERT INTO replica_host_status (SERVER_ID, SESSION_ID, LAST_UPDATE_TIMESTAMP) "
+                        + "VALUES (" + values + ")");
             }
 
             if (insertEntryQuery != null) {
@@ -102,7 +104,9 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
         } catch (SQLException se) {
             fail("Unable to execute queries to set up table: " + se);
         } finally {
-            if (statement != null) { statement.close(); }
+            if (statement != null) {
+                statement.close();
+            }
         }
 
         return connection;
@@ -110,7 +114,8 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
     /**
      * Takes down the table created solely for these tests.
-     * @throws SQLException
+     *
+     * @throws SQLException  if unexpected error occur
      */
     @After
     public void after() throws SQLException {
@@ -121,14 +126,19 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             statement = connection.createStatement();
             statement.executeQuery("DROP TABLE IF EXISTS replica_host_status");
         } finally {
-            if (statement != null) { statement.close(); }
-            if (connection != null) { connection.close(); }
+            if (statement != null) {
+                statement.close();
+            }
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
     /**
      * Test verifies that the driver discovers new instances as soon as they are available.
-     * @throws Throwable
+     *
+     * @throws Throwable if unexpected error occur
      */
     @Test
     public void testDiscoverCreatedInstanceOnFailover() throws Throwable {
@@ -138,11 +148,11 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
         try {
             connection = tableSetup(null);
             int masterServerId = getServerId(connection);
-            int initialSize = getProtocolFromConnection(connection).getUrlParser().getHostAddresses().size();
+            final int initialSize = getProtocolFromConnection(connection).getUrlParser().getHostAddresses().size();
 
             statement = connection.createStatement();
-            statement.executeQuery("INSERT INTO replica_host_status (SERVER_ID, SESSION_ID) " +
-                    "VALUES ('test-discovery-on-creation', 'mock-new-endpoint')");
+            statement.executeQuery("INSERT INTO replica_host_status (SERVER_ID, SESSION_ID) "
+                    + "VALUES ('test-discovery-on-creation', 'mock-new-endpoint')");
 
             stopProxy(masterServerId, 1);
             statement.executeQuery("select 1");
@@ -151,35 +161,40 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             boolean newEndpointFound = foundHostInList(finalEndpoints, "test-discovery-on-creation");
 
             assertTrue("Discovered new endpoint on failover", newEndpointFound);
-            Assert.assertEquals(initialSize+1, finalEndpoints.size());
+            Assert.assertEquals(initialSize + 1, finalEndpoints.size());
 
         } catch (SQLException se) {
             fail("Unable to execute query:" + se);
         } finally {
-            if (statement != null) { statement.close(); }
-            if (connection != null) { connection.close(); }
+            if (statement != null) {
+                statement.close();
+            }
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
     /**
      * Test verifies that deleted instances are removed from the possible connections.
-     * @throws Throwable
+     *
+     * @throws Throwable if unexpected error occur
      */
     @Test
     public void testRemoveDeletedInstanceOnFailover() throws Throwable {
         Connection connection = null;
         Statement statement = null;
         try {
-            connection = tableSetup("INSERT INTO replica_host_status (SERVER_ID, SESSION_ID) " +
-                    "VALUES ('test-instance-deleted-detection', 'mock-delete-endpoint')");
+            connection = tableSetup("INSERT INTO replica_host_status (SERVER_ID, SESSION_ID) "
+                    + "VALUES ('test-instance-deleted-detection', 'mock-delete-endpoint')");
             Protocol protocol = getProtocolFromConnection(connection);
-            int initialSize = protocol.getUrlParser().getHostAddresses().size();
+            final int initialSize = protocol.getUrlParser().getHostAddresses().size();
             int serverId = getServerId(connection);
 
             statement = connection.createStatement();
-            statement.executeQuery("UPDATE replica_host_status " +
-                    "SET LAST_UPDATE_TIMESTAMP = DATE_SUB(LAST_UPDATE_TIMESTAMP, INTERVAL 4 MINUTE) " +
-                    "WHERE SERVER_ID = 'test-instance-deleted-detection'");
+            statement.executeQuery("UPDATE replica_host_status "
+                    + "SET LAST_UPDATE_TIMESTAMP = DATE_SUB(LAST_UPDATE_TIMESTAMP, INTERVAL 4 MINUTE) "
+                    + "WHERE SERVER_ID = 'test-instance-deleted-detection'");
             stopProxy(serverId, 1);
             statement.executeQuery("select 1");
 
@@ -192,8 +207,12 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
         } catch (SQLException se) {
             fail("Unable to execute query: " + se);
         } finally {
-            if (statement != null) { statement.close(); }
-            if (connection != null) { connection.close(); }
+            if (statement != null) {
+                statement.close();
+            }
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
@@ -202,7 +221,8 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
      * The best way to test is to create a new instance as the test is started.
      * All other instances should have a promotion tier greater than zero.
      * Test checks if a newly created instance that is promoted as the writer is found and connected to right away.
-     * @throws Throwable
+     *
+     * @throws Throwable if error occur
      */
     @Test
     public void testNewInstanceAsWriterDetection() throws Throwable {
@@ -212,7 +232,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
         Statement statement = null;
         try {
             connection = getNewConnection(false);
-            String initialHost = getProtocolFromConnection(connection).getHost();
+            final String initialHost = getProtocolFromConnection(connection).getHost();
 
             ModifyDBInstanceRequest request1 = new ModifyDBInstanceRequest();
             request1.setDBInstanceIdentifier(System.getProperty("newlyCreatedInstance"));
@@ -229,14 +249,14 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             } while (!promotionTierChanged);
 
             try {
-                Thread.sleep(10*1000); // Should have completed modification
+                Thread.sleep(10 * 1000); // Should have completed modification
             } catch (InterruptedException e) {
                 fail("Thread sleep was interrupted");
             }
 
             launchAuroraFailover();
             try {
-                Thread.sleep(30*1000); // Should have failed over
+                Thread.sleep(30 * 1000); // Should have failed over
             } catch (InterruptedException e) {
                 fail("Thread sleep was interrupted");
             }
@@ -251,17 +271,21 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
         } catch (SQLException se) {
             fail("Unable to execute query: " + se);
         } finally {
-            if (statement != null) { statement.close(); }
-            if (connection != null) { connection.close(); }
+            if (statement != null) {
+                statement.close();
+            }
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
     @Test
-    public void testExceptionHandlingWhenDataFromTable() throws  Throwable {
+    public void testExceptionHandlingWhenDataFromTable() throws Throwable {
         Connection connection = null;
         try {
             connection = getNewConnection(false);
-            String initialHost = getProtocolFromConnection(connection).getHost();
+            final String initialHost = getProtocolFromConnection(connection).getHost();
 
             final Statement statement = connection.createStatement();
             Thread queryThread = new Thread() {
@@ -269,7 +293,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
                     long startTime = System.nanoTime();
                     long stopTime = System.nanoTime();
                     try {
-                        while (Math.abs(TimeUnit.NANOSECONDS.toMillis(stopTime-startTime)) < 1000) {
+                        while (Math.abs(TimeUnit.NANOSECONDS.toMillis(stopTime - startTime)) < 1000) {
                             stopTime = System.nanoTime();
                             statement.executeQuery("SELECT 1");
                             startTime = System.nanoTime();
@@ -303,7 +327,9 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
                 failoverThread.interrupt();
             }
 
-            if (statement != null) { statement.close(); }
+            if (statement != null) {
+                statement.close();
+            }
 
             Set<HostAddress> hostAddresses = getProtocolFromConnection(connection).getProxy().getListener().getBlacklistKeys();
             boolean connectionBlacklisted = foundHostInList(hostAddresses, initialHost);
@@ -312,12 +338,14 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
         } catch (SQLException se) {
             fail("Unable to execute query: " + se);
         } finally {
-            if (connection != null) { connection.close(); }
+            if (connection != null) {
+                connection.close();
+            }
         }
     }
 
     private boolean foundHostInList(Collection<HostAddress> hostAddresses, String hostIdentifier) {
-        for (HostAddress hostAddress: hostAddresses) {
+        for (HostAddress hostAddress : hostAddresses) {
             if (hostAddress.host.indexOf(hostIdentifier) > -1) {
                 return true;
             }

@@ -265,7 +265,6 @@ public class AuroraFailoverTest extends BaseReplication {
             //test failover
             int nbExecutionOnSlave = 0;
             int nbExecutionOnMasterFirstFailover = 0;
-            int nbExecutionOnMasterSecondFailover = 0;
 
             //Goal is to check that on a failover, master connection will be used, and slave will be used back when up.
             //check on 2 failover
@@ -300,6 +299,7 @@ public class AuroraFailoverTest extends BaseReplication {
             launchAuroraFailover();
             nbExecutionOnSlave = 0;
 
+            int nbExecutionOnMasterSecondFailover = 0;
 
             while (nbExecutionOnSlave + nbExecutionOnMasterSecondFailover < 500) {
                 ResultSet rs = preparedStatement.executeQuery();

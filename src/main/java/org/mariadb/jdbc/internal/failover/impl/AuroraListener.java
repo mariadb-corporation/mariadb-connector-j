@@ -211,12 +211,12 @@ public class AuroraListener extends MastersSlavesListener {
      * Calls the methods that retrieves the instance identifiers and sets urlParser accordingly.
      *
      * @param protocol  current protocol connected to
-     * @throws QueryException
+     * @throws QueryException if connection error occur
      */
     public void retrieveAllEndpointsAndSet(Protocol protocol) throws QueryException {
         // For a given cluster, same port for all endpoints and same end host address
         int port = protocol.getPort();
-        if ("".equals(urlEndStr) && protocol.getHost().indexOf(".") > -1){
+        if ("".equals(urlEndStr) && protocol.getHost().indexOf(".") > -1) {
             urlEndStr = protocol.getHost().substring(protocol.getHost().indexOf("."));
         }
 
@@ -232,23 +232,24 @@ public class AuroraListener extends MastersSlavesListener {
      *
      * @param protocol      current protocol connected to
      * @return instance endpoints of the cluster
-     * @throws QueryException
+     * @throws QueryException if connection error occur
      */
     private List<String> getCurrentEndpointIdentifiers(Protocol protocol) throws QueryException {
         List<String> endpoints = new ArrayList<>();
         try {
             proxy.lock.lock();
             try {
-                // Deleted instance may remain in db for 24 hours so ignoring instances that have had no change for IGNORE_TIME_IN_MINUTES
+                // Deleted instance may remain in db for 24 hours so ignoring instances that have had no change
+                // for 3 minutes
                 Date date = new Date();
-                int IGNORE_TIME_IN_MINUTES = 3;
-                Timestamp currentTime = new Timestamp(date.getTime() - IGNORE_TIME_IN_MINUTES*60*1000);
+
+                Timestamp currentTime = new Timestamp(date.getTime() - 3 * 60 * 1000); // 3 minutes
                 sqlDateFormat.setTimeZone(TimeZone.getTimeZone(protocol.getServerData("system_time_zone")));
 
                 SingleExecutionResult queryResult = new SingleExecutionResult(null, 0, true, false);
                 protocol.executeQuery(false, queryResult,
-                        "select server_id, session_id from " + dbName + ".replica_host_status " +
-                                "where last_update_timestamp > '" + sqlDateFormat.format(currentTime) + "'",
+                        "select server_id, session_id from " + dbName + ".replica_host_status "
+                                + "where last_update_timestamp > '" + sqlDateFormat.format(currentTime) + "'",
                         ResultSet.TYPE_FORWARD_ONLY);
                 MariaSelectResultSet resultSet = queryResult.getResultSet();
 
@@ -349,25 +350,24 @@ public class AuroraListener extends MastersSlavesListener {
      * @param protocol      current protocol
      * @param loopAddress   list of possible hosts
      * @return  the probable host address or null if no valid endpoint found
-     * @throws QueryException
+     * @throws QueryException if any connection error occur
      */
     private HostAddress searchForMasterHostAddress(Protocol protocol, List<HostAddress> loopAddress) throws QueryException {
         String masterHostName = null;
         proxy.lock.lock();
         try {
             Date date = new Date();
-            int IGNORE_TIME_IN_MINUTES = 3;
-            Timestamp currentTime = new Timestamp(date.getTime() - IGNORE_TIME_IN_MINUTES*60*1000);
+            Timestamp currentTime = new Timestamp(date.getTime() - 3 * 60 * 1000); // 3 minutes
             sqlDateFormat.setTimeZone(TimeZone.getTimeZone(protocol.getServerData("system_time_zone")));
 
             SingleExecutionResult executionResult = new SingleExecutionResult(null, 0, true, false);
             protocol.executeQuery(false, executionResult,
-                    "select server_id from " + dbName + ".replica_host_status " +
-                            "where session_id = 'MASTER_SESSION_ID' " +
-                            "and last_update_timestamp = (" +
-                            "select max(last_update_timestamp) from " + dbName + ".replica_host_status " +
-                            "where session_id = 'MASTER_SESSION_ID' " +
-                            "and last_update_timestamp > '" + currentTime + "')",
+                    "select server_id from " + dbName + ".replica_host_status "
+                            + "where session_id = 'MASTER_SESSION_ID' "
+                            + "and last_update_timestamp = ("
+                            + "select max(last_update_timestamp) from " + dbName + ".replica_host_status "
+                            + "where session_id = 'MASTER_SESSION_ID' "
+                            + "and last_update_timestamp > '" + currentTime + "')",
                     ResultSet.TYPE_FORWARD_ONLY);
             MariaSelectResultSet queryResult = executionResult.getResultSet();
 

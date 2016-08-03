@@ -179,7 +179,7 @@ public class BaseMultiHostTest {
 
     }
 
-    private static UrlParser retrieveEndpointsForProxies(String tmpUrl) throws SQLException{
+    private static UrlParser retrieveEndpointsForProxies(String tmpUrl) throws SQLException {
         try {
             Connection connection = DriverManager.getConnection(tmpUrl);
             connection.setReadOnly(true);
