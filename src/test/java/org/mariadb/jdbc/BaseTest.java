@@ -546,8 +546,7 @@ public class BaseTest {
         DatabaseMetaData md = sharedConnection.getMetaData();
         int dbMajor = md.getDatabaseMajorVersion();
         int dbMinor = md.getDatabaseMinorVersion();
-        return (dbMajor < major
-                || (dbMajor == major && dbMinor < minor));
+        return (dbMajor < major || (dbMajor == major && dbMinor < minor));
 
     }
 
