@@ -865,6 +865,9 @@ public final class MariaDbConnection implements Connection {
      * @throws SQLException SQLException if a database access error occurs or this method is called on a closed connection
      */
     public void clearWarnings() throws SQLException {
+        if (this.isClosed()) {
+            throw ExceptionMapper.getSqlException("Connection.clearWarnings cannot be called on a closed connection");
+        }
         warningsCleared = true;
     }
 
