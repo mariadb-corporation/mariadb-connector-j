@@ -23,12 +23,12 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
             for (int i = 0; i < partsRewrite.length; i++) {
                 Assert.assertEquals(partsRewrite[i], new String(statement.getPrepareResult().getQueryParts().get(i)));
             }
-            assertEquals(rewritable, statement.getPrepareResult().isRewritableValuesQuery());
+            assertEquals(rewritable, statement.getPrepareResult().isQueryMultiValuesRewritable());
         } else {
             for (int i = 0; i < partsMulti.length; i++) {
                 Assert.assertEquals(partsMulti[i], new String(statement.getPrepareResult().getQueryParts().get(i)));
             }
-            assertEquals(allowMultiqueries, statement.getPrepareResult().isRewritableMultipleQuery());
+            assertEquals(allowMultiqueries, statement.getPrepareResult().isQueryMultipleRewritable());
 
         }
     }
@@ -269,6 +269,16 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
                         ")"});
     }
 
+    @Test
+    public void testSelect1() throws Exception {
+        checkParsing("SELECT 1",
+                0, false, true,
+                new String[] {
+                        "SELECT 1",
+                        "",
+                        ""},
+                new String[] {"SELECT 1"});
+    }
 
     @Test
     public void rewriteBatchedError() throws Exception {

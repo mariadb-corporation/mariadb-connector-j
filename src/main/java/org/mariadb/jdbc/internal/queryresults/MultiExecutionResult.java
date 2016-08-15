@@ -7,5 +7,7 @@ public interface MultiExecutionResult extends ExecutionResult {
     void updateResultsMultiple(int waitedSize, boolean hasException);
 
     int[] getAffectedRows();
+
+    int getFirstAffectedRows();
 }
 

@@ -51,7 +51,6 @@ package org.mariadb.jdbc.internal.packet;
 
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
@@ -74,7 +73,7 @@ public class ComExecute {
             throws IOException {
         writer.buffer.put(Packet.COM_QUERY);
 
-        if (clientPrepareResult.isRewritableValuesQuery()) {
+        if (clientPrepareResult.isRewriteType()) {
 
             writer.write(clientPrepareResult.getQueryParts().get(0));
             writer.write(clientPrepareResult.getQueryParts().get(1));

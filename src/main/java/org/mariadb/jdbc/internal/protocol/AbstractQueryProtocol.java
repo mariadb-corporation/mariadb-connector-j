@@ -154,7 +154,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                              int resultSetScrollType) throws QueryException {
         cmdPrologue();
         try {
-            if (clientPrepareResult.getParamCount() == 0 && !clientPrepareResult.isRewritableValuesQuery()) {
+            if (clientPrepareResult.getParamCount() == 0 && !clientPrepareResult.isQueryMultiValuesRewritable()) {
                 ComExecute.sendDirect(writer, clientPrepareResult.getQueryParts().get(0));
             } else {
                 writer.startPacket(0);
@@ -982,7 +982,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             String sql = serverPrepareResult.getSql();
             if (serverPrepareResult.getParamCount() > 0) {
                 sql += ", parameters [";
-                if (parameters.length > 1) {
+                if (parameters.length > 0) {
                     for (int i = 0; i < Math.min(parameters.length, serverPrepareResult.getParamCount()); i++) {
                         sql += parameters[i].toString() + ",";
                     }

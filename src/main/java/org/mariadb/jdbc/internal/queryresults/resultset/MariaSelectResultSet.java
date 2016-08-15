@@ -1409,9 +1409,13 @@ public class MariaSelectResultSet implements ResultSet {
             switch (columnInfo.getType()) {
                 case TIMESTAMP:
                 case DATETIME:
-                    return new Date(getTimestamp(rawBytes, columnInfo, cal).getTime());
+                    Timestamp timestamp = getTimestamp(rawBytes, columnInfo, cal);
+                    if (timestamp == null) return null;
+                    return new Date(timestamp.getTime());
                 case TIME:
-                    return new Date(getTime(rawBytes, columnInfo, cal).getTime());
+                    Time time = getTime(rawBytes, columnInfo, cal);
+                    if (time == null) return null;
+                    return new Date(time.getTime());
                 case DATE:
                     return new Date(
                             Integer.parseInt(rawValue.substring(0, 4)) - 1900,
@@ -1502,7 +1506,8 @@ public class MariaSelectResultSet implements ResultSet {
 
         if (!this.isBinaryEncoded) {
             if (columnInfo.getType() == MariaDbType.TIMESTAMP || columnInfo.getType() == MariaDbType.DATETIME) {
-                return new Time(getTimestamp(rawBytes, columnInfo, cal).getTime());
+                Timestamp timestamp = getTimestamp(rawBytes, columnInfo, cal);
+                return (timestamp == null) ? null : new Time(timestamp.getTime());
             } else if (columnInfo.getType() == MariaDbType.DATE) {
                 Calendar zeroCal = Calendar.getInstance();
                 zeroCal.set(1970, 0, 1, 0, 0, 0);
@@ -1594,10 +1599,8 @@ public class MariaSelectResultSet implements ResultSet {
         }
         if (!this.isBinaryEncoded) {
             String rawValue = new String(rawBytes, StandardCharsets.UTF_8);
-            String zeroTimestamp = "0000-00-00 00:00:00";
-            if (rawValue.equals(zeroTimestamp)) {
-                return null;
-            }
+            if (rawValue.startsWith("0000-00-00 00:00:00")) return null;
+
             switch (columnInfo.getType()) {
                 case TIME:
                     //time does not go after millisecond
