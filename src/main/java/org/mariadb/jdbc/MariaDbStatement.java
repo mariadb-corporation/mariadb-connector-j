@@ -733,7 +733,7 @@ public class MariaDbStatement implements Statement, Cloneable {
                         data[i] = ((SingleExecutionResult) executionResult).getInsertId() + i * autoIncrementIncrement;
                     }
                 } else {
-                    MultiVariableIntExecutionResult multiExecution = (MultiVariableIntExecutionResult) executionResult;
+                    MultiExecutionResult multiExecution = (MultiExecutionResult) executionResult;
                     int size = 0;
                     int affectedRowslength = multiExecution.getAffectedRows().length;
                     for (int i = 0; i < affectedRowslength; i++) {
@@ -741,7 +741,7 @@ public class MariaDbStatement implements Statement, Cloneable {
                     }
                     data =  new long[size];
                     for (int affectedRows = 0; affectedRows < affectedRowslength; affectedRows++) {
-                        for (int i = 0; i < affectedRows; i++) {
+                        for (int i = 0; i < multiExecution.getAffectedRows()[affectedRows]; i++) {
                             data[i] = multiExecution.getInsertIds()[affectedRows] + i * autoIncrementIncrement;
                         }
                     }
@@ -832,7 +832,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         if (executionResult.isSingleExecutionResult()) {
             return (int) ((SingleExecutionResult) executionResult).getAffectedRows();
         } else {
-            return ((MultiExecutionResult) executionResult).getAffectedRows()[0];
+            return ((MultiExecutionResult) executionResult).getFirstAffectedRows();
         }
     }
 

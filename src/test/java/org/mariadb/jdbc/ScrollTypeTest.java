@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -51,6 +52,7 @@ public class ScrollTypeTest extends BaseTest {
 
     @Test(expected = SQLException.class)
     public void scrollForwardOnlyPrepareStmt() throws SQLException {
+        Assume.assumeFalse(sharedIsRewrite());
         try (PreparedStatement stmt = sharedConnection.prepareStatement("SELECT * FROM resultsSetReadingTest",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
             stmt.setFetchSize(2);

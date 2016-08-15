@@ -56,17 +56,19 @@ import java.util.List;
 public class ClientPrepareResult implements PrepareResult {
     private String sql;
     private List<byte[]> queryParts;
-    private boolean rewritableValuesQuery = true;
-    private boolean rewritableMultipleQuery = true;
+    private boolean isQueryMultiValuesRewritable = true;
+    private boolean isQueryMultipleRewritable = true;
+    private boolean rewriteType;
     private int paramCount;
 
-    private ClientPrepareResult(String sql, List<byte[]> queryParts, boolean rewritableValuesQuery,
-                                boolean rewritableMultipleQuery, boolean isRewritePart) {
+    private ClientPrepareResult(String sql, List<byte[]> queryParts, boolean isQueryMultiValuesRewritable,
+                                boolean isQueryMultipleRewritable, boolean rewriteType) {
         this.sql = sql;
         this.queryParts = queryParts;
-        this.rewritableValuesQuery = rewritableValuesQuery;
-        this.rewritableMultipleQuery = rewritableMultipleQuery;
-        this.paramCount = queryParts.size() - (isRewritePart ? 3 : 1);
+        this.isQueryMultiValuesRewritable = isQueryMultiValuesRewritable;
+        this.isQueryMultipleRewritable = isQueryMultipleRewritable;
+        this.paramCount = queryParts.size() - (rewriteType ? 3 : 1);
+        this.rewriteType = rewriteType;
     }
 
     public String getSql() {
@@ -77,12 +79,16 @@ public class ClientPrepareResult implements PrepareResult {
         return queryParts;
     }
 
-    public boolean isRewritableValuesQuery() {
-        return rewritableValuesQuery;
+    public boolean isQueryMultiValuesRewritable() {
+        return isQueryMultiValuesRewritable;
     }
 
-    public boolean isRewritableMultipleQuery() {
-        return rewritableMultipleQuery;
+    public boolean isQueryMultipleRewritable() {
+        return isQueryMultipleRewritable;
+    }
+
+    public boolean isRewriteType() {
+        return rewriteType;
     }
 
     public int getParamCount() {
@@ -90,9 +96,9 @@ public class ClientPrepareResult implements PrepareResult {
     }
 
     /**
-     * Separate query in a String list and set flag rewritableMultipleQuery.
+     * Separate query in a String list and set flag isQueryMultipleRewritable.
      * The resulting string list is separed by ? that are not in comments.
-     * rewritableMultipleQuery flag is set if query can be rewrite in one query
+     * isQueryMultipleRewritable flag is set if query can be rewrite in one query
      * (all case but if using "-- comment").
      * example for query :
      *    "INSERT INTO tableName(id, name) VALUES (?, ?)"
@@ -320,7 +326,7 @@ public class ClientPrepareResult implements PrepareResult {
     }
 
     /**
-     * Separate query in a String list and set flag rewritableValuesQuery
+     * Separate query in a String list and set flag isQueryMultiValuesRewritable
      * The parameters "?" (not in comments) emplacements are to be known.
      *
      * The only rewritten queries follow these notation:
@@ -555,12 +561,20 @@ public class ClientPrepareResult implements PrepareResult {
                 }
             }
 
-            partList.add(0, (preValuePart1 == null) ? new byte[0] : preValuePart1.getBytes("UTF-8"));
             if (!hasParam) {
                 //permit to have rewrite without parameter
-                partList.add(1, sb.toString().getBytes("UTF-8"));
+                if (preValuePart1 == null) {
+                    partList.add(0, sb.toString().getBytes("UTF-8"));
+                    partList.add(1, new byte[0]);
+                } else {
+                    partList.add(0, preValuePart1.getBytes("UTF-8"));
+                    partList.add(1, sb.toString().getBytes("UTF-8"));
+                }
                 sb.setLength(0);
-            } else partList.add(1, (preValuePart2 == null) ? new byte[0] : preValuePart2.getBytes("UTF-8"));
+            } else {
+                partList.add(0, (preValuePart1 == null) ? new byte[0] : preValuePart1.getBytes("UTF-8"));
+                partList.add(1, (preValuePart2 == null) ? new byte[0] : preValuePart2.getBytes("UTF-8"));
+            }
 
             if (!isInsert) reWritablePrepare = false;
 

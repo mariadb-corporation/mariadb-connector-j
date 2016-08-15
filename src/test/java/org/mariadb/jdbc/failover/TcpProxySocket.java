@@ -1,11 +1,15 @@
 package org.mariadb.jdbc.failover;
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+
 import java.io.*;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 
 public class TcpProxySocket implements Runnable {
+    private static Logger logger = LoggerFactory.getLogger(TcpProxy.class);
 
     String host;
     int remoteport;
@@ -65,6 +69,7 @@ public class TcpProxySocket implements Runnable {
     @Override
     public void run() {
 
+        logger.trace("host proxy port " + this.localport + " for " + host + " started");
         stop = false;
         try {
             try {

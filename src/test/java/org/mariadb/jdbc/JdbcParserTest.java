@@ -8,6 +8,8 @@ import org.mariadb.jdbc.internal.util.constant.Version;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import static org.junit.Assert.fail;
+
 public class JdbcParserTest {
 
     @Test
@@ -60,7 +62,7 @@ public class JdbcParserTest {
 
     @Test
     public void testOptionTakeDefaultAurora() throws Throwable {
-        UrlParser jdbc = UrlParser.parse("jdbc:mysql:aurora://localhost/test");
+        UrlParser jdbc = UrlParser.parse("jdbc:mysql:aurora://cluster-identifier.cluster-customerID.region.rds.amazonaws.com/test");
         Assert.assertNull(jdbc.getOptions().connectTimeout);
         Assert.assertTrue(jdbc.getOptions().validConnectionTimeout == 120);
         Assert.assertFalse(jdbc.getOptions().autoReconnect);
@@ -112,7 +114,7 @@ public class JdbcParserTest {
     public void testOptionParseIntegerNotPossible() throws Throwable {
         UrlParser.parse("jdbc:mysql://localhost/test?user=root&autoReconnect=true&validConnectionTimeout=-2"
                 + "&connectTimeout=5");
-        Assert.fail();
+        fail();
     }
 
     @Test()
@@ -141,8 +143,40 @@ public class JdbcParserTest {
     }
 
     @Test
+    public void testJdbcParserWithoutDatabaseWithProperties() throws SQLException {
+        String url = "jdbc:mysql://master:3306,slave1:3307,slave2:3308?autoReconnect=true";
+        UrlParser urlParser = UrlParser.parse(url);
+        Assert.assertNull(urlParser.getDatabase());
+        Assert.assertNull(urlParser.getUsername());
+        Assert.assertNull(urlParser.getPassword());
+        Assert.assertTrue(urlParser.getOptions().autoReconnect);
+        Assert.assertTrue(urlParser.getHostAddresses().size() == 3);
+        Assert.assertTrue(new HostAddress("master", 3306).equals(urlParser.getHostAddresses().get(0)));
+        Assert.assertTrue(new HostAddress("slave1", 3307).equals(urlParser.getHostAddresses().get(1)));
+        Assert.assertTrue(new HostAddress("slave2", 3308).equals(urlParser.getHostAddresses().get(2)));
+    }
+
+    @Test
     public void testJdbcParserSimpleIpv4Properties() throws SQLException {
         String url = "jdbc:mysql://master:3306,slave1:3307,slave2:3308/database?autoReconnect=true";
+        Properties prop = new Properties();
+        prop.setProperty("user", "greg");
+        prop.setProperty("password", "pass");
+
+        UrlParser urlParser = UrlParser.parse(url, prop);
+        Assert.assertTrue("database".equals(urlParser.getDatabase()));
+        Assert.assertTrue("greg".equals(urlParser.getUsername()));
+        Assert.assertTrue("pass".equals(urlParser.getPassword()));
+        Assert.assertTrue(urlParser.getOptions().autoReconnect);
+        Assert.assertTrue(urlParser.getHostAddresses().size() == 3);
+        Assert.assertTrue(new HostAddress("master", 3306).equals(urlParser.getHostAddresses().get(0)));
+        Assert.assertTrue(new HostAddress("slave1", 3307).equals(urlParser.getHostAddresses().get(1)));
+        Assert.assertTrue(new HostAddress("slave2", 3308).equals(urlParser.getHostAddresses().get(2)));
+    }
+
+    @Test
+    public void testJdbcParserSimpleIpv4PropertiesReversedOrder() throws SQLException {
+        String url = "jdbc:mysql://master:3306,slave1:3307,slave2:3308?autoReconnect=true/database";
         Properties prop = new Properties();
         prop.setProperty("user", "greg");
         prop.setProperty("password", "pass");
@@ -208,7 +242,7 @@ public class JdbcParserTest {
                 + "(host=master2),address=(type=slave)(host=slave1)(port=3308)/database?user=greg&password=pass";
         try {
             UrlParser.parse(url);
-            Assert.fail();
+            fail();
         } catch (SQLException e) {
             Assert.assertTrue(true);
         }
@@ -256,7 +290,7 @@ public class JdbcParserTest {
 
     @Test
     public void testJdbcParserHaModeLoadAurora() throws SQLException {
-        String url = "jdbc:mysql:aurora://localhost/database";
+        String url = "jdbc:mysql:aurora://cluster-identifier.cluster-customerID.region.rds.amazonaws.com/database";
         UrlParser jdbc = UrlParser.parse(url);
         Assert.assertTrue(jdbc.getHaMode().equals(HaMode.AURORA));
     }

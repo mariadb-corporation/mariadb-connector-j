@@ -303,9 +303,9 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             } finally {
                 if (exception != null) {
                     if (options.rewriteBatchedStatements) {
-                        if (prepareResult.isRewritableValuesQuery()) {
+                        if (prepareResult.isQueryMultiValuesRewritable()) {
                             internalExecutionResult.updateResultsForRewrite(size, true);
-                        } else if (prepareResult.isRewritableMultipleQuery()) {
+                        } else if (prepareResult.isQueryMultipleRewritable()) {
                             internalExecutionResult.updateResultsMultiple(size, true);
                         }
                     }
@@ -336,14 +336,14 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
     private void executeInternalBatch(MultiExecutionResult internalExecutionResult, int size) throws QueryException {
 
         if (options.rewriteBatchedStatements) {
-            if (prepareResult.isRewritableValuesQuery()) {
+            if (prepareResult.isQueryMultiValuesRewritable()) {
                 //values rewritten in one query :
                 // INSERT INTO X(a,b) VALUES (1,2), (3,4), ...
                 protocol.executeBatchRewrite(protocol.isMasterConnection(), internalExecutionResult, prepareResult,
                         parameterList, resultSetScrollType, true);
                 internalExecutionResult.updateResultsForRewrite(size, false);
                 return;
-            } else if (prepareResult.isRewritableMultipleQuery()) {
+            } else if (prepareResult.isQueryMultipleRewritable()) {
                 //multi rewritten in one query :
                 // INSERT INTO X(a,b) VALUES (1,2);INSERT INTO X(a,b) VALUES (3,4); ...
                 protocol.executeBatchRewrite(protocol.isMasterConnection(), internalExecutionResult, prepareResult,

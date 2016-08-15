@@ -138,9 +138,7 @@ public class SingleExecutionResult implements ExecutionResult {
         return (int) affectedRows;
     }
 
-    public void addStatsError() {
-        ;
-    }
+    public void addStatsError() { }
 
     public MariaSelectResultSet getResultSet() {
         return result;

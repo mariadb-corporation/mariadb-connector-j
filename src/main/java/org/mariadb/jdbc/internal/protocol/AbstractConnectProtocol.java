@@ -1023,4 +1023,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public void changeSocketTcpNoDelay(boolean setTcpNoDelay) throws SocketException {
         socket.setTcpNoDelay(setTcpNoDelay);
     }
+
+    public void changeSocketSoTimeout(int setSoTimeout) throws SocketException {
+        socket.setSoTimeout(setSoTimeout);
+    }
+
 }

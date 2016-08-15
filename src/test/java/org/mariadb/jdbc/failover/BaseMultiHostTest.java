@@ -12,6 +12,7 @@ import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbServerPreparedStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
+import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
@@ -29,6 +30,7 @@ import java.util.List;
  * example mvn test -DdbUrl=jdbc:mysql://localhost:3306,localhost:3307/test?user=root -DlogLevel=FINEST
  * specific parameters :
  * defaultMultiHostUrl :
+ * If testing Aurora, set the region. Default is US_EAST_1.
  */
 @Ignore
 public class BaseMultiHostTest {
@@ -144,7 +146,14 @@ public class BaseMultiHostTest {
     }
 
     private static String createProxies(String tmpUrl, HaMode proxyType) throws SQLException {
-        UrlParser tmpUrlParser = UrlParser.parse(tmpUrl);
+        UrlParser tmpUrlParser;
+        if (proxyType == HaMode.AURORA) {
+            //if using cluster end-point, permit to retrieve current master and replica instances
+            tmpUrlParser = retrieveEndpointsForProxies(tmpUrl);
+        } else {
+            tmpUrlParser = UrlParser.parse(tmpUrl);
+        }
+
         TcpProxy[] tcpProxies = new TcpProxy[tmpUrlParser.getHostAddresses().size()];
         username = tmpUrlParser.getUsername();
         hostname = tmpUrlParser.getHostAddresses().get(0).host;
@@ -168,6 +177,23 @@ public class BaseMultiHostTest {
                     + "/" + tmpUrl.split("/")[3];
         }
 
+    }
+
+    private static UrlParser retrieveEndpointsForProxies(String tmpUrl) throws SQLException {
+        try {
+            Connection connection = DriverManager.getConnection(tmpUrl);
+            connection.setReadOnly(true);
+            try {
+                Protocol protocol = (new BaseMultiHostTest().getProtocolFromConnection(connection));
+                UrlParser urlParser = protocol.getUrlParser();
+                return urlParser;
+            } catch (Throwable throwable) {
+                connection.close();
+                return UrlParser.parse(tmpUrl);
+            }
+        } catch (SQLException se) {
+            return UrlParser.parse(tmpUrl);
+        }
     }
 
     /**
@@ -208,11 +234,9 @@ public class BaseMultiHostTest {
             if (forceNewProxy) {
                 tmpProxyUrl = createProxies(defaultUrl, currentType);
             }
-            if (additionnalConnectionData == null) {
-                return DriverManager.getConnection(tmpProxyUrl);
-            } else {
-                return DriverManager.getConnection(tmpProxyUrl + additionnalConnectionData);
-            }
+            tmpProxyUrl += (additionnalConnectionData == null) ? "" : additionnalConnectionData;
+            return DriverManager.getConnection(tmpProxyUrl);
+
         } else {
             if (additionnalConnectionData == null) {
                 return DriverManager.getConnection(defaultUrl);
@@ -301,12 +325,12 @@ public class BaseMultiHostTest {
         ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '"
                 + hostname + "'");
         if (rs.next()) {
-            superPrivilege = (rs.getString(1).equals("Y") ? true : false);
+            superPrivilege = (rs.getString(1).equals("Y"));
         } else {
             // then check for user on whatever (%) host
             rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'");
             if (rs.next()) {
-                superPrivilege = (rs.getString(1).equals("Y") ? true : false);
+                superPrivilege = (rs.getString(1).equals("Y"));
             }
         }
 
@@ -326,8 +350,15 @@ public class BaseMultiHostTest {
         return (Protocol) getProtocol.invoke(conn);
     }
 
+    void setDbName(Connection connection, String newDbName) throws Throwable {
+        AuroraListener auroraListener = (AuroraListener) getProtocolFromConnection(connection).getProxy().getListener();
+        Field dbName = auroraListener.getClass().getDeclaredField("dbName");
+        dbName.setAccessible(true);
+        dbName.set(auroraListener, newDbName);
+    }
+
     /**
-     * Retreive server Id.
+     * Retrieve server Id.
      * @param connection connection
      * @return server index
      * @throws Throwable  exception

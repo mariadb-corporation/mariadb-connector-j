@@ -258,6 +258,56 @@ public class MultiTest extends BaseTest {
         }
     }
 
+    /**
+     * CONJ-329 error for rewrite without parameter.
+     * @throws SQLException if exception occur
+     */
+    @Test
+    public void rewriteStatementWithoutParameter() throws SQLException {
+        try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
+            PreparedStatement statement = connection.prepareStatement("SELECT 1");
+            try {
+                statement.executeQuery();
+            } finally {
+                statement.close();
+            }
+        }
+    }
+
+    /**
+     * CONJ-330 - correction using execute...() for rewriteBatchedStatements
+     * @throws SQLException if exception occur
+     */
+    @Test
+    public void rewriteMonoQueryStatementWithParameter() throws SQLException {
+        try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
+            String failingQuery1 = "SELECT (1=? AND 2=2)";
+            String failingQuery2 = "SELECT (1=?) AND 2=2";
+            String workingQuery = "SELECT 1=? AND (2=2)";
+
+            try (PreparedStatement statement = connection.prepareStatement(failingQuery1)) {
+                checkResult(statement);
+            }
+
+            try (PreparedStatement statement = connection.prepareStatement(failingQuery2)) {
+                checkResult(statement);
+            }
+
+            try (PreparedStatement statement = connection.prepareStatement(workingQuery)) {
+                checkResult(statement);
+            }
+        }
+    }
+
+    private void checkResult(PreparedStatement statement) throws SQLException {
+        statement.setInt(1, 1);
+        statement.executeQuery();
+        ResultSet rs = statement.executeQuery();
+        Assert.assertTrue(rs.next());
+        Assert.assertTrue(rs.getBoolean(1));
+    }
+
+
     @Test
     public void testServerPrepareMeta() throws Throwable {
         Connection connection = null;

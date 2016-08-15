@@ -1,18 +1,22 @@
 package org.mariadb.jdbc.failover;
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+
 import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 
 public class TcpProxy {
+    private static Logger logger = LoggerFactory.getLogger(TcpProxy.class);
 
     String host;
     int remoteport;
     TcpProxySocket socket;
 
     /**
-     * Initialise procy.
+     * Initialise proxy.
      * @param host host (ip / dns)
      * @param remoteport port
      * @throws IOException  exception
@@ -28,8 +32,13 @@ public class TcpProxy {
         socket.kill();
     }
 
+    /**
+     * Stop proxy and restart after X milliseconds.
+     * @param sleepTime sleep time in milliseconds
+     */
     public void restart(long sleepTime) {
         socket.kill();
+        logger.trace("host proxy port " + socket.localport + " for " + host + " started");
         Executors.newSingleThreadScheduledExecutor().schedule(socket, sleepTime, TimeUnit.MILLISECONDS);
     }
 

@@ -403,9 +403,24 @@ public final class MariaDbConnection implements Connection {
     public PreparedStatement internalPrepareStatement(final String sql, final int resultSetScrollType)
             throws SQLException {
         checkConnection();
-        if (!options.rewriteBatchedStatements
-                && options.useServerPrepStmts
-                && checkIfPreparable(sql)) {
+
+        boolean canUsePrepareStatement = false;
+        if (options.rewriteBatchedStatements) {
+            //in case of CALL statement, handling INOUT parameter is better with Prepare protocol
+            String cleanSql = sql.toUpperCase().trim();
+            canUsePrepareStatement = cleanSql.contains("CALL");
+        } else if (options.useServerPrepStmts && sql != null) {
+            String cleanSql = sql.toUpperCase().trim();
+            canUsePrepareStatement = (cleanSql.contains("SELECT")
+                    || cleanSql.contains("CALL")
+                    || cleanSql.contains("UPDATE")
+                    || cleanSql.contains("INSERT")
+                    || cleanSql.contains("DELETE")
+                    || cleanSql.contains("REPLACE")
+                    || cleanSql.contains("DO"));
+        }
+
+        if (canUsePrepareStatement) {
             try {
                 return new MariaDbServerPreparedStatement(this, sql, resultSetScrollType, false);
             } catch (SQLNonTransientConnectionException e) {
@@ -417,29 +432,6 @@ public final class MariaDbConnection implements Connection {
             }
         }
         return new MariaDbClientPreparedStatement(this, sql, resultSetScrollType);
-    }
-
-
-    /**
-     * Check if SQL request is "preparable" and has parameter.
-     *
-     * @param sql sql query
-     * @return true if preparable
-     */
-    private boolean checkIfPreparable(String sql) {
-        if (sql == null) {
-            return true;
-        }
-
-        String cleanSql = sql.toUpperCase().trim();
-        return (cleanSql.contains("SELECT")
-                || cleanSql.contains("CALL")
-                || cleanSql.contains("UPDATE")
-                || cleanSql.contains("INSERT")
-                || cleanSql.contains("DELETE")
-                || cleanSql.contains("REPLACE")
-                || cleanSql.contains("DO"));
-
     }
 
     /**
