@@ -206,40 +206,38 @@ Aurora failover management steps :
 
 ==Aurora configuration
 
-===Aurora endpoints
+===Aurora endpoints and discovery
 
-Every instance has a specific endpoint, ie an URL that identify the host. Those endpoints look like “xxxx.yyyy.us-east-1.rds.amazonaws.com”.
+Every aurora instance has a specific endpoint, i.e. an URL that identify the host. Those endpoints look like `xxx.yyy.zzz.rds.amazonaws.com`.
 
-There is another endpoint named “cluster endpoint” which is assigned to the current master instance and will change when a new master is promoted.
+There is another endpoint named "cluster endpoint" (format `xxx.cluster-yyy.zzz.rds.amazonaws.com`) which is assigned to the current master instance and will change when a new master is promoted.
 
-This cluster endpoint must never be used in the URL connection string for 2 reasons:
-* When a failover occurs, a new master is promoted. The cluster endpoint change to this new master is not immediately effective. The connector doesn’t use this cluster endpoint. Instead it points to the new master immediately.
-* More important, an instance will not be used, and load will be poorly distributed. \\Example :
-\\Normally JDBC url string must be like :\\
-{{{
-    jdbc:mysql:aurora://A.XX.com,B.XX.com,C.XX.com/db
-}}}
+In version before 1.5.1, cluster endpoint use was discouraged, since when a failover occur, this cluster endpoint can point for a limited time to a host that isn't the current master anymore. Old recommandation was to list all specific end-points.
+This kind of url string will still work, but now, recommended url string has to use only cluster endpoint.
 
-if the master endpoint is used : \\
-{{{
-    jdbc:mysql:aurora://master.XX.com,B.XX.com,C.XX.com/db
-}}} \\
-If B become master, A will not be used at all and C will receive all the read queries.
+Driver will automatically discover master and slaves of this cluster from current cluster end-point during connection time. This permit to add new replicas to the cluster instance will be discovered without changing driver configuration.
+
+This discovery append at connection time, so if you are using pool framework, check if this framework as a property that controls the maximum lifetime of a connection in the pool, and set a value to avoid infinite lifetime. When this lifetime is reached, pool will discarded the current connection, and create a new one (if needed). New connections will use the new replicas.
+(If connections are never discarded, new replicas will begin be used only when a failover occur)
 
 ===JDBC connection string
 
 The implementation is activated by specifying the “aurora” failover parameter.
+Recommended connection string is using cluster end-point:
+{{{
+jdbc:(mysql|mariadb):aurora://[clusterInstanceEndPoint[:port]]/[database][?<key1>=<value1>[&<key2>=<value2>]...]
+}}}
+
+Before driver version 1.5.1, connection string has to list all end-point:
 {{{
 jdbc:(mysql|mariadb):aurora://[instanceEndPoint[:port]][,instanceEndPoint[:port]...]/[database][?<key1>=<value1>[&<key2>=<value2>]...]
 }}}
 
-Host declaration use instance endpoint (never cluster endpoint). 
-
-The replication role of each instance must not be defined for Aurora, because the role of each instance changes over time. The driver will check the instance role after connection initialisation.
+If setting many endpoint, the replication role of each instance must not be defined for Aurora, because the role of each instance changes over time. The driver will check the instance role after connection initialisation.
 
 Example of connection string
 {{{
-    jdbc:mysql:aurora://host1.xxxx.us-east-1.rds.amazonaws.com,host2.xxxx.us-east-1.rds.amazonaws.com/db
+    jdbc:mysql:aurora://cluster.cluster-xxxx.us-east-1.rds.amazonaws.com/db
 }}}
 
 Another difference is the option "socketTimeout" that defaults to 10 seconds, meaning that - if not changed - queries exceeding 10 seconds will throw exceptions.  

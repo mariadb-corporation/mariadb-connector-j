@@ -1,5 +1,6 @@
 = Changelog
-* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#150|1.5.0]] RC1 released on 28-07-2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#151|1.5.1]] RC released on 15-08-2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#150|1.5.0]] RC released on 28-07-2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#146|1.4.6]] Released on 13 june 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#146|1.4.5]] Released on 18 mai 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#144|1.4.4]] Released on 04 mai 2016
@@ -9,8 +10,41 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
-== 1.5.0
+== 1.5.1
+Release candidate version
+=== Evolution
+==== Aurora host auto-discovery
+(CONJ-325)
 
+Aurora now auto discover nodes from cluster endpoint.
+
+===== Aurora endpoints
+
+Every aurora instance has a specific endpoint, i.e. an URL that identify the host. Those endpoints look like `xxx.yyy.zzz.rds.amazonaws.com`.
+
+There is another endpoint named "cluster endpoint" (format `xxx.cluster-yyy.zzz.rds.amazonaws.com`) which is assigned to the current master instance and will change when a new master is promoted.
+
+In previous version, cluster endpoint use was discouraged, since when a failover occur, this cluster endpoint can point for a limited time to a host that isn't the current master anymore. Old recommandation was to list all specific end-points, like : \\
+{{{
+jdbc:mysql:aurora://a.yyy.zzz.rds.amazonaws.com.com,b.yyy.zzz.rds.amazonaws.com.com/db
+}}}
+This kind of url string will still work, but now, recommended url string has to use only cluster endpoint :<br/>
+{{{
+jdbc:mysql:aurora://xxx.cluster-yyy.zzz.rds.amazonaws.com/db
+}}}
+
+Driver will automatically discover master and slaves of this cluster from current cluster end-point during connection time. This permit to add new replicas to the cluster instance will be discovered without changing driver configuration.
+
+This discovery append at connection time, so if you are using pool framework, check if this framework as a property that controls the maximum lifetime of a connection in the pool, and set a value to avoid infinite lifetime. When this lifetime is reached, pool will discarded the current connection, and create a new one (if needed). New connections will use the new replicas.
+(If connections are never discarded, new replicas will begin be used only when a failover occur)
+
+
+=== Bugfix
+* CONJ-329 and CONJ-330 : rewriteBatchedStatements execute single query exceptions correction.
+\\\\
+
+== 1.5.0
+Release candidate version
 === Use native SSPI windows implementation
 CONJ-295.\\
 
