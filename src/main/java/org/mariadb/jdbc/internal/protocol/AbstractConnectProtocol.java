@@ -866,7 +866,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      */
     protected void enabledSslCipherSuites(SSLSocket sslSocket) throws QueryException {
         if (options.enabledSslCipherSuites != null) {
-            List<String> possibleCiphers = Arrays.asList(sslSocket.getEnabledCipherSuites());
+            List<String> possibleCiphers = Arrays.asList(sslSocket.getSupportedCipherSuites());
             String[] ciphers = options.enabledSslCipherSuites.split("[,;\\s]+");
             for (String cipher : ciphers) {
                 if (!possibleCiphers.contains(cipher)) {
