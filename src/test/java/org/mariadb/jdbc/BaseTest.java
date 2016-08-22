@@ -52,17 +52,18 @@ public class BaseTest {
 
         //execute another query to ensure connection is stable
         protected void finished(Description description) {
-            Random random = new Random();
-            int randInt = random.nextInt();
+            if (testSingleHost) {
+                Random random = new Random();
+                int randInt = random.nextInt();
 
-            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT " + randInt)) {
-                ResultSet rs = preparedStatement.executeQuery();
-                Assert.assertTrue(rs.next());
-                Assert.assertEquals(randInt, rs.getInt(1));
-            } catch (Exception e) {
-                e.printStackTrace();
+                try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT " + randInt)) {
+                    ResultSet rs = preparedStatement.executeQuery();
+                    Assert.assertTrue(rs.next());
+                    Assert.assertEquals(randInt, rs.getInt(1));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-
         }
 
         protected void succeeded(Description description) {
