@@ -405,12 +405,11 @@ public final class MariaDbConnection implements Connection {
         checkConnection();
 
         boolean canUsePrepareStatement = false;
-        if (options.rewriteBatchedStatements) {
+        String cleanSql = sql.toUpperCase().trim();
+        if (options.rewriteBatchedStatements || !options.useServerPrepStmts) {
             //in case of CALL statement, handling INOUT parameter is better with Prepare protocol
-            String cleanSql = sql.toUpperCase().trim();
             canUsePrepareStatement = cleanSql.contains("CALL");
         } else if (options.useServerPrepStmts && sql != null) {
-            String cleanSql = sql.toUpperCase().trim();
             canUsePrepareStatement = (cleanSql.contains("SELECT")
                     || cleanSql.contains("CALL")
                     || cleanSql.contains("UPDATE")
