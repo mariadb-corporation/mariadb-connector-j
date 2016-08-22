@@ -78,7 +78,8 @@ public class PooledConnectionTest extends BaseTest {
                 Assert.assertTrue(e.getMessage().contains("Parameter at position 1 is not set")
                         || e.getMessage().contains("Incorrect arguments to mysqld_stmt_execute"));
             } else {
-                Assert.assertEquals(listener.sqlException.getSQLState(), "07004");
+                //HY000 if server >= 10.2 ( send prepare and query in a row), 07004 otherwise
+                Assert.assertTrue("07004".equals(listener.sqlException.getSQLState()) || "HY000".equals(listener.sqlException.getSQLState()));
             }
         }
         ps.close();
