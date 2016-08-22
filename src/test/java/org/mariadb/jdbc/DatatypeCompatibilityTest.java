@@ -60,7 +60,10 @@ public class DatatypeCompatibilityTest extends BaseTest {
         createTable("ytab", "y year");
         createTable("maxcharlength", "maxcharlength char(1)", "character set utf8");
         createTable("time_test", "ID int unsigned NOT NULL, time_test time(6), PRIMARY KEY (ID)", "engine=InnoDB");
-        sharedConnection.createStatement().execute("insert into time_test(id, time_test) values(1, '00:00:00'), (2, '00:00:00.123'), (3, null)");
+
+        if (testSingleHost) {
+            sharedConnection.createStatement().execute("insert into time_test(id, time_test) values(1, '00:00:00'), (2, '00:00:00.123'), (3, null)");
+        }
     }
 
     @Test
