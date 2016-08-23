@@ -42,6 +42,8 @@ public class DatatypeTest extends BaseTest {
         createTable("blabla", "valsue varchar(20)");
         createTable("TestBigIntType", "t1 bigint(20), t2 bigint(20), t3 bigint(20), t4 bigint(20)");
         createTable("time_period", "ID int unsigned NOT NULL, START time NOT NULL, END time NOT NULL, PRIMARY KEY (ID)");
+        createTable("bitBoolTest", "d1 BOOLEAN, d2 BIT");
+
 
     }
 
@@ -369,6 +371,66 @@ public class DatatypeTest extends BaseTest {
         PreparedStatement ps = null;
         ps = sharedConnection.prepareStatement("insert into blah values (?)");
         ps.execute();
+    }
+
+    /**
+     * CONJ-299 - PreparedStatement.setObject(Type.BIT, "1") should register as true.
+     */
+
+    @Test
+    public void setBitBoolObjectTest() throws SQLException, IOException, ClassNotFoundException {
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into bitBoolTest values (?,?)");
+        ps.setObject(1, 0);
+        ps.setObject(2, 0);
+        ps.addBatch();
+
+        ps.setObject(1, 1);
+        ps.setObject(2, 1);
+        ps.addBatch();
+
+        ps.setObject(1, "0", Types.BOOLEAN);
+        ps.setObject(2, "0", Types.BIT);
+        ps.addBatch();
+
+        ps.setObject(1, "1", Types.BOOLEAN);
+        ps.setObject(2, "1", Types.BIT);
+        ps.addBatch();
+
+        ps.setObject(1, "true", Types.BOOLEAN);
+        ps.setObject(2, "true", Types.BIT);
+        ps.addBatch();
+
+        ps.setObject(1, "truee", Types.BOOLEAN);
+        ps.setObject(2, "truee", Types.BIT);
+        ps.addBatch();
+
+        ps.setObject(1, "false", Types.BOOLEAN);
+        ps.setObject(2, "false", Types.BIT);
+        ps.addBatch();
+
+        ps.executeBatch();
+
+        try (ResultSet rs = sharedConnection.createStatement().executeQuery("select * from bitBoolTest")) {
+            assertValue(rs, false);
+            assertValue(rs, true);
+            assertValue(rs, false);
+            assertValue(rs, true);
+            assertValue(rs, true);
+            assertValue(rs, true);
+            assertValue(rs, false);
+            assertFalse(rs.next());
+        }
+    }
+
+    private void assertValue(ResultSet rs, boolean bool) throws SQLException {
+        assertTrue(rs.next());
+        if (bool) {
+            assertTrue(rs.getBoolean(1));
+            assertTrue(rs.getBoolean(2));
+        } else {
+            assertFalse(rs.getBoolean(1));
+            assertFalse(rs.getBoolean(2));
+        }
     }
 
     @Test
