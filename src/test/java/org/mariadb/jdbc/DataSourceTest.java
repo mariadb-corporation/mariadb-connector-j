@@ -27,7 +27,7 @@ public class DataSourceTest extends BaseTest {
 
     @Test
     public void testDataSource() throws SQLException {
-        MariaDbDataSource ds = new MariaDbDataSource(hostname, port, database);
+        MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
         Connection connection = ds.getConnection(username, password);
         try {
             assertEquals(connection.isValid(0), true);
@@ -38,7 +38,7 @@ public class DataSourceTest extends BaseTest {
 
     @Test
     public void testDataSource2() throws SQLException {
-        MariaDbDataSource ds = new MariaDbDataSource(hostname, port, database);
+        MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
         Connection connection = ds.getConnection(username, password);
         try {
             assertEquals(connection.isValid(0), true);
@@ -52,7 +52,7 @@ public class DataSourceTest extends BaseTest {
         MariaDbDataSource ds = new MariaDbDataSource();
         ds.setDatabaseName(database);
         ds.setPort(port);
-        ds.setServerName(hostname);
+        ds.setServerName(hostname == null ? "localhost" : hostname);
         Connection connection = ds.getConnection(username, password);
         try {
             assertEquals(connection.isValid(0), true);
@@ -68,7 +68,7 @@ public class DataSourceTest extends BaseTest {
      */
     @Test
     public void setDatabaseNameTest() throws SQLException {
-        MariaDbDataSource ds = new MariaDbDataSource(hostname, port, database);
+        MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
         Connection connection = ds.getConnection(username, password);
         connection.createStatement().execute("CREATE DATABASE IF NOT EXISTS test2");
         ds.setDatabaseName("test2");
@@ -87,7 +87,7 @@ public class DataSourceTest extends BaseTest {
     @Test
     public void setServerNameTest() throws SQLException {
         Assume.assumeTrue(connectToIP != null);
-        MariaDbDataSource ds = new MariaDbDataSource(hostname, port, database);
+        MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
         Connection connection = ds.getConnection(username, password);
         ds.setServerName(connectToIP);
         connection = ds.getConnection(username, password);
@@ -103,7 +103,7 @@ public class DataSourceTest extends BaseTest {
     public void setPortTest() throws SQLException {
 
 
-        MariaDbDataSource ds = new MariaDbDataSource(hostname, port, database);
+        MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
         Connection connection2 = ds.getConnection(username, password);
         //delete blacklist, because can failover on 3306 is filled
         assureBlackList(connection2);
@@ -127,25 +127,21 @@ public class DataSourceTest extends BaseTest {
      */
     @Test
     public void setPropertiesTest() throws SQLException {
-        MariaDbDataSource ds = new MariaDbDataSource(hostname, port, database);
+        MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
         ds.setProperties("sessionVariables=sql_mode='PIPES_AS_CONCAT'");
-        Connection connection = null;
-        try {
-            connection = ds.getConnection(username, password);
+        try (Connection connection = ds.getConnection(username, password)) {
             ResultSet rs = connection.createStatement().executeQuery("SELECT @@sql_mode");
             if (rs.next()) {
                 assertEquals("PIPES_AS_CONCAT", rs.getString(1));
                 ds.setUrl(connUri + "&sessionVariables=sql_mode='ALLOW_INVALID_DATES'");
-                connection = ds.getConnection();
-                rs = connection.createStatement().executeQuery("SELECT @@sql_mode");
-                assertTrue(rs.next());
-                assertEquals("ALLOW_INVALID_DATES", rs.getString(1));
-                connection.close();
+                try (Connection connection2 = ds.getConnection()) {
+                    rs = connection2.createStatement().executeQuery("SELECT @@sql_mode");
+                    assertTrue(rs.next());
+                    assertEquals("ALLOW_INVALID_DATES", rs.getString(1));
+                }
             } else {
                 fail();
             }
-        } finally {
-            connection.close();
         }
 
     }

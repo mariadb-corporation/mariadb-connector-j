@@ -588,6 +588,18 @@ public enum DefaultOptions {
             //only for jws, so never thrown
             throw new IllegalArgumentException("Security too restrictive : " + s.getMessage());
         }
+
+        //not compatible options
+
+        //disable use server prepare id using client rewrite
+        if (options.rewriteBatchedStatements) {
+            options.useServerPrepStmts = false;
+            options.cachePrepStmts = false;
+        }
+        //pipe cannot use read and write socket simultaneously
+        if (options.pipe != null) options.useBatchMultiSend = false;
+
+
         return options;
     }
 

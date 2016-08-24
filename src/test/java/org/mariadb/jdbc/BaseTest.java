@@ -149,9 +149,13 @@ public class BaseTest {
         testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
         if (testSingleHost) {
             urlParser = UrlParser.parse(url);
-
-            hostname = urlParser.getHostAddresses().get(0).host;
-            port = urlParser.getHostAddresses().get(0).port;
+            if (urlParser.getHostAddresses().size() > 0) {
+                hostname = urlParser.getHostAddresses().get(0).host;
+                port = urlParser.getHostAddresses().get(0).port;
+            } else {
+                hostname = null;
+                port = 3306;
+            }
             database = urlParser.getDatabase();
             username = urlParser.getUsername();
             password = urlParser.getPassword();
@@ -164,7 +168,7 @@ public class BaseTest {
 
 
     private static void setUri() {
-        connU = "jdbc:mysql://" + hostname + ":" + port + "/" + database;
+        connU = "jdbc:mysql://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
         connUri = connU + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
                 + (parameters != null ? parameters : "");
@@ -354,7 +358,7 @@ public class BaseTest {
     }
 
     protected Connection setConnection(String additionnallParameters, String database) throws SQLException {
-        String connU = "jdbc:mysql://" + hostname + ":" + port + "/" + database;
+        String connU = "jdbc:mysql://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
         String connUri = connU + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
                 + (parameters != null ? parameters : "");

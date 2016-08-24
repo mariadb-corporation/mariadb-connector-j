@@ -392,12 +392,11 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void connectFailover() throws SQLException {
+        Assume.assumeTrue(hostname != null);
         String hosts = hostname + ":" + port + "," + hostname + ":" + (port + 1);
         String url = "jdbc:mysql://" + hosts + "/" + database + "?user=" + username;
         url += (password != null && !"".equals(password) ? "&password=" + password : "");
-        Connection connection = null;
-        try {
-            connection = openNewConnection(url);
+        try (Connection connection = openNewConnection(url)) {
             MariaDbConnection my = (MariaDbConnection) connection;
             assertTrue(my.getPort() == port);
             ResultSet rs = connection.createStatement().executeQuery("select 1");
@@ -406,8 +405,6 @@ public class DriverTest extends BaseTest {
             } else {
                 fail();
             }
-        } finally {
-            connection.close();
         }
     }
 
@@ -1098,7 +1095,7 @@ public class DriverTest extends BaseTest {
                 String namedPipeName = rs.getString(2);
                 //skip test if no namedPipeName was obtained because then we do not use a socket connection
                 Assume.assumeTrue(namedPipeName != null);
-                try (Connection connection = DriverManager.getConnection("jdbc:mariadb://localhost/testj?user="
+                try (Connection connection = DriverManager.getConnection("jdbc:mariadb:///testj?user="
                         + username + "&pipe=" + namedPipeName)) {
                     Statement stmt = connection.createStatement();
                     rs = stmt.executeQuery("SELECT 1");

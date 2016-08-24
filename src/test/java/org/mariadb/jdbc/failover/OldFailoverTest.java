@@ -16,7 +16,8 @@ public class OldFailoverTest extends BaseTest {
      */
     @Test
     public void isOldConfigurationValid() throws Exception {
-        String falseUrl = "jdbc:mysql://localhost:1111," + hostname + ":" + port + "/" + database + "?user=" + username
+        String falseUrl = "jdbc:mysql://localhost:1111," + ((hostname == null) ? "localhost" : hostname) + ":"
+                + port + "/" + database + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
                 + (parameters != null ? parameters : "");
 

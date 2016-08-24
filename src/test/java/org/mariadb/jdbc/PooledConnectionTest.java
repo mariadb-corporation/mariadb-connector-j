@@ -12,7 +12,7 @@ import java.sql.SQLException;
 public class PooledConnectionTest extends BaseTest {
     @Test
     public void testPooledConnectionClosed() throws Exception {
-        ConnectionPoolDataSource ds = new MariaDbDataSource(hostname, port, database);
+        ConnectionPoolDataSource ds = new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);
         PooledConnection pc = ds.getPooledConnection(username, password);
         Connection connection = pc.getConnection();
         MyEventListener listener = new MyEventListener();
@@ -36,7 +36,7 @@ public class PooledConnectionTest extends BaseTest {
 
     @Test
     public void testPooledConnectionException() throws Exception {
-        ConnectionPoolDataSource ds = new MariaDbDataSource(hostname, port, database);
+        ConnectionPoolDataSource ds = new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);
         PooledConnection pc = ds.getPooledConnection(username, password);
         MyEventListener listener = new MyEventListener();
         pc.addConnectionEventListener(listener);
@@ -63,7 +63,7 @@ public class PooledConnectionTest extends BaseTest {
 
     @Test
     public void testPooledConnectionStatementError() throws Exception {
-        ConnectionPoolDataSource ds = new MariaDbDataSource(hostname, port, database);
+        ConnectionPoolDataSource ds = new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);
         PooledConnection pc = ds.getPooledConnection(username, password);
         MyEventListener listener = new MyEventListener();
         pc.addStatementEventListener(listener);

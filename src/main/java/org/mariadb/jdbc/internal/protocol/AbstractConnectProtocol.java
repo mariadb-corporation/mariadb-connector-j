@@ -322,7 +322,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
             close();
         }
         try {
-            connect(currentHost.host, currentHost.port);
+            if (currentHost != null) {
+                connect(currentHost.host, currentHost.port);
+            } else {
+                connect(null, 3306);
+            }
             return;
         } catch (IOException e) {
             throw new QueryException("Could not connect to " + currentHost + "." + e.getMessage(), -1,
@@ -349,7 +353,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
 
         if (!socket.isConnected()) {
-            InetSocketAddress sockAddr = new InetSocketAddress(host, port);
+            InetSocketAddress sockAddr = urlParser.getOptions().pipe == null ? new InetSocketAddress(host, port) : null;
             if (options.connectTimeout != null) {
                 socket.connect(sockAddr, options.connectTimeout);
             } else {
@@ -701,7 +705,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @return is master flag
      */
     public boolean isMasterConnection() {
-        return ParameterConstant.TYPE_MASTER.equals(currentHost.type);
+        return currentHost == null ? true : ParameterConstant.TYPE_MASTER.equals(currentHost.type);
     }
 
     public boolean mustBeMasterConnection() {
@@ -785,7 +789,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     public String getHost() {
-        return currentHost.host;
+        return (currentHost == null) ? null : currentHost.host;
     }
 
     public FailoverProxy getProxy() {
@@ -797,7 +801,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     public int getPort() {
-        return currentHost.port;
+        return (currentHost == null) ? 3306 : currentHost.port;
     }
 
     public String getDatabase() {
