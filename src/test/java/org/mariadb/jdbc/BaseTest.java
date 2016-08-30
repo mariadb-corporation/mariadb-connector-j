@@ -366,6 +366,13 @@ public class BaseTest {
         setConnection();
     }
 
+    protected Connection setBlankConnection(String parameters) throws SQLException {
+        return openConnection(connU
+                + "?user=" + username
+                + (password != null && !"".equals(password) ? "&password=" + password : "")
+                + parameters, null);
+    }
+
     protected Connection setConnection() throws SQLException {
         return openConnection(connUri, null);
     }
@@ -384,13 +391,6 @@ public class BaseTest {
 
     protected Connection setConnection(String parameters) throws SQLException {
         return openConnection(connUri + parameters, null);
-    }
-
-    protected Connection setBlankConnection(String parameters) throws SQLException {
-        return openConnection(connU
-                    + "?user=" + username
-                    + (password != null && !"".equals(password) ? "&password=" + password : "")
-                    + parameters, null);
     }
 
 

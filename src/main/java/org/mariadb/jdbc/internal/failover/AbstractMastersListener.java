@@ -279,8 +279,8 @@ public abstract class AbstractMastersListener implements Listener {
                         String query = ((String) args[2]).toUpperCase();
                         if (!query.equals("ALTER SYSTEM CRASH")
                                 && !query.startsWith("KILL")) {
-                            logger.debug("relaunch query to new connection " +
-                                    ((currentProtocol != null) ? "server thread id " + currentProtocol.getServerThreadId() : ""));
+                            logger.debug("relaunch query to new connection "
+                                    + ((currentProtocol != null) ? "server thread id " + currentProtocol.getServerThreadId() : ""));
                             handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                             handleErrorResult.mustThrowError = false;
                         }
@@ -294,8 +294,8 @@ public abstract class AbstractMastersListener implements Listener {
                         ServerPrepareResult oldServerPrepareResult = (ServerPrepareResult) args[1];
                         ServerPrepareResult serverPrepareResult = currentProtocol.prepare(oldServerPrepareResult.getSql(), mustBeOnMaster);
                         oldServerPrepareResult.failover(serverPrepareResult.getStatementId(), currentProtocol);
-                        logger.debug("relaunch query to new connection " +
-                                ((currentProtocol != null) ? "server thread id " + currentProtocol.getServerThreadId() : ""));
+                        logger.debug("relaunch query to new connection "
+                                + ((currentProtocol != null) ? "server thread id " + currentProtocol.getServerThreadId() : ""));
                         handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                         handleErrorResult.mustThrowError = false;
                     } catch (Exception e) {
