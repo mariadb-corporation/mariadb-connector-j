@@ -386,6 +386,14 @@ public class BaseTest {
         return openConnection(connUri + parameters, null);
     }
 
+    protected Connection setBlankConnection(String parameters) throws SQLException {
+        return openConnection(connU
+                    + "?user=" + username
+                    + (password != null && !"".equals(password) ? "&password=" + password : "")
+                    + parameters, null);
+    }
+
+
     protected Connection setConnection(String additionnallParameters, String database) throws SQLException {
         String connU = "jdbc:mysql://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
         String connUri = connU + "?user=" + username
