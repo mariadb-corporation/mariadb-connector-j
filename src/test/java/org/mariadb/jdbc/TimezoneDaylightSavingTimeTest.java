@@ -79,6 +79,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             utcDateFormatSimple.setTimeZone(utcTimeZone);
             createTable("timeZoneTime", "id int, tt TIME(6)");
             createTable("daylightMysql", " tt DATE");
+            createTable("ttimeTest", "id int not null primary key auto_increment, dd TIME(3), dd2 TIME(3)");
+
         }
 
     }
@@ -282,10 +284,12 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             Time timeParis2 = Time.valueOf("01:45:23");
             timeParis2.setTime(timeParis2.getTime() + 123);
 
+            PreparedStatement st1 = connection.prepareStatement("INSERT INTO ttimeTest (dd, dd2) values (?, ?)");
+            st1.setTime(1, timeParis);
+            st1.setTime(2, timeParis2);
+            st1.execute();
 
-            PreparedStatement st = connection.prepareStatement("SELECT ?, ?");
-            st.setTime(1, timeParis);
-            st.setTime(2, timeParis2);
+            PreparedStatement st = connection.prepareStatement("SELECT dd, dd2 from ttimeTest");
             ResultSet rs = st.executeQuery();
             rs.next();
             assertEquals(rs.getTime(1).getTime(), timeParis.getTime());

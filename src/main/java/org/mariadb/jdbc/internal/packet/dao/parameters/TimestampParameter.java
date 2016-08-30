@@ -122,9 +122,7 @@ public class TimestampParameter implements ParameterHolder, Cloneable {
      * @param writeBuffer buffer to write
      */
     public void writeBinary(final PacketOutputStream writeBuffer) {
-        if (options.useLegacyDatetimeCode) {
-            calendar = Calendar.getInstance();
-        }
+        if (options.useLegacyDatetimeCode) calendar = Calendar.getInstance();
         calendar.setTimeInMillis(ts.getTime());
         writeBuffer.writeTimestampLength(calendar, ts, fractionalSeconds);
     }
