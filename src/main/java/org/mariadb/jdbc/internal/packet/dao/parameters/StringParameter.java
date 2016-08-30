@@ -209,7 +209,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
                 //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
                 if (currChar >= 0xD800 && currChar < 0xDC00) {
                     //is high surrogate
-                    if (charsOffset + 1 >= charsLength) {
+                    if (charsOffset + 1 > charsLength) {
                         escapedArray[position++] = (byte)0x63;
                         break;
                     }
