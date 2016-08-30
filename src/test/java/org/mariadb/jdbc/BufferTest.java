@@ -33,7 +33,7 @@ public class BufferTest extends BaseTest {
             array20m[i] = (char) (0x30 + (i % 10));
         }
         array40m = new char[40000000];
-        for (int i = 0; i < array8m.length; i++) {
+        for (int i = 0; i < array40m.length; i++) {
             array40m[i] = (char) (0x30 + (i % 10));
         }
     }

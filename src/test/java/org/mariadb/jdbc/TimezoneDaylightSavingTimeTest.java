@@ -158,6 +158,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testTimeStampUtc() throws SQLException {
+
         TimeZone.setDefault(parisTimeZone);
         Connection connection = null;
         try {
@@ -389,8 +390,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
 
     private void testDayLight(boolean legacy) throws SQLException {
-
-        Assume.assumeTrue(hasSuperPrivilege("testDayLight"));
+        Assume.assumeTrue(hasSuperPrivilege("testDayLight") && !sharedIsRewrite());
         TimeZone.setDefault(parisTimeZone);
         Connection connection = null;
         try {
@@ -502,7 +502,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     @Test
     public void testDayLightnotUtC() throws SQLException {
 
-        Assume.assumeTrue(hasSuperPrivilege("testDayLight"));
+        Assume.assumeTrue(hasSuperPrivilege("testDayLight") && !sharedIsRewrite());
         TimeZone.setDefault(canadaTimeZone);
         Connection connection = null;
         try {
@@ -572,6 +572,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testDayLightWithClientTimeZoneDifferent() throws SQLException {
+        Assume.assumeTrue(!sharedIsRewrite());
         TimeZone.setDefault(parisTimeZone);
         Connection connection = null;
         try {

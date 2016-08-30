@@ -52,6 +52,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void serverExecutionTest() throws SQLException {
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         Connection connection = null;
         try {
             connection = setConnection();
@@ -78,6 +79,8 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void deferredPrepareTest() throws Throwable {
         Assume.assumeTrue(sharedBulkCapacity());
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
+
         Connection connection = null;
         try {
             connection = setConnection();
@@ -135,6 +138,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void prepStmtCacheSizeTest() throws Throwable {
+        Assume.assumeTrue(!sharedIsRewrite());
         Connection connection = null;
         try {
             connection = setConnection("&prepStmtCacheSize=10");
@@ -492,8 +496,8 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void checkReusability() throws Throwable {
+        Assume.assumeTrue(!sharedIsRewrite());
         setConnection("&prepStmtCacheSize=10");
-
         ExecutorService exec = Executors.newFixedThreadPool(2);
 
         //check blacklist shared
@@ -811,6 +815,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                     protocol.prepareStatementCache().get(sql);
                 }
             } catch (Throwable e) {
+                e.printStackTrace();
                 fail();
             }
         }
@@ -818,6 +823,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void testPrepareStatementCache() throws Throwable {
+        Assume.assumeTrue(!sharedIsRewrite());
         //tester le cache prepareStatement
         try (Connection connection = setConnection()) {
             Protocol protocol = getProtocolFromConnection(connection);

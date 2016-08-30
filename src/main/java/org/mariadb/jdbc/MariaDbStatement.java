@@ -745,7 +745,8 @@ public class MariaDbStatement implements Statement, Cloneable {
                     for (int i = 0; i < affectedRowslength; i++) {
                         size += multiExecution.getAffectedRows()[i];
                     }
-                    data =  new long[size];
+
+                    data =  new long[(size < 0) ? 0 : size];
                     for (int affectedRows = 0; affectedRows < affectedRowslength; affectedRows++) {
                         for (int i = 0; i < multiExecution.getAffectedRows()[affectedRows]; i++) {
                             data[i] = multiExecution.getInsertIds()[affectedRows] + i * autoIncrementIncrement;

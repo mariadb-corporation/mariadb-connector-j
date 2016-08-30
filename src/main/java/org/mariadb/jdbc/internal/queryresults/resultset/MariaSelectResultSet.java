@@ -1623,10 +1623,9 @@ public class MariaSelectResultSet implements ResultSet {
                         }
                         int nanoseconds = extractNanos(rawValue);
                         Timestamp timestamp;
-                        Calendar calendar = cal;
-                        if (options.useLegacyDatetimeCode) {
-                            calendar = Calendar.getInstance();
-                        }
+
+                        Calendar calendar = options.useLegacyDatetimeCode ? Calendar.getInstance() : cal;
+
                         synchronized (calendar) {
                             calendar.set(Calendar.YEAR, year);
                             calendar.set(Calendar.MONTH, month - 1);
@@ -3480,10 +3479,7 @@ public class MariaSelectResultSet implements ResultSet {
             }
         }
 
-        Calendar calendar = Calendar.getInstance();
-        if (!options.useLegacyDatetimeCode) {
-            calendar = cal;
-        }
+        Calendar calendar = options.useLegacyDatetimeCode ? Calendar.getInstance() : cal;
         Timestamp tt;
         synchronized (calendar) {
             calendar.set(year, month - 1, day, hour, minutes, seconds);

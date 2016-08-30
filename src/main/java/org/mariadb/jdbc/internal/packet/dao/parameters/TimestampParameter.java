@@ -105,7 +105,10 @@ public class TimestampParameter implements ParameterHolder, Cloneable {
 
     private byte[] dateToByte() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        if (calendar != null) {
+
+        if (options.useLegacyDatetimeCode) {
+            sdf.setCalendar(Calendar.getInstance());
+        } else if (calendar != null) {
             sdf.setCalendar(calendar);
         }
         return sdf.format(ts).getBytes();
