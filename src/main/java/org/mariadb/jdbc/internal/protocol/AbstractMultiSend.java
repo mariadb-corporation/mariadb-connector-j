@@ -52,6 +52,7 @@ package org.mariadb.jdbc.internal.protocol;
 
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
+import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
@@ -64,6 +65,7 @@ import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -161,6 +163,11 @@ public abstract class AbstractMultiSend {
                                  List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
                                  PrepareResult prepareResult) throws QueryException, IOException;
 
+    public abstract void sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
+                                 List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
+                                 PrepareResult prepareResult) throws QueryException, IOException;
+
+
     public abstract QueryException handleResultException(QueryException qex, ExecutionResult executionResult,
                                                          List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
                                                          int sendCmdCounter, int paramCount, PrepareResult prepareResult)
@@ -178,15 +185,12 @@ public abstract class AbstractMultiSend {
     /**
      * Execute Bulk execution (send packets by batch of  useBatchMultiSendNumber or when max packet is reached) before reading results.
      *
-     * @param handleMinusOnePrepare can use '-1' for last prepareStatementId
+     * @param hasComMultiCapacity can use '-1' for last prepareStatementId
      * @return prepare result
      * @throws QueryException if any error occur
      */
-    public PrepareResult executeBatch(boolean handleMinusOnePrepare) throws QueryException {
+    public PrepareResult executeBatch(boolean hasComMultiCapacity) throws QueryException {
         int paramCount = getParamCount();
-        int totalExecutionNumber = getTotalExecutionNumber();
-        QueryException exception = null;
-        BulkStatus status = new BulkStatus();
 
         //Handle prepare if needed
         if (binaryProtocol) {
@@ -208,6 +212,23 @@ public abstract class AbstractMultiSend {
             }
         }
 
+        if (hasComMultiCapacity) return executeComMultiBatch(paramCount);
+        return executeBatchStandard(paramCount);
+    }
+
+
+    /**
+     * Execute Bulk execution (send packets by batch of  useBatchMultiSendNumber or when max packet is reached) before reading results.
+     *
+     * @param paramCount parameter counter
+     * @return prepare result
+     * @throws QueryException if any error occur
+     */
+    private PrepareResult executeBatchStandard(int paramCount) throws QueryException {
+        int totalExecutionNumber = getTotalExecutionNumber();
+        QueryException exception = null;
+        BulkStatus status = new BulkStatus();
+
         ComStmtPrepare comStmtPrepare = null;
         FutureTask<AsyncMultiReadResult> futureReadTask = null;
 
@@ -217,26 +238,21 @@ public abstract class AbstractMultiSend {
                 status.sendSubCmdCounter = 0;
                 requestNumberByBulk = Math.min(totalExecutionNumber - status.sendCmdCounter, protocol.getOptions().useBatchMultiSendNumber);
                 protocol.changeSocketTcpNoDelay(false); //enable NAGLE algorithm temporary.
+
+
                 //add prepare sub-command
                 if (readPrepareStmtResult && prepareResult == null) {
 
                     comStmtPrepare = new ComStmtPrepare(protocol, sql);
                     comStmtPrepare.send(writer);
 
-                    if (!handleMinusOnePrepare) {
-                        //read prepare result
-                        try {
-                            prepareResult = comStmtPrepare.read(protocol.getPacketFetcher());
-                            statementId = ((ServerPrepareResult) prepareResult).getStatementId();
-                            paramCount = getParamCount();
-                        } catch (QueryException queryException) {
-                            throw queryException;
-                        }
-                    } else {
-                        futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, requestNumberByBulk, status.sendCmdCounter,
-                                protocol, readPrepareStmtResult && prepareResult == null, this, paramCount,
-                                resultSetScrollType, binaryProtocol, executionResult, parametersList, queries, prepareResult));
-                        readScheduler.execute(futureReadTask);
+                    //read prepare result
+                    try {
+                        prepareResult = comStmtPrepare.read(protocol.getPacketFetcher());
+                        statementId = ((ServerPrepareResult) prepareResult).getStatementId();
+                        paramCount = getParamCount();
+                    } catch (QueryException queryException) {
+                        throw queryException;
                     }
                 }
 
@@ -299,4 +315,111 @@ public abstract class AbstractMultiSend {
 
     }
 
+    /**
+     * Execute com_multi Bulk execution
+     *
+     * @param paramCount parameter counter
+     * @return prepare result
+     * @throws QueryException if any error occur
+     */
+    public PrepareResult executeComMultiBatch(int paramCount) throws QueryException {
+        int totalExecutionNumber = getTotalExecutionNumber();
+        QueryException exception = null;
+        BulkStatus status = new BulkStatus();
+
+        ComStmtPrepare comStmtPrepare = null;
+
+        int initialPosition;
+        int endPosition;
+        byte[] lastSubCommand = null;
+        try {
+            do {
+                status.sendSubCmdCounter = 0;
+
+                writer.startPacket(0);
+                writer.buffer.put((byte) 254);
+
+                if (lastSubCommand != null) {
+                    writer.writeByteArrayLength(lastSubCommand);
+                    status.sendSubCmdCounter++;
+                    status.sendCmdCounter++;
+                    lastSubCommand = null;
+                }
+
+                //send PREPARE sub-command
+                if (readPrepareStmtResult && prepareResult == null) {
+                    comStmtPrepare = new ComStmtPrepare(protocol, sql);
+                    comStmtPrepare.sendSubCmd(writer);
+                }
+
+                do {
+
+                    initialPosition = writer.buffer.position();
+                    writer.assureBufferCapacity(9);
+                    writer.buffer.put((byte) 0xfe);
+                    writer.buffer.putLong(0L);
+
+                    sendSubCmd(writer, executionResult, parametersList, queries, paramCount, status, prepareResult);
+
+                    if (writer.buffer.limit() - 4 > writer.getMaxAllowedPacket() - 1) {
+                        //buffer size > max_allowed_packet. Will send query without the last sub-command.
+
+                        if (readPrepareStmtResult && prepareResult == null || status.sendSubCmdCounter > 0) {
+                            //save last sub-command
+                            lastSubCommand = new byte[writer.buffer.position() - (initialPosition + 9)];
+                            if (writer.buffer.limit() - 4 > writer.getMaxAllowedPacket() - 1) {
+                                throw new QueryException("max_allowed_packet=" + (writer.getMaxAllowedPacket() - 2) + ". Query size " + lastSubCommand.length
+                                        + " is > to max_allowed_packet");
+                            }
+
+                            System.arraycopy(writer.buffer.array(), initialPosition + 9, lastSubCommand, 0, lastSubCommand.length);
+                            writer.buffer.position(initialPosition);
+                            break;
+                        } else {
+                            throw new QueryException("max_allowed_packet=" + (writer.getMaxAllowedPacket() - 2) + ". Query size " + (writer.buffer.limit() - 4)
+                                    + " is > to max_allowed_packet");
+                        }
+                    } else {
+                        status.sendSubCmdCounter++;
+                        status.sendCmdCounter++;
+
+                        //set real command size
+                        endPosition = writer.buffer.position();
+                        long commandLength = endPosition - (initialPosition + 9);
+                        writer.buffer.position(initialPosition + 1);
+                        writer.buffer.putLong(commandLength);
+                        writer.buffer.position(endPosition);
+
+                    }
+                } while (status.sendCmdCounter < totalExecutionNumber);
+
+                writer.finishPacketWithoutRelease();
+
+                if (readPrepareStmtResult && prepareResult == null) {
+                    prepareResult = comStmtPrepare.read(protocol.getPacketFetcher());
+                }
+
+                for (int counter = 0; counter < status.sendSubCmdCounter; counter++) {
+                    try {
+                        protocol.getResult(executionResult, resultSetScrollType, binaryProtocol, true);
+                    } catch (QueryException qex) {
+                        if (exception == null) exception = qex;
+                    }
+                }
+
+            } while (status.sendCmdCounter < totalExecutionNumber);
+
+            if (exception != null) throw exception;
+            return prepareResult;
+
+        } catch (MaxAllowedPacketException e) {
+            if (e.isMustReconnect()) protocol.connect();
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
+        } catch (IOException e) {
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
+        } finally {
+            writer.releaseBufferIfNotLogging();
+        }
+
+    }
 }

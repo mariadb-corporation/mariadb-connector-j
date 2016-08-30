@@ -201,6 +201,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             @Override
+            public void sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
+                                List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
+                                PrepareResult prepareResult)
+                    throws QueryException, IOException {
+                ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
+                writer.startPacket(0);
+                ComExecute.sendSubCmd(writer, clientPrepareResult, parameters);
+            }
+
+            @Override
             public QueryException handleResultException(QueryException qex, ExecutionResult executionResult,
                                                         List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
                                                         int sendCmdCounter, int paramCount, PrepareResult prepareResult)
@@ -247,6 +257,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     throws QueryException, IOException {
                 String sql = queries.get(status.sendCmdCounter);
                 writer.send(sql, Packet.COM_QUERY);
+            }
+
+            @Override
+            public void sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
+                                List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
+                                PrepareResult prepareResult)
+                    throws QueryException, IOException {
+                String sql = queries.get(status.sendCmdCounter);
+                byte[] sqlBytes = sql.getBytes(StandardCharsets.UTF_8);
+                writer.write(Packet.COM_QUERY);
+                writer.write(sqlBytes);
             }
 
             @Override
@@ -440,6 +461,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 writer.startPacket(0);
                 ComStmtExecute.writeCmd(statementId, parameters, paramCount, parameterTypeHeader, writer);
             }
+
+
 
             @Override
             public QueryException handleResultException(QueryException qex, ExecutionResult executionResult,
