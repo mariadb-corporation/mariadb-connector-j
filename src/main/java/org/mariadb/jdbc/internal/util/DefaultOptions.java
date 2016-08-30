@@ -376,7 +376,6 @@ public enum DefaultOptions {
      * Enable log information. require Slf4j version &gt; 1.4 dependency.
      * log informations :
      *  - info : query log
-     *  -
      * default to false.
      */
     LOGGING("log", Boolean.FALSE, "1.5.0"),

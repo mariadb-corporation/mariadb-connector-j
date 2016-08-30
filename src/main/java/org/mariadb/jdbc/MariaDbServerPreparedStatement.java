@@ -48,6 +48,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.MultiFixedIntExecutionResult;
@@ -62,6 +64,7 @@ import java.sql.*;
 import java.util.*;
 
 public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatement implements Cloneable {
+    private static Logger logger = LoggerFactory.getLogger(MariaDbServerPreparedStatement.class);
 
     String sql;
     ServerPrepareResult serverPrepareResult = null;
@@ -125,6 +128,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             } catch (Exception ee) {
                 //eat exception.
             }
+            logger.error("error preparing query", e);
             ExceptionMapper.throwException(e, connection, this);
         }
     }
@@ -323,6 +327,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         if (serverPrepareResult != null) {
             for (int i = 0; i < parameterCount; i++) {
                 if (currentParameterHolder.get(i) == null) {
+                    logger.error("Parameter at position " + (i + 1) + " is not set");
                     ExceptionMapper.throwException(new QueryException("Parameter at position " + (i + 1) + " is not set", -1, "07004"),
                             connection, this);
                 }
@@ -332,6 +337,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             for (int i = 0; i < parameterCount; i++) {
                 if (!currentParameterHolder.containsKey(i)) {
                     parameterCount = -1;
+                    logger.error("Parameter at position " + (i + 1) + " is not set");
                     ExceptionMapper.throwException(new QueryException("Parameter at position " + (i + 1) + " is not set", -1, "07004"),
                             connection, this);
                 }
