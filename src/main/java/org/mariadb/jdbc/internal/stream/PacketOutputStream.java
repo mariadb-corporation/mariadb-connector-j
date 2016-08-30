@@ -874,7 +874,7 @@ public class PacketOutputStream extends OutputStream {
                 //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
                 if (currChar >= 0xD800 && currChar < 0xDC00) {
                     //is high surrogate
-                    if (charsPosition + 1 >= charsLength) {
+                    if (charsPosition + 1 > charsLength) {
                         packetBuffer[position++] = (byte)0x63;
                         break;
                     }

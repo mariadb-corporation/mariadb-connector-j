@@ -392,12 +392,11 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void connectFailover() throws SQLException {
+        Assume.assumeTrue(hostname != null);
         String hosts = hostname + ":" + port + "," + hostname + ":" + (port + 1);
         String url = "jdbc:mysql://" + hosts + "/" + database + "?user=" + username;
         url += (password != null && !"".equals(password) ? "&password=" + password : "");
-        Connection connection = null;
-        try {
-            connection = openNewConnection(url);
+        try (Connection connection = openNewConnection(url)) {
             MariaDbConnection my = (MariaDbConnection) connection;
             assertTrue(my.getPort() == port);
             ResultSet rs = connection.createStatement().executeQuery("select 1");
@@ -406,8 +405,6 @@ public class DriverTest extends BaseTest {
             } else {
                 fail();
             }
-        } finally {
-            connection.close();
         }
     }
 
@@ -1098,7 +1095,7 @@ public class DriverTest extends BaseTest {
                 String namedPipeName = rs.getString(2);
                 //skip test if no namedPipeName was obtained because then we do not use a socket connection
                 Assume.assumeTrue(namedPipeName != null);
-                try (Connection connection = DriverManager.getConnection("jdbc:mariadb://localhost/testj?user="
+                try (Connection connection = DriverManager.getConnection("jdbc:mariadb:///testj?user="
                         + username + "&pipe=" + namedPipeName)) {
                     Statement stmt = connection.createStatement();
                     rs = stmt.executeQuery("SELECT 1");
@@ -1125,17 +1122,17 @@ public class DriverTest extends BaseTest {
         } catch (BatchUpdateException bue) {
             int[] updateCounts = bue.getUpdateCounts();
             assertEquals(4, updateCounts.length);
-            if (sharedUsePrepare()) {
+            if (sharedIsRewrite()) {
+                assertEquals(1, updateCounts[0]);
+                assertEquals(1, updateCounts[1]);
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[3]);
+            } else {
                 //prepare or allowMultiQueries options
                 assertEquals(1, updateCounts[0]);
                 assertEquals(1, updateCounts[1]);
                 assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
                 assertEquals(1, updateCounts[3]);
-            } else {
-                assertEquals(1, updateCounts[0]);
-                assertEquals(1, updateCounts[1]);
-                assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
-                assertEquals(Statement.EXECUTE_FAILED, updateCounts[3]);
             }
             assertTrue(bue.getCause() instanceof SQLIntegrityConstraintViolationException);
         }

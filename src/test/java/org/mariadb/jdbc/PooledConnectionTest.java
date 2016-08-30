@@ -12,7 +12,7 @@ import java.sql.SQLException;
 public class PooledConnectionTest extends BaseTest {
     @Test
     public void testPooledConnectionClosed() throws Exception {
-        ConnectionPoolDataSource ds = new MariaDbDataSource(hostname, port, database);
+        ConnectionPoolDataSource ds = new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);
         PooledConnection pc = ds.getPooledConnection(username, password);
         Connection connection = pc.getConnection();
         MyEventListener listener = new MyEventListener();
@@ -36,7 +36,7 @@ public class PooledConnectionTest extends BaseTest {
 
     @Test
     public void testPooledConnectionException() throws Exception {
-        ConnectionPoolDataSource ds = new MariaDbDataSource(hostname, port, database);
+        ConnectionPoolDataSource ds = new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);
         PooledConnection pc = ds.getPooledConnection(username, password);
         MyEventListener listener = new MyEventListener();
         pc.addConnectionEventListener(listener);
@@ -63,7 +63,7 @@ public class PooledConnectionTest extends BaseTest {
 
     @Test
     public void testPooledConnectionStatementError() throws Exception {
-        ConnectionPoolDataSource ds = new MariaDbDataSource(hostname, port, database);
+        ConnectionPoolDataSource ds = new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);
         PooledConnection pc = ds.getPooledConnection(username, password);
         MyEventListener listener = new MyEventListener();
         pc.addStatementEventListener(listener);
@@ -78,7 +78,8 @@ public class PooledConnectionTest extends BaseTest {
                 Assert.assertTrue(e.getMessage().contains("Parameter at position 1 is not set")
                         || e.getMessage().contains("Incorrect arguments to mysqld_stmt_execute"));
             } else {
-                Assert.assertEquals(listener.sqlException.getSQLState(), "07004");
+                //HY000 if server >= 10.2 ( send prepare and query in a row), 07004 otherwise
+                Assert.assertTrue("07004".equals(listener.sqlException.getSQLState()) || "HY000".equals(listener.sqlException.getSQLState()));
             }
         }
         ps.close();

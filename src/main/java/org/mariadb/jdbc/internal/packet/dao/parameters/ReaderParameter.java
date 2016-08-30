@@ -149,7 +149,7 @@ public class ReaderParameter implements ParameterHolder {
             }
             byte[] bytes = baos.toByteArray();
             if (bytes.length < 1024) {
-                return "<Buffer:" + new String(bytes, StandardCharsets.UTF_8) + "...>";
+                return "<Buffer:" + new String(bytes, StandardCharsets.UTF_8) + ">";
             } else {
                 // cut overlong strings.
                 return "<Buffer:" + new String(bytes, 0, 1024, StandardCharsets.UTF_8) + "...>";

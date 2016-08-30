@@ -872,7 +872,7 @@ public class MariaSelectResultSet implements ResultSet {
             case FLOAT:
                 return String.valueOf(getFloat(rawBytes, columnInfo));
             case TIME:
-                return getTimeString(rawBytes);
+                return getTimeString(rawBytes, columnInfo);
             case DATE:
                 if (isBinaryEncoded) {
                     try {
@@ -1623,10 +1623,9 @@ public class MariaSelectResultSet implements ResultSet {
                         }
                         int nanoseconds = extractNanos(rawValue);
                         Timestamp timestamp;
-                        Calendar calendar = cal;
-                        if (options.useLegacyDatetimeCode) {
-                            calendar = Calendar.getInstance();
-                        }
+
+                        Calendar calendar = options.useLegacyDatetimeCode ? Calendar.getInstance() : cal;
+
                         synchronized (calendar) {
                             calendar.set(Calendar.YEAR, year);
                             calendar.set(Calendar.MONTH, month - 1);
@@ -2917,16 +2916,25 @@ public class MariaSelectResultSet implements ResultSet {
         this.returnTableAlias = returnTableAlias;
     }
 
-    private String getTimeString(byte[] rawBytes) {
-        if (rawBytes == null || rawBytes.length == 0) {
-            return null;
+    private String getTimeString(byte[] rawBytes, ColumnInformation columnInfo) {
+        if (rawBytes == null) return null;
+        if (rawBytes.length == 0) {
+            // binary send 00:00:00 as 0.
+            if (columnInfo.getDecimals() == 0) {
+                return "00:00:00";
+            } else {
+                String value = "00:00:00.";
+                int decimal = columnInfo.getDecimals();
+                while (decimal-- > 0) value += "0";
+                return value;
+            }
         }
         String rawValue = new String(rawBytes, StandardCharsets.UTF_8);
         if ("0000-00-00".equals(rawValue)) {
             return null;
         }
         if (!this.isBinaryEncoded) {
-            if (!options.useLegacyDatetimeCode && rawValue.indexOf(".") > 0) {
+            if (options.maximizeMysqlCompatibility && options.useLegacyDatetimeCode && rawValue.indexOf(".") > 0) {
                 return rawValue.substring(0, rawValue.indexOf("."));
             }
             return rawValue;
@@ -3471,10 +3479,7 @@ public class MariaSelectResultSet implements ResultSet {
             }
         }
 
-        Calendar calendar = Calendar.getInstance();
-        if (!options.useLegacyDatetimeCode) {
-            calendar = cal;
-        }
+        Calendar calendar = options.useLegacyDatetimeCode ? Calendar.getInstance() : cal;
         Timestamp tt;
         synchronized (calendar) {
             calendar.set(year, month - 1, day, hour, minutes, seconds);

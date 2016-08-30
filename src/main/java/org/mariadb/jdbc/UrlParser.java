@@ -207,7 +207,7 @@ public class UrlParser {
                 additionalParameters = null;
             }
 
-            urlParser = defineUrlParserParameters(urlParser, properties, hostAddressesString, additionalParameters);
+            defineUrlParserParameters(urlParser, properties, hostAddressesString, additionalParameters);
             setDefaultHostAddressType(urlParser);
 
         } catch (IllegalArgumentException i) {
@@ -223,9 +223,8 @@ public class UrlParser {
      * @param properties            properties
      * @param hostAddressesString   string that holds all the host addresses
      * @param additionalParameters  string that holds all parameters defined for the connection
-     * @return UrlParser instance
      */
-    private static UrlParser defineUrlParserParameters(UrlParser urlParser, Properties properties, String hostAddressesString,
+    private static void defineUrlParserParameters(UrlParser urlParser, Properties properties, String hostAddressesString,
                                                        String additionalParameters) {
 
         if (additionalParameters != null) {
@@ -239,23 +238,21 @@ public class UrlParser {
                 String options2 = (matcher.group(3) != null) ? matcher.group(3).substring(1) : "";
 
                 urlParser.database = (db1 != null) ? db1 : db2;
-                urlParser.options = (!options1.equals(""))
-                        ? DefaultOptions.parse(urlParser.haMode, options1, properties) : DefaultOptions.parse(urlParser.haMode, options2, properties);
+                urlParser.options = DefaultOptions.parse(urlParser.haMode, (!options1.equals("")) ? options1 : options2,
+                        properties, urlParser.options);
 
             } else {
                 urlParser.database = null;
-                urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties);
+                urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
             }
         } else {
             urlParser.database = null;
-            urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties);
+            urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
         }
         LoggerFactory.init(urlParser.options.log
                 || urlParser.options.profileSql
                 || urlParser.options.slowQueryThresholdNanos != null);
         urlParser.addresses = HostAddress.parse(hostAddressesString, urlParser.haMode);
-
-        return urlParser;
     }
 
     private static void setHaMode(UrlParser urlParser,String url, int separator) {

@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -11,6 +12,8 @@ import java.util.Arrays;
 import static org.junit.Assert.*;
 
 public class DatatypeCompatibilityTest extends BaseTest {
+    private static final String sql = "SELECT id, time_test FROM time_test;";
+
     /**
      * Initialization.
      * @throws SQLException exception
@@ -56,6 +59,11 @@ public class DatatypeCompatibilityTest extends BaseTest {
         );
         createTable("ytab", "y year");
         createTable("maxcharlength", "maxcharlength char(1)", "character set utf8");
+        createTable("time_test", "ID int unsigned NOT NULL, time_test time(6), PRIMARY KEY (ID)", "engine=InnoDB");
+
+        if (testSingleHost) {
+            sharedConnection.createStatement().execute("insert into time_test(id, time_test) values(1, '00:00:00'), (2, '00:00:00.123'), (3, null)");
+        }
     }
 
     @Test
@@ -155,4 +163,103 @@ public class DatatypeCompatibilityTest extends BaseTest {
         assertEquals(testTime, time);
     }
 
+    /**
+     * Check Time getTime() answer using Statement.
+     *
+     * @param connection connection
+     * @throws SQLException if any error occur
+     */
+    public void testStatementGetTime(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            try (ResultSet resultSet = statement.executeQuery(sql)) {
+                Assert.assertTrue(resultSet.next());
+                Assert.assertEquals("00:00:00", "" + resultSet.getTime(2));
+                Assert.assertTrue(resultSet.next());
+                Assert.assertEquals("00:00:00", "" + resultSet.getTime(2));
+                Assert.assertTrue(resultSet.next());
+                Assert.assertNull(resultSet.getTime(2));
+                Assert.assertFalse(resultSet.next());
+            }
+        }
+    }
+
+    /**
+     * Check Time getString() answer using Statement.
+     *
+     * @param connection connection
+     * @throws SQLException if any error occur
+     */
+    public void testStatementGetString(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            try (ResultSet resultSet = statement.executeQuery(sql)) {
+                Assert.assertTrue(resultSet.next());
+                Assert.assertEquals("00:00:00.000000", resultSet.getString(2));
+                Assert.assertTrue(resultSet.next());
+                Assert.assertEquals("00:00:00.123000", resultSet.getString(2));
+                Assert.assertTrue(resultSet.next());
+                Assert.assertNull(resultSet.getString(2));
+                Assert.assertFalse(resultSet.next());
+            }
+        }
+    }
+
+    /**
+     * Check Time getTime() answer using prepareStatement.
+     *
+     * @param connection connection
+     * @throws SQLException if any error occur
+     */
+    public void testPreparedStatementGetTime(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            try (ResultSet resultSet = statement.executeQuery(sql)) {
+                Assert.assertTrue(resultSet.next());
+                Assert.assertEquals("00:00:00", "" + resultSet.getTime(2));
+                Assert.assertTrue(resultSet.next());
+                Assert.assertEquals("00:00:00", "" + resultSet.getTime(2));
+                Assert.assertTrue(resultSet.next());
+                Assert.assertNull(resultSet.getTime(2));
+                Assert.assertFalse(resultSet.next());
+            }
+        }
+    }
+
+    /**
+     * Check Time getString() answer using prepareStatement.
+     *
+     * @param connection connection
+     * @throws SQLException if any error occur
+     */
+    public void testPreparedStatementGetString(Connection connection) throws SQLException {
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                Assert.assertTrue(resultSet.next());
+                Assert.assertEquals("00:00:00.000000", resultSet.getString(2));
+                Assert.assertTrue(resultSet.next());
+                Assert.assertEquals("00:00:00.123000", resultSet.getString(2));
+                Assert.assertTrue(resultSet.next());
+                Assert.assertNull(resultSet.getString(2));
+                Assert.assertFalse(resultSet.next());
+            }
+        }
+    }
+
+    @Test
+    public void testTimePrepareStatement() throws SQLException {
+        try (Connection connection = setConnection("&useServerPrepStmts=true")) {
+            testStatementGetTime(connection);
+            testPreparedStatementGetTime(connection);
+            testStatementGetString(connection);
+            testPreparedStatementGetString(connection);
+        }
+    }
+
+    @Test
+    public void testTimeNotPrepareStatement() throws SQLException {
+        try (Connection connection = setConnection("&useServerPrepStmts=false")) {
+            testStatementGetTime(connection);
+            testPreparedStatementGetTime(connection);
+            testStatementGetString(connection);
+            testPreparedStatementGetString(connection);
+        }
+    }
 }

@@ -405,19 +405,21 @@ public final class MariaDbConnection implements Connection {
         checkConnection();
 
         boolean canUsePrepareStatement = false;
-        if (options.rewriteBatchedStatements) {
-            //in case of CALL statement, handling INOUT parameter is better with Prepare protocol
+
+        if (sql != null) {
             String cleanSql = sql.toUpperCase().trim();
-            canUsePrepareStatement = cleanSql.contains("CALL");
-        } else if (options.useServerPrepStmts && sql != null) {
-            String cleanSql = sql.toUpperCase().trim();
-            canUsePrepareStatement = (cleanSql.contains("SELECT")
-                    || cleanSql.contains("CALL")
-                    || cleanSql.contains("UPDATE")
-                    || cleanSql.contains("INSERT")
-                    || cleanSql.contains("DELETE")
-                    || cleanSql.contains("REPLACE")
-                    || cleanSql.contains("DO"));
+            if (!options.useServerPrepStmts) {
+                //in case of CALL statement, handling INOUT parameter is better with Prepare protocol
+                canUsePrepareStatement = cleanSql.contains("CALL");
+            } else if (options.useServerPrepStmts) {
+                canUsePrepareStatement = (cleanSql.contains("SELECT")
+                        || cleanSql.contains("CALL")
+                        || cleanSql.contains("UPDATE")
+                        || cleanSql.contains("INSERT")
+                        || cleanSql.contains("DELETE")
+                        || cleanSql.contains("REPLACE")
+                        || cleanSql.contains("DO"));
+            }
         }
 
         if (canUsePrepareStatement) {

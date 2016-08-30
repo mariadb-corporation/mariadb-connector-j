@@ -866,7 +866,8 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
             try {
                 switch (targetSqlType) {
                     case Types.BIT:
-                        setBoolean(parameterIndex, Boolean.valueOf(str));
+                    case Types.BOOLEAN:
+                        setBoolean(parameterIndex, !("false".equalsIgnoreCase(str) || "0".equals(str)));
                         break;
                     case Types.TINYINT:
                         setByte(parameterIndex, Byte.parseByte(str));

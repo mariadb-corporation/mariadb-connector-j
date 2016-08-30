@@ -49,6 +49,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
@@ -62,6 +64,7 @@ import java.util.*;
 
 
 public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatement implements Cloneable {
+    private static Logger logger = LoggerFactory.getLogger(MariaDbClientPreparedStatement.class);
     private String sqlQuery;
     private ClientPrepareResult prepareResult;
     private ParameterHolder[] parameters;
@@ -206,6 +209,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         //valid parameters
         for (int i = 0; i < prepareResult.getParamCount(); i++) {
             if (parameters[i] == null) {
+                logger.error("You need to set exactly " + prepareResult.getParamCount()
+                        + " parameters on the prepared statement");
                 throw ExceptionMapper.getSqlException("You need to set exactly " + prepareResult.getParamCount()
                         + " parameters on the prepared statement");
             }
@@ -251,6 +256,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         for (int i = 0; i < holder.length; i++) {
             holder[i] = parameters[i];
             if (holder[i] == null) {
+                logger.error("You need to set exactly " + prepareResult.getParamCount()
+                        + " parameters on the prepared statement");
                 throw ExceptionMapper.getSqlException("You need to set exactly " + prepareResult.getParamCount()
                         + " parameters on the prepared statement");
             }
@@ -411,6 +418,9 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         if (parameterIndex >= 1 && parameterIndex  < prepareResult.getParamCount() + 1) {
             parameters[parameterIndex - 1] = holder;
         } else {
+            logger.error("Could not set parameter at position " + parameterIndex
+                    + " (values vas " + holder.toString() + ")");
+
             throw ExceptionMapper.getSqlException("Could not set parameter at position " + parameterIndex
                     + " (values vas " + holder.toString() + ")");
         }

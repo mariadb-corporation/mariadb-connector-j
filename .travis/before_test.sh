@@ -11,59 +11,40 @@ remove_mysql(){
 }
 remove_mysql
 
-case "$TYPE" in
- "REWRITE" )
-   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&rewriteBatchedStatements=true'
-   ;;
- "MULTI" )
-   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&allowMultiQueries=true'
-   ;;
- "BULK_CLIENT" )
-   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=true&useServerPrepStmts=false'
-   ;;
- "NO_BULK_CLIENT" )
-   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false&useServerPrepStmts=false'
-   ;;
- "NO_BULK_SERVER" )
-   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false'
-   ;;
- "COMPRESSION" )
-   export URLSTRING=-DdbURL='jdbc:mariadb://localhost:3306/testj?user=root&useCompression=true'
-   ;;
-esac;
-
 if [ -n "$AURORA" ]
 then
     # AURORA tests doesn't need an installation
-    echo "$MYSQL_VERSION"
+    echo "$MYSQL"
 else
-    if [ -n "$MYSQL_VERSION" ]
+    if [ -n "$MYSQL" ]
     then
         sudo tee /etc/apt/sources.list.d/mysql.list << END
-deb http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL_VERSION
-deb-src http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL_VERSION
+deb http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL
+deb-src http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL
 END
         sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 5072E1F5
 
         sudo apt-get -qq update --force-yes
         sudo apt-get -qq install mysql-server --force-yes
 
-        dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL_VERSION/-dmr/}
+        dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL/-dmr/}
 
     else
 
         sudo apt-get -qq install python-software-properties
 
         sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
-        sudo add-apt-repository "deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/${MARIA_VERSION}/ubuntu precise main"
+        sudo add-apt-repository "deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/${MARIA}/ubuntu precise main"
 
         sudo apt-get -qq update
 
         sudo apt-get -qq install mariadb-server
     fi
+
+    INNODB_LOG_FILE_SIZE=$(echo $PACKET| cut -d'M' -f 1)0M
     sudo tee /etc/mysql/conf.d/map.cnf << END
 [mysqld]
-max_allowed_packet=$MAX_ALLOWED_PACKET
+max_allowed_packet=$PACKET
 innodb_log_file_size=$INNODB_LOG_FILE_SIZE
 END
 
@@ -84,7 +65,7 @@ END
 
     sudo service mysql stop
     #Adding sleep time for clean shutdown
-    if [ "x$MYSQL_VERSION" != "x" ]
+    if [ "x$MYSQL" != "x" ]
     then
         sleep 2
     fi
@@ -92,7 +73,7 @@ END
     sudo service mysql start
 
     #Adding sleep time if mysql DB. If not SSL not totally initialized when launching tests
-    if [ "x$MYSQL_VERSION" != "x" ]
+    if [ "x$MYSQL" != "x" ]
     then
         sleep 20
     fi

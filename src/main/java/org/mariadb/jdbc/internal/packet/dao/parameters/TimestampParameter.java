@@ -105,7 +105,10 @@ public class TimestampParameter implements ParameterHolder, Cloneable {
 
     private byte[] dateToByte() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        if (calendar != null) {
+
+        if (options.useLegacyDatetimeCode) {
+            sdf.setCalendar(Calendar.getInstance());
+        } else if (calendar != null) {
             sdf.setCalendar(calendar);
         }
         return sdf.format(ts).getBytes();
@@ -119,9 +122,7 @@ public class TimestampParameter implements ParameterHolder, Cloneable {
      * @param writeBuffer buffer to write
      */
     public void writeBinary(final PacketOutputStream writeBuffer) {
-        if (options.useLegacyDatetimeCode) {
-            calendar = Calendar.getInstance();
-        }
+        if (options.useLegacyDatetimeCode) calendar = Calendar.getInstance();
         calendar.setTimeInMillis(ts.getTime());
         writeBuffer.writeTimestampLength(calendar, ts, fractionalSeconds);
     }

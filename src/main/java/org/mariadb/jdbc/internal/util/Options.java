@@ -127,7 +127,6 @@ public class Options {
         return "Options{"
                 + "user='" + user + '\''
                 + ", assureReadOnly=" + assureReadOnly
-                + ", password='" + password + '\''
                 + ", trustServerCertificate=" + trustServerCertificate
                 + ", serverSslCert='" + serverSslCert + '\''
                 + ", useFractionalSeconds=" + useFractionalSeconds

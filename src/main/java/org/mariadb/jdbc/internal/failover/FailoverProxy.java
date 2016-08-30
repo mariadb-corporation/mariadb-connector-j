@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.failover;
 
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
