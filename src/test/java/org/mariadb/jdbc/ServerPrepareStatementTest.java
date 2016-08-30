@@ -138,7 +138,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void prepStmtCacheSizeTest() throws Throwable {
-        Assume.assumeTrue(!sharedIsRewrite());
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         Connection connection = null;
         try {
             connection = setConnection("&prepStmtCacheSize=10");
@@ -823,7 +823,8 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void testPrepareStatementCache() throws Throwable {
-        Assume.assumeTrue(!sharedIsRewrite());
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
+
         //tester le cache prepareStatement
         try (Connection connection = setConnection()) {
             Protocol protocol = getProtocolFromConnection(connection);
