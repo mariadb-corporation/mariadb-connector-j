@@ -820,7 +820,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     public void testPrepareStatementCache() throws Throwable {
         //tester le cache prepareStatement
         try (Connection connection = setConnection()) {
-            MasterProtocol protocol = (MasterProtocol) getProtocolFromConnection(connection);
+            Protocol protocol = getProtocolFromConnection(connection);
             createTable("test_cache_table1", "id1 int auto_increment primary key, text1 varchar(20), text2 varchar(20)");
             PreparedStatement[] map = new PreparedStatement[280];
             for (int i = 0; i < 280; i++) {

@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
  */
 @Ignore
 public class BaseTest {
-    protected static final String mDefUrl = "jdbc:mysql://localhost:3306/testj?user=root&profileSql=true";
+    protected static final String mDefUrl = "jdbc:mysql://localhost:3306/testj?user=root";
     protected static String connU;
     protected static String connUri;
     protected static String hostname;
@@ -332,7 +332,8 @@ public class BaseTest {
 
         Method getProtocol = MariaDbConnection.class.getDeclaredMethod("getProtocol", new Class[0]);
         getProtocol.setAccessible(true);
-        return (Protocol) getProtocol.invoke(conn);
+        Object obj = getProtocol.invoke(conn);
+        return (Protocol) obj;
     }
 
     protected void setHostname(String hostname) throws SQLException {
