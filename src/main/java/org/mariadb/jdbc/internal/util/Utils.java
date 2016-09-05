@@ -76,6 +76,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 public class Utils {
+    private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
 
     /**
      * Escape String.
@@ -535,6 +536,47 @@ public class Utils {
             }
             return socketFactory.createSocket();
         }
+    }
+
+    /**
+     * Hexdump.
+     *
+     * @param bytes byte array
+     * @return String
+     */
+    public static String hexdump(byte[] bytes) {
+        return hexdump(bytes, 0, bytes.length);
+    }
+
+    /**
+     * Hexdump.
+     *
+     * @param bytes byte array
+     * @param offset offset
+     * @return String
+     */
+    public static String hexdump(byte[] bytes, int offset) {
+        return hexdump(bytes, offset, bytes.length);
+    }
+
+    /**
+     * Hexdump.
+     *
+     * @param bytes byte array
+     * @param offset offset
+     * @param length length
+     * @return String
+     */
+    public static String hexdump(byte[] bytes, int offset, int length) {
+        if (bytes.length <= offset) return "";
+        int dataLength = Math.min(bytes.length - offset, length);
+        char[] hexChars = new char[ dataLength * 2];
+        for ( int j = offset; j < dataLength; j++ ) {
+            int byteValue = bytes[j] & 0xFF;
+            hexChars[j * 2] = hexArray[byteValue >>> 4];
+            hexChars[j * 2 + 1] = hexArray[byteValue & 0x0F];
+        }
+        return new String(hexChars);
     }
 
 }

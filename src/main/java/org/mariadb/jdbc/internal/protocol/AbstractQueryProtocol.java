@@ -53,6 +53,8 @@ package org.mariadb.jdbc.internal.protocol;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.*;
 
 import org.mariadb.jdbc.internal.packet.result.*;
@@ -63,6 +65,7 @@ import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
@@ -93,6 +96,7 @@ import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.FEATURE_N
 
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
+    private static Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
 
     private int transactionIsolationLevel = 0;
     private InputStream localInfileInputStream;
@@ -1152,7 +1156,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     Buffer bufferEof = packetFetcher.getReusableBuffer();
                     if (bufferEof.getByteAt(0) != Packet.EOF) {
                         throw new QueryException("Packets out of order when reading field packets, expected was EOF stream. "
-                                + "Packet contents (hex) = " + MasterProtocol.hexdump(bufferEof.buf, 0));
+                                + "Packet contents (hex) = " + Utils.hexdump(bufferEof.buf, 0));
                     } else if (executionResult.isCanHaveCallableResultset() || checkCallableResultSet) {
                         //Identify if this is a "callable OUT packet" (callableResult=true)
                         //needed because :
@@ -1252,24 +1256,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
         this.moreResults = false;
         if (!this.connected) throw new QueryException("Connection is close", 1220, "08000");
-    }
-
-    /**
-     * Hexdump.
-     *
-     * @param buffer byte array
-     * @param offset offset
-     * @return String
-     */
-    public static String hexdump(byte[] buffer, int offset) {
-        StringBuffer dump = new StringBuffer();
-        if ((buffer.length - offset) > 0) {
-            dump.append(String.format("%02x", buffer[offset]));
-            for (int i = offset + 1; i < buffer.length; i++) {
-                dump.append(String.format("%02x", buffer[i]));
-            }
-        }
-        return dump.toString();
     }
 
 }

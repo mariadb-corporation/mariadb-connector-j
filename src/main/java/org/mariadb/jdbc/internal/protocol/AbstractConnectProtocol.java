@@ -53,10 +53,13 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.MyX509TrustManager;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.send.*;
 import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
@@ -99,6 +102,7 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class AbstractConnectProtocol implements Protocol {
+    private static Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
     private final String username;
     private final String password;
     private boolean hostFailed;
@@ -619,6 +623,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     + ")", ResultSet.TYPE_FORWARD_ONLY);
             MariaSelectResultSet resultSet = qr.getResultSet();
             while (resultSet.next()) {
+                logger.debug("server data " + resultSet.getString(1) + " : " + resultSet.getString(2));
                 serverData.put(resultSet.getString(1), resultSet.getString(2));
             }
         } catch (SQLException sqle) {
