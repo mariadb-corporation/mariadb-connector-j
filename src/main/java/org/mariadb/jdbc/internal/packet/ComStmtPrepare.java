@@ -92,7 +92,7 @@ public class ComStmtPrepare {
      */
     public void sendSubCmd(PacketOutputStream writer) throws IOException, QueryException {
         byte[] sqlBytes = sql.getBytes(StandardCharsets.UTF_8);
-        writer.assureBufferCapacity(sqlBytes.length + 1);
+        writer.assureBufferCapacity(sqlBytes.length + 10);
         writer.writeFieldLength(sqlBytes.length + 1);
         writer.buffer.put(Packet.COM_STMT_PREPARE);
         writer.buffer.put(sqlBytes);

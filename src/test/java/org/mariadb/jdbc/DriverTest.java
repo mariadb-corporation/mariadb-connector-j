@@ -1140,6 +1140,41 @@ public class DriverTest extends BaseTest {
     }
 
     @Test
+    public void batchPrepareUpdateException() throws Exception {
+        PreparedStatement st = sharedConnection.prepareStatement("insert into batchUpdateException values(?)");
+        st.setInt(1, 1);
+        st.addBatch();
+        st.setInt(1, 2);
+        st.addBatch();
+        st.setInt(1, 1); // will fail, duplicate primary key
+        st.addBatch();
+        st.setInt(1, 3);
+        st.addBatch();
+
+        try {
+            st.executeBatch();
+            fail("exception should be throw above");
+        } catch (BatchUpdateException bue) {
+            int[] updateCounts = bue.getUpdateCounts();
+            assertEquals(4, updateCounts.length);
+            if (sharedIsRewrite()) {
+                assertEquals(1, updateCounts[0]);
+                assertEquals(1, updateCounts[1]);
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[3]);
+            } else {
+                //prepare or allowMultiQueries options
+                assertEquals(1, updateCounts[0]);
+                assertEquals(1, updateCounts[1]);
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
+                assertEquals(1, updateCounts[3]);
+            }
+            assertTrue(bue.getCause() instanceof SQLIntegrityConstraintViolationException);
+        }
+
+    }
+
+    @Test
     public void localSocket() throws Exception {
         requireMinimumVersion(5, 1);
 

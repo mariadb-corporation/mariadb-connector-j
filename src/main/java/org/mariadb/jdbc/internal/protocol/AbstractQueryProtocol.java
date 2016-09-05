@@ -201,13 +201,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             @Override
-            public void sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
+            public boolean sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
                                 List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
                                 PrepareResult prepareResult)
                     throws QueryException, IOException {
+                reserveCmdLength(status);
                 ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
-                writer.startPacket(0);
                 ComExecute.sendSubCmd(writer, clientPrepareResult, parameters);
+                return setRealCmdSize(status);
             }
 
             @Override
@@ -260,14 +261,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             @Override
-            public void sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
+            public boolean sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
                                 List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
                                 PrepareResult prepareResult)
                     throws QueryException, IOException {
+                reserveCmdLength(status);
                 String sql = queries.get(status.sendCmdCounter);
                 byte[] sqlBytes = sql.getBytes(StandardCharsets.UTF_8);
-                writer.write(Packet.COM_QUERY);
-                writer.write(sqlBytes);
+                writer.assureBufferCapacity(sqlBytes.length + 1);
+                writer.buffer.put(Packet.COM_QUERY);
+                writer.buffer.put(sqlBytes);
+                return setRealCmdSize(status);
             }
 
             @Override
@@ -462,6 +466,43 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 ComStmtExecute.writeCmd(statementId, parameters, paramCount, parameterTypeHeader, writer);
             }
 
+            @Override
+            public boolean sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
+                                   List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
+                                   PrepareResult prepareResult)
+                    throws QueryException, IOException {
+                ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
+
+                //validate parameter set
+                if (parameters.length < paramCount) {
+                    throw new QueryException("Parameter at position " + (paramCount - 1) + " is not set", -1, "07004");
+                }
+
+                if (status.currentLongDataParam != BulkStatus.COM_MULTI_PARAM_SEND) {
+                    //send binary data in a separate stream
+                    for (int i = status.currentLongDataParam; i < paramCount; i++) {
+                        if (parameters[i].isLongData()) {
+                            status.currentLongDataParam = i;
+                            reserveCmdLength(status);
+                            writer.assureBufferCapacity(7); //header size
+                            writer.buffer.put(Packet.COM_STMT_SEND_LONG_DATA);
+                            writer.writeInt(statementId);
+                            writer.buffer.putShort((short) i);
+                            parameters[i].writeBinary(writer);
+                            if (setRealCmdSize(status)) {
+                                status.currentLongDataParam++;
+                                return true;
+                            }
+                        }
+                    }
+                    status.currentLongDataParam = BulkStatus.COM_MULTI_PARAM_SEND;
+                }
+
+                reserveCmdLength(status);
+                writer.assureBufferCapacity(10); //header size
+                ComStmtExecute.writeCmd(statementId, parameters, paramCount, parameterTypeHeader, writer);
+                return setRealCmdSize(status);
+            }
 
 
             @Override

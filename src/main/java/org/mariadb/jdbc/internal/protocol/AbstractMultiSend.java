@@ -52,7 +52,6 @@ package org.mariadb.jdbc.internal.protocol;
 
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
-import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
@@ -65,7 +64,6 @@ import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -158,12 +156,11 @@ public abstract class AbstractMultiSend {
         this.readPrepareStmtResult = false;
     }
 
-
     public abstract void sendCmd(PacketOutputStream writer, ExecutionResult executionResult,
                                  List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
                                  PrepareResult prepareResult) throws QueryException, IOException;
 
-    public abstract void sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
+    public abstract boolean sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
                                  List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
                                  PrepareResult prepareResult) throws QueryException, IOException;
 
@@ -191,8 +188,6 @@ public abstract class AbstractMultiSend {
      */
     public PrepareResult executeBatch(boolean hasComMultiCapacity) throws QueryException {
         int paramCount = getParamCount();
-
-        //Handle prepare if needed
         if (binaryProtocol) {
             if (readPrepareStmtResult) {
                 parameterTypeHeader = new MariaDbType[paramCount];
@@ -211,11 +206,9 @@ public abstract class AbstractMultiSend {
                 statementId = ((ServerPrepareResult) prepareResult).getStatementId();
             }
         }
-
         if (hasComMultiCapacity) return executeComMultiBatch(paramCount);
         return executeBatchStandard(paramCount);
     }
-
 
     /**
      * Execute Bulk execution (send packets by batch of  useBatchMultiSendNumber or when max packet is reached) before reading results.
@@ -315,8 +308,9 @@ public abstract class AbstractMultiSend {
 
     }
 
+
     /**
-     * Execute com_multi Bulk execution
+     * Execute com_multi Bulk execution.
      *
      * @param paramCount parameter counter
      * @return prepare result
@@ -329,21 +323,32 @@ public abstract class AbstractMultiSend {
 
         ComStmtPrepare comStmtPrepare = null;
 
-        int initialPosition;
-        int endPosition;
-        byte[] lastSubCommand = null;
         try {
             do {
                 status.sendSubCmdCounter = 0;
+                status.currentLongDataParam = 0;
 
                 writer.startPacket(0);
                 writer.buffer.put((byte) 254);
 
-                if (lastSubCommand != null) {
-                    writer.writeByteArrayLength(lastSubCommand);
-                    status.sendSubCmdCounter++;
-                    status.sendCmdCounter++;
-                    lastSubCommand = null;
+                if (status.notSendCmd != null) {
+                    writer.writeByteArrayLength(status.notSendCmd);
+                    if (setRealCmdSize(status)) {
+                        int cmdLength = status.notSendCmd.length;
+                        int subCommandLength;
+                        if (cmdLength < 251) {
+                            subCommandLength = cmdLength + 1;
+                        } else if (cmdLength < 65536) {
+                            subCommandLength = cmdLength + 3;
+                        } else if (cmdLength < 16777216) {
+                            subCommandLength = cmdLength + 4;
+                        } else {
+                            subCommandLength = cmdLength + 9;
+                        }
+                        throw new QueryException("max_allowed_packet=" + (writer.getMaxAllowedPacket() - 1) + ". Query size "
+                                + (subCommandLength + 1) + " is > to max_allowed_packet");
+                    }
+                    status.notSendCmd = null;
                 }
 
                 //send PREPARE sub-command
@@ -354,46 +359,20 @@ public abstract class AbstractMultiSend {
 
                 do {
 
-                    initialPosition = writer.buffer.position();
-                    writer.assureBufferCapacity(9);
-                    writer.buffer.put((byte) 0xfe);
-                    writer.buffer.putLong(0L);
-
-                    sendSubCmd(writer, executionResult, parametersList, queries, paramCount, status, prepareResult);
-
-                    if (writer.buffer.limit() - 4 > writer.getMaxAllowedPacket() - 1) {
-                        //buffer size > max_allowed_packet. Will send query without the last sub-command.
-
-                        if (readPrepareStmtResult && prepareResult == null || status.sendSubCmdCounter > 0) {
-                            //save last sub-command
-                            lastSubCommand = new byte[writer.buffer.position() - (initialPosition + 9)];
-                            if (writer.buffer.limit() - 4 > writer.getMaxAllowedPacket() - 1) {
-                                throw new QueryException("max_allowed_packet=" + (writer.getMaxAllowedPacket() - 2) + ". Query size " + lastSubCommand.length
-                                        + " is > to max_allowed_packet");
-                            }
-
-                            System.arraycopy(writer.buffer.array(), initialPosition + 9, lastSubCommand, 0, lastSubCommand.length);
-                            writer.buffer.position(initialPosition);
-                            break;
-                        } else {
-                            throw new QueryException("max_allowed_packet=" + (writer.getMaxAllowedPacket() - 2) + ". Query size " + (writer.buffer.limit() - 4)
-                                    + " is > to max_allowed_packet");
-                        }
-                    } else {
-                        status.sendSubCmdCounter++;
-                        status.sendCmdCounter++;
-
-                        //set real command size
-                        endPosition = writer.buffer.position();
-                        long commandLength = endPosition - (initialPosition + 9);
-                        writer.buffer.position(initialPosition + 1);
-                        writer.buffer.putLong(commandLength);
-                        writer.buffer.position(endPosition);
-
+                    if (sendSubCmd(writer, executionResult, parametersList, queries, paramCount, status, prepareResult)) {
+                        break;
                     }
+
+                    status.currentLongDataParam = 0;
+                    status.sendSubCmdCounter++;
+                    status.sendCmdCounter++;
+
                 } while (status.sendCmdCounter < totalExecutionNumber);
 
-                writer.finishPacketWithoutRelease();
+                //send command if not empty
+                if (readPrepareStmtResult && prepareResult == null || status.sendSubCmdCounter > 0) {
+                    writer.finishPacketWithoutRelease();
+                }
 
                 if (readPrepareStmtResult && prepareResult == null) {
                     prepareResult = comStmtPrepare.read(protocol.getPacketFetcher());
@@ -420,6 +399,44 @@ public abstract class AbstractMultiSend {
         } finally {
             writer.releaseBufferIfNotLogging();
         }
-
     }
+
+    /**
+     * Set real command size to reserved bytes, or set last command in buffer to send current packet if packet max size is exceeded.
+     * @param status current status data
+     * @return true if packet size exceeded
+     * @throws QueryException if connection error occur.
+     */
+    public boolean setRealCmdSize(BulkStatus status) throws QueryException {
+        if (writer.buffer.limit() - 4 > writer.getMaxAllowedPacket() - 1) {
+            //buffer size > max_allowed_packet. Will send query without the last sub-command.
+            //save last sub-command
+            status.notSendCmd = new byte[writer.buffer.position() - (status.initialPosition + 9)];
+            System.arraycopy(writer.buffer.array(), status.initialPosition + 9, status.notSendCmd, 0, status.notSendCmd.length);
+            writer.buffer.position(status.initialPosition);
+            return true;
+        }
+
+        //set real command size to reserved bytes
+        int endPosition = writer.buffer.position();
+        long commandLength = endPosition - (status.initialPosition + 9);
+        writer.buffer.position(status.initialPosition + 1);
+        writer.buffer.putLong(commandLength);
+        writer.buffer.position(endPosition);
+        return false;
+    }
+
+    /**
+     * Reserve some byte that indicate command size.
+     * (since all query size cannot be known in advance
+     *
+     * @param status current status informations
+     */
+    public void reserveCmdLength(BulkStatus status) {
+        status.initialPosition = writer.buffer.position();
+        writer.assureBufferCapacity(9);
+        writer.buffer.put((byte) 0xfe);
+        writer.buffer.putLong(0L);
+    }
+
 }

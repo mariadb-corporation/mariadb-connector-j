@@ -71,8 +71,7 @@ public class ComExecute {
      */
     public static void sendSubCmd(final PacketOutputStream writer, final ClientPrepareResult clientPrepareResult, ParameterHolder[] parameters)
             throws IOException {
-        writer.buffer.put(Packet.COM_QUERY);
-
+        writer.write(Packet.COM_QUERY);
         if (clientPrepareResult.isRewriteType()) {
 
             writer.write(clientPrepareResult.getQueryParts().get(0));

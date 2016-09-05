@@ -51,7 +51,11 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.util;
 
 public class BulkStatus {
+    public static final int COM_MULTI_PARAM_SEND = -1;
     public int sendSubCmdCounter;
     public int sendCmdCounter = 0;
+    public int initialPosition;
+    public byte[] notSendCmd;
+    public int currentLongDataParam;
 
 }
