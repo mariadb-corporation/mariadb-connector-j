@@ -118,7 +118,7 @@ public class ReadPacketFetcher {
         } while (remaining > 0);
 
         if (logger.isTraceEnabled()) {
-            logger.trace("read packet seq:" + inputStream.getLastPacketSeq() + " length:" + length + " data:" + Utils.hexdump(rawBytes));
+            logger.trace("read packet seq:" + inputStream.getLastPacketSeq() + " length:" + length + " data:" + Utils.hexdump(rawBytes, 0, length));
         }
         return new Buffer(rawBytes, length);
     }
@@ -198,7 +198,7 @@ public class ReadPacketFetcher {
         } while (remaining > 0);
 
         if (logger.isTraceEnabled()) {
-            logger.trace("read packet seq:" + inputStream.getLastPacketSeq() + " length:" + length + " data:" + Utils.hexdump(rawBytes));
+            logger.trace("read packet seq:" + inputStream.getLastPacketSeq() + " length:" + length + " data:" + Utils.hexdump(rawBytes, 0, length));
         }
         return new Buffer(rawBytes, length);
     }
