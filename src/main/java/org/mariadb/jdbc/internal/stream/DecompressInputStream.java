@@ -50,9 +50,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.stream;
 
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-
 import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
@@ -63,6 +60,7 @@ import java.util.zip.Inflater;
 
 public class DecompressInputStream extends InputStream implements MariaDbInputStream {
     private InputStream baseStream;
+    private int lastPacketSeq;
     private int remainingBytes;
     private byte[] header;
     private boolean doDecompress;
@@ -87,6 +85,7 @@ public class DecompressInputStream extends InputStream implements MariaDbInputSt
             }
             read += count;
         } while (read < 4);
+        lastPacketSeq = (header[3] & 0xff);
         return (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
     }
 
@@ -149,6 +148,7 @@ public class DecompressInputStream extends InputStream implements MariaDbInputSt
 
 
         int compressedLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
+        lastPacketSeq = header[3] & 0xff;
 
         int decompressedLength = (header[4] & 0xff) + ((header[5] & 0xff) << 8) + ((header[6] & 0xff) << 16);
         if (decompressedLength != 0) {
@@ -188,4 +188,13 @@ public class DecompressInputStream extends InputStream implements MariaDbInputSt
         }
     }
 
+    @Override
+    public int getLastPacketSeq() {
+        return lastPacketSeq;
+    }
+
+    @Override
+    public void setLastPacketSeq(int lastPacketSeq) {
+        this.lastPacketSeq = lastPacketSeq;
+    }
 }

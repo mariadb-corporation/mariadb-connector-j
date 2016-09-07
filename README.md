@@ -23,20 +23,9 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>1.4.6</version>
+	<version>1.5.2</version>
 </dependency>
 ```
-
-Current release candidate :
-
-```script
-<dependency>
-	<groupId>org.mariadb.jdbc</groupId>
-	<artifactId>mariadb-java-client</artifactId>
-	<version>1.5.0-RC1</version>
-</dependency>
-```
-
 
 Development snapshot are available on sonatype nexus repository  
 ```script

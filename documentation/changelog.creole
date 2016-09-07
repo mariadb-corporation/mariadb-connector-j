@@ -1,6 +1,7 @@
 = Changelog
-* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#151|1.5.1]] RC released on 15-08-2016
-* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#150|1.5.0]] RC released on 28-07-2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#151|1.5.2]] Released on 31 aug. 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#151|1.5.1]] RC released on 15 aug. 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#150|1.5.0]] RC released on 28 jul. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#146|1.4.6]] Released on 13 june 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#146|1.4.5]] Released on 18 mai 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#144|1.4.4]] Released on 04 mai 2016
@@ -10,6 +11,18 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+== 1.5.2
+Release version
+* CONJ-331 : clearWarnings() now throw exception on closed connection
+* CONJ-299 : PreparedStatement.setObject(Type.BIT, "1") registered as true.
+* CONJ-293 : permit named pipe connection without host
+* CONJ-333 : ResultSet.getString() of PreparedStatement return NULL When TIME column value=00:00:00
+
+RC corrections
+* CONJ-335 : Pool connection may fail to connect with good user
+* CONJ-332 : option enabledSslCipherSuites rely on java supportedCipherSuites (replacing enabledCipherSuites)
+* UTF-8 conversion correction
+
 == 1.5.1
 Release candidate version
 === Evolution

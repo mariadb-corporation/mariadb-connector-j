@@ -54,6 +54,7 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.*;
@@ -149,6 +150,7 @@ public class PacketOutputStream extends OutputStream {
      */
     public void writeEmptyPacket(int seqNo) throws IOException {
         byte[] header;
+        logger.trace("send empty packet");
         if (!useCompression) {
             header = new byte[4];
             header[0] = ((byte) 0);
@@ -451,6 +453,10 @@ public class PacketOutputStream extends OutputStream {
                     .put((byte) (dataLength >>> 8))
                     .put((byte) (dataLength >>> 16))
                     .put((byte) seqNo++);
+            if (logger.isTraceEnabled()) {
+                logger.trace("send packet seq:" + (seqNo - 1) + " length:" + dataLength
+                        + " data:" + Utils.hexdump(buffer.array(), 4, buffer.limit() - 4));
+            }
             outputStream.write(buffer.array(), 0, buffer.limit());
         } else {
 
@@ -459,6 +465,10 @@ public class PacketOutputStream extends OutputStream {
                     .put((byte) (maxPacketSize >>> 8))
                     .put((byte) (maxPacketSize >>> 16))
                     .put((byte) seqNo++);
+            if (logger.isTraceEnabled()) {
+                logger.trace("send packet seq:" + (seqNo - 1) + " length:" + dataLength
+                        + " data:" + Utils.hexdump(buffer.array(), 4, maxPacketSize));
+            }
             outputStream.write(buffer.array(), 0, maxPacketSize + 4);
             buffer.position(maxPacketSize + 4);
 
@@ -471,6 +481,10 @@ public class PacketOutputStream extends OutputStream {
                             .put((byte) (maxPacketSize >>> 8))
                             .put((byte) (maxPacketSize >>> 16))
                             .put((byte) seqNo++);
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("send packet seq:" + (seqNo - 1) + " length:" + dataLength
+                                + " data:" + Utils.hexdump(buffer.array(), buffer.position(), maxPacketSize));
+                    }
                     outputStream.write(buffer.array(), buffer.position() - 4, maxPacketSize + 4);
                     buffer.position(buffer.position() + maxPacketSize);
                 } else {
@@ -478,6 +492,10 @@ public class PacketOutputStream extends OutputStream {
                             .put((byte) (length >>> 8))
                             .put((byte) (length >>> 16))
                             .put((byte) seqNo++);
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("send packet seq:" + (seqNo - 1) + " length:" + dataLength
+                                + " data:" + Utils.hexdump(buffer.array(), buffer.position(), length));
+                    }
                     outputStream.write(buffer.array(), buffer.position() - 4, length + 4);
                     break;
                 }
@@ -542,6 +560,10 @@ public class PacketOutputStream extends OutputStream {
 
                     int compressedLength = compressedBytes.length;
                     writeCompressedHeader(compressedLength, packetLength);
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("send packet seq:" + compressSeqNo + " length:" + packetLength
+                                + " data:" + Utils.hexdump(compressedBytes));
+                    }
                     outputStream.write(compressedBytes, 0, compressedLength);
                     compressedPacketSend = true;
                 }
@@ -549,6 +571,10 @@ public class PacketOutputStream extends OutputStream {
 
             if (!compressedPacketSend) {
                 writeCompressedHeader(packetLength, 0);
+                if (logger.isTraceEnabled()) {
+                    logger.trace("send packet seq:" + compressSeqNo + " length:" + packetLength
+                            + " data:" + Utils.hexdump(bufferBytes, position, packetLength));
+                }
                 outputStream.write(bufferBytes, position, packetLength);
             }
 
@@ -824,6 +850,10 @@ public class PacketOutputStream extends OutputStream {
      */
     public void send(byte[] packetBuffer, int packetSize) throws IOException {
         if (!useCompression) {
+            if (logger.isTraceEnabled()) {
+                logger.trace("send packet seq:" + seqNo + " length:" + packetSize
+                        + " data:" + Utils.hexdump(packetBuffer, 0, packetSize));
+            }
             outputStream.write(packetBuffer, 0, packetSize);
         } else {
             this.setCompressSeqNo(0);
@@ -874,7 +904,7 @@ public class PacketOutputStream extends OutputStream {
                 //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
                 if (currChar >= 0xD800 && currChar < 0xDC00) {
                     //is high surrogate
-                    if (charsPosition + 1 >= charsLength) {
+                    if (charsPosition + 1 > charsLength) {
                         packetBuffer[position++] = (byte)0x63;
                         break;
                     }
@@ -950,6 +980,10 @@ public class PacketOutputStream extends OutputStream {
                 packetBuffer[4] = commandType;
 
                 System.arraycopy(sqlBytes, offset, packetBuffer, 5, sqlLength);
+                if (logger.isTraceEnabled()) {
+                    logger.trace("send packet seq:" + seqNo + " length:" + (sqlLength + 1)
+                            + " data:" + Utils.hexdump(packetBuffer, 4, maxPacketSize));
+                }
                 outputStream.write(packetBuffer);
             } else {
                 //send first packet
@@ -962,6 +996,10 @@ public class PacketOutputStream extends OutputStream {
 
                 System.arraycopy(sqlBytes, offset, packetBuffer, 5, maxPacketSize - 1);
                 int lengthAlreadySend = maxPacketSize - 1;
+                if (logger.isTraceEnabled()) {
+                    logger.trace("send packet seq:" + seqNo + " length:" + maxPacketSize
+                            + " data:" + Utils.hexdump(packetBuffer, 4, maxPacketSize));
+                }
                 outputStream.write(packetBuffer);
                 int length;
 
@@ -972,6 +1010,10 @@ public class PacketOutputStream extends OutputStream {
                         packetBuffer[2] = (byte) (maxPacketSize >>> 16);
                         packetBuffer[3] = (byte) seqNo++;
                         System.arraycopy(sqlBytes, offset + lengthAlreadySend, packetBuffer, 4, maxPacketSize);
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("send packet seq:" + seqNo + " length:" + maxPacketSize
+                                    + " data:" + Utils.hexdump(packetBuffer, 4, maxPacketSize));
+                        }
                         outputStream.write(packetBuffer);
                         lengthAlreadySend += maxPacketSize;
                     } else {
@@ -980,6 +1022,11 @@ public class PacketOutputStream extends OutputStream {
                         packetBuffer[2] = (byte) (length >>> 16);
                         packetBuffer[3] = (byte) seqNo++;
                         System.arraycopy(sqlBytes, offset + lengthAlreadySend, packetBuffer, 4, length);
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("send packet seq:" + seqNo + " length:" + maxPacketSize
+                                    + " data:" + Utils.hexdump(packetBuffer, 4, length));
+
+                        }
                         outputStream.write(packetBuffer, 0, length + 4);
                         break;
                     }
@@ -1080,4 +1127,5 @@ public class PacketOutputStream extends OutputStream {
             charsFieldValue = null;
         }
     }
+
 }

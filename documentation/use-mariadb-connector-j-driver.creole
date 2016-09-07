@@ -87,7 +87,7 @@ The following options are currently supported.
 |=rewriteBatchedStatements| For insert queries, rewrite batchedStatement to execute in a single executeQuery.\\example:\\{{{insert into ab (i) values (?)}}} with first batch values = 1, second = 2 will be rewritten\\{{{insert into ab (i) values (1), (2)}}}. \\\\If query cannot be rewriten in "multi-values", rewrite will use multi-queries : {{{INSERT INTO TABLE(col1) VALUES (?) ON DUPLICATE KEY UPDATE col2=?}}} with values [1,2] and [2,3]" will be rewritten\\{{{INSERT INTO TABLE(col1) VALUES (1) ON DUPLICATE KEY UPDATE col2=2;INSERT INTO TABLE(col1) VALUES (3) ON DUPLICATE KEY UPDATE col2=4}}}\\\\when active, the useServerPrepStmts option is set to false\\//Default: false. Since 1.1.8//|
 |=connectTimeout| The connect timeout value, in milliseconds, or zero for no timeout.\\//Default: 0. Since 1.1.8//|
 |=useServerPrepStmts|Queries are prepared on the server side before executing, permitting faster execution next time. \\if rewriteBatchedStatements is set to true, this option will be set to false.\\//Default: true. Since 1.3.0//|
-
+|=useBatchMultiSend|Driver will can send queries by batch. \\If disable, queries are send one by one, waiting for result before sending next one. \\If enable, queries will be send by batch corresponding to option useBatchMultiSendNumber value (default 100) or according to server variable @@max_allowed_packet if packet size cannot permit to send as many queries. Results will be read afterwhile, avoiding a lot of network latency when client and server aren't on same host. \\\\ There is 2 differents use case : JDBC executeBatch() and when option useServerPrepStmts is enable and MariaDB server >= 10.2.1, PREPARE commands will be delayed, to send PREPARE + EXECUTE in the same packet. This option if mainly effective when client is distant from server.\\//Default: true. Since 1.5.0//|
 \\
 
 === TLS (SSL)
@@ -105,7 +105,7 @@ The following options are currently supported.
 \\
 
 === Log
- |=log|Enable log information. require Slf4j version > 1.4 dependency.\\//Default: false. Since 1.5.0//|
+ |=log|Enable log information. \\//require Slf4j version > 1.4 dependency.//\\Log level correspond to Slf4j logging implementation\\//Default: false. Since 1.5.0//|
  |=maxQuerySizeToLog|Only the first characters corresponding to this options size will be displayed in logs\\//Default: 1024. Since 1.5.0//|
  |=slowQueryThresholdNanos|Will log query with execution time superior to this value (if defined )\\//Default: 1024. Since 1.5.0//|
  |=profileSql|log query execution time.\\//Default: false. Since 1.5.0//|
@@ -140,6 +140,8 @@ The following options are currently supported.
 |=jdbcCompliantTruncation| Truncation error ("Data truncated for column '%' at row %", "Out of range value for column '%' at row %") will be thrown as an error, and not as a warning.\\//Default: true. Since 1.4.0//|
 |=cacheCallableStmts| enable/disable callable Statement cache\\//Default: true. Since 1.4.0//|
 |=callableStmtCacheSize| This sets the number of callable statements that the driver will cache per VM if "cacheCallableStmts" is enabled.\\//Default: true. Since 1.4.0//|
+|=useBatchMultiSendNumber| When option useBatchMultiSend is active, indicate the maximum query send in a row before reading results.\\//Default: 100. Since 1.5.0//|
+
 
 
 \\\\
@@ -155,15 +157,14 @@ The following options are currently supported.
 = JDBC API implementation notes
 
 == "LOAD DATA INFILE"
-The fastest way to load many datas is using query [[https://mariadb.com/kb/en/mariadb/load-data-infile/|LOAD DATA INFILE]]. \\Problem is using "LOAD DATA LOCAL INFILE" (ie : loading a file from client), may be a security problem :
-* A "man in the middle" proxy server can change the actual file asked from server so client will send a Local file to
- this proxy.
-* if someone has can execute query from client, he can have access to any file on client (according to the rights of the user running the client process).
+The fastest way to load lots of data is using [[https://mariadb.com/kb/en/mariadb/load-data-infile/|LOAD DATA INFILE]]. \\However, using "LOAD DATA LOCAL INFILE" (ie : loading a file from client) may be a security problem :
+* A "man in the middle" proxy server can change the actual file requested from the server so the client will send a local file to this proxy.
+* if someone can execute a query from the client, he can have access to any file on the client (according to the rights of the user running the client process).
 
-A specific option "allowLocalInfile" (default to true) can deactivate functionality on client side.
-The global variable [[https://mariadb.com/kb/en/mariadb/server-system-variables/#local_infile|local_infile]] can disable LOAD DATA LOCAL INFILE on server side.
+A specific option "allowLocalInfile" (default to true) can deactivate functionality on the client side.
+The global variable [[server-system-variables#local_infile|local_infile]] can disable LOAD DATA LOCAL INFILE on the server side.
 
-A non-JDBC method can permit to use this kind of query without those security issue: The application has to create a InputStream with the file to load. If MariaDbStatement.setLocalInfileInputStream(InputStream inputStream) is set, the inputStream will be send to server, replacing the file content (working even with option  "allowLocalInfile" disabled).
+A non-JDBC method can permit using this kind of query without this security issue: The application has to create an InputStream with the file to load. If MariaDbStatement.setLocalInfileInputStream(InputStream inputStream) is set, the inputStream will be sent to the server, replacing the file content (working even with the "allowLocalInfile" option disabled).
 
 Code example:
 {{{
@@ -185,13 +186,13 @@ Code example:
 
 }}}
 
-Since 1.5.0 version, Interceptors can now filter LOAD DATA LOCAL INFILE query according to filename.
+Since 1.5.0, Interceptors can now filter LOAD DATA LOCAL INFILE queries according to filename.
 
-Thoses interceptors must implement interface {{{org.mariadb.jdbc.LocalInfileInterceptor}}}.
-Interceptors are  using the [[http://docs.oracle.com/javase/7/docs/api/java/util/ServiceLoader.html|ServiceLoader]] pattern, so interceptors must be defined in file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor.
+These interceptors must implement the {{{org.mariadb.jdbc.LocalInfileInterceptor}}} interface.
+Interceptors use the [[http://docs.oracle.com/javase/7/docs/api/java/util/ServiceLoader.html|ServiceLoader]] pattern, so interceptors must be defined in the META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor file.
 
 Example :
-create file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor with content org.project.LocalInfileInterceptorImpl.
+create the META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor file with content org.project.LocalInfileInterceptorImpl.
 {{{
  public class LocalInfileInterceptorImpl implements LocalInfileInterceptor {
      @Override
@@ -204,7 +205,7 @@ create file META-INF/services/org.mariadb.jdbc.LocalInfileInterceptor with conte
  }
 }}}
 
-You can get ride of defining the META-INF/services file using [[https://github.com/google/auto/tree/master/service|google auto-service] framework
+You can avoid defining the META-INF/services file using [[https://github.com/google/auto/tree/master/service|google auto-service]] framework
 Using the previous example, just add {{{@AutoService(LocalInfileInterceptor.class)}}}, and your interceptor will be automatically defined.
 {{{
  @AutoService(LocalInfileInterceptor.class)

@@ -52,6 +52,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void serverExecutionTest() throws SQLException {
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         Connection connection = null;
         try {
             connection = setConnection();
@@ -78,6 +79,8 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void deferredPrepareTest() throws Throwable {
         Assume.assumeTrue(sharedBulkCapacity());
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
+
         Connection connection = null;
         try {
             connection = setConnection();
@@ -135,7 +138,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void prepStmtCacheSizeTest() throws Throwable {
-        Assume.assumeTrue(!sharedIsRewrite());
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         Connection connection = null;
         try {
             connection = setConnection("&prepStmtCacheSize=10");
@@ -493,8 +496,8 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void checkReusability() throws Throwable {
+        Assume.assumeTrue(!sharedIsRewrite());
         setConnection("&prepStmtCacheSize=10");
-
         ExecutorService exec = Executors.newFixedThreadPool(2);
 
         //check blacklist shared
@@ -812,6 +815,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                     protocol.prepareStatementCache().get(sql);
                 }
             } catch (Throwable e) {
+                e.printStackTrace();
                 fail();
             }
         }
@@ -819,10 +823,11 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void testPrepareStatementCache() throws Throwable {
-        Assume.assumeTrue(!sharedIsRewrite());
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
+
         //tester le cache prepareStatement
         try (Connection connection = setConnection()) {
-            MasterProtocol protocol = (MasterProtocol) getProtocolFromConnection(connection);
+            Protocol protocol = getProtocolFromConnection(connection);
             createTable("test_cache_table1", "id1 int auto_increment primary key, text1 varchar(20), text2 varchar(20)");
             PreparedStatement[] map = new PreparedStatement[280];
             for (int i = 0; i < 280; i++) {

@@ -6,9 +6,7 @@ import org.junit.Test;
 
 import java.sql.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class TruncateExceptionTest extends BaseTest {
     /**
@@ -82,8 +80,12 @@ public class TruncateExceptionTest extends BaseTest {
             }
             //resultset must have been fetch
             ResultSet rs = pstmt.getGeneratedKeys();
-            rs.next();
-            System.out.println(rs.getInt(1));
+            if (sharedIsRewrite()) {
+                assertFalse(rs.next());
+            } else {
+                assertTrue(rs.next());
+                System.out.println(rs.getInt(1));
+            }
         }
     }
 }

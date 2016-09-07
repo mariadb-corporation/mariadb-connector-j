@@ -52,6 +52,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
+import org.mariadb.jdbc.internal.util.Utils;
 
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
@@ -70,9 +71,9 @@ public class MariaXaResource implements XAResource {
     static String xidToString(Xid xid) {
         StringBuffer sb = new StringBuffer(2 * Xid.MAXBQUALSIZE + 2 * Xid.MAXGTRIDSIZE + 16);
         sb.append("0x")
-                .append(MasterProtocol.hexdump(xid.getGlobalTransactionId(), 0))
+                .append(Utils.hexdump(xid.getGlobalTransactionId(), 0))
                 .append(",0x")
-                .append(MasterProtocol.hexdump(xid.getBranchQualifier(), 0))
+                .append(Utils.hexdump(xid.getBranchQualifier(), 0))
                 .append(",").append(xid.getFormatId());
         return sb.toString();
     }

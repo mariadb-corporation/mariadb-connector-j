@@ -77,7 +77,7 @@ public class UnicodeTest extends BaseTest {
         }
 
         //test prepare text protocol
-        try (Connection connection = setConnection("&allowMultiQueries=true")) {
+        try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
             connection.createStatement().execute("SET NAMES utf8mb4");
             checkSendAndRetrieve(connection, unicodeString);
         }
