@@ -374,7 +374,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         if (options.useCompression) {
             writer.setUseCompression(true);
-            packetFetcher = new ReadPacketFetcher(new DecompressInputStream(socket.getInputStream()));
+            packetFetcher = new ReadPacketFetcher(new DecompressInputStream(socket.getInputStream()), options.maxQuerySizeToLog);
         }
         connected = true;
 
@@ -429,8 +429,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
         MariaDbInputStream reader = null;
         try {
             reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
-            packetFetcher = new ReadPacketFetcher(reader);
-            writer = new PacketOutputStream(socket.getOutputStream(), options.profileSql || options.slowQueryThresholdNanos != null);
+            packetFetcher = new ReadPacketFetcher(reader, options.maxQuerySizeToLog);
+            writer = new PacketOutputStream(socket.getOutputStream(), options.profileSql || options.slowQueryThresholdNanos != null
+                    , options.maxQuerySizeToLog);
 
             final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher);
             this.serverThreadId = greetingPacket.getServerThreadId();
@@ -457,9 +458,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
                 socket = sslSocket;
-                writer = new PacketOutputStream(socket.getOutputStream(), options.profileSql || options.slowQueryThresholdNanos != null);
+                writer = new PacketOutputStream(socket.getOutputStream(), options.profileSql || options.slowQueryThresholdNanos != null
+                        , options.maxQuerySizeToLog);
                 reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
-                packetFetcher = new ReadPacketFetcher(reader);
+                packetFetcher = new ReadPacketFetcher(reader, options.maxQuerySizeToLog);
 
                 packetSeq++;
             } else if (options.useSsl) {

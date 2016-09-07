@@ -63,6 +63,7 @@ public class ReadPacketFetcher {
     private static Logger logger = LoggerFactory.getLogger(ReadPacketFetcher.class);
 
     public static final int AVOID_CREATE_BUFFER_LENGTH = 4096;
+    private static int maxQuerySizeToLog;
     private final MariaDbInputStream inputStream;
 
     private byte[] headerBuffer = new byte[4];
@@ -72,8 +73,9 @@ public class ReadPacketFetcher {
      * Reader utility to fetch mysql packet.
      * @param is inputStream
      */
-    public ReadPacketFetcher(final MariaDbInputStream is) {
+    public ReadPacketFetcher(final MariaDbInputStream is, int maxQuerySizeToLog) {
         this.inputStream = is;
+        this.maxQuerySizeToLog = maxQuerySizeToLog;
     }
 
     /**
@@ -118,7 +120,8 @@ public class ReadPacketFetcher {
         } while (remaining > 0);
 
         if (logger.isTraceEnabled()) {
-            logger.trace("read packet seq:" + inputStream.getLastPacketSeq() + " length:" + length + " data:" + Utils.hexdump(rawBytes));
+            logger.trace("read packet seq:" + inputStream.getLastPacketSeq() + " length:" + length + " data:"
+                    + Utils.hexdump(rawBytes, maxQuerySizeToLog, 0, length));
         }
         return new Buffer(rawBytes, length);
     }
@@ -154,7 +157,7 @@ public class ReadPacketFetcher {
         } while (reads < length);
 
         if (logger.isTraceEnabled()) {
-            logger.trace("read packet data(part):" + Utils.hexdump(rawBytes, 0, length));
+            logger.trace("read packet data(part):" + Utils.hexdump(rawBytes, maxQuerySizeToLog, 0, length));
         }
         return new Buffer(rawBytes, length);
     }
@@ -198,7 +201,8 @@ public class ReadPacketFetcher {
         } while (remaining > 0);
 
         if (logger.isTraceEnabled()) {
-            logger.trace("read packet seq:" + inputStream.getLastPacketSeq() + " length:" + length + " data:" + Utils.hexdump(rawBytes));
+            logger.trace("read packet seq:" + inputStream.getLastPacketSeq() + " length:" + length + " data:"
+                    + Utils.hexdump(rawBytes, maxQuerySizeToLog, 0, length));
         }
         return new Buffer(rawBytes, length);
     }
@@ -237,7 +241,7 @@ public class ReadPacketFetcher {
             off += count;
         } while (remainingToRead > 0);
         if (logger.isTraceEnabled()) {
-            logger.trace("read packet data(part):" + Utils.hexdump(valueBuffer));
+            logger.trace("read packet data(part):" + Utils.hexdump(valueBuffer, maxQuerySizeToLog));
         }
         return valueBuffer;
     }

@@ -190,7 +190,7 @@ public class ConnectionTest extends BaseTest {
      * @throws UnsupportedEncodingException exception
      */
     @Test
-    public void checkMaxAllowedPacket() throws Throwable, SQLException, UnsupportedEncodingException {
+    public void checkMaxAllowedPacket() throws Throwable {
         Statement statement = sharedConnection.createStatement();
         ResultSet rs = statement.executeQuery("show variables like 'max_allowed_packet'");
         rs.next();

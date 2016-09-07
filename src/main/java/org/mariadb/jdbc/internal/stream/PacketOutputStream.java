@@ -54,14 +54,12 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.StringUtils;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.*;
-import java.lang.reflect.Field;
-import java.lang.reflect.ReflectPermission;
 import java.nio.*;
-import java.security.Permission;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -90,6 +88,7 @@ public class PacketOutputStream extends OutputStream {
     boolean checkPacketLength;
     boolean useCompression;
     boolean logQuery;
+    int maxQuerySizeToLog;
     public OutputStream outputStream;
     private volatile boolean closed = false;
 
@@ -97,13 +96,15 @@ public class PacketOutputStream extends OutputStream {
      * Initialization with server outputStream.
      * @param outputStream server outputStream
      * @param logQuery is query logging enable ?
+     * @param maxQuerySizeToLog max query size to log
      */
-    public PacketOutputStream(OutputStream outputStream, boolean logQuery) {
+    public PacketOutputStream(OutputStream outputStream, boolean logQuery, int maxQuerySizeToLog) {
         this.outputStream = outputStream;
         buffer = firstBuffer = ByteBuffer.allocate(BUFFER_DEFAULT_SIZE).order(ByteOrder.LITTLE_ENDIAN);
         useCompression = false;
         buffer.position(4);
         this.logQuery = logQuery;
+        this.maxQuerySizeToLog = maxQuerySizeToLog;
     }
 
     protected void increase(int newCapacity) {
@@ -429,16 +430,16 @@ public class PacketOutputStream extends OutputStream {
      * @return true if with this additional length stream can be send in the same stream
      */
     public boolean checkRewritableLength(int length) {
-        return !(checkPacketLength && (buffer.position() + length > maxAllowedPacket - 1));
+        return !(checkPacketLength && (buffer.position() + length >= maxAllowedPacket));
     }
 
     private void checkPacketMaxSize(int limit) throws MaxAllowedPacketException {
         if (checkPacketLength
                 && maxAllowedPacket > 0
-                && limit > (maxAllowedPacket - 1)) {
+                && limit >= maxAllowedPacket) {
             this.seqNo = -1;
-            throw new MaxAllowedPacketException("max_allowed_packet=" + (maxAllowedPacket - 1) + ". stream size " + limit
-                    + " is > to max_allowed_packet", this.seqNo != 0);
+            throw new MaxAllowedPacketException("stream size " + limit
+                    + " is >= to max_allowed_packet (" + maxAllowedPacket + ")", this.seqNo != 1);
         }
     }
 
@@ -455,7 +456,7 @@ public class PacketOutputStream extends OutputStream {
                     .put((byte) seqNo++);
             if (logger.isTraceEnabled()) {
                 logger.trace("send packet seq:" + (seqNo - 1) + " length:" + dataLength
-                        + " data:" + Utils.hexdump(buffer.array(), 4, buffer.limit() - 4));
+                        + " data:" + Utils.hexdump(buffer.array(), maxQuerySizeToLog, 4, dataLength));
             }
             outputStream.write(buffer.array(), 0, buffer.limit());
         } else {
@@ -466,8 +467,8 @@ public class PacketOutputStream extends OutputStream {
                     .put((byte) (maxPacketSize >>> 16))
                     .put((byte) seqNo++);
             if (logger.isTraceEnabled()) {
-                logger.trace("send packet seq:" + (seqNo - 1) + " length:" + dataLength
-                        + " data:" + Utils.hexdump(buffer.array(), 4, maxPacketSize));
+                logger.trace("send packet seq:" + (seqNo - 1) + " length:" + maxPacketSize
+                        + " data:" + Utils.hexdump(buffer.array(), maxQuerySizeToLog, 4, maxPacketSize));
             }
             outputStream.write(buffer.array(), 0, maxPacketSize + 4);
             buffer.position(maxPacketSize + 4);
@@ -482,8 +483,8 @@ public class PacketOutputStream extends OutputStream {
                             .put((byte) (maxPacketSize >>> 16))
                             .put((byte) seqNo++);
                     if (logger.isTraceEnabled()) {
-                        logger.trace("send packet seq:" + (seqNo - 1) + " length:" + dataLength
-                                + " data:" + Utils.hexdump(buffer.array(), buffer.position(), maxPacketSize));
+                        logger.trace("send packet seq:" + (seqNo - 1) + " length:" + maxPacketSize
+                                + " data:" + Utils.hexdump(buffer.array(), maxQuerySizeToLog, buffer.position(), maxPacketSize));
                     }
                     outputStream.write(buffer.array(), buffer.position() - 4, maxPacketSize + 4);
                     buffer.position(buffer.position() + maxPacketSize);
@@ -493,8 +494,8 @@ public class PacketOutputStream extends OutputStream {
                             .put((byte) (length >>> 16))
                             .put((byte) seqNo++);
                     if (logger.isTraceEnabled()) {
-                        logger.trace("send packet seq:" + (seqNo - 1) + " length:" + dataLength
-                                + " data:" + Utils.hexdump(buffer.array(), buffer.position(), length));
+                        logger.trace("send packet seq:" + (seqNo - 1) + " length:" + maxPacketSize
+                                + " data:" + Utils.hexdump(buffer.array(), maxQuerySizeToLog, buffer.position(), length));
                     }
                     outputStream.write(buffer.array(), buffer.position() - 4, length + 4);
                     break;
@@ -562,7 +563,7 @@ public class PacketOutputStream extends OutputStream {
                     writeCompressedHeader(compressedLength, packetLength);
                     if (logger.isTraceEnabled()) {
                         logger.trace("send packet seq:" + compressSeqNo + " length:" + packetLength
-                                + " data:" + Utils.hexdump(compressedBytes));
+                                + " data:" + Utils.hexdump(compressedBytes, maxQuerySizeToLog));
                     }
                     outputStream.write(compressedBytes, 0, compressedLength);
                     compressedPacketSend = true;
@@ -573,7 +574,7 @@ public class PacketOutputStream extends OutputStream {
                 writeCompressedHeader(packetLength, 0);
                 if (logger.isTraceEnabled()) {
                     logger.trace("send packet seq:" + compressSeqNo + " length:" + packetLength
-                            + " data:" + Utils.hexdump(bufferBytes, position, packetLength));
+                            + " data:" + Utils.hexdump(bufferBytes, maxQuerySizeToLog, position, packetLength));
                 }
                 outputStream.write(bufferBytes, position, packetLength);
             }
@@ -852,7 +853,7 @@ public class PacketOutputStream extends OutputStream {
         if (!useCompression) {
             if (logger.isTraceEnabled()) {
                 logger.trace("send packet seq:" + seqNo + " length:" + packetSize
-                        + " data:" + Utils.hexdump(packetBuffer, 0, packetSize));
+                        + " data:" + Utils.hexdump(packetBuffer, maxQuerySizeToLog, 0, packetSize));
             }
             outputStream.write(packetBuffer, 0, packetSize);
         } else {
@@ -871,83 +872,61 @@ public class PacketOutputStream extends OutputStream {
      * @throws QueryException if query size is to big according to server max_allowed_size
      */
     public void send(String sql, byte commandType) throws IOException, QueryException {
-        //get char array
-        char[] chars;
-        if (charsFieldValue != null) {
-            try {
-                chars = (char[]) charsFieldValue.get(sql);
-            } catch (IllegalAccessException e) {
-                chars = sql.toCharArray();
-            }
-        } else {
-            chars = sql.toCharArray();
-        }
 
+        startPacket(0,true);
+
+        char[] chars = StringUtils.getChars(sql);
         int charsLength = chars.length;
         int charsPosition = 0;
-        int position = 5;
+
+        buffer.put(commandType);
 
         //create UTF-8 byte array
         //since java char are internally using UTF-16 using surrogate's pattern, 4 bytes unicode characters will
         //represent 2 characters : example "\uD83C\uDFA4" = 🎤 unicode 8 "no microphones"
         //so max size is 3 * charLength + 3 bytes packet length + 1 byte sequence number + 1 byte COM_STMT_PREPARE flag
-        byte[] packetBuffer = new byte[(charsLength * 3) + 5];
+        assureBufferCapacity((charsLength * 3));
 
         while (charsPosition < charsLength) {
             char currChar = chars[charsPosition++];
             if (currChar < 0x80) {
-                packetBuffer[position++] = (byte) currChar;
+                buffer.put((byte) currChar);
             } else if (currChar < 0x800) {
-                packetBuffer[position++] = (byte) (0xc0 | (currChar >> 6));
-                packetBuffer[position++] = (byte) (0x80 | (currChar & 0x3f));
+                buffer.put((byte) (0xc0 | (currChar >> 6)));
+                buffer.put((byte) (0x80 | (currChar & 0x3f)));
             } else if (currChar >= 0xD800 && currChar < 0xE000) {
                 //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
                 if (currChar >= 0xD800 && currChar < 0xDC00) {
                     //is high surrogate
                     if (charsPosition + 1 > charsLength) {
-                        packetBuffer[position++] = (byte)0x63;
+                        buffer.put((byte)0x63);
                         break;
                     }
                     char nextChar = chars[charsPosition];
                     if (nextChar >= 0xDC00 && nextChar < 0xE000) {
                         //is low surrogate
                         int surrogatePairs =  ((currChar << 10) + nextChar) + (0x010000 - (0xD800 << 10) - 0xDC00);
-                        packetBuffer[position++] = (byte) (0xf0 | ((surrogatePairs >> 18)));
-                        packetBuffer[position++] = (byte) (0x80 | ((surrogatePairs >> 12) & 0x3f));
-                        packetBuffer[position++] = (byte) (0x80 | ((surrogatePairs >> 6) & 0x3f));
-                        packetBuffer[position++] = (byte) (0x80 | (surrogatePairs & 0x3f));
+                        buffer.put((byte) (0xf0 | ((surrogatePairs >> 18))));
+                        buffer.put((byte) (0x80 | ((surrogatePairs >> 12) & 0x3f)));
+                        buffer.put((byte) (0x80 | ((surrogatePairs >> 6) & 0x3f)));
+                        buffer.put((byte) (0x80 | (surrogatePairs & 0x3f)));
                         charsPosition++;
                     } else {
                         //must have low surrogate
-                        packetBuffer[position++] = (byte)0x63;
+                        buffer.put((byte)0x63);
                     }
                 } else {
                     //low surrogate without high surrogate before
-                    packetBuffer[position++] = (byte)0x63;
+                    buffer.put((byte)0x63);
                 }
             } else {
-                packetBuffer[position++] = (byte) (0xe0 | ((currChar >> 12)));
-                packetBuffer[position++] = (byte) (0x80 | ((currChar >> 6) & 0x3f));
-                packetBuffer[position++] = (byte) (0x80 | (currChar & 0x3f));
+                buffer.put((byte) (0xe0 | ((currChar >> 12))));
+                buffer.put((byte) (0x80 | ((currChar >> 6) & 0x3f)));
+                buffer.put((byte) (0x80 | (currChar & 0x3f)));
             }
         }
 
-        if (position - 4 > getMaxAllowedPacket()) {
-            throw new QueryException("Could not send query: max_allowed_packet=" + getMaxAllowedPacket() + " but packet size is : "
-                    + (position - 4), -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
-        }
-
-        if (position - 4 < maxPacketSize) {
-            packetBuffer[0] = (byte) ((position - 4) & 0xff);
-            packetBuffer[1] = (byte) ((position - 4) >>> 8);
-            packetBuffer[2] = (byte) ((position - 4) >>> 16);
-            packetBuffer[3] = (byte) 0;
-            packetBuffer[4] = commandType;
-            send(packetBuffer, position);
-        } else {
-            sendDirect(packetBuffer, 5, position - 5, commandType);
-        }
-
+        finishPacket();
     }
 
     /**
@@ -966,8 +945,8 @@ public class PacketOutputStream extends OutputStream {
         setCompressSeqNo(0);
 
         if (sqlLength + 1 > getMaxAllowedPacket()) {
-            throw new QueryException("Could not send query: max_allowed_packet=" + getMaxAllowedPacket() + " but packet size is : "
-                    + (sqlLength + 1), -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
+            throw new QueryException("Could not send query: packet size "
+                    + (sqlLength + 1) + " must be < to max_allowed_packet (" + getMaxAllowedPacket() + ")", -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
         }
         if (!isUseCompression()) {
 
@@ -982,7 +961,7 @@ public class PacketOutputStream extends OutputStream {
                 System.arraycopy(sqlBytes, offset, packetBuffer, 5, sqlLength);
                 if (logger.isTraceEnabled()) {
                     logger.trace("send packet seq:" + seqNo + " length:" + (sqlLength + 1)
-                            + " data:" + Utils.hexdump(packetBuffer, 4, maxPacketSize));
+                            + " data:" + Utils.hexdump(packetBuffer, maxQuerySizeToLog, 4, sqlLength + 1));
                 }
                 outputStream.write(packetBuffer);
             } else {
@@ -998,7 +977,7 @@ public class PacketOutputStream extends OutputStream {
                 int lengthAlreadySend = maxPacketSize - 1;
                 if (logger.isTraceEnabled()) {
                     logger.trace("send packet seq:" + seqNo + " length:" + maxPacketSize
-                            + " data:" + Utils.hexdump(packetBuffer, 4, maxPacketSize));
+                            + " data:" + Utils.hexdump(packetBuffer, maxQuerySizeToLog, 4, maxPacketSize));
                 }
                 outputStream.write(packetBuffer);
                 int length;
@@ -1012,7 +991,7 @@ public class PacketOutputStream extends OutputStream {
                         System.arraycopy(sqlBytes, offset + lengthAlreadySend, packetBuffer, 4, maxPacketSize);
                         if (logger.isTraceEnabled()) {
                             logger.trace("send packet seq:" + seqNo + " length:" + maxPacketSize
-                                    + " data:" + Utils.hexdump(packetBuffer, 4, maxPacketSize));
+                                    + " data:" + Utils.hexdump(packetBuffer, maxQuerySizeToLog, 4, maxPacketSize));
                         }
                         outputStream.write(packetBuffer);
                         lengthAlreadySend += maxPacketSize;
@@ -1023,8 +1002,8 @@ public class PacketOutputStream extends OutputStream {
                         packetBuffer[3] = (byte) seqNo++;
                         System.arraycopy(sqlBytes, offset + lengthAlreadySend, packetBuffer, 4, length);
                         if (logger.isTraceEnabled()) {
-                            logger.trace("send packet seq:" + seqNo + " length:" + maxPacketSize
-                                    + " data:" + Utils.hexdump(packetBuffer, 4, length));
+                            logger.trace("send packet seq:" + seqNo + " length:" + length
+                                    + " data:" + Utils.hexdump(packetBuffer, maxQuerySizeToLog, 4, length));
 
                         }
                         outputStream.write(packetBuffer, 0, length + 4);
@@ -1094,38 +1073,6 @@ public class PacketOutputStream extends OutputStream {
 
     public boolean isUseCompression() {
         return useCompression;
-    }
-
-
-    private static Field charsFieldValue;
-
-    static {
-        RuntimePermission runtimePermission = new RuntimePermission("accessDeclaredMembers");
-        Permission accessPermission = new ReflectPermission("suppressAccessChecks");
-        boolean securityException = false;
-
-        //check security
-        SecurityManager securityManager = System.getSecurityManager();
-        if (securityManager != null) {
-            try {
-
-                if (runtimePermission != null) securityManager.checkPermission(runtimePermission);
-                if (accessPermission != null) securityManager.checkPermission(accessPermission);
-            } catch (SecurityException exception) {
-                securityException = true;
-            }
-        }
-
-        if (!securityException) {
-            try {
-                charsFieldValue = String.class.getDeclaredField("value");
-                charsFieldValue.setAccessible(true);
-            } catch (NoSuchFieldException e) {
-                charsFieldValue = null;
-            }
-        } else {
-            charsFieldValue = null;
-        }
     }
 
 }

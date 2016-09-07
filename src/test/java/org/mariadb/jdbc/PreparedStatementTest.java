@@ -226,7 +226,7 @@ public class PreparedStatementTest extends BaseTest {
             // query size minus the ?
             // add first byte COM_QUERY
             // add 2 bytes (2 QUOTES for string parameter without need of escaping)
-            char[] arr = new char[maxAllowedPacket - (query.length() + 3 )];
+            char[] arr = new char[maxAllowedPacket - (query.length() + 4 )];
             for (int i = 0; i < arr.length; i++) {
                 arr[i] = (char) ('a' + (i % 10));
             }

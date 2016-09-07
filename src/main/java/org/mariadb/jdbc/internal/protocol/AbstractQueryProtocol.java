@@ -137,6 +137,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
         } catch (QueryException queryException) {
             throw addQueryInfo(sql, queryException);
+        } catch (MaxAllowedPacketException e) {
+            if (e.isMustReconnect()) connect();
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
         }
@@ -237,7 +240,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 return parametersList.size();
             }
 
-        }.executeBatch(hasServerComMultiCapability());
+        }.executeBatch(false);
 
     }
 
@@ -297,7 +300,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 return queries.size();
             }
 
-        }.executeBatch(hasServerComMultiCapability());
+        }.executeBatch(false);
 
     }
 
@@ -333,6 +336,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             comStmtPrepare.send(writer);
             ServerPrepareResult result = comStmtPrepare.read(packetFetcher);
             return result;
+        } catch (MaxAllowedPacketException e) {
+            if (e.isMustReconnect()) connect();
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
         } catch (IOException e) {
             throw new QueryException(e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(),
                     e);
@@ -1179,6 +1185,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 String fileName = buffer.readString(StandardCharsets.UTF_8);
                 try {
                     sendLocalFile(executionResult, fileName);
+                } catch (MaxAllowedPacketException e) {
+                    if (e.isMustReconnect()) connect();
+                    try {
+                        if (writer != null) {
+                            writer.writeEmptyPacket(packetFetcher.getLastPacketSeq() + 1);
+                            packetFetcher.getReusableBuffer();
+                        }
+                    } catch (IOException ee) {
+                    }
+                    throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
                 } catch (IOException e) {
                     try {
                         if (writer != null) {
@@ -1220,7 +1236,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     Buffer bufferEof = packetFetcher.getReusableBuffer();
                     if (bufferEof.getByteAt(0) != Packet.EOF) {
                         throw new QueryException("Packets out of order when reading field packets, expected was EOF stream. "
-                                + "Packet contents (hex) = " + Utils.hexdump(bufferEof.buf, 0));
+                                + "Packet contents (hex) = " + Utils.hexdump(bufferEof.buf, options.maxQuerySizeToLog, 0));
                     } else if (executionResult.isCanHaveCallableResultset() || checkCallableResultSet) {
                         //Identify if this is a "callable OUT packet" (callableResult=true)
                         //needed because :
@@ -1244,7 +1260,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                             } catch (QueryException e) {
                             }
                         }
-                        throw new QueryException("Select command are not permitted via executeBatch() command");
+                        if (!executionResult.isCanHaveCallableResultset())
+                            throw new QueryException("Select command are not permitted via executeBatch() command");
                     }
                     if (!loadAllResults) return new SingleExecutionResult(executionResult.getStatement(), 0, true, false, mariaSelectResultset);
 

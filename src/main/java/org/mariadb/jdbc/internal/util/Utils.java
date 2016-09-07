@@ -542,34 +542,37 @@ public class Utils {
      * Hexdump.
      *
      * @param bytes byte array
+     * @param maxQuerySizeToLog  max log size
      * @return String
      */
-    public static String hexdump(byte[] bytes) {
-        return hexdump(bytes, 0, bytes.length);
+    public static String hexdump(byte[] bytes, int maxQuerySizeToLog) {
+        return hexdump(bytes, maxQuerySizeToLog, 0, bytes.length);
     }
 
     /**
      * Hexdump.
      *
      * @param bytes byte array
+     * @param maxQuerySizeToLog  max log size
      * @param offset offset
      * @return String
      */
-    public static String hexdump(byte[] bytes, int offset) {
-        return hexdump(bytes, offset, bytes.length);
+    public static String hexdump(byte[] bytes, int maxQuerySizeToLog, int offset) {
+        return hexdump(bytes, maxQuerySizeToLog, offset, bytes.length);
     }
 
     /**
      * Hexdump.
      *
      * @param bytes byte array
+     * @param maxQuerySizeToLog  max log size
      * @param offset offset
      * @param length length
      * @return String
      */
-    public static String hexdump(byte[] bytes, int offset, int length) {
+    public static String hexdump(byte[] bytes, int maxQuerySizeToLog, int offset, int length) {
         if (bytes.length <= offset) return "";
-        int dataLength = Math.min(bytes.length - offset, length);
+        int dataLength = Math.min(maxQuerySizeToLog, Math.min(bytes.length - offset, length));
         char[] hexChars = new char[ dataLength * 2];
         for ( int j = offset; j < dataLength; j++ ) {
             int byteValue = bytes[j] & 0xFF;

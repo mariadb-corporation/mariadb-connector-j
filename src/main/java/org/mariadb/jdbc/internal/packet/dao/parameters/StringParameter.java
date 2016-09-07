@@ -51,6 +51,7 @@ package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ReflectPermission;
@@ -161,16 +162,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
      */
     private void escapeUtf8() {
         //get char array
-        char[] chars;
-        if (charsFieldValue != null) {
-            try {
-                chars = (char[]) charsFieldValue.get(string);
-            } catch (IllegalAccessException e) {
-                chars = string.toCharArray();
-            }
-        } else {
-            chars = string.toCharArray();
-        }
+        char[] chars = StringUtils.getChars(string);
         string = null;
         int charsLength = chars.length;
         int charsOffset = 0;
@@ -210,152 +202,70 @@ public class StringParameter implements ParameterHolder, Cloneable {
                     escapedArray[position++] = (byte) '\\';
                 }
                 escapedArray[position++] = (byte) currChar;
-            } else if (currChar < 0x800) {
-                escapedArray[position++] = (byte) (0xc0 | (currChar >> 6));
-                escapedArray[position++] = (byte) (0x80 | (currChar & 0x3f));
-            } else if (currChar >= 0xD800 && currChar < 0xE000) {
-                //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
-                if (currChar >= 0xD800 && currChar < 0xDC00) {
-                    //is high surrogate
-                    if (charsOffset + 1 > charsLength) {
-                        escapedArray[position++] = (byte)0x63;
-                        break;
-                    }
-                    char nextChar = chars[charsOffset];
-                    if (nextChar >= 0xDC00 && nextChar < 0xE000) {
-                        //is low surrogate
-                        int surrogatePairs =  ((currChar << 10) + nextChar) + (0x010000 - (0xD800 << 10) - 0xDC00);
-                        escapedArray[position++] = (byte) (0xf0 | ((surrogatePairs >> 18)));
-                        escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 12) & 0x3f));
-                        escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 6) & 0x3f));
-                        escapedArray[position++] = (byte) (0x80 | (surrogatePairs & 0x3f));
-                        charsOffset++;
-                    } else {
-                        //must have low surrogate
-                        escapedArray[position++] = (byte)0x63;
-                    }
-                } else {
-                    //low surrogate without high surrogate before
-                    escapedArray[position++] = (byte)0x63;
-                }
-            } else {
-                escapedArray[position++] = (byte) (0xe0 | ((currChar >> 12)));
-                escapedArray[position++] = (byte) (0x80 | ((currChar >> 6) & 0x3f));
-                escapedArray[position++] = (byte) (0x80 | (currChar & 0x3f));
-            }
+            } else getNonAsciiByte(currChar, chars, charsOffset, charsLength);
         }
         escapedArray[position++] = (byte) '\'';
     }
 
-    private void utf8() {
-        //get char array
-        char[] chars;
-        if (charsFieldValue != null) {
-            try {
-                chars = (char[]) charsFieldValue.get(string);
-            } catch (IllegalAccessException e) {
-                chars = string.toCharArray();
+    private void getNonAsciiByte(char currChar, char[] chars, int charsOffset, int charsLength) {
+        if (currChar < 0x800) {
+            escapedArray[position++] = (byte) (0xc0 | (currChar >> 6));
+            escapedArray[position++] = (byte) (0x80 | (currChar & 0x3f));
+        } else if (currChar >= 0xD800 && currChar < 0xE000) {
+            //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
+            if (currChar >= 0xD800 && currChar < 0xDC00) {
+                //is high surrogate
+                if (charsOffset + 1 > charsLength) {
+                    escapedArray[position++] = (byte)0x63;
+                    return;
+                }
+                char nextChar = chars[charsOffset];
+                if (nextChar >= 0xDC00 && nextChar < 0xE000) {
+                    //is low surrogate
+                    int surrogatePairs =  ((currChar << 10) + nextChar) + (0x010000 - (0xD800 << 10) - 0xDC00);
+                    escapedArray[position++] = (byte) (0xf0 | ((surrogatePairs >> 18)));
+                    escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 12) & 0x3f));
+                    escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 6) & 0x3f));
+                    escapedArray[position++] = (byte) (0x80 | (surrogatePairs & 0x3f));
+                    charsOffset++;
+                } else {
+                    //must have low surrogate
+                    escapedArray[position++] = (byte)0x63;
+                }
+            } else {
+                //low surrogate without high surrogate before
+                escapedArray[position++] = (byte)0x63;
             }
         } else {
-            chars = string.toCharArray();
+            escapedArray[position++] = (byte) (0xe0 | ((currChar >> 12)));
+            escapedArray[position++] = (byte) (0x80 | ((currChar >> 6) & 0x3f));
+            escapedArray[position++] = (byte) (0x80 | (currChar & 0x3f));
         }
+    }
+
+    /**
+     * Get fast UTF-8 array from String.
+     */
+    private void utf8() {
+        //get char array
+        char[] chars = StringUtils.getChars(string);
         string = null;
         int charsLength = chars.length;
         int charsOffset = 0;
         position = 0;
 
-        //create UTF-8 byte array
-        //since java char are internally using UTF-16 using surrogate's pattern, 4 bytes unicode characters will
-        //represent 2 characters : example "\uD83C\uDFA4" = 🎤 unicode 8 "no microphones"
-        //so max size is 3 * charLength + 2 for the quotes.
-        //(escaping concern only ASCII characters (1 bytes) and when escaped will be 2 bytes = won't cause any problems)
         escapedArray = new byte[(charsLength * 3)];
 
-        //Handle fast conversion without testing kind of escape for each character
-        if (noBackslashEscapes) {
-            while (position < charsLength && chars[charsOffset] < 0x80) {
-                escapedArray[position++] = (byte) chars[charsOffset++];
-            }
-        } else {
-            while (position < charsLength && chars[charsOffset] < 0x80) {
-                escapedArray[position++] = (byte) chars[charsOffset++];
-            }
-        }
-
-        //if contain non ASCII chars
         while (charsOffset < charsLength) {
             char currChar = chars[charsOffset++];
             if (currChar < 0x80) {
                 escapedArray[position++] = (byte) currChar;
-            } else if (currChar < 0x800) {
-                escapedArray[position++] = (byte) (0xc0 | (currChar >> 6));
-                escapedArray[position++] = (byte) (0x80 | (currChar & 0x3f));
-            } else if (currChar >= 0xD800 && currChar < 0xE000) {
-                //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
-                if (currChar >= 0xD800 && currChar < 0xDC00) {
-                    //is high surrogate
-                    if (charsOffset + 1 >= charsLength) {
-                        escapedArray[position++] = (byte)0x63;
-                        break;
-                    }
-                    char nextChar = chars[charsOffset];
-                    if (nextChar >= 0xDC00 && nextChar < 0xE000) {
-                        //is low surrogate
-                        int surrogatePairs =  ((currChar << 10) + nextChar) + (0x010000 - (0xD800 << 10) - 0xDC00);
-                        escapedArray[position++] = (byte) (0xf0 | ((surrogatePairs >> 18)));
-                        escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 12) & 0x3f));
-                        escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 6) & 0x3f));
-                        escapedArray[position++] = (byte) (0x80 | (surrogatePairs & 0x3f));
-                        charsOffset++;
-                    } else {
-                        //must have low surrogate
-                        escapedArray[position++] = (byte)0x63;
-                    }
-                } else {
-                    //low surrogate without high surrogate before
-                    escapedArray[position++] = (byte)0x63;
-                }
-            } else {
-                escapedArray[position++] = (byte) (0xe0 | ((currChar >> 12)));
-                escapedArray[position++] = (byte) (0x80 | ((currChar >> 6) & 0x3f));
-                escapedArray[position++] = (byte) (0x80 | (currChar & 0x3f));
-            }
+            } else getNonAsciiByte(currChar, chars, charsOffset, charsLength);
         }
     }
 
     public boolean isLongData() {
         return false;
-    }
-
-    private static Field charsFieldValue;
-
-    static {
-        RuntimePermission runtimePermission = new RuntimePermission("accessDeclaredMembers");
-        Permission accessPermission = new ReflectPermission("suppressAccessChecks");
-        boolean securityException = false;
-
-        //check security
-        SecurityManager securityManager = System.getSecurityManager();
-        if (securityManager != null) {
-            try {
-
-                if (runtimePermission != null) securityManager.checkPermission(runtimePermission);
-                if (accessPermission != null) securityManager.checkPermission(accessPermission);
-            } catch (SecurityException exception) {
-                securityException = true;
-            }
-        }
-
-        if (!securityException) {
-            try {
-                charsFieldValue = String.class.getDeclaredField("value");
-                charsFieldValue.setAccessible(true);
-            } catch (NoSuchFieldException e) {
-                charsFieldValue = null;
-            }
-        } else {
-            charsFieldValue = null;
-        }
     }
 
     public boolean isNullData() {
