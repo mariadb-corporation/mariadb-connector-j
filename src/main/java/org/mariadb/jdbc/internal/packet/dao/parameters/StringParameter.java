@@ -65,6 +65,8 @@ public class StringParameter implements ParameterHolder, Cloneable {
     private boolean noBackslashEscapes;
     private byte[] escapedArray = null;
     private int position;
+    private int charsOffset;
+    private boolean binary;
 
     public StringParameter(String string, boolean noBackslashEscapes) throws SQLException {
         this.string = string;
@@ -122,8 +124,12 @@ public class StringParameter implements ParameterHolder, Cloneable {
             }
         } else {
             if (position > 1024) {
+                //escape bytes have integrated quote, binary hasn't
+                if (binary) return "'" + new String(escapedArray, 0, 1024) + "...'";
                 return new String(escapedArray, 0, 1024) + "...'";
             } else {
+                //escape bytes have integrated quote, binary hasn't
+                if (binary) return "'" + new String(escapedArray, 0, position) + "'";
                 return new String(escapedArray, 0, position);
             }
         }
@@ -165,7 +171,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
         char[] chars = StringUtils.getChars(string);
         string = null;
         int charsLength = chars.length;
-        int charsOffset = 0;
+        charsOffset = 0;
         position = 0;
 
         //create UTF-8 byte array
@@ -202,12 +208,13 @@ public class StringParameter implements ParameterHolder, Cloneable {
                     escapedArray[position++] = (byte) '\\';
                 }
                 escapedArray[position++] = (byte) currChar;
-            } else getNonAsciiByte(currChar, chars, charsOffset, charsLength);
+            } else getNonAsciiByte(currChar, chars, charsLength);
         }
         escapedArray[position++] = (byte) '\'';
+        binary = false;
     }
 
-    private void getNonAsciiByte(char currChar, char[] chars, int charsOffset, int charsLength) {
+    private void getNonAsciiByte(char currChar, char[] chars, int charsLength) {
         if (currChar < 0x800) {
             escapedArray[position++] = (byte) (0xc0 | (currChar >> 6));
             escapedArray[position++] = (byte) (0x80 | (currChar & 0x3f));
@@ -251,7 +258,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
         char[] chars = StringUtils.getChars(string);
         string = null;
         int charsLength = chars.length;
-        int charsOffset = 0;
+        charsOffset = 0;
         position = 0;
 
         escapedArray = new byte[(charsLength * 3)];
@@ -260,8 +267,9 @@ public class StringParameter implements ParameterHolder, Cloneable {
             char currChar = chars[charsOffset++];
             if (currChar < 0x80) {
                 escapedArray[position++] = (byte) currChar;
-            } else getNonAsciiByte(currChar, chars, charsOffset, charsLength);
+            } else getNonAsciiByte(currChar, chars, charsLength);
         }
+        binary = true;
     }
 
     public boolean isLongData() {

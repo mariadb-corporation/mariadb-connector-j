@@ -356,7 +356,7 @@ public abstract class AbstractMultiSend {
                     comStmtPrepare = new ComStmtPrepare(protocol, sql);
                     comStmtPrepare.sendSubCmd(writer);
                 }
-
+                int initialCounter = status.sendCmdCounter;
                 do {
 
                     if (sendSubCmd(writer, executionResult, parametersList, queries, paramCount, status, prepareResult)) {
@@ -382,7 +382,11 @@ public abstract class AbstractMultiSend {
                     try {
                         protocol.getResult(executionResult, resultSetScrollType, binaryProtocol, true);
                     } catch (QueryException qex) {
-                        if (exception == null) exception = qex;
+                        if (exception == null) {
+                            exception = handleResultException(qex, executionResult,
+                                    parametersList, queries, counter, initialCounter, paramCount,
+                                    prepareResult);
+                        }
                     }
                 }
 
