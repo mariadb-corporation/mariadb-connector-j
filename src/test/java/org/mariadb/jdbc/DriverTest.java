@@ -55,6 +55,7 @@ public class DriverTest extends BaseTest {
         createTable("unsignedtest", "a int unsigned");
         createTable("conj25", "a VARCHAR(1024)");
         createTable("batchUpdateException", "i int,PRIMARY KEY (i)");
+        createTable("batchPrepareUpdateException", "i int,PRIMARY KEY (i)");
         createTable("DriverTestt1", "id int not null primary key auto_increment, test varchar(20)");
         createTable("DriverTestt2", "id int not null primary key auto_increment, test varchar(20)");
         createTable("DriverTestt3", "id int not null primary key auto_increment, test varchar(20)");
@@ -1136,12 +1137,11 @@ public class DriverTest extends BaseTest {
             }
             assertTrue(bue.getCause() instanceof SQLIntegrityConstraintViolationException);
         }
-
     }
 
     @Test
     public void batchPrepareUpdateException() throws Exception {
-        PreparedStatement st = sharedConnection.prepareStatement("insert into batchUpdateException values(?)");
+        PreparedStatement st = sharedConnection.prepareStatement("insert into batchPrepareUpdateException values(?)");
         st.setInt(1, 1);
         st.addBatch();
         st.setInt(1, 2);
