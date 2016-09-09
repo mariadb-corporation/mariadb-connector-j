@@ -40,6 +40,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                 "ROW_FORMAT=COMPRESSED ENGINE=INNODB");
         createTable("streamtest2", "id int primary key not null, strm text");
         createTable("testServerPrepareMeta", "id int not null primary key auto_increment, id2 int not null, id3 DEC(4,2), id4 BIGINT UNSIGNED ");
+        createTable("ServerPrepareStatementSync", "id int not null primary key auto_increment, test varchar(1000), tt boolean");
     }
 
     @Test
@@ -865,5 +866,83 @@ public class ServerPrepareStatementTest extends BaseTest {
         pstmt.execute();
     }
 
+    /**
+     * Test that getGeneratedKey got the right insert ids values, even when batch in multiple queries (for rewrite).
+     *
+     * @throws SQLException if connection error occur
+     */
+    @Test
+    public void serverPrepareStatementSync() throws Throwable {
+
+        Statement st = sharedConnection.createStatement();
+        ResultSet rs = st.executeQuery("select @@max_allowed_packet");
+        if (rs.next()) {
+            long maxAllowedPacket = rs.getInt(1);
+            int totalInsertCommands = (int) Math.ceil(3 * maxAllowedPacket / 1000); //mean that there will be 2 commands
+            try (Connection connection2 = setConnection()) {
+                PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                        "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, false) ");
+                PreparedStatement preparedStatement2 = connection2.prepareStatement(
+                        "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, true) ");
+                char[] thousandChars = new char[1000];
+                Arrays.fill(thousandChars, 'a');
+                String thousandLength = new String(thousandChars);
+
+                for (int counter = 0; counter < totalInsertCommands + 1; counter++) {
+                    preparedStatement.setString(1, thousandLength);
+                    preparedStatement.addBatch();
+                    preparedStatement2.setString(1, thousandLength);
+                    preparedStatement2.addBatch();
+                }
+
+                ExecutorService executor = Executors.newFixedThreadPool(2);
+                BatchThread thread1 = new BatchThread(preparedStatement);
+                BatchThread thread2 = new BatchThread(preparedStatement2);
+                executor.execute(thread1);
+                //Thread.sleep(500);
+                executor.execute(thread2);
+                executor.shutdown();
+                executor.awaitTermination(400, TimeUnit.SECONDS);
+                ResultSet rs1 = preparedStatement.getGeneratedKeys();
+                ResultSet rs2 = preparedStatement2.getGeneratedKeys();
+
+                ResultSet rs3 = sharedConnection.createStatement().executeQuery("select id, tt from serverpreparestatementsync");
+                while (rs3.next()) {
+                    if (rs3.getBoolean(2)) {
+                        rs2.next();
+                        if (rs3.getInt(1) != rs2.getInt(1)) {
+                            System.out.println("1 : " + rs3.getInt(1) + " != " + rs2.getInt(1));
+                            fail();
+                        }
+                    } else {
+                        rs1.next();
+                        if (rs3.getInt(1) != rs1.getInt(1)) {
+                            System.out.println("0 : " + rs3.getInt(1) + " != " + rs1.getInt(1));
+                            fail();
+                        }
+                    }
+                }
+            }
+        } else {
+            fail();
+        }
+    }
+
+    public static class BatchThread implements Runnable {
+        private final PreparedStatement preparedStatement;
+
+        BatchThread(PreparedStatement preparedStatement) {
+            this.preparedStatement = preparedStatement;
+        }
+
+        @Override
+        public void run() {
+            try {
+                preparedStatement.executeBatch();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
 }

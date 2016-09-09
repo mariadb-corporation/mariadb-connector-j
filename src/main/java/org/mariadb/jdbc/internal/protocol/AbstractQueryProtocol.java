@@ -1260,8 +1260,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                             } catch (QueryException e) {
                             }
                         }
-                        if (!executionResult.isCanHaveCallableResultset())
+                        if (!executionResult.isCanHaveCallableResultset()) {
                             throw new QueryException("Select command are not permitted via executeBatch() command");
+                        }
                     }
                     if (!loadAllResults) return new SingleExecutionResult(executionResult.getStatement(), 0, true, false, mariaSelectResultset);
 

@@ -87,6 +87,13 @@ public class StringUtils {
         }
     }
 
+    /**
+     * Permit to have direct access to char array of String implementation if permitted.
+     * (avoid creation of a new instance)
+     *
+     * @param string string
+     * @return char array corresponding to string value
+     */
     public static char[] getChars(String string) {
         if (charsFieldValue != null) {
             try {

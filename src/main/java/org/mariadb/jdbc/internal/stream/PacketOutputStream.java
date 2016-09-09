@@ -945,8 +945,9 @@ public class PacketOutputStream extends OutputStream {
         setCompressSeqNo(0);
 
         if (sqlLength + 1 > getMaxAllowedPacket()) {
-            throw new QueryException("Could not send query: packet size "
-                    + (sqlLength + 1) + " must be < to max_allowed_packet (" + getMaxAllowedPacket() + ")", -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
+            throw new QueryException("Could not send query: packet size " + (sqlLength + 1)
+                    + " must be < to max_allowed_packet (" + getMaxAllowedPacket() + ")",
+                    -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
         }
         if (!isUseCompression()) {
 

@@ -430,8 +430,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
             reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
             packetFetcher = new ReadPacketFetcher(reader, options.maxQuerySizeToLog);
-            writer = new PacketOutputStream(socket.getOutputStream(), options.profileSql || options.slowQueryThresholdNanos != null
-                    , options.maxQuerySizeToLog);
+            writer = new PacketOutputStream(socket.getOutputStream(),
+                    options.profileSql || options.slowQueryThresholdNanos != null, options.maxQuerySizeToLog);
 
             final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher);
             this.serverThreadId = greetingPacket.getServerThreadId();
@@ -458,8 +458,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
                 socket = sslSocket;
-                writer = new PacketOutputStream(socket.getOutputStream(), options.profileSql || options.slowQueryThresholdNanos != null
-                        , options.maxQuerySizeToLog);
+                writer = new PacketOutputStream(socket.getOutputStream(),
+                        options.profileSql || options.slowQueryThresholdNanos != null , options.maxQuerySizeToLog);
                 reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
                 packetFetcher = new ReadPacketFetcher(reader, options.maxQuerySizeToLog);
 

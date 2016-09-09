@@ -591,7 +591,7 @@ public enum DefaultOptions {
         //not compatible options
 
         //disable use server prepare id using client rewrite
-        if (options.rewriteBatchedStatements || options.allowMultiQueries) {
+        if (options.rewriteBatchedStatements) {
             options.useServerPrepStmts = false;
             options.cachePrepStmts = false;
         }

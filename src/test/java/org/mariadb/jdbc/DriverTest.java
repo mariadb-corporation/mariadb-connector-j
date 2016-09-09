@@ -1158,8 +1158,8 @@ public class DriverTest extends BaseTest {
             int[] updateCounts = bue.getUpdateCounts();
             assertEquals(4, updateCounts.length);
             if (sharedIsRewrite()) {
-                assertEquals(1, updateCounts[0]);
-                assertEquals(1, updateCounts[1]);
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[0]);
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[1]);
                 assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
                 assertEquals(Statement.EXECUTE_FAILED, updateCounts[3]);
             } else {
