@@ -906,7 +906,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                 ResultSet rs1 = preparedStatement.getGeneratedKeys();
                 ResultSet rs2 = preparedStatement2.getGeneratedKeys();
 
-                ResultSet rs3 = sharedConnection.createStatement().executeQuery("select id, tt from serverpreparestatementsync");
+                ResultSet rs3 = sharedConnection.createStatement().executeQuery("select id, tt from ServerPrepareStatementSync");
                 while (rs3.next()) {
                     if (rs3.getBoolean(2)) {
                         rs2.next();
