@@ -51,7 +51,6 @@ package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ReflectPermission;
@@ -168,7 +167,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
      */
     private void escapeUtf8() {
         //get char array
-        char[] chars = StringUtils.getChars(string);
+        char[] chars = getChars();
         string = null;
         int charsLength = chars.length;
         charsOffset = 0;
@@ -255,7 +254,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
      */
     private void utf8() {
         //get char array
-        char[] chars = StringUtils.getChars(string);
+        char[] chars = getChars();
         string = null;
         int charsLength = chars.length;
         charsOffset = 0;
@@ -278,6 +277,56 @@ public class StringParameter implements ParameterHolder, Cloneable {
 
     public boolean isNullData() {
         return false;
+    }
+
+
+    private static Field charsFieldValue;
+
+    static {
+        RuntimePermission runtimePermission = new RuntimePermission("accessDeclaredMembers");
+        Permission accessPermission = new ReflectPermission("suppressAccessChecks");
+        boolean securityException = false;
+
+        //check security
+        SecurityManager securityManager = System.getSecurityManager();
+        if (securityManager != null) {
+            try {
+
+                if (runtimePermission != null) securityManager.checkPermission(runtimePermission);
+                if (accessPermission != null) securityManager.checkPermission(accessPermission);
+            } catch (SecurityException exception) {
+                securityException = true;
+            }
+        }
+
+        if (!securityException) {
+            try {
+                charsFieldValue = String.class.getDeclaredField("value");
+                charsFieldValue.setAccessible(true);
+            } catch (NoSuchFieldException e) {
+                charsFieldValue = null;
+            }
+        } else {
+            charsFieldValue = null;
+        }
+    }
+
+    /**
+     * Permit to have direct access to char array of String implementation if permitted.
+     * (avoid creation of a new instance)
+     *
+     * @return char array corresponding to string value
+     */
+    public char[] getChars() {
+        if (charsFieldValue != null) {
+            try {
+                return (char[]) charsFieldValue.get(string);
+            } catch (IllegalAccessException e) {
+                return string.toCharArray();
+            }
+        } else {
+            return string.toCharArray();
+        }
     }
 
 }

@@ -54,7 +54,6 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.StringUtils;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
@@ -876,19 +875,11 @@ public class PacketOutputStream extends OutputStream {
 
         startPacket(0,true);
 
-        char[] chars = StringUtils.getChars(sql);
-        int charsLength = chars.length;
-
         buffer.put(commandType);
-
-        //create UTF-8 byte array
-        //since java char are internally using UTF-16 using surrogate's pattern, 4 bytes unicode characters will
-        //represent 2 characters : example "\uD83C\uDFA4" = 🎤 unicode 8 "no microphones"
-        //so max size is 3 * charLength + 3 bytes packet length + 1 byte sequence number + 1 byte COM_STMT_PREPARE flag
-        assureBufferCapacity((charsLength * 3));
-        byte[] buf = buffer.array();
-//        int position = buffer.position();
         byte[] sqlBytes = sql.getBytes(StandardCharsets.UTF_8);
+
+        assureBufferCapacity(sqlBytes.length * 3);
+        byte[] buf = buffer.array();
         buffer.put(sqlBytes);
         int position = buffer.position();
         if (position - 4 < maxPacketSize) {
