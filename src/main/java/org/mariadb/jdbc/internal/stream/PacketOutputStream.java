@@ -60,6 +60,7 @@ import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.*;
 import java.nio.*;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -877,7 +878,6 @@ public class PacketOutputStream extends OutputStream {
 
         char[] chars = StringUtils.getChars(sql);
         int charsLength = chars.length;
-        int charsPosition = 0;
 
         buffer.put(commandType);
 
@@ -886,47 +886,25 @@ public class PacketOutputStream extends OutputStream {
         //represent 2 characters : example "\uD83C\uDFA4" = 🎤 unicode 8 "no microphones"
         //so max size is 3 * charLength + 3 bytes packet length + 1 byte sequence number + 1 byte COM_STMT_PREPARE flag
         assureBufferCapacity((charsLength * 3));
-
-        while (charsPosition < charsLength) {
-            char currChar = chars[charsPosition++];
-            if (currChar < 0x80) {
-                buffer.put((byte) currChar);
-            } else if (currChar < 0x800) {
-                buffer.put((byte) (0xc0 | (currChar >> 6)));
-                buffer.put((byte) (0x80 | (currChar & 0x3f)));
-            } else if (currChar >= 0xD800 && currChar < 0xE000) {
-                //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
-                if (currChar >= 0xD800 && currChar < 0xDC00) {
-                    //is high surrogate
-                    if (charsPosition + 1 > charsLength) {
-                        buffer.put((byte)0x63);
-                        break;
-                    }
-                    char nextChar = chars[charsPosition];
-                    if (nextChar >= 0xDC00 && nextChar < 0xE000) {
-                        //is low surrogate
-                        int surrogatePairs =  ((currChar << 10) + nextChar) + (0x010000 - (0xD800 << 10) - 0xDC00);
-                        buffer.put((byte) (0xf0 | ((surrogatePairs >> 18))));
-                        buffer.put((byte) (0x80 | ((surrogatePairs >> 12) & 0x3f)));
-                        buffer.put((byte) (0x80 | ((surrogatePairs >> 6) & 0x3f)));
-                        buffer.put((byte) (0x80 | (surrogatePairs & 0x3f)));
-                        charsPosition++;
-                    } else {
-                        //must have low surrogate
-                        buffer.put((byte)0x63);
-                    }
-                } else {
-                    //low surrogate without high surrogate before
-                    buffer.put((byte)0x63);
-                }
-            } else {
-                buffer.put((byte) (0xe0 | ((currChar >> 12))));
-                buffer.put((byte) (0x80 | ((currChar >> 6) & 0x3f)));
-                buffer.put((byte) (0x80 | (currChar & 0x3f)));
+        byte[] buf = buffer.array();
+//        int position = buffer.position();
+        byte[] sqlBytes = sql.getBytes(StandardCharsets.UTF_8);
+        buffer.put(sqlBytes);
+        int position = buffer.position();
+        if (position - 4 < maxPacketSize) {
+            buf[0] = (byte) ((position - 4) & 0xff);
+            buf[1] = (byte) ((position - 4) >>> 8);
+            buf[2] = (byte) ((position - 4) >>> 16);
+            buf[3] = (byte) 0;
+            send(buf, position);
+            if (logger.isTraceEnabled()) {
+                logger.trace("send packet seq:" + 0 + " length:" + (position - 4)
+                        + " data:" + Utils.hexdump(buf, maxQuerySizeToLog, 4, position - 4));
             }
+            buffer.position(4);
+        } else {
+            sendDirect(buf, 5, position - 5, commandType);
         }
-
-        finishPacket();
     }
 
     /**
@@ -945,8 +923,8 @@ public class PacketOutputStream extends OutputStream {
         setCompressSeqNo(0);
 
         if (sqlLength + 1 > getMaxAllowedPacket()) {
-            throw new QueryException("Could not send query: packet size " + (sqlLength + 1)
-                    + " must be < to max_allowed_packet (" + getMaxAllowedPacket() + ")",
+            throw new QueryException("Could not send query: query size " + (sqlLength + 1)
+                    + " is >= to max_allowed_packet (" + maxAllowedPacket + ")",
                     -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
         }
         if (!isUseCompression()) {

@@ -72,6 +72,7 @@ public class ReadPacketFetcher {
     /**
      * Reader utility to fetch mysql packet.
      * @param is inputStream
+     * @param maxQuerySizeToLog max query size to log
      */
     public ReadPacketFetcher(final MariaDbInputStream is, int maxQuerySizeToLog) {
         this.inputStream = is;

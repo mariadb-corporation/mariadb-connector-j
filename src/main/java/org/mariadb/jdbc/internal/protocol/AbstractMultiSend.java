@@ -378,13 +378,26 @@ public abstract class AbstractMultiSend {
                     prepareResult = comStmtPrepare.read(protocol.getPacketFetcher());
                 }
 
-                for (int counter = 0; counter < status.sendSubCmdCounter; counter++) {
+                if (binaryProtocol) {
+                    for (int counter = 0; counter < status.sendSubCmdCounter; counter++) {
+                        try {
+                            protocol.getResult(executionResult, resultSetScrollType, binaryProtocol, true);
+                        } catch (QueryException qex) {
+                            if (exception == null) {
+                                exception = handleResultException(qex, executionResult,
+                                        parametersList, queries, 1, initialCounter, paramCount,
+                                        prepareResult);
+                            }
+                        }
+                    }
+                } else {
+                    //COM_MULTI text protocol is one big resultset -> one OK packet.
                     try {
                         protocol.getResult(executionResult, resultSetScrollType, binaryProtocol, true);
                     } catch (QueryException qex) {
                         if (exception == null) {
                             exception = handleResultException(qex, executionResult,
-                                    parametersList, queries, counter, initialCounter, paramCount,
+                                    parametersList, queries, 1, initialCounter, paramCount,
                                     prepareResult);
                         }
                     }

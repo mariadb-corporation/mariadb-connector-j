@@ -646,7 +646,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 (byte) 45, (byte) 46, (byte) 224, (byte) 225, (byte) 226, (byte) 227, (byte) 228,
                 (byte) 229, (byte) 230, (byte) 231, (byte) 232, (byte) 233, (byte) 234, (byte) 235,
                 (byte) 236, (byte) 237, (byte) 238, (byte) 239, (byte) 240, (byte) 241, (byte) 242,
-                (byte) 243, (byte) 245
+                (byte) 243, (byte) 245, (byte) 246, (byte) 247
         };
         return Arrays.asList(utf8mb4Languages).contains(serverLanguage);
     }

@@ -357,7 +357,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @param resultSetScrollType resultSetScrollType
      * @throws QueryException exception
      */
-    public void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
+    public void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<String> queries,
+                                     int resultSetScrollType)
             throws QueryException {
         cmdPrologue();
         String firstSql = null;
@@ -375,7 +376,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     currentIndex = ComExecute.sendMultiple(writer, firstSql, queries, currentIndex);
                 }
                 getResult(executionResult, resultSetScrollType, false, true);
-
             } catch (QueryException queryException) {
                 addQueryInfo(firstSql, queryException);
                 if (!getOptions().continueBatchOnError) throw queryException;
