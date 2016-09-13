@@ -40,7 +40,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                 "ROW_FORMAT=COMPRESSED ENGINE=INNODB");
         createTable("streamtest2", "id int primary key not null, strm text");
         createTable("testServerPrepareMeta", "id int not null primary key auto_increment, id2 int not null, id3 DEC(4,2), id4 BIGINT UNSIGNED ");
-        createTable("ServerPrepareStatementSync", "id int not null primary key auto_increment, test varchar(1000), tt boolean");
+        createTable("ServerPrepareStatementSync", "id int not null primary key auto_increment, test varchar(1007), tt boolean");
     }
 
     @Test
@@ -873,7 +873,7 @@ public class ServerPrepareStatementTest extends BaseTest {
      */
     @Test
     public void serverPrepareStatementSync() throws Throwable {
-
+        Assume.assumeTrue(!checkMaxAllowedPacketMore40m("serverPrepareStatementSync", false)); // to avoid
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         if (rs.next()) {
@@ -889,9 +889,9 @@ public class ServerPrepareStatementTest extends BaseTest {
                 String thousandLength = new String(thousandChars);
 
                 for (int counter = 0; counter < totalInsertCommands + 1; counter++) {
-                    preparedStatement.setString(1, thousandLength);
+                    preparedStatement.setString(1, "a" + counter + "_" + thousandLength);
                     preparedStatement.addBatch();
-                    preparedStatement2.setString(1, thousandLength);
+                    preparedStatement2.setString(1, "b" + counter + "_" + thousandLength);
                     preparedStatement2.addBatch();
                 }
 

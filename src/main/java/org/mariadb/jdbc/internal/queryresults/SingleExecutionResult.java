@@ -138,7 +138,12 @@ public class SingleExecutionResult implements ExecutionResult {
         return (int) affectedRows;
     }
 
-    public void addStatsError() { }
+    public void addStatsError(boolean moreResultAvailable) {
+        this.affectedRows = Statement.EXECUTE_FAILED;
+        setMoreResultAvailable(moreResultAvailable);
+    }
+
+    public void fixStatsError(int sendCommand) { }
 
     public MariaSelectResultSet getResultSet() {
         return result;

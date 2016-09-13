@@ -231,6 +231,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                 internalExecutionResult = new MultiFixedIntExecutionResult(this, queryParameterSize, 0, false);
                 executeBatchInternal(internalExecutionResult, queryParameterSize);
             } catch (QueryException queryException) {
+                internalExecutionResult.fixStatsError(queryParameterSize);
                 exception = queryException;
             } finally {
                 executionResult = internalExecutionResult;

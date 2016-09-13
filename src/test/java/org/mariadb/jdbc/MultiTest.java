@@ -837,7 +837,7 @@ public class MultiTest extends BaseTest {
         continueOnBatchError(true, 9, 9, true, false);
         continueOnBatchError(false, 9, 9, true, false);
         continueOnBatchError(true, 9, 9, false, false);
-        continueOnBatchError(false, 9, 9, false, false);
+        continueOnBatchError(false, 5, 9, false, false);
         continueOnBatchError(true, 0, 9, false, true);
         continueOnBatchError(false, 0, 9, false, true);
     }
@@ -846,7 +846,7 @@ public class MultiTest extends BaseTest {
                                       boolean rewrite) throws SQLException {
         try (Connection connection = setBlankConnection(
                 "&useServerPrepStmts=" + server
-                        + "&useComMulti=" + server
+                        + "&useBatchMultiSend=" + server
                         + "&continueBatchOnError=" + continueBatch
                         + "&rewriteBatchedStatements=" + rewrite)) {
             connection.createStatement().execute("TRUNCATE TABLE MultiTestt9");

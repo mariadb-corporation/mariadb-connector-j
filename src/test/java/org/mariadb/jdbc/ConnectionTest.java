@@ -56,7 +56,7 @@ public class ConnectionTest extends BaseTest {
         String params = "&useFractionalSeconds=true&allowMultiQueries=true&useCompression=false";
         Connection connection = null;
         try {
-            connection = setConnection(params);
+            connection = setBlankConnection(params);
             Properties properties = connection.getClientInfo();
             assertTrue(properties != null);
             assertTrue(properties.size() > 0);

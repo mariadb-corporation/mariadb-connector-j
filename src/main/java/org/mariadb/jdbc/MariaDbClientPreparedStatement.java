@@ -307,6 +307,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             try {
                 affectedRows = executeInternalBatch(internalExecutionResult, size);
             } catch (QueryException e) {
+                internalExecutionResult.fixStatsError(size);
                 if (options.rewriteBatchedStatements) {
                     if (prepareResult.isQueryMultiValuesRewritable()) {
                         affectedRows = internalExecutionResult.updateResultsForRewrite(size, true);

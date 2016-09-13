@@ -1098,6 +1098,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             } catch (QueryException e) {
                 exception = e;
             } finally {
+                internalExecutionResult.fixStatsError(batchQueries.size());
                 if (exception != null && multipleExecution) {
                     internalExecutionResult.updateResultsMultiple(batchQueries.size(), true);
                 }

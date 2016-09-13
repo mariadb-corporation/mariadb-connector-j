@@ -98,9 +98,22 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
         return affectedRows.get(0);
     }
 
-    public void addStatsError() {
-        this.insertId.add(new Long(Statement.EXECUTE_FAILED));
+    public void addStatsError(boolean moreResultAvailable) {
         this.affectedRows.add(Statement.EXECUTE_FAILED);
+        this.insertId.add(null);
+        setMoreResultAvailable(moreResultAvailable);
+    }
+
+    public void addStatsError() {
+        this.affectedRows.add(Statement.EXECUTE_FAILED);
+        this.insertId.add(null);
+    }
+
+    public void fixStatsError(int sendCommand) {
+        for (;this.affectedRows.size() < sendCommand;) {
+            this.affectedRows.add(Statement.EXECUTE_FAILED);
+            this.insertId.add(null);
+        }
     }
 
     /**

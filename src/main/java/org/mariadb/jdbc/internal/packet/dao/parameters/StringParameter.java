@@ -67,8 +67,8 @@ public class StringParameter implements ParameterHolder, Cloneable {
     private int charsOffset;
     private boolean binary;
 
-    public StringParameter(String string, boolean noBackslashEscapes) throws SQLException {
-        this.string = string;
+    public StringParameter(String str, boolean noBackslashEscapes) throws SQLException {
+        this.string = str;
         this.noBackslashEscapes = noBackslashEscapes;
     }
 
@@ -103,7 +103,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
      * @param writer socket to server.
      */
     public void writeBinary(final PacketOutputStream writer) {
-        utf8();
+        if (escapedArray == null) utf8();
         writer.assureBufferCapacity(position + 9);
         writer.writeFieldLength(position);
         writer.buffer.put(escapedArray, 0, position);

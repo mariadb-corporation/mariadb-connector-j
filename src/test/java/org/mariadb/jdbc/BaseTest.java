@@ -57,7 +57,6 @@ public class BaseTest {
             if (testSingleHost) {
                 Random random = new Random();
                 int randInt = random.nextInt();
-
                 try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT " + randInt)) {
                     ResultSet rs = preparedStatement.executeQuery();
                     Assert.assertTrue(rs.next());
@@ -692,6 +691,15 @@ public class BaseTest {
      */
     public boolean sharedBulkCapacity() {
         return urlParser.getOptions().useBatchMultiSend;
+    }
+
+    /**
+     * Permit to know if sharedConnection use compression.
+     *
+     * @return true if option compression is set to true
+     */
+    public boolean sharedUseCompression() {
+        return urlParser.getOptions().useCompression;
     }
 
 }

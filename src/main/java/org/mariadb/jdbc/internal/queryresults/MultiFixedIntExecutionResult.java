@@ -84,9 +84,15 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
         return affectedRows[0];
     }
 
-    public void addStatsError() {
-        this.insertId[currentStat] = Statement.EXECUTE_FAILED;
+    public void addStatsError(boolean moreResultAvailable) {
         this.affectedRows[currentStat++] = Statement.EXECUTE_FAILED;
+        setMoreResultAvailable(moreResultAvailable);
+    }
+
+    public void fixStatsError(int sendCommand) {
+        for (;this.affectedRows.length < sendCommand;) {
+            this.affectedRows[currentStat++] = Statement.EXECUTE_FAILED;
+        }
     }
 
     /**
@@ -179,4 +185,7 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
         return false;
     }
 
+    public int getCurrentStat() {
+        return currentStat;
+    }
 }

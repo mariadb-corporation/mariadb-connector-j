@@ -430,15 +430,17 @@ public class PacketOutputStream extends OutputStream {
      * @return true if with this additional length stream can be send in the same stream
      */
     public boolean checkRewritableLength(int length) {
-        return !(checkPacketLength && (buffer.position() + length >= maxAllowedPacket));
+        return !(checkPacketLength
+                && ((!useCompression && buffer.position() + length >= maxAllowedPacket)
+                || (useCompression && buffer.position() + length + 4 >= maxAllowedPacket)));
     }
 
     private void checkPacketMaxSize(int limit) throws MaxAllowedPacketException {
         if (checkPacketLength
                 && maxAllowedPacket > 0
-                && limit >= maxAllowedPacket) {
+                && ((!useCompression && limit >= maxAllowedPacket) || (useCompression && limit + 4 >= maxAllowedPacket))) {
             this.seqNo = -1;
-            throw new MaxAllowedPacketException("stream size " + limit
+            throw new MaxAllowedPacketException("stream size " + (limit + (useCompression ? 4 : 0))
                     + " is >= to max_allowed_packet (" + maxAllowedPacket + ")", this.seqNo != 1);
         }
     }
@@ -840,7 +842,7 @@ public class PacketOutputStream extends OutputStream {
     }
 
     public int getMaxAllowedPacket() {
-        return maxAllowedPacket;
+        return maxAllowedPacket ;
     }
 
     /**
@@ -875,26 +877,26 @@ public class PacketOutputStream extends OutputStream {
 
         startPacket(0,true);
 
-        buffer.put(commandType);
         byte[] sqlBytes = sql.getBytes(StandardCharsets.UTF_8);
+        int cmdLength = sqlBytes.length + 1;
 
-        assureBufferCapacity(sqlBytes.length * 3);
-        byte[] buf = buffer.array();
+        assureBufferCapacity(cmdLength);
+        buffer.put(commandType);
         buffer.put(sqlBytes);
-        int position = buffer.position();
-        if (position - 4 < maxPacketSize) {
-            buf[0] = (byte) ((position - 4) & 0xff);
-            buf[1] = (byte) ((position - 4) >>> 8);
-            buf[2] = (byte) ((position - 4) >>> 16);
+
+        byte[] buf = buffer.array();
+        if (cmdLength < maxPacketSize && !useCompression) {
+            buf[0] = (byte) (cmdLength & 0xff);
+            buf[1] = (byte) (cmdLength >>> 8);
+            buf[2] = (byte) (cmdLength >>> 16);
             buf[3] = (byte) 0;
-            send(buf, position);
+            send(buf, cmdLength + 4);
             if (logger.isTraceEnabled()) {
-                logger.trace("send packet seq:" + 0 + " length:" + (position - 4)
-                        + " data:" + Utils.hexdump(buf, maxQuerySizeToLog, 4, position - 4));
+                logger.trace("send packet seq:" + 0 + " length:" + cmdLength
+                        + " data:" + Utils.hexdump(buf, maxQuerySizeToLog, 4, cmdLength));
             }
-            buffer.position(4);
         } else {
-            sendDirect(buf, 5, position - 5, commandType);
+            sendDirect(buf, 5, cmdLength - 1, commandType);
         }
     }
 
@@ -913,8 +915,8 @@ public class PacketOutputStream extends OutputStream {
         int seqNo = 0;
         setCompressSeqNo(0);
 
-        if (sqlLength + 1 > getMaxAllowedPacket()) {
-            throw new QueryException("Could not send query: query size " + (sqlLength + 1)
+        if (sqlLength + (useCompression ? 5 : 1) > getMaxAllowedPacket()) {
+            throw new QueryException("Could not send query: query size " + (sqlLength + (useCompression ? 5 : 1))
                     + " is >= to max_allowed_packet (" + maxAllowedPacket + ")",
                     -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
         }
@@ -988,8 +990,8 @@ public class PacketOutputStream extends OutputStream {
                 packetBuffer[0] = (byte) ((sqlLength + 1) & 0xff);
                 packetBuffer[1] = (byte) ((sqlLength + 1) >>> 8);
                 packetBuffer[2] = (byte) ((sqlLength + 1) >>> 16);
-                packetBuffer[3] = (byte) seqNo++;
-                packetBuffer[4] = Packet.COM_QUERY;
+                packetBuffer[3] = (byte) 0;
+                packetBuffer[4] = commandType;
 
                 System.arraycopy(sqlBytes, offset, packetBuffer, 5, sqlLength);
                 compressedAndSend(sqlLength + 5, packetBuffer);
@@ -1003,7 +1005,7 @@ public class PacketOutputStream extends OutputStream {
                 packetBuffer[1] = (byte) (maxPacketSize >>> 8);
                 packetBuffer[2] = (byte) (maxPacketSize >>> 16);
                 packetBuffer[3] = (byte) seqNo++;
-                packetBuffer[4] = Packet.COM_QUERY;
+                packetBuffer[4] = commandType;
                 System.arraycopy(sqlBytes, offset, packetBuffer, 5, maxPacketSize - 1);
 
                 int sqlBytesPosition = maxPacketSize - 1;

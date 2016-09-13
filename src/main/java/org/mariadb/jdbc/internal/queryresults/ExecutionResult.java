@@ -29,6 +29,10 @@ public interface ExecutionResult {
 
     void addStats(long affectedRows, long insertId, boolean moreResultAvailable);
 
+    void addStatsError(boolean moreResultAvailable);
+
+    void fixStatsError(int sendCommand);
+
     long[] getInsertIds();
 
     boolean hasMoreThanOneAffectedRows();

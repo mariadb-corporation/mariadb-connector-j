@@ -205,6 +205,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
                 writer.startPacket(0);
                 ComExecute.sendSubCmd(writer, clientPrepareResult, parameters);
+                writer.finishPacketWithoutRelease();
             }
 
             @Override
@@ -223,7 +224,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                                         List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
                                                         int sendCmdCounter, int paramCount, PrepareResult prepareResult)
                     throws QueryException {
-                ParameterHolder[] parameters = parametersList.get(currentCounter + sendCmdCounter);
+                ParameterHolder[] parameters = parametersList.get((executionResult.getFirstAffectedRows() != 0) ? 1 + executionResult.getCachedExecutionResults().size(): 0);
                 List<byte[]> queryParts = clientPrepareResult.getQueryParts();
                 String sql = new String(queryParts.get(0));
                 for (int i = 0; i < paramCount; i++) sql += parameters[i].toString() + new String(queryParts.get(i + 1));
@@ -240,7 +241,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 return parametersList.size();
             }
 
-        }.executeBatch(false);
+        }.executeBatch(hasServerComMultiCapability());
 
     }
 
@@ -474,6 +475,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
                 writer.startPacket(0);
                 ComStmtExecute.writeCmd(statementId, parameters, paramCount, parameterTypeHeader, writer);
+                writer.finishPacketWithoutRelease();
             }
 
             @Override
@@ -1173,7 +1175,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     message = new String(buffer.buf, buffer.position, buffer.limit, StandardCharsets.UTF_8);
                     sqlState = "HY000";
                 }
-                executionResult.addStats(Statement.EXECUTE_FAILED, Statement.SUCCESS_NO_INFO, moreResults);
+                executionResult.addStatsError(moreResults);
                 throw new QueryException(message, errorNumber, sqlState);
 
                 //*********************************************************************************************************
@@ -1231,7 +1233,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     for (int i = 0; i < fieldCount; i++) {
                         ci[i] = new ColumnInformation(packetFetcher.getPacket());
                     }
-
                     //read EOF packet
                     Buffer bufferEof = packetFetcher.getReusableBuffer();
                     if (bufferEof.getByteAt(0) != Packet.EOF) {
@@ -1246,7 +1247,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         EndOfFilePacket endOfFilePacket = new EndOfFilePacket(bufferEof);
                         callableResult = (endOfFilePacket.getStatusFlags() & ServerStatus.PS_OUT_PARAMETERS) != 0;
                     }
-
                     //fetch Select result
                     MariaSelectResultSet mariaSelectResultset = new MariaSelectResultSet(ci, executionResult.getStatement(), this, packetFetcher,
                             binaryProtocol, resultSetScrollType, executionResult.getFetchSize(), callableResult);

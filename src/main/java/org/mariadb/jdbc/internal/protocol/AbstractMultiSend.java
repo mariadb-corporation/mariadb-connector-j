@@ -54,6 +54,8 @@ import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
+import org.mariadb.jdbc.internal.queryresults.MultiFixedIntExecutionResult;
+import org.mariadb.jdbc.internal.queryresults.MultiVariableIntExecutionResult;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
@@ -253,7 +255,7 @@ public abstract class AbstractMultiSend {
                     sendCmd(writer, executionResult, parametersList, queries, paramCount, status, prepareResult);
                     status.sendSubCmdCounter++;
                     status.sendCmdCounter++;
-                    writer.finishPacketWithoutRelease();
+
 
                     if (futureReadTask == null) {
                         futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, requestNumberByBulk, (status.sendCmdCounter - 1),
@@ -295,7 +297,9 @@ public abstract class AbstractMultiSend {
                 futureReadTask = null;
 
             } while (status.sendCmdCounter < totalExecutionNumber);
+
             if (exception != null) throw exception;
+
             return prepareResult;
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) protocol.connect();
@@ -327,6 +331,7 @@ public abstract class AbstractMultiSend {
             do {
                 status.sendSubCmdCounter = 0;
                 status.currentLongDataParam = 0;
+                status.initialPosition = 0;
 
                 writer.startPacket(0);
                 writer.buffer.put((byte) 254);
@@ -345,8 +350,9 @@ public abstract class AbstractMultiSend {
                         } else {
                             subCommandLength = cmdLength + 9;
                         }
-                        throw new QueryException("max_allowed_packet=" + (writer.getMaxAllowedPacket() - 1) + ". Query size "
-                                + (subCommandLength + 1) + " is > to max_allowed_packet");
+                        if (writer.isUseCompression()) subCommandLength += 4; //compression will use 4 additional bytes
+                        throw new QueryException("Command size = " + (subCommandLength + 1)
+                                + " is >= to max_allowed_packet (" + writer.getMaxAllowedPacket() + ")");
                     }
                     status.notSendCmd = null;
                 }
@@ -356,7 +362,9 @@ public abstract class AbstractMultiSend {
                     comStmtPrepare = new ComStmtPrepare(protocol, sql);
                     comStmtPrepare.sendSubCmd(writer);
                 }
+
                 int initialCounter = status.sendCmdCounter;
+
                 do {
 
                     if (sendSubCmd(writer, executionResult, parametersList, queries, paramCount, status, prepareResult)) {
@@ -374,11 +382,15 @@ public abstract class AbstractMultiSend {
                     writer.finishPacketWithoutRelease();
                 }
 
-                if (readPrepareStmtResult && prepareResult == null) {
-                    prepareResult = comStmtPrepare.read(protocol.getPacketFetcher());
-                }
-
                 if (binaryProtocol) {
+                    if (readPrepareStmtResult && prepareResult == null) {
+                        try {
+                            prepareResult = comStmtPrepare.read(protocol.getPacketFetcher());
+                        } catch (QueryException qex) {
+                            if (exception == null) exception = qex;
+                        }
+                    }
+
                     for (int counter = 0; counter < status.sendSubCmdCounter; counter++) {
                         try {
                             protocol.getResult(executionResult, resultSetScrollType, binaryProtocol, true);
@@ -391,17 +403,31 @@ public abstract class AbstractMultiSend {
                         }
                     }
                 } else {
-                    //COM_MULTI text protocol is one big resultset -> one OK packet.
-                    try {
-                        protocol.getResult(executionResult, resultSetScrollType, binaryProtocol, true);
-                    } catch (QueryException qex) {
-                        if (exception == null) {
-                            exception = handleResultException(qex, executionResult,
-                                    parametersList, queries, 1, initialCounter, paramCount,
-                                    prepareResult);
+                    //Temporary ! COM_MULTI text protocol is one big resultset -> one OK packet.
+                    boolean finished = false;
+                    do {
+                        try {
+                            protocol.getResult(executionResult, resultSetScrollType, binaryProtocol, true);
+                            finished = true;
+                        } catch (QueryException qex) {
+                            if (exception == null) {
+                                exception = handleResultException(qex, executionResult,
+                                        parametersList, queries, 1, initialCounter, paramCount,
+                                        prepareResult);
+                                //Temporary ! COM_MULTI text protocol is one big resultset -> one OK packet.
+                                int length;
+                                if (executionResult instanceof MultiVariableIntExecutionResult) {
+                                    length = ((MultiVariableIntExecutionResult) executionResult).getAffectedRows().length;
+                                } else {
+                                    length = ((MultiFixedIntExecutionResult) executionResult).getCurrentStat();
+                                }
+                                if (length == status.sendCmdCounter) finished = true;
+
+                            }
                         }
-                    }
+                    } while (!finished);
                 }
+                if (exception != null && !protocol.getOptions().continueBatchOnError) throw exception;
 
             } while (status.sendCmdCounter < totalExecutionNumber);
 
@@ -425,7 +451,7 @@ public abstract class AbstractMultiSend {
      * @throws QueryException if connection error occur.
      */
     public boolean setRealCmdSize(BulkStatus status) throws QueryException {
-        if (writer.buffer.limit() - 4 > writer.getMaxAllowedPacket() - 1) {
+        if (writer.buffer.position() - (writer.isUseCompression() ? 1 : 5) >= writer.getMaxAllowedPacket()) {
             //buffer size > max_allowed_packet. Will send query without the last sub-command.
             //save last sub-command
             status.notSendCmd = new byte[writer.buffer.position() - (status.initialPosition + 9)];
