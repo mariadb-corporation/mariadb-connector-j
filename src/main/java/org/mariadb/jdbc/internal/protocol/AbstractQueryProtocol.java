@@ -224,7 +224,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                                         List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
                                                         int sendCmdCounter, int paramCount, PrepareResult prepareResult)
                     throws QueryException {
-                ParameterHolder[] parameters = parametersList.get((executionResult.getFirstAffectedRows() != 0) ? 1 + executionResult.getCachedExecutionResults().size(): 0);
+                int counter;
+                if (executionResult instanceof MultiVariableIntExecutionResult) {
+                    counter = ((MultiVariableIntExecutionResult) executionResult).getAffectedRows().length - 1;
+                } else {
+                    counter = ((MultiFixedIntExecutionResult) executionResult).getCurrentStat() - 1;
+                }
+
+                ParameterHolder[] parameters = parametersList.get(counter);
                 List<byte[]> queryParts = clientPrepareResult.getQueryParts();
                 String sql = new String(queryParts.get(0));
                 for (int i = 0; i < paramCount; i++) sql += parameters[i].toString() + new String(queryParts.get(i + 1));

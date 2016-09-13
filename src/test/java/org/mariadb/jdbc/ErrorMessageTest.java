@@ -87,7 +87,6 @@ public class ErrorMessageTest extends BaseTest {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-
             assertTrue("message : " + sqle.getMessage(), sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values "
                     + "('more than 10 characters to provoc error', 200)"));
         }
