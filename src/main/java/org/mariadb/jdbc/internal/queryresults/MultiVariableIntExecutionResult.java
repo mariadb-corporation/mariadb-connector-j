@@ -98,6 +98,10 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
         return affectedRows.get(0);
     }
 
+    /**
+     * Add resutl information when an Exception occur during batch.
+     * @param moreResultAvailable has more result flag
+     */
     public void addStatsError(boolean moreResultAvailable) {
         this.affectedRows.add(Statement.EXECUTE_FAILED);
         this.insertId.add(null);
@@ -109,6 +113,10 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
         this.insertId.add(null);
     }
 
+    /**
+     * Add missing information when Exception is thrown.
+     * @param sendCommand send number of command
+     */
     public void fixStatsError(int sendCommand) {
         for (;this.affectedRows.size() < sendCommand;) {
             this.affectedRows.add(Statement.EXECUTE_FAILED);

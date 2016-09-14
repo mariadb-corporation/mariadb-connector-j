@@ -89,6 +89,10 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
         setMoreResultAvailable(moreResultAvailable);
     }
 
+    /**
+     * Add missing information when Exception is thrown.
+     * @param sendCommand send number of command
+     */
     public void fixStatsError(int sendCommand) {
         for (;this.affectedRows.length < sendCommand;) {
             this.affectedRows[currentStat++] = Statement.EXECUTE_FAILED;

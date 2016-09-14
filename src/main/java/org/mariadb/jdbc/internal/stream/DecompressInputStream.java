@@ -71,6 +71,10 @@ public class DecompressInputStream extends InputStream implements MariaDbInputSt
     private boolean doDecompress;
     private ByteArrayInputStream decompressedByteStream;
 
+    /**
+     * Constructor of inputStream when compression is used.
+     * @param baseStream socket inputStream.
+     */
     public DecompressInputStream(InputStream baseStream) {
         this.baseStream = baseStream;
         header = new byte[7];

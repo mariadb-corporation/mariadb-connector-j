@@ -57,8 +57,9 @@ public class PreparedStatementTest extends BaseTest {
                     "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)");
             stmt.setString(1, "test");
             stmt.executeUpdate();
-            if (sharedOptions().useBatchMultiSend && sharedUsePrepare()) fail("Must have fail");
         } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("If column exists but type cannot be identified (example 'select ? `field1` from dual'). "
+                    + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')"));
             if (!sharedOptions().useBatchMultiSend) {
                 fail("Must have fallback to client preparedStatement");
             }
