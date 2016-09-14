@@ -54,9 +54,12 @@ public class PreparedStatementTest extends BaseTest {
     public void insertSelect() throws Exception {
         try {
             PreparedStatement stmt = sharedConnection.prepareStatement(
-                    "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)");
+                    "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)", Statement.RETURN_GENERATED_KEYS);
             stmt.setString(1, "test");
-            stmt.executeUpdate();
+            stmt.execute();
+            ResultSet rs = sharedConnection.createStatement().executeQuery("select count(*) from test_insert_select");
+            rs.next();
+            System.out.println(rs.getInt(1));
         } catch (SQLException e) {
             assertTrue(e.getMessage().contains("If column exists but type cannot be identified (example 'select ? `field1` from dual'). "
                     + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')"));

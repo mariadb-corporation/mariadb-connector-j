@@ -48,7 +48,6 @@ public class MultiTest extends BaseTest {
             st.execute("insert into MultiTestt2 values(1,'a'),(2,'a')");
             st.execute("insert into MultiTestt5 values(1,'a'),(2,'a'),(2,'b')");
         }
-        createTable("MultiTestt9", "id int not null primary key");
 
     }
 
@@ -833,41 +832,101 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void continueOnBatchError() throws SQLException {
-        createTable("MultiTestt9", "id int not null primary key");
-        continueOnBatchError(true, 9, 9, true, false);
-        continueOnBatchError(false, 9, 9, true, false);
-        continueOnBatchError(true, 9, 9, false, false);
-        continueOnBatchError(false, 5, 9, false, false);
-        continueOnBatchError(true, 0, 9, false, true);
-        continueOnBatchError(false, 0, 9, false, true);
+        for (int i = 0; i < 16; i++) {
+            continueOnBatchError(i % 16 < 8, i % 8 < 4, i % 4 < 2, i % 2 == 0);
+        }
     }
 
-    private void continueOnBatchError(boolean continueBatch, int waitedResult, int waitedResultComMulti, boolean server,
-                                      boolean rewrite) throws SQLException {
+    private void continueOnBatchError(boolean continueBatch, boolean serverPrepare,
+                                      boolean rewrite, boolean batchMulti) throws SQLException {
+        System.out.println("continueBatch:" + continueBatch
+                + " serverPrepare:" + serverPrepare
+                + " rewrite:" + rewrite
+                + " batchMulti:" + batchMulti);
+        createTable("MultiTestt9", "id int not null primary key, test varchar(10)");
         try (Connection connection = setBlankConnection(
-                "&useServerPrepStmts=" + server
-                        + "&useBatchMultiSend=" + server
+                "&useServerPrepStmts=" + serverPrepare
+                        + "&useBatchMultiSend=" + batchMulti
                         + "&continueBatchOnError=" + continueBatch
                         + "&rewriteBatchedStatements=" + rewrite)) {
-            connection.createStatement().execute("TRUNCATE TABLE MultiTestt9");
-            PreparedStatement pstmt = connection.prepareStatement("INSERT INTO MultiTestt9 (id) VALUES (?)");
+            PreparedStatement pstmt = connection.prepareStatement("INSERT INTO MultiTestt9 (id, test) VALUES (?, ?)");
             for (int i = 0; i < 10; i++) {
                 pstmt.setInt(1, (i == 5) ? 0 : i);
+                pstmt.setString(2, String.valueOf(i));
                 pstmt.addBatch();
             }
             try {
                 pstmt.executeBatch();
                 fail("Must have thrown SQLException");
-            } catch (SQLException e) {
-                ResultSet rs = connection.createStatement().executeQuery("SELECT COUNT(*) FROM MultiTestt9");
-                if (rs.next()) {
-                    int waited = minVersion(10, 2) ? ((!rewrite && server) ? waitedResultComMulti : waitedResult) : waitedResult;
-                    assertEquals(waited, rs.getInt(1));
+            } catch (BatchUpdateException e) {
+
+
+                int[] updateCount = e.getUpdateCounts();
+                Assert.assertEquals(10, updateCount.length);
+                if (rewrite) {
+                    //rewrite exception is all or nothing
+                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[0]);
+                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[1]);
+                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[2]);
+                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[3]);
+                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[4]);
+                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[5]);
+                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[6]);
+                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[7]);
+                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[8]);
+                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[9]);
                 } else {
-                    fail("Must have one result");
+                    Assert.assertEquals(1, updateCount[0]);
+                    Assert.assertEquals(1, updateCount[1]);
+                    Assert.assertEquals(1, updateCount[2]);
+                    Assert.assertEquals(1, updateCount[3]);
+                    Assert.assertEquals(1, updateCount[4]);
+                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[5]);
+                    if (continueBatch) {
+                        Assert.assertEquals(1, updateCount[6]);
+                        Assert.assertEquals(1, updateCount[7]);
+                        Assert.assertEquals(1, updateCount[8]);
+                        Assert.assertEquals(1, updateCount[9]);
+                    } else {
+                        if (batchMulti) {
+                            //send in batch, so continue will be handle, but send packet is executed.
+                            Assert.assertEquals(1, updateCount[6]);
+                            Assert.assertEquals(1, updateCount[7]);
+                            Assert.assertEquals(1, updateCount[8]);
+                            Assert.assertEquals(1, updateCount[9]);
+                        } else {
+                            Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[6]);
+                            Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[7]);
+                            Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[8]);
+                            Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[9]);
+                        }
+                    }
                 }
+
+                ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM MultiTestt9");
+                //check result
+                if (!rewrite) {
+                    checkNextData(0, rs);
+                    checkNextData(1, rs);
+                    checkNextData(2, rs);
+                    checkNextData(3, rs);
+                    checkNextData(4, rs);
+
+                    if (continueBatch || batchMulti) {
+                        checkNextData(6, rs);
+                        checkNextData(7, rs);
+                        checkNextData(8, rs);
+                        checkNextData(9, rs);
+                    }
+                }
+                Assert.assertFalse(rs.next());
             }
         }
+    }
+    private void checkNextData(int value, ResultSet rs) throws SQLException {
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(value, rs.getInt(1));
+        Assert.assertEquals(String.valueOf(value), rs.getString(2));
     }
 
     @Test
