@@ -53,6 +53,8 @@ package org.mariadb.jdbc.internal.protocol;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.*;
 
 import org.mariadb.jdbc.internal.packet.result.*;
@@ -63,6 +65,7 @@ import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
@@ -93,6 +96,7 @@ import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.FEATURE_N
 
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
+    private static Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
 
     private int transactionIsolationLevel = 0;
     private InputStream localInfileInputStream;
@@ -133,6 +137,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
         } catch (QueryException queryException) {
             throw addQueryInfo(sql, queryException);
+        } catch (MaxAllowedPacketException e) {
+            if (e.isMustReconnect()) connect();
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
         }
@@ -198,6 +205,18 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
                 writer.startPacket(0);
                 ComExecute.sendSubCmd(writer, clientPrepareResult, parameters);
+                writer.finishPacketWithoutRelease();
+            }
+
+            @Override
+            public boolean sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
+                                List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
+                                PrepareResult prepareResult)
+                    throws QueryException, IOException {
+                reserveCmdLength(status);
+                ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
+                ComExecute.sendSubCmd(writer, clientPrepareResult, parameters);
+                return setRealCmdSize(status);
             }
 
             @Override
@@ -205,7 +224,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                                         List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
                                                         int sendCmdCounter, int paramCount, PrepareResult prepareResult)
                     throws QueryException {
-                ParameterHolder[] parameters = parametersList.get(currentCounter + sendCmdCounter);
+                int counter;
+                if (executionResult instanceof MultiVariableIntExecutionResult) {
+                    counter = ((MultiVariableIntExecutionResult) executionResult).getAffectedRows().length - 1;
+                } else {
+                    counter = ((MultiFixedIntExecutionResult) executionResult).getCurrentStat() - 1;
+                }
+
+                ParameterHolder[] parameters = parametersList.get(counter);
                 List<byte[]> queryParts = clientPrepareResult.getQueryParts();
                 String sql = new String(queryParts.get(0));
                 for (int i = 0; i < paramCount; i++) sql += parameters[i].toString() + new String(queryParts.get(i + 1));
@@ -250,6 +276,20 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             @Override
+            public boolean sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
+                                List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
+                                PrepareResult prepareResult)
+                    throws QueryException, IOException {
+                reserveCmdLength(status);
+                String sql = queries.get(status.sendCmdCounter);
+                byte[] sqlBytes = sql.getBytes(StandardCharsets.UTF_8);
+                writer.assureBufferCapacity(sqlBytes.length + 1);
+                writer.buffer.put(Packet.COM_QUERY);
+                writer.buffer.put(sqlBytes);
+                return setRealCmdSize(status);
+            }
+
+            @Override
             public QueryException handleResultException(QueryException qex, ExecutionResult executionResult,
                                                         List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
                                                         int sendCmdCounter, int paramCount, PrepareResult prepareResult)
@@ -268,7 +308,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 return queries.size();
             }
 
-        }.executeBatch(hasServerComMultiCapability());
+        }.executeBatch(false);
 
     }
 
@@ -304,6 +344,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             comStmtPrepare.send(writer);
             ServerPrepareResult result = comStmtPrepare.read(packetFetcher);
             return result;
+        } catch (MaxAllowedPacketException e) {
+            if (e.isMustReconnect()) connect();
+            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
         } catch (IOException e) {
             throw new QueryException(e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(),
                     e);
@@ -322,7 +365,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @param resultSetScrollType resultSetScrollType
      * @throws QueryException exception
      */
-    public void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, List<String> queries, int resultSetScrollType)
+    public void executeBatchMultiple(boolean mustExecuteOnMaster, ExecutionResult executionResult, final List<String> queries,
+                                     int resultSetScrollType)
             throws QueryException {
         cmdPrologue();
         String firstSql = null;
@@ -340,7 +384,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     currentIndex = ComExecute.sendMultiple(writer, firstSql, queries, currentIndex);
                 }
                 getResult(executionResult, resultSetScrollType, false, true);
-
             } catch (QueryException queryException) {
                 addQueryInfo(firstSql, queryException);
                 if (!getOptions().continueBatchOnError) throw queryException;
@@ -439,7 +482,47 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
                 writer.startPacket(0);
                 ComStmtExecute.writeCmd(statementId, parameters, paramCount, parameterTypeHeader, writer);
+                writer.finishPacketWithoutRelease();
             }
+
+            @Override
+            public boolean sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
+                                   List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
+                                   PrepareResult prepareResult)
+                    throws QueryException, IOException {
+                ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
+
+                //validate parameter set
+                if (parameters.length < paramCount) {
+                    throw new QueryException("Parameter at position " + (paramCount - 1) + " is not set", -1, "07004");
+                }
+
+                if (status.currentLongDataParam != BulkStatus.COM_MULTI_PARAM_SEND) {
+                    //send binary data in a separate stream
+                    for (int i = status.currentLongDataParam; i < paramCount; i++) {
+                        if (parameters[i].isLongData()) {
+                            status.currentLongDataParam = i;
+                            reserveCmdLength(status);
+                            writer.assureBufferCapacity(7); //header size
+                            writer.buffer.put(Packet.COM_STMT_SEND_LONG_DATA);
+                            writer.writeInt(statementId);
+                            writer.buffer.putShort((short) i);
+                            parameters[i].writeBinary(writer);
+                            if (setRealCmdSize(status)) {
+                                status.currentLongDataParam++;
+                                return true;
+                            }
+                        }
+                    }
+                    status.currentLongDataParam = BulkStatus.COM_MULTI_PARAM_SEND;
+                }
+
+                reserveCmdLength(status);
+                writer.assureBufferCapacity(10); //header size
+                ComStmtExecute.writeCmd(statementId, parameters, paramCount, parameterTypeHeader, writer);
+                return setRealCmdSize(status);
+            }
+
 
             @Override
             public QueryException handleResultException(QueryException qex, ExecutionResult executionResult,
@@ -1099,7 +1182,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     message = new String(buffer.buf, buffer.position, buffer.limit, StandardCharsets.UTF_8);
                     sqlState = "HY000";
                 }
-                executionResult.addStats(Statement.EXECUTE_FAILED, Statement.SUCCESS_NO_INFO, moreResults);
+                executionResult.addStatsError(moreResults);
                 throw new QueryException(message, errorNumber, sqlState);
 
                 //*********************************************************************************************************
@@ -1111,6 +1194,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 String fileName = buffer.readString(StandardCharsets.UTF_8);
                 try {
                     sendLocalFile(executionResult, fileName);
+                } catch (MaxAllowedPacketException e) {
+                    if (e.isMustReconnect()) connect();
+                    try {
+                        if (writer != null) {
+                            writer.writeEmptyPacket(packetFetcher.getLastPacketSeq() + 1);
+                            packetFetcher.getReusableBuffer();
+                        }
+                    } catch (IOException ee) {
+                    }
+                    throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
                 } catch (IOException e) {
                     try {
                         if (writer != null) {
@@ -1147,12 +1240,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     for (int i = 0; i < fieldCount; i++) {
                         ci[i] = new ColumnInformation(packetFetcher.getPacket());
                     }
-
                     //read EOF packet
                     Buffer bufferEof = packetFetcher.getReusableBuffer();
                     if (bufferEof.getByteAt(0) != Packet.EOF) {
                         throw new QueryException("Packets out of order when reading field packets, expected was EOF stream. "
-                                + "Packet contents (hex) = " + MasterProtocol.hexdump(bufferEof.buf, 0));
+                                + "Packet contents (hex) = " + Utils.hexdump(bufferEof.buf, options.maxQuerySizeToLog, 0));
                     } else if (executionResult.isCanHaveCallableResultset() || checkCallableResultSet) {
                         //Identify if this is a "callable OUT packet" (callableResult=true)
                         //needed because :
@@ -1162,7 +1254,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         EndOfFilePacket endOfFilePacket = new EndOfFilePacket(bufferEof);
                         callableResult = (endOfFilePacket.getStatusFlags() & ServerStatus.PS_OUT_PARAMETERS) != 0;
                     }
-
                     //fetch Select result
                     MariaSelectResultSet mariaSelectResultset = new MariaSelectResultSet(ci, executionResult.getStatement(), this, packetFetcher,
                             binaryProtocol, resultSetScrollType, executionResult.getFetchSize(), callableResult);
@@ -1176,7 +1267,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                             } catch (QueryException e) {
                             }
                         }
-                        throw new QueryException("Select command are not permitted via executeBatch() command");
+                        if (!executionResult.isCanHaveCallableResultset()) {
+                            throw new QueryException("Select command are not permitted via executeBatch() command");
+                        }
                     }
                     if (!loadAllResults) return new SingleExecutionResult(executionResult.getStatement(), 0, true, false, mariaSelectResultset);
 
@@ -1252,24 +1345,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
         this.moreResults = false;
         if (!this.connected) throw new QueryException("Connection is close", 1220, "08000");
-    }
-
-    /**
-     * Hexdump.
-     *
-     * @param buffer byte array
-     * @param offset offset
-     * @return String
-     */
-    public static String hexdump(byte[] buffer, int offset) {
-        StringBuffer dump = new StringBuffer();
-        if ((buffer.length - offset) > 0) {
-            dump.append(String.format("%02x", buffer[offset]));
-            for (int i = offset + 1; i < buffer.length; i++) {
-                dump.append(String.format("%02x", buffer[i]));
-            }
-        }
-        return dump.toString();
     }
 
 }

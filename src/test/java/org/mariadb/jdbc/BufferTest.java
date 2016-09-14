@@ -33,7 +33,7 @@ public class BufferTest extends BaseTest {
             array20m[i] = (char) (0x30 + (i % 10));
         }
         array40m = new char[40000000];
-        for (int i = 0; i < array8m.length; i++) {
+        for (int i = 0; i < array40m.length; i++) {
             array40m[i] = (char) (0x30 + (i % 10));
         }
     }
@@ -89,8 +89,7 @@ public class BufferTest extends BaseTest {
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
             assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("Could not send query: max_allowed_packet=")
-                            || sqlexception.getMessage().contains("is > to max_allowed_packet"));
+                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -102,8 +101,7 @@ public class BufferTest extends BaseTest {
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
             assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("Could not send query: max_allowed_packet=")
-                            || sqlexception.getMessage().contains("is > to max_allowed_packet"));
+                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -115,8 +113,7 @@ public class BufferTest extends BaseTest {
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
             assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("Could not send query: max_allowed_packet=")
-                            || sqlexception.getMessage().contains("is > to max_allowed_packet"));
+                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -128,8 +125,7 @@ public class BufferTest extends BaseTest {
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
             assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("Could not send query: max_allowed_packet=")
-                            || sqlexception.getMessage().contains("is > to max_allowed_packet"));
+                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -142,8 +138,7 @@ public class BufferTest extends BaseTest {
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
             assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("Could not send query: max_allowed_packet=")
-                    || sqlexception.getMessage().contains("is > to max_allowed_packet"));
+                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -155,8 +150,7 @@ public class BufferTest extends BaseTest {
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
             assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("Could not send query: max_allowed_packet=")
-                            || sqlexception.getMessage().contains("is > to max_allowed_packet"));
+                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -168,8 +162,7 @@ public class BufferTest extends BaseTest {
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
             assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("Could not send query: max_allowed_packet=")
-                            || sqlexception.getMessage().contains("is > to max_allowed_packet"));
+                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -181,8 +174,7 @@ public class BufferTest extends BaseTest {
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
             assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("Could not send query: max_allowed_packet=")
-                            || sqlexception.getMessage().contains("is > to max_allowed_packet"));
+                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 

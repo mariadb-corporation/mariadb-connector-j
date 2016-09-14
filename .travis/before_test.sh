@@ -46,6 +46,7 @@ END
 [mysqld]
 max_allowed_packet=$PACKET
 innodb_log_file_size=$INNODB_LOG_FILE_SIZE
+character_set_server = utf8mb4
 END
 
     # Generate SSL files:

@@ -50,12 +50,19 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.stream;
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
+import org.mariadb.jdbc.internal.util.Utils;
+
 import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
 public class MariaDbBufferedInputStream extends BufferedInputStream implements MariaDbInputStream {
+    private static Logger logger = LoggerFactory.getLogger(MariaDbBufferedInputStream.class);
+    private int lastPacketSeq;
     private byte[] headerBuffer = new byte[4];
 
     public MariaDbBufferedInputStream(InputStream in, int size) {
@@ -72,7 +79,9 @@ public class MariaDbBufferedInputStream extends BufferedInputStream implements M
         int avail = count - pos;
         if (avail >= 4) {
             int returnValue = (buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8) + ((buf[pos + 2] & 0xff) << 16);
+            lastPacketSeq = buf[pos + 3] & 0xff;
             pos += 4;
+            logger.trace("read packet seq:" + lastPacketSeq + " length:" + returnValue);
             return returnValue;
         }
 
@@ -84,7 +93,19 @@ public class MariaDbBufferedInputStream extends BufferedInputStream implements M
             }
             read += count;
         } while (read < 4);
-        return (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
+        lastPacketSeq = headerBuffer[3] & 0xff;
+        int length = (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
+        logger.trace("read packet seq:" + lastPacketSeq + " length:" + length);
+        return length;
     }
 
+    @Override
+    public int getLastPacketSeq() {
+        return lastPacketSeq;
+    }
+
+    @Override
+    public void setLastPacketSeq(int lastPacketSeq) {
+        this.lastPacketSeq = lastPacketSeq;
+    }
 }

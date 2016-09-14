@@ -52,6 +52,7 @@ public class DateTest extends BaseTest {
      * @throws SQLException exception
      */
     public void dateTest(boolean useLegacy) throws SQLException {
+        Assume.assumeFalse(sharedIsRewrite());
         Connection connection = null;
         try {
             connection = setConnection("&useLegacyDatetimeCode=" + useLegacy

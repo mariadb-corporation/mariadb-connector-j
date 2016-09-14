@@ -84,9 +84,19 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
         return affectedRows[0];
     }
 
-    public void addStatsError() {
-        this.insertId[currentStat] = Statement.EXECUTE_FAILED;
+    public void addStatsError(boolean moreResultAvailable) {
         this.affectedRows[currentStat++] = Statement.EXECUTE_FAILED;
+        setMoreResultAvailable(moreResultAvailable);
+    }
+
+    /**
+     * Add missing information when Exception is thrown.
+     * @param sendCommand send number of command
+     */
+    public void fixStatsError(int sendCommand) {
+        for (;this.affectedRows.length < sendCommand;) {
+            this.affectedRows[currentStat++] = Statement.EXECUTE_FAILED;
+        }
     }
 
     /**
@@ -103,14 +113,8 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
      * @param waitedSize waited size
      * @param hasException has exception
      */
-    public void updateResultsForRewrite(int waitedSize, boolean hasException) {
-        long totalAffectedRows = 0;
-        int row = 0;
-        while (row < affectedRows.length && affectedRows[row] > 0) {
-            totalAffectedRows += affectedRows[row++];
-        }
-        int resultVal = hasException ? Statement.EXECUTE_FAILED : (totalAffectedRows == affectedRows.length ? 1 : Statement.SUCCESS_NO_INFO);
-        Arrays.fill(affectedRows, resultVal);
+    public int[] updateResultsForRewrite(int waitedSize, boolean hasException) {
+        return null;
     }
 
     /**
@@ -126,45 +130,8 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
      * @param waitedSize  batchSize
      * @param hasException has exception
      */
-    public void updateResultsMultiple(int waitedSize, boolean hasException) {
-
-
-//        if (!hasException) {
-//            for (int i = 1 ; i < affectedRows.length; i++) {
-//                SingleExecutionResult executionResult = (SingleExecutionResult) cachedExecutionResults.poll();
-//                affectedRows[i] = (int) executionResult.getAffectedRows();
-//                insertId[i] = executionResult.getInsertId();
-//            }
-//        } else {
-//            for (int i = 1 ; i < affectedRows.length; i++) {
-//                SingleExecutionResult executionResult = (SingleExecutionResult) cachedExecutionResults.poll();
-//                if (executionResult != null) {
-//                    affectedRows[i] = (int) executionResult.getAffectedRows();
-//                    insertId[i] = executionResult.getInsertId();
-//                } else {
-//                    affectedRows[i] = Statement.EXECUTE_FAILED;
-//                    insertId[i] = Statement.EXECUTE_FAILED;
-//                }
-//            }
-//        }
-
-//        if (!cachedExecutionResults.isEmpty()) {
-//            //was rewrite with multiple insert
-//            int[] newAffectedRows = new int[affectedRows.length + cachedExecutionResults.size()];
-//            long[] newInsertIds = new long[insertId.length + cachedExecutionResults.size()];
-//            int counter = 0;
-//            for (; counter < affectedRows.length; counter++) {
-//                newAffectedRows[counter] = affectedRows[counter];
-//                newInsertIds[counter] = insertId[counter];
-//            }
-//            SingleExecutionResult executionResult;
-//            while ((executionResult = (SingleExecutionResult) cachedExecutionResults.poll()) != null) {
-//                newAffectedRows[counter] = (int) executionResult.getAffectedRows();
-//                newInsertIds[counter++] = executionResult.getInsertId();
-//            }
-//            affectedRows = newAffectedRows;
-//            insertId = newInsertIds;
-//        }
+    public int[] updateResultsMultiple(int waitedSize, boolean hasException) {
+        return null;
     }
 
     public MariaSelectResultSet getResultSet() {
@@ -222,4 +189,7 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
         return false;
     }
 
+    public int getCurrentStat() {
+        return currentStat;
+    }
 }

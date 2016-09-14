@@ -64,9 +64,11 @@ public class StringParameter implements ParameterHolder, Cloneable {
     private boolean noBackslashEscapes;
     private byte[] escapedArray = null;
     private int position;
+    private int charsOffset;
+    private boolean binary;
 
-    public StringParameter(String string, boolean noBackslashEscapes) throws SQLException {
-        this.string = string;
+    public StringParameter(String str, boolean noBackslashEscapes) throws SQLException {
+        this.string = str;
         this.noBackslashEscapes = noBackslashEscapes;
     }
 
@@ -95,8 +97,16 @@ public class StringParameter implements ParameterHolder, Cloneable {
         return position;
     }
 
-    public void writeBinary(final PacketOutputStream writeBuffer) {
-        writeBuffer.writeStringLength(string);
+    /**
+     * Send string value to server in binary format.
+     *
+     * @param writer socket to server.
+     */
+    public void writeBinary(final PacketOutputStream writer) {
+        if (escapedArray == null) utf8();
+        writer.assureBufferCapacity(position + 9);
+        writer.writeFieldLength(position);
+        writer.buffer.put(escapedArray, 0, position);
     }
 
     public MariaDbType getMariaDbType() {
@@ -113,8 +123,12 @@ public class StringParameter implements ParameterHolder, Cloneable {
             }
         } else {
             if (position > 1024) {
+                //escape bytes have integrated quote, binary hasn't
+                if (binary) return "'" + new String(escapedArray, 0, 1024) + "...'";
                 return new String(escapedArray, 0, 1024) + "...'";
             } else {
+                //escape bytes have integrated quote, binary hasn't
+                if (binary) return "'" + new String(escapedArray, 0, position) + "'";
                 return new String(escapedArray, 0, position);
             }
         }
@@ -153,19 +167,10 @@ public class StringParameter implements ParameterHolder, Cloneable {
      */
     private void escapeUtf8() {
         //get char array
-        char[] chars;
-        if (charsFieldValue != null) {
-            try {
-                chars = (char[]) charsFieldValue.get(string);
-            } catch (IllegalAccessException e) {
-                chars = string.toCharArray();
-            }
-        } else {
-            chars = string.toCharArray();
-        }
+        char[] chars = getChars();
         string = null;
         int charsLength = chars.length;
-        int charsOffset = 0;
+        charsOffset = 0;
         position = 0;
 
         //create UTF-8 byte array
@@ -178,12 +183,12 @@ public class StringParameter implements ParameterHolder, Cloneable {
 
         //Handle fast conversion without testing kind of escape for each character
         if (noBackslashEscapes) {
-            while (position < charsLength && chars[charsOffset] < 0x80) {
+            while (charsOffset < charsLength && chars[charsOffset] < 0x80) {
                 if (chars[charsOffset] == '\'') escapedArray[position++] = (byte) '\''; //add a single escape quote
                 escapedArray[position++] = (byte) chars[charsOffset++];
             }
         } else {
-            while (position < charsLength && chars[charsOffset] < 0x80) {
+            while (charsOffset < charsLength && chars[charsOffset] < 0x80) {
                 if (chars[charsOffset]  == '\''
                         || chars[charsOffset]  == '\\'
                         || chars[charsOffset]  == '"'
@@ -202,46 +207,78 @@ public class StringParameter implements ParameterHolder, Cloneable {
                     escapedArray[position++] = (byte) '\\';
                 }
                 escapedArray[position++] = (byte) currChar;
-            } else if (currChar < 0x800) {
-                escapedArray[position++] = (byte) (0xc0 | (currChar >> 6));
-                escapedArray[position++] = (byte) (0x80 | (currChar & 0x3f));
-            } else if (currChar >= 0xD800 && currChar < 0xE000) {
-                //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
-                if (currChar >= 0xD800 && currChar < 0xDC00) {
-                    //is high surrogate
-                    if (charsOffset + 1 > charsLength) {
-                        escapedArray[position++] = (byte)0x63;
-                        break;
-                    }
-                    char nextChar = chars[charsOffset];
-                    if (nextChar >= 0xDC00 && nextChar < 0xE000) {
-                        //is low surrogate
-                        int surrogatePairs =  ((currChar << 10) + nextChar) + (0x010000 - (0xD800 << 10) - 0xDC00);
-                        escapedArray[position++] = (byte) (0xf0 | ((surrogatePairs >> 18)));
-                        escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 12) & 0x3f));
-                        escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 6) & 0x3f));
-                        escapedArray[position++] = (byte) (0x80 | (surrogatePairs & 0x3f));
-                        charsOffset++;
-                    } else {
-                        //must have low surrogate
-                        escapedArray[position++] = (byte)0x63;
-                    }
+            } else getNonAsciiByte(currChar, chars, charsLength);
+        }
+        escapedArray[position++] = (byte) '\'';
+        binary = false;
+    }
+
+    private void getNonAsciiByte(char currChar, char[] chars, int charsLength) {
+        if (currChar < 0x800) {
+            escapedArray[position++] = (byte) (0xc0 | (currChar >> 6));
+            escapedArray[position++] = (byte) (0x80 | (currChar & 0x3f));
+        } else if (currChar >= 0xD800 && currChar < 0xE000) {
+            //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
+            if (currChar >= 0xD800 && currChar < 0xDC00) {
+                //is high surrogate
+                if (charsOffset + 1 > charsLength) {
+                    escapedArray[position++] = (byte)0x63;
+                    return;
+                }
+                char nextChar = chars[charsOffset];
+                if (nextChar >= 0xDC00 && nextChar < 0xE000) {
+                    //is low surrogate
+                    int surrogatePairs =  ((currChar << 10) + nextChar) + (0x010000 - (0xD800 << 10) - 0xDC00);
+                    escapedArray[position++] = (byte) (0xf0 | ((surrogatePairs >> 18)));
+                    escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 12) & 0x3f));
+                    escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 6) & 0x3f));
+                    escapedArray[position++] = (byte) (0x80 | (surrogatePairs & 0x3f));
+                    charsOffset++;
                 } else {
-                    //low surrogate without high surrogate before
+                    //must have low surrogate
                     escapedArray[position++] = (byte)0x63;
                 }
             } else {
-                escapedArray[position++] = (byte) (0xe0 | ((currChar >> 12)));
-                escapedArray[position++] = (byte) (0x80 | ((currChar >> 6) & 0x3f));
-                escapedArray[position++] = (byte) (0x80 | (currChar & 0x3f));
+                //low surrogate without high surrogate before
+                escapedArray[position++] = (byte)0x63;
             }
+        } else {
+            escapedArray[position++] = (byte) (0xe0 | ((currChar >> 12)));
+            escapedArray[position++] = (byte) (0x80 | ((currChar >> 6) & 0x3f));
+            escapedArray[position++] = (byte) (0x80 | (currChar & 0x3f));
         }
-        escapedArray[position++] = (byte) '\'';
+    }
+
+    /**
+     * Get fast UTF-8 array from String.
+     */
+    private void utf8() {
+        //get char array
+        char[] chars = getChars();
+        string = null;
+        int charsLength = chars.length;
+        charsOffset = 0;
+        position = 0;
+
+        escapedArray = new byte[(charsLength * 3)];
+
+        while (charsOffset < charsLength) {
+            char currChar = chars[charsOffset++];
+            if (currChar < 0x80) {
+                escapedArray[position++] = (byte) currChar;
+            } else getNonAsciiByte(currChar, chars, charsLength);
+        }
+        binary = true;
     }
 
     public boolean isLongData() {
         return false;
     }
+
+    public boolean isNullData() {
+        return false;
+    }
+
 
     private static Field charsFieldValue;
 
@@ -274,8 +311,22 @@ public class StringParameter implements ParameterHolder, Cloneable {
         }
     }
 
-    public boolean isNullData() {
-        return false;
+    /**
+     * Permit to have direct access to char array of String implementation if permitted.
+     * (avoid creation of a new instance)
+     *
+     * @return char array corresponding to string value
+     */
+    public char[] getChars() {
+        if (charsFieldValue != null) {
+            try {
+                return (char[]) charsFieldValue.get(string);
+            } catch (IllegalAccessException e) {
+                return string.toCharArray();
+            }
+        } else {
+            return string.toCharArray();
+        }
     }
 
 }

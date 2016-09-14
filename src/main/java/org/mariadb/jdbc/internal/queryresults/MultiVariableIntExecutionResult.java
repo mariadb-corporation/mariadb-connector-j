@@ -17,6 +17,7 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
     private MariaSelectResultSet resultSet = null;
     private List<Long> insertId;
     private List<Integer> affectedRows;
+    private int waitedSize;
 
     /**
      * Constructor. Creating resultSet data with size according to datas.
@@ -97,9 +98,30 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
         return affectedRows.get(0);
     }
 
-    public void addStatsError() {
-        this.insertId.add(new Long(Statement.EXECUTE_FAILED));
+    /**
+     * Add resutl information when an Exception occur during batch.
+     * @param moreResultAvailable has more result flag
+     */
+    public void addStatsError(boolean moreResultAvailable) {
         this.affectedRows.add(Statement.EXECUTE_FAILED);
+        this.insertId.add(null);
+        setMoreResultAvailable(moreResultAvailable);
+    }
+
+    public void addStatsError() {
+        this.affectedRows.add(Statement.EXECUTE_FAILED);
+        this.insertId.add(null);
+    }
+
+    /**
+     * Add missing information when Exception is thrown.
+     * @param sendCommand send number of command
+     */
+    public void fixStatsError(int sendCommand) {
+        for (;this.affectedRows.size() < sendCommand;) {
+            this.affectedRows.add(Statement.EXECUTE_FAILED);
+            this.insertId.add(null);
+        }
     }
 
     /**
@@ -115,20 +137,68 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
      *
      * @param waitedSize  batchSize
      * @param hasException has exception
+     * @return affected rows
      */
-    public void updateResultsForRewrite(int waitedSize, boolean hasException) {
+    public int[] updateResultsForRewrite(int waitedSize, boolean hasException) {
+        this.waitedSize = waitedSize;
         long totalAffectedRows = 0;
         Iterator<Integer> iterator = affectedRows.iterator();
 
         while (iterator.hasNext()) {
             totalAffectedRows += iterator.next().intValue();
         }
-        int realSize = Math.max(waitedSize, affectedRows.size());
-        int resultVal = hasException ? Statement.EXECUTE_FAILED : (totalAffectedRows == realSize ? 1 : Statement.SUCCESS_NO_INFO);
+        int realSize = (int) Math.max(waitedSize, totalAffectedRows);
+        int baseResult = totalAffectedRows == realSize ? 1 : Statement.SUCCESS_NO_INFO;
 
-        Integer[] arr = new Integer[realSize];
-        Arrays.fill(arr, resultVal);
-        affectedRows = Arrays.asList(arr);
+        int[] arr = new int[realSize];
+        int counter = 0;
+        iterator = affectedRows.iterator();
+        while (iterator.hasNext()) {
+            int affectedRow = iterator.next().intValue();
+            for (int i = 0; i < affectedRow; i++) arr[counter++] = baseResult;
+        }
+        for (;counter < realSize;) arr[counter++] = hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO;
+        return arr;
+    }
+
+    /**
+     * Generate insert id's array for rewrite operation.
+     * Rewrite operation will return only the first insert ids.
+     * Problem is rewrite queries cannot exceed max_allowed_packet size.
+     * so when sending many packet, driver must reconstruct the insert ids according to each packet first insert ids
+     * and connection AUTO_INCREMENT.
+     *
+     * //TODO innodb_autoinc_lock_mode if  changed to "Interleaved Lock Mode", driver cannot ensure that insert ids values.
+     *
+     * Id's can be reconstruct using
+     *
+     *
+     * @param autoIncrementIncrement connection AUTO_INCREMENT variable
+     * @return insert ids array
+     */
+    public long[] getInsertIdsForRewrite(int autoIncrementIncrement) {
+        long totalAffectedRows = 0L;
+        Iterator<Integer> iterator = affectedRows.iterator();
+        Iterator<Long> idsIterator = insertId.iterator();
+
+        while (iterator.hasNext()) {
+            int affectedRow = iterator.next().intValue();
+            if (affectedRow == Statement.EXECUTE_FAILED) return new long[0];
+            totalAffectedRows += affectedRow;
+        }
+        long realSize = Math.max(waitedSize, totalAffectedRows);
+
+        long[] arr = new long[(int) realSize];
+        int counter = 0;
+        iterator = affectedRows.iterator();
+        while (iterator.hasNext()) {
+            long id = idsIterator.next().longValue();
+            int affectedRow = iterator.next().intValue();
+            if (affectedRow == Statement.EXECUTE_FAILED) break;
+            for (int i = 0; i < affectedRow; i++) arr[counter++] = id + i * autoIncrementIncrement;
+        }
+        for (;counter < realSize;) arr[counter++] = Statement.EXECUTE_FAILED;
+        return arr;
     }
 
     /**
@@ -144,30 +214,13 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
      * @param waitedSize  batchSize
      * @param hasException has exception
      */
-    public void updateResultsMultiple(int waitedSize, boolean hasException) {
+    public int[] updateResultsMultiple(int waitedSize, boolean hasException) {
         if (hasException) {
             for (int i = affectedRows.size() ; i < waitedSize; i++) {
                 addStatsError();
             }
         }
-
-//        if (!cachedExecutionResults.isEmpty()) {
-//            //was rewrite with multiple insert
-//            int[] newAffectedRows = new int[affectedRows.length + cachedExecutionResults.size()];
-//            long[] newInsertIds = new long[insertId.length + cachedExecutionResults.size()];
-//            int counter = 0;
-//            for (; counter < affectedRows.length; counter++) {
-//                newAffectedRows[counter] = affectedRows[counter];
-//                newInsertIds[counter] = insertId[counter];
-//            }
-//            SingleExecutionResult executionResult;
-//            while ((executionResult = (SingleExecutionResult) cachedExecutionResults.poll()) != null) {
-//                newAffectedRows[counter] = (int) executionResult.getAffectedRows();
-//                newInsertIds[counter++] = executionResult.getInsertId();
-//            }
-//            affectedRows = newAffectedRows;
-//            insertId = newInsertIds;
-//        }
+        return getAffectedRows();
     }
 
     public MariaSelectResultSet getResultSet() {

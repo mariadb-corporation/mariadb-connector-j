@@ -185,7 +185,7 @@ public class DataTypeUnsignedTest extends BaseTest {
             }
 
             try (ResultSet rs = DatatypeTest.getResultSet("select * from yearTest", true, connection)) {
-                yearTestResult(rs, true);
+                yearTestResult(rs, sharedOptions().useServerPrepStmts ? true : false);
             }
         }
     }

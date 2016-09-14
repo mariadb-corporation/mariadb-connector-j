@@ -60,6 +60,7 @@ import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 
 public class ComStmtPrepare {
@@ -80,6 +81,21 @@ public class ComStmtPrepare {
      */
     public void send(PacketOutputStream writer) throws IOException, QueryException {
         writer.send(this.sql, Packet.COM_STMT_PREPARE);
+    }
+
+    /**
+     * Send sub-command (COM_MULTI) to write socket.
+     *
+     * @param writer the writer
+     * @throws IOException if connection error occur
+     * @throws QueryException if packet max size is to big.
+     */
+    public void sendSubCmd(PacketOutputStream writer) throws IOException, QueryException {
+        byte[] sqlBytes = sql.getBytes(StandardCharsets.UTF_8);
+        writer.assureBufferCapacity(sqlBytes.length + 10);
+        writer.writeFieldLength(sqlBytes.length + 1);
+        writer.buffer.put(Packet.COM_STMT_PREPARE);
+        writer.buffer.put(sqlBytes);
     }
 
     /**

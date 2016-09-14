@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -53,11 +54,15 @@ public class PreparedStatementTest extends BaseTest {
     public void insertSelect() throws Exception {
         try {
             PreparedStatement stmt = sharedConnection.prepareStatement(
-                    "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)");
+                    "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)", Statement.RETURN_GENERATED_KEYS);
             stmt.setString(1, "test");
-            stmt.executeUpdate();
-            if (sharedOptions().useBatchMultiSend && sharedUsePrepare()) fail("Must have fail");
+            stmt.execute();
+            ResultSet rs = sharedConnection.createStatement().executeQuery("select count(*) from test_insert_select");
+            rs.next();
+            System.out.println(rs.getInt(1));
         } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("If column exists but type cannot be identified (example 'select ? `field1` from dual'). "
+                    + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')"));
             if (!sharedOptions().useBatchMultiSend) {
                 fail("Must have fallback to client preparedStatement");
             }
@@ -94,8 +99,7 @@ public class PreparedStatementTest extends BaseTest {
     @Test
     public void testNoSuchTableBatchUpdate() throws SQLException, UnsupportedEncodingException {
         sharedConnection.createStatement().execute("drop table if exists vendor_code_test");
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-                "/*CLIENT*/ INSERT INTO vendor_code_test VALUES(?)");
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO vendor_code_test VALUES(?)");
         preparedStatement.setString(1, "dummyValue");
         preparedStatement.addBatch();
 
@@ -226,7 +230,9 @@ public class PreparedStatementTest extends BaseTest {
             // query size minus the ?
             // add first byte COM_QUERY
             // add 2 bytes (2 QUOTES for string parameter without need of escaping)
-            char[] arr = new char[maxAllowedPacket - (query.length() + 3 )];
+            // add 4 bytes if compression
+
+            char[] arr = new char[maxAllowedPacket - (query.length() + (sharedUseCompression() ? 8 : 4 ))];
             for (int i = 0; i < arr.length; i++) {
                 arr[i] = (char) ('a' + (i % 10));
             }
@@ -270,10 +276,10 @@ public class PreparedStatementTest extends BaseTest {
 
     /**
      * Goal is send rewritten query with 2 parameters with size exacting max_allowed_packet.
-     * @param notRewritable rewritable
+     * @param rewritableMulti rewritableMulti
      * @throws SQLException exception
      */
-    private void testRewriteMultiPacket2param(boolean notRewritable) throws SQLException {
+    private void testRewriteMultiPacket2param(boolean rewritableMulti) throws SQLException {
         Statement statement = sharedConnection.createStatement();
         statement.execute("TRUNCATE PreparedStatementTest1");
         ResultSet rs = statement.executeQuery("select @@max_allowed_packet");
@@ -281,7 +287,7 @@ public class PreparedStatementTest extends BaseTest {
         int maxAllowedPacket = rs.getInt(1);
         if (maxAllowedPacket < 21000000) { //to avoid OutOfMemory
             String query = "INSERT INTO PreparedStatementTest1 VALUES (null, ?)"
-                    + (notRewritable ? " ON DUPLICATE KEY UPDATE id=?" : "");
+                    + (rewritableMulti ? "" : " ON DUPLICATE KEY UPDATE id=?");
             //to have query with exactly 2 values exacting maxAllowedPacket size :
             char[] arr = new char[(maxAllowedPacket - (query.length() + 18) ) / 2];
             for (int i = 0; i < arr.length; i++) {
@@ -292,7 +298,7 @@ public class PreparedStatementTest extends BaseTest {
                 PreparedStatement pstmt = connection.prepareStatement(query);
                 for (int i = 0; i < 4; i++) {
                     pstmt.setString(1, new String(arr));
-                    if (notRewritable) pstmt.setInt(2, 1);
+                    if (!rewritableMulti) pstmt.setInt(2, 1);
                     pstmt.addBatch();
                 }
                 int[] results = pstmt.executeBatch();

@@ -53,6 +53,8 @@ package org.mariadb.jdbc.internal.queryresults.resultset;
 
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
@@ -83,6 +85,7 @@ import java.util.regex.Pattern;
 
 @SuppressWarnings("deprecation")
 public class MariaSelectResultSet implements ResultSet {
+    private static Logger logger = LoggerFactory.getLogger(MariaSelectResultSet.class);
     public static final MariaSelectResultSet EMPTY = createEmptyResultSet();
 
     public static final int TINYINT1_IS_BIT = 1;
@@ -394,6 +397,7 @@ public class MariaSelectResultSet implements ResultSet {
             //read directly from stream to avoid creating byte array and copy data afterward.
 
             int read = inputStream.read() & 0xff;
+            if (logger.isTraceEnabled()) logger.trace("read packet data(part):0x" + Integer.valueOf(String.valueOf(read), 16));
             int remaining = length - 1;
 
             if (read == 255) { //ERROR packet
@@ -1623,10 +1627,9 @@ public class MariaSelectResultSet implements ResultSet {
                         }
                         int nanoseconds = extractNanos(rawValue);
                         Timestamp timestamp;
-                        Calendar calendar = cal;
-                        if (options.useLegacyDatetimeCode) {
-                            calendar = Calendar.getInstance();
-                        }
+
+                        Calendar calendar = options.useLegacyDatetimeCode ? Calendar.getInstance() : cal;
+
                         synchronized (calendar) {
                             calendar.set(Calendar.YEAR, year);
                             calendar.set(Calendar.MONTH, month - 1);
@@ -3480,10 +3483,7 @@ public class MariaSelectResultSet implements ResultSet {
             }
         }
 
-        Calendar calendar = Calendar.getInstance();
-        if (!options.useLegacyDatetimeCode) {
-            calendar = cal;
-        }
+        Calendar calendar = options.useLegacyDatetimeCode ? Calendar.getInstance() : cal;
         Timestamp tt;
         synchronized (calendar) {
             calendar.set(year, month - 1, day, hour, minutes, seconds);

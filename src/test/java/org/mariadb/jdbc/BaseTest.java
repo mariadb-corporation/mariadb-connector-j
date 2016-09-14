@@ -16,6 +16,8 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.*;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Base util class.
@@ -24,7 +26,7 @@ import java.util.*;
  */
 @Ignore
 public class BaseTest {
-    protected static final String mDefUrl = "jdbc:mysql://localhost:3306/testj?user=root&profileSql=true";
+    protected static final String mDefUrl = "jdbc:mysql://localhost:3306/testj?user=root";
     protected static String connU;
     protected static String connUri;
     protected static String hostname;
@@ -55,7 +57,6 @@ public class BaseTest {
             if (testSingleHost) {
                 Random random = new Random();
                 int randInt = random.nextInt();
-
                 try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT " + randInt)) {
                     ResultSet rs = preparedStatement.executeQuery();
                     Assert.assertTrue(rs.next());
@@ -159,6 +160,32 @@ public class BaseTest {
             database = urlParser.getDatabase();
             username = urlParser.getUsername();
             password = urlParser.getPassword();
+            int separator = url.indexOf("//");
+            String urlSecondPart = url.substring(separator + 2);
+            int dbIndex = urlSecondPart.indexOf("/");
+            int paramIndex = urlSecondPart.indexOf("?");
+
+            String additionalParameters;
+            if ((dbIndex < paramIndex && dbIndex < 0) || (dbIndex > paramIndex && paramIndex > -1)) {
+                additionalParameters = urlSecondPart.substring(paramIndex);
+            } else if ((dbIndex < paramIndex && dbIndex > -1) || (dbIndex > paramIndex && paramIndex < 0)) {
+                additionalParameters = urlSecondPart.substring(dbIndex);
+            } else {
+                additionalParameters = null;
+            }
+            if (additionalParameters != null) {
+                String regex = "(\\/[^\\?]*)(\\?.+)*|(\\?[^\\/]*)(\\/.+)*";
+                Pattern pattern = Pattern.compile(regex);
+                Matcher matcher = pattern.matcher(additionalParameters);
+                if (matcher.find()) {
+                    String options1 = (matcher.group(2) != null) ? matcher.group(2).substring(1) : "";
+                    String options2 = (matcher.group(3) != null) ? matcher.group(3).substring(1) : "";
+                    parameters = (!options1.equals("")) ? options1 : options2;
+                }
+            } else {
+                parameters = null;
+            }
+
 
             setUri();
 
@@ -171,7 +198,7 @@ public class BaseTest {
         connU = "jdbc:mysql://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
         connUri = connU + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
-                + (parameters != null ? parameters : "");
+                + (parameters != null ? "&" + parameters : "");
     }
 
     /**
@@ -304,7 +331,8 @@ public class BaseTest {
 
         Method getProtocol = MariaDbConnection.class.getDeclaredMethod("getProtocol", new Class[0]);
         getProtocol.setAccessible(true);
-        return (Protocol) getProtocol.invoke(conn);
+        Object obj = getProtocol.invoke(conn);
+        return (Protocol) obj;
     }
 
     protected void setHostname(String hostname) throws SQLException {
@@ -337,6 +365,13 @@ public class BaseTest {
         setConnection();
     }
 
+    protected Connection setBlankConnection(String parameters) throws SQLException {
+        return openConnection(connU
+                + "?user=" + username
+                + (password != null && !"".equals(password) ? "&password=" + password : "")
+                + parameters, null);
+    }
+
     protected Connection setConnection() throws SQLException {
         return openConnection(connUri, null);
     }
@@ -357,11 +392,12 @@ public class BaseTest {
         return openConnection(connUri + parameters, null);
     }
 
+
     protected Connection setConnection(String additionnallParameters, String database) throws SQLException {
         String connU = "jdbc:mysql://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
         String connUri = connU + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
-                + (parameters != null ? parameters : "");
+                + (parameters != null ? "&" + parameters : "");
         return openConnection(connUri + additionnallParameters, null);
     }
 
@@ -655,6 +691,15 @@ public class BaseTest {
      */
     public boolean sharedBulkCapacity() {
         return urlParser.getOptions().useBatchMultiSend;
+    }
+
+    /**
+     * Permit to know if sharedConnection use compression.
+     *
+     * @return true if option compression is set to true
+     */
+    public boolean sharedUseCompression() {
+        return urlParser.getOptions().useCompression;
     }
 
 }

@@ -49,6 +49,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
@@ -68,6 +70,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 public class MariaDbStatement implements Statement, Cloneable {
+    private static Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
     //timeout scheduler
     private static final ScheduledExecutorService timeoutScheduler = SchedulerServiceProviderHolder.getTimeoutScheduler();
 
@@ -217,6 +220,8 @@ public class MariaDbStatement implements Statement, Cloneable {
         if (queryException.getSqlState() != null && queryException.getSqlState().startsWith("08")) {
             close();
         }
+
+        logger.error("error executing query", queryException);
 
         ExceptionMapper.throwException(queryException, connection, this);
     }
@@ -649,6 +654,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             }
             protocol.cancelCurrentQuery();
         } catch (QueryException e) {
+            logger.error("error cancelling query", e);
             ExceptionMapper.throwException(e, connection, this);
         } catch (IOException e) {
             // connection gone, query is definitely canceled
@@ -735,12 +741,12 @@ public class MariaDbStatement implements Statement, Cloneable {
                 } else {
                     MultiExecutionResult multiExecution = (MultiExecutionResult) executionResult;
                     int size = 0;
-                    int affectedRowslength = multiExecution.getAffectedRows().length;
-                    for (int i = 0; i < affectedRowslength; i++) {
+                    int affectedRowsLength = multiExecution.getAffectedRows().length;
+                    for (int i = 0; i < affectedRowsLength; i++) {
                         size += multiExecution.getAffectedRows()[i];
                     }
                     data =  new long[size];
-                    for (int affectedRows = 0; affectedRows < affectedRowslength; affectedRows++) {
+                    for (int affectedRows = 0; affectedRows < affectedRowsLength; affectedRows++) {
                         for (int i = 0; i < multiExecution.getAffectedRows()[affectedRows]; i++) {
                             data[i] = multiExecution.getInsertIds()[affectedRows] + i * autoIncrementIncrement;
                         }
@@ -842,6 +848,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             warningsCleared = false;
             connection.reenableWarnings();
         } catch (QueryException e) {
+            logger.debug("error skipMoreResults", e);
             ExceptionMapper.throwException(e, connection, this);
         }
     }
@@ -904,6 +911,7 @@ public class MariaDbStatement implements Statement, Cloneable {
                     return false;
                 }
             } catch (QueryException queryException) {
+                logger.debug("error retrieving more results ", queryException);
                 ExceptionMapper.throwException(queryException, connection, this);
                 return false;
             } finally {
@@ -1090,6 +1098,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             } catch (QueryException e) {
                 exception = e;
             } finally {
+                internalExecutionResult.fixStatsError(batchQueries.size());
                 if (exception != null && multipleExecution) {
                     internalExecutionResult.updateResultsMultiple(batchQueries.size(), true);
                 }

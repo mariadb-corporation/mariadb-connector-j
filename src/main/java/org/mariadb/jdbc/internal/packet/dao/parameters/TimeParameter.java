@@ -102,7 +102,7 @@ public class TimeParameter implements ParameterHolder, Cloneable {
 
     private byte[] dateToBytes() {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-        if (calendar != null) sdf.setCalendar(calendar);
+        sdf.setCalendar(Calendar.getInstance());
         String dateString = sdf.format(time);
         if (time.getTime() < 0) {
             dateString = "-" + dateString;

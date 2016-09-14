@@ -24,7 +24,7 @@ public class ErrorMessageTest extends BaseTest {
 
     @Test
     public void testSmallRewriteErrorMessage() throws SQLException {
-        try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
+        try (Connection connection = setBlankConnection("&rewriteBatchedStatements=true")) {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -36,20 +36,18 @@ public class ErrorMessageTest extends BaseTest {
 
     @Test
     public void testSmallMultiBatchErrorMessage() throws SQLException {
-        Assume.assumeFalse(sharedIsRewrite());
-        try (Connection connection = setConnection("&allowMultiQueries=true&useServerPrepStmts=false")) {
+        try (Connection connection = setBlankConnection("&allowMultiQueries=true&useServerPrepStmts=false")) {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values "
+            assertTrue("message : " + sqle.getMessage(), sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values "
                     + "('more than 10 characters to provoc error', 10)"));
         }
     }
 
     @Test
     public void testSmallPrepareErrorMessage() throws SQLException {
-        Assume.assumeTrue(sharedUsePrepare());
-        try (Connection connection = setConnection("&useBatchMultiSend=false")) {
+        try (Connection connection = setBlankConnection("&useBatchMultiSend=false")) {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -60,8 +58,7 @@ public class ErrorMessageTest extends BaseTest {
 
     @Test
     public void testSmallBulkErrorMessage() throws SQLException {
-        Assume.assumeTrue(sharedUsePrepare());
-        Connection connection = setConnection("&useBatchMultiSend=true");
+        Connection connection = setBlankConnection("&useBatchMultiSend=true");
         try {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
@@ -76,7 +73,7 @@ public class ErrorMessageTest extends BaseTest {
 
     @Test
     public void testBigRewriteErrorMessage() throws SQLException {
-        try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
+        try (Connection connection = setBlankConnection("&rewriteBatchedStatements=true")) {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -86,32 +83,30 @@ public class ErrorMessageTest extends BaseTest {
 
     @Test
     public void testBigMultiErrorMessage() throws SQLException {
-        Assume.assumeFalse(sharedIsRewrite());
-        try (Connection connection = setConnection("&allowMultiQueries=true&useServerPrepStmts=false")) {
+        try (Connection connection = setBlankConnection("&allowMultiQueries=true&useServerPrepStmts=false")) {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values "
+            assertTrue("message : " + sqle.getMessage(), sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values "
                     + "('more than 10 characters to provoc error', 200)"));
         }
     }
 
     @Test
     public void testBigPrepareErrorMessage() throws SQLException {
-        Assume.assumeTrue(sharedUsePrepare());
-        try (Connection connection = setConnection("&useBatchMultiSend=false")) {
+        try (Connection connection = setBlankConnection("&useBatchMultiSend=false")) {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
+            assertTrue("message : " + sqle.getMessage(), sqle.getMessage().contains(
+                    "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
                     + "['more than 10 characters to provoc error',200]"));
         }
     }
 
     @Test
     public void testBigBulkErrorMessage() throws SQLException {
-        Assume.assumeTrue(sharedUsePrepare());
-        Connection connection = setConnection("&useBatchMultiSend=true");
+        Connection connection = setBlankConnection("&useBatchMultiSend=true");
         try {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");

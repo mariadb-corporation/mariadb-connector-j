@@ -49,6 +49,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
@@ -62,6 +64,7 @@ import java.util.*;
 
 
 public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatement implements Cloneable {
+    private static Logger logger = LoggerFactory.getLogger(MariaDbClientPreparedStatement.class);
     private String sqlQuery;
     private ClientPrepareResult prepareResult;
     private ParameterHolder[] parameters;
@@ -206,6 +209,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         //valid parameters
         for (int i = 0; i < prepareResult.getParamCount(); i++) {
             if (parameters[i] == null) {
+                logger.error("You need to set exactly " + prepareResult.getParamCount()
+                        + " parameters on the prepared statement");
                 throw ExceptionMapper.getSqlException("You need to set exactly " + prepareResult.getParamCount()
                         + " parameters on the prepared statement");
             }
@@ -251,6 +256,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         for (int i = 0; i < holder.length; i++) {
             holder[i] = parameters[i];
             if (holder[i] == null) {
+                logger.error("You need to set exactly " + prepareResult.getParamCount()
+                        + " parameters on the prepared statement");
                 throw ExceptionMapper.getSqlException("You need to set exactly " + prepareResult.getParamCount()
                         + " parameters on the prepared statement");
             }
@@ -284,6 +291,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         checkClose();
         int size = parameterList.size();
         if (size == 0) return new int[0];
+        int[] affectedRows = null;
         MultiExecutionResult internalExecutionResult;
         if (options.allowMultiQueries || options.rewriteBatchedStatements) {
             //permit multi query in one execution
@@ -297,20 +305,18 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             QueryException exception = null;
             executeQueryProlog();
             try {
-                executeInternalBatch(internalExecutionResult, size);
+                affectedRows = executeInternalBatch(internalExecutionResult, size);
             } catch (QueryException e) {
+                internalExecutionResult.fixStatsError(size);
+                if (options.rewriteBatchedStatements) {
+                    if (prepareResult.isQueryMultiValuesRewritable()) {
+                        affectedRows = internalExecutionResult.updateResultsForRewrite(size, true);
+                    } else if (prepareResult.isQueryMultipleRewritable()) {
+                        affectedRows = internalExecutionResult.updateResultsMultiple(size, true);
+                    }
+                } else affectedRows = internalExecutionResult.getAffectedRows();
                 exception = e;
             } finally {
-                if (exception != null) {
-                    if (options.rewriteBatchedStatements) {
-                        if (prepareResult.isQueryMultiValuesRewritable()) {
-                            internalExecutionResult.updateResultsForRewrite(size, true);
-                        } else if (prepareResult.isQueryMultipleRewritable()) {
-                            internalExecutionResult.updateResultsMultiple(size, true);
-                        }
-                    }
-                }
-
                 executionResult = internalExecutionResult;
                 executing = false;
                 executeQueryEpilog(exception);
@@ -318,12 +324,12 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
 
         } catch (SQLException sqle) {
             throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(),
-                    internalExecutionResult.getAffectedRows(), sqle);
+                    affectedRows, sqle);
         } finally {
             lock.unlock();
             clearBatch();
         }
-        return internalExecutionResult.getAffectedRows();
+        return affectedRows;
     }
 
     /**
@@ -331,9 +337,10 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      *
      * @param internalExecutionResult results
      * @param size parameters number
+     * @return affected rows
      * @throws QueryException if any error occur
      */
-    private void executeInternalBatch(MultiExecutionResult internalExecutionResult, int size) throws QueryException {
+    private int[] executeInternalBatch(MultiExecutionResult internalExecutionResult, int size) throws QueryException {
 
         if (options.rewriteBatchedStatements) {
             if (prepareResult.isQueryMultiValuesRewritable()) {
@@ -341,15 +348,13 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
                 // INSERT INTO X(a,b) VALUES (1,2), (3,4), ...
                 protocol.executeBatchRewrite(protocol.isMasterConnection(), internalExecutionResult, prepareResult,
                         parameterList, resultSetScrollType, true);
-                internalExecutionResult.updateResultsForRewrite(size, false);
-                return;
+                return internalExecutionResult.updateResultsForRewrite(size, false);
             } else if (prepareResult.isQueryMultipleRewritable()) {
                 //multi rewritten in one query :
                 // INSERT INTO X(a,b) VALUES (1,2);INSERT INTO X(a,b) VALUES (3,4); ...
                 protocol.executeBatchRewrite(protocol.isMasterConnection(), internalExecutionResult, prepareResult,
                         parameterList, resultSetScrollType, false);
-                internalExecutionResult.updateResultsMultiple(size, false);
-                return;
+                return internalExecutionResult.updateResultsMultiple(size, false);
             }
         }
 
@@ -373,7 +378,63 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             }
             if (exception != null) throw exception;
         }
+        return internalExecutionResult.getAffectedRows();
     }
+
+    /**
+     * {inheritdoc}.
+     */
+    @Override
+    public ResultSet getGeneratedKeys() throws SQLException {
+        if (executionResult != null && executionResult.getResultSet() == null) {
+            int autoIncrementIncrement = connection.getAutoIncrementIncrement();
+            //multi insert in one execution. will create result based on autoincrement
+            if (executionResult.hasMoreThanOneAffectedRows()) {
+                long[] data;
+                if (executionResult.isSingleExecutionResult()) {
+                    int updateCount = executionResult.getFirstAffectedRows();
+                    data = new long[updateCount];
+                    for (int i = 0; i < updateCount; i++) {
+                        data[i] = ((SingleExecutionResult) executionResult).getInsertId() + i * autoIncrementIncrement;
+                    }
+                } else {
+                    if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
+                        MultiVariableIntExecutionResult multiExecution = (MultiVariableIntExecutionResult) executionResult;
+                        data = multiExecution.getInsertIdsForRewrite(autoIncrementIncrement);
+                    } else {
+                        MultiExecutionResult multiExecution = (MultiExecutionResult) executionResult;
+                        int size = 0;
+                        int affectedRowsLength = multiExecution.getAffectedRows().length;
+                        for (int i = 0; i < affectedRowsLength; i++) {
+                            int affectedRows = multiExecution.getAffectedRows()[i];
+                            if (affectedRows >= 0) {
+                                size += multiExecution.getAffectedRows()[i];
+                            } else {
+                                size += 1;
+                            }
+                        }
+
+                        data = new long[(size < 0) ? 0 : size];
+                        int insertIdCounter = 0;
+                        for (int affectedRowsCounter = 0; affectedRowsCounter < affectedRowsLength; affectedRowsCounter++) {
+                            int affectedRows = multiExecution.getAffectedRows()[affectedRowsCounter];
+                            if (affectedRows > 0) {
+                                for (int i = 0; i < affectedRows; i++) {
+                                    data[insertIdCounter++] = multiExecution.getInsertIds()[affectedRowsCounter] + i * autoIncrementIncrement;
+                                }
+                            } else {
+                                data[insertIdCounter++] = multiExecution.getInsertIds()[affectedRowsCounter];
+                            }
+                        }
+                    }
+                }
+                return MariaSelectResultSet.createGeneratedData(data, connection.getProtocol(), true);
+            }
+            return MariaSelectResultSet.createGeneratedData(executionResult.getInsertIds(), connection.getProtocol(), true);
+        }
+        return MariaSelectResultSet.EMPTY;
+    }
+
 
     /**
      * Retrieves a <code>ResultSetMetaData</code> object that contains information about the columns of the
@@ -411,6 +472,9 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         if (parameterIndex >= 1 && parameterIndex  < prepareResult.getParamCount() + 1) {
             parameters[parameterIndex - 1] = holder;
         } else {
+            logger.error("Could not set parameter at position " + parameterIndex
+                    + " (values vas " + holder.toString() + ")");
+
             throw ExceptionMapper.getSqlException("Could not set parameter at position " + parameterIndex
                     + " (values vas " + holder.toString() + ")");
         }

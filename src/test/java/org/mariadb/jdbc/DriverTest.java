@@ -55,6 +55,7 @@ public class DriverTest extends BaseTest {
         createTable("unsignedtest", "a int unsigned");
         createTable("conj25", "a VARCHAR(1024)");
         createTable("batchUpdateException", "i int,PRIMARY KEY (i)");
+        createTable("batchPrepareUpdateException", "i int,PRIMARY KEY (i)");
         createTable("DriverTestt1", "id int not null primary key auto_increment, test varchar(20)");
         createTable("DriverTestt2", "id int not null primary key auto_increment, test varchar(20)");
         createTable("DriverTestt3", "id int not null primary key auto_increment, test varchar(20)");
@@ -1125,6 +1126,40 @@ public class DriverTest extends BaseTest {
             if (sharedIsRewrite()) {
                 assertEquals(1, updateCounts[0]);
                 assertEquals(1, updateCounts[1]);
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[3]);
+            } else {
+                //prepare or allowMultiQueries options
+                assertEquals(1, updateCounts[0]);
+                assertEquals(1, updateCounts[1]);
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
+                assertEquals(1, updateCounts[3]);
+            }
+            assertTrue(bue.getCause() instanceof SQLIntegrityConstraintViolationException);
+        }
+    }
+
+    @Test
+    public void batchPrepareUpdateException() throws Exception {
+        PreparedStatement st = sharedConnection.prepareStatement("insert into batchPrepareUpdateException values(?)");
+        st.setInt(1, 1);
+        st.addBatch();
+        st.setInt(1, 2);
+        st.addBatch();
+        st.setInt(1, 1); // will fail, duplicate primary key
+        st.addBatch();
+        st.setInt(1, 3);
+        st.addBatch();
+
+        try {
+            st.executeBatch();
+            fail("exception should be throw above");
+        } catch (BatchUpdateException bue) {
+            int[] updateCounts = bue.getUpdateCounts();
+            assertEquals(4, updateCounts.length);
+            if (sharedIsRewrite()) {
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[0]);
+                assertEquals(Statement.EXECUTE_FAILED, updateCounts[1]);
                 assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
                 assertEquals(Statement.EXECUTE_FAILED, updateCounts[3]);
             } else {

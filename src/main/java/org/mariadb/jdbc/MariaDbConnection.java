@@ -411,7 +411,7 @@ public final class MariaDbConnection implements Connection {
             if (!options.useServerPrepStmts) {
                 //in case of CALL statement, handling INOUT parameter is better with Prepare protocol
                 canUsePrepareStatement = cleanSql.contains("CALL");
-            } else if (options.useServerPrepStmts) {
+            } else {
                 canUsePrepareStatement = (cleanSql.contains("SELECT")
                         || cleanSql.contains("CALL")
                         || cleanSql.contains("UPDATE")

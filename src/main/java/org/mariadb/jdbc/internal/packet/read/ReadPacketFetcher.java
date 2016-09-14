@@ -50,26 +50,33 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.read;
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import java.io.EOFException;
 import java.io.IOException;
 
 public class ReadPacketFetcher {
 
+    private static Logger logger = LoggerFactory.getLogger(ReadPacketFetcher.class);
+
     public static final int AVOID_CREATE_BUFFER_LENGTH = 4096;
+    private static int maxQuerySizeToLog;
     private final MariaDbInputStream inputStream;
 
     private byte[] headerBuffer = new byte[4];
     private byte[] reusableBuffer = new byte[AVOID_CREATE_BUFFER_LENGTH];
-    private int lastPacketSeq;
 
     /**
      * Reader utility to fetch mysql packet.
      * @param is inputStream
+     * @param maxQuerySizeToLog max query size to log
      */
-    public ReadPacketFetcher(final MariaDbInputStream is) {
+    public ReadPacketFetcher(final MariaDbInputStream is, int maxQuerySizeToLog) {
         this.inputStream = is;
+        this.maxQuerySizeToLog = maxQuerySizeToLog;
     }
 
     /**
@@ -99,7 +106,7 @@ public class ReadPacketFetcher {
             remaining -= count;
             off += count;
         } while (remaining > 0);
-        lastPacketSeq = headerBuffer[3];
+        inputStream.setLastPacketSeq(headerBuffer[3]);
         int length = (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
         byte[] rawBytes = new byte[length];
         remaining = length;
@@ -113,6 +120,10 @@ public class ReadPacketFetcher {
             off += count;
         } while (remaining > 0);
 
+        if (logger.isTraceEnabled()) {
+            logger.trace("read packet seq:" + inputStream.getLastPacketSeq() + " length:" + length + " data:"
+                    + Utils.hexdump(rawBytes, maxQuerySizeToLog, 0, length));
+        }
         return new Buffer(rawBytes, length);
     }
 
@@ -146,6 +157,9 @@ public class ReadPacketFetcher {
             reads += count;
         } while (reads < length);
 
+        if (logger.isTraceEnabled()) {
+            logger.trace("read packet data(part):" + Utils.hexdump(rawBytes, maxQuerySizeToLog, 0, length));
+        }
         return new Buffer(rawBytes, length);
     }
 
@@ -166,7 +180,7 @@ public class ReadPacketFetcher {
             remaining -= count;
             off += count;
         } while (remaining > 0);
-        lastPacketSeq = headerBuffer[3];
+        inputStream.setLastPacketSeq(headerBuffer[3]);
         int length = (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
         byte[] rawBytes;
 
@@ -187,12 +201,16 @@ public class ReadPacketFetcher {
             off += count;
         } while (remaining > 0);
 
+        if (logger.isTraceEnabled()) {
+            logger.trace("read packet seq:" + inputStream.getLastPacketSeq() + " length:" + length + " data:"
+                    + Utils.hexdump(rawBytes, maxQuerySizeToLog, 0, length));
+        }
         return new Buffer(rawBytes, length);
     }
 
 
     public int getLastPacketSeq() {
-        return lastPacketSeq;
+        return inputStream.getLastPacketSeq();
     }
     
     
@@ -223,6 +241,10 @@ public class ReadPacketFetcher {
             remainingToRead -= count;
             off += count;
         } while (remainingToRead > 0);
+        if (logger.isTraceEnabled()) {
+            logger.trace("read packet data(part):" + Utils.hexdump(valueBuffer, maxQuerySizeToLog));
+        }
         return valueBuffer;
     }
+
 }

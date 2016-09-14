@@ -40,6 +40,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                 "ROW_FORMAT=COMPRESSED ENGINE=INNODB");
         createTable("streamtest2", "id int primary key not null, strm text");
         createTable("testServerPrepareMeta", "id int not null primary key auto_increment, id2 int not null, id3 DEC(4,2), id4 BIGINT UNSIGNED ");
+        createTable("ServerPrepareStatementSync", "id int not null primary key auto_increment, test varchar(1007), tt boolean");
     }
 
     @Test
@@ -52,6 +53,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void serverExecutionTest() throws SQLException {
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         Connection connection = null;
         try {
             connection = setConnection();
@@ -78,6 +80,8 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void deferredPrepareTest() throws Throwable {
         Assume.assumeTrue(sharedBulkCapacity());
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
+
         Connection connection = null;
         try {
             connection = setConnection();
@@ -135,6 +139,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void prepStmtCacheSizeTest() throws Throwable {
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         Connection connection = null;
         try {
             connection = setConnection("&prepStmtCacheSize=10");
@@ -492,8 +497,8 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void checkReusability() throws Throwable {
+        Assume.assumeTrue(!sharedIsRewrite());
         setConnection("&prepStmtCacheSize=10");
-
         ExecutorService exec = Executors.newFixedThreadPool(2);
 
         //check blacklist shared
@@ -811,6 +816,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                     protocol.prepareStatementCache().get(sql);
                 }
             } catch (Throwable e) {
+                e.printStackTrace();
                 fail();
             }
         }
@@ -818,9 +824,11 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void testPrepareStatementCache() throws Throwable {
+        Assume.assumeTrue(sharedOptions().useServerPrepStmts);
+
         //tester le cache prepareStatement
         try (Connection connection = setConnection()) {
-            MasterProtocol protocol = (MasterProtocol) getProtocolFromConnection(connection);
+            Protocol protocol = getProtocolFromConnection(connection);
             createTable("test_cache_table1", "id1 int auto_increment primary key, text1 varchar(20), text2 varchar(20)");
             PreparedStatement[] map = new PreparedStatement[280];
             for (int i = 0; i < 280; i++) {
@@ -858,5 +866,83 @@ public class ServerPrepareStatementTest extends BaseTest {
         pstmt.execute();
     }
 
+    /**
+     * Test that getGeneratedKey got the right insert ids values, even when batch in multiple queries (for rewrite).
+     *
+     * @throws SQLException if connection error occur
+     */
+    @Test
+    public void serverPrepareStatementSync() throws Throwable {
+        Assume.assumeTrue(!checkMaxAllowedPacketMore40m("serverPrepareStatementSync", false)); // to avoid
+        Statement st = sharedConnection.createStatement();
+        ResultSet rs = st.executeQuery("select @@max_allowed_packet");
+        if (rs.next()) {
+            long maxAllowedPacket = rs.getInt(1);
+            int totalInsertCommands = (int) Math.ceil(3 * maxAllowedPacket / 1000); //mean that there will be 2 commands
+            try (Connection connection2 = setConnection()) {
+                PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                        "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, false) ");
+                PreparedStatement preparedStatement2 = connection2.prepareStatement(
+                        "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, true) ");
+                char[] thousandChars = new char[1000];
+                Arrays.fill(thousandChars, 'a');
+                String thousandLength = new String(thousandChars);
+
+                for (int counter = 0; counter < totalInsertCommands + 1; counter++) {
+                    preparedStatement.setString(1, "a" + counter + "_" + thousandLength);
+                    preparedStatement.addBatch();
+                    preparedStatement2.setString(1, "b" + counter + "_" + thousandLength);
+                    preparedStatement2.addBatch();
+                }
+
+                ExecutorService executor = Executors.newFixedThreadPool(2);
+                BatchThread thread1 = new BatchThread(preparedStatement);
+                BatchThread thread2 = new BatchThread(preparedStatement2);
+                executor.execute(thread1);
+                //Thread.sleep(500);
+                executor.execute(thread2);
+                executor.shutdown();
+                executor.awaitTermination(400, TimeUnit.SECONDS);
+                ResultSet rs1 = preparedStatement.getGeneratedKeys();
+                ResultSet rs2 = preparedStatement2.getGeneratedKeys();
+
+                ResultSet rs3 = sharedConnection.createStatement().executeQuery("select id, tt from ServerPrepareStatementSync");
+                while (rs3.next()) {
+                    if (rs3.getBoolean(2)) {
+                        rs2.next();
+                        if (rs3.getInt(1) != rs2.getInt(1)) {
+                            System.out.println("1 : " + rs3.getInt(1) + " != " + rs2.getInt(1));
+                            fail();
+                        }
+                    } else {
+                        rs1.next();
+                        if (rs3.getInt(1) != rs1.getInt(1)) {
+                            System.out.println("0 : " + rs3.getInt(1) + " != " + rs1.getInt(1));
+                            fail();
+                        }
+                    }
+                }
+            }
+        } else {
+            fail();
+        }
+    }
+
+    public static class BatchThread implements Runnable {
+        private final PreparedStatement preparedStatement;
+
+        BatchThread(PreparedStatement preparedStatement) {
+            this.preparedStatement = preparedStatement;
+        }
+
+        @Override
+        public void run() {
+            try {
+                preparedStatement.executeBatch();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
 }

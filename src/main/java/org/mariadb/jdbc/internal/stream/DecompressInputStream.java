@@ -62,15 +62,23 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 public class DecompressInputStream extends InputStream implements MariaDbInputStream {
+    private static Logger logger = LoggerFactory.getLogger(DecompressInputStream.class);
     private InputStream baseStream;
+    private int lastPacketSeq;
     private int remainingBytes;
     private byte[] header;
+    private byte[] readHeader;
     private boolean doDecompress;
     private ByteArrayInputStream decompressedByteStream;
 
+    /**
+     * Constructor of inputStream when compression is used.
+     * @param baseStream socket inputStream.
+     */
     public DecompressInputStream(InputStream baseStream) {
         this.baseStream = baseStream;
         header = new byte[7];
+        readHeader = new byte[4];
     }
 
     /**
@@ -81,13 +89,17 @@ public class DecompressInputStream extends InputStream implements MariaDbInputSt
     public int readHeader() throws IOException {
         int read = 0;
         do {
-            int count = read(header, read, 4 - read);
+            int count = read(readHeader, read, 4 - read);
             if (count <= 0) {
                 throw new EOFException("unexpected end of stream, read " + read + " bytes from " + 4);
             }
             read += count;
         } while (read < 4);
-        return (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
+
+        int packetLength = (readHeader[0] & 0xff) + ((readHeader[1] & 0xff) << 8) + ((readHeader[2] & 0xff) << 16);
+        lastPacketSeq = (readHeader[3] & 0xff);
+        logger.trace("read packet seq:" + lastPacketSeq + " length:" + packetLength + " remaining:" + remainingBytes);
+        return packetLength;
     }
 
     @Override
@@ -96,9 +108,7 @@ public class DecompressInputStream extends InputStream implements MariaDbInputSt
             throw new InvalidParameterException();
         }
 
-        if (remainingBytes == 0) {
-            nextPacket();
-        }
+        if (remainingBytes == 0) nextPacket();
 
         int ret;
         int bytesToRead = Math.min(remainingBytes, len);
@@ -149,8 +159,10 @@ public class DecompressInputStream extends InputStream implements MariaDbInputSt
 
 
         int compressedLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
+        lastPacketSeq = header[3] & 0xff;
 
         int decompressedLength = (header[4] & 0xff) + ((header[5] & 0xff) << 8) + ((header[6] & 0xff) << 16);
+
         if (decompressedLength != 0) {
             doDecompress = true;
             remainingBytes += decompressedLength;
@@ -186,6 +198,16 @@ public class DecompressInputStream extends InputStream implements MariaDbInputSt
             remainingBytes += compressedLength;
             decompressedByteStream = null;
         }
+        logger.trace("read compress packet seq:" + lastPacketSeq + " length:" + remainingBytes);
     }
 
+    @Override
+    public int getLastPacketSeq() {
+        return lastPacketSeq;
+    }
+
+    @Override
+    public void setLastPacketSeq(int lastPacketSeq) {
+        this.lastPacketSeq = lastPacketSeq;
+    }
 }

@@ -53,10 +53,13 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.MyX509TrustManager;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.send.*;
 import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
@@ -99,6 +102,7 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class AbstractConnectProtocol implements Protocol {
+    private static Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
     private final String username;
     private final String password;
     private boolean hostFailed;
@@ -370,7 +374,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         if (options.useCompression) {
             writer.setUseCompression(true);
-            packetFetcher = new ReadPacketFetcher(new DecompressInputStream(socket.getInputStream()));
+            packetFetcher = new ReadPacketFetcher(new DecompressInputStream(socket.getInputStream()), options.maxQuerySizeToLog);
         }
         connected = true;
 
@@ -425,8 +429,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
         MariaDbInputStream reader = null;
         try {
             reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
-            packetFetcher = new ReadPacketFetcher(reader);
-            writer = new PacketOutputStream(socket.getOutputStream(), options.profileSql || options.slowQueryThresholdNanos != null);
+            packetFetcher = new ReadPacketFetcher(reader, options.maxQuerySizeToLog);
+            writer = new PacketOutputStream(socket.getOutputStream(),
+                    options.profileSql || options.slowQueryThresholdNanos != null, options.maxQuerySizeToLog);
 
             final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher);
             this.serverThreadId = greetingPacket.getServerThreadId();
@@ -453,9 +458,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
                 socket = sslSocket;
-                writer = new PacketOutputStream(socket.getOutputStream(), options.profileSql || options.slowQueryThresholdNanos != null);
+                writer = new PacketOutputStream(socket.getOutputStream(),
+                        options.profileSql || options.slowQueryThresholdNanos != null , options.maxQuerySizeToLog);
                 reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
-                packetFetcher = new ReadPacketFetcher(reader);
+                packetFetcher = new ReadPacketFetcher(reader, options.maxQuerySizeToLog);
 
                 packetSeq++;
             } else if (options.useSsl) {
@@ -619,6 +625,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     + ")", ResultSet.TYPE_FORWARD_ONLY);
             MariaSelectResultSet resultSet = qr.getResultSet();
             while (resultSet.next()) {
+                logger.debug("server data " + resultSet.getString(1) + " : " + resultSet.getString(2));
                 serverData.put(resultSet.getString(1), resultSet.getString(2));
             }
         } catch (SQLException sqle) {
@@ -639,7 +646,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 (byte) 45, (byte) 46, (byte) 224, (byte) 225, (byte) 226, (byte) 227, (byte) 228,
                 (byte) 229, (byte) 230, (byte) 231, (byte) 232, (byte) 233, (byte) 234, (byte) 235,
                 (byte) 236, (byte) 237, (byte) 238, (byte) 239, (byte) 240, (byte) 241, (byte) 242,
-                (byte) 243, (byte) 245
+                (byte) 243, (byte) 245, (byte) 246, (byte) 247
         };
         return Arrays.asList(utf8mb4Languages).contains(serverLanguage);
     }
