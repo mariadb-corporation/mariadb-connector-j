@@ -1043,4 +1043,37 @@ public class PacketOutputStream extends OutputStream {
         return useCompression;
     }
 
+    /**
+     * Send COM_STMT_CLOSE packet.
+     * @param statementId statement id to close.
+     * @throws IOException if connection error occur.
+     */
+    public void closePrepare(int statementId) throws IOException {
+        byte[] packetBuffer;
+        if (useCompression) {
+            packetBuffer = new byte[12];
+            packetBuffer[0] = (byte) 5;
+            //packetBuffer[1,2,3,4,5,6] = (byte) 0;
+            packetBuffer[7] = Packet.COM_STMT_CLOSE;
+            packetBuffer[8] = (byte) (statementId & 0xff);
+            packetBuffer[9] = (byte) ((statementId >> 8) & 0xff);
+            packetBuffer[10] = (byte) ((statementId >> 16) & 0xff);
+            packetBuffer[11] = (byte) ((statementId >> 24) & 0xff);
+        } else {
+            packetBuffer = new byte[9];
+            packetBuffer[0] = (byte) 5; //packet length 1st byte
+            //packetBuffer[1,2,3] = (byte) 0;
+            packetBuffer[4] = Packet.COM_STMT_CLOSE;
+            packetBuffer[5] = (byte) (statementId & 0xff);
+            packetBuffer[6] = (byte) ((statementId >> 8) & 0xff);
+            packetBuffer[7] = (byte) ((statementId >> 16) & 0xff);
+            packetBuffer[8] = (byte) ((statementId >> 24) & 0xff);
+        }
+        if (logger.isTraceEnabled()) {
+            logger.trace("send packet seq:" + seqNo + " length:" + 5
+                    + " data:" + Utils.hexdump(packetBuffer, maxQuerySizeToLog));
+        }
+        outputStream.write(packetBuffer);
+    }
+
 }

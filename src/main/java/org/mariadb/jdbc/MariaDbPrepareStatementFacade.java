@@ -231,10 +231,8 @@ public class MariaDbPrepareStatementFacade implements PreparedStatement {
 
     @Override
     public void addBatch(String sql) throws SQLException {
-        preparedStatement.addBatch(sql);
+        throw new SQLException("Cannot do addBatch(String) on preparedStatement");
     }
-
-
 
     @Override
     public void setArray(int parameterIndex, Array array) throws SQLException {

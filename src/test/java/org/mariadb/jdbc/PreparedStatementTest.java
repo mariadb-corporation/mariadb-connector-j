@@ -74,7 +74,6 @@ public class PreparedStatementTest extends BaseTest {
         PreparedStatement stmt = sharedConnection.prepareStatement(
                 "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)",
                 Statement.RETURN_GENERATED_KEYS);
-        stmt.addBatch("insert into test_insert_select (field1) values ('test2')");
         stmt.setString(1, "test");
         stmt.addBatch();
         stmt.executeBatch();

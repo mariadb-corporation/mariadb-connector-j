@@ -26,8 +26,10 @@ public class LoggerFactory {
                     method = loggerClass.getMethod("getLogger", Class.class);
                 } catch (ClassNotFoundException classNotFound) {
                     System.out.println("Logging cannot be activated, missing slf4j dependency");
+                    hasToLog = Boolean.FALSE;
                 } catch (NoSuchMethodException classNotFound) {
                     System.out.println("Logging cannot be activated, missing slf4j dependency");
+                    hasToLog = Boolean.FALSE;
                 }
             }
         }

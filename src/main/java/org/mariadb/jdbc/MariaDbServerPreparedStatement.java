@@ -187,6 +187,16 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         queryParameters.add(currentParameterHolder.values().toArray(new ParameterHolder[0]));
     }
 
+    /**
+     * Add batch.
+     * @param sql typically this is a SQL <code>INSERT</code> or <code>UPDATE</code> statement
+     * @throws SQLException every time since that method is forbidden on prepareStatement
+     */
+    @Override
+    public void addBatch(final String sql) throws SQLException {
+        throw new SQLException("Cannot do addBatch(String) on preparedStatement");
+    }
+
     public void clearBatch() {
         queryParameters.clear();
         hasLongData = false;
@@ -427,7 +437,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             // This makes the cache eligible for garbage collection earlier if the statement is not
             // immediately garbage collected
 
-            if (serverPrepareResult != null && protocol != null && protocol.isConnected()) {
+            if (serverPrepareResult != null && protocol != null) {
                 try {
                     serverPrepareResult.getUnProxiedProtocol().releasePrepareStatement(serverPrepareResult);
                 } catch (QueryException e) {

@@ -717,10 +717,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             try {
                 checkClose();
                 try {
-                    ComStmtClose.send(writer, statementId);
+                    writer.closePrepare(statementId);
                     return true;
                 } catch (IOException e) {
-                    throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
+                    throw new QueryException("Could not deallocate query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
                 }
             } finally {
                 lock.unlock();
