@@ -46,32 +46,58 @@ public class PreparedStatementTest extends BaseTest {
     }
 
     /**
-     * Conj-238.
+     * Conj-238 : query not preparable. check fallback.
      *
      * @throws SQLException exception
      */
     @Test
-    public void insertSelect() throws Exception {
+    public void cannotPrepareExecuteFallback() throws Exception {
+        sharedConnection.createStatement().execute("TRUNCATE test_insert_select");
+        PreparedStatement stmt = sharedConnection.prepareStatement(
+                "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)",
+                Statement.RETURN_GENERATED_KEYS);
+        stmt.setString(1, "test");
+        stmt.execute();
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select count(*) from test_insert_select");
+        assertTrue(rs.next());
+    }
+
+
+    /**
+     * Conj-238 : query not preparable. check batch fallback.
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void cannotPrepareBatchFallback() throws Exception {
+        sharedConnection.createStatement().execute("TRUNCATE test_insert_select");
+        PreparedStatement stmt = sharedConnection.prepareStatement(
+                "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)",
+                Statement.RETURN_GENERATED_KEYS);
+        stmt.addBatch("insert into test_insert_select (field1) values ('test2')");
+        stmt.setString(1, "test");
+        stmt.addBatch();
+        stmt.executeBatch();
+
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select count(*) from test_insert_select");
+        assertTrue(rs.next());
+    }
+
+    /**
+     * Conj-238 : query not preparable. check metadata message.
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void cannotPrepareMetadata() throws Exception {
+        PreparedStatement stmt = sharedConnection.prepareStatement(
+                "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)");
         try {
-            PreparedStatement stmt = sharedConnection.prepareStatement(
-                    "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)", Statement.RETURN_GENERATED_KEYS);
-            stmt.setString(1, "test");
-            stmt.execute();
-            ResultSet rs = sharedConnection.createStatement().executeQuery("select count(*) from test_insert_select");
-            rs.next();
-            System.out.println(rs.getInt(1));
+            stmt.getMetaData();
         } catch (SQLException e) {
             assertTrue(e.getMessage().contains("If column exists but type cannot be identified (example 'select ? `field1` from dual'). "
                     + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')"));
-            if (!sharedOptions().useBatchMultiSend) {
-                fail("Must have fallback to client preparedStatement");
-            }
         }
-
-        //check protocol well
-        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT 1");
-        assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
     }
 
     /**

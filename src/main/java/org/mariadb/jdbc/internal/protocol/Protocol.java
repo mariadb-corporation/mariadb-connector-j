@@ -264,4 +264,6 @@ public interface Protocol {
     void changeSocketTcpNoDelay(boolean setTcpNoDelay) throws SocketException;
 
     void changeSocketSoTimeout(int setSoTimeout) throws SocketException;
+
+    ServerPrepareResult getPrepareStatementFromCache(String key);
 }

@@ -1347,4 +1347,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         if (!this.connected) throw new QueryException("Connection is close", 1220, "08000");
     }
 
+    /**
+     * Retrieve prepare result from cache.
+     * @param key cache key.
+     * @return serverPrepareResult if found, null otherwise.
+     */
+    public ServerPrepareResult getPrepareStatementFromCache(String key) {
+        ServerPrepareResult pr = serverPrepareStatementCache.get(key);
+        if (pr != null && pr.incrementShareCounter()) {
+            return pr;
+        }
+        return null;
+    }
+
 }

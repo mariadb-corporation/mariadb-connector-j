@@ -923,6 +923,7 @@ public class MultiTest extends BaseTest {
             }
         }
     }
+
     private void checkNextData(int value, ResultSet rs) throws SQLException {
         Assert.assertTrue(rs.next());
         Assert.assertEquals(value, rs.getInt(1));

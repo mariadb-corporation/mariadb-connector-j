@@ -50,6 +50,8 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.util;
 
 import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.internal.stream.PrepareException;
+import org.mariadb.jdbc.internal.stream.PrepareSqlException;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.sql.SQLException;
@@ -109,7 +111,7 @@ public class ExceptionMapper {
     private static SQLException get(final QueryException exception) {
         final String sqlState = exception.getSqlState();
         final SqlStates state = SqlStates.fromString(sqlState);
-
+        if (exception.isPrepareError()) return new PrepareSqlException((PrepareException) exception);
         switch (state) {
             case DATA_EXCEPTION:
                 return new java.sql.SQLDataException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);

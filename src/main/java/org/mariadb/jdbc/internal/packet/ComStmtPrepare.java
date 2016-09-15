@@ -55,6 +55,7 @@ import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.stream.PrepareException;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
@@ -114,12 +115,12 @@ public class ComStmtPrepare {
             ErrorPacket ep = new ErrorPacket(buffer);
             String message = ep.getMessage();
             if (1054 == ep.getErrorNumber()) {
-                throw new QueryException("Error preparing query: " + message
+                throw new PrepareException("Error preparing query: " + message
                         + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
                         + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
                         ep.getErrorNumber(), ep.getSqlState());
             } else {
-                throw new QueryException("Error preparing query: " + message, ep.getErrorNumber(), ep.getSqlState());
+                throw new PrepareException("Error preparing query: " + message, ep.getErrorNumber(), ep.getSqlState());
             }
         }
 

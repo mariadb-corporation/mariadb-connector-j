@@ -53,6 +53,8 @@ import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.stream.PrepareException;
+import org.mariadb.jdbc.internal.stream.PrepareSqlException;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
@@ -70,7 +72,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     int parameterCount = -1;
     MariaDbResultSetMetaData metadata;
     MariaDbParameterMetaData parameterMetaData;
-    SortedMap<Integer,ParameterHolder> currentParameterHolder;
+    Map<Integer,ParameterHolder> currentParameterHolder;
     List<ParameterHolder[]> queryParameters = new ArrayList<>();
     boolean mustExecuteOnMaster;
 
@@ -86,13 +88,33 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     public MariaDbServerPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
             throws SQLException {
         super(connection, resultSetScrollType);
-        this.sql = Utils.nativeSql(sql, connection.noBackslashEscapes);
+        this.sql = sql;
+        useFractionalSeconds = options.useFractionalSeconds;
+        returnTableAlias = options.useOldAliasMetadataBehavior;
+        currentParameterHolder = Collections.synchronizedMap(new TreeMap<Integer,ParameterHolder>());
+        mustExecuteOnMaster = protocol.isMasterConnection();
+        if (forcePrepare || !options.useBatchMultiSend) prepare(this.sql);
+    }
 
+    /**
+     * Constructor for creating Server prepared statement.
+     * @param connection current connection
+     * @param sql Sql String to prepare
+     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param serverPrepareResult prepare result from cache
+     * @throws SQLException exception
+     */
+    public MariaDbServerPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType, ServerPrepareResult serverPrepareResult)
+            throws SQLException {
+        super(connection, resultSetScrollType);
+        this.sql = sql;
         useFractionalSeconds = options.useFractionalSeconds;
         returnTableAlias = options.useOldAliasMetadataBehavior;
         currentParameterHolder = new TreeMap<>();
         mustExecuteOnMaster = protocol.isMasterConnection();
-        if (forcePrepare || !options.useBatchMultiSend) prepare(this.sql);
+        this.serverPrepareResult = serverPrepareResult;
+        setMetaFromResult();
     }
 
     /**
@@ -120,6 +142,8 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         try {
             serverPrepareResult = protocol.prepare(sql, mustExecuteOnMaster);
             setMetaFromResult();
+        } catch (PrepareException exception) {
+            throw new PrepareSqlException(exception);
         } catch (QueryException e) {
             try {
                 this.close();
@@ -238,13 +262,16 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                 executeQueryEpilog(exception);
                 executing = false;
             }
+            clearBatch();
             return internalExecutionResult.getAffectedRows();
+        } catch (PrepareSqlException p) {
+            throw p;
         } catch (SQLException sqle) {
+            clearBatch();
             throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), internalExecutionResult.getAffectedRows(),
                     sqle);
         } finally {
             lock.unlock();
-            clearBatch();
         }
     }
 
@@ -277,7 +304,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                 protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, internalExecutionResult,
                         parameterHolder, resultSetScrollType);
             } catch (QueryException queryException) {
-                if (options.continueBatchOnError) {
+                if (options.continueBatchOnError || queryException.isPrepareError()) {
                     if (exception == null) exception = queryException;
                 } else {
                     throw queryException;
@@ -367,7 +394,6 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
                 }
                 executionResult = internalExecutionResult;
                 return executionResult.getResultSet() != null;
-
             } catch (QueryException e) {
                 exception = e;
                 return false;

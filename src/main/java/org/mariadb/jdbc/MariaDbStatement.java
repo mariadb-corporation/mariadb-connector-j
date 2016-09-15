@@ -88,7 +88,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     protected volatile boolean closed = false;
     boolean isTimedout;
     volatile boolean executing;
-    private List<String> batchQueries;
+    protected List<String> batchQueries;
 
     //are warnings cleared?
     private boolean warningsCleared;

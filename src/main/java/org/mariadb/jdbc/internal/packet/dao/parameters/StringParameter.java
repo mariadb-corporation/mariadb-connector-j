@@ -107,6 +107,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
         writer.assureBufferCapacity(position + 9);
         writer.writeFieldLength(position);
         writer.buffer.put(escapedArray, 0, position);
+        escapedArray = null; //in case ServerPrepareStmt fallback to clientPrepareStmt (need escape)
     }
 
     public MariaDbType getMariaDbType() {
@@ -255,7 +256,6 @@ public class StringParameter implements ParameterHolder, Cloneable {
     private void utf8() {
         //get char array
         char[] chars = getChars();
-        string = null;
         int charsLength = chars.length;
         charsOffset = 0;
         position = 0;

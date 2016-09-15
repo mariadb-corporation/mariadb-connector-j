@@ -854,8 +854,8 @@ public class PacketOutputStream extends OutputStream {
     public void send(byte[] packetBuffer, int packetSize) throws IOException {
         if (!useCompression) {
             if (logger.isTraceEnabled()) {
-                logger.trace("send packet seq:" + seqNo + " length:" + packetSize
-                        + " data:" + Utils.hexdump(packetBuffer, maxQuerySizeToLog, 0, packetSize));
+                logger.trace("send packet seq:" + seqNo + " length:" + (packetSize - 4)
+                        + " data:" + Utils.hexdump(packetBuffer, maxQuerySizeToLog, 4, packetSize - 4));
             }
             outputStream.write(packetBuffer, 0, packetSize);
         } else {
@@ -891,10 +891,6 @@ public class PacketOutputStream extends OutputStream {
             buf[2] = (byte) (cmdLength >>> 16);
             buf[3] = (byte) 0;
             send(buf, cmdLength + 4);
-            if (logger.isTraceEnabled()) {
-                logger.trace("send packet seq:" + 0 + " length:" + cmdLength
-                        + " data:" + Utils.hexdump(buf, maxQuerySizeToLog, 4, cmdLength));
-            }
         } else {
             sendDirect(buf, 5, cmdLength - 1, commandType);
         }

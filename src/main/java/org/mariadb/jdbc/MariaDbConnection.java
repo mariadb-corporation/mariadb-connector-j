@@ -55,6 +55,7 @@ import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.net.SocketException;
 import java.sql.*;
@@ -393,6 +394,7 @@ public final class MariaDbConnection implements Connection {
 
     /**
      * Send ServerPrepareStatement or ClientPrepareStatement depending on SQL query and options
+     * If server side and PREPARE can be delayed, a facade will be return, to have a fallback on client prepareStatement.
      *
      * @param sql sql query
      * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
@@ -404,7 +406,7 @@ public final class MariaDbConnection implements Connection {
             throws SQLException {
         checkConnection();
 
-        boolean canUsePrepareStatement = false;
+        boolean canUsePrepareStatement;
 
         if (sql != null) {
             String cleanSql = sql.toUpperCase().trim();
@@ -420,20 +422,37 @@ public final class MariaDbConnection implements Connection {
                         || cleanSql.contains("REPLACE")
                         || cleanSql.contains("DO"));
             }
-        }
 
-        if (canUsePrepareStatement) {
-            try {
-                return new MariaDbServerPreparedStatement(this, sql, resultSetScrollType, false);
-            } catch (SQLNonTransientConnectionException e) {
-                throw e;
-            } catch (SQLException e) {
-                //on some specific case, server cannot prepared data (CONJ-238)
-                //will use clientPreparedStatement
-                // -> corrected on MariaDB server 10.2.1 (https://jira.mariadb.org/browse/MDEV-5535)
+            String sqlQuery = Utils.nativeSql(sql, noBackslashEscapes);
+
+            if (canUsePrepareStatement) {
+                if (options.useBatchMultiSend) {
+                    if (options.cachePrepStmts) {
+                        //search prepare in cache. If so, mean that query can be prepare. No need for facade.
+                        String key = new StringBuilder(protocol.getDatabase()).append("-").append(sql).toString();
+                        ServerPrepareResult pr = protocol.getPrepareStatementFromCache(key);
+                        if (pr != null) {
+                            return new MariaDbServerPreparedStatement(this, sqlQuery, resultSetScrollType, pr);
+                        }
+                    }
+                    //PREPARE is delayed. must have a facade to have a fallback in case query cannot be prepared.
+                    return new MariaDbPrepareStatementFacade(sqlQuery, resultSetScrollType, this);
+                } else {
+                    //prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?
+                    try {
+                        return new MariaDbServerPreparedStatement(this, sqlQuery, resultSetScrollType, false);
+                    } catch (SQLNonTransientConnectionException e) {
+                        throw e;
+                    } catch (SQLException e) {
+                        //on some specific case, server cannot prepared data (CONJ-238)
+                        //will use clientPreparedStatement
+                    }
+                }
             }
+            return new MariaDbClientPreparedStatement(this, sqlQuery, resultSetScrollType);
+        } else {
+            throw new SQLException("SQL value can not be NULL");
         }
-        return new MariaDbClientPreparedStatement(this, sql, resultSetScrollType);
     }
 
     /**

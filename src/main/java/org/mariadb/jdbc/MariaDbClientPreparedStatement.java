@@ -82,7 +82,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      */
     public MariaDbClientPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
         super(connection, resultSetScrollType);
-        this.sqlQuery = Utils.nativeSql(sql, connection.noBackslashEscapes);
+        this.sqlQuery = sql;
         useFractionalSeconds = options.useFractionalSeconds;
 
         if (options.cachePrepStmts) {
@@ -560,4 +560,23 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         return prepareResult;
     }
 
+    protected void initializeFallbackClient(MariaDbServerPreparedStatement serverPreparedStatement) throws SQLException {
+        if (serverPreparedStatement.currentParameterHolder.size() == prepareResult.getParamCount()) {
+            this.parameters = serverPreparedStatement.currentParameterHolder.values().toArray(new ParameterHolder[0]);
+        } else {
+            Iterator<ParameterHolder> paramsIterator = serverPreparedStatement.currentParameterHolder.values().iterator();
+            for (int i = 0 ; i < prepareResult.getParamCount() && paramsIterator.hasNext(); i++) {
+                this.parameters[i] = paramsIterator.next();
+            }
+        }
+        this.parameterList = serverPreparedStatement.queryParameters;
+        this.resultSetMetaData = serverPreparedStatement.metadata;
+        this.parameterMetaData = serverPreparedStatement.parameterMetaData;
+        this.batchQueries = serverPreparedStatement.batchQueries;
+        if (serverPreparedStatement.queryTimeout != 0) setQueryTimeout(serverPreparedStatement.queryTimeout);
+        if (serverPreparedStatement.getFetchSize() != 0) setFetchSize(serverPreparedStatement.getFetchSize());
+        if (serverPreparedStatement.maxRows != 0) setMaxRows(serverPreparedStatement.maxRows);
+        if (serverPreparedStatement.isCloseOnCompletion()) closeOnCompletion();
+
+    }
 }

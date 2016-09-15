@@ -38,6 +38,7 @@ public class BaseTest {
     protected static boolean testSingleHost;
     protected static Connection sharedConnection;
     private static Deque<String> tempTableList = new ArrayDeque<>();
+    private static Deque<String> tempViewList = new ArrayDeque<>();
     private static Deque<String> tempProcedureList = new ArrayDeque<>();
     private static Deque<String> tempFunctionList = new ArrayDeque<>();
     private static TcpProxy proxy = null;
@@ -209,6 +210,17 @@ public class BaseTest {
     public static void afterClassBaseTest() throws SQLException {
         if (testSingleHost) {
             if (!sharedConnection.isClosed()) {
+                if (!tempViewList.isEmpty()) {
+                    Statement stmt = sharedConnection.createStatement();
+                    String viewName;
+                    while ((viewName = tempViewList.poll()) != null) {
+                        try {
+                            stmt.execute("DROP VIEW IF EXISTS " + viewName);
+                        } catch (SQLException e) {
+                            //eat exception
+                        }
+                    }
+                }
                 if (!tempTableList.isEmpty()) {
                     Statement stmt = sharedConnection.createStatement();
                     String tableName;
@@ -280,6 +292,21 @@ public class BaseTest {
             stmt.execute("drop table if exists " + tableName);
             stmt.execute("create table " + tableName + " (" + tableColumns + ") " + ((engine != null) ? engine : ""));
             tempTableList.add(tableName);
+        }
+    }
+
+    /**
+     * Create a view that will be detroyed a the end of tests.
+     * @param tableName table name
+     * @param tableColumns table columns
+     * @throws SQLException exception
+     */
+    public static void createView(String tableName, String tableColumns) throws SQLException {
+        if (testSingleHost) {
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("drop view if exists " + tableName);
+            stmt.execute("create view " + tableName + " AS (" + tableColumns + ") ");
+            tempViewList.add(tableName);
         }
     }
 
