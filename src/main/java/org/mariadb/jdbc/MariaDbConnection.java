@@ -1372,8 +1372,7 @@ public final class MariaDbConnection implements Connection {
     }
 
     public void setSchema(String arg0) throws SQLException {
-        // We support only catalog
-        throw ExceptionMapper.getFeatureNotSupportedException("Only catalogs are supported");
+        // We support only catalog, and JDBC indicate "If the driver does not support schemas, it will silently ignore this request."
     }
 
 
