@@ -129,7 +129,8 @@ public class StandardGssapiAuthentication extends GssapiAuth {
                                     if (outToken != null) {
                                         writer.startPacket(packSeq);
                                         writer.write(outToken);
-                                        writer.finishPacket();
+                                        writer.finishPacketWithoutRelease(false);
+                                        writer.releaseBuffer();
                                     }
                                     if (!context.isEstablished()) {
                                         Buffer buffer = packetFetcher.getReusableBuffer();

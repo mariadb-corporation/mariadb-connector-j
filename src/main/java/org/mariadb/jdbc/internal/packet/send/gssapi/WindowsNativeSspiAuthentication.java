@@ -78,7 +78,9 @@ public class WindowsNativeSspiAuthentication extends GssapiAuth {
             byte[] tokenForTheServerOnTheClient = clientContext.getToken();
             writer.startPacket(packSeq);
             writer.write(tokenForTheServerOnTheClient);
-            writer.finishPacket();
+            writer.finishPacketWithoutRelease(false);
+            writer.releaseBuffer();
+
 
             // Step 2: read server response token
             if (clientContext.isContinue()) {

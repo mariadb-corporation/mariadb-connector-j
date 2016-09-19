@@ -67,6 +67,8 @@ public class SendClosePacket implements InterfaceSendPacket {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);
         pos.write(Packet.COM_QUIT);
-        pos.finishPacket();
+        pos.finishPacketWithoutRelease(true);
+        pos.releaseBuffer();
+
     }
 }

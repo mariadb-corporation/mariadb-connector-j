@@ -194,7 +194,9 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
         if ((clientCapabilities & MariaDbServerCapabilities.CONNECT_ATTRS) != 0) {
             writeConnectAttributes(writeBuffer);
         }
-        writeBuffer.finishPacket();
+        writeBuffer.finishPacketWithoutRelease(false);
+        writeBuffer.releaseBuffer();
+
     }
 
     private void writeConnectAttributes(PacketOutputStream writeBuffer) {

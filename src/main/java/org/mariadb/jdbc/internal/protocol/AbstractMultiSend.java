@@ -379,7 +379,7 @@ public abstract class AbstractMultiSend {
 
                 //send command if not empty
                 if (readPrepareStmtResult && prepareResult == null || status.sendSubCmdCounter > 0) {
-                    writer.finishPacketWithoutRelease();
+                    writer.finishPacketWithoutRelease(true);
                 }
 
                 if (binaryProtocol) {

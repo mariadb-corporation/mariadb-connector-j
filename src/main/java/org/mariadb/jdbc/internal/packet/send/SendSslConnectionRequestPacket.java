@@ -83,6 +83,8 @@ public class SendSslConnectionRequestPacket implements InterfaceSendPacket {
                 .writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
 
 
-        pos.finishPacket();
+        pos.finishPacketWithoutRelease(true);
+        pos.releaseBuffer();
+
     }
 }

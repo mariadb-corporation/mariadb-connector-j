@@ -70,6 +70,7 @@ public class SendClearPasswordAuthPacket extends AbstractAuthSwitchSendResponseP
         writer.startPacket(packSeq);
         writer.write(password.getBytes());
         writer.write(0);
-        writer.finishPacket();
+        writer.finishPacketWithoutRelease(false);
+        writer.releaseBuffer();
     }
 }

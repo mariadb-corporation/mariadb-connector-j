@@ -76,7 +76,7 @@ public class ComStmtLongData {
         writer.writeInt(statementId);
         writer.buffer.putShort(parameterId);
         param.writeBinary(writer);
-        writer.finishPacketWithoutRelease();
+        writer.finishPacketWithoutRelease(true);
     }
 
 

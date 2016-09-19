@@ -237,7 +237,7 @@ public class ComExecute {
             writer.write(queryParts.get(paramCount + 2));
         }
 
-        writer.finishPacketWithoutRelease();
+        writer.finishPacketWithoutRelease(true);
         return currentIndex;
     }
 
@@ -266,7 +266,7 @@ public class ComExecute {
             currentIndex++;
         }
 
-        writer.finishPacketWithoutRelease();
+        writer.finishPacketWithoutRelease(true);
         return currentIndex;
     }
 

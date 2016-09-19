@@ -111,7 +111,8 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
                 writer.write(0);
             }
 
-            writer.finishPacket();
+            writer.finishPacketWithoutRelease(false);
+            writer.releaseBuffer();
             try {
                 Buffer buffer = packetFetcher.getReusableBuffer();
 

@@ -72,7 +72,8 @@ public class SendNativePasswordAuthPacket extends AbstractAuthSwitchSendResponse
         try {
             writer.startPacket(packSeq);
             writer.write(Utils.encryptPassword(password, authData));
-            writer.finishPacket();
+            writer.finishPacketWithoutRelease(false);
+            writer.releaseBuffer();
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Could not use SHA-1, failing", e);
         }

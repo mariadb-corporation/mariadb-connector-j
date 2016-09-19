@@ -67,6 +67,7 @@ public class SendPingPacket implements InterfaceSendPacket {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(0);
         pos.write(Packet.COM_PING);
-        pos.finishPacket();
+        pos.finishPacketWithoutRelease(true);
+        pos.releaseBuffer();
     }
 }

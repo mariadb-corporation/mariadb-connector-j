@@ -69,7 +69,8 @@ public class SendOldPasswordAuthPacket extends AbstractAuthSwitchSendResponsePac
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(packSeq);
         pos.writeByteArray(cryptOldFormatPassword(password, new String(authData))).writeByte((byte) 0x00);
-        pos.finishPacket();
+        pos.finishPacketWithoutRelease(false);
+        pos.releaseBuffer();
     }
 
 

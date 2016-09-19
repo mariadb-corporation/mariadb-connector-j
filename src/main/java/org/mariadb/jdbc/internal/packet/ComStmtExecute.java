@@ -91,7 +91,8 @@ public class ComStmtExecute implements InterfaceSendPacket {
         PacketOutputStream buffer = (PacketOutputStream) os;
         buffer.startPacket(0, true);
         writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, buffer);
-        buffer.finishPacket();
+        buffer.finishPacketWithoutRelease(true);
+        buffer.releaseBuffer();
     }
 
     /**

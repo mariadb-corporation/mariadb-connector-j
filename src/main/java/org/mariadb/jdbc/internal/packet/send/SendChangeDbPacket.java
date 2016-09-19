@@ -74,6 +74,8 @@ public class SendChangeDbPacket implements InterfaceSendPacket {
         pos.startPacket(0);
         pos.write(Packet.COM_INIT_DB);
         pos.write(database.getBytes("UTF-8"));
-        pos.finishPacket();
+        pos.finishPacketWithoutRelease(true);
+        pos.releaseBuffer();
+
     }
 }

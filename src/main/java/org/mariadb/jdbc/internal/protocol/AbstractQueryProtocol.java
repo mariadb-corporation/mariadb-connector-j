@@ -166,7 +166,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             } else {
                 writer.startPacket(0);
                 ComExecute.sendSubCmd(writer, clientPrepareResult, parameters);
-                writer.finishPacketWithoutRelease();
+                writer.finishPacketWithoutRelease(true);
             }
             getResult(executionResult, resultSetScrollType, false, true);
 
@@ -205,7 +205,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
                 writer.startPacket(0);
                 ComExecute.sendSubCmd(writer, clientPrepareResult, parameters);
-                writer.finishPacketWithoutRelease();
+                writer.finishPacketWithoutRelease(true);
             }
 
             @Override
@@ -482,7 +482,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
                 writer.startPacket(0);
                 ComStmtExecute.writeCmd(statementId, parameters, paramCount, parameterTypeHeader, writer);
-                writer.finishPacketWithoutRelease();
+                writer.finishPacketWithoutRelease(true);
             }
 
             @Override
@@ -612,7 +612,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             writer.startPacket(0);
             ComStmtExecute.writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, writer);
-            writer.finishPacketWithoutRelease();
+            writer.finishPacketWithoutRelease(true);
 
             if (serverPrepareResult == null) {
                 try {
