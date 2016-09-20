@@ -214,6 +214,26 @@ public class PreparedStatementTest extends BaseTest {
 
     }
 
+    /**
+     * CONJ-345 : COLLATE keyword failed on PREPARE statement.
+     * @throws SQLException exception
+     */
+    @Test
+    public void testFallbackPrepare() throws SQLException {
+        createTable("testFallbackPrepare", "`test` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL",
+                "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        try (Connection connection = setConnection()) {
+            Statement stmt = connection.createStatement();
+            stmt.execute("SET @@character_set_connection = 'utf8mb4'");
+            stmt.execute("SELECT * FROM `testFallbackPrepare` WHERE `test` LIKE 'jj' COLLATE utf8mb4_unicode_ci");
+
+            try (PreparedStatement preparedStatement = connection.prepareStatement(
+                    "SELECT * FROM `testFallbackPrepare` WHERE `test` LIKE ? COLLATE utf8mb4_unicode_ci")) {
+                preparedStatement.setString(1, "jj");
+                preparedStatement.execute();
+            }
+        }
+    }
 
     /**
      * CONJ-263: Exception must be throwing exception if exception append in multiple query.
