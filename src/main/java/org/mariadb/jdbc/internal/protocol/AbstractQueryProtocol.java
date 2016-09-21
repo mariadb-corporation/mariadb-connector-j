@@ -209,17 +209,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             @Override
-            public boolean sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
-                                List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
-                                PrepareResult prepareResult)
-                    throws QueryException, IOException {
-                reserveCmdLength(status);
-                ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
-                ComExecute.sendSubCmd(writer, clientPrepareResult, parameters);
-                return setRealCmdSize(status);
-            }
-
-            @Override
             public QueryException handleResultException(QueryException qex, ExecutionResult executionResult,
                                                         List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
                                                         int sendCmdCounter, int paramCount, PrepareResult prepareResult)
@@ -248,7 +237,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 return parametersList.size();
             }
 
-        }.executeBatch(hasServerComMultiCapability());
+        }.executeBatch();
 
     }
 
@@ -276,20 +265,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             @Override
-            public boolean sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
-                                List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
-                                PrepareResult prepareResult)
-                    throws QueryException, IOException {
-                reserveCmdLength(status);
-                String sql = queries.get(status.sendCmdCounter);
-                byte[] sqlBytes = sql.getBytes(StandardCharsets.UTF_8);
-                writer.assureBufferCapacity(sqlBytes.length + 1);
-                writer.buffer.put(Packet.COM_QUERY);
-                writer.buffer.put(sqlBytes);
-                return setRealCmdSize(status);
-            }
-
-            @Override
             public QueryException handleResultException(QueryException qex, ExecutionResult executionResult,
                                                         List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
                                                         int sendCmdCounter, int paramCount, PrepareResult prepareResult)
@@ -308,7 +283,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 return queries.size();
             }
 
-        }.executeBatch(false);
+        }.executeBatch();
 
     }
 
@@ -486,45 +461,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             @Override
-            public boolean sendSubCmd(PacketOutputStream writer, ExecutionResult executionResult,
-                                   List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
-                                   PrepareResult prepareResult)
-                    throws QueryException, IOException {
-                ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
-
-                //validate parameter set
-                if (parameters.length < paramCount) {
-                    throw new QueryException("Parameter at position " + (paramCount - 1) + " is not set", -1, "07004");
-                }
-
-                if (status.currentLongDataParam != BulkStatus.COM_MULTI_PARAM_SEND) {
-                    //send binary data in a separate stream
-                    for (int i = status.currentLongDataParam; i < paramCount; i++) {
-                        if (parameters[i].isLongData()) {
-                            status.currentLongDataParam = i;
-                            reserveCmdLength(status);
-                            writer.assureBufferCapacity(7); //header size
-                            writer.buffer.put(Packet.COM_STMT_SEND_LONG_DATA);
-                            writer.writeInt(statementId);
-                            writer.buffer.putShort((short) i);
-                            parameters[i].writeBinary(writer);
-                            if (setRealCmdSize(status)) {
-                                status.currentLongDataParam++;
-                                return true;
-                            }
-                        }
-                    }
-                    status.currentLongDataParam = BulkStatus.COM_MULTI_PARAM_SEND;
-                }
-
-                reserveCmdLength(status);
-                writer.assureBufferCapacity(10); //header size
-                ComStmtExecute.writeCmd(statementId, parameters, paramCount, parameterTypeHeader, writer);
-                return setRealCmdSize(status);
-            }
-
-
-            @Override
             public QueryException handleResultException(QueryException qex, ExecutionResult executionResult,
                                                         List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
                                                         int sendCmdCounter, int paramCount, PrepareResult prepareResult)
@@ -542,7 +478,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 return parametersList.size();
             }
 
-        }.executeBatch(hasServerComMultiCapability());
+        }.executeBatch();
 
     }
 
@@ -587,15 +523,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 comStmtPrepare = new ComStmtPrepare(this, sql);
                 comStmtPrepare.send(writer);
 
-                if (!hasServerComMultiCapability()) {
-                    //read prepare result
-                    try {
-                        serverPrepareResult = comStmtPrepare.read(getPacketFetcher());
-                        statementId = serverPrepareResult.getStatementId();
-                        parameterCount = serverPrepareResult.getParameters().length;
-                    } catch (QueryException queryException) {
-                        throw queryException;
-                    }
+                //read prepare result
+                try {
+                    serverPrepareResult = comStmtPrepare.read(getPacketFetcher());
+                    statementId = serverPrepareResult.getStatementId();
+                    parameterCount = serverPrepareResult.getParameters().length;
+                } catch (QueryException queryException) {
+                    throw queryException;
                 }
             }
 
@@ -613,14 +547,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             writer.startPacket(0);
             ComStmtExecute.writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, writer);
             writer.finishPacketWithoutRelease(true);
-
-            if (serverPrepareResult == null) {
-                try {
-                    serverPrepareResult = comStmtPrepare.read(getPacketFetcher());
-                } catch (QueryException queryException) {
-                    exception = queryException;
-                }
-            }
 
             //read result
             try {

@@ -247,8 +247,6 @@ public interface Protocol {
 
     void setHasWarnings(boolean hasWarnings);
 
-    boolean hasServerComMultiCapability();
-
     void releaseWriterBuffer();
 
     ByteBuffer getWriter();
