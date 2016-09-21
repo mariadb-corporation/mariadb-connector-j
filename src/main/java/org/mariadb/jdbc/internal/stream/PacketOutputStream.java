@@ -869,23 +869,70 @@ public class PacketOutputStream extends OutputStream {
     public void send(String sql, byte commandType) throws IOException, QueryException {
 
         startPacket(0,true);
+        int charsLength = sql.length();
+        int charsOffset = 0;
+        int position = 4;
 
-        byte[] sqlBytes = sql.getBytes(StandardCharsets.UTF_8);
-        int cmdLength = sqlBytes.length + 1;
+        //create UTF-8 byte array
+        //since java char are internally using UTF-16 using surrogate's pattern, 4 bytes unicode characters will
+        //represent 2 characters : example "\uD83C\uDFA4" = 🎤 unicode 8 "no microphones"
+        //so max size is 3 * charLength + 1 for query type
+        assureBufferCapacity((charsLength * 3) + 1);
 
-        assureBufferCapacity(cmdLength);
-        buffer.put(commandType);
-        buffer.put(sqlBytes);
+        byte[] arr = buffer.array();
+        arr[position++] = commandType;
 
-        byte[] buf = buffer.array();
-        if (cmdLength < maxPacketSize && !useCompression) {
-            buf[0] = (byte) (cmdLength & 0xff);
-            buf[1] = (byte) (cmdLength >>> 8);
-            buf[2] = (byte) (cmdLength >>> 16);
-            buf[3] = (byte) 0;
-            send(buf, cmdLength + 4);
+        while (charsOffset < charsLength) {
+            char currChar = sql.charAt(charsOffset++);
+            if (currChar < 0x80) {
+                arr[position++] = (byte) currChar;
+            } else if (currChar < 0x800) {
+                arr[position++] = (byte) (0xc0 | (currChar >> 6));
+                arr[position++] = (byte) (0x80 | (currChar & 0x3f));
+            } else if (currChar >= 0xD800 && currChar < 0xE000) {
+                //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
+                if (currChar >= 0xD800 && currChar < 0xDC00) {
+                    //is high surrogate
+                    if (charsOffset + 1 > charsLength) {
+                        arr[position++] = (byte)0x63;
+                    } else {
+                        char nextChar = sql.charAt(charsOffset);
+                        if (nextChar >= 0xDC00 && nextChar < 0xE000) {
+                            //is low surrogate
+                            int surrogatePairs =  ((currChar << 10) + nextChar) + (0x010000 - (0xD800 << 10) - 0xDC00);
+                            arr[position++] = (byte) (0xf0 | ((surrogatePairs >> 18)));
+                            arr[position++] = (byte) (0x80 | ((surrogatePairs >> 12) & 0x3f));
+                            arr[position++] = (byte) (0x80 | ((surrogatePairs >> 6) & 0x3f));
+                            arr[position++] = (byte) (0x80 | (surrogatePairs & 0x3f));
+                            charsOffset++;
+                        } else {
+                            //must have low surrogate
+                            arr[position++] = (byte)0x63;
+                        }
+                    }
+                } else {
+                    //low surrogate without high surrogate before
+                    arr[position++] = (byte)0x63;
+                }
+            } else {
+                arr[position++] = (byte) (0xe0 | ((currChar >> 12)));
+                arr[position++] = (byte) (0x80 | ((currChar >> 6) & 0x3f));
+                arr[position++] = (byte) (0x80 | (currChar & 0x3f));
+            }
+        }
+
+        if (position - 4 < maxPacketSize && !useCompression) {
+            arr[0] = (byte) ((position - 4) & 0xff);
+            arr[1] = (byte) ((position - 4) >>> 8);
+            arr[2] = (byte) ((position - 4) >>> 16);
+            arr[3] = (byte) 0;
+            if (logger.isTraceEnabled()) {
+                logger.trace("send packet seq:" + seqNo + " length:" + (position - 4)
+                        + " data:" + Utils.hexdump(arr, maxQuerySizeToLog, 4, position - 4));
+            }
+            outputStream.write(arr, 0, position);
         } else {
-            sendDirect(buf, 5, cmdLength - 1, commandType);
+            sendDirect(arr, 5, position - 5, commandType);
         }
     }
 
