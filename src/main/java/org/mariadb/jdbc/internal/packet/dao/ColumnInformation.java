@@ -101,6 +101,7 @@ public class ColumnInformation {
     Buffer buffer;
     private short charsetNumber;
     private long length;
+    private long fixlength;
     private MariaDbType type;
     private byte decimals;
     private short flags;
@@ -138,7 +139,7 @@ public class ColumnInformation {
         buffer.skipLengthEncodedBytes();  /* original table */
         buffer.skipLengthEncodedBytes();  /* name */
         buffer.skipLengthEncodedBytes();  /* org_name */
-        buffer.skipBytes(1);
+        fixlength = buffer.readByte();
         charsetNumber = buffer.readShort();
         length = buffer.readInt();
         type = MariaDbType.fromServer(buffer.readByte() & 0xff);
@@ -244,6 +245,24 @@ public class ColumnInformation {
 
     public long getLength() {
         return length;
+    }
+
+    public long getPrecision() {
+        switch (type) {
+            case OLDDECIMAL:
+            case DECIMAL:
+                //DECIMAL and OLDDECIMAL are  "exact" fixed-point number.
+                //so :
+                // - if can be signed, 1 byte is saved for sign
+                // - if decimal > 0, one byte more for dot
+                if (isSigned()) {
+                    return length - ((decimals > 0) ? 2 : 1);
+                } else {
+                    return length - ((decimals > 0) ? 1 : 0);
+                }
+            default:
+                return length;
+        }
     }
 
     /**

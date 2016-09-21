@@ -817,4 +817,36 @@ public class DatabaseMetadataTest extends BaseTest {
             connection.close();
         }
     }
+
+    @Test
+    public void getPrecision() throws SQLException {
+        createTable("getPrecision", "num1 NUMERIC(9,4), "
+                + "num2 NUMERIC (9,0),"
+                + "num3 NUMERIC (9,4) UNSIGNED,"
+                + "num4 NUMERIC (9,0) UNSIGNED,"
+                + "num5 FLOAT(9,4),"
+                + "num6 FLOAT(9,4) UNSIGNED,"
+                + "num7 DOUBLE(9,4),"
+                + "num8 DOUBLE(9,4) UNSIGNED"
+        );
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT * FROM getPrecision");
+        ResultSetMetaData rsmd = rs.getMetaData();
+        assertEquals(9, rsmd.getPrecision(1));
+        assertEquals(4, rsmd.getScale(1));
+        assertEquals(9, rsmd.getPrecision(2));
+        assertEquals(0, rsmd.getScale(2));
+        assertEquals(9, rsmd.getPrecision(3));
+        assertEquals(4, rsmd.getScale(3));
+        assertEquals(9, rsmd.getPrecision(4));
+        assertEquals(0, rsmd.getScale(4));
+        assertEquals(9, rsmd.getPrecision(5));
+        assertEquals(4, rsmd.getScale(5));
+        assertEquals(9, rsmd.getPrecision(6));
+        assertEquals(4, rsmd.getScale(6));
+        assertEquals(9, rsmd.getPrecision(7));
+        assertEquals(4, rsmd.getScale(7));
+        assertEquals(9, rsmd.getPrecision(8));
+        assertEquals(4, rsmd.getScale(8));
+    }
 }

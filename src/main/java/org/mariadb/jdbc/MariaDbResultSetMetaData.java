@@ -226,7 +226,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      * @throws SQLException if a database access error occurs
      */
     public int getPrecision(final int column) throws SQLException {
-        return (int) getColumnInformation(column).getLength();
+        return (int) getColumnInformation(column).getPrecision();
     }
 
     /**
