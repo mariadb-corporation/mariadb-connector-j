@@ -247,6 +247,10 @@ public class ColumnInformation {
         return length;
     }
 
+    /**
+     * Return metadata precision.
+     * @return precision
+     */
     public long getPrecision() {
         switch (type) {
             case OLDDECIMAL:
