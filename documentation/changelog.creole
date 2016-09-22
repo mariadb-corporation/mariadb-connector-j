@@ -13,7 +13,9 @@
 
 ---
 == 1.5.3
-* CONJ-296 : COM_MULTI protocol implementation
+* CONJ-353 : IBM jdk compatibility
+* CONJ-352 : metadata correction on getPrecision() for numeric fields
+* CONJ-350 : make prepare fallback to client prepare if query cannot be prepare
 
 == 1.5.2
 Release version
