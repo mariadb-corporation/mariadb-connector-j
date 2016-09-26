@@ -1393,7 +1393,7 @@ public class StoredProcedureTest extends BaseTest {
             statement.setFetchSize(1);
             try (ResultSet resultSet = statement.executeQuery("CALL testCallWithFetchSize()")) {
                 int rowCount = 0;
-                while(resultSet.next()) {
+                while (resultSet.next()) {
                     rowCount++;
                 }
                 Assert.assertEquals(1, rowCount);
