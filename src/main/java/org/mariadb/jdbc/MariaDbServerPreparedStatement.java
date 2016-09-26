@@ -93,7 +93,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         returnTableAlias = options.useOldAliasMetadataBehavior;
         currentParameterHolder = Collections.synchronizedMap(new TreeMap<Integer,ParameterHolder>());
         mustExecuteOnMaster = protocol.isMasterConnection();
-        if (forcePrepare || !options.useBatchMultiSend) prepare(this.sql);
+        if (forcePrepare) prepare(this.sql);
     }
 
     /**

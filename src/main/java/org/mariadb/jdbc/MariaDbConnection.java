@@ -86,6 +86,13 @@ public final class MariaDbConnection implements Connection {
                     + "((((`[^`]+`)|([^`]+))\\.)?((`[^`]+`)|([^`\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(#.*)?$",
                     Pattern.CASE_INSENSITIVE);
 
+    /**
+     * Check that query can be executed with PREPARE.
+     */
+    private static Pattern PREPARABLE_STATEMENT_PATTERN =
+            Pattern.compile("^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL)",
+                    Pattern.CASE_INSENSITIVE);
+
     public MariaDbPooledConnection pooledConnection;
     boolean noBackslashEscapes;
     boolean nullCatalogMeansCurrent = true;
@@ -404,49 +411,21 @@ public final class MariaDbConnection implements Connection {
      */
     public PreparedStatement internalPrepareStatement(final String sql, final int resultSetScrollType)
             throws SQLException {
-        checkConnection();
-
-        boolean canUsePrepareStatement;
 
         if (sql != null) {
-            String cleanSql = sql.toUpperCase().trim();
-            if (!options.useServerPrepStmts) {
-                //in case of CALL statement, handling INOUT parameter is better with Prepare protocol
-                canUsePrepareStatement = cleanSql.contains("CALL");
-            } else {
-                canUsePrepareStatement = (cleanSql.contains("SELECT")
-                        || cleanSql.contains("CALL")
-                        || cleanSql.contains("UPDATE")
-                        || cleanSql.contains("INSERT")
-                        || cleanSql.contains("DELETE")
-                        || cleanSql.contains("REPLACE")
-                        || cleanSql.contains("DO"));
-            }
 
             String sqlQuery = Utils.nativeSql(sql, noBackslashEscapes);
 
-            if (canUsePrepareStatement) {
-                if (options.useBatchMultiSend) {
-                    if (options.cachePrepStmts) {
-                        //search prepare in cache. If so, mean that query can be prepare. No need for facade.
-                        String key = new StringBuilder(protocol.getDatabase()).append("-").append(sql).toString();
-                        ServerPrepareResult pr = protocol.getPrepareStatementFromCache(key);
-                        if (pr != null) {
-                            return new MariaDbServerPreparedStatement(this, sqlQuery, resultSetScrollType, pr);
-                        }
-                    }
-                    //PREPARE is delayed. must have a facade to have a fallback in case query cannot be prepared.
-                    return new MariaDbPrepareStatementFacade(sqlQuery, resultSetScrollType, this);
-                } else {
-                    //prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?
-                    try {
-                        return new MariaDbServerPreparedStatement(this, sqlQuery, resultSetScrollType, false);
-                    } catch (SQLNonTransientConnectionException e) {
-                        throw e;
-                    } catch (SQLException e) {
-                        //on some specific case, server cannot prepared data (CONJ-238)
-                        //will use clientPreparedStatement
-                    }
+            if (options.useServerPrepStmts && PREPARABLE_STATEMENT_PATTERN.matcher(sqlQuery).find()) {
+                //prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?
+                checkConnection();
+                try {
+                    return new MariaDbServerPreparedStatement(this, sqlQuery, resultSetScrollType, true);
+                } catch (SQLNonTransientConnectionException e) {
+                    throw e;
+                } catch (SQLException e) {
+                    //on some specific case, server cannot prepared data (CONJ-238)
+                    //will use clientPreparedStatement
                 }
             }
             return new MariaDbClientPreparedStatement(this, sqlQuery, resultSetScrollType);

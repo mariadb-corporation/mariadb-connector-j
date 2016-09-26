@@ -1,10 +1,7 @@
 package org.mariadb.jdbc;
 
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -136,6 +133,7 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void prepareStmtWithOutParameter() throws SQLException {
+        Assume.assumeTrue(sharedUsePrepare());
         createProcedure("prepareStmtWithOutParameter", "(x int, INOUT y int)\n"
                 + "BEGIN\n"
                 + "SELECT 1;end\n");
@@ -271,6 +269,7 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void prepareStmtInoutParam() throws SQLException {
+        Assume.assumeTrue(sharedUsePrepare());
         //must work, but out parameter isn't accessible
         PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call inOutParam(?)}");
         preparedStatement.setInt(1, 1);
@@ -1384,6 +1383,22 @@ public class StoredProcedureTest extends BaseTest {
         callableStatement.registerOutParameter(1, Types.INTEGER);
         assertFalse(callableStatement.execute());
         assertEquals("Hello, !", callableStatement.getString(1));
+        executeAnotherRequest();
+    }
+
+    @Test
+    public void testCallWithFetchSize() throws SQLException {
+        createProcedure("testCallWithFetchSize", "()\nBEGIN\nSELECT 1;SELECT 2;\nEND");
+        try (Statement statement = sharedConnection.createStatement()) {
+            statement.setFetchSize(1);
+            try (ResultSet resultSet = statement.executeQuery("CALL testCallWithFetchSize()")) {
+                int rowCount = 0;
+                while(resultSet.next()) {
+                    rowCount++;
+                }
+                Assert.assertEquals(1, rowCount);
+            }
+        }
         executeAnotherRequest();
     }
 

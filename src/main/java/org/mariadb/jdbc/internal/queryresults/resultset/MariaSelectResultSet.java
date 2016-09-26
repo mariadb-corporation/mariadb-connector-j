@@ -61,6 +61,7 @@ import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.packet.result.*;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.ColumnNameMap;
+import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
 import org.mariadb.jdbc.internal.util.ExceptionCode;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
@@ -409,9 +410,6 @@ public class MariaSelectResultSet implements ResultSet {
             }
 
             if (read == 254 && remaining < 9) { //EOF packet
-                if (protocol.getActiveStreamingResult() == this) {
-                    protocol.setActiveStreamingResult(null);
-                }
 
                 Buffer buffer = packetFetcher.getReusableBuffer(remaining, lastReusableArray);
                 protocol.setHasWarnings(((buffer.buf[0] & 0xff) + ((buffer.buf[1] & 0xff) << 8)) > 0);
@@ -423,11 +421,14 @@ public class MariaSelectResultSet implements ResultSet {
                 protocol.setMoreResults(callableResult
                         || (((buffer.buf[2] & 0xff) + ((buffer.buf[3] & 0xff) << 8)) & ServerStatus.MORE_RESULTS_EXISTS) != 0,
                         isBinaryEncoded);
-                protocol = null;
-                packetFetcher = null;
-                inputStream = null;
-                isEof = true;
+                if (!protocol.hasMoreResults()) {
+                    if (protocol.getActiveStreamingResult() == this) protocol.setActiveStreamingResult(null);
+                    protocol = null;
+                    packetFetcher = null;
+                    inputStream = null;
+                }
                 lastReusableArray = null;
+                isEof = true;
                 return false;
             }
 
@@ -492,17 +493,23 @@ public class MariaSelectResultSet implements ResultSet {
                         //is EOF stream
                         if ((buffer.getByteAt(0) == Packet.EOF && buffer.limit < 9)) {
                             final EndOfFilePacket endOfFilePacket = new EndOfFilePacket(buffer);
-                            if (protocol.getActiveStreamingResult() == this) {
-                                protocol.setActiveStreamingResult(null);
-                            }
+
                             protocol.setHasWarnings(endOfFilePacket.getWarningCount() > 0);
                             protocol.setMoreResults((endOfFilePacket.getStatusFlags() & ServerStatus.MORE_RESULTS_EXISTS) != 0, isBinaryEncoded);
-                            protocol = null;
-                            packetFetcher = null;
-                            inputStream = null;
+                            if (!protocol.hasMoreResults()) {
+                                if (protocol.getActiveStreamingResult() == this) protocol.setActiveStreamingResult(null);
+                            }
+                            lastReusableArray = null;
                             isEof = true;
                         }
                     }
+
+                    while (protocol.hasMoreResults()) {
+                        protocol.getMoreResults(new SingleExecutionResult(statement, 0, true, callableResult));
+                    }
+
+                    if (protocol.getActiveStreamingResult() == this) protocol.setActiveStreamingResult(null);
+
                 } catch (IOException ioexception) {
                     throw new QueryException("Could not close resultset : " + ioexception.getMessage(), -1,
                             ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), ioexception);
@@ -510,6 +517,9 @@ public class MariaSelectResultSet implements ResultSet {
             } catch (QueryException queryException) {
                 ExceptionMapper.throwException(queryException, null, this.getStatement());
             } finally {
+                protocol = null;
+                packetFetcher = null;
+                inputStream = null;
                 lock.unlock();
             }
         }
