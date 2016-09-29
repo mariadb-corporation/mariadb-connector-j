@@ -51,6 +51,7 @@ package org.mariadb.jdbc.internal.util.dao;
 
 
 import org.mariadb.jdbc.internal.util.ExceptionCode;
+import org.mariadb.jdbc.internal.util.SqlStates;
 
 public class QueryException extends Exception {
     private static final long serialVersionUID = 974263994278018455L;
@@ -97,6 +98,21 @@ public class QueryException extends Exception {
      * Creates a query exception with a message.
      *
      * @param message   the message
+     * @param errorCode the error code
+     * @param sqlState  the sqlstate
+     */
+    public QueryException(final String message,
+                          final int errorCode,
+                          final SqlStates sqlState) {
+        super(message);
+        this.message = message;
+        this.errorCode = errorCode;
+        this.sqlState = sqlState.getSqlState();
+    }
+    /**
+     * Creates a query exception with a message.
+     *
+     * @param message   the message
      * @param exceptionCode exceptionCode
      */
     public QueryException(final String message, ExceptionCode exceptionCode) {
@@ -122,6 +138,24 @@ public class QueryException extends Exception {
         this.message = message;
         this.errorCode = errorCode;
         this.sqlState = sqlState;
+    }
+
+    /**
+     * Creates a query exception with a message and a cause.
+     *
+     * @param message   the exception message
+     * @param errorCode the error code
+     * @param sqlState  the sql state
+     * @param cause     the cause of the exception
+     */
+    public QueryException(String message,
+                          int errorCode,
+                          SqlStates sqlState,
+                          Throwable cause) {
+        super(message, cause);
+        this.message = message;
+        this.errorCode = errorCode;
+        this.sqlState = sqlState.getSqlState();
     }
 
     @Override

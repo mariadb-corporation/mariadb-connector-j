@@ -433,49 +433,4 @@ public class ExceptionMapper {
         }
     }
 
-    public enum SqlStates {
-        WARNING("01"),
-        NO_DATA("02"),
-        CONNECTION_EXCEPTION("08"),
-        FEATURE_NOT_SUPPORTED("0A"),
-        CARDINALITY_VIOLATION("21"),
-        DATA_EXCEPTION("22"),
-        CONSTRAINT_VIOLATION("23"),
-        INVALID_CURSOR_STATE("24"),
-        INVALID_TRANSACTION_STATE("25"),
-        INVALID_AUTHORIZATION("28"),
-        SQL_FUNCTION_EXCEPTION("2F"),
-        TRANSACTION_ROLLBACK("40"),
-        SYNTAX_ERROR_ACCESS_RULE("42"),
-        INVALID_CATALOG("3D"),
-        INTERRUPTED_EXCEPTION("70"),
-        UNDEFINED_SQLSTATE("HY"),
-        TIMEOUT_EXCEPTION("JZ"),
-        DISTRIBUTED_TRANSACTION_ERROR("XA"); // is this true?
-
-        private final String sqlStateGroup;
-
-
-        SqlStates(final String stateGroup) {
-            this.sqlStateGroup = stateGroup;
-        }
-
-        /**
-         * Get sqlState from group.
-         * @param group group
-         * @return sqlState
-         */
-        public static SqlStates fromString(final String group) {
-            for (final SqlStates state : SqlStates.values()) {
-                if (group.startsWith(state.sqlStateGroup)) {
-                    return state;
-                }
-            }
-            return UNDEFINED_SQLSTATE;
-        }
-
-        public String getSqlState() {
-            return sqlStateGroup;
-        }
-    }
 }

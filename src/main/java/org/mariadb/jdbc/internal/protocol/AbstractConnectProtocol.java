@@ -53,10 +53,10 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
-import org.mariadb.jdbc.internal.MyX509TrustManager;
+import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509KeyManager;
+import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509TrustManager;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
@@ -80,26 +80,21 @@ import org.mariadb.jdbc.internal.packet.result.*;
 import org.mariadb.jdbc.internal.stream.DecompressInputStream;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.*;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.URL;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.security.KeyStore;
+import java.security.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public abstract class AbstractConnectProtocol implements Protocol {
     private static Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
@@ -226,10 +221,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             packetOutputStream.close();
             fetcher.close();
         } catch (IOException e) {
-            throw new QueryException("Could not close connection: " + e.getMessage(),
-                    -1,
-                    ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(),
-                    e);
+            throw new QueryException("Could not close connection: " + e.getMessage(), -1, CONNECTION_EXCEPTION, e);
         } finally {
             try {
                 socket.close();
@@ -242,49 +234,60 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private SSLSocketFactory getSslSocketFactory() throws QueryException {
         if (!options.trustServerCertificate
                 && options.serverSslCert == null
-                && options.trustCertificateKeyStoreUrl == null
-                && options.clientCertificateKeyStoreUrl == null) {
+                && options.trustStore == null
+                && options.keyStore == null) {
             return (SSLSocketFactory) SSLSocketFactory.getDefault();
+        }
+
+        TrustManager[] trustManager = null;
+        KeyManager[] keyManager = null;
+
+        if (options.trustServerCertificate || options.serverSslCert != null || options.trustStore != null) {
+            trustManager = new X509TrustManager[]{new MariaDbX509TrustManager(options)};
+        }
+
+        if (options.keyStore != null) {
+            keyManager = new KeyManager[] {loadClientCerts(options.keyStore, options.keyStorePassword)};
         }
 
         try {
             SSLContext sslContext = SSLContext.getInstance("TLS");
-
-            X509TrustManager[] trustManager = null;
-            if (options.trustServerCertificate || options.serverSslCert != null
-                    || options.trustCertificateKeyStoreUrl != null) {
-                trustManager = new X509TrustManager[]{new MyX509TrustManager(options)};
-            }
-
-            KeyManager[] keyManager = null;
-            String clientCertKeystoreUrl = options.clientCertificateKeyStoreUrl;
-            if (clientCertKeystoreUrl != null && !clientCertKeystoreUrl.isEmpty()) {
-                keyManager = loadClientCerts(clientCertKeystoreUrl, options.clientCertificateKeyStorePassword);
-            }
-
             sslContext.init(keyManager, trustManager, null);
             return sslContext.getSocketFactory();
-        } catch (Exception e) {
-            throw new QueryException(e.getMessage(), 0, "HY000", e);
+        } catch (KeyManagementException keyManagementEx) {
+            throw new QueryException("Could not initialize SSL context", -1, CONNECTION_EXCEPTION, keyManagementEx);
+        } catch (NoSuchAlgorithmException noSuchAlgorithmEx) {
+            throw new QueryException("SSLContext TLS Algorithm not unknown", -1, CONNECTION_EXCEPTION, noSuchAlgorithmEx);
         }
 
     }
 
-    private KeyManager[] loadClientCerts(String keystoreUrl, String keystorePassword) throws Exception {
-        KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+    private MariaDbX509KeyManager loadClientCerts(String keystoreUrl, String keystorePassword) throws QueryException {
         InputStream inStream = null;
         try {
+
             char[] certKeystorePassword = keystorePassword == null ? null : keystorePassword.toCharArray();
             inStream = new URL(keystoreUrl).openStream();
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
             ks.load(inStream, certKeystorePassword);
-            keyManagerFactory.init(ks, certKeystorePassword);
+            return new MariaDbX509KeyManager(ks, certKeystorePassword);
+
+        } catch (GeneralSecurityException generalSecurityEx) {
+            throw new QueryException("Failed to create keyStore instance", -1, CONNECTION_EXCEPTION, generalSecurityEx);
+        } catch (FileNotFoundException fileNotFoundEx) {
+            throw new QueryException("Failed to find keyStore file. Option keyStore=" + keystoreUrl,
+                    -1, CONNECTION_EXCEPTION, fileNotFoundEx);
+        } catch (IOException ioEx) {
+            throw new QueryException("Failed to read keyStore file. Option keyStore=" + keystoreUrl,
+                    -1, CONNECTION_EXCEPTION, ioEx);
         } finally {
-            if (inStream != null) {
-                inStream.close();
+            try {
+                if (inStream != null) inStream.close();
+            } catch (IOException ioEx) {
+                //ignore error
             }
         }
-        return keyManagerFactory.getKeyManagers();
+
     }
 
     /**
@@ -332,8 +335,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
             return;
         } catch (IOException e) {
-            throw new QueryException("Could not connect to " + currentHost + "." + e.getMessage(), -1,
-                    ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new QueryException("Could not connect to " + currentHost + "." + e.getMessage(), -1, CONNECTION_EXCEPTION, e);
         }
     }
 
@@ -479,7 +481,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 }
             }
             throw new QueryException("Could not connect to " + currentHost.host + ":" + currentHost.port + ": " + e.getMessage(), -1,
-                    ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
+                    CONNECTION_EXCEPTION, e);
         }
     }
 
@@ -628,7 +630,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 serverData.put(resultSet.getString(1), resultSet.getString(2));
             }
         } catch (SQLException sqle) {
-            throw new QueryException("could not load system variables", -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), sqle);
+            throw new QueryException("could not load system variables", -1, CONNECTION_EXCEPTION, sqle);
         }
     }
 
@@ -743,7 +745,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             } catch (IOException e) {
                 if (hosts.isEmpty()) {
                     throw new QueryException("Could not connect to named pipe '" + options.pipe + "' : "
-                            + e.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
+                            + e.getMessage(), -1, CONNECTION_EXCEPTION, e);
                 }
             }
         }
@@ -762,8 +764,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 return;
             } catch (IOException e) {
                 if (hosts.isEmpty()) {
-                    throw new QueryException("Could not connect to " + HostAddress.toString(addrs)
-                            + " : " + e.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), e);
+                    throw new QueryException("Could not connect to " + HostAddress.toString(addrs) + " : " + e.getMessage(),
+                            -1, CONNECTION_EXCEPTION, e);
                 }
             }
         }

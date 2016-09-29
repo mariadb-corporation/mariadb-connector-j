@@ -58,10 +58,10 @@ public class Options {
     //divers
     public boolean trustServerCertificate;
     public String serverSslCert;
-    public String trustCertificateKeyStoreUrl;
-    public String trustCertificateKeyStorePassword;
-    public String clientCertificateKeyStoreUrl;
-    public String clientCertificateKeyStorePassword;
+    public String trustStore;
+    public String trustStorePassword;
+    public String keyStore;
+    public String keyStorePassword;
     public String enabledSslProtocolSuites;
     public boolean useFractionalSeconds;
     public boolean pinGlobalTxToPhysicalConnection;
@@ -131,10 +131,8 @@ public class Options {
                 + ", serverSslCert='" + serverSslCert + '\''
                 + ", useFractionalSeconds=" + useFractionalSeconds
                 + ", pinGlobalTxToPhysicalConnection=" + pinGlobalTxToPhysicalConnection
-                + ", trustCertificateKeyStoreUrl='" + trustCertificateKeyStoreUrl + '\''
-                + ", trustCertificateKeyStorePassword='" + trustCertificateKeyStorePassword + '\''
-                + ", clientCertificateKeyStoreUrl='" + clientCertificateKeyStoreUrl + '\''
-                + ", clientCertificateKeyStorePassword='" + clientCertificateKeyStorePassword + '\''
+                + ", trustStore='" + trustStore + '\''
+                + ", keyStore='" + keyStore + '\''
                 + ", enabledSslProtocolSuites='" + enabledSslProtocolSuites + '\''
                 + ", socketFactory='" + socketFactory + '\''
                 + ", connectTimeout=" + connectTimeout

@@ -56,7 +56,6 @@ import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.sql.ResultSet;
@@ -64,6 +63,8 @@ import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
 
@@ -269,7 +270,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
         } catch (SQLException sqle) {
             throw new QueryException("could not check the 'innodb_read_only' variable status on " + this.getHostAddress()
-                    + " : " + sqle.getMessage(), -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), sqle);
+                    + " : " + sqle.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), sqle);
         } finally {
             proxy.lock.unlock();
         }

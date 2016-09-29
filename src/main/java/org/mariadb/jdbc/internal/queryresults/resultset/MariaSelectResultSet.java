@@ -84,6 +84,8 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
+
 @SuppressWarnings("deprecation")
 public class MariaSelectResultSet implements ResultSet {
     private static Logger logger = LoggerFactory.getLogger(MariaSelectResultSet.class);
@@ -358,8 +360,7 @@ public class MariaSelectResultSet implements ResultSet {
                     }
                 }
             } catch (IOException ioexception) {
-                throw new QueryException("Could not close resultset : " + ioexception.getMessage(), -1,
-                        ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), ioexception);
+                throw new QueryException("Could not close resultset : " + ioexception.getMessage(), -1, CONNECTION_EXCEPTION, ioexception);
             }
         } catch (QueryException queryException) {
             ExceptionMapper.throwException(queryException, null, this.getStatement());
@@ -511,8 +512,7 @@ public class MariaSelectResultSet implements ResultSet {
                     if (protocol.getActiveStreamingResult() == this) protocol.setActiveStreamingResult(null);
 
                 } catch (IOException ioexception) {
-                    throw new QueryException("Could not close resultset : " + ioexception.getMessage(), -1,
-                            ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState(), ioexception);
+                    throw new QueryException("Could not close resultset : " + ioexception.getMessage(), -1, CONNECTION_EXCEPTION, ioexception);
                 }
             } catch (QueryException queryException) {
                 ExceptionMapper.throwException(queryException, null, this.getStatement());

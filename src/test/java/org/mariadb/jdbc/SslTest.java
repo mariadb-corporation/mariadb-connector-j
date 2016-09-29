@@ -49,13 +49,23 @@ public class SslTest extends BaseTest {
         Assume.assumeTrue(haveSsl(sharedConnection));
         //Skip SSL test on java 7 since SSL stream size JDK-6521495).
         Assume.assumeFalse(isJava7);
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert");
-        rs.next();
-        serverCertificatePath = rs.getString(1);
-        rs.close();
 
+        if (System.getProperty("serverCertificatePath") == null) {
+            ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert");
+            rs.next();
+            serverCertificatePath = rs.getString(1);
+            rs.close();
+        } else {
+            serverCertificatePath = System.getProperty("serverCertificatePath");
+        }
         clientKeystorePath = System.getProperty("keystorePath");
         clientKeystorePassword = System.getProperty("keystorePassword");
+        Statement stmt = sharedConnection.createStatement();
+        try {
+            stmt.execute("DROP USER 'ssltestUser'@'%'");
+        } catch (SQLException e) { }
+        stmt.execute("CREATE USER 'ssltestUser'@'%'");
+        stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%' REQUIRE SSL");
     }
 
     @Test
@@ -301,7 +311,7 @@ public class SslTest extends BaseTest {
      * @throws SQLException exception
      */
     public void testConnect(Properties info, boolean sslExpected) throws SQLException {
-        testConnect(info, sslExpected, username, password);
+        testConnect(info, sslExpected, "ssltestUser", "");
     }
 
     /**
@@ -337,7 +347,12 @@ public class SslTest extends BaseTest {
     @Test
     public void testConnectNonSsl() throws SQLException {
         Properties info = new Properties();
-        testConnect(info, false);
+        try {
+            testConnect(info, false);
+            fail("Must fail since user require SSL");
+        } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Access denied for user 'ssltestUser'"));
+        }
     }
 
     @Test
@@ -416,7 +431,7 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustCertificateKeyStoreUrl", "file://" + keystorePath);
+            info.setProperty("trustStore", "file:///" + keystorePath);
             testConnect(info, true);
         } finally {
             tempKeystore.delete();
@@ -424,7 +439,7 @@ public class SslTest extends BaseTest {
     }
 
     @Test
-    public void testTruststoreWithPassword() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, SQLException {
+    public void testTrustStoreWithPassword() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, SQLException {
         // generate a truststore from the canned serverCertificate
         File tempKeystore = File.createTempFile("keystore", ".tmp");
         String keystorePath = tempKeystore.getAbsolutePath();
@@ -433,10 +448,44 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustCertificateKeyStoreUrl", "file://" + keystorePath);
-            info.setProperty("trustCertificateKeyStorePassword", "mysecret");
+            info.setProperty("trustStore", "file:///" + keystorePath);
+            info.setProperty("trustStorePassword", "mysecret");
             testConnect(info, true);
         } finally {
+            tempKeystore.delete();
+        }
+    }
+
+    @Test
+    public void testTrustStoreWithPasswordProperties() throws Exception {
+        // generate a truststore from the canned serverCertificate
+        File tempKeystore = File.createTempFile("keystore", ".tmp");
+        String keystorePath = tempKeystore.getAbsolutePath();
+
+        String initialTrustStore = System.getProperty("javax.net.ssl.trustStore");
+        String initialTrustStorePwd = System.getProperty("javax.net.ssl.trustStorePassword");
+
+
+        try {
+            generateKeystoreFromFile(serverCertificatePath, keystorePath, "mysecret");
+
+            System.setProperty("javax.net.ssl.trustStore", keystorePath);
+            System.setProperty("javax.net.ssl.trustStorePassword", "mysecret");
+
+            Properties info = new Properties();
+            info.setProperty("useSSL", "true");
+            testConnect(info, true);
+        } finally {
+            if (initialTrustStore == null) {
+                System.clearProperty("javax.net.ssl.trustStore");
+            } else {
+                System.setProperty("javax.net.ssl.trustStore", initialTrustStore);
+            }
+            if (initialTrustStorePwd == null) {
+                System.clearProperty("javax.net.ssl.trustStorePassword");
+            } else {
+                System.setProperty("javax.net.ssl.trustStorePassword", initialTrustStorePwd);
+            }
             tempKeystore.delete();
         }
     }
@@ -452,8 +501,8 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustCertificateKeyStoreUrl", "file://" + keystorePath);
-            info.setProperty("trustCertificateKeyStorePassword", "notthepassword");
+            info.setProperty("trustStore", "file:///" + keystorePath);
+            info.setProperty("trustStorePassword", "notthepassword");
             testConnect(info, true);
         } finally {
             tempKeystore.delete();
@@ -470,8 +519,8 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustCertificateKeyStoreUrl", "file://" + keystorePath);
-            info.setProperty("trustCertificateKeyStorePassword", "mysecret");
+            info.setProperty("trustStore", "file:///" + keystorePath);
+            info.setProperty("trustStorePassword", "mysecret");
             testConnect(info, true);
         } finally {
             tempKeystore.delete();
@@ -499,8 +548,41 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustCertificateKeyStoreUrl", "file://" + truststorePath);
-            info.setProperty("clientCertificateKeyStoreUrl", "file://" + clientKeystorePath);
+            info.setProperty("trustStore", "file:///" + truststorePath);
+            info.setProperty("keyStore", "file:///" + clientKeystorePath);
+            info.setProperty("keyStorePassword", clientKeystorePassword);
+            testConnect(info, true, testUser, "ssltestpassword");
+        } finally {
+            tempTruststore.delete();
+            deleteSslTestUser(testUser);
+        }
+    }
+
+
+    @Test
+    public void testAliases() throws SQLException, IOException, KeyStoreException, CertificateException,
+            NoSuchAlgorithmException {
+        // This test only runs if a client keystore and password have been passed in as properties (-DkeystorePath and -DkeystorePassword)
+        // You can create a keystore as follows:
+        // echo "kspass" | openssl pkcs12 -export -in "${clientCertFile}" -inkey "${clientKeyFile}" -out "${clientKeystoreFile}"
+        //   -name "mysqlAlias" -pass stdin
+        Assume.assumeTrue(clientKeystorePathDefined());
+
+        String testUser = "testTsAndKs";
+        // For this testcase, the testUser must be configured with ssl_type=X509
+        createSslTestUser(testUser);
+
+        // generate a truststore from the canned server certificate
+        File tempTruststore = File.createTempFile("truststore", ".tmp");
+        String truststorePath = tempTruststore.getAbsolutePath();
+        try {
+            generateKeystoreFromFile(serverCertificatePath, truststorePath, "trustPwd");
+
+            Properties info = new Properties();
+            info.setProperty("useSSL", "true");
+            info.setProperty("trustCertificateKeyStoreUrl", "file:///" + truststorePath);
+            info.setProperty("trustCertificateKeyStorePassword", "trustPwd");
+            info.setProperty("clientCertificateKeyStoreUrl", "file:///" + clientKeystorePath);
             info.setProperty("clientCertificateKeyStorePassword", clientKeystorePassword);
             testConnect(info, true, testUser, "ssltestpassword");
         } finally {
@@ -525,10 +607,106 @@ public class SslTest extends BaseTest {
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
             info.setProperty("serverSslCert", serverCertificatePath);
-            info.setProperty("clientCertificateKeyStoreUrl", "file://" + clientKeystorePath);
-            info.setProperty("clientCertificateKeyStorePassword", clientKeystorePassword);
+            info.setProperty("keyStore", "file:///" + clientKeystorePath);
+            info.setProperty("keyStorePassword", clientKeystorePassword);
             testConnect(info, true, testUser, "ssltestpassword");
         } finally {
+            deleteSslTestUser(testUser);
+        }
+    }
+
+
+    @Test
+    public void testKeyStoreWithProperties() throws Exception {
+        // generate a trustStore from the canned serverCertificate
+        File tempKeystore = File.createTempFile("keystore", ".tmp");
+        String keystorePath = tempKeystore.getAbsolutePath();
+
+        String initialTrustStore = System.getProperty("javax.net.ssl.trustStore");
+        String initialTrustStorePwd = System.getProperty("javax.net.ssl.trustStorePassword");
+        String initialKeyStore = System.getProperty("javax.net.ssl.keyStore");
+        String initialKeyStorePwd = System.getProperty("javax.net.ssl.keyStorePassword");
+
+        String testUser = "testKeystore";
+        // For this testcase, the testUser must be configured with ssl_type=X509
+        createSslTestUser(testUser);
+
+        try {
+            generateKeystoreFromFile(serverCertificatePath, keystorePath, "mysecret");
+
+            System.setProperty("javax.net.ssl.trustStore", keystorePath);
+            System.setProperty("javax.net.ssl.trustStorePassword", "mysecret");
+            System.setProperty("javax.net.ssl.keyStore", clientKeystorePath);
+            System.setProperty("javax.net.ssl.keyStorePassword", clientKeystorePassword);
+
+            Properties info = new Properties();
+            info.setProperty("useSSL", "true");
+            testConnect(info, true, testUser, "ssltestpassword");
+        } finally {
+            if (initialTrustStore == null) {
+                System.clearProperty("javax.net.ssl.trustStore");
+            } else {
+                System.setProperty("javax.net.ssl.trustStore", initialTrustStore);
+            }
+            if (initialTrustStorePwd == null) {
+                System.clearProperty("javax.net.ssl.trustStorePassword");
+            } else {
+                System.setProperty("javax.net.ssl.trustStorePassword", initialTrustStorePwd);
+            }
+            if (initialKeyStore != null) {
+                System.setProperty("javax.net.ssl.keyStore", initialKeyStore);
+            } else {
+                System.clearProperty("javax.net.ssl.keyStore");
+            }
+            if (initialKeyStorePwd != null) {
+                System.setProperty("javax.net.ssl.keyStorePassword", initialKeyStorePwd);
+            } else {
+                System.clearProperty("javax.net.ssl.keyStorePassword");
+            }
+            tempKeystore.delete();
+        }
+    }
+
+    @Test
+    public void testClientKeyStoreProperties() throws SQLException, IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
+        // This test only runs if a client keystore and password have been passed in as properties (-DkeystorePath and -DkeystorePassword)
+        // You can create a keystore as follows:
+        // echo "kspass" | openssl pkcs12 -export -in "${clientCertFile}" -inkey "${clientKeyFile}" -out "${clientKeystoreFile}"
+        //   -name "mysqlAlias" -pass stdin
+        Assume.assumeTrue(clientKeystorePathDefined());
+
+        File tempKeystore = File.createTempFile("keystore", ".tmp");
+        String keystorePath = tempKeystore.getAbsolutePath();
+
+        String testUser = "testKeystore";
+        // For this testcase, the testUser must be configured with ssl_type=X509
+        createSslTestUser(testUser);
+        String initialTrustStore = System.getProperty("javax.net.ssl.trustStore");
+        String initialTrustStorePwd = System.getProperty("javax.net.ssl.trustStorePassword");
+        try {
+            generateKeystoreFromFile(serverCertificatePath, keystorePath, "mysecret");
+
+            System.setProperty("javax.net.ssl.trustStore", keystorePath);
+            System.setProperty("javax.net.ssl.trustStorePassword", "mysecret");
+
+            Properties info = new Properties();
+            info.setProperty("useSSL", "true");
+            info.setProperty("keyStore", "file:///" + clientKeystorePath);
+            info.setProperty("keyStorePassword", clientKeystorePassword);
+
+            testConnect(info, true, testUser, "ssltestpassword");
+        } finally {
+            if (initialTrustStore == null) {
+                System.clearProperty("javax.net.ssl.trustStore");
+            } else {
+                System.setProperty("javax.net.ssl.trustStore", initialTrustStore);
+            }
+            if (initialTrustStorePwd == null) {
+                System.clearProperty("javax.net.ssl.trustStorePassword");
+            } else {
+                System.setProperty("javax.net.ssl.trustStorePassword", initialTrustStorePwd);
+            }
+
             deleteSslTestUser(testUser);
         }
     }
@@ -554,9 +732,9 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustCertificateKeyStoreUrl", "file://" + truststorePath);
-            info.setProperty("clientCertificateKeyStoreUrl", "file://" + clientKeystorePath);
-            info.setProperty("clientCertificateKeyStorePassword", "notthekeystorepass");
+            info.setProperty("trustStore", "file:///" + truststorePath);
+            info.setProperty("keyStore", "file:///" + clientKeystorePath);
+            info.setProperty("keyStorePassword", "notthekeystorepass");
             testConnect(info, true, testUser, "ssltestpassword");
         } finally {
             tempTruststore.delete();
@@ -570,12 +748,12 @@ public class SslTest extends BaseTest {
 
     private void createSslTestUser(String user) throws SQLException {
         Statement st = sharedConnection.createStatement();
-        st.execute("grant all privileges on *.* to '" + user + "'@'localhost' identified by 'ssltestpassword' REQUIRE X509");
+        st.execute("grant all privileges on *.* to '" + user + "'@'%' identified by 'ssltestpassword' REQUIRE X509");
     }
 
     private void deleteSslTestUser(String user) throws SQLException {
         Statement st = sharedConnection.createStatement();
-        st.execute("drop user '" + user + "'@'localhost'");
+        st.execute("drop user '" + user + "'@'%'");
     }
 
     private void generateKeystoreFromFile(String certificateFile, String keystoreFile, String password)

@@ -133,6 +133,7 @@ public enum DefaultOptions {
 
     /**
      * The database precised in url will be created if doesn't exist.
+     * (legacy alias "createDB")
      */
     CREATE_DATABASE_IF_NOT_EXISTS("createDatabaseIfNotExist", Boolean.FALSE, "1.1.8"),
 
@@ -159,6 +160,7 @@ public enum DefaultOptions {
 
     /**
      * Force SSL on connection.
+     * (legacy alias "useSSL")
      */
     USE_SSL("useSsl", Boolean.FALSE, "1.1.0"),
 
@@ -298,24 +300,34 @@ public enum DefaultOptions {
     USESERVERPREPSTMTS("useServerPrepStmts", Boolean.TRUE, "1.3.0"),
 
     /**
-     * Use the specified keystore for trusted root certificates. Overrides serverSslCert.
+     * File path of the trustStore file (similar to java System property "javax.net.ssl.trustStore").
+     * Use the specified keystore for trusted root certificates.
+     * When set, overrides serverSslCert.
+     *
+     * (legacy alias trustCertificateKeyStoreUrl)
+     *
      */
-    TRUST_CERTIFICATE_KEYSTORE_URL("trustCertificateKeyStoreUrl", "1.3.0"),
+    TRUST_CERTIFICATE_KEYSTORE_URL("trustStore", "1.3.0"),
 
     /**
      * Password for the trusted root certificate keystore.
+     *
+     * (legacy alias trustCertificateKeyStorePassword)
      */
-    TRUST_CERTIFICATE_KEYSTORE_PASSWORD("trustCertificateKeyStorePassword", "1.3.0"),
+    TRUST_CERTIFICATE_KEYSTORE_PASSWORD("trustStorePassword", "1.3.0"),
 
     /**
-     * Use the specified keystore for client certificates (can be the same as the trusted root certificate keystore).
+     * File path of the keyStore file that contain client private key store and associate certificates
+     * (similar to java System property "javax.net.ssl.keyStore", but ensure that only the private key's entries are used).
+     * (legacy alias clientCertificateKeyStoreUrl)
      */
-    CLIENT_CERTIFICATE_KEYSTORE_URL("clientCertificateKeyStoreUrl", "1.3.0"),
+    CLIENT_CERTIFICATE_KEYSTORE_URL("keyStore", "1.3.0"),
 
     /**
      * Password for the client certificate keystore.
+     * (legacy alias clientCertificateKeyStorePassword)
      */
-    CLIENT_CERTIFICATE_KEYSTORE_PASSWORD("clientCertificateKeyStorePassword", "1.3.0"),
+    CLIENT_CERTIFICATE_KEYSTORE_PASSWORD("keyStorePassword", "1.3.0"),
 
     /**
      * Force TLS/SSL protocol to a specific set of TLS versions (comma separated list)
@@ -382,6 +394,7 @@ public enum DefaultOptions {
 
     /**
      * log query execution time.
+     * (legacy alias alias profileSQL)
      */
     PROFILESQL("profileSql", Boolean.FALSE, "1.5.0"),
 
@@ -519,15 +532,36 @@ public enum DefaultOptions {
             for (DefaultOptions o : DefaultOptions.values()) {
 
                 String propertyValue = properties.getProperty(o.name);
+
+                //Handle alias
                 if (propertyValue == null) {
-                    if (o.name.equals("createDatabaseIfNotExist")) {
-                        propertyValue = properties.getProperty("createDB");
-                    } else if (o.name.equals("useSsl")) {
-                        propertyValue = properties.getProperty("useSSL");
-                    } else if (o.name.equals("profileSql")) {
-                        propertyValue = properties.getProperty("profileSQL");
-                    } else if (o.name.equals("enabledSslCipherSuites")) {
-                        propertyValue = properties.getProperty("enabledSSLCipherSuites");
+                    switch (o.name) {
+                        case "createDatabaseIfNotExist":
+                            propertyValue = properties.getProperty("createDB");
+                            break;
+                        case "useSsl":
+                            propertyValue = properties.getProperty("useSSL");
+                            break;
+                        case "profileSql":
+                            propertyValue = properties.getProperty("profileSQL");
+                            break;
+                        case "enabledSslCipherSuites":
+                            propertyValue = properties.getProperty("enabledSSLCipherSuites");
+                            break;
+                        case "trustStorePassword":
+                            propertyValue = properties.getProperty("trustCertificateKeyStorePassword");
+                            break;
+                        case "trustStore":
+                            propertyValue = properties.getProperty("trustCertificateKeyStoreUrl");
+                            break;
+                        case "keyStorePassword":
+                            propertyValue = properties.getProperty("clientCertificateKeyStorePassword");
+                            break;
+                        case "keyStore":
+                            propertyValue = properties.getProperty("clientCertificateKeyStoreUrl");
+                            break;
+                        default:
+                            //no alias
                     }
                 }
 

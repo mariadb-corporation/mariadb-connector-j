@@ -53,17 +53,17 @@ package org.mariadb.jdbc.internal.stream;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.Packet;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.*;
 import java.nio.*;
-import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.zip.DeflaterOutputStream;
+
+import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
 
 public class PacketOutputStream extends OutputStream {
 
@@ -953,8 +953,7 @@ public class PacketOutputStream extends OutputStream {
 
         if (sqlLength + (useCompression ? 5 : 1) > getMaxAllowedPacket()) {
             throw new QueryException("Could not send query: query size " + (sqlLength + (useCompression ? 5 : 1))
-                    + " is >= to max_allowed_packet (" + maxAllowedPacket + ")",
-                    -1, ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION.getSqlState());
+                    + " is >= to max_allowed_packet (" + maxAllowedPacket + ")", -1, INTERRUPTED_EXCEPTION);
         }
         if (!isUseCompression()) {
 

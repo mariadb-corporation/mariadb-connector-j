@@ -51,29 +51,25 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.thread.ConnectionValidator;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public abstract class AbstractMastersListener implements Listener {
 
@@ -132,7 +128,7 @@ public abstract class AbstractMastersListener implements Listener {
             }
             handleFailLoop();
         } else {
-            throw new QueryException("Connection is closed", (short) -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
+            throw new QueryException("Connection is closed", (short) -1, CONNECTION_EXCEPTION);
         }
     }
 
@@ -447,7 +443,7 @@ public abstract class AbstractMastersListener implements Listener {
         }
 
         if (queryException == null) {
-            queryException = new QueryException(firstPart + error, (short) -1, ExceptionMapper.SqlStates.CONNECTION_EXCEPTION.getSqlState());
+            queryException = new QueryException(firstPart + error, (short) -1, CONNECTION_EXCEPTION);
         } else {
             error = queryException.getMessage() + ". " + error;
             queryException.setMessage(firstPart + error);

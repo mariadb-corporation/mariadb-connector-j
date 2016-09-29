@@ -90,9 +90,9 @@ import java.util.List;
 import java.util.ServiceLoader;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.CONNECTION_EXCEPTION;
-import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION;
-import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.FEATURE_NOT_SUPPORTED;
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
+import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
+import static org.mariadb.jdbc.internal.util.SqlStates.FEATURE_NOT_SUPPORTED;
 
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {

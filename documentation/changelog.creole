@@ -13,7 +13,11 @@
 
 ---
 == 1.5.3
-* CONJ-353 : IBM jdk compatibility
+* CONJ-356 : secure connection : use KeyStore private key and associate public keys certificates only
+* CONJ-342 : Empty clientCertificateKeyStoreUrl option correction
+* CONJ-353 : IBM jdk compatibility issue
+* CONJ-354 : Streaming issue when using procedures in PrepareStatement/Statement
+* CONJ-345 : Regression with using COLLATE keyword in PrepareStatement query
 * CONJ-352 : metadata correction on getPrecision() for numeric fields
 * CONJ-350 : make prepare fallback to client prepare if query cannot be prepare
 

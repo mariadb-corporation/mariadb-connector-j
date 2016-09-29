@@ -54,8 +54,6 @@ import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
-import org.mariadb.jdbc.internal.queryresults.MultiFixedIntExecutionResult;
-import org.mariadb.jdbc.internal.queryresults.MultiVariableIntExecutionResult;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
@@ -71,8 +69,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.CONNECTION_EXCEPTION;
-import static org.mariadb.jdbc.internal.util.ExceptionMapper.SqlStates.INTERRUPTED_EXCEPTION;
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
+import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
 
 public abstract class AbstractMultiSend {
 
