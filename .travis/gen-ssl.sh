@@ -112,7 +112,7 @@ main () {
   keytool \
     -importkeystore \
     -deststorepass kspass \
-    -destkeypass kspasskey \
+    -destkeypass kspass \
     -destkeystore "${clientKeystoreFile}" \
     -srckeystore ${tmpKeystoreFile} \
     -srcstoretype PKCS12 \
