@@ -247,7 +247,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
 
         if (options.keyStore != null) {
-            keyManager = new KeyManager[] {loadClientCerts(options.keyStore, options.keyStorePassword)};
+            keyManager = new KeyManager[] {loadClientCerts(options.keyStore, options.keyStorePassword, options.keyPassword)};
         }
 
         try {
@@ -262,23 +262,23 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     }
 
-    private MariaDbX509KeyManager loadClientCerts(String keystoreUrl, String keystorePassword) throws QueryException {
+    private KeyManager loadClientCerts(String keyStoreUrl, String keyStorePassword, String keyPassword) throws QueryException {
         InputStream inStream = null;
         try {
 
-            char[] certKeystorePassword = keystorePassword == null ? null : keystorePassword.toCharArray();
-            inStream = new URL(keystoreUrl).openStream();
+            char[] keyStorePasswordChars = keyStorePassword == null ? null : keyStorePassword.toCharArray();
+            inStream = new URL(keyStoreUrl).openStream();
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-            ks.load(inStream, certKeystorePassword);
-            return new MariaDbX509KeyManager(ks, certKeystorePassword);
-
+            ks.load(inStream, keyStorePasswordChars);
+            char[] keyStoreChars = (keyPassword == null) ? keyStorePasswordChars : keyPassword.toCharArray();
+            return new MariaDbX509KeyManager(ks, keyStoreChars);
         } catch (GeneralSecurityException generalSecurityEx) {
             throw new QueryException("Failed to create keyStore instance", -1, CONNECTION_EXCEPTION, generalSecurityEx);
         } catch (FileNotFoundException fileNotFoundEx) {
-            throw new QueryException("Failed to find keyStore file. Option keyStore=" + keystoreUrl,
+            throw new QueryException("Failed to find keyStore file. Option keyStore=" + keyStoreUrl,
                     -1, CONNECTION_EXCEPTION, fileNotFoundEx);
         } catch (IOException ioEx) {
-            throw new QueryException("Failed to read keyStore file. Option keyStore=" + keystoreUrl,
+            throw new QueryException("Failed to read keyStore file. Option keyStore=" + keyStoreUrl,
                     -1, CONNECTION_EXCEPTION, ioEx);
         } finally {
             try {

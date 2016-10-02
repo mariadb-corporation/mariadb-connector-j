@@ -32,4 +32,6 @@ else
 fi
 
 
-mvn clean test $urlString -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID -DkeystorePath="/etc/mysql/client-keystore.p12" -DkeystorePassword="kspass"
+mvn clean test $urlString -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID  \
+    -DkeystorePath="/etc/mysql/client-keystore.p12" -DkeystorePassword="kspass"  \
+    -Dkeystore2Path="/etc/mysql/fullclient-keystore.p12" -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"

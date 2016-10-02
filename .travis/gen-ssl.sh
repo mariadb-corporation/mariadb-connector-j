@@ -34,7 +34,9 @@ main () {
   local clientCertFile="${sslDir}/client.crt"
   local clientKeyFile="${sslDir}/client.key"
   local clientKeystoreFile="${sslDir}/client-keystore.p12"
+  local fullClientKeystoreFile="${sslDir}/fullclient-keystore.p12"
   local tmpKeystoreFile=$(mktemp)
+  local tmpFullKeystoreFile=$(mktemp)
   local clientReqFile=$(mktemp)
 
   log "Generating CA key"
@@ -110,20 +112,47 @@ main () {
   keytool \
     -importkeystore \
     -deststorepass kspass \
-    -destkeypass kspass \
+    -destkeypass kspasskey \
     -destkeystore "${clientKeystoreFile}" \
     -srckeystore ${tmpKeystoreFile} \
     -srcstoretype PKCS12 \
     -srcstorepass kspass \
     -alias "mysqlAlias"
 
+  # Now generate a full keystore with the client cert & key + trust certificates
+  log "Generating full client keystore"
+  openssl pkcs12 \
+    -export \
+    -in "${clientCertFile}" \
+    -inkey "${clientKeyFile}" \
+    -out "${tmpFullKeystoreFile}" \
+    -name "mysqlAlias" \
+    -passout pass:kspass
+
+
+  # convert PKSC12 to JKS
+  keytool \
+    -importkeystore \
+    -deststorepass kspass \
+    -destkeypass kspasskey \
+    -destkeystore "${fullClientKeystoreFile}" \
+    -srckeystore ${tmpFullKeystoreFile} \
+    -srcstoretype PKCS12 \
+    -srcstorepass kspass \
+    -alias "mysqlAlias"
+
+  log "Generating trustStore"
+  keytool -import -file "${certFile}" -alias CA -keystore "${fullClientKeystoreFile}" -storepass kspass -keypass kspasskey -noprompt
+
   # Clean up CSR file:
   rm "$csrFile"
   rm "$clientReqFile"
   rm "$tmpKeystoreFile"
+  rm "$tmpFullKeystoreFile"
 
   log "Generated key file and certificate in: ${sslDir}"
   ls -l "${sslDir}"
 }
 
 main "$@"
+

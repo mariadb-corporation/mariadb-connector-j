@@ -591,6 +591,7 @@ public class SslTest extends BaseTest {
         }
     }
 
+
     @Test
     public void testClientKeystore() throws SQLException, IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
         // This test only runs if a client keystore and password have been passed in as properties (-DkeystorePath and -DkeystorePassword)
@@ -615,6 +616,46 @@ public class SslTest extends BaseTest {
         }
     }
 
+    /**
+     * Verification when private key password differ from keyStore password.
+     *
+     * @throws Exception if error occur
+     */
+    @Test
+    public void testClientKeyStoreWithPrivateKeyPwd() throws Exception {
+        String clientKeyStore2Path = System.getProperty("keystore2Path");
+        String clientKeyStore2Password = System.getProperty("keystore2Password");
+        String clientKeyPassword = System.getProperty("keyPassword");
+        Assume.assumeTrue(clientKeyPassword != null);
+        String testUser = "testKeystore";
+        // For this testcase, the testUser must be configured with ssl_type=X509
+        createSslTestUser(testUser);
+
+        //without keyPassword
+        try {
+            Properties info = new Properties();
+            info.setProperty("useSSL", "true");
+            info.setProperty("serverSslCert", serverCertificatePath);
+            info.setProperty("keyStore", "file:///" + clientKeyStore2Path);
+            info.setProperty("keyStorePassword", clientKeyStore2Password);
+            testConnect(info, true, testUser, "ssltestpassword");
+            fail("Must have Error since client private key is protected with a password different than keystore");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Access denied for user"));
+        }
+
+        try {
+            Properties info = new Properties();
+            info.setProperty("useSSL", "true");
+            info.setProperty("serverSslCert", serverCertificatePath);
+            info.setProperty("keyStore", "file:///" + clientKeyStore2Path);
+            info.setProperty("keyStorePassword", clientKeyStore2Password);
+            info.setProperty("keyPassword", clientKeyPassword);
+            testConnect(info, true, testUser, "ssltestpassword");
+        } finally {
+            deleteSslTestUser(testUser);
+        }
+    }
 
     @Test
     public void testKeyStoreWithProperties() throws Exception {

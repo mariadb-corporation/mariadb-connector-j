@@ -13,6 +13,7 @@
 
 ---
 == 1.5.3
+* CONJ-358 : Permit using private key with password that differ from keyStore password
 * CONJ-356 : secure connection : use KeyStore private key and associate public keys certificates only
 * CONJ-342 : Empty clientCertificateKeyStoreUrl option correction
 * CONJ-353 : IBM jdk compatibility issue

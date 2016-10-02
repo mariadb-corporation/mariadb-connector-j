@@ -62,6 +62,7 @@ public class Options {
     public String trustStorePassword;
     public String keyStore;
     public String keyStorePassword;
+    public String keyPassword;
     public String enabledSslProtocolSuites;
     public boolean useFractionalSeconds;
     public boolean pinGlobalTxToPhysicalConnection;

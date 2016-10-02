@@ -310,7 +310,7 @@ public enum DefaultOptions {
     TRUST_CERTIFICATE_KEYSTORE_URL("trustStore", "1.3.0"),
 
     /**
-     * Password for the trusted root certificate keystore.
+     * Password for the trusted root certificate file (similar to java System property "javax.net.ssl.trustStorePassword").
      *
      * (legacy alias trustCertificateKeyStorePassword)
      */
@@ -324,10 +324,16 @@ public enum DefaultOptions {
     CLIENT_CERTIFICATE_KEYSTORE_URL("keyStore", "1.3.0"),
 
     /**
-     * Password for the client certificate keystore.
+     * Password for the client certificate keystore  (similar to java System property "javax.net.ssl.keyStorePassword").
      * (legacy alias clientCertificateKeyStorePassword)
      */
     CLIENT_CERTIFICATE_KEYSTORE_PASSWORD("keyStorePassword", "1.3.0"),
+
+    /**
+     * Password for the private key contain in client certificate keystore.
+     * needed only in case private key password differ from keyStore password.
+     */
+    PRIVATE_KEYS_PASSWORD("keyPassword", "1.5.3"),
 
     /**
      * Force TLS/SSL protocol to a specific set of TLS versions (comma separated list)
