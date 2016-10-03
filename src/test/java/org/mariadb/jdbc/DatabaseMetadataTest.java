@@ -371,7 +371,8 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void testGetColumns() throws SQLException {
-        createTable("tablegetcolumns", "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (a mod 10) VIRTUAL, d VARCHAR(5) AS (left(b,5)) PERSISTENT");
+        createTable("tablegetcolumns", "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (a mod 10) VIRTUAL, d VARCHAR(5) AS (left(b,5)) PERSISTENT", "CHARACTER SET 'utf8mb4'");
+
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getColumns(null, null, "tablegetcolumns", null);
 
@@ -411,7 +412,7 @@ public class DatabaseMetadataTest extends BaseTest {
         Assert.assertEquals(1, rs.getInt(11)); //NULLABLE
         Assert.assertEquals("", rs.getString(12)); //REMARKS
         Assert.assertEquals(null, rs.getString(13)); //COLUMN_DEF
-        Assert.assertEquals(32 * 3, rs.getInt(16)); //CHAR_OCTET_LENGTH
+        Assert.assertEquals(32 * 4, rs.getInt(16)); //CHAR_OCTET_LENGTH
         Assert.assertEquals(2, rs.getInt(17)); //ORDINAL_POSITION
         Assert.assertEquals("YES", rs.getString(18)); //IS_NULLABLE
         Assert.assertEquals(null, rs.getString(19)); //SCOPE_CATALOG
@@ -457,7 +458,7 @@ public class DatabaseMetadataTest extends BaseTest {
         Assert.assertEquals(1, rs.getInt(11)); //NULLABLE
         Assert.assertEquals("", rs.getString(12)); //REMARKS
         Assert.assertEquals(null, rs.getString(13)); //COLUMN_DEF
-        Assert.assertEquals(5 * 3, rs.getInt(16)); //CHAR_OCTET_LENGTH
+        Assert.assertEquals(5 * 4, rs.getInt(16)); //CHAR_OCTET_LENGTH
         Assert.assertEquals(4, rs.getInt(17)); //ORDINAL_POSITION
         Assert.assertEquals("YES", rs.getString(18)); //IS_NULLABLE
         Assert.assertEquals(null, rs.getString(19)); //SCOPE_CATALOG
