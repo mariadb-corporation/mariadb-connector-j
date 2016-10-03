@@ -371,7 +371,14 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void testGetColumns() throws SQLException {
-        createTable("tablegetcolumns", "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (a mod 10) VIRTUAL, d VARCHAR(5) AS (left(b,5)) PERSISTENT", "CHARACTER SET 'utf8mb4'");
+        if (minVersion(10, 2)) {
+            createTable("tablegetcolumns", "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
+                    + "d VARCHAR(5) AS (left(b,5)) STORED", "CHARACTER SET 'utf8mb4'");
+        } else {
+            createTable("tablegetcolumns", "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
+                    + "d VARCHAR(5) AS (left(b,5))", "CHARACTER SET 'utf8mb4'");
+
+        }
 
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getColumns(null, null, "tablegetcolumns", null);
@@ -466,8 +473,11 @@ public class DatabaseMetadataTest extends BaseTest {
         Assert.assertEquals(null, rs.getString(21)); //SCOPE_TABLE
         Assert.assertEquals(0, rs.getShort(22)); //SOURCE_DATA_TYPE
         Assert.assertEquals("NO", rs.getString(23)); //IS_AUTOINCREMENT
-        Assert.assertEquals("NO", rs.getString(24)); //IS_GENERATEDCOLUMN
-
+        if (minVersion(10, 2)) {
+            Assert.assertEquals("NO", rs.getString(24)); //IS_GENERATEDCOLUMN
+        } else {
+            Assert.assertEquals("YES", rs.getString(24)); //IS_GENERATEDCOLUMN
+        }
         Assert.assertFalse(rs.next());
 
     }
