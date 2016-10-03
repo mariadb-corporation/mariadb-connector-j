@@ -632,7 +632,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                         + " LEAST(CHARACTER_OCTET_LENGTH," + Integer.MAX_VALUE + ") CHAR_OCTET_LENGTH,"
                         + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
                         + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
-                        + " IF(EXTRA = 'VIRTUAL','YES','NO') IS_GENERATEDCOLUMN "
+                        + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
                         + " FROM INFORMATION_SCHEMA.COLUMNS  WHERE "
                         + catalogCond("TABLE_SCHEMA", catalog)
                         + " AND "

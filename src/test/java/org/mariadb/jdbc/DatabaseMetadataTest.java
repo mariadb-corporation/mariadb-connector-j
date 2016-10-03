@@ -1,9 +1,6 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.sql.*;
 
@@ -371,12 +368,15 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void testGetColumns() throws SQLException {
-        if (minVersion(10, 2)) {
+        //mysql 5.6 doesn't permit VIRTUAL keyword
+        Assume.assumeTrue(isMariadbServer() || !isMariadbServer() && minVersion(5, 7));
+
+        if (minVersion(10, 2) || !isMariadbServer()) {
             createTable("tablegetcolumns", "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
                     + "d VARCHAR(5) AS (left(b,5)) STORED", "CHARACTER SET 'utf8mb4'");
         } else {
             createTable("tablegetcolumns", "a INT NOT NULL primary key auto_increment, b VARCHAR(32), c INT AS (CHAR_LENGTH(b)) VIRTUAL, "
-                    + "d VARCHAR(5) AS (left(b,5))", "CHARACTER SET 'utf8mb4'");
+                    + "d VARCHAR(5) AS (left(b,5)) PERSISTENT", "CHARACTER SET 'utf8mb4'");
 
         }
 
@@ -473,11 +473,7 @@ public class DatabaseMetadataTest extends BaseTest {
         Assert.assertEquals(null, rs.getString(21)); //SCOPE_TABLE
         Assert.assertEquals(0, rs.getShort(22)); //SOURCE_DATA_TYPE
         Assert.assertEquals("NO", rs.getString(23)); //IS_AUTOINCREMENT
-        if (minVersion(10, 2)) {
-            Assert.assertEquals("NO", rs.getString(24)); //IS_GENERATEDCOLUMN
-        } else {
-            Assert.assertEquals("YES", rs.getString(24)); //IS_GENERATEDCOLUMN
-        }
+        Assert.assertEquals("YES", rs.getString(24)); //IS_GENERATEDCOLUMN
         Assert.assertFalse(rs.next());
 
     }
