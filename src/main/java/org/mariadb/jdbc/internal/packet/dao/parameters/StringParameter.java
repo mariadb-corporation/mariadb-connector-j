@@ -171,6 +171,13 @@ public class StringParameter implements ParameterHolder, Cloneable {
         charsOffset = 0;
         position = 0;
 
+        //handle "" String value
+        if (charsLength == 0) {
+            position = 2;
+            escapedArray = new byte[] {(byte)'\'', (byte)'\''};
+            return;
+        }
+
         //create UTF-8 byte array
         //since java char are internally using UTF-16 using surrogate's pattern, 4 bytes unicode characters will
         //represent 2 characters : example "\uD83C\uDFA4" = 🎤 unicode 8 "no microphones"
