@@ -1,4 +1,5 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#151|1.5.4]] Not released
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#151|1.5.3]] Released on 03 Oct. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#151|1.5.2]] Released on 31 aug. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#151|1.5.1]] RC released on 15 aug. 2016
@@ -12,6 +13,13 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+
+== 1.5.4
+Not released
+* CONJ-361 : PrepareStatement setString() with empty string correction.
+* CONJ-360 : replacing ManagementFactory.getRuntimeMXBean() that cause possible slow connection depending on JVM / environment
+* CONJ-359 : Metadata getColumns(...) resultSet doesnt have "IS_GENERATEDCOLUMN" info
+
 == 1.5.3
 * CONJ-358 : Permit using private key with password that differ from keyStore password
 * CONJ-356 : secure connection : use KeyStore private key and associate public keys certificates only

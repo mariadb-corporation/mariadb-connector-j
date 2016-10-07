@@ -35,6 +35,7 @@ public class PreparedStatementTest extends BaseTest {
         createTable("test_decimal_insert", "`field1` decimal(10, 7)");
         createTable("PreparedStatementTest1", "id int not null primary key auto_increment, test longblob");
         createTable("PreparedStatementTest2", "my_col varchar(20)");
+        createTable("PreparedStatementTest3", "my_col varchar(20)");
     }
 
     @Test
@@ -380,4 +381,25 @@ public class PreparedStatementTest extends BaseTest {
             preparedStatementMulti.execute();
         }
     }
+
+    /**
+     * CONJ-361: empty string test.
+     * @throws Throwable exception
+     */
+    @Test
+    public void emptyStringParameter() throws Throwable {
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO PreparedStatementTest3 (my_col) VALUES (?)")) {
+            preparedStatement.setString(1, "");
+            preparedStatement.execute();
+        }
+    }
+
+    @Test
+    public void nullStringParameter() throws Throwable {
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO PreparedStatementTest3 (my_col) VALUES (?)")) {
+            preparedStatement.setString(1, null);
+            preparedStatement.execute();
+        }
+    }
+
 }
