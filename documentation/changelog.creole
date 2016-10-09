@@ -16,6 +16,7 @@
 
 == 1.5.4
 Not released
+* CONJ-363 : Connection.getClientInfo implementation correction to follow JDBC rules
 * CONJ-361 : PrepareStatement setString() with empty string correction.
 * CONJ-360 : replacing ManagementFactory.getRuntimeMXBean() that cause possible slow connection depending on JVM / environment
 * CONJ-359 : Metadata getColumns(...) resultSet doesnt have "IS_GENERATEDCOLUMN" info

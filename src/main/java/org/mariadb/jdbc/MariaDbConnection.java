@@ -55,10 +55,10 @@ import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.net.SocketException;
 import java.sql.*;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
@@ -1096,7 +1096,72 @@ public final class MariaDbConnection implements Connection {
      * @since 1.6
      */
     public void setClientInfo(final String name, final String value) throws SQLClientInfoException {
-        DefaultOptions.addProperty(protocol.getUrlParser().getHaMode(), name, value, this.options);
+        if (protocol.isExplicitClosed()) {
+            Map<String, ClientInfoStatus> failures = new HashMap<>();
+            failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
+            throw new SQLClientInfoException("setClientInfo() is called on closed connection", failures);
+        }
+
+        if (protocol.isClosed() && protocol.getProxy() != null) {
+            lock.lock();
+            try {
+                protocol.getProxy().reconnect();
+            } catch (SQLException sqle) {
+                Map<String, ClientInfoStatus> failures = new HashMap<>();
+                failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
+                throw new SQLClientInfoException("Connection closed", failures, sqle);
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        if (name == null || (!"ApplicationName".equals(name)
+                && !"ClientUser".equals(name)
+                && !"ClientHostname".equals(name))) {
+            Map<String, ClientInfoStatus> failures = new HashMap<>();
+            failures.put(name, ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
+            throw new SQLClientInfoException("setClientInfo() parameters can only be \"ApplicationName\",\"ClientUser\" or \"ClientHostname\", "
+                    + "but was : " + name, failures);
+        }
+
+        StringBuilder escapeQuery = new StringBuilder("SET @").append(name).append("=");
+        if (value == null) {
+            escapeQuery.append("null");
+        } else {
+            escapeQuery.append("'");
+            int charsOffset = 0;
+            int charsLength = value.length();
+            char charValue;
+            if (noBackslashEscapes) {
+                do {
+                    charValue = value.charAt(charsOffset);
+                    if (charValue == '\'') escapeQuery.append('\''); //add a single escape quote
+                    escapeQuery.append(charValue);
+                    charsOffset++;
+                } while (charsOffset < charsLength);
+            } else {
+                do {
+                    charValue = value.charAt(charsOffset);
+                    if (charValue  == '\''
+                            || charValue == '\\'
+                            || charValue == '"'
+                            || charValue == 0) escapeQuery.append('\\'); //add escape slash
+                    escapeQuery.append(charValue);
+                    charsOffset++;
+                } while (charsOffset < charsLength);
+            }
+            escapeQuery.append("'");
+        }
+
+        try {
+            Statement statement = createStatement();
+            statement.execute(escapeQuery.toString());
+        } catch (SQLException sqle) {
+            Map<String, ClientInfoStatus> failures = new HashMap<>();
+            failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
+            throw new SQLClientInfoException("unexpected error during setClientInfo", failures, sqle);
+
+        }
     }
 
     /**
@@ -1117,7 +1182,19 @@ public final class MariaDbConnection implements Connection {
      * @since 1.6
      */
     public void setClientInfo(final Properties properties) throws SQLClientInfoException {
-        DefaultOptions.addProperty(protocol.getUrlParser().getHaMode(), properties, this.options);
+        Map<String, ClientInfoStatus> propertiesExceptions = new HashMap<>();
+        for (String name : new String[]{"ApplicationName", "ClientUser", "ClientHostname"}) {
+            try {
+                setClientInfo(name, properties.getProperty(name));
+            } catch (SQLClientInfoException e) {
+                propertiesExceptions.putAll(e.getFailedProperties());
+            }
+        }
+
+        if (!propertiesExceptions.isEmpty()) {
+            String errorMsg = "setClientInfo errors : the following properties where not set : " + propertiesExceptions.keySet();
+            throw new SQLClientInfoException(errorMsg, propertiesExceptions);
+        }
     }
 
     /**
@@ -1135,7 +1212,18 @@ public final class MariaDbConnection implements Connection {
      * @since 1.6
      */
     public String getClientInfo(final String name) throws SQLException {
-        return DefaultOptions.getProperties(name, options);
+        checkConnection();
+        if (!"ApplicationName".equals(name) && !"ClientUser".equals(name) && !"ClientHostname".equals(name)) {
+            throw new SQLException("name must be \"ApplicationName\", \"ClientUser\" or \"ClientHostname\", but was \"" + name + "\"");
+        }
+        try (Statement statement = createStatement()) {
+            try (ResultSet rs = statement.executeQuery("SELECT @" + name)) {
+                if (rs.next()) {
+                    return rs.getString(1);
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -1149,7 +1237,23 @@ public final class MariaDbConnection implements Connection {
      * @since 1.6
      */
     public Properties getClientInfo() throws SQLException {
-        return DefaultOptions.getProperties(options);
+        checkConnection();
+        try (Statement statement = createStatement()) {
+            try (ResultSet rs = statement.executeQuery("SELECT @ApplicationName, @ClientUser, @ClientHostname")) {
+                if (rs.next()) {
+                    Properties properties = new Properties();
+                    if (rs.getString(1) != null) properties.setProperty("ApplicationName", rs.getString(1));
+                    if (rs.getString(2) != null) properties.setProperty("ClientUser", rs.getString(2));
+                    if (rs.getString(3) != null) properties.setProperty("ClientHostname", rs.getString(3));
+                    return properties;
+                }
+            }
+        }
+        Properties properties = new Properties();
+        properties.setProperty("ApplicationName", null);
+        properties.setProperty("ClientUser", null);
+        properties.setProperty("ClientHostname", null);
+        return new Properties();
     }
 
 

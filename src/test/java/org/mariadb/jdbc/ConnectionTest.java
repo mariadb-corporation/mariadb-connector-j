@@ -8,6 +8,7 @@ import org.junit.Test;
 import java.io.UnsupportedEncodingException;
 import java.sql.*;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
@@ -43,35 +44,6 @@ public class ConnectionTest extends BaseTest {
                 Assert.assertTrue("28000".equals(e.getSQLState()));
                 Assert.assertEquals(1045, e.getErrorCode());
             }
-        }
-    }
-
-    /**
-     * Conj-89.
-     *
-     * @throws SQLException exception
-     */
-    @Test
-    public void getPropertiesTest() throws SQLException {
-        String params = "&useFractionalSeconds=true&allowMultiQueries=true&useCompression=false";
-        Connection connection = null;
-        try {
-            connection = setBlankConnection(params);
-            Properties properties = connection.getClientInfo();
-            assertTrue(properties != null);
-            assertTrue(properties.size() > 0);
-            assertTrue(properties.getProperty("user").equalsIgnoreCase(username));
-            // assertTrue(properties.getProperty("password").equalsIgnoreCase(password));
-            assertTrue(properties.getProperty("useFractionalSeconds").equalsIgnoreCase("true"));
-            assertTrue(properties.getProperty("allowMultiQueries").equalsIgnoreCase("true"));
-            assertTrue(properties.getProperty("useCompression").equalsIgnoreCase("false"));
-            assertEquals(username, connection.getClientInfo("user"));
-            // assertEquals(null, connection.getClientInfo("password"));
-            assertEquals("true", connection.getClientInfo("useFractionalSeconds"));
-            assertEquals("true", connection.getClientInfo("allowMultiQueries"));
-            assertEquals("false", connection.getClientInfo("useCompression"));
-        } finally {
-            connection.close();
         }
     }
 
@@ -287,4 +259,66 @@ public class ConnectionTest extends BaseTest {
         }
     }
 
+    /**
+     * CONJ-363 : follow JDBC connection client infos rules.
+     * @throws Exception if any occur.
+     */
+    @Test
+    public void testConnectionClientInfos() throws Exception {
+        assertEquals(null, sharedConnection.getClientInfo("ApplicationName"));
+        assertEquals(null, sharedConnection.getClientInfo("ClientUser"));
+        assertEquals(null, sharedConnection.getClientInfo("ClientHostname"));
+
+        try {
+            sharedConnection.getClientInfo("otherName");
+            fail("Must have throw exception since name wasn't correct");
+        } catch (SQLException sqlEx) {
+            assertTrue(sqlEx.getMessage().contains("name must be"));
+        }
+
+        Properties properties = sharedConnection.getClientInfo();
+        assertEquals(null, properties.get("ApplicationName"));
+        assertEquals(null, properties.get("ClientUser"));
+        assertEquals(null, properties.get("ClientHostname"));
+
+        sharedConnection.setClientInfo("ClientHostname", "testHostName");
+        assertEquals("testHostName", sharedConnection.getClientInfo("ClientHostname"));
+
+        properties = new Properties();
+        properties.setProperty("ApplicationName", "testDriver");
+        properties.setProperty("ClientUser", "testClientUser");
+        properties.setProperty("NotPermitted", "blabla");
+        properties.setProperty("NotPermitted2", "blabla");
+
+        try {
+            sharedConnection.setClientInfo(properties);
+        } catch (SQLClientInfoException sqle) {
+            assertEquals("setClientInfo errors : the following properties where not set :{NotPermitted,NotPermitted2}", sqle.getMessage());
+            Map<String, ClientInfoStatus> failedProperties = sqle.getFailedProperties();
+            assertTrue(failedProperties.containsKey("NotPermitted"));
+            assertTrue(failedProperties.containsKey("NotPermitted2"));
+            assertEquals(2, failedProperties.size());
+        }
+
+        assertEquals("testDriver", sharedConnection.getClientInfo("ApplicationName"));
+        assertEquals("testClientUser", sharedConnection.getClientInfo("ClientUser"));
+        assertEquals(null, sharedConnection.getClientInfo("ClientHostname"));
+
+        sharedConnection.setClientInfo("ClientUser", "otherValue");
+
+        assertEquals("testDriver", sharedConnection.getClientInfo("ApplicationName"));
+        assertEquals("otherValue", sharedConnection.getClientInfo("ClientUser"));
+        assertEquals(null, sharedConnection.getClientInfo("ClientHostname"));
+
+        try {
+            sharedConnection.setClientInfo("NotPermitted", "otherValue");
+            fail("Must have send an exception");
+        } catch (SQLClientInfoException sqle) {
+            assertEquals("setClientInfo() parameters can only be \"ApplicationName\",\"ClientUser\" or \"ClientHostname\", "
+                    + "but was : NotPermitted", sqle.getMessage());
+            Map<String, ClientInfoStatus> failedProperties = sqle.getFailedProperties();
+            assertTrue(failedProperties.containsKey("NotPermitted"));
+            assertEquals(1, failedProperties.size());
+        }
+    }
 }
