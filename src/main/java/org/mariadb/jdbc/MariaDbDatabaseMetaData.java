@@ -49,6 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
@@ -631,7 +632,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                         + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
                         + " LEAST(CHARACTER_OCTET_LENGTH," + Integer.MAX_VALUE + ") CHAR_OCTET_LENGTH,"
                         + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
-                        + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT "
+                        + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
+                        + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
                         + " FROM INFORMATION_SCHEMA.COLUMNS  WHERE "
                         + catalogCond("TABLE_SCHEMA", catalog)
                         + " AND "
@@ -2346,9 +2348,49 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         return false;
     }
 
+    /**
+     * Retrieves a list of the client info properties that the driver supports. The result set contains the following columns
+     * <ol>
+     *     <li>NAME String : The name of the client info property</li>
+     *     <li>MAX_LEN int : The maximum length of the value for the property</li>
+     *     <li>DEFAULT_VALUE String : The default value of the property</li>
+     *     <li>DESCRIPTION String : A description of the property.
+     *     This will typically contain information as to where this property is stored in the database.</li>
+     * </ol>
+     * The ResultSet is sorted by the NAME column
+     * @return A ResultSet object; each row is a supported client info property
+     * @throws SQLException if connection error occur
+     */
     public ResultSet getClientInfoProperties() throws SQLException {
-        String sql = "SELECT ' ' NAME, 0 MAX_LEN, ' ' DEFAULT_VALUE, ' ' DESCRIPTION FROM DUAL WHERE 1=0";
-        return executeQuery(sql);
+        ColumnInformation[] columns = new ColumnInformation[4];
+        columns[0] = ColumnInformation.create("NAME", MariaDbType.STRING);
+        columns[1] = ColumnInformation.create("MAX_LEN", MariaDbType.INTEGER);
+        columns[2] = ColumnInformation.create("DEFAULT_VALUE", MariaDbType.STRING);
+        columns[3] = ColumnInformation.create("DESCRIPTION", MariaDbType.STRING);
+
+
+        List<byte[][]> rows = new ArrayList<>(3);
+        rows.add(new byte[][] {
+                "ApplicationName".getBytes(),
+                new byte[] {(byte) 49, (byte) 54, (byte) 55, (byte) 55, (byte) 55, (byte) 50, (byte) 49, (byte) 53},  //16Mb
+                new byte[]{},
+                "The name of the application currently utilizing the connection".getBytes()
+        });
+        rows.add(new byte[][] {
+                "ClientUser".getBytes(),
+                new byte[] {(byte) 49, (byte) 54, (byte) 55, (byte) 55, (byte) 55, (byte) 50, (byte) 49, (byte) 53},  //16Mb
+                new byte[]{},
+                ("The name of the user that the application using the connection is performing work for. "
+                        + "This may not be the same as the user name that was used in establishing the connection.").getBytes()
+        });
+        rows.add(new byte[][] {
+                "ClientHostname".getBytes(),
+                new byte[] {(byte) 49, (byte) 54, (byte) 55, (byte) 55, (byte) 55, (byte) 50, (byte) 49, (byte) 53},  //16Mb
+                new byte[]{},
+                "The hostname of the computer the application using the connection is running on".getBytes()
+        });
+
+        return new MariaSelectResultSet(columns, rows, connection.getProtocol(), ResultSet.TYPE_SCROLL_INSENSITIVE);
     }
 
     /**

@@ -314,7 +314,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 socket.setSoLinger(true, 0);
             }
         } catch (Exception e) {
-//            if (log.isDebugEnabled())log.debug("Failed to set socket option: " + e.getLocalizedMessage());
+            logger.debug("Failed to set socket option", e);
         }
     }
 

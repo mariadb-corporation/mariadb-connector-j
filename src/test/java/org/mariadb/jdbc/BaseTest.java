@@ -443,11 +443,6 @@ public class BaseTest {
         }
     }
 
-    protected Connection openNewConnection() throws SQLException {
-        Properties info = sharedConnection.getClientInfo();
-        return openNewConnection(connUri, info);
-    }
-
     protected Connection openNewConnection(String url) throws SQLException {
         return DriverManager.getConnection(url);
     }

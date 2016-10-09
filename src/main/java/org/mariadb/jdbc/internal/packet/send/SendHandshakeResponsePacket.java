@@ -52,6 +52,7 @@ package org.mariadb.jdbc.internal.packet.send;
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
+import org.mariadb.jdbc.internal.util.PidFactory;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.constant.Version;
@@ -59,7 +60,6 @@ import org.mariadb.jdbc.internal.util.constant.Version;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
-import java.lang.management.ManagementFactory;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.StringTokenizer;
@@ -205,12 +205,11 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
         writeStringLength("_client_name", MariaDbDatabaseMetaData.DRIVER_NAME);
         writeStringLength("_client_version", Version.version);
         writeStringLength("_os", System.getProperty("os.name"));
-        try {
-            writeStringLength("_pid", ManagementFactory.getRuntimeMXBean().getName());
-        } catch (NoClassDefFoundError e) {
-            /* [CONJ-281] GAE support */
-        }
-        writeStringLength("_thread", Long.toString(serverThreadId));
+
+        String pid = PidFactory.getInstance().getPid();
+        if (pid != null) writeStringLength("_pid", pid);
+
+        writeStringLength("_thread", Long.toString(Thread.currentThread().getId()));
         writeStringLength("_java_vendor", System.getProperty("java.vendor"));
         writeStringLength("_java_version", System.getProperty("java.version"));
 

@@ -44,32 +44,6 @@ public class ParserTest extends BaseTest {
         datasource.setUrl("jdbc:mariadb://localhost:3306/db");
     }
 
-
-    @Test
-    public void addProperties() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection();
-            Field field = MariaDbConnection.class.getDeclaredField("options");
-            field.setAccessible(true);
-            Options options = (Options) field.get(connection);
-            assertFalse(options.useSsl);
-            connection.setClientInfo("useSSL", "true");
-
-            options = (Options) field.get(connection);
-            assertTrue(options.useSsl);
-
-            Properties prop = new Properties();
-            prop.put("autoReconnect", "true");
-            prop.put("useSSL", "false");
-            connection.setClientInfo(prop);
-            assertFalse(options.useSsl);
-            assertTrue(options.autoReconnect);
-        } finally {
-            connection.close();
-        }
-    }
-
     @Test
     public void libreOfficeBase() {
         String sql;
