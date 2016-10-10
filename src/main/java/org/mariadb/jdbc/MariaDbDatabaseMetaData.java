@@ -88,7 +88,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     static String columnTypeClause(String columnName) {
 
         return
-                " UCASE(IF( " + columnName + " LIKE '%(%)%', CONCAT (SUBSTRING( " + columnName + ",1, LOCATE('(',"
+                " UCASE(IF( " + columnName + " LIKE '%(%)%', CONCAT(SUBSTRING( " + columnName + ",1, LOCATE('(',"
                         + columnName + ") - 1 ), SUBSTRING(" + columnName + ",1+locate(')'," + columnName + "))), "
                         + columnName + "))";
     }
