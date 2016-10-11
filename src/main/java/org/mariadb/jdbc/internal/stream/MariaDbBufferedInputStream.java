@@ -81,7 +81,7 @@ public class MariaDbBufferedInputStream extends BufferedInputStream implements M
             int returnValue = (buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8) + ((buf[pos + 2] & 0xff) << 16);
             lastPacketSeq = buf[pos + 3] & 0xff;
             pos += 4;
-            logger.trace("read packet seq:" + lastPacketSeq + " length:" + returnValue);
+            if (logger.isTraceEnabled()) logger.trace("read packet seq:" + lastPacketSeq + " length:" + returnValue);
             return returnValue;
         }
 
@@ -95,7 +95,7 @@ public class MariaDbBufferedInputStream extends BufferedInputStream implements M
         } while (read < 4);
         lastPacketSeq = headerBuffer[3] & 0xff;
         int length = (headerBuffer[0] & 0xff) + ((headerBuffer[1] & 0xff) << 8) + ((headerBuffer[2] & 0xff) << 16);
-        logger.trace("read packet seq:" + lastPacketSeq + " length:" + length);
+        if (logger.isTraceEnabled()) logger.trace("read packet seq:" + lastPacketSeq + " length:" + length);
         return length;
     }
 

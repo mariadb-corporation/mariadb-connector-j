@@ -319,6 +319,7 @@ public class MariaSelectResultSet implements ResultSet {
             streaming = false;
         } else {
             protocol.setActiveStreamingResult(this);
+            resultSet = new ArrayList<>(fetchSize);
             nextStreamingValue();
             streaming = true;
         }
@@ -372,14 +373,13 @@ public class MariaSelectResultSet implements ResultSet {
 
     private void nextStreamingValue() throws IOException, QueryException {
 
-        final List<byte[][]> valueObjects = new ArrayList<>(fetchSize);
+        resultSet.clear();
         //fetch maximum fetchSize results
         int fetchSizeTmp = fetchSize;
-        while (fetchSizeTmp > 0 && readNextValue(valueObjects)) {
+        while (fetchSizeTmp > 0 && readNextValue(resultSet)) {
             fetchSizeTmp--;
         }
         dataFetchTime++;
-        resultSet = valueObjects;
         this.resultSetSize = resultSet.size();
     }
 
@@ -3180,6 +3180,7 @@ public class MariaSelectResultSet implements ResultSet {
                 case YEAR:
                 case INTEGER:
                 case MEDIUMINT:
+                case BIGINT:
                     long result = 0;
                     int length = rawBytes.length;
                     boolean negate = false;
