@@ -622,6 +622,27 @@ public class DatabaseMetadataTest extends BaseTest {
         testResultSetColumns(
                 sharedConnection.getMetaData().getClientInfoProperties(),
                 "NAME String, MAX_LEN int, DEFAULT_VALUE String, DESCRIPTION String");
+        ResultSet rs = sharedConnection.getMetaData().getClientInfoProperties();
+        assertTrue(rs.next());
+        Assert.assertEquals("ApplicationName", rs.getString(1));
+        Assert.assertEquals(0x00ffffff, rs.getInt(2));
+        Assert.assertEquals("", rs.getString(3));
+        Assert.assertEquals("The name of the application currently utilizing the connection", rs.getString(4));
+
+        assertTrue(rs.next());
+        Assert.assertEquals("ClientUser", rs.getString(1));
+        Assert.assertEquals(0x00ffffff, rs.getInt(2));
+        Assert.assertEquals("", rs.getString(3));
+        Assert.assertEquals("The name of the user that the application using the connection is performing work for. "
+                + "This may not be the same as the user name that was used in establishing the connection.", rs.getString(4));
+
+        assertTrue(rs.next());
+        Assert.assertEquals("ClientHostname", rs.getString(1));
+        Assert.assertEquals(0x00ffffff, rs.getInt(2));
+        Assert.assertEquals("", rs.getString(3));
+        Assert.assertEquals("The hostname of the computer the application using the connection is running on", rs.getString(4));
+
+        assertFalse(rs.next());
     }
 
     @Test

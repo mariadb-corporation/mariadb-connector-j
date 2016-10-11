@@ -142,7 +142,7 @@ The following options are currently supported.
 |=cacheCallableStmts| enable/disable callable Statement cache\\//Default: true. Since 1.4.0//|
 |=callableStmtCacheSize| This sets the number of callable statements that the driver will cache per VM if "cacheCallableStmts" is enabled.\\//Default: true. Since 1.4.0//|
 |=useBatchMultiSendNumber| When option useBatchMultiSend is active, indicate the maximum query send in a row before reading results.\\//Default: 100. Since 1.5.0//|
-
+|=connectionAttributes| When performance_schema is active, permit to send server some client information in a key;value pair format (example: connectionAttributes=key1:value1,key2,value2).\\Those informations can be retrieved on server within tables performance_schema.session_connect_attrs and performance_schema.session_account_connect_attrs.\\This can permit from server an identification of client/application\\//Since 1.4.0//|
 
 
 \\\\
