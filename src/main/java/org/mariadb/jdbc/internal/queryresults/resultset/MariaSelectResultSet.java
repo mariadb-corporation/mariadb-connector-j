@@ -3183,6 +3183,7 @@ public class MariaSelectResultSet implements ResultSet {
                 case YEAR:
                 case INTEGER:
                 case MEDIUMINT:
+                case BIGINT:
                     long result = 0;
                     int length = rawBytes.length;
                     boolean negate = false;
@@ -3193,6 +3194,12 @@ public class MariaSelectResultSet implements ResultSet {
                     }
                     for (; begin < length; begin++) {
                         result = result * 10 + rawBytes[begin] - 48;
+                    }
+                    //specific for BIGINT : if value > Long.MAX_VALUE will become negative.
+                    if (result < 0) {
+                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
+                                + new String(rawBytes, StandardCharsets.UTF_8)
+                                + " is not in Integer range", "22003", 1264);
                     }
                     result = (negate ? -1 * result : result);
                     rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, result, columnInfo);
@@ -3242,6 +3249,7 @@ public class MariaSelectResultSet implements ResultSet {
                 case YEAR:
                 case INTEGER:
                 case MEDIUMINT:
+                case BIGINT:
                     long result = 0;
                     int length = rawBytes.length;
                     boolean negate = false;
@@ -3252,6 +3260,12 @@ public class MariaSelectResultSet implements ResultSet {
                     }
                     for (; begin < length; begin++) {
                         result = result * 10 + rawBytes[begin] - 48;
+                    }
+                    //specific for BIGINT : if value > Long.MAX_VALUE , will become negative until -1
+                    if (result < 0) {
+                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
+                                + new String(rawBytes, StandardCharsets.UTF_8)
+                                + " is not in Long range", "22003", 1264);
                     }
                     return (negate ? -1 * result : result);
                 default:
