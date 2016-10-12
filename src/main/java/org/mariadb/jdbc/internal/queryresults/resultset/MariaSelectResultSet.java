@@ -544,7 +544,10 @@ public class MariaSelectResultSet implements ResultSet {
                     try {
                         nextStreamingValue();
                     } catch (IOException ioe) {
-                        throw new SQLException(ioe);
+                        throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
+                                + " read off the result set relatively fast. "
+                                + "In this case, please consider increasing net_wait_timeout session variable."
+                                + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
                     } catch (QueryException queryException) {
                         throw new SQLException(queryException);
                     }
