@@ -3180,7 +3180,6 @@ public class MariaSelectResultSet implements ResultSet {
                 case YEAR:
                 case INTEGER:
                 case MEDIUMINT:
-                case BIGINT:
                     long result = 0;
                     int length = rawBytes.length;
                     boolean negate = false;
