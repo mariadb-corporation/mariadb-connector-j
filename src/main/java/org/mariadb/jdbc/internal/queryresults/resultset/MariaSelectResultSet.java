@@ -512,7 +512,7 @@ public class MariaSelectResultSet implements ResultSet {
                     if (protocol.getActiveStreamingResult() == this) protocol.setActiveStreamingResult(null);
 
                 } catch (IOException ioexception) {
-                    throw new QueryException("Could not close resultset : " + ioexception.getMessage(), -1, CONNECTION_EXCEPTION, ioexception);
+                    throw new QueryException("Could not close resultSet : " + ioexception.getMessage(), -1, CONNECTION_EXCEPTION, ioexception);
                 }
             } catch (QueryException queryException) {
                 ExceptionMapper.throwException(queryException, null, this.getStatement());
@@ -523,6 +523,14 @@ public class MariaSelectResultSet implements ResultSet {
                 lock.unlock();
             }
         }
+
+        //clean releasing memory
+        for (byte[][] bytes : resultSet) {
+            for (int i = 0; i < bytes.length; i++) {
+                bytes[i] = null;
+            }
+        }
+        resultSet.clear();
 
         if (statement != null) {
             ((MariaDbStatement) statement).checkCloseOnCompletion(this);
