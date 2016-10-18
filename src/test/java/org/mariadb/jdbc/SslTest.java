@@ -709,6 +709,56 @@ public class SslTest extends BaseTest {
     }
 
     @Test
+    public void testKeyStoreWhenServerTrustedWithProperties() throws Exception {
+        // generate a trustStore from the canned serverCertificate
+        File tempKeystore = File.createTempFile("keystore", ".tmp");
+        String keystorePath = tempKeystore.getAbsolutePath();
+
+        String initialTrustStore = System.getProperty("javax.net.ssl.trustStore");
+        String initialTrustStorePwd = System.getProperty("javax.net.ssl.trustStorePassword");
+        String initialKeyStore = System.getProperty("javax.net.ssl.keyStore");
+        String initialKeyStorePwd = System.getProperty("javax.net.ssl.keyStorePassword");
+
+        String testUser = "testKeystore";
+        // For this testcase, the testUser must be configured with ssl_type=X509
+        createSslTestUser(testUser);
+
+        try {
+            generateKeystoreFromFile(serverCertificatePath, keystorePath, "mysecret");
+
+            System.clearProperty("javax.net.ssl.trustStore");
+            System.clearProperty("javax.net.ssl.trustStorePassword");
+            System.setProperty("javax.net.ssl.keyStore", clientKeystorePath);
+            System.setProperty("javax.net.ssl.keyStorePassword", clientKeystorePassword);
+
+            Properties info = new Properties();
+            info.setProperty("useSSL", "true");
+            info.setProperty("trustServerCertificate", "true");
+
+            testConnect(info, true, testUser, "ssltestpassword");
+        } finally {
+            if (initialTrustStore != null) {
+                System.setProperty("javax.net.ssl.trustStore", initialTrustStore);
+            }
+            if (initialTrustStorePwd != null) {
+                System.setProperty("javax.net.ssl.trustStorePassword", initialTrustStorePwd);
+            }
+            if (initialKeyStore != null) {
+                System.setProperty("javax.net.ssl.keyStore", initialKeyStore);
+            } else {
+                System.clearProperty("javax.net.ssl.keyStore");
+            }
+            if (initialKeyStorePwd != null) {
+                System.setProperty("javax.net.ssl.keyStorePassword", initialKeyStorePwd);
+            } else {
+                System.clearProperty("javax.net.ssl.keyStorePassword");
+            }
+            tempKeystore.delete();
+        }
+    }
+
+
+    @Test
     public void testClientKeyStoreProperties() throws SQLException, IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
         // This test only runs if a client keystore and password have been passed in as properties (-DkeystorePath and -DkeystorePassword)
         // You can create a keystore as follows:

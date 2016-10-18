@@ -6,3 +6,4 @@
 # Keep empty directories: >> .gitignore/.git*
 /target/
 .idea
+/mariadb-java-client.iml
