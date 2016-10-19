@@ -133,7 +133,7 @@ public class ReaderParameter implements ParameterHolder {
     }
 
     public MariaDbType getMariaDbType() {
-        return MariaDbType.VARSTRING;
+        return MariaDbType.STRING;
     }
 
 
