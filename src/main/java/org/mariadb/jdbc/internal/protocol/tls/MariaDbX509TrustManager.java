@@ -95,8 +95,13 @@ public class MariaDbX509TrustManager implements X509TrustManager {
             if (options.trustStore != null) {
                 // use the provided keyStore
                 try {
+                    String trustStore = options.trustStore;
 
-                    inStream = new URL(options.trustStore).openStream();
+                    //permit using "file:..." for compatibility
+                    if (trustStore.startsWith("file:///")) trustStore = trustStore.substring(8);
+                    if (trustStore.startsWith("file://")) trustStore = trustStore.substring(7);
+                    inStream = new FileInputStream(trustStore);
+
                     ks.load(inStream,
                             options.trustStorePassword == null ? null : options.trustStorePassword.toCharArray());
 

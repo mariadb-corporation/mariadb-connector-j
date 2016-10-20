@@ -82,6 +82,7 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import javax.net.ssl.*;
 
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -248,6 +249,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         if (options.keyStore != null) {
             keyManager = new KeyManager[] {loadClientCerts(options.keyStore, options.keyStorePassword, options.keyPassword)};
+        } else {
+            String keyStore = System.getProperty("javax.net.ssl.keyStore");
+            String keyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword");
+            if (keyStore != null) {
+                try {
+                    keyManager = new KeyManager[] {loadClientCerts(keyStore, keyStorePassword, keyStorePassword)};
+                } catch (QueryException queryException) {
+                    keyManager = null;
+                    queryException.printStackTrace();
+                }
+            }
         }
 
         try {
@@ -267,7 +279,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
 
             char[] keyStorePasswordChars = keyStorePassword == null ? null : keyStorePassword.toCharArray();
-            inStream = new URL(keyStoreUrl).openStream();
+
+            //permit using "file:..." for compatibility
+            if (keyStoreUrl.startsWith("file:///")) keyStoreUrl = keyStoreUrl.substring(8);
+            if (keyStoreUrl.startsWith("file://")) keyStoreUrl = keyStoreUrl.substring(7);
+
+            inStream = new FileInputStream(keyStoreUrl);
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
             ks.load(inStream, keyStorePasswordChars);
             char[] keyStoreChars = (keyPassword == null) ? keyStorePasswordChars : keyPassword.toCharArray();
