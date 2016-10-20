@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -141,5 +142,47 @@ public class CollationTest extends BaseTest {
             }
         }
     }
+
+    /**
+     *
+     * CONJ-369 : Writes and reads a clob (longtext) of a latin1 table.
+     *
+     * @throws java.sql.SQLException if connection error occur.
+     *
+     */
+    @Test
+    public void insertAndSelectShouldBothUseLatin1Encoding() throws SQLException {
+        createTable("fooLatin1", "x longtext", "DEFAULT CHARSET=latin1");
+
+        // German Umlaute (ÄÖÜ) U+00C4, U+00D6, U+00DC
+        final String latin1String = "\u00c4\u00d6\u00dc";
+
+        final Clob insertClob = sharedConnection.createClob();
+
+        insertClob.setString(1, latin1String);
+
+        final String insertSQL = "INSERT INTO fooLatin1 VALUES(?)";
+        PreparedStatement pStmt = sharedConnection.prepareStatement(insertSQL);
+
+        pStmt.setString(1, latin1String);
+        pStmt.executeUpdate();
+
+        pStmt.setClob(1, insertClob);
+        pStmt.executeUpdate();
+
+        final String selectSQL = "select x from fooLatin1";
+        ResultSet rs1 = pStmt.executeQuery(selectSQL);
+
+        Assert.assertTrue(rs1.next());
+        Assert.assertEquals(latin1String, rs1.getString(1));
+
+        Assert.assertTrue(rs1.next());
+        Assert.assertEquals(latin1String, rs1.getString(1));
+        Clob clob = rs1.getClob(1);
+        Assert.assertEquals(latin1String, clob.getSubString(1, (int) clob.length()));
+
+        Assert.assertFalse(rs1.next());
+    }
+
 
 }
