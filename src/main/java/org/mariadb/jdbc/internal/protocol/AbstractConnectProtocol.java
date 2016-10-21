@@ -458,7 +458,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage());
             parseVersion();
-            long clientCapabilities = initializeClientCapabilities();
+            long clientCapabilities = initializeClientCapabilities(greetingPacket.getServerCapabilities());
 
             byte packetSeq = 1;
             if (options.useSsl && (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.SSL) != 0) {
@@ -545,7 +545,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     }
 
-    private long initializeClientCapabilities() {
+    private long initializeClientCapabilities(long serverCapabilities) {
         long capabilities =
                 //MariaDbServerCapabilities.CLIENT_MYSQL
                         MariaDbServerCapabilities.IGNORE_SPACE
@@ -566,8 +566,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
 
         if (options.useCompression) {
-            capabilities |= MariaDbServerCapabilities.COMPRESS;
+            if ((serverCapabilities & MariaDbServerCapabilities.COMPRESS) == 0) {
+                //ensure that server has compress capacity - MaxScale doesn't
+                options.useCompression = false;
+            } else {
+                capabilities |= MariaDbServerCapabilities.COMPRESS;
+            }
         }
+
         if (options.interactiveClient) {
             capabilities |= MariaDbServerCapabilities.CLIENT_INTERACTIVE;
         }
