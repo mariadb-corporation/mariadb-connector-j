@@ -4,10 +4,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -25,6 +22,8 @@ public class LocalInfileInputStreamTest extends BaseTest {
         createTable("LocalInfileInputStreamTest", "id int, test varchar(100)");
         createTable("ttlocal", "id int, test varchar(100)");
         createTable("ldinfile", "a varchar(10)");
+        createTable("`infile`", "`a` varchar(50) DEFAULT NULL, `b` varchar(50) DEFAULT NULL",
+                "ENGINE=InnoDB DEFAULT CHARSET=latin1");
     }
 
     @Test
@@ -166,4 +165,74 @@ public class LocalInfileInputStreamTest extends BaseTest {
         Assert.assertEquals(expectedId, id);
         Assert.assertEquals(expectedTest, test);
     }
+
+    private File createTmpData(int recordNumber) throws Exception {
+        File file = File.createTempFile("./infile" + recordNumber, ".tmp");
+
+        //write it
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            // Every row is 8 bytes to make counting easier
+            for (long i = 0; i < recordNumber; i++) {
+                writer.write("\"a\",\"b\"");
+                writer.write("\n");
+            }
+        }
+
+        return file;
+    }
+
+    private void checkBigLocalInfile(int fileSize) throws Exception {
+        int recordNumber = fileSize / 8;
+
+        try (Statement statement = sharedConnection.createStatement()) {
+            statement.execute("truncate `infile`");
+            File file = createTmpData(recordNumber);
+
+            try (InputStream is = new BufferedInputStream(new FileInputStream(file))) {
+                MariaDbStatement stmt = statement.unwrap(MariaDbStatement.class);
+                stmt.setLocalInfileInputStream(is);
+                int insertNumber = stmt.executeUpdate("LOAD DATA LOCAL INFILE 'ignoredFileName' "
+                            + "INTO TABLE `infile` "
+                            + "COLUMNS TERMINATED BY ',' ENCLOSED BY '\\\"' ESCAPED BY '\\\\' "
+                            + "LINES TERMINATED BY '\\n' (`a`, `b`)");
+                Assert.assertEquals(insertNumber, recordNumber);
+            }
+
+            statement.setFetchSize(1000); //to avoid using too much memory for tests
+            try (ResultSet rs = statement.executeQuery("SELECT * FROM `infile`")) {
+                for (int i = 0; i < recordNumber; i++) {
+                    Assert.assertTrue("record " + i + " doesn't exist",rs.next());
+                    Assert.assertEquals("a", rs.getString(1));
+                    Assert.assertEquals("b", rs.getString(2));
+                }
+                Assert.assertFalse(rs.next());
+            }
+
+        }
+    }
+
+    /**
+     * CONJ-375 : error with local infile with size > 16mb.
+     *
+     * @throws Exception if error occus
+     */
+    @Test
+    public void testSmallBigLocalInfileInputStream() throws Exception {
+        checkBigLocalInfile(256);
+    }
+
+    @Test
+    public void test2xBigLocalInfileInputStream() throws Exception {
+        checkBigLocalInfile(16777216 * 2);
+    }
+
+    @Test
+    public void test2xMaxAllowedPacketLocalInfileInputStream() throws Exception {
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select @@max_allowed_packet");
+        rs.next();
+        int maxAllowedPacket = rs.getInt(1);
+
+        checkBigLocalInfile(maxAllowedPacket * 2);
+    }
+
 }
