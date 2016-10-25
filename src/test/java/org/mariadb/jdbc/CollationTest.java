@@ -161,17 +161,17 @@ public class CollationTest extends BaseTest {
 
         insertClob.setString(1, latin1String);
 
-        final String insertSQL = "INSERT INTO fooLatin1 VALUES(?)";
-        PreparedStatement pStmt = sharedConnection.prepareStatement(insertSQL);
+        final String insertSql = "INSERT INTO fooLatin1 VALUES(?)";
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement(insertSql);
 
-        pStmt.setString(1, latin1String);
-        pStmt.executeUpdate();
+        preparedStatement.setString(1, latin1String);
+        preparedStatement.executeUpdate();
 
-        pStmt.setClob(1, insertClob);
-        pStmt.executeUpdate();
+        preparedStatement.setClob(1, insertClob);
+        preparedStatement.executeUpdate();
 
-        final String selectSQL = "select x from fooLatin1";
-        ResultSet rs1 = pStmt.executeQuery(selectSQL);
+        final String selectSql = "select x from fooLatin1";
+        ResultSet rs1 = preparedStatement.executeQuery(selectSql);
 
         Assert.assertTrue(rs1.next());
         Assert.assertEquals(latin1String, rs1.getString(1));
