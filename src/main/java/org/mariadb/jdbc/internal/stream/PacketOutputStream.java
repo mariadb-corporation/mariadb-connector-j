@@ -235,7 +235,7 @@ public class PacketOutputStream extends OutputStream {
                     buf[7] = (byte) ((len) & 0xff);
                     buf[8] = (byte) (((len) >> 8) & 0xff);
                     buf[9] = (byte) (((len) >> 16) & 0xff);
-                    buf[10] = (byte) this.seqNo++;
+                    buf[10] = (byte) this.seqNo;
                     ByteArrayOutputStream baos = new ByteArrayOutputStream();
                     DeflaterOutputStream deflater = new DeflaterOutputStream(baos);
                     deflater.write(buf, 7, len + 4);
@@ -258,6 +258,7 @@ public class PacketOutputStream extends OutputStream {
                         buf[6] = (byte) (((len + 4) >> 16) & 0xff);
                         outputStream.write(buf, 0, 7);
                         outputStream.write(compressedBytes, 0, compressedLength);
+                        this.seqNo++;
                         compressedPacketSend = true;
                         if (logger.isTraceEnabled()) {
                             logger.trace("send compress packet seq:" + compressSeqNo + " length:" + compressedLength
