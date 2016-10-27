@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -17,6 +18,7 @@ public class CancelTest extends BaseTest {
     @Before
     public void cancelSupported() throws SQLException {
         requireMinimumVersion(5, 0);
+        Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
     }
 
     @Test
