@@ -69,7 +69,7 @@ public class BufferTest extends BaseTest {
     @Test
     public void send20mByteBufferData() throws SQLException {
         Assume.assumeTrue(checkMaxAllowedPacketMore20m("send20mByteBufferData"));
-        //sendByteBufferData(false, array20m);
+        sendByteBufferData(false, array20m);
         sendByteBufferData(true, array20m);
     }
 
