@@ -46,6 +46,7 @@ public class DatabaseMetadataTest extends BaseTest {
                         + "  `blob_col` blob,"
                         + "  `mediumblob_col` mediumblob,"
                         + "  `longblob_col` longblob,"
+                        + "  `tinytext_col` tinytext,"
                         + "  `text_col` text,"
                         + "  `mediumtext_col` mediumtext,"
                         + "  `longtext_col` longtext"
@@ -885,10 +886,11 @@ public class DatabaseMetadataTest extends BaseTest {
             checkType(columnName, type, "char_col", Types.CHAR);
             checkType(columnName, type, "varchar_col", Types.VARCHAR);
             checkType(columnName, type, "binary_col", Types.BINARY);
-            checkType(columnName, type, "tinyblob_col", Types.LONGVARBINARY);
+            checkType(columnName, type, "tinyblob_col", Types.VARBINARY);
             checkType(columnName, type, "blob_col", Types.LONGVARBINARY);
             checkType(columnName, type, "longblob_col", Types.LONGVARBINARY);
             checkType(columnName, type, "mediumblob_col", Types.LONGVARBINARY);
+            checkType(columnName, type, "tinytext_col", Types.VARCHAR);
             checkType(columnName, type, "text_col", Types.LONGVARCHAR);
             checkType(columnName, type, "mediumtext_col", Types.LONGVARCHAR);
             checkType(columnName, type, "longtext_col", Types.LONGVARCHAR);

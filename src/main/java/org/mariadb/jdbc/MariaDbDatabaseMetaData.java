@@ -375,11 +375,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         return
                 " CASE data_type"
                         + " WHEN 'bit' THEN " + Types.BIT
-                        + " WHEN 'tinyblob' THEN " + Types.LONGVARBINARY
+                        + " WHEN 'tinyblob' THEN " + Types.VARBINARY
                         + " WHEN 'mediumblob' THEN " + Types.LONGVARBINARY
                         + " WHEN 'longblob' THEN " + Types.LONGVARBINARY
                         + " WHEN 'blob' THEN " + Types.LONGVARBINARY
-                        + " WHEN 'tinytext' THEN " + Types.LONGVARCHAR
+                        + " WHEN 'tinytext' THEN " + Types.VARCHAR
                         + " WHEN 'mediumtext' THEN " + Types.LONGVARCHAR
                         + " WHEN 'longtext' THEN " + Types.LONGVARCHAR
                         + " WHEN 'text' THEN " + Types.LONGVARCHAR
