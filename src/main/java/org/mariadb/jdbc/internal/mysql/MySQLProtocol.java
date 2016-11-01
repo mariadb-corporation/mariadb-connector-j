@@ -541,13 +541,29 @@ public class MySQLProtocol {
            connected = true;
            hostFailed = false; // Prevent reconnects
        } catch (IOException e) {
+           ensureClosingSocketOnException();
            throw new QueryException("Could not connect to " + host + ":" +
                    port + ": " + e.getMessage(),
                    -1,
                    SQLExceptionMapper.SQLStates.CONNECTION_EXCEPTION.getSqlState(),
                    e);
+       } catch (QueryException queryException) {
+           ensureClosingSocketOnException();
+           throw queryException;
+       } catch (SQLException sqlException) {
+           ensureClosingSocketOnException();
+           throw sqlException;
        }
+    }
 
+    private void ensureClosingSocketOnException() {
+        if (socket != null) {
+            try {
+                socket.close();
+            } catch (IOException ioe) {
+                //eat exception
+            }
+        }
     }
     
     private boolean isServerLanguageUTF8MB4(byte serverLanguage) {
