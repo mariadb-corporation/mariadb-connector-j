@@ -363,53 +363,70 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws IOException : connection error (host/port not available)
      */
     private void connect(String host, int port) throws QueryException, IOException {
+        try {
+            socket = Utils.createSocket(urlParser, host);
+            initializeSocketOption();
 
-        socket = Utils.createSocket(urlParser, host);
-        initializeSocketOption();
+            // Bind the socket to a particular interface if the connection property
+            // localSocketAddress has been defined.
+            if (options.localSocketAddress != null) {
+                InetSocketAddress localAddress = new InetSocketAddress(options.localSocketAddress, 0);
+                socket.bind(localAddress);
+            }
 
-        // Bind the socket to a particular interface if the connection property
-        // localSocketAddress has been defined.
-        if (options.localSocketAddress != null) {
-            InetSocketAddress localAddress = new InetSocketAddress(options.localSocketAddress, 0);
-            socket.bind(localAddress);
+            if (!socket.isConnected()) {
+                InetSocketAddress sockAddr = urlParser.getOptions().pipe == null ? new InetSocketAddress(host, port) : null;
+                if (options.connectTimeout != null) {
+                    socket.connect(sockAddr, options.connectTimeout);
+                } else {
+                    socket.connect(sockAddr);
+                }
+            }
+
+            // Extract socketTimeout URL parameter
+            if (options.socketTimeout != null) {
+                socket.setSoTimeout(options.socketTimeout);
+            }
+
+            handleConnectionPhases();
+
+            if (options.useCompression) {
+                writer.setUseCompression(true);
+                packetFetcher = new ReadPacketFetcher(new DecompressInputStream(socket.getInputStream()), options.maxQuerySizeToLog);
+            }
+            connected = true;
+
+            writer.forceCleanupBuffer();
+
+            loadServerData();
+            setSessionOptions();
+            writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
+
+            createDatabaseIfNotExist();
+            loadCalendar();
+
+
+            activeStreamingResult = null;
+            moreResults = false;
+            hasWarnings = false;
+            hostFailed = false;
+        } catch (IOException ioException) {
+            ensureClosingSocketOnException();
+            throw ioException;
+        } catch (QueryException queryException) {
+            ensureClosingSocketOnException();
+            throw queryException;
         }
+    }
 
-        if (!socket.isConnected()) {
-            InetSocketAddress sockAddr = urlParser.getOptions().pipe == null ? new InetSocketAddress(host, port) : null;
-            if (options.connectTimeout != null) {
-                socket.connect(sockAddr, options.connectTimeout);
-            } else {
-                socket.connect(sockAddr);
+    private void ensureClosingSocketOnException() {
+        if (socket != null) {
+            try {
+                socket.close();
+            } catch (IOException ioe) {
+                //eat exception
             }
         }
-
-        // Extract socketTimeout URL parameter
-        if (options.socketTimeout != null) {
-            socket.setSoTimeout(options.socketTimeout);
-        }
-
-        handleConnectionPhases();
-
-        if (options.useCompression) {
-            writer.setUseCompression(true);
-            packetFetcher = new ReadPacketFetcher(new DecompressInputStream(socket.getInputStream()), options.maxQuerySizeToLog);
-        }
-        connected = true;
-
-        writer.forceCleanupBuffer();
-
-        loadServerData();
-        setSessionOptions();
-        writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
-
-        createDatabaseIfNotExist();
-        loadCalendar();
-
-
-        activeStreamingResult = null;
-        moreResults = false;
-        hasWarnings = false;
-        hostFailed = false;
     }
 
     /**
