@@ -105,7 +105,7 @@ public class PidFactory {
                                             Object fieldinstance = field.get(kernel32Class);
                                             Method getCurrentProcessIdMethod = fieldinstance.getClass().getMethod("GetCurrentProcessId");
                                             return String.valueOf(getCurrentProcessIdMethod.invoke(fieldinstance));
-                                        } catch (Exception cle) {
+                                        } catch (Throwable cle) {
                                             //jna plateform jar's are not in classpath, no PID returned
                                         }
                                         return null;
