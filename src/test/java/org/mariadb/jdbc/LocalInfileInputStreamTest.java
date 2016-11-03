@@ -5,10 +5,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.*;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 import static org.junit.Assert.*;
 
@@ -57,16 +54,28 @@ public class LocalInfileInputStreamTest extends BaseTest {
     }
 
     @Test
-    public void testLocalInfileValidInterceptor() throws SQLException {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        testLocalInfile(classLoader.getResource("validateInfile.txt").getPath());
+    public void testLocalInfileValidInterceptor() throws Exception {
+        File temp = File.createTempFile("validateInfile", ".txt");
+        StringBuilder builder = new StringBuilder();
+        builder.append("1,hello\n");
+        builder.append("2,world\n");
+        BufferedWriter bw = new BufferedWriter(new FileWriter(temp));
+        bw.write(builder.toString());
+        bw.close();
+        testLocalInfile(temp.getAbsolutePath().replace("\\", "/"));
     }
 
     @Test
-    public void testLocalInfileUnValidInterceptor() throws SQLException {
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+    public void testLocalInfileUnValidInterceptor() throws Exception {
+        File temp = File.createTempFile("localInfile", ".txt");
+        StringBuilder builder = new StringBuilder();
+        builder.append("1,hello\n");
+        builder.append("2,world\n");
+        BufferedWriter bw = new BufferedWriter(new FileWriter(temp));
+        bw.write(builder.toString());
+        bw.close();
         try {
-            testLocalInfile(classLoader.getResource("localInfile.txt").getPath());
+            testLocalInfile(temp.getAbsolutePath().replace("\\", "/"));
             fail("Must have been intercepted");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().contains("LOCAL DATA LOCAL INFILE request to send local file named")
@@ -85,16 +94,13 @@ public class LocalInfileInputStreamTest extends BaseTest {
         st.executeUpdate("LOAD DATA LOCAL INFILE '" + file
                 + "' INTO TABLE ttlocal "
                 + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
-                + "  LINES TERMINATED BY '\\r\\n' "
                 + "  (id, test)");
 
         ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM ttlocal");
         boolean next = rs.next();
 
         Assert.assertTrue(next);
-
-        int count = rs.getInt(1);
-        Assert.assertEquals(2, count);
+        Assert.assertEquals(2, rs.getInt(1));
 
         rs = st.executeQuery("SELECT * FROM ttlocal");
 
@@ -103,7 +109,6 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
         st.close();
     }
-
 
     @Test
     public void loadDataInfileEmpty() throws SQLException, IOException {
