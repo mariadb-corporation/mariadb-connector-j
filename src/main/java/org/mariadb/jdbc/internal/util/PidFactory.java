@@ -103,8 +103,8 @@ public class PidFactory {
                                             Class kernel32Class = Class.forName("com.sun.jna.platform.win32.Kernel32");
                                             Field field = kernel32Class.getField("INSTANCE");
                                             Object fieldinstance = field.get(kernel32Class);
-                                            Method GetCurrentProcessIdMethod = fieldinstance.getClass().getMethod("GetCurrentProcessId");
-                                            return String.valueOf(GetCurrentProcessIdMethod.invoke(fieldinstance));
+                                            Method getCurrentProcessIdMethod = fieldinstance.getClass().getMethod("GetCurrentProcessId");
+                                            return String.valueOf(getCurrentProcessIdMethod.invoke(fieldinstance));
                                         } catch (Exception cle) {
                                             //jna plateform jar's are not in classpath, no PID returned
                                         }
