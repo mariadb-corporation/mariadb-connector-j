@@ -82,28 +82,13 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
     private void testLocalInfile(String file) throws SQLException {
         Statement st = sharedConnection.createStatement();
-        ResultSet rs = st.executeQuery("select @@version_compile_os");
-        if (!rs.next()) {
-            return;
-        }
+        st.executeUpdate("LOAD DATA LOCAL INFILE '" + file
+                + "' INTO TABLE ttlocal "
+                + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
+                + "  LINES TERMINATED BY '\\r\\n' "
+                + "  (id, test)");
 
-        String os = rs.getString(1);
-        if (os.toLowerCase().startsWith("win") || System.getProperty("os.name").startsWith("Windows")) {
-            st.executeUpdate("LOAD DATA LOCAL INFILE '" + file
-                    + "' INTO TABLE ttlocal "
-                    + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
-                    + "  LINES TERMINATED BY '\\r\\n' "
-                    + "  (id, test)");
-        } else {
-            st.executeUpdate("LOAD DATA LOCAL INFILE '" + file
-                    + "' INTO TABLE ttlocal "
-                    + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
-                    + "  LINES TERMINATED BY '\\n' "
-                    + "  (id, test)");
-        }
-
-
-        rs = st.executeQuery("SELECT COUNT(*) FROM ttlocal");
+        ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM ttlocal");
         boolean next = rs.next();
 
         Assert.assertTrue(next);
