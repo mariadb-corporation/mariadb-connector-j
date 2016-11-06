@@ -74,7 +74,6 @@ public class SendSslConnectionRequestPacket implements InterfaceSendPacket {
     public void send(final OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
         pos.startPacket(1);
-        pos.writeInt((int) this.clientCapabilities);
         pos.writeInt((int) clientCapabilities)
                 .writeInt(1024 * 1024 * 1024)
                 .writeByte(serverLanguage); //1
