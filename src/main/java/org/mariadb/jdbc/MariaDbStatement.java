@@ -832,13 +832,13 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException if a database access error occurs or this method is called on a closed Statement
      */
     public int getUpdateCount() throws SQLException {
-        if (executionResult == null) {
+        if (executionResult == null || executionResult.getResultSet() != null) {
             return -1;  /* Result comes from SELECT , or there are no more results */
         }
         if (executionResult.isSingleExecutionResult()) {
             return (int) ((SingleExecutionResult) executionResult).getAffectedRows();
         } else {
-            return ((MultiExecutionResult) executionResult).getFirstAffectedRows();
+            return executionResult.getFirstAffectedRows();
         }
     }
 
