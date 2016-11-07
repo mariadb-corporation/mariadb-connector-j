@@ -22,6 +22,16 @@ public class JdbcParserTest {
     }
 
     @Test
+    public void testAuroraUseBatchMultiSend () throws Throwable {
+        UrlParser notAuroraDatas = UrlParser.parse("jdbc:mariadb://localhost/test?useBatchMultiSend=true");
+        Assert.assertTrue(notAuroraDatas.getOptions().useBatchMultiSend);
+
+        UrlParser auroraDatas = UrlParser.parse("jdbc:mariadb:aurora://localhost/test?useBatchMultiSend=true");
+        Assert.assertFalse(auroraDatas.getOptions().useBatchMultiSend);
+    }
+
+
+    @Test
     public void testAcceptsUrl() throws Throwable {
         Driver driver = new Driver();
         Assert.assertTrue(driver.acceptsURL("jdbc:mariadb://localhost/test"));
