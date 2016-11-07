@@ -978,8 +978,8 @@ public class DatabaseMetadataTest extends BaseTest {
         createTable("getTimePrecision", "d date, "
                 + "t1 datetime(0),"
                 + "t2 datetime(6),"
-                + "t3 timestamp(0),"
-                + "t4 timestamp(6),"
+                + "t3 timestamp(0) DEFAULT '2000-01-01 00:00:00',"
+                + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00',"
                 + "t5 time(0),"
                 + "t6 time(6)"
         );
@@ -1014,8 +1014,8 @@ public class DatabaseMetadataTest extends BaseTest {
         createTable("getTimePrecision", "d date, "
                 + "t1 datetime(0),"
                 + "t2 datetime(6),"
-                + "t3 timestamp(0),"
-                + "t4 timestamp(6),"
+                + "t3 timestamp(0) DEFAULT '2000-01-01 00:00:00',"
+                + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00',"
                 + "t5 time(0),"
                 + "t6 time(6)");
 
