@@ -55,6 +55,7 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
+import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509KeyManager;
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509TrustManager;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
@@ -537,10 +538,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if ((buffer.getByteAt(0) & 0xFF) == 0xFE) {
             InterfaceAuthSwitchSendResponsePacket interfaceSendPacket;
             if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-                //AuthSwitchRequest packet.
                 buffer.readByte();
-                plugin = buffer.readString(Charset.forName("ASCII"));
-                byte[] authData = buffer.readRawBytes(buffer.remaining());
+                byte[] authData;
+                if (buffer.remaining() > 0) {
+                    //AuthSwitchRequest packet.
+                    plugin = buffer.readString(Charset.forName("ASCII"));
+                    authData = buffer.readRawBytes(buffer.remaining());
+                } else {
+                    //OldAuthSwitchRequest
+                    plugin = DefaultAuthenticationProvider.MYSQL_OLD_PASSWORD;
+                    authData = Utils.copyWithLength(seed, 8);
+                }
 
                 //Authentication according to plugin.
                 //see AuthenticationProviderHolder for implement other plugin
