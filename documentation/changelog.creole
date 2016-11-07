@@ -1,7 +1,8 @@
 = Changelog
-* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#151|1.5.4]] Released on 10 Oct. 2016
-* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#151|1.5.3]] Released on 03 Oct. 2016
-* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#151|1.5.2]] Released on 31 aug. 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.5]] Released on 07 Nov. 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#154|1.5.4]] Released on 10 Oct. 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#153|1.5.3]] Released on 03 Oct. 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#152|1.5.2]] Released on 31 aug. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#151|1.5.1]] RC released on 15 aug. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#150|1.5.0]] RC released on 28 jul. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#146|1.4.6]] Released on 13 june 2016
@@ -13,6 +14,19 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+
+== 1.5.5
+* CONJ-386 : Disabling useBatchMultiSend option for Aurora, since can hang connection.
+* CONJ-385 : Store procedure with resultSet get wrong getUpdateCount() value (0 in place of -1)
+* CONJ-383 : permit OldAuthSwitchRequest protocol (compatibility with 5.5 server using plugin)
+* CONJ-382 : Client sockets remain option when server close socket when maximum connections number has been reached
+* CONJ-381 : Metadata getProcedureColumns precision's information corrected for date/timestamp/datetime
+* CONJ-379 : Metadata TINYTEXT type return Types.LONGVARCHAR instead of Types.VARCHAR
+* CONJ-376 : Maxscale compatibility : Permit protocol compression only if server permit it
+* CONJ-375 : Load data infile with large files fails with OutOfMemoryError
+* CONJ-370 : use KeyStore default property when not using keyStore option
+* CONJ-369 : Encoding on clob column when useServerPrepStmts=true
+* CONJ-362 : fix a possible race condition MariaDbPooledConnection
 
 == 1.5.4
 * CONJ-363 : Connection.getClientInfo implementation correction to follow JDBC rules
