@@ -1,5 +1,6 @@
 package org.mariadb.jdbc.internal.queryresults;
 
+import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
 import java.sql.SQLException;
@@ -10,7 +11,7 @@ public interface ExecutionResult {
 
     MariaSelectResultSet getResultSet();
 
-    Statement getStatement();
+    MariaDbStatement getStatement();
 
     boolean hasMoreResultAvailable();
 

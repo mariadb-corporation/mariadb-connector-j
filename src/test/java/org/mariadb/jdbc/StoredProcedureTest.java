@@ -262,8 +262,9 @@ public class StoredProcedureTest extends BaseTest {
             stmt.execute("{call inOutParam(1)}");
             fail("must fail : statement cannot be use when there is out parameter");
         } catch (SQLSyntaxErrorException e) {
-            assertEquals("OUT or INOUT argument 1 for routine testj.inOutParam is not a variable or NEW pseudo-variable in BEFORE trigger\n"
-                    + "Query is : call inOutParam(1)", e.getMessage());
+            assertTrue(e.getMessage().contains("OUT or INOUT argument 1 for routine testj.inOutParam is not a variable "
+                    + "or NEW pseudo-variable in BEFORE trigger\n"
+                    + "Query is : call inOutParam(1)"));
         }
     }
 

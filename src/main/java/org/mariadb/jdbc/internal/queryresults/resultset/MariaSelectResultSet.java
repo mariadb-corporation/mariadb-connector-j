@@ -99,7 +99,7 @@ public class MariaSelectResultSet implements ResultSet {
     private ReadPacketFetcher packetFetcher;
     private MariaDbInputStream inputStream;
 
-    private Statement statement;
+    private MariaDbStatement statement;
     private RowPacket rowPacket;
     private ColumnInformation[] columnsInformation;
 
@@ -136,7 +136,7 @@ public class MariaSelectResultSet implements ResultSet {
      * @param fetchSize           current fetch size
      * @param isCanHaveCallableResultset is it from a callableStatement ?
      */
-    public MariaSelectResultSet(ColumnInformation[] columnInformation, Statement statement, Protocol protocol,
+    public MariaSelectResultSet(ColumnInformation[] columnInformation, MariaDbStatement statement, Protocol protocol,
                                 ReadPacketFetcher fetcher, boolean isBinaryEncoded,
                                 int resultSetScrollType, int fetchSize, boolean isCanHaveCallableResultset) {
 
@@ -364,7 +364,7 @@ public class MariaSelectResultSet implements ResultSet {
                 throw new QueryException("Could not close resultset : " + ioexception.getMessage(), -1, CONNECTION_EXCEPTION, ioexception);
             }
         } catch (QueryException queryException) {
-            ExceptionMapper.throwException(queryException, null, this.getStatement());
+            ExceptionMapper.throwException(queryException, null, this.statement);
         }
         dataFetchTime++;
         streaming = false;
@@ -407,7 +407,12 @@ public class MariaSelectResultSet implements ResultSet {
                 Buffer buffer = packetFetcher.getReusableBuffer(remaining, lastReusableArray);
                 ErrorPacket errorPacket = new ErrorPacket(buffer, false);
                 lastReusableArray = null;
-                throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
+                if (statement != null) {
+                    throw new QueryException("(conn:" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
+                            errorPacket.getErrorNumber(), errorPacket.getSqlState());
+                } else {
+                    throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
+                }
             }
 
             if (read == 254 && remaining < 9) { //EOF packet
@@ -515,7 +520,7 @@ public class MariaSelectResultSet implements ResultSet {
                     throw new QueryException("Could not close resultSet : " + ioexception.getMessage(), -1, CONNECTION_EXCEPTION, ioexception);
                 }
             } catch (QueryException queryException) {
-                ExceptionMapper.throwException(queryException, null, this.getStatement());
+                ExceptionMapper.throwException(queryException, null, this.statement);
             } finally {
                 protocol = null;
                 packetFetcher = null;
@@ -808,11 +813,11 @@ public class MariaSelectResultSet implements ResultSet {
         return isClosed;
     }
 
-    public Statement getStatement() {
+    public MariaDbStatement getStatement() {
         return statement;
     }
 
-    public void setStatement(Statement statement) {
+    public void setStatement(MariaDbStatement statement) {
         this.statement = statement;
     }
 

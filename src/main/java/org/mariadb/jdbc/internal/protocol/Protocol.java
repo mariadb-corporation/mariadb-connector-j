@@ -51,6 +51,7 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
@@ -230,10 +231,10 @@ public interface Protocol {
     Calendar getCalendar();
 
     void prolog(ExecutionResult executionResult, int maxRows, boolean hasProxy, MariaDbConnection connection,
-                Statement statement) throws SQLException;
+                MariaDbStatement statement) throws SQLException;
 
     void prologProxy(ServerPrepareResult serverPrepareResult, ExecutionResult executionResult, int maxRows, boolean hasProxy,
-                     MariaDbConnection connection, Statement statement) throws SQLException;
+                     MariaDbConnection connection, MariaDbStatement statement) throws SQLException;
 
     MariaSelectResultSet getActiveStreamingResult();
 

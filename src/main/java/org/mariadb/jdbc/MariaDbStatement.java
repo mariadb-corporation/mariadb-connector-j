@@ -209,7 +209,7 @@ public class MariaDbStatement implements Statement, Cloneable {
 
         if (isTimedout) {
             isTimedout = false;
-            queryException = new QueryException("Query timed out", 1317, "JZ0002", queryException);
+            queryException = new QueryException("(conn:" + getServerThreadId() + ") Query timed out", 1317, "JZ0002", queryException);
         }
 
         if (queryException == null) {
@@ -221,9 +221,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             close();
         }
 
-        logger.error("error executing query", queryException);
-
-        ExceptionMapper.throwException(queryException, connection, this);
+        ExceptionMapper.throwAndLogException(queryException, connection, this, logger);
     }
 
     /**
@@ -1188,6 +1186,14 @@ public class MariaDbStatement implements Statement, Cloneable {
         if (closed) {
             throw new SQLException("Cannot do an operation on a closed statement");
         }
+    }
+
+    /**
+     * Permit to retrieve current connection thread id, or -1 if unknown.
+     * @return current connection thread id.
+     */
+    public long getServerThreadId() {
+        return (protocol != null) ? protocol.getServerThreadId() : -1;
     }
 
 }

@@ -143,7 +143,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
             serverPrepareResult = protocol.prepare(sql, mustExecuteOnMaster);
             setMetaFromResult();
         } catch (PrepareException exception) {
-            throw new PrepareSqlException(exception);
+            throw new PrepareSqlException("(conn:" + getServerThreadId() + ") " + exception.getMessage(), exception);
         } catch (QueryException e) {
             try {
                 this.close();
@@ -507,4 +507,14 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         return executionResult;
     }
 
+    /**
+     * Permit to retrieve current connection thread id, or -1 if unknown.
+     * @return current connection thread id.
+     */
+    public long getServerThreadId() {
+        if (serverPrepareResult != null) {
+            return serverPrepareResult.getUnProxiedProtocol().getServerThreadId();
+        }
+        return (protocol != null) ? protocol.getServerThreadId() : -1;
+    }
 }

@@ -25,6 +25,7 @@ public class TruncateExceptionTest extends BaseTest {
             queryTruncation(true);
             fail("Must have thrown SQLException");
         } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
@@ -50,11 +51,11 @@ public class TruncateExceptionTest extends BaseTest {
      * @throws SQLException if SQLException occur
      */
     public void queryTruncation(boolean truncation) throws SQLException {
-        Connection connection = setConnection("&jdbcCompliantTruncation=" + truncation);
-        Statement stmt = connection.createStatement();
-        stmt.execute("INSERT INTO TruncateExceptionTest (id) VALUES (999)");
-        stmt.close();
-        connection.close();
+        try (Connection connection = setConnection("&jdbcCompliantTruncation=" + truncation)) {
+            Statement stmt = connection.createStatement();
+            stmt.execute("INSERT INTO TruncateExceptionTest (id) VALUES (999)");
+            stmt.close();
+        }
     }
 
 

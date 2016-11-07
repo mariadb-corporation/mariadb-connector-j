@@ -1019,31 +1019,31 @@ public class DatabaseMetadataTest extends BaseTest {
                 + "t5 time(0),"
                 + "t6 time(6)");
 
-        final int COLUMN_SIZE = 7;
+        final int columnSizeField = 7;
 
         DatabaseMetaData dmd = sharedConnection.getMetaData();
         ResultSet rs = dmd.getColumns(null, null, "getTimePrecision", null);
         //date
         assertTrue(rs.next());
-        assertEquals(10, rs.getInt(COLUMN_SIZE));
+        assertEquals(10, rs.getInt(columnSizeField));
         //datetime(0)
         assertTrue(rs.next());
-        assertEquals(19, rs.getInt(COLUMN_SIZE));
+        assertEquals(19, rs.getInt(columnSizeField));
         //datetime(6)
         assertTrue(rs.next());
-        assertEquals(26, rs.getInt(COLUMN_SIZE));
+        assertEquals(26, rs.getInt(columnSizeField));
         //timestamp(0)
         assertTrue(rs.next());
-        assertEquals(19, rs.getInt(COLUMN_SIZE));
+        assertEquals(19, rs.getInt(columnSizeField));
         //timestamp(6)
         assertTrue(rs.next());
-        assertEquals(26, rs.getInt(COLUMN_SIZE));
+        assertEquals(26, rs.getInt(columnSizeField));
         //time(0)
         assertTrue(rs.next());
-        assertEquals(10, rs.getInt(COLUMN_SIZE));
+        assertEquals(10, rs.getInt(columnSizeField));
         //time(6)
         assertTrue(rs.next());
-        assertEquals(17, rs.getInt(COLUMN_SIZE));
+        assertEquals(17, rs.getInt(columnSizeField));
 
         assertFalse(rs.next());
     }
@@ -1062,48 +1062,48 @@ public class DatabaseMetadataTest extends BaseTest {
                 + "IN t5 time ,"
                 + "IN t6 time(6)) BEGIN SELECT I; END");
 
-        final int PRECISION = 8;
-        final int LENGTH = 9;
-        final int SCALE = 10;
+        final int precisionField = 8;
+        final int lengthField = 9;
+        final int scaleField = 10;
 
         DatabaseMetaData dmd = sharedConnection.getMetaData();
         ResultSet rs = dmd.getProcedureColumns(null, null, "getProcTimePrecision", null);
         //date
         assertTrue(rs.next());
-        assertEquals(10, rs.getInt(PRECISION));
-        assertEquals(10, rs.getInt(LENGTH));
-        assertEquals(0, rs.getInt(SCALE));
+        assertEquals(10, rs.getInt(precisionField));
+        assertEquals(10, rs.getInt(lengthField));
+        assertEquals(0, rs.getInt(scaleField));
         assertTrue(rs.wasNull());
         //datetime(0)
         assertTrue(rs.next());
-        assertEquals(19, rs.getInt(PRECISION));
-        assertEquals(19, rs.getInt(LENGTH));
-        assertEquals(0, rs.getInt(SCALE));
+        assertEquals(19, rs.getInt(precisionField));
+        assertEquals(19, rs.getInt(lengthField));
+        assertEquals(0, rs.getInt(scaleField));
         //datetime(6)
         assertTrue(rs.next());
-        assertEquals(26, rs.getInt(PRECISION));
-        assertEquals(26, rs.getInt(LENGTH));
-        assertEquals(6, rs.getInt(SCALE));
+        assertEquals(26, rs.getInt(precisionField));
+        assertEquals(26, rs.getInt(lengthField));
+        assertEquals(6, rs.getInt(scaleField));
         //timestamp(0)
         assertTrue(rs.next());
-        assertEquals(19, rs.getInt(PRECISION));
-        assertEquals(19, rs.getInt(LENGTH));
-        assertEquals(0, rs.getInt(SCALE));
+        assertEquals(19, rs.getInt(precisionField));
+        assertEquals(19, rs.getInt(lengthField));
+        assertEquals(0, rs.getInt(scaleField));
         //timestamp(6)
         assertTrue(rs.next());
-        assertEquals(26, rs.getInt(PRECISION));
-        assertEquals(26, rs.getInt(LENGTH));
-        assertEquals(6, rs.getInt(SCALE));
+        assertEquals(26, rs.getInt(precisionField));
+        assertEquals(26, rs.getInt(lengthField));
+        assertEquals(6, rs.getInt(scaleField));
         //time(0)
         assertTrue(rs.next());
-        assertEquals(10, rs.getInt(PRECISION));
-        assertEquals(10, rs.getInt(LENGTH));
-        assertEquals(0, rs.getInt(SCALE));
+        assertEquals(10, rs.getInt(precisionField));
+        assertEquals(10, rs.getInt(lengthField));
+        assertEquals(0, rs.getInt(scaleField));
         //time(6)
         assertTrue(rs.next());
-        assertEquals(17, rs.getInt(PRECISION));
-        assertEquals(17, rs.getInt(LENGTH));
-        assertEquals(6, rs.getInt(SCALE));
+        assertEquals(17, rs.getInt(precisionField));
+        assertEquals(17, rs.getInt(lengthField));
+        assertEquals(6, rs.getInt(scaleField));
 
         assertFalse(rs.next());
     }
