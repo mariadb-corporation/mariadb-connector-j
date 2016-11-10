@@ -1,0 +1,51 @@
+= Option "useBatchMultiSend"
+==Definition
+Since 1.5.0, option "useBatchMultiSend" permit to send queries by batch.
+\\If disable, queries are send one by one, waiting for result before sending next one.
+\\If enable, queries will be send by batch corresponding to option useBatchMultiSendNumber value (default 100).
+Results will be read afterwhile, avoiding a lot of network latency when client and server aren't on same host.
+\\\\ This option is only use for JDBC executeBatch(). This option is particularly efficient when client is distant from server.
+
+
+Here is some benchmark using client and server on 2 different hosts ( ping of 0.350ms between 2 hosts):
+\\\\{{misc/images/use_batch_multi_send.png}}
+
+==Standard client-server protocol
+
+By default, driver communication with server following a request–response messaging pattern :
+
+{{misc/images/standard.png}}
+
+As soon than driver send data, driver will blocks until data is available from input socket.
+
+==Batch multi send communication
+
+JDBC permit batching.
+Example :
+{{{
+    PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test(data1, data2) VALUES (?, ?)");
+    for (int i = 0; i < 3; i++) {
+        preparedStatement.setInt(1, i);
+        preparedStatement.setString(2, "value" + i);
+        preparedStatement.addBatch();
+    }
+    preparedStatement.executeBatch();
+}}}
+
+When option "useBatchMultiSend" is disable, batches like this will send data one by one following the traditional request-response messaging pattern.
+\\Here is an example using Prepare query (option "useServerPrepStmts" enable) :
+
+{{misc/images/standard_batch.png}}
+
+\\Same example with option "useBatchMultiSend" enable. Request are send by bulk, saving network latency:
+{{misc/images/bulk_batch.png}}
+
+Advantages :
+* a lot more efficient.
+
+Inconvenient :
+* if an error occur, and option "continueBatchOnError" is disable (default to enable), some other data may have been already send and executed.
+
+==== Bulk split
+All data will not been send at once, but by bunch corresponding to option useBatchMultiSendNumber value.
+Reads begin asynchronously after the first send command, driver will then wait to have read all results corresponding to sent data before sending new data.
