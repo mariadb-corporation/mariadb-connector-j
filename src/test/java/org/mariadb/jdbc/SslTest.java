@@ -29,6 +29,8 @@ public class SslTest extends BaseTest {
      */
     @BeforeClass
     public static void enableCrypto() {
+        Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
+
         try {
             Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
             field.setAccessible(true);
