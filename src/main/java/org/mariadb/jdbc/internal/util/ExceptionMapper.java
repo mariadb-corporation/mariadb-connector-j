@@ -50,6 +50,8 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.util;
 
 import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.stream.PrepareException;
 import org.mariadb.jdbc.internal.stream.PrepareSqlException;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
@@ -60,39 +62,43 @@ import java.sql.SQLWarning;
 
 
 public class ExceptionMapper {
+
+    /**
+     * Helper to throw exception. Exception is logged.
+     *
+     * @param exception exception
+     * @param connection current connection
+     * @param statement current statement
+     * @param logger logger
+     * @throws SQLException exception
+     */
+    public static void throwAndLogException(QueryException exception, MariaDbConnection connection, MariaDbStatement statement, Logger logger)
+            throws SQLException {
+        SQLException sqlException = getException(exception, connection, statement);
+        logger.error("error executing query", sqlException);
+        throw sqlException;
+    }
+
     /**
      * Helper to throw exception.
+     *
      * @param exception exception
      * @param connection current connection
      * @param statement current statement
      * @throws SQLException exception
      */
-    public static void throwException(QueryException exception, MariaDbConnection connection, java.sql.Statement statement) throws SQLException {
-        SQLException sqlException = get(exception);
-        String sqlState = exception.getSqlState();
-        SqlStates state = SqlStates.fromString(sqlState);
-        if (connection != null) {
-            if (state.equals(SqlStates.CONNECTION_EXCEPTION)) {
-                connection.setHostFailed();
-                if (connection.pooledConnection != null) {
-                    connection.pooledConnection.fireConnectionErrorOccured(sqlException);
-                }
-            } else if (connection.pooledConnection != null && statement != null) {
-                connection.pooledConnection.fireStatementErrorOccured(statement, sqlException);
-            }
-        }
-        throw sqlException;
+    public static void throwException(QueryException exception, MariaDbConnection connection, MariaDbStatement statement) throws SQLException {
+        throw getException(exception, connection, statement);
     }
 
-    /**
-     * Helper to create exception from queryException.
-     * @param exception exception
-     * @param connection current connection
-     * @param statement current statement
-     * @return SQLException exception
-     */
-    public static SQLException createException(QueryException exception, MariaDbConnection connection, java.sql.Statement statement) {
-        SQLException sqlException = get(exception);
+    private static SQLException getException(QueryException exception, MariaDbConnection connection, MariaDbStatement statement) {
+        String message = exception.getMessage();
+        if (connection != null) {
+            message = "(conn:" + connection.getServerThreadId() + ") " + message;
+        } else if (statement != null) {
+            message = "(conn:" + statement.getServerThreadId() + ") " + message;
+        }
+        SQLException sqlException = get(message, exception);
         String sqlState = exception.getSqlState();
         SqlStates state = SqlStates.fromString(sqlState);
         if (connection != null) {
@@ -105,37 +111,38 @@ public class ExceptionMapper {
                 connection.pooledConnection.fireStatementErrorOccured(statement, sqlException);
             }
         }
+
         return sqlException;
     }
 
-    private static SQLException get(final QueryException exception) {
+    private static SQLException get(final String message, final QueryException exception) {
         final String sqlState = exception.getSqlState();
         final SqlStates state = SqlStates.fromString(sqlState);
-        if (exception.isPrepareError()) return new PrepareSqlException((PrepareException) exception);
+        if (exception.isPrepareError()) return new PrepareSqlException(message, (PrepareException) exception);
         switch (state) {
             case DATA_EXCEPTION:
-                return new java.sql.SQLDataException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
+                return new java.sql.SQLDataException(message, sqlState, exception.getErrorCode(), exception);
             case FEATURE_NOT_SUPPORTED:
-                return new java.sql.SQLFeatureNotSupportedException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
+                return new java.sql.SQLFeatureNotSupportedException(message, sqlState, exception.getErrorCode(), exception);
             case CONSTRAINT_VIOLATION:
-                return new java.sql.SQLIntegrityConstraintViolationException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
+                return new java.sql.SQLIntegrityConstraintViolationException(message, sqlState, exception.getErrorCode(), exception);
             case INVALID_AUTHORIZATION:
-                return new java.sql.SQLInvalidAuthorizationSpecException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
+                return new java.sql.SQLInvalidAuthorizationSpecException(message, sqlState, exception.getErrorCode(), exception);
             case CONNECTION_EXCEPTION:
-                return new java.sql.SQLNonTransientConnectionException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
+                return new java.sql.SQLNonTransientConnectionException(message, sqlState, exception.getErrorCode(), exception);
             case SYNTAX_ERROR_ACCESS_RULE:
-                return new java.sql.SQLSyntaxErrorException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
+                return new java.sql.SQLSyntaxErrorException(message, sqlState, exception.getErrorCode(), exception);
             case TRANSACTION_ROLLBACK:
-                return new java.sql.SQLTransactionRollbackException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
+                return new java.sql.SQLTransactionRollbackException(message, sqlState, exception.getErrorCode(), exception);
             case WARNING:
-                return new SQLWarning(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
+                return new SQLWarning(message, sqlState, exception.getErrorCode(), exception);
             case INTERRUPTED_EXCEPTION:
-                return new java.sql.SQLTransientException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
+                return new java.sql.SQLTransientException(message, sqlState, exception.getErrorCode(), exception);
             case TIMEOUT_EXCEPTION:
-                return new SQLTimeoutException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
+                return new SQLTimeoutException(message, sqlState, exception.getErrorCode(), exception);
             default:
                 // DISTRIBUTED_TRANSACTION_ERROR,
-                return new SQLException(exception.getMessage(), sqlState, exception.getErrorCode(), exception);
+                return new SQLException(message, sqlState, exception.getErrorCode(), exception);
         }
     }
 

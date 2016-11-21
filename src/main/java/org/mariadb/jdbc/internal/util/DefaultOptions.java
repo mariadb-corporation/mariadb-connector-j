@@ -635,9 +635,10 @@ public enum DefaultOptions {
             options.useServerPrepStmts = false;
             options.cachePrepStmts = false;
         }
-        //pipe cannot use read and write socket simultaneously
-        if (options.pipe != null) options.useBatchMultiSend = false;
 
+        //pipe cannot use read and write socket simultaneously
+        //CONJ-386 : Aurora isn't compatible with option useBatchMultiSend.
+        if (options.pipe != null || haMode == HaMode.AURORA) options.useBatchMultiSend = false;
 
         return options;
     }

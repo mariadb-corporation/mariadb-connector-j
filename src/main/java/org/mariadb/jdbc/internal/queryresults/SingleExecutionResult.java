@@ -1,5 +1,6 @@
 package org.mariadb.jdbc.internal.queryresults;
 
+import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
 import java.sql.SQLException;
@@ -10,7 +11,7 @@ import java.util.Deque;
 public class SingleExecutionResult implements ExecutionResult {
 
     private MariaSelectResultSet result = null;
-    private Statement statement = null;
+    private MariaDbStatement statement = null;
     private boolean moreResultAvailable;
     private int fetchSize;
     private boolean selectPossible;
@@ -27,7 +28,7 @@ public class SingleExecutionResult implements ExecutionResult {
      * @param selectPossible select result possible
      * @param canHaveCallableResultset can be callablestatement
      */
-    public SingleExecutionResult(Statement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset) {
+    public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset) {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.selectPossible = selectPossible;
@@ -43,7 +44,7 @@ public class SingleExecutionResult implements ExecutionResult {
      * @param canHaveCallableResultset can be callablestatement
      * @param canHaveMoreResults tell that results may have multiple resultset
      */
-    public SingleExecutionResult(Statement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset,
+    public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset,
                                  boolean canHaveMoreResults) {
         this.statement = statement;
         this.fetchSize = fetchSize;
@@ -62,7 +63,7 @@ public class SingleExecutionResult implements ExecutionResult {
      * @param affectedRows affected rows
      * @param insertId insert id (auto generated)
      */
-    public SingleExecutionResult(Statement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset,
+    public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset,
                                  long affectedRows, long insertId) {
         this.statement = statement;
         this.fetchSize = fetchSize;
@@ -80,7 +81,7 @@ public class SingleExecutionResult implements ExecutionResult {
      * @param canHaveCallableResultset can be callablestatement
      * @param result resultset
      */
-    public SingleExecutionResult(Statement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset,
+    public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset,
                                  MariaSelectResultSet result) {
         this.statement = statement;
         this.fetchSize = fetchSize;
@@ -149,7 +150,7 @@ public class SingleExecutionResult implements ExecutionResult {
         return result;
     }
 
-    public Statement getStatement() {
+    public MariaDbStatement getStatement() {
         return statement;
     }
 

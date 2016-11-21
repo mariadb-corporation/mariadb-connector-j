@@ -55,6 +55,7 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
+import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509KeyManager;
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509TrustManager;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
@@ -363,53 +364,70 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws IOException : connection error (host/port not available)
      */
     private void connect(String host, int port) throws QueryException, IOException {
+        try {
+            socket = Utils.createSocket(urlParser, host);
+            initializeSocketOption();
 
-        socket = Utils.createSocket(urlParser, host);
-        initializeSocketOption();
+            // Bind the socket to a particular interface if the connection property
+            // localSocketAddress has been defined.
+            if (options.localSocketAddress != null) {
+                InetSocketAddress localAddress = new InetSocketAddress(options.localSocketAddress, 0);
+                socket.bind(localAddress);
+            }
 
-        // Bind the socket to a particular interface if the connection property
-        // localSocketAddress has been defined.
-        if (options.localSocketAddress != null) {
-            InetSocketAddress localAddress = new InetSocketAddress(options.localSocketAddress, 0);
-            socket.bind(localAddress);
+            if (!socket.isConnected()) {
+                InetSocketAddress sockAddr = urlParser.getOptions().pipe == null ? new InetSocketAddress(host, port) : null;
+                if (options.connectTimeout != null) {
+                    socket.connect(sockAddr, options.connectTimeout);
+                } else {
+                    socket.connect(sockAddr);
+                }
+            }
+
+            // Extract socketTimeout URL parameter
+            if (options.socketTimeout != null) {
+                socket.setSoTimeout(options.socketTimeout);
+            }
+
+            handleConnectionPhases();
+
+            if (options.useCompression) {
+                writer.setUseCompression(true);
+                packetFetcher = new ReadPacketFetcher(new DecompressInputStream(socket.getInputStream()), options.maxQuerySizeToLog);
+            }
+            connected = true;
+
+            writer.forceCleanupBuffer();
+
+            loadServerData();
+            setSessionOptions();
+            writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
+
+            createDatabaseIfNotExist();
+            loadCalendar();
+
+
+            activeStreamingResult = null;
+            moreResults = false;
+            hasWarnings = false;
+            hostFailed = false;
+        } catch (IOException ioException) {
+            ensureClosingSocketOnException();
+            throw ioException;
+        } catch (QueryException queryException) {
+            ensureClosingSocketOnException();
+            throw queryException;
         }
+    }
 
-        if (!socket.isConnected()) {
-            InetSocketAddress sockAddr = urlParser.getOptions().pipe == null ? new InetSocketAddress(host, port) : null;
-            if (options.connectTimeout != null) {
-                socket.connect(sockAddr, options.connectTimeout);
-            } else {
-                socket.connect(sockAddr);
+    private void ensureClosingSocketOnException() {
+        if (socket != null) {
+            try {
+                socket.close();
+            } catch (IOException ioe) {
+                //eat exception
             }
         }
-
-        // Extract socketTimeout URL parameter
-        if (options.socketTimeout != null) {
-            socket.setSoTimeout(options.socketTimeout);
-        }
-
-        handleConnectionPhases();
-
-        if (options.useCompression) {
-            writer.setUseCompression(true);
-            packetFetcher = new ReadPacketFetcher(new DecompressInputStream(socket.getInputStream()), options.maxQuerySizeToLog);
-        }
-        connected = true;
-
-        writer.forceCleanupBuffer();
-
-        loadServerData();
-        setSessionOptions();
-        writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
-
-        createDatabaseIfNotExist();
-        loadCalendar();
-
-
-        activeStreamingResult = null;
-        moreResults = false;
-        hasWarnings = false;
-        hostFailed = false;
     }
 
     /**
@@ -520,10 +538,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if ((buffer.getByteAt(0) & 0xFF) == 0xFE) {
             InterfaceAuthSwitchSendResponsePacket interfaceSendPacket;
             if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-                //AuthSwitchRequest packet.
                 buffer.readByte();
-                plugin = buffer.readString(Charset.forName("ASCII"));
-                byte[] authData = buffer.readRawBytes(buffer.remaining());
+                byte[] authData;
+                if (buffer.remaining() > 0) {
+                    //AuthSwitchRequest packet.
+                    plugin = buffer.readString(Charset.forName("ASCII"));
+                    authData = buffer.readRawBytes(buffer.remaining());
+                } else {
+                    //OldAuthSwitchRequest
+                    plugin = DefaultAuthenticationProvider.MYSQL_OLD_PASSWORD;
+                    authData = Utils.copyWithLength(seed, 8);
+                }
 
                 //Authentication according to plugin.
                 //see AuthenticationProviderHolder for implement other plugin

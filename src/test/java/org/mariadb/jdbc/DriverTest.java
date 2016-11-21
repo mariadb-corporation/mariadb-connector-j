@@ -751,11 +751,38 @@ public class DriverTest extends BaseTest {
     }
 
     @Test
-    public void testUpdateCount() throws SQLException {
+    public void testUpdateCountSingle() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("select 1");
         assertTrue(-1 == stmt.getUpdateCount());
     }
+
+    @Test
+    public void testUpdateCountMulti() throws SQLException {
+        try (Connection connection = setConnection("&allowMultiQueries=true")) {
+            Statement stmt = connection.createStatement();
+            stmt.execute("select 1;select 1");
+            assertTrue(-1 == stmt.getUpdateCount());
+            stmt.getMoreResults();
+            assertTrue(-1 == stmt.getUpdateCount());
+        }
+    }
+
+    /**
+     * CONJ-385 - stored procedure update count regression.
+     *
+     * @throws SQLException if connection error occur.
+     */
+    @Test
+    public void testUpdateCountProcedure() throws SQLException {
+        createProcedure("multiUpdateCount", "() BEGIN  SELECT 1; SELECT 2; END");
+        CallableStatement callableStatement = sharedConnection.prepareCall("{call multiUpdateCount()}");
+        callableStatement.execute();
+        assertTrue(-1 == callableStatement.getUpdateCount());
+        callableStatement.getMoreResults();
+        assertTrue(-1 == callableStatement.getUpdateCount());
+    }
+
 
     @Test
     public void testConnectWithDb() throws SQLException {

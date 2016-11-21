@@ -5,16 +5,15 @@ import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class ExecuteBatchTest extends BaseTest {
 
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("ExecuteBatchTest", "id int not null primary key auto_increment, test varchar(100) , test2 int");
+        createTable("ExecuteBatchUseBatchMultiSend", "test varchar(100)");
+
     }
 
     static String oneHundredLengthString = "";
@@ -152,4 +151,19 @@ public class ExecuteBatchTest extends BaseTest {
         Assert.assertFalse(resultSet.next());
     }
 
+    @Test
+    public void useBatchMultiSend() throws Exception {
+        try (Connection connection = setConnection("&useBatchMultiSend=true")) {
+            String sql = "insert into ExecuteBatchUseBatchMultiSend (test) values (?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+                for (int i = 0; i < 10; i++) {
+                    pstmt.setInt(1, i);
+                    pstmt.addBatch();
+                }
+                int[] updateCounts = pstmt.executeBatch();
+                Assert.assertEquals(10, updateCounts.length);
+                for (int i = 0; i < updateCounts.length; i++) Assert.assertEquals(1, updateCounts[i]);
+            }
+        }
+    }
 }

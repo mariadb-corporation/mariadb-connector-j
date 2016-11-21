@@ -51,8 +51,8 @@ package org.mariadb.jdbc.internal.util;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
-import com.sun.jna.platform.win32.Kernel32;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
 public class PidFactory {
@@ -99,7 +99,16 @@ public class PidFactory {
                                 pidRequest = new PidRequestInter() {
                                     @Override
                                     public String getPid() {
-                                        return String.valueOf(Kernel32.INSTANCE.GetCurrentProcessId());
+                                        try {
+                                            Class kernel32Class = Class.forName("com.sun.jna.platform.win32.Kernel32");
+                                            Field field = kernel32Class.getField("INSTANCE");
+                                            Object fieldinstance = field.get(kernel32Class);
+                                            Method getCurrentProcessIdMethod = fieldinstance.getClass().getMethod("GetCurrentProcessId");
+                                            return String.valueOf(getCurrentProcessIdMethod.invoke(fieldinstance));
+                                        } catch (Throwable cle) {
+                                            //jna plateform jar's are not in classpath, no PID returned
+                                        }
+                                        return null;
                                     }
                                 };
 

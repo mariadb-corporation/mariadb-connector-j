@@ -574,8 +574,8 @@ public class Utils {
         if (bytes.length <= offset) return "";
         int dataLength = Math.min(maxQuerySizeToLog, Math.min(bytes.length - offset, length));
         char[] hexChars = new char[ dataLength * 2];
-        for ( int j = offset; j < dataLength; j++ ) {
-            int byteValue = bytes[j] & 0xFF;
+        for ( int j = 0; j < dataLength; j++ ) {
+            int byteValue = bytes[j + offset] & 0xFF;
             hexChars[j * 2] = hexArray[byteValue >>> 4];
             hexChars[j * 2 + 1] = hexArray[byteValue & 0x0F];
         }

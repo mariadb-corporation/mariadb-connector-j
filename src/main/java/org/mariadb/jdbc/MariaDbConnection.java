@@ -1499,4 +1499,8 @@ public final class MariaDbConnection implements Connection {
     public ClientPrepareStatementCache getClientPrepareStatementCache() {
         return clientPrepareStatementCache;
     }
+
+    public long getServerThreadId() {
+        return (protocol != null) ? protocol.getServerThreadId() : -1;
+    }
 }

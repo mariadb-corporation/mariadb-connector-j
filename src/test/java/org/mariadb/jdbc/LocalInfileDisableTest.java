@@ -42,7 +42,7 @@ public class LocalInfileDisableTest extends BaseTest {
             String message = ex.getMessage();
             String expectedMessage = "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true\n"
                     + "Query is : LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)";
-            Assert.assertEquals(message, expectedMessage);
+            Assert.assertTrue(message.contains(expectedMessage));
         } finally {
             connection.close();
         }

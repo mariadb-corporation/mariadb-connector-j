@@ -1,5 +1,6 @@
 package org.mariadb.jdbc.internal.queryresults;
 
+import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
 import java.sql.SQLException;
@@ -8,7 +9,7 @@ import java.util.*;
 
 public class MultiVariableIntExecutionResult implements MultiExecutionResult {
 
-    private Statement statement = null;
+    private MariaDbStatement statement = null;
     private boolean moreResultAvailable;
     private int fetchSize;
     private boolean selectPossible;
@@ -27,7 +28,7 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
      * @param fetchSize resultet fetch size
      * @param selectPossible is select command possible
      */
-    public MultiVariableIntExecutionResult(Statement statement, int size, int fetchSize, boolean selectPossible) {
+    public MultiVariableIntExecutionResult(MariaDbStatement statement, int size, int fetchSize, boolean selectPossible) {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.selectPossible = selectPossible;
@@ -227,7 +228,7 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
         return resultSet;
     }
 
-    public Statement getStatement() {
+    public MariaDbStatement getStatement() {
         return statement;
     }
 

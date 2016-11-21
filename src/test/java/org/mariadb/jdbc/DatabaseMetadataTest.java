@@ -972,4 +972,141 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals(9, rsmd.getPrecision(8));
         assertEquals(4, rsmd.getScale(8));
     }
+
+    @Test
+    public void getTimePrecision() throws SQLException {
+        createTable("getTimePrecision", "d date, "
+                + "t1 datetime(0),"
+                + "t2 datetime(6),"
+                + "t3 timestamp(0) DEFAULT '2000-01-01 00:00:00',"
+                + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00',"
+                + "t5 time(0),"
+                + "t6 time(6)"
+        );
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT * FROM getTimePrecision");
+        ResultSetMetaData rsmd = rs.getMetaData();
+        //date
+        assertEquals(10, rsmd.getPrecision(1));
+        assertEquals(0, rsmd.getScale(1));
+        //datetime(0)
+        assertEquals(19, rsmd.getPrecision(2));
+        assertEquals(0, rsmd.getScale(2));
+        //datetime(6)
+        assertEquals(26, rsmd.getPrecision(3));
+        assertEquals(6, rsmd.getScale(3));
+        //timestamp(0)
+        assertEquals(19, rsmd.getPrecision(4));
+        assertEquals(0, rsmd.getScale(4));
+        //timestamp(6)
+        assertEquals(26, rsmd.getPrecision(5));
+        assertEquals(6, rsmd.getScale(5));
+        //time(0)
+        assertEquals(10, rsmd.getPrecision(6));
+        assertEquals(0, rsmd.getScale(6));
+        //time(6)
+        assertEquals(17, rsmd.getPrecision(7));
+        assertEquals(6, rsmd.getScale(7));
+    }
+
+    @Test
+    public void metaTimeResultSet() throws SQLException {
+        createTable("getTimePrecision", "d date, "
+                + "t1 datetime(0),"
+                + "t2 datetime(6),"
+                + "t3 timestamp(0) DEFAULT '2000-01-01 00:00:00',"
+                + "t4 timestamp(6) DEFAULT '2000-01-01 00:00:00',"
+                + "t5 time(0),"
+                + "t6 time(6)");
+
+        final int columnSizeField = 7;
+
+        DatabaseMetaData dmd = sharedConnection.getMetaData();
+        ResultSet rs = dmd.getColumns(null, null, "getTimePrecision", null);
+        //date
+        assertTrue(rs.next());
+        assertEquals(10, rs.getInt(columnSizeField));
+        //datetime(0)
+        assertTrue(rs.next());
+        assertEquals(19, rs.getInt(columnSizeField));
+        //datetime(6)
+        assertTrue(rs.next());
+        assertEquals(26, rs.getInt(columnSizeField));
+        //timestamp(0)
+        assertTrue(rs.next());
+        assertEquals(19, rs.getInt(columnSizeField));
+        //timestamp(6)
+        assertTrue(rs.next());
+        assertEquals(26, rs.getInt(columnSizeField));
+        //time(0)
+        assertTrue(rs.next());
+        assertEquals(10, rs.getInt(columnSizeField));
+        //time(6)
+        assertTrue(rs.next());
+        assertEquals(17, rs.getInt(columnSizeField));
+
+        assertFalse(rs.next());
+    }
+
+    /**
+     * CONJ-381 - getProcedureColumns returns NULL as TIMESTAMP/DATETIME precision instead of 19.
+     * @throws SQLException if connection error occur
+     */
+    @Test
+    public void metaTimeProcedureResultSet() throws SQLException {
+        createProcedure("getProcTimePrecision", "(IN  I date, "
+                + "IN t1 DATETIME(0),"
+                + "IN t2 DATETIME(6),"
+                + "IN t3 timestamp(0),"
+                + "IN t4 timestamp(6),"
+                + "IN t5 time ,"
+                + "IN t6 time(6)) BEGIN SELECT I; END");
+
+        final int precisionField = 8;
+        final int lengthField = 9;
+        final int scaleField = 10;
+
+        DatabaseMetaData dmd = sharedConnection.getMetaData();
+        ResultSet rs = dmd.getProcedureColumns(null, null, "getProcTimePrecision", null);
+        //date
+        assertTrue(rs.next());
+        assertEquals(10, rs.getInt(precisionField));
+        assertEquals(10, rs.getInt(lengthField));
+        assertEquals(0, rs.getInt(scaleField));
+        assertTrue(rs.wasNull());
+        //datetime(0)
+        assertTrue(rs.next());
+        assertEquals(19, rs.getInt(precisionField));
+        assertEquals(19, rs.getInt(lengthField));
+        assertEquals(0, rs.getInt(scaleField));
+        //datetime(6)
+        assertTrue(rs.next());
+        assertEquals(26, rs.getInt(precisionField));
+        assertEquals(26, rs.getInt(lengthField));
+        assertEquals(6, rs.getInt(scaleField));
+        //timestamp(0)
+        assertTrue(rs.next());
+        assertEquals(19, rs.getInt(precisionField));
+        assertEquals(19, rs.getInt(lengthField));
+        assertEquals(0, rs.getInt(scaleField));
+        //timestamp(6)
+        assertTrue(rs.next());
+        assertEquals(26, rs.getInt(precisionField));
+        assertEquals(26, rs.getInt(lengthField));
+        assertEquals(6, rs.getInt(scaleField));
+        //time(0)
+        assertTrue(rs.next());
+        assertEquals(10, rs.getInt(precisionField));
+        assertEquals(10, rs.getInt(lengthField));
+        assertEquals(0, rs.getInt(scaleField));
+        //time(6)
+        assertTrue(rs.next());
+        assertEquals(17, rs.getInt(precisionField));
+        assertEquals(17, rs.getInt(lengthField));
+        assertEquals(6, rs.getInt(scaleField));
+
+        assertFalse(rs.next());
+    }
+
+
 }

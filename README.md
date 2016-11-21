@@ -11,6 +11,7 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 
 ## Status
 [![Build Status](https://travis-ci.org/MariaDB/mariadb-connector-j.svg?branch=master)](https://travis-ci.org/MariaDB/mariadb-connector-j)
+[![Build status](https://ci.appveyor.com/api/projects/status/7hpe3wmbu57r8noa/branch/master?svg=true)](https://ci.appveyor.com/project/rusher/mariadb-connector-j/branch/master)
 [![Maven central](https://img.shields.io/maven-central/v/org.mariadb.jdbc/mariadb-java-client.svg)](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client)
 [![License (LGPL version 2.1)](https://img.shields.io/badge/license-GNU%20LGPL%20version%202.1-green.svg?style=flat-square)](http://opensource.org/licenses/LGPL-2.1)
 
@@ -23,7 +24,7 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>1.5.4</version>
+	<version>1.5.5</version>
 </dependency>
 ```
 

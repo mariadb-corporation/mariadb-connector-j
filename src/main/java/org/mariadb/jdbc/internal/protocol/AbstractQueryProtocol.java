@@ -51,6 +51,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.protocol;
 
 import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.logging.Logger;
@@ -975,7 +976,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             if (options.maxQuerySizeToLog == 0) {
                 queryString = new String(buffer.array(), 5, buffer.limit());
             } else {
-                queryString = new String(buffer.array(), 5, Math.min(buffer.limit(), (options.maxQuerySizeToLog * 3) + 5));
+                queryString = new String(buffer.array(), 5, Math.min(buffer.limit() - 5, (options.maxQuerySizeToLog * 3)));
                 if (queryString.length() > options.maxQuerySizeToLog - 3) {
                     queryString = queryString.substring(0, options.maxQuerySizeToLog - 3) + "...";
                 }
@@ -1105,7 +1106,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     message = buffer.readString(StandardCharsets.UTF_8);
                 } else {
                     // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
-                    message = new String(buffer.buf, buffer.position, buffer.limit, StandardCharsets.UTF_8);
+                    buffer.position -= 1;
+                    message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position, StandardCharsets.UTF_8);
                     sqlState = "HY000";
                 }
                 executionResult.addStatsError(moreResults);
@@ -1217,7 +1219,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     public void prologProxy(ServerPrepareResult serverPrepareResult, ExecutionResult executionResult, int maxRows, boolean hasProxy,
-                            MariaDbConnection connection, Statement statement) throws SQLException {
+                            MariaDbConnection connection, MariaDbStatement statement) throws SQLException {
         prolog(executionResult, maxRows, hasProxy, connection, statement);
     }
 
@@ -1231,7 +1233,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @param statement       current statement
      * @throws SQLException if any error occur.
      */
-    public void prolog(ExecutionResult executionResult, int maxRows, boolean hasProxy, MariaDbConnection connection, Statement statement)
+    public void prolog(ExecutionResult executionResult, int maxRows, boolean hasProxy, MariaDbConnection connection, MariaDbStatement statement)
             throws SQLException {
         if (explicitClosed) {
             throw new SQLException("execute() is called on closed connection");

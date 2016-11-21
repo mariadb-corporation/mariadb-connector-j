@@ -52,8 +52,8 @@ import java.sql.SQLException;
 
 public class PrepareSqlException extends SQLException {
 
-    public PrepareSqlException(PrepareException prepareException) {
-        super(prepareException.getMessage(), prepareException.getSqlState(), prepareException.getErrorCode());
+    public PrepareSqlException(String message, PrepareException prepareException) {
+        super(message, prepareException.getSqlState(), prepareException.getErrorCode());
     }
 
 }
