@@ -45,7 +45,7 @@ public class CollationTest extends BaseTest {
             rs = connection.createStatement().executeQuery(sqlForCharset);
             assertTrue(rs.next());
             String clientCharacterSet = rs.getString(1);
-            if ("utf8mb4".equalsIgnoreCase(serverCharacterSet)) {
+            if ("utf8mb4".equalsIgnoreCase(serverCharacterSet) || "MAXSCALE".equals(System.getenv("TYPE"))) {
                 assertTrue(serverCharacterSet.equalsIgnoreCase(clientCharacterSet));
             } else {
                 connection.createStatement().execute("SET NAMES utf8mb4");
@@ -79,7 +79,7 @@ public class CollationTest extends BaseTest {
             String emoji = "\uD83C\uDF1F";
             boolean mustThrowError = true;
             String serverCharset = rs.getString(1);
-            if ("utf8mb4".equals(serverCharset)) mustThrowError = false;
+            if ("utf8mb4".equals(serverCharset) || "MAXSCALE".equals(System.getenv("TYPE"))) mustThrowError = false;
 
             PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO unicodeTestChar (id, field1, field2) VALUES (1, ?, ?)");
             ps.setString(1, emoji);
