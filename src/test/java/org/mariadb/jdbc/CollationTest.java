@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -34,6 +35,8 @@ public class CollationTest extends BaseTest {
      */
     @Test
     public void emoji() throws SQLException {
+        //temporary. waiting for https://jira.mariadb.org/browse/MXS-953
+        Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
         Connection connection = null;
         try {
             connection = setConnection();
@@ -45,7 +48,8 @@ public class CollationTest extends BaseTest {
             rs = connection.createStatement().executeQuery(sqlForCharset);
             assertTrue(rs.next());
             String clientCharacterSet = rs.getString(1);
-            if ("utf8mb4".equalsIgnoreCase(serverCharacterSet) || "MAXSCALE".equals(System.getenv("TYPE"))) {
+
+            if ("utf8mb4".equalsIgnoreCase(serverCharacterSet)) {
                 assertTrue(serverCharacterSet.equalsIgnoreCase(clientCharacterSet));
             } else {
                 connection.createStatement().execute("SET NAMES utf8mb4");
@@ -72,6 +76,8 @@ public class CollationTest extends BaseTest {
      */
     @Test
     public void test4BytesUtf8() throws Exception {
+        //temporary. waiting for https://jira.mariadb.org/browse/MXS-953
+        Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
 
         String sqlForCharset = "select @@character_set_server";
         ResultSet rs = sharedConnection.createStatement().executeQuery(sqlForCharset);
@@ -79,7 +85,7 @@ public class CollationTest extends BaseTest {
             String emoji = "\uD83C\uDF1F";
             boolean mustThrowError = true;
             String serverCharset = rs.getString(1);
-            if ("utf8mb4".equals(serverCharset) || "MAXSCALE".equals(System.getenv("TYPE"))) mustThrowError = false;
+            if ("utf8mb4".equals(serverCharset)) mustThrowError = false;
 
             PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO unicodeTestChar (id, field1, field2) VALUES (1, ?, ?)");
             ps.setString(1, emoji);
