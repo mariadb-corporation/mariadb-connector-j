@@ -26,6 +26,3 @@ build_script:
   - mvn clean package -Dmaven.test.skip=true
 test_script:
   - mvn test -DdbUrl="jdbc:mariadb://localhost/testj?user=root&createDatabaseIfNotExist=true&password=Password12!"
-cache:
-  - C:\maven\
-  - C:\Users\appveyor\.m2
