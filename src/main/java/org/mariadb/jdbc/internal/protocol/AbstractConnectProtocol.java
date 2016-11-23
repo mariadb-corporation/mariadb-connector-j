@@ -665,21 +665,41 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void loadServerData() throws QueryException, IOException {
         serverData = new TreeMap<>();
         SingleExecutionResult qr = new SingleExecutionResult(null, 0, true, false);
+
         try {
-            executeQuery(true, qr, "SHOW VARIABLES WHERE Variable_name in ("
-                    + "'max_allowed_packet', "
-                    + "'system_time_zone', "
-                    + "'time_zone', "
-                    + "'sql_mode'"
-                    + ")", ResultSet.TYPE_FORWARD_ONLY);
+            executeQuery(true, qr, "SELECT @@max_allowed_packet , "
+                            + "@@system_time_zone, "
+                            + "@@time_zone, "
+                            + "@@sql_mode",
+                    ResultSet.TYPE_FORWARD_ONLY);
             MariaSelectResultSet resultSet = qr.getResultSet();
-            while (resultSet.next()) {
-                logger.debug("server data " + resultSet.getString(1) + " : " + resultSet.getString(2));
-                serverData.put(resultSet.getString(1), resultSet.getString(2));
-            }
+            resultSet.next();
+
+            serverData.put("max_allowed_packet", resultSet.getString(1));
+            serverData.put("system_time_zone", resultSet.getString(2));
+            serverData.put("time_zone", resultSet.getString(3));
+            serverData.put("sql_mode", resultSet.getString(4));
+
         } catch (SQLException sqle) {
-            throw new QueryException("could not load system variables", -1, CONNECTION_EXCEPTION, sqle);
+
+            //fallback in case of galera non primary nodes that permit only show / set command
+            try {
+                executeQuery(true, qr, "SHOW VARIABLES WHERE Variable_name in ("
+                        + "'max_allowed_packet', "
+                        + "'system_time_zone', "
+                        + "'time_zone', "
+                        + "'sql_mode'"
+                        + ")", ResultSet.TYPE_FORWARD_ONLY);
+                MariaSelectResultSet resultSet = qr.getResultSet();
+                while (resultSet.next()) {
+                    logger.debug("server data " + resultSet.getString(1) + " : " + resultSet.getString(2));
+                    serverData.put(resultSet.getString(1), resultSet.getString(2));
+                }
+            } catch (SQLException sqlee) {
+                throw new QueryException("could not load system variables", -1, CONNECTION_EXCEPTION, sqlee);
+            }
         }
+
     }
 
     public String getServerData(String code) {
