@@ -11,6 +11,19 @@ remove_mysql(){
 }
 remove_mysql
 
+if [ "$TYPE" == "MAXSCALE" ]
+then
+    #install maxscale
+    wget "https://downloads.mariadb.com/MaxScale/${MAXSCALE_VERSION}/ubuntu/dists/precise/main/binary-amd64/maxscale-2.0.1-2.ubuntu.precise.x86_64.deb"
+    sudo dpkg -i maxscale-2.0.1-2.ubuntu.precise.x86_64.deb
+    sudo apt-get install -f
+    sudo sed -i 's/user=myuser/user=root/g' /etc/maxscale.cnf
+    sudo sed -i 's/passwd=mypwd/passwd=/g' /etc/maxscale.cnf
+    sudo sed -i 's/Service]/Service]\nenable_root_user=1\nversion_string=10.1.18-MariaDB-maxScale/g' /etc/maxscale.cnf
+    sudo sed -i 's|port=4008|port=4008\naddress=localhost|g' /etc/maxscale.cnf
+    sudo sed -i 's|port=4006|port=4006\naddress=localhost|g' /etc/maxscale.cnf
+fi
+
 if [ -n "$AURORA" ]
 then
     # AURORA tests doesn't need an installation
@@ -63,6 +76,7 @@ END
 
     sudo mysql -u root -e "SET GLOBAL innodb_fast_shutdown = 1"
     sudo mysql -u root -e "update mysql.user set plugin = 'mysql_native_password' where User = 'root' and Host = 'localhost'"
+    sudo mysql -u root -e "create database IF NOT EXISTS testj"
 
     sudo service mysql stop
     #Adding sleep time for clean shutdown
@@ -78,8 +92,17 @@ END
     then
         sleep 20
     fi
-    sudo mysql -uroot -e "create database IF NOT EXISTS testj"
 
 fi
 
+if [ "$TYPE" == "MAXSCALE" ]
+then
 
+    #add SSL informations
+    sudo sed -i 's|Listener]|Listener]\nssl=enabled\nssl_cert=/etc/mysql/server.crt\nssl_key=/etc/mysql/server.key\nssl_ca_cert=/etc/mysql/ca.crt|g' /etc/maxscale.cnf
+
+    sudo service maxscale start
+    tail -n500 /var/log/maxscale/maxscale1.log
+    tail -n500 /etc/maxscale.cnf
+
+fi

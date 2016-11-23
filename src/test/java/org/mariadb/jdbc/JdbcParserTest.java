@@ -22,7 +22,7 @@ public class JdbcParserTest {
     }
 
     @Test
-    public void testAuroraUseBatchMultiSend () throws Throwable {
+    public void testAuroraUseBatchMultiSend() throws Throwable {
         UrlParser notAuroraDatas = UrlParser.parse("jdbc:mariadb://localhost/test?useBatchMultiSend=true");
         Assert.assertTrue(notAuroraDatas.getOptions().useBatchMultiSend);
 

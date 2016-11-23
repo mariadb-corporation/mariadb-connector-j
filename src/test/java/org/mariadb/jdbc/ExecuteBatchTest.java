@@ -9,6 +9,10 @@ import java.sql.*;
 
 public class ExecuteBatchTest extends BaseTest {
 
+    /**
+     * Create tables for testing.
+     * @throws SQLException if connection error occur.
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("ExecuteBatchTest", "id int not null primary key auto_increment, test varchar(100) , test2 int");

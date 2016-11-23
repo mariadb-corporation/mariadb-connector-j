@@ -1172,7 +1172,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     Buffer bufferEof = packetFetcher.getReusableBuffer();
                     if (bufferEof.getByteAt(0) != Packet.EOF) {
                         throw new QueryException("Packets out of order when reading field packets, expected was EOF stream. "
-                                + "Packet contents (hex) = " + Utils.hexdump(bufferEof.buf, options.maxQuerySizeToLog, 0));
+                                + "Packet contents (hex) = " + Utils.hexdump(bufferEof.buf, options.maxQuerySizeToLog, 0, buffer.position));
                     } else if (executionResult.isCanHaveCallableResultset() || checkCallableResultSet) {
                         //Identify if this is a "callable OUT packet" (callableResult=true)
                         //needed because :
