@@ -73,8 +73,8 @@ public class MariaDbPooledConnection implements PooledConnection {
     public MariaDbPooledConnection(MariaDbConnection connection) {
         this.connection = connection;
         connection.pooledConnection = this;
-        statementEventListeners = new ArrayList<StatementEventListener>();
-        connectionEventListeners = new ArrayList<ConnectionEventListener>();
+        statementEventListeners = new CopyOnWriteArrayList<StatementEventListener>();
+        connectionEventListeners = new CopyOnWriteArrayList<ConnectionEventListener>();
     }
 
     /**
@@ -209,8 +209,7 @@ public class MariaDbPooledConnection implements PooledConnection {
      */
     public void fireConnectionClosed() {
         ConnectionEvent event = new ConnectionEvent(this);
-        CopyOnWriteArrayList<ConnectionEventListener> copyListeners = new CopyOnWriteArrayList<ConnectionEventListener>(connectionEventListeners);
-        for (ConnectionEventListener listener : copyListeners) {
+        for (ConnectionEventListener listener : connectionEventListeners) {
             listener.connectionClosed(event);
         }
     }

@@ -54,12 +54,11 @@ import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Types;
 
 public class ColumnInformation {
+    static int lazyPositionFromEnd = 0;
     // This array stored character length for every collation id up to collation id 256
     // It is generated from the information schema using
     // "select  id, maxlen from information_schema.character_sets, information_schema.collations
@@ -133,12 +132,19 @@ public class ColumnInformation {
         2              filler [00] [00]
 
          */
-        buffer.skipLengthEncodedBytes();  /* catalog */
-        buffer.skipLengthEncodedBytes();  /* db */
-        buffer.skipLengthEncodedBytes();  /* table */
-        buffer.skipLengthEncodedBytes();  /* original table */
-        buffer.skipLengthEncodedBytes();  /* name */
-        buffer.skipLengthEncodedBytes();  /* org_name */
+        if (lazyPositionFromEnd == 0) {
+            buffer.skipLengthEncodedBytes();  /* catalog */
+            buffer.skipLengthEncodedBytes();  /* db */
+            buffer.skipLengthEncodedBytes();  /* table */
+            buffer.skipLengthEncodedBytes();  /* original table */
+            buffer.skipLengthEncodedBytes();  /* name */
+            buffer.skipLengthEncodedBytes();  /* org_name */
+            lazyPositionFromEnd = buffer.limit - buffer.position;
+        } else {
+            //permit to avoid reading the 6th String encode data, almost never needed
+            buffer.position = buffer.limit - lazyPositionFromEnd;
+        }
+
         fixlength = buffer.readByte();
         charsetNumber = buffer.readShort();
         length = buffer.readInt();
