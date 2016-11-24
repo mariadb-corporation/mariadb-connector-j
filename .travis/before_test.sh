@@ -35,7 +35,9 @@ else
 deb http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL
 deb-src http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL
 END
-        sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 5072E1F5
+        #normal way, but working only 90% of the time. Temporary force with key in project.
+        #sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 5072E1F5
+        sudo apt-key add .travis/mysql_pubkey.asc
 
         sudo apt-get -qq update --force-yes
         sudo apt-get -qq install mysql-server --force-yes
