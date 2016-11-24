@@ -151,27 +151,35 @@ public class UnixDomainSocket extends Socket {
     }
 
     public void setTcpNoDelay(boolean b) {
+        //do nothing
     }
 
     public void setKeepAlive(boolean b) {
+        //do nothing
     }
 
     public void setReceiveBufferSize(int size) {
+        //do nothing
     }
 
     public void setSendBufferSize(int size) {
+        //do nothing
     }
 
     public void setSoLinger(boolean b, int i) {
+        //do nothing
     }
 
     public void setSoTimeout(int timeout) {
+        //do nothing
     }
 
     public void shutdownInput() {
+        //do nothing
     }
 
     public void shutdownOutput() {
+        //do nothing
     }
 
     public static class SockAddr extends Structure {

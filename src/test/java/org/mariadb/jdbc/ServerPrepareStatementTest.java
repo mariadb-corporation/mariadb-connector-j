@@ -105,7 +105,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     }
 
     @Test
-    public void prepStmtCacheSizeTest() throws Throwable {
+    public void prepStmtCacheSize() throws Throwable {
         Assume.assumeTrue(sharedOptions().useServerPrepStmts);
         Connection connection = null;
         try {
@@ -321,7 +321,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     }
 
     @Test
-    public void dataConformityTest() throws SQLException {
+    public void dataConformity() throws SQLException {
         TimeZone defaultTimeZone = TimeZone.getDefault();
         try {
             prepareTestTable();
@@ -627,7 +627,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
 
     @Test
-    public void dataConformityTest2() throws SQLException {
+    public void dataConformity2() throws SQLException {
         prepareTestTable();
 
         PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO preparetest "
@@ -840,7 +840,7 @@ public class ServerPrepareStatementTest extends BaseTest {
      */
     @Test
     public void serverPrepareStatementSync() throws Throwable {
-        Assume.assumeTrue(!checkMaxAllowedPacketMore40m("serverPrepareStatementSync", false)); // to avoid
+        Assume.assumeTrue(!checkMaxAllowedPacketMore20m("serverPrepareStatementSync", false)); // to avoid
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         if (rs.next()) {

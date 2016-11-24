@@ -100,7 +100,6 @@ public class ColumnInformation {
     Buffer buffer;
     private short charsetNumber;
     private long length;
-    private long fixlength;
     private MariaDbType type;
     private byte decimals;
     private short flags;
@@ -139,13 +138,13 @@ public class ColumnInformation {
             buffer.skipLengthEncodedBytes();  /* original table */
             buffer.skipLengthEncodedBytes();  /* name */
             buffer.skipLengthEncodedBytes();  /* org_name */
+            buffer.readByte(); //fixlength field
             lazyPositionFromEnd = buffer.limit - buffer.position;
         } else {
             //permit to avoid reading the 6th String encode data, almost never needed
             buffer.position = buffer.limit - lazyPositionFromEnd;
         }
 
-        fixlength = buffer.readByte();
         charsetNumber = buffer.readShort();
         length = buffer.readInt();
         type = MariaDbType.fromServer(buffer.readByte() & 0xff);

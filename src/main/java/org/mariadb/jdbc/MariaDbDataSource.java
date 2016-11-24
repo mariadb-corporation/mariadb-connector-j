@@ -313,7 +313,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @since 1.4
      */
     public void setLogWriter(final PrintWriter out) throws SQLException {
-
+        //not implemented
     }
 
     /**
@@ -327,7 +327,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @since 1.4
      */
     public int getLoginTimeout() throws SQLException {
-        return 0;
+        return urlParser.getOptions().connectTimeout == null ? 0 : urlParser.getOptions().connectTimeout;
     }
 
     /**
@@ -342,6 +342,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      */
     @Override
     public void setLoginTimeout(final int seconds) throws SQLException {
+        urlParser.getOptions().connectTimeout = seconds;
     }
 
     /**

@@ -76,21 +76,19 @@ public class FailoverLoop extends TerminatableRunnable {
     protected void doRun() {
         Listener listener;
         while (!isUnschedule() && (listener = queue.poll()) != null) {
-            if (!listener.isExplicitClosed() && listener.hasHostFail()) {
-                if (listener.canRetryFailLoop()) {
-                    try {
-                        SearchFilter filter = listener.getFilterForFailedHost();
-                        filter.setFailoverLoop(true);
-                        listener.reconnectFailedConnection(filter);
-                        if (listener.hasHostFail() && !listener.isExplicitClosed()) {
-                            queue.add(listener);
-                        }
-
-                        //reconnection done !
-                    } catch (Exception e) {
-                        //FailoverLoop search connection failed
+            if (!listener.isExplicitClosed() && listener.hasHostFail() && listener.canRetryFailLoop()) {
+                try {
+                    SearchFilter filter = listener.getFilterForFailedHost();
+                    filter.setFailoverLoop(true);
+                    listener.reconnectFailedConnection(filter);
+                    if (listener.hasHostFail() && !listener.isExplicitClosed()) {
                         queue.add(listener);
                     }
+
+                    //reconnection done !
+                } catch (Exception e) {
+                    //FailoverLoop search connection failed
+                    queue.add(listener);
                 }
             }
         }

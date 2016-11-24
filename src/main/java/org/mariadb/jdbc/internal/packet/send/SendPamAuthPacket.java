@@ -205,10 +205,12 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
 
         @Override
         public void ancestorMoved(AncestorEvent ancestorEvent) {
+            //do nothing
         }
 
         @Override
         public void ancestorRemoved(AncestorEvent ancestorEvent) {
+            //do nothing
         }
     }
 }

@@ -359,7 +359,7 @@ public class AuroraFailoverTest extends BaseReplication {
             boolean failLaunched = false;
             PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
             assertEquals(1L, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
-            PreparedStatement otherPrepareStatement = connection.prepareStatement(" select 1");
+            connection.prepareStatement(" select 1");
 
             while (nbExceptionBeforeUp < 1000) {
                 try {
@@ -408,7 +408,7 @@ public class AuroraFailoverTest extends BaseReplication {
             boolean failLaunched = false;
             PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
             assertEquals(1L, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
-            PreparedStatement otherPrepareStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");
+            connection.prepareStatement("select @@innodb_read_only as is_read_only");
             long currentPrepareId = 0;
             while (nbExecutionBeforeRePrepared < 1000) {
                 PreparedStatement preparedStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");

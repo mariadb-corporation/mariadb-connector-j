@@ -352,20 +352,21 @@ public class MariaSelectResultSet implements ResultSet {
                 while (readNextValue(resultSet)) {
                     //fetch all results
                 }
+
                 resultSetSize = resultSet.size();
 
                 //retrieve other results if needed
-                if (protocolTmp.hasMoreResults()) {
-                    if (this.statement != null) {
-                        this.statement.getMoreResults();
-                    }
+                if (protocolTmp.hasMoreResults() && this.statement != null) {
+                    this.statement.getMoreResults();
                 }
+
             } catch (IOException ioexception) {
                 throw new QueryException("Could not close resultset : " + ioexception.getMessage(), -1, CONNECTION_EXCEPTION, ioexception);
             }
         } catch (QueryException queryException) {
             ExceptionMapper.throwException(queryException, null, this.statement);
         }
+
         dataFetchTime++;
         streaming = false;
     }

@@ -142,27 +142,35 @@ public class NamedPipeSocket extends Socket {
     }
 
     public void setTcpNoDelay(boolean bool) {
+        //do nothing
     }
 
     public void setKeepAlive(boolean bool) {
+        //do nothing
     }
 
     public void setReceiveBufferSize(int size) {
+        //do nothing
     }
 
     public void setSendBufferSize(int size) {
+        //do nothing
     }
 
     public void setSoLinger(boolean bool, int value) {
+        //do nothing
     }
 
     @Override
     public void setSoTimeout(int timeout) {
+        //do nothing
     }
 
     public void shutdownInput() {
+        //do nothing
     }
 
     public void shutdownOutput() {
+        //do nothing
     }
 }

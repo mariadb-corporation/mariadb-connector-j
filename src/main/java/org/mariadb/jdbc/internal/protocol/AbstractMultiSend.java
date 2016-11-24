@@ -185,14 +185,12 @@ public abstract class AbstractMultiSend {
         if (binaryProtocol) {
             if (readPrepareStmtResult) {
                 parameterTypeHeader = new MariaDbType[paramCount];
-                if (prepareResult == null) {
-                    if (protocol.getOptions().cachePrepStmts) {
-                        String key = new StringBuilder(protocol.getDatabase()).append("-").append(sql).toString();
-                        prepareResult = protocol.prepareStatementCache().get(key);
-                        if (prepareResult != null && !((ServerPrepareResult) prepareResult).incrementShareCounter()) {
-                            //in cache but been de-allocated
-                            prepareResult = null;
-                        }
+                if (prepareResult == null && protocol.getOptions().cachePrepStmts) {
+                    String key = new StringBuilder(protocol.getDatabase()).append("-").append(sql).toString();
+                    prepareResult = protocol.prepareStatementCache().get(key);
+                    if (prepareResult != null && !((ServerPrepareResult) prepareResult).incrementShareCounter()) {
+                        //in cache but been de-allocated
+                        prepareResult = null;
                     }
                 }
                 statementId = (prepareResult == null) ? -1 : ((ServerPrepareResult) prepareResult).getStatementId();

@@ -63,7 +63,7 @@ import java.sql.*;
 import java.util.*;
 
 
-public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatement implements Cloneable {
+public class MariaDbClientPreparedStatement extends AbstractPrepareStatement implements Cloneable {
     private static Logger logger = LoggerFactory.getLogger(MariaDbClientPreparedStatement.class);
     private String sqlQuery;
     private ClientPrepareResult prepareResult;
@@ -92,9 +92,9 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
 
         if (prepareResult == null) {
             if (options.rewriteBatchedStatements) {
-                prepareResult = ClientPrepareResult.createRewritableParts(sqlQuery, connection.noBackslashEscapes);
+                prepareResult = ClientPrepareResult.rewritableParts(sqlQuery, connection.noBackslashEscapes);
             } else {
-                prepareResult = ClientPrepareResult.createParameterParts(sqlQuery, connection.noBackslashEscapes);
+                prepareResult = ClientPrepareResult.parameterParts(sqlQuery, connection.noBackslashEscapes);
             }
             if (options.cachePrepStmts && sql.length() < 1024) {
                 String key = new StringBuilder(this.protocol.getDatabase()).append("-").append(sqlQuery).toString();

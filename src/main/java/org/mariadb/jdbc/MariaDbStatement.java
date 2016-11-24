@@ -1171,10 +1171,11 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException if close has error
      */
     public void checkCloseOnCompletion(ResultSet resultSet) throws SQLException {
-        if (mustCloseOnCompletion && !closed && executionResult != null) {
-            if (resultSet.equals(executionResult.getResultSet())) {
-                close();
-            }
+        if (mustCloseOnCompletion
+                && !closed
+                && executionResult != null
+                && resultSet.equals(executionResult.getResultSet())) {
+            close();
         }
     }
 
