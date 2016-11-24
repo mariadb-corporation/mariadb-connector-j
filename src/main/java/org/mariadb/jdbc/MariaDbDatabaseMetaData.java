@@ -1779,7 +1779,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     public ResultSet getTableTypes() throws SQLException {
         return executeQuery(
-                "SELECT 'BASE TABLE' TABLE_TYPE UNION SELECT 'SYSTEM VIEW' TABLE_TYPE UNION SELECT 'VIEW' TABLE_TYPE");
+                "SELECT 'TABLE' TABLE_TYPE UNION SELECT 'SYSTEM VIEW' TABLE_TYPE UNION SELECT 'VIEW' TABLE_TYPE");
     }
 
     /**
