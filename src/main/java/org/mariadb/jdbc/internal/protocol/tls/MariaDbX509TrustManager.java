@@ -185,6 +185,8 @@ public class MariaDbX509TrustManager implements X509TrustManager {
      */
     @Override
     public void checkClientTrusted(X509Certificate[] x509Certificates, String string) throws CertificateException {
+        if (trustManager == null) return;
+        trustManager.checkClientTrusted(x509Certificates, string);
     }
 
     /**
@@ -196,9 +198,7 @@ public class MariaDbX509TrustManager implements X509TrustManager {
      */
     @Override
     public void checkServerTrusted(X509Certificate[] x509Certificates, String string) throws CertificateException {
-        if (trustManager == null) {
-            return;
-        }
+        if (trustManager == null) return;
         trustManager.checkServerTrusted(x509Certificates, string);
     }
 

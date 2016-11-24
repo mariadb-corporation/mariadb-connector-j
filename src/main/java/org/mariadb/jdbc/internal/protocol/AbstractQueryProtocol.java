@@ -98,7 +98,6 @@ import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
-    private static Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
 
     private int transactionIsolationLevel = 0;
     private InputStream localInfileInputStream;
@@ -780,21 +779,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         writer.sendFile(is, seq);
         is.close();
         getResult(executionResult, ResultSet.TYPE_FORWARD_ONLY, false, true);
-    }
-
-    private ServerPrepareResult getPrepareResultFromCacheIfNeeded(ServerPrepareResult serverPrepareResult, String sql)
-            throws UnsupportedEncodingException {
-        if (serverPrepareResult == null) {
-            if (options.cachePrepStmts) {
-                String key = new StringBuilder(database).append("-").append(sql).toString();
-                serverPrepareResult = serverPrepareStatementCache.get(key);
-                if (serverPrepareResult != null && !serverPrepareResult.incrementShareCounter()) {
-                    //in cache but been de-allocated
-                    return null;
-                }
-            }
-        }
-        return serverPrepareResult;
     }
 
     @Override

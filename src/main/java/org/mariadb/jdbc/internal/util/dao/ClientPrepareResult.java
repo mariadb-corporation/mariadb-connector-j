@@ -87,7 +87,7 @@ public class ClientPrepareResult implements PrepareResult {
      * @param noBackslashEscapes escape mode
      * @return ClientPrepareResult
      */
-    public static ClientPrepareResult createParameterParts(String queryString, boolean noBackslashEscapes) {
+    public static ClientPrepareResult parameterParts(String queryString, boolean noBackslashEscapes) {
         try {
             boolean reWritablePrepare = false;
             boolean multipleQueriesPrepare = true;
@@ -337,7 +337,7 @@ public class ClientPrepareResult implements PrepareResult {
      * @param noBackslashEscapes must backslash be escaped.
      * @return List of query part.
      */
-    public static ClientPrepareResult createRewritableParts(String queryString, boolean noBackslashEscapes) {
+    public static ClientPrepareResult rewritableParts(String queryString, boolean noBackslashEscapes) {
         try {
             boolean reWritablePrepare = true;
             boolean multipleQueriesPrepare = true;

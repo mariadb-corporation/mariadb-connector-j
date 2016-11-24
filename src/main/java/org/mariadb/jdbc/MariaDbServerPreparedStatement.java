@@ -64,7 +64,7 @@ import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import java.sql.*;
 import java.util.*;
 
-public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatement implements Cloneable {
+public class MariaDbServerPreparedStatement extends AbstractPrepareStatement implements Cloneable {
     private static Logger logger = LoggerFactory.getLogger(MariaDbServerPreparedStatement.class);
 
     String sql;

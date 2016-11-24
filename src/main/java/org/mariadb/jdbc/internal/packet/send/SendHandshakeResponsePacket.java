@@ -96,7 +96,6 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
     private String database;
     private String plugin;
     private String connectionAttributes;
-    private long serverThreadId;
 
     private byte[] connectionAttributesArray;
     private int connectionAttributesPosition;
@@ -113,7 +112,6 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
      * @param packetSeq            stream sequence
      * @param plugin               authentication plugin name
      * @param connectionAttributes connection attributes option
-     * @param serverThreadId       threadId;
      */
     public SendHandshakeResponsePacket(final String username,
                                        final String password,
@@ -123,8 +121,7 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
                                        final byte[] seed,
                                        byte packetSeq,
                                        String plugin,
-                                       String connectionAttributes,
-                                       long serverThreadId) {
+                                       String connectionAttributes) {
         this.packetSeq = packetSeq;
         this.username = username;
         this.password = password;
@@ -134,7 +131,6 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
         this.database = database;
         this.plugin = plugin;
         this.connectionAttributes = connectionAttributes;
-        this.serverThreadId = serverThreadId;
     }
 
     /**

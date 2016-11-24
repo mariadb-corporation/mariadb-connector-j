@@ -585,7 +585,7 @@ public final class MariaDbConnection implements Connection {
         if (isFunction) {
             return new MariaDbFunctionStatement(this, database, databaseAndProcedure, arguments);
         } else {
-            return new MariaDbProcedureStatement(query, this, procedureName, database, arguments);
+            return new MariaDbProcedureStatement(query, this, procedureName, database);
         }
     }
 

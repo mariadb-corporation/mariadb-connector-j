@@ -221,96 +221,99 @@ public class PacketOutputStream extends OutputStream {
             outputStream.write(buf, 0, 4);
 
         } else {
-            //compression
-            //reserve 11 byte for header (7 bytes for compression header + 4 byte packet header)
-            int bufLength = Math.min(maxAllowedPacket - 11, MAX_PACKET_LENGTH - 11);
-            byte[] buf = new byte[bufLength + 11];
-            int len;
+            sendFileWithCompression(is);
+        }
+    }
 
-            while ((len = is.read(buf, 11, bufLength)) > 0) {
-                boolean compressedPacketSend = false;
+    private void sendFileWithCompression(InputStream is) throws IOException {
+        //compression
+        //reserve 11 byte for header (7 bytes for compression header + 4 byte packet header)
+        int bufLength = Math.min(maxAllowedPacket - 11, MAX_PACKET_LENGTH - 11);
+        byte[] buf = new byte[bufLength + 11];
+        int len;
 
-                if (len > MIN_COMPRESSION_SIZE) {
-                    buf[7] = (byte) ((len) & 0xff);
-                    buf[8] = (byte) (((len) >> 8) & 0xff);
-                    buf[9] = (byte) (((len) >> 16) & 0xff);
-                    buf[10] = (byte) this.seqNo;
-                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                    DeflaterOutputStream deflater = new DeflaterOutputStream(baos);
-                    deflater.write(buf, 7, len + 4);
-                    deflater.finish();
-                    deflater.close();
+        while ((len = is.read(buf, 11, bufLength)) > 0) {
+            boolean compressedPacketSend = false;
 
-                    byte[] compressedBytes = baos.toByteArray();
-                    baos.close();
+            if (len > MIN_COMPRESSION_SIZE) {
+                buf[7] = (byte) ((len) & 0xff);
+                buf[8] = (byte) (((len) >> 8) & 0xff);
+                buf[9] = (byte) (((len) >> 16) & 0xff);
+                buf[10] = (byte) this.seqNo;
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                DeflaterOutputStream deflater = new DeflaterOutputStream(baos);
+                deflater.write(buf, 7, len + 4);
+                deflater.finish();
+                deflater.close();
 
-                    if (compressedBytes.length < (int) (MIN_COMPRESSION_RATIO * len)) {
+                byte[] compressedBytes = baos.toByteArray();
+                baos.close();
 
-                        int compressedLength = compressedBytes.length;
+                if (compressedBytes.length < (int) (MIN_COMPRESSION_RATIO * len)) {
 
-                        buf[0] = (byte) ((compressedLength) & 0xff);
-                        buf[1] = (byte) (((compressedLength) >> 8) & 0xff);
-                        buf[2] = (byte) (((compressedLength) >> 16) & 0xff);
-                        buf[3] = (byte) this.compressSeqNo++;
-                        buf[4] = (byte) ((len + 4) & 0xff);
-                        buf[5] = (byte) (((len + 4) >> 8) & 0xff);
-                        buf[6] = (byte) (((len + 4) >> 16) & 0xff);
-                        outputStream.write(buf, 0, 7);
-                        outputStream.write(compressedBytes, 0, compressedLength);
-                        this.seqNo++;
-                        compressedPacketSend = true;
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("send compress packet seq:" + compressSeqNo + " length:" + compressedLength
-                                    + " gzip data");
-                        }
-                    }
-                }
+                    int compressedLength = compressedBytes.length;
 
-                if (!compressedPacketSend) {
-                    //uncompress packet : 7 bytes compress packet header + standard packet header
-
-                    buf[0] = (byte) ((len + 4) & 0xff);
-                    buf[1] = (byte) (((len + 4) >> 8) & 0xff);
-                    buf[2] = (byte) (((len + 4) >> 16) & 0xff);
+                    buf[0] = (byte) ((compressedLength) & 0xff);
+                    buf[1] = (byte) (((compressedLength) >> 8) & 0xff);
+                    buf[2] = (byte) (((compressedLength) >> 16) & 0xff);
                     buf[3] = (byte) this.compressSeqNo++;
-                    buf[4] = 0;
-                    buf[5] = 0;
-                    buf[6] = 0;
-                    buf[7] = (byte) ((len) & 0xff);
-                    buf[8] = (byte) (((len) >> 8) & 0xff);
-                    ;
-                    buf[9] = (byte) (((len) >> 16) & 0xff);
-                    buf[10] = (byte) this.seqNo++;
-
-                    outputStream.write(buf, 0, len + 11);
-
+                    buf[4] = (byte) ((len + 4) & 0xff);
+                    buf[5] = (byte) (((len + 4) >> 8) & 0xff);
+                    buf[6] = (byte) (((len + 4) >> 16) & 0xff);
+                    outputStream.write(buf, 0, 7);
+                    outputStream.write(compressedBytes, 0, compressedLength);
+                    this.seqNo++;
+                    compressedPacketSend = true;
                     if (logger.isTraceEnabled()) {
-                        logger.trace("send compress packet seq:" + compressSeqNo + " length:" + len
-                                + " data:" + Utils.hexdump(buf, maxQuerySizeToLog, 7, len));
+                        logger.trace("send compress packet seq:" + compressSeqNo + " length:" + compressedLength
+                                + " gzip data");
                     }
                 }
-
             }
 
-            //write empty packet
-            buf[0] = (byte) 4;
-            buf[1] = (byte) 0;
-            buf[2] = (byte) 0;
-            buf[3] = (byte) compressSeqNo++;
-            buf[4] = (byte) 0;
-            buf[5] = (byte) 0;
-            buf[6] = (byte) 0;
-            buf[7] = (byte) 0;
-            buf[8] = (byte) 0;
-            buf[9] = (byte) 0;
-            buf[10] = (byte) seqNo++;
-            outputStream.write(buf, 0, 11);
+            if (!compressedPacketSend) {
+                //uncompress packet : 7 bytes compress packet header + standard packet header
 
-            if (logger.isTraceEnabled()) {
-                logger.trace("send compress empty packet seq:" + compressSeqNo);
+                buf[0] = (byte) ((len + 4) & 0xff);
+                buf[1] = (byte) (((len + 4) >> 8) & 0xff);
+                buf[2] = (byte) (((len + 4) >> 16) & 0xff);
+                buf[3] = (byte) this.compressSeqNo++;
+                buf[4] = 0;
+                buf[5] = 0;
+                buf[6] = 0;
+                buf[7] = (byte) ((len) & 0xff);
+                buf[8] = (byte) (((len) >> 8) & 0xff);
+                buf[9] = (byte) (((len) >> 16) & 0xff);
+                buf[10] = (byte) this.seqNo++;
+
+                outputStream.write(buf, 0, len + 11);
+
+                if (logger.isTraceEnabled()) {
+                    logger.trace("send compress packet seq:" + compressSeqNo + " length:" + len
+                            + " data:" + Utils.hexdump(buf, maxQuerySizeToLog, 7, len));
+                }
             }
 
         }
+
+        //write empty packet
+        buf[0] = (byte) 4;
+        buf[1] = (byte) 0;
+        buf[2] = (byte) 0;
+        buf[3] = (byte) compressSeqNo++;
+        buf[4] = (byte) 0;
+        buf[5] = (byte) 0;
+        buf[6] = (byte) 0;
+        buf[7] = (byte) 0;
+        buf[8] = (byte) 0;
+        buf[9] = (byte) 0;
+        buf[10] = (byte) seqNo++;
+        outputStream.write(buf, 0, 11);
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("send compress empty packet seq:" + compressSeqNo);
+        }
+
     }
 
     /**

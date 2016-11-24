@@ -62,11 +62,11 @@ import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
 
-public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement implements PreparedStatement, Cloneable {
+public abstract class AbstractPrepareStatement extends MariaDbStatement implements PreparedStatement, Cloneable {
     protected boolean useFractionalSeconds;
     protected boolean hasLongData = false;
 
-    public AbstractMariaDbPrepareStatement(MariaDbConnection connection, int resultSetScrollType) {
+    public AbstractPrepareStatement(MariaDbConnection connection, int resultSetScrollType) {
         super(connection, resultSetScrollType);
     }
 
@@ -76,8 +76,8 @@ public abstract class AbstractMariaDbPrepareStatement extends MariaDbStatement i
 
     protected abstract Calendar cal();
 
-    public AbstractMariaDbPrepareStatement clone() throws CloneNotSupportedException {
-        return (AbstractMariaDbPrepareStatement) super.clone();
+    public AbstractPrepareStatement clone() throws CloneNotSupportedException {
+        return (AbstractPrepareStatement) super.clone();
     }
 
     /**

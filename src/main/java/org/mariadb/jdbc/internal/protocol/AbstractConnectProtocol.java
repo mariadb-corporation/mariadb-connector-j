@@ -535,8 +535,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 seed,
                 packetSeq,
                 plugin,
-                options.connectionAttributes,
-                serverThreadId);
+                options.connectionAttributes);
         cap.send(writer);
         Buffer buffer = packetFetcher.getPacket();
 

@@ -71,12 +71,10 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
      * @param connection    current connection
      * @param procedureName procedure name
      * @param database      database
-     * @param arguments     function args
      * @throws SQLException exception
      */
     public MariaDbProcedureStatement(String query, MariaDbConnection connection,
-                                     String procedureName, String database,
-                                     String arguments) throws SQLException {
+                                     String procedureName, String database) throws SQLException {
         super(connection, query, ResultSet.TYPE_FORWARD_ONLY);
         this.parameterMetadata = new CallableParameterMetaData(connection, database, procedureName, false);
         setParamsAccordingToSetArguments();

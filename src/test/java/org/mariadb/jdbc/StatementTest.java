@@ -134,9 +134,8 @@ public class StatementTest extends BaseTest {
             statement.execute("SELECT * FROM vendor_code_test_");
             fail("The above statement should result in an exception");
         } catch (SQLException sqlException) {
-            if (sqlException.getErrorCode() != ER_NO_SUCH_TABLE) {
-                //mysql and mariadb < 10.1.14 wrong message
-                if (sqlException.getErrorCode() != ER_CMD_NOT_PERMIT) fail("Wrong error code message");
+            if (sqlException.getErrorCode() != ER_NO_SUCH_TABLE && sqlException.getErrorCode() != ER_CMD_NOT_PERMIT) {
+                fail("Wrong error code message");
             }
             assertEquals(ER_NO_SUCH_TABLE_STATE, sqlException.getSQLState());
         }
@@ -151,9 +150,8 @@ public class StatementTest extends BaseTest {
             statement.executeBatch();
             fail("The above statement should result in an exception");
         } catch (SQLException sqlException) {
-            if (sqlException.getErrorCode() != ER_NO_SUCH_TABLE) {
-                //mysql and mariadb < 10.1.14 wrong message
-                if (sqlException.getErrorCode() != ER_CMD_NOT_PERMIT) fail("Wrong error code message");
+            if (sqlException.getErrorCode() != ER_NO_SUCH_TABLE && sqlException.getErrorCode() != ER_CMD_NOT_PERMIT) {
+                fail("Wrong error code message");
             }
             assertEquals(ER_NO_SUCH_TABLE_STATE, sqlException.getSQLState());
         }

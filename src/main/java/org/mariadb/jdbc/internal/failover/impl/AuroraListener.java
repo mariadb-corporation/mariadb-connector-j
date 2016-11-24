@@ -167,11 +167,9 @@ public class AuroraListener extends MastersSlavesListener {
             loopAddress.add(masterProtocol.getHostAddress());
         }
 
-        if (!isSecondaryHostFail()) {
-            if (secondaryProtocol != null) {
-                loopAddress.remove(secondaryProtocol.getHostAddress());
-                loopAddress.add(secondaryProtocol.getHostAddress());
-            }
+        if (!isSecondaryHostFail() && secondaryProtocol != null) {
+            loopAddress.remove(secondaryProtocol.getHostAddress());
+            loopAddress.add(secondaryProtocol.getHostAddress());
         }
 
         if (urlParser.getHostAddresses().size() <= 1) {
