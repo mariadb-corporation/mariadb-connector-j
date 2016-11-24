@@ -51,6 +51,7 @@ public class StoredProcedureTest extends BaseTest {
         int result = st.getInt(1);
         assertEquals(result, 4);
     }
+
     @Test
     public void callWithOutParameter() throws SQLException {
         createProcedure("prepareStmtWithOutParameter", "(x int, INOUT y int)\n"
