@@ -15,6 +15,7 @@ import java.util.Map;
 public class LoadBalanceFailoverTest extends BaseMultiHostTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -25,6 +26,7 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @Before

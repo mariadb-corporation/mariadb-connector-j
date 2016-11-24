@@ -17,7 +17,7 @@ import static org.junit.Assert.*;
  * - AURORA_ACCESS_KEY = access key
  * - AURORA_SECRET_KEY = secret key
  * - AURORA_CLUSTER_IDENTIFIER = cluster identifier. example : -DAURORA_CLUSTER_IDENTIFIER=instance-1-cluster
- *
+ * <p>
  * "AURORA" environment variable must be set to a value
  */
 public class AuroraFailoverTest extends BaseReplication {
@@ -237,6 +237,7 @@ public class AuroraFailoverTest extends BaseReplication {
     /**
      * Test failover on prepareStatement on slave.
      * PrepareStatement must fall back on master, and back on slave when a new slave connection is up again.
+     *
      * @throws Throwable if any error occur
      */
     @Test

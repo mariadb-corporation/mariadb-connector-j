@@ -59,20 +59,20 @@ import java.sql.*;
 import java.util.Calendar;
 
 public class MariaDbPrepareStatementFacade implements PreparedStatement {
-    
+
     private PreparedStatement preparedStatement;
     private boolean isPrepared = true;
 
     /**
      * Facade that permit in case of fail PREPARE to switch to Client prepared statement (that doesn't need prepare).
      *
-     * @param sql sql command
+     * @param sql                 sql command
      * @param resultSetScrollType resultSet scroll type
-     * @param connection current connection
+     * @param connection          current connection
      * @throws SQLException if exception occur
      */
     public MariaDbPrepareStatementFacade(final String sql, final int resultSetScrollType,
-                                                           MariaDbConnection connection) throws SQLException {
+                                         MariaDbConnection connection) throws SQLException {
         preparedStatement = new MariaDbServerPreparedStatement(connection, sql, resultSetScrollType, false);
     }
 
@@ -576,23 +576,23 @@ public class MariaDbPrepareStatementFacade implements PreparedStatement {
     }
 
     @Override
-    public void setFetchDirection(int direction) throws SQLException {
-        preparedStatement.setFetchDirection(direction);
-    }
-
-    @Override
     public int getFetchDirection() throws SQLException {
         return preparedStatement.getFetchDirection();
     }
 
     @Override
-    public void setFetchSize(int rows) throws SQLException {
-        preparedStatement.setFetchSize(rows);
+    public void setFetchDirection(int direction) throws SQLException {
+        preparedStatement.setFetchDirection(direction);
     }
 
     @Override
     public int getFetchSize() throws SQLException {
         return preparedStatement.getFetchSize();
+    }
+
+    @Override
+    public void setFetchSize(int rows) throws SQLException {
+        preparedStatement.setFetchSize(rows);
     }
 
     @Override
@@ -632,13 +632,13 @@ public class MariaDbPrepareStatementFacade implements PreparedStatement {
     }
 
     @Override
-    public void setPoolable(boolean poolable) throws SQLException {
-        preparedStatement.setPoolable(poolable);
+    public boolean isPoolable() throws SQLException {
+        return preparedStatement.isPoolable();
     }
 
     @Override
-    public boolean isPoolable() throws SQLException {
-        return preparedStatement.isPoolable();
+    public void setPoolable(boolean poolable) throws SQLException {
+        preparedStatement.setPoolable(poolable);
     }
 
     @Override

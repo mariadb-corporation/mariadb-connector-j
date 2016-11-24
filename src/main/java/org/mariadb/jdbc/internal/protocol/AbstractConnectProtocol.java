@@ -55,42 +55,49 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
-import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
-import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509KeyManager;
-import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509TrustManager;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.packet.Packet;
+import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
+import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
+import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
+import org.mariadb.jdbc.internal.packet.result.OkPacket;
 import org.mariadb.jdbc.internal.packet.send.*;
 import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
+import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
+import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509KeyManager;
+import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509TrustManager;
 import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.stream.DecompressInputStream;
 import org.mariadb.jdbc.internal.stream.MariaDbBufferedInputStream;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
-import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
-import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
-import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.packet.result.*;
-import org.mariadb.jdbc.internal.stream.DecompressInputStream;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import javax.net.ssl.*;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.security.*;
+import java.security.GeneralSecurityException;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -100,20 +107,17 @@ import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public abstract class AbstractConnectProtocol implements Protocol {
     private static Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
-    private final String username;
-    private final String password;
-    private boolean hostFailed;
-    private String version;
-    protected boolean checkCallableResultSet;
-    private int majorVersion;
-    private int minorVersion;
-    private int patchVersion;
-    private Map<String, String> serverData;
-    private Calendar cal;
-
     protected final ReentrantLock lock;
     protected final UrlParser urlParser;
     protected final Options options;
+    private final String username;
+    private final String password;
+    public boolean moreResultsTypeBinary = false;
+    public boolean hasWarnings = false;
+    public MariaSelectResultSet activeStreamingResult = null;
+    public int dataTypeMappingFlags;
+    public short serverStatus;
+    protected boolean checkCallableResultSet;
     protected Socket socket;
     protected PacketOutputStream writer;
     protected boolean readOnly = false;
@@ -126,18 +130,19 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected long serverThreadId;
     protected ServerPrepareStatementCache serverPrepareStatementCache;
     protected boolean moreResults = false;
-
-    public boolean moreResultsTypeBinary = false;
-    public boolean hasWarnings = false;
-    public MariaSelectResultSet activeStreamingResult = null;
-    public int dataTypeMappingFlags;
-    public short serverStatus;
+    private boolean hostFailed;
+    private String version;
+    private int majorVersion;
+    private int minorVersion;
+    private int patchVersion;
+    private Map<String, String> serverData;
+    private Calendar cal;
 
     /**
      * Get a protocol instance.
      *
      * @param urlParser connection URL infos
-     * @param lock the lock for thread synchronisation
+     * @param lock      the lock for thread synchronisation
      */
 
     public AbstractConnectProtocol(final UrlParser urlParser, final ReentrantLock lock) {
@@ -152,31 +157,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
 
         setDataTypeMappingFlags();
-    }
-
-    /**
-     * Skip packets not read that are not needed.
-     * Packets are read according to needs.
-     * If some data have not been read before next execution, skip it.
-     *
-     * @throws QueryException exception
-     */
-    public void skip() throws SQLException, QueryException {
-        if (activeStreamingResult != null) {
-            activeStreamingResult.close();
-        }
-
-        while (moreResults) {
-            SingleExecutionResult execution = new SingleExecutionResult(null, 0, true, false);
-            getMoreResults(execution);
-        }
-    }
-
-    public abstract void getMoreResults(ExecutionResult executionResult) throws QueryException;
-
-    public void setMoreResults(boolean moreResults, boolean isBinary) {
-        this.moreResults = moreResults;
-        this.moreResultsTypeBinary = isBinary;
     }
 
     /**
@@ -233,6 +213,31 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
+    /**
+     * Skip packets not read that are not needed.
+     * Packets are read according to needs.
+     * If some data have not been read before next execution, skip it.
+     *
+     * @throws QueryException exception
+     */
+    public void skip() throws SQLException, QueryException {
+        if (activeStreamingResult != null) {
+            activeStreamingResult.close();
+        }
+
+        while (moreResults) {
+            SingleExecutionResult execution = new SingleExecutionResult(null, 0, true, false);
+            getMoreResults(execution);
+        }
+    }
+
+    public abstract void getMoreResults(ExecutionResult executionResult) throws QueryException;
+
+    public void setMoreResults(boolean moreResults, boolean isBinary) {
+        this.moreResults = moreResults;
+        this.moreResultsTypeBinary = isBinary;
+    }
+
     private SSLSocketFactory getSslSocketFactory() throws QueryException {
         if (!options.trustServerCertificate
                 && options.serverSslCert == null
@@ -249,13 +254,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
 
         if (options.keyStore != null) {
-            keyManager = new KeyManager[] {loadClientCerts(options.keyStore, options.keyStorePassword, options.keyPassword)};
+            keyManager = new KeyManager[]{loadClientCerts(options.keyStore, options.keyStorePassword, options.keyPassword)};
         } else {
             String keyStore = System.getProperty("javax.net.ssl.keyStore");
             String keyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword");
             if (keyStore != null) {
                 try {
-                    keyManager = new KeyManager[] {loadClientCerts(keyStore, keyStorePassword, keyStorePassword)};
+                    keyManager = new KeyManager[]{loadClientCerts(keyStore, keyStorePassword, keyStorePassword)};
                 } catch (QueryException queryException) {
                     keyManager = null;
                     queryException.printStackTrace();
@@ -361,7 +366,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * Connect the client and perform handshake.
      *
      * @throws QueryException : handshake error, e.g wrong user or password
-     * @throws IOException : connection error (host/port not available)
+     * @throws IOException    : connection error (host/port not available)
      */
     private void connect(String host, int port) throws QueryException, IOException {
         try {
@@ -439,7 +444,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return !this.connected;
     }
 
-    private void setSessionOptions()  throws QueryException {
+    private void setSessionOptions() throws QueryException {
         // In JDBC, connection must start in autocommit mode
         // [CONJ-269] we cannot rely on serverStatus & ServerStatus.AUTOCOMMIT before this command to avoid this command.
         // if autocommit=0 is set on server configuration, DB always send Autocommit on serverStatus flag
@@ -495,7 +500,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 sslSocket.startHandshake();
                 socket = sslSocket;
                 writer = new PacketOutputStream(socket.getOutputStream(),
-                        options.profileSql || options.slowQueryThresholdNanos != null , options.maxQuerySizeToLog);
+                        options.profileSql || options.slowQueryThresholdNanos != null, options.maxQuerySizeToLog);
                 reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
                 packetFetcher = new ReadPacketFetcher(reader, options.maxQuerySizeToLog);
 
@@ -571,20 +576,18 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private long initializeClientCapabilities(long serverCapabilities) {
-        long capabilities =
-                //MariaDbServerCapabilities.CLIENT_MYSQL
-                        MariaDbServerCapabilities.IGNORE_SPACE
-                        | MariaDbServerCapabilities.CLIENT_PROTOCOL_41
-                        | MariaDbServerCapabilities.TRANSACTIONS
-                        | MariaDbServerCapabilities.SECURE_CONNECTION
-                        | MariaDbServerCapabilities.LOCAL_FILES
-                        | MariaDbServerCapabilities.MULTI_RESULTS
-                        | MariaDbServerCapabilities.PS_MULTI_RESULTS
-                        | MariaDbServerCapabilities.FOUND_ROWS
-                        | MariaDbServerCapabilities.PLUGIN_AUTH
-                        | MariaDbServerCapabilities.CONNECT_ATTRS
-                        | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
-                        | MariaDbServerCapabilities.MARIADB_CLIENT_COM_MULTI;
+        long capabilities = MariaDbServerCapabilities.IGNORE_SPACE
+                | MariaDbServerCapabilities.CLIENT_PROTOCOL_41
+                | MariaDbServerCapabilities.TRANSACTIONS
+                | MariaDbServerCapabilities.SECURE_CONNECTION
+                | MariaDbServerCapabilities.LOCAL_FILES
+                | MariaDbServerCapabilities.MULTI_RESULTS
+                | MariaDbServerCapabilities.PS_MULTI_RESULTS
+                | MariaDbServerCapabilities.FOUND_ROWS
+                | MariaDbServerCapabilities.PLUGIN_AUTH
+                | MariaDbServerCapabilities.CONNECT_ATTRS
+                | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
+                | MariaDbServerCapabilities.MARIADB_CLIENT_COM_MULTI;
 
         if (options.allowMultiQueries || (options.rewriteBatchedStatements)) {
             capabilities |= MariaDbServerCapabilities.MULTI_STATEMENTS;
@@ -613,6 +616,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     /**
      * If createDB is true, then just try to create the database and to use it.
+     *
      * @throws QueryException if connection failed
      */
     private void createDatabaseIfNotExist() throws QueryException {
@@ -728,8 +732,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     /**
      * Check that next read packet is a End-of-file packet.
+     *
      * @throws QueryException if not a End-of-file packet
-     * @throws IOException if connection error occur
+     * @throws IOException    if connection error occur
      */
     public void readEofPacket() throws QueryException, IOException {
         Buffer buffer = packetFetcher.getReusableBuffer();
@@ -750,8 +755,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     /**
      * Check that next read packet is a End-of-file packet.
+     *
      * @throws QueryException if not a End-of-file packet
-     * @throws IOException if connection error occur
+     * @throws IOException    if connection error occur
      */
     public void skipEofPacket() throws QueryException, IOException {
         Buffer buffer = packetFetcher.getReusableBuffer();
@@ -778,6 +784,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     /**
      * Indicate if current protocol is a master protocol.
+     *
      * @return is master flag
      */
     public boolean isMasterConnection() {
@@ -916,15 +923,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     /**
      * Return possible protocols : values of option enabledSslProtocolSuites is set, or default to "TLSv1,TLSv1.1".
-     *   MariaDB versions &ge; 10.0.15 and &ge; 5.5.41 supports TLSv1.2 if compiled with openSSL (default).
-     *   MySQL community versions &ge; 5.7.10 is compile with yaSSL, so max TLS is TLSv1.1.
+     * MariaDB versions &ge; 10.0.15 and &ge; 5.5.41 supports TLSv1.2 if compiled with openSSL (default).
+     * MySQL community versions &ge; 5.7.10 is compile with yaSSL, so max TLS is TLSv1.1.
      *
      * @param sslSocket current sslSocket
      * @throws QueryException if protocol isn't a supported protocol
      */
     protected void enabledSslProtocolSuites(SSLSocket sslSocket) throws QueryException {
         if (options.enabledSslProtocolSuites == null) {
-            sslSocket.setEnabledProtocols(new String[] {"TLSv1", "TLSv1.1"});
+            sslSocket.setEnabledProtocols(new String[]{"TLSv1", "TLSv1.1"});
         } else {
             List<String> possibleProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
             String[] protocols = options.enabledSslProtocolSuites.split("[,;\\s]+");
@@ -960,6 +967,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     /**
      * Utility method to check if database version is greater than parameters.
+     *
      * @param major major version
      * @param minor minor version
      * @param patch patch version

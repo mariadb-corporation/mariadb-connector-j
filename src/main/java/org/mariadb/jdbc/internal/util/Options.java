@@ -232,24 +232,42 @@ public class Options {
         if (failoverLoopRetries != options.failoverLoopRetries) return false;
         if (user != null ? !user.equals(options.user) : options.user != null) return false;
         if (password != null ? !password.equals(options.password) : options.password != null) return false;
-        if (serverSslCert != null ? !serverSslCert.equals(options.serverSslCert) : options.serverSslCert != null) return false;
+        if (serverSslCert != null ? !serverSslCert.equals(options.serverSslCert) : options.serverSslCert != null) {
+            return false;
+        }
         if (enabledSslProtocolSuites != null
                 ? !enabledSslProtocolSuites.equals(options.enabledSslProtocolSuites)
                 : options.enabledSslProtocolSuites != null) {
             return false;
         }
-        if (socketFactory != null ? !socketFactory.equals(options.socketFactory) : options.socketFactory != null) return false;
-        if (connectTimeout != null ? !connectTimeout.equals(options.connectTimeout) : options.connectTimeout != null) return false;
+        if (socketFactory != null ? !socketFactory.equals(options.socketFactory) : options.socketFactory != null) {
+            return false;
+        }
+        if (connectTimeout != null ? !connectTimeout.equals(options.connectTimeout) : options.connectTimeout != null) {
+            return false;
+        }
         if (pipe != null ? !pipe.equals(options.pipe) : options.pipe != null) return false;
         if (localSocket != null ? !localSocket.equals(options.localSocket) : options.localSocket != null) return false;
-        if (sharedMemory != null ? !sharedMemory.equals(options.sharedMemory) : options.sharedMemory != null) return false;
+        if (sharedMemory != null ? !sharedMemory.equals(options.sharedMemory) : options.sharedMemory != null) {
+            return false;
+        }
         if (tcpRcvBuf != null ? !tcpRcvBuf.equals(options.tcpRcvBuf) : options.tcpRcvBuf != null) return false;
         if (tcpSndBuf != null ? !tcpSndBuf.equals(options.tcpSndBuf) : options.tcpSndBuf != null) return false;
-        if (localSocketAddress != null ? !localSocketAddress.equals(options.localSocketAddress) : options.localSocketAddress != null) return false;
-        if (socketTimeout != null ? !socketTimeout.equals(options.socketTimeout) : options.socketTimeout != null) return false;
-        if (sessionVariables != null ? !sessionVariables.equals(options.sessionVariables) : options.sessionVariables != null) return false;
-        if (serverTimezone != null ? !serverTimezone.equals(options.serverTimezone) : options.serverTimezone != null) return false;
-        if (prepStmtCacheSize != null ? !prepStmtCacheSize.equals(options.prepStmtCacheSize) : options.prepStmtCacheSize != null) return false;
+        if (localSocketAddress != null ? !localSocketAddress.equals(options.localSocketAddress) : options.localSocketAddress != null) {
+            return false;
+        }
+        if (socketTimeout != null ? !socketTimeout.equals(options.socketTimeout) : options.socketTimeout != null) {
+            return false;
+        }
+        if (sessionVariables != null ? !sessionVariables.equals(options.sessionVariables) : options.sessionVariables != null) {
+            return false;
+        }
+        if (serverTimezone != null ? !serverTimezone.equals(options.serverTimezone) : options.serverTimezone != null) {
+            return false;
+        }
+        if (prepStmtCacheSize != null ? !prepStmtCacheSize.equals(options.prepStmtCacheSize) : options.prepStmtCacheSize != null) {
+            return false;
+        }
         if (continueBatchOnError != options.continueBatchOnError) return false;
         if (jdbcCompliantTruncation != options.jdbcCompliantTruncation) return false;
         if (cacheCallableStmts != options.cacheCallableStmts) return false;

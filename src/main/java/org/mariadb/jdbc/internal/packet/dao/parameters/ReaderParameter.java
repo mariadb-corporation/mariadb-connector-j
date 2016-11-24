@@ -49,13 +49,13 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 
 public class ReaderParameter implements ParameterHolder {
@@ -65,8 +65,9 @@ public class ReaderParameter implements ParameterHolder {
 
     /**
      * Constructor.
-     * @param reader reader to write
-     * @param length max length to write (can be null)
+     *
+     * @param reader             reader to write
+     * @param length             max length to write (can be null)
      * @param noBackslashEscapes must backslash be escape
      */
     public ReaderParameter(Reader reader, long length, boolean noBackslashEscapes) {
@@ -76,7 +77,8 @@ public class ReaderParameter implements ParameterHolder {
         if (reader.markSupported()) {
             try {
                 reader.mark(1024);
-            } catch (IOException e) { }
+            } catch (IOException e) {
+            }
         }
     }
 
@@ -121,6 +123,7 @@ public class ReaderParameter implements ParameterHolder {
 
     /**
      * Write reader to database in binary format.
+     *
      * @param os database outputStream
      * @throws IOException if any error occur when reading reader
      */

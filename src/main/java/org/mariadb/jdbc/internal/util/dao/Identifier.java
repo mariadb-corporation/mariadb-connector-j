@@ -58,6 +58,7 @@ public class Identifier {
 
     /**
      * Identifier string value.
+     *
      * @return the datas.
      */
     public String toString() {

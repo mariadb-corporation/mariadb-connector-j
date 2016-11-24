@@ -56,70 +56,120 @@ public class NoLogger implements Logger {
         return false;
     }
 
-    public void trace(String msg) { }
+    public void trace(String msg) {
+        //do nothing
+    }
 
-    public void trace(String format, Object arg) { }
+    public void trace(String format, Object arg) {
+        //do nothing
+    }
 
-    public void trace(String format, Object arg1, Object arg2) { }
+    public void trace(String format, Object arg1, Object arg2) {
+        //do nothing
+    }
 
-    public void trace(String format, Object... arguments) { }
+    public void trace(String format, Object... arguments) {
+        //do nothing
+    }
 
-    public void trace(String msg, Throwable throwable) { }
+    public void trace(String msg, Throwable throwable) {
+        //do nothing
+    }
 
     public boolean isDebugEnabled() {
         return false;
     }
 
-    public void debug(String msg) { }
+    public void debug(String msg) {
+        //do nothing
+    }
 
-    public void debug(String format, Object arg) { }
+    public void debug(String format, Object arg) {
+        //do nothing
+    }
 
-    public void debug(String format, Object arg1, Object arg2) { }
+    public void debug(String format, Object arg1, Object arg2) {
+        //do nothing
+    }
 
-    public void debug(String format, Object... arguments) { }
+    public void debug(String format, Object... arguments) {
+        //do nothing
+    }
 
-    public void debug(String msg, Throwable throwable) { }
+    public void debug(String msg, Throwable throwable) {
+        //do nothing
+    }
 
     public boolean isInfoEnabled() {
         return false;
     }
 
-    public void info(String msg) { }
+    public void info(String msg) {
+        //do nothing
+    }
 
-    public void info(String format, Object arg) { }
+    public void info(String format, Object arg) {
+        //do nothing
+    }
 
-    public void info(String format, Object arg1, Object arg2) { }
+    public void info(String format, Object arg1, Object arg2) {
+        //do nothing
+    }
 
-    public void info(String format, Object... arguments) { }
+    public void info(String format, Object... arguments) {
+        //do nothing
+    }
 
-    public void info(String msg, Throwable throwable) { }
+    public void info(String msg, Throwable throwable) {
+        //do nothing
+    }
 
     public boolean isWarnEnabled() {
         return false;
     }
 
-    public void warn(String msg) { }
+    public void warn(String msg) {
+        //do nothing
+    }
 
-    public void warn(String format, Object arg) { }
+    public void warn(String format, Object arg) {
+        //do nothing
+    }
 
-    public void warn(String format, Object... arguments) { }
+    public void warn(String format, Object... arguments) {
+        //do nothing
+    }
 
-    public void warn(String format, Object arg1, Object arg2) { }
+    public void warn(String format, Object arg1, Object arg2) {
+        //do nothing
+    }
 
-    public void warn(String msg, Throwable throwable) { }
+    public void warn(String msg, Throwable throwable) {
+        //do nothing
+    }
 
     public boolean isErrorEnabled() {
         return false;
     }
 
-    public void error(String msg) { }
+    public void error(String msg) {
+        //do nothing
+    }
 
-    public void error(String format, Object arg) { }
+    public void error(String format, Object arg) {
+        //do nothing
+    }
 
-    public void error(String format, Object arg1, Object arg2) { }
+    public void error(String format, Object arg1, Object arg2) {
+        //do nothing
+    }
 
-    public void error(String format, Object... arguments) { }
+    public void error(String format, Object... arguments) {
+        //do nothing
+    }
 
-    public void error(String msg, Throwable throwable) { }
+    public void error(String msg, Throwable throwable) {
+        //do nothing
+    }
 
 }

@@ -73,6 +73,7 @@ public class HostAddress {
 
     /**
      * Constructor. type is master.
+     *
      * @param host host
      * @param port port
      */
@@ -84,6 +85,7 @@ public class HostAddress {
 
     /**
      * Constructor.
+     *
      * @param host host
      * @param port port
      * @param type type
@@ -198,6 +200,7 @@ public class HostAddress {
 
     /**
      * ToString implementation of addresses.
+     *
      * @param addrs address list
      * @return String value
      */
@@ -220,6 +223,7 @@ public class HostAddress {
 
     /**
      * ToString implementation of addresses.
+     *
      * @param addrs address array
      * @return String value
      */

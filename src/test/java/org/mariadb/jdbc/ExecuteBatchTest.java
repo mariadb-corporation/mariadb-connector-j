@@ -5,9 +5,21 @@ import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class ExecuteBatchTest extends BaseTest {
+
+    static String oneHundredLengthString = "";
+    static boolean profileSql = true;
+
+    static {
+        char[] chars = new char[100];
+        for (int i = 27; i < 127; i++) chars[i - 27] = (char) i;
+        oneHundredLengthString = new String(chars);
+    }
 
     /**
      * Create test tables.
@@ -18,15 +30,6 @@ public class ExecuteBatchTest extends BaseTest {
     public static void initClass() throws SQLException {
         createTable("ExecuteBatchTest", "id int not null primary key auto_increment, test varchar(100) , test2 int");
         createTable("ExecuteBatchUseBatchMultiSend", "test varchar(100)");
-    }
-
-    static String oneHundredLengthString = "";
-    static boolean profileSql = true;
-
-    static {
-        char[] chars = new char[100];
-        for (int i = 27; i < 127; i++) chars[i - 27] = (char) i;
-        oneHundredLengthString = new String(chars);
     }
 
     @Test
@@ -132,7 +135,7 @@ public class ExecuteBatchTest extends BaseTest {
 
     private void addBatchData(PreparedStatement preparedStatement, int batchNumber, Connection connection, boolean additionnalParameter)
             throws SQLException {
-        for (int i = 0 ; i < batchNumber ; i++) {
+        for (int i = 0; i < batchNumber; i++) {
             preparedStatement.setString(1, oneHundredLengthString);
             preparedStatement.setInt(2, i);
             if (additionnalParameter) preparedStatement.setInt(3, i);
@@ -142,11 +145,11 @@ public class ExecuteBatchTest extends BaseTest {
 
         //test result Size
         Assert.assertEquals(batchNumber, resultInsert.length);
-        for (int i = 0 ; i < batchNumber ; i++) Assert.assertEquals(1, resultInsert[i]);
+        for (int i = 0; i < batchNumber; i++) Assert.assertEquals(1, resultInsert[i]);
 
         //check that connection is OK and results are well inserted
         ResultSet resultSet = connection.createStatement().executeQuery("SELECT * FROM ExecuteBatchTest");
-        for (int i = 0 ; i < batchNumber ; i++) {
+        for (int i = 0; i < batchNumber; i++) {
             Assert.assertTrue(resultSet.next());
             Assert.assertEquals(i + 1, resultSet.getInt(1));
             Assert.assertEquals(oneHundredLengthString, resultSet.getString(2));

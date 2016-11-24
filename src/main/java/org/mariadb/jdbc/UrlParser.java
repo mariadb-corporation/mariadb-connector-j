@@ -97,7 +97,8 @@ public class UrlParser {
     private List<HostAddress> addresses;
     private HaMode haMode;
 
-    private UrlParser() { }
+    private UrlParser() {
+    }
 
     protected UrlParser(String database, List<HostAddress> addresses, Options options, HaMode haMode) {
         this.options = options;
@@ -120,6 +121,7 @@ public class UrlParser {
     /**
      * Tell if mariadb driver accept url string.
      * (Correspond to interface java.jdbc.Driver.acceptsURL() method)
+     *
      * @param url url String
      * @return true if url string correspond.
      */
@@ -136,7 +138,8 @@ public class UrlParser {
 
     /**
      * Parse url connection string with additional properties.
-     * @param url connection string
+     *
+     * @param url  connection string
      * @param prop properties
      * @return UrlParser instance
      * @throws SQLException if parsing exception occur
@@ -173,12 +176,13 @@ public class UrlParser {
         jdbc:mysql://host:port/database
         Example: jdbc:mysql://localhost:3306/test?user=root&password=passwd
          */
+
     /**
      * Parses the connection URL in order to set the UrlParser instance with all the information provided through the URL.
      *
-     * @param urlParser     object instance in which all data from the connection url is stored
-     * @param url           connection URL
-     * @param properties    properties
+     * @param urlParser  object instance in which all data from the connection url is stored
+     * @param url        connection URL
+     * @param properties properties
      * @throws SQLException if format is incorrect
      */
     private static void parseInternal(UrlParser urlParser, String url, Properties properties) throws SQLException {
@@ -219,13 +223,13 @@ public class UrlParser {
      * Sets the parameters of the UrlParser instance: addresses, database and options.
      * It parses through the additional parameters given in order to extract the database and the options for the connection.
      *
-     * @param urlParser             object instance in which all data from the connection URL is stored
-     * @param properties            properties
-     * @param hostAddressesString   string that holds all the host addresses
-     * @param additionalParameters  string that holds all parameters defined for the connection
+     * @param urlParser            object instance in which all data from the connection URL is stored
+     * @param properties           properties
+     * @param hostAddressesString  string that holds all the host addresses
+     * @param additionalParameters string that holds all parameters defined for the connection
      */
     private static void defineUrlParserParameters(UrlParser urlParser, Properties properties, String hostAddressesString,
-                                                       String additionalParameters) {
+                                                  String additionalParameters) {
 
         if (additionalParameters != null) {
             String regex = "(\\/[^\\?]*)(\\?.+)*|(\\?[^\\/]*)(\\/.+)*";
@@ -255,7 +259,7 @@ public class UrlParser {
         urlParser.addresses = HostAddress.parse(hostAddressesString, urlParser.haMode);
     }
 
-    private static void setHaMode(UrlParser urlParser,String url, int separator) {
+    private static void setHaMode(UrlParser urlParser, String url, int separator) {
         String[] baseTokens = url.substring(0, separator).split(":");
 
         //parse HA mode
@@ -285,6 +289,7 @@ public class UrlParser {
 
     /**
      * Parse url connection string.
+     *
      * @param url connection string
      * @throws SQLException if url format is incorrect
      */
@@ -344,6 +349,7 @@ public class UrlParser {
 
     /**
      * ToString implementation.
+     *
      * @return String value
      */
     public String toString() {

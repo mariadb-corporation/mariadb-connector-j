@@ -5,13 +5,17 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.*;
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import static org.junit.Assert.*;
 
 public class LocalInfileInputStreamTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -182,16 +186,16 @@ public class LocalInfileInputStreamTest extends BaseTest {
                 MariaDbStatement stmt = statement.unwrap(MariaDbStatement.class);
                 stmt.setLocalInfileInputStream(is);
                 int insertNumber = stmt.executeUpdate("LOAD DATA LOCAL INFILE 'ignoredFileName' "
-                            + "INTO TABLE `infile` "
-                            + "COLUMNS TERMINATED BY ',' ENCLOSED BY '\\\"' ESCAPED BY '\\\\' "
-                            + "LINES TERMINATED BY '\\n' (`a`, `b`)");
+                        + "INTO TABLE `infile` "
+                        + "COLUMNS TERMINATED BY ',' ENCLOSED BY '\\\"' ESCAPED BY '\\\\' "
+                        + "LINES TERMINATED BY '\\n' (`a`, `b`)");
                 Assert.assertEquals(insertNumber, recordNumber);
             }
 
             statement.setFetchSize(1000); //to avoid using too much memory for tests
             try (ResultSet rs = statement.executeQuery("SELECT * FROM `infile`")) {
                 for (int i = 0; i < recordNumber; i++) {
-                    Assert.assertTrue("record " + i + " doesn't exist",rs.next());
+                    Assert.assertTrue("record " + i + " doesn't exist", rs.next());
                     Assert.assertEquals("a", rs.getString(1));
                     Assert.assertEquals("b", rs.getString(2));
                 }

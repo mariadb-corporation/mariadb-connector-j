@@ -19,6 +19,7 @@ import static org.junit.Assert.*;
 public class StoredProcedureTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -750,8 +751,6 @@ public class StoredProcedureTest extends BaseTest {
     }
 
 
-
-
     @Test
     public void testHugeNumberOfParameters() throws Exception {
         StringBuilder procDef = new StringBuilder("(");
@@ -770,7 +769,7 @@ public class StoredProcedureTest extends BaseTest {
         createProcedure("testHugeNumberOfParameters", procDef.toString());
 
         try (CallableStatement callableStatement = sharedConnection.prepareCall(
-                "{call testHugeNumberOfParameters(" + param.toString() + ")}") ) {
+                "{call testHugeNumberOfParameters(" + param.toString() + ")}")) {
             callableStatement.registerOutParameter(274, Types.VARCHAR);
             callableStatement.execute();
         }
@@ -786,7 +785,7 @@ public class StoredProcedureTest extends BaseTest {
                 buffer[i] = 1;
             }
             int il = buffer.length;
-            int[] typesToTest = new int[] { Types.BIT, Types.BINARY, Types.BLOB, Types.JAVA_OBJECT, Types.LONGVARBINARY, Types.VARBINARY };
+            int[] typesToTest = new int[]{Types.BIT, Types.BINARY, Types.BLOB, Types.JAVA_OBJECT, Types.LONGVARBINARY, Types.VARBINARY};
 
             for (int i = 0; i < typesToTest.length; i++) {
                 cstmt.setBinaryStream("mblob", new ByteArrayInputStream(buffer), buffer.length);
@@ -872,7 +871,7 @@ public class StoredProcedureTest extends BaseTest {
         sharedConnection.prepareCall("{call testCommentParser(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}").close();
         ResultSet rs = sharedConnection.getMetaData().getProcedureColumns(sharedConnection.getCatalog(), null, "testCommentParser", "%");
         validateResult(rs,
-                new String[] {
+                new String[]{
                         "_ACTION",
                         "/*dumb-identifier-1*/",
                         "#dumb-identifier-2",
@@ -884,12 +883,12 @@ public class StoredProcedureTest extends BaseTest {
                         "_SQL",
                         "_SONG_ID",
                         "_NOTES",
-                        "_RESULT" },
-                new int[] { Types.VARCHAR, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.VARCHAR,
-                        Types.VARCHAR, Types.VARCHAR, Types.INTEGER, Types.VARCHAR, Types.VARCHAR },
-                new int[] { 20, 10, 10, 10, 10, 10, 2000, 2000, 8000, 10, 2000, 10 },
-                new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-                new int[] { DatabaseMetaData.procedureColumnIn,
+                        "_RESULT"},
+                new int[]{Types.VARCHAR, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.VARCHAR,
+                        Types.VARCHAR, Types.VARCHAR, Types.INTEGER, Types.VARCHAR, Types.VARCHAR},
+                new int[]{20, 10, 10, 10, 10, 10, 2000, 2000, 8000, 10, 2000, 10},
+                new int[]{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                new int[]{DatabaseMetaData.procedureColumnIn,
                         DatabaseMetaData.procedureColumnIn,
                         DatabaseMetaData.procedureColumnIn,
                         DatabaseMetaData.procedureColumnIn,
@@ -900,16 +899,16 @@ public class StoredProcedureTest extends BaseTest {
                         DatabaseMetaData.procedureColumnOut,
                         DatabaseMetaData.procedureColumnIn,
                         DatabaseMetaData.procedureColumnIn,
-                        DatabaseMetaData.procedureColumnOut });
+                        DatabaseMetaData.procedureColumnOut});
 
         sharedConnection.prepareCall("{call testCommentParser_1(?, ?)}").close();
         rs = sharedConnection.getMetaData().getProcedureColumns(sharedConnection.getCatalog(), null, "testCommentParser_1", "%");
         validateResult(rs,
-                new String[] { "/*id*/", "result2" },
-                new int[] { Types.VARCHAR, Types.DECIMAL },
-                new int[] { 20, 10 },
-                new int[] { 0, 2 },
-                new int[] { DatabaseMetaData.procedureColumnIn, DatabaseMetaData.procedureColumnOut });
+                new String[]{"/*id*/", "result2"},
+                new int[]{Types.VARCHAR, Types.DECIMAL},
+                new int[]{20, 10},
+                new int[]{0, 2},
+                new int[]{DatabaseMetaData.procedureColumnIn, DatabaseMetaData.procedureColumnOut});
         executeAnotherRequest();
     }
 
@@ -990,7 +989,7 @@ public class StoredProcedureTest extends BaseTest {
                 if (args.length == 2 && args[0].equals(Integer.TYPE)) {
                     if (!args[1].isPrimitive()) {
                         try {
-                            setters[i].invoke(callable, new Object[] { new Integer(2), null });
+                            setters[i].invoke(callable, new Object[]{new Integer(2), null});
                         } catch (InvocationTargetException ive) {
                             if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                 throw ive;
@@ -999,7 +998,7 @@ public class StoredProcedureTest extends BaseTest {
                     } else {
                         if (args[1].getName().equals("boolean")) {
                             try {
-                                setters[i].invoke(callable, new Object[] { new Integer(2), Boolean.FALSE });
+                                setters[i].invoke(callable, new Object[]{new Integer(2), Boolean.FALSE});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -1010,7 +1009,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("byte")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[] { new Integer(2), new Byte((byte) 0) });
+                                setters[i].invoke(callable, new Object[]{new Integer(2), new Byte((byte) 0)});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -1022,7 +1021,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("double")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[] { new Integer(2), new Double(0) });
+                                setters[i].invoke(callable, new Object[]{new Integer(2), new Double(0)});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -1034,7 +1033,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("float")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[] { new Integer(2), new Float(0) });
+                                setters[i].invoke(callable, new Object[]{new Integer(2), new Float(0)});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -1046,7 +1045,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("int")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[] { new Integer(2), new Integer(0) });
+                                setters[i].invoke(callable, new Object[]{new Integer(2), new Integer(0)});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -1057,7 +1056,7 @@ public class StoredProcedureTest extends BaseTest {
 
                         if (args[1].getName().equals("long")) {
                             try {
-                                setters[i].invoke(callable, new Object[] { new Integer(2), new Long(0) });
+                                setters[i].invoke(callable, new Object[]{new Integer(2), new Long(0)});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -1067,7 +1066,7 @@ public class StoredProcedureTest extends BaseTest {
 
                         if (args[1].getName().equals("short")) {
                             try {
-                                setters[i].invoke(callable, new Object[] { new Integer(2), new Short((short) 0) });
+                                setters[i].invoke(callable, new Object[]{new Integer(2), new Short((short) 0)});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -1213,11 +1212,12 @@ public class StoredProcedureTest extends BaseTest {
 
         createProcedure("testParameterNumber_1",
                 "(OUT nfact VARCHAR(100), IN ccuenta VARCHAR(100),\nOUT ffact VARCHAR(100),\nOUT fdoc VARCHAR(100))\nBEGIN"
-                + "\nSET nfact = 'ncfact string';\nSET ffact = 'ffact string';\nSET fdoc = 'fdoc string';\nEND");
+                        + "\nSET nfact = 'ncfact string';\nSET ffact = 'ffact string';\nSET fdoc = 'fdoc string';\nEND");
 
         createProcedure("testParameterNumber_2",
                 "(IN ccuent1 VARCHAR(100), IN ccuent2 VARCHAR(100),\nOUT nfact VARCHAR(100),\nOUT ffact VARCHAR(100),"
-                + "\nOUT fdoc VARCHAR(100))\nBEGIN\nSET nfact = 'ncfact string';\nSET ffact = 'ffact string';\nSET fdoc = 'fdoc string';\nEND");
+                        + "\nOUT fdoc VARCHAR(100))\nBEGIN\nSET nfact = 'ncfact string';\nSET ffact = 'ffact string';\n"
+                        + "SET fdoc = 'fdoc string';\nEND");
 
         Properties props = new Properties();
         props.put("jdbcCompliantTruncation", "true");

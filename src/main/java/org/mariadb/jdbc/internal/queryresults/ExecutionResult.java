@@ -4,7 +4,6 @@ import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Deque;
 
 public interface ExecutionResult {

@@ -68,6 +68,7 @@ public class ColumnNameMap {
 
     /**
      * Get column index by name.
+     *
      * @param name column name
      * @return index.
      * @throws SQLException if no column info exists, or column is unknown

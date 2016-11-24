@@ -49,9 +49,8 @@ OF SUCH DAMAGE.
 */
 
 
-
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 public class FloatParameter implements ParameterHolder, Cloneable {
     private float value;

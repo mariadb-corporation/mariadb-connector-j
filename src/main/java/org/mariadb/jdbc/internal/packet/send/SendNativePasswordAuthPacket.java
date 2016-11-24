@@ -64,6 +64,7 @@ public class SendNativePasswordAuthPacket extends AbstractAuthSwitchSendResponse
 
     /**
      * Send native password stream.
+     *
      * @param os database socket
      * @throws IOException if a connection error occur
      */

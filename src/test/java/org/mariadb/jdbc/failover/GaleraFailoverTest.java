@@ -19,6 +19,7 @@ import java.util.Map;
 public class GaleraFailoverTest extends SequentialFailoverTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -29,6 +30,7 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @Before

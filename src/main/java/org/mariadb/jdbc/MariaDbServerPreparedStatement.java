@@ -51,14 +51,15 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.queryresults.*;
+import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
+import org.mariadb.jdbc.internal.queryresults.MultiFixedIntExecutionResult;
+import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.stream.PrepareException;
 import org.mariadb.jdbc.internal.stream.PrepareSqlException;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.Utils;
 
 import java.sql.*;
 import java.util.*;
@@ -72,17 +73,18 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
     int parameterCount = -1;
     MariaDbResultSetMetaData metadata;
     MariaDbParameterMetaData parameterMetaData;
-    Map<Integer,ParameterHolder> currentParameterHolder;
+    Map<Integer, ParameterHolder> currentParameterHolder;
     List<ParameterHolder[]> queryParameters = new ArrayList<>();
     boolean mustExecuteOnMaster;
 
     /**
      * Constructor for creating Server prepared statement.
-     * @param connection current connection
-     * @param sql Sql String to prepare
+     *
+     * @param connection          current connection
+     * @param sql                 Sql String to prepare
      * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param forcePrepare force immediate prepare
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param forcePrepare        force immediate prepare
      * @throws SQLException exception
      */
     public MariaDbServerPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
@@ -91,17 +93,18 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
         this.sql = sql;
         useFractionalSeconds = options.useFractionalSeconds;
         returnTableAlias = options.useOldAliasMetadataBehavior;
-        currentParameterHolder = Collections.synchronizedMap(new TreeMap<Integer,ParameterHolder>());
+        currentParameterHolder = Collections.synchronizedMap(new TreeMap<Integer, ParameterHolder>());
         mustExecuteOnMaster = protocol.isMasterConnection();
         if (forcePrepare) prepare(this.sql);
     }
 
     /**
      * Constructor for creating Server prepared statement.
-     * @param connection current connection
-     * @param sql Sql String to prepare
+     *
+     * @param connection          current connection
+     * @param sql                 Sql String to prepare
      * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @param serverPrepareResult prepare result from cache
      * @throws SQLException exception
      */
@@ -189,6 +192,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
 
     /**
      * Add batch.
+     *
      * @param sql typically this is a SQL <code>INSERT</code> or <code>UPDATE</code> statement
      * @throws SQLException every time since that method is forbidden on prepareStatement
      */
@@ -240,10 +244,10 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
      * @return an array of update counts containing one element for each command in the batch.  The elements of the
      * array are ordered according to the order in which send were added to the batch.
      * @throws SQLException if a database access error occurs, this method is called on a closed
-     *                               <code>Statement</code> or the driver does not support batch statements. Throws
-     *                               {@link BatchUpdateException} (a subclass of <code>SQLException</code>) if
-     *                               one of the send sent to the database fails to execute properly or attempts to
-     *                               return a result set.
+     *                      <code>Statement</code> or the driver does not support batch statements. Throws
+     *                      {@link BatchUpdateException} (a subclass of <code>SQLException</code>) if
+     *                      one of the send sent to the database fails to execute properly or attempts to
+     *                      return a result set.
      * @see #addBatch
      * @see DatabaseMetaData#supportsBatchUpdates
      * @since 1.3
@@ -289,9 +293,9 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
      * Send batch datas according to options.
      *
      * @param internalExecutionResult results.
-     * @param queryParameterSize batch size
+     * @param queryParameterSize      batch size
      * @throws QueryException if any error occur.
-     * @throws SQLException if prepare fail
+     * @throws SQLException   if prepare fail
      */
     private void executeBatchInternal(MultiFixedIntExecutionResult internalExecutionResult, int queryParameterSize)
             throws QueryException, SQLException {
@@ -463,6 +467,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
 
     /**
      * Return sql String value.
+     *
      * @return String representation
      */
     public String toString() {
@@ -509,6 +514,7 @@ public class MariaDbServerPreparedStatement extends AbstractMariaDbPrepareStatem
 
     /**
      * Permit to retrieve current connection thread id, or -1 if unknown.
+     *
      * @return current connection thread id.
      */
     public long getServerThreadId() {

@@ -1,8 +1,8 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -15,6 +15,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -24,6 +25,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @Before

@@ -58,7 +58,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Types;
 
 public class ColumnInformation {
-    static int lazyPositionFromEnd = 0;
     // This array stored character length for every collation id up to collation id 256
     // It is generated from the information schema using
     // "select  id, maxlen from information_schema.character_sets, information_schema.collations
@@ -97,6 +96,7 @@ public class ColumnInformation {
             4, 4, 4, 4, 0, 4, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0
     };
+    static int lazyPositionFromEnd = 0;
     Buffer buffer;
     private short charsetNumber;
     private long length;
@@ -111,6 +111,7 @@ public class ColumnInformation {
 
     /**
      * Read column information from buffer.
+     *
      * @param buffer buffer
      */
     public ColumnInformation(Buffer buffer) {
@@ -164,6 +165,7 @@ public class ColumnInformation {
 
     /**
      * Constructor.
+     *
      * @param name column name
      * @param type column type
      * @return ColumnInformation
@@ -255,6 +257,7 @@ public class ColumnInformation {
 
     /**
      * Return metadata precision.
+     *
      * @return precision
      */
     public long getPrecision() {
@@ -277,6 +280,7 @@ public class ColumnInformation {
 
     /**
      * Get column size.
+     *
      * @return size
      */
     public int getDisplaySize() {

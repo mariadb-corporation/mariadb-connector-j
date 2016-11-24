@@ -37,14 +37,13 @@ public class BaseTest {
     protected static String parameters;
     protected static boolean testSingleHost;
     protected static Connection sharedConnection;
+    protected static boolean runLongTest = false;
     private static Deque<String> tempTableList = new ArrayDeque<>();
     private static Deque<String> tempViewList = new ArrayDeque<>();
     private static Deque<String> tempProcedureList = new ArrayDeque<>();
     private static Deque<String> tempFunctionList = new ArrayDeque<>();
     private static TcpProxy proxy = null;
     private static UrlParser urlParser;
-    protected static boolean runLongTest = false;
-
     @Rule
     public TestRule watcher = new TestWatcher() {
         protected void starting(Description description) {
@@ -82,66 +81,8 @@ public class BaseTest {
     };
 
     /**
-     * Create a connection with proxy.
-     * @param info additionnal properties
-     * @return a proxyfied connection
-     * @throws SQLException if any error occur
-     */
-    public Connection createProxyConnection(Properties info) throws SQLException {
-        UrlParser tmpUrlParser = UrlParser.parse(connUri);
-        username = tmpUrlParser.getUsername();
-        hostname = tmpUrlParser.getHostAddresses().get(0).host;
-        String sockethosts = "";
-        HostAddress hostAddress;
-        try {
-            hostAddress = tmpUrlParser.getHostAddresses().get(0);
-            proxy = new TcpProxy(hostAddress.host, hostAddress.port);
-            sockethosts += "address=(host=localhost)(port=" + proxy.getLocalPort() + ")"
-                    + ((hostAddress.type != null) ? "(type=" + hostAddress.type + ")" : "");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return openConnection("jdbc:mysql://" + sockethosts + "/" + connUri.split("/")[3], info);
-
-    }
-
-    /**
-     * Stop proxy, and restart it after a certain amount of time.
-     * @param millissecond milliseconds
-     */
-    public void stopProxy(long millissecond) {
-        proxy.restart(millissecond);
-    }
-
-    /**
-     * Stop proxy.
-     */
-    public void stopProxy() {
-        proxy.stop();
-    }
-
-    /**
-     * Restart proxy.
-     */
-    public void restartProxy() {
-        proxy.restart();
-    }
-
-    /**
-     * Clean proxies.
-     * @throws SQLException exception
-     */
-    public void closeProxy() throws SQLException {
-        try {
-            proxy.stop();
-        } catch (Exception e) {
-            //Eat exception
-        }
-    }
-
-    /**
      * Initialization.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -194,7 +135,6 @@ public class BaseTest {
         }
     }
 
-
     private static void setUri() {
         connU = "jdbc:mysql://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
         connUri = connU + "?user=" + username
@@ -204,6 +144,7 @@ public class BaseTest {
 
     /**
      * Destroy the test tables.
+     *
      * @throws SQLException exception
      */
     @AfterClass
@@ -271,7 +212,8 @@ public class BaseTest {
 
     /**
      * Create a table that will be detroyed a the end of tests.
-     * @param tableName table name
+     *
+     * @param tableName    table name
      * @param tableColumns table columns
      * @throws SQLException exception
      */
@@ -281,9 +223,10 @@ public class BaseTest {
 
     /**
      * Create a table that will be detroyed a the end of tests.
-     * @param tableName table name
+     *
+     * @param tableName    table name
      * @param tableColumns table columns
-     * @param engine engine type
+     * @param engine       engine type
      * @throws SQLException exception
      */
     public static void createTable(String tableName, String tableColumns, String engine) throws SQLException {
@@ -297,7 +240,8 @@ public class BaseTest {
 
     /**
      * Create a view that will be detroyed a the end of tests.
-     * @param tableName table name
+     *
+     * @param tableName    table name
      * @param tableColumns table columns
      * @throws SQLException exception
      */
@@ -312,6 +256,7 @@ public class BaseTest {
 
     /**
      * Create procedure that will be delete on end of test.
+     *
      * @param name procedure name
      * @param body procecure body
      * @throws SQLException exception
@@ -327,6 +272,7 @@ public class BaseTest {
 
     /**
      * Create function that will be delete on end of test.
+     *
      * @param name function name
      * @param body function body
      * @throws SQLException exception
@@ -340,6 +286,67 @@ public class BaseTest {
         }
     }
 
+    /**
+     * Create a connection with proxy.
+     *
+     * @param info additionnal properties
+     * @return a proxyfied connection
+     * @throws SQLException if any error occur
+     */
+    public Connection createProxyConnection(Properties info) throws SQLException {
+        UrlParser tmpUrlParser = UrlParser.parse(connUri);
+        username = tmpUrlParser.getUsername();
+        hostname = tmpUrlParser.getHostAddresses().get(0).host;
+        String sockethosts = "";
+        HostAddress hostAddress;
+        try {
+            hostAddress = tmpUrlParser.getHostAddresses().get(0);
+            proxy = new TcpProxy(hostAddress.host, hostAddress.port);
+            sockethosts += "address=(host=localhost)(port=" + proxy.getLocalPort() + ")"
+                    + ((hostAddress.type != null) ? "(type=" + hostAddress.type + ")" : "");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return openConnection("jdbc:mysql://" + sockethosts + "/" + connUri.split("/")[3], info);
+
+    }
+
+    /**
+     * Stop proxy, and restart it after a certain amount of time.
+     *
+     * @param millissecond milliseconds
+     */
+    public void stopProxy(long millissecond) {
+        proxy.restart(millissecond);
+    }
+
+    /**
+     * Stop proxy.
+     */
+    public void stopProxy() {
+        proxy.stop();
+    }
+
+    /**
+     * Restart proxy.
+     */
+    public void restartProxy() {
+        proxy.restart();
+    }
+
+    /**
+     * Clean proxies.
+     *
+     * @throws SQLException exception
+     */
+    public void closeProxy() throws SQLException {
+        try {
+            proxy.stop();
+        } catch (Exception e) {
+            //Eat exception
+        }
+    }
 
     @Before
     public void init() throws SQLException {
@@ -348,6 +355,7 @@ public class BaseTest {
 
     /**
      * Permit to assure that host are not in a blacklist after a test.
+     *
      * @param connection connection
      */
     public void assureBlackList(Connection connection) {
@@ -430,7 +438,8 @@ public class BaseTest {
 
     /**
      * Permit to reconstruct a connection.
-     * @param uri base uri
+     *
+     * @param uri  base uri
      * @param info additionnal properties
      * @return A connection
      * @throws SQLException is any error occur
@@ -489,11 +498,15 @@ public class BaseTest {
 
         if (maxAllowedPacket < 20 * 1024 * 1024) {
 
-            if (displayMessage) System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 20M");
+            if (displayMessage) {
+                System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 20M");
+            }
             return false;
         }
         if (innodbLogFileSize < 200 * 1024 * 1024) {
-            if (displayMessage) System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 200M");
+            if (displayMessage) {
+                System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 200M");
+            }
             return false;
         }
         return true;
@@ -515,11 +528,15 @@ public class BaseTest {
 
 
         if (maxAllowedPacket < 40 * 1024 * 1024) {
-            if (displayMsg) System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 40M");
+            if (displayMsg) {
+                System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 40M");
+            }
             return false;
         }
         if (innodbLogFileSize < 400 * 1024 * 1024) {
-            if (displayMsg) System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 400M");
+            if (displayMsg) {
+                System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 400M");
+            }
             return false;
         }
 
@@ -586,6 +603,7 @@ public class BaseTest {
 
     /**
      * Check if version if at minimum the version asked.
+     *
      * @param major database major version
      * @param minor database minor version
      * @throws SQLException exception
@@ -601,6 +619,7 @@ public class BaseTest {
 
     /**
      * Check if version if before the version asked.
+     *
      * @param major database major version
      * @param minor database minor version
      * @throws SQLException exception
@@ -615,6 +634,7 @@ public class BaseTest {
 
     /**
      * Cancel if database version match.
+     *
      * @param major db major version
      * @param minor db minor version
      * @throws SQLException exception
@@ -628,6 +648,7 @@ public class BaseTest {
 
     /**
      * Cancel if database version match.
+     *
      * @param major db major version
      * @param minor db minor version
      * @param patch db patch version
@@ -645,6 +666,7 @@ public class BaseTest {
 
     /**
      * Check if current DB server is MariaDB.
+     *
      * @return true if DB is mariadb
      * @throws SQLException exception
      */
@@ -655,8 +677,9 @@ public class BaseTest {
 
     /**
      * Change session time zone.
+     *
      * @param connection connection
-     * @param timeZone timezone to set
+     * @param timeZone   timezone to set
      * @throws SQLException exception
      */
     public void setSessionTimeZone(Connection connection, String timeZone) throws SQLException {
@@ -667,6 +690,7 @@ public class BaseTest {
 
     /**
      * Get row number.
+     *
      * @param tableName table name
      * @return resultset number in this table
      * @throws SQLException if error occur
@@ -682,6 +706,7 @@ public class BaseTest {
     /**
      * Permit to know if sharedConnection will use Prepare.
      * (in case dbUrl modify default options)
+     *
      * @return true if PreparedStatement will use Prepare.
      */
     public boolean sharedUsePrepare() {
@@ -691,6 +716,7 @@ public class BaseTest {
 
     /**
      * Permit access to current sharedConnection options.
+     *
      * @return Options
      */
     public Options sharedOptions() {

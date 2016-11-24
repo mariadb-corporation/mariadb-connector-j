@@ -53,9 +53,9 @@ package org.mariadb.jdbc.internal.protocol;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.failover.Listener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.util.ArrayDeque;
 import java.util.List;
@@ -68,7 +68,7 @@ public class MasterProtocol extends AbstractQueryProtocol {
      * Get a protocol instance.
      *
      * @param urlParser connection URL infos
-     * @param lock the lock for thread synchronisation
+     * @param lock      the lock for thread synchronisation
      */
 
     public MasterProtocol(final UrlParser urlParser, final ReentrantLock lock) {
@@ -78,7 +78,7 @@ public class MasterProtocol extends AbstractQueryProtocol {
     /**
      * Get new instance.
      *
-     * @param proxy proxy
+     * @param proxy     proxy
      * @param urlParser url connection object
      * @return new instance
      */
@@ -91,8 +91,8 @@ public class MasterProtocol extends AbstractQueryProtocol {
     /**
      * loop until found the failed connection.
      *
-     * @param listener current failover
-     * @param addresses list of HostAddress to loop
+     * @param listener     current failover
+     * @param addresses    list of HostAddress to loop
      * @param searchFilter search parameter
      * @throws QueryException if not found
      */

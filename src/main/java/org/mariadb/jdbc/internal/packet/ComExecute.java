@@ -59,14 +59,12 @@ import java.util.List;
 
 public class ComExecute {
 
-    public ComExecute() { }
-
     /**
      * Client-side PrepareStatement.execute() packet send.
      *
-     * @param writer outputStream
+     * @param writer              outputStream
      * @param clientPrepareResult clientPrepareResult
-     * @param parameters parameter
+     * @param parameters          parameter
      * @throws IOException if connection fail
      */
     public static void sendSubCmd(final PacketOutputStream writer, final ClientPrepareResult clientPrepareResult, ParameterHolder[] parameters)
@@ -97,11 +95,11 @@ public class ComExecute {
     /**
      * Client side PreparedStatement.executeBatch values rewritten (concatenate value params according to max_allowed_packet)
      *
-     * @param writer outputStream
-     * @param queryParts query parts
-     * @param parameters parameters
-     * @param currentIndex currentIndex
-     * @param paramCount parameter count
+     * @param writer        outputStream
+     * @param queryParts    query parts
+     * @param parameters    parameters
+     * @param currentIndex  currentIndex
+     * @param paramCount    parameter count
      * @param parameterList parameter list
      * @param rewriteValues is query rewritable by adding values
      * @return current index
@@ -152,7 +150,7 @@ public class ComExecute {
                     // - if this query will be separated in a new packet.
                     if (writer.checkRewritableLength(staticLength + parameterLength)) {
                         writer.assureBufferCapacity(staticLength + parameterLength);
-                        writer.buffer.put((byte)';');
+                        writer.buffer.put((byte) ';');
                         writer.buffer.put(firstPart, 0, firstPart.length);
                         writer.buffer.put(secondPart, 0, secondPart.length);
                         for (int i = 0; i < paramCount; i++) {
@@ -244,9 +242,9 @@ public class ComExecute {
     /**
      * Statement.executeBatch() rewritten multiple (concatenate with ";") according to max_allowed_packet)
      *
-     * @param writer outputstream
-     * @param firstQuery first query
-     * @param queries queries
+     * @param writer       outputstream
+     * @param firstQuery   first query
+     * @param queries      queries
      * @param currentIndex currentIndex
      * @return current index
      * @throws IOException if connection error occur
@@ -273,7 +271,7 @@ public class ComExecute {
     /**
      * Send directly to socket the sql data.
      *
-     * @param writer output stream
+     * @param writer   output stream
      * @param sqlBytes the query in UTF-8 bytes
      * @throws IOException    if connection error occur
      * @throws QueryException if packet max size is to big.

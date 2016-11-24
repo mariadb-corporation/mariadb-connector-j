@@ -1,4 +1,3 @@
-
 /*
 MariaDB Client for Java
 
@@ -56,24 +55,21 @@ import org.mariadb.jdbc.internal.packet.send.*;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
-import javax.swing.*;
-
 public class DefaultAuthenticationProvider {
     public static final String MYSQL_NATIVE_PASSWORD = "mysql_native_password";
     public static final String MYSQL_OLD_PASSWORD = "mysql_old_password";
     public static final String MYSQL_CLEAR_PASSWORD = "mysql_clear_password";
-//    public static final String MYSQL_SHA256 = "sha256_password";
-
     public static final String GSSAPI_CLIENT = "auth_gssapi_client";
     public static final String DIALOG = "dialog";
 
     /**
      * Process AuthenticationSwitch.
+     *
      * @param packetFetcher packet fetcher
-     * @param plugin plugin name
-     * @param password password
-     * @param authData auth data
-     * @param seqNo packet sequence number
+     * @param plugin        plugin name
+     * @param password      password
+     * @param authData      auth data
+     * @param seqNo         packet sequence number
      * @return authentication response according to parameters
      * @throws QueryException if error occur.
      */

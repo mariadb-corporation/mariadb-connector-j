@@ -16,32 +16,32 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
     private final int sendCmdCounter;
     private final Protocol protocol;
     private final boolean readPrepareStmtResult;
-    private ExecutionResult executionResult;
     private final int resultSetScrollType;
-    private boolean binaryProtocol;
     private final AbstractMultiSend bulkSend;
-    private int paramCount;
     private final List<ParameterHolder[]> parametersList;
     private final List<String> queries;
+    private ExecutionResult executionResult;
+    private boolean binaryProtocol;
+    private int paramCount;
     private AsyncMultiReadResult asyncMultiReadResult;
 
 
     /**
      * Read results async to avoid local and remote networking stack buffer overflow "lock".
      *
-     * @param comStmtPrepare current prepare
-     * @param nbResult number of command send
-     * @param sendCmdCounter initial command counter
-     * @param protocol protocol
+     * @param comStmtPrepare        current prepare
+     * @param nbResult              number of command send
+     * @param sendCmdCounter        initial command counter
+     * @param protocol              protocol
      * @param readPrepareStmtResult must read prepare statement result
-     * @param bulkSend bulk sender object
-     * @param paramCount number of parameters
-     * @param resultSetScrollType resultset scroll type
-     * @param binaryProtocol using binary protocol
-     * @param executionResult execution result
-     * @param parametersList parameter list
-     * @param queries queries
-     * @param prepareResult prepare result
+     * @param bulkSend              bulk sender object
+     * @param paramCount            number of parameters
+     * @param resultSetScrollType   resultset scroll type
+     * @param binaryProtocol        using binary protocol
+     * @param executionResult       execution result
+     * @param parametersList        parameter list
+     * @param queries               queries
+     * @param prepareResult         prepare result
      */
     public AsyncMultiRead(ComStmtPrepare comStmtPrepare, int nbResult, int sendCmdCounter,
                           Protocol protocol, boolean readPrepareStmtResult, AbstractMultiSend bulkSend, int paramCount,
@@ -68,7 +68,7 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
         // since technically, getResult can be called before the write is send.
         // Other solution would have been to synchronised write and read, but would have been less performant,
         // just to have this timeout according to set value
-        if (protocol.getOptions().socketTimeout != null)  protocol.changeSocketSoTimeout(0);
+        if (protocol.getOptions().socketTimeout != null) protocol.changeSocketSoTimeout(0);
 
         if (readPrepareStmtResult) {
             try {
@@ -90,7 +90,10 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
                 }
             }
         }
-        if (protocol.getOptions().socketTimeout != null)  protocol.changeSocketSoTimeout(protocol.getOptions().socketTimeout);
+
+        if (protocol.getOptions().socketTimeout != null) {
+            protocol.changeSocketSoTimeout(protocol.getOptions().socketTimeout);
+        }
 
         return asyncMultiReadResult;
     }

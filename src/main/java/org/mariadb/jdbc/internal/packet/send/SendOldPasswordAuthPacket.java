@@ -62,6 +62,7 @@ public class SendOldPasswordAuthPacket extends AbstractAuthSwitchSendResponsePac
 
     /**
      * Send password stream.
+     *
      * @param os database socket
      * @throws IOException if a connection error occur
      */

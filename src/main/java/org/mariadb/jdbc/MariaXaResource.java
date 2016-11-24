@@ -126,6 +126,7 @@ public class MariaXaResource implements XAResource {
 
     /**
      * Execute a query.
+     *
      * @param command query to run.
      * @throws XAException exception
      */
@@ -139,7 +140,8 @@ public class MariaXaResource implements XAResource {
 
     /**
      * Commits the global transaction specified by xid.
-     * @param xid A global transaction identifier
+     *
+     * @param xid      A global transaction identifier
      * @param onePhase If true, the resource manager should use a one-phase commit protocol to commit the work done on behalf of xid.
      * @throws XAException exception
      */
@@ -158,7 +160,8 @@ public class MariaXaResource implements XAResource {
      * in a suspended state and must be resumed via the start method with TMRESUME specified.</p>
      * <p>If TMFAIL is specified, the portion of work has failed. The resource manager may mark the transaction as rollback-only</p>
      * <p>If TMSUCCESS is specified, the portion of work has completed successfully.</p>
-     * @param xid A global transaction identifier that is the same as the identifier used previously in the start method.
+     *
+     * @param xid   A global transaction identifier that is the same as the identifier used previously in the start method.
      * @param flags One of TMSUCCESS, TMFAIL, or TMSUSPEND.
      * @throws XAException An error has occurred. (XAException values are XAER_RMERR, XAER_RMFAILED, XAER_NOTA, XAER_INVAL, XAER_PROTO, or XA_RB*)
      */
@@ -172,8 +175,9 @@ public class MariaXaResource implements XAResource {
 
     /**
      * Tells the resource manager to forget about a heuristically completed transaction branch.
-     * @param xid  A global transaction identifier.
-     * @throws XAException  An error has occurred. Possible exception values are XAER_RMERR, XAER_RMFAIL, XAER_NOTA, XAER_INVAL, or XAER_PROTO.
+     *
+     * @param xid A global transaction identifier.
+     * @throws XAException An error has occurred. Possible exception values are XAER_RMERR, XAER_RMFAIL, XAER_NOTA, XAER_INVAL, or XAER_PROTO.
      */
     public void forget(Xid xid) throws XAException {
         // Not implemented by the server
@@ -183,6 +187,7 @@ public class MariaXaResource implements XAResource {
      * Obtains the current transaction timeout value set for this XAResource instance.
      * If XAResource.setTransactionTimeout was not used prior to invoking this method, the return value is the default timeout set
      * for the resource manager; otherwise, the value used in the previous setTransactionTimeout call is returned.
+     *
      * @return the transaction timeout value in seconds.
      * @throws XAException An error has occurred. Possible exception values are XAER_RMERR and XAER_RMFAIL.
      */
@@ -194,6 +199,7 @@ public class MariaXaResource implements XAResource {
     /**
      * This method is called to determine if the resource manager instance represented by the target object is the same as
      * the resource manager instance represented by the parameter xares.
+     *
      * @param xaResource An XAResource object whose resource manager instance is to be compared with the target object.
      * @return true if it's the same RM instance; otherwise false.
      * @throws XAException An error has occurred. Possible exception values are XAER_RMERR and XAER_RMFAIL.
@@ -207,6 +213,7 @@ public class MariaXaResource implements XAResource {
 
     /**
      * Ask the resource manager to prepare for a transaction commit of the transaction specified in xid.
+     *
      * @param xid A global transaction identifier.
      * @return A value indicating the resource manager's vote on the outcome of the transaction.
      * @throws XAException An error has occurred. Possible exception values are: XA_RB*, XAER_RMERR, XAER_RMFAIL, XAER_NOTA, XAER_INVAL, XAER_PROTO.
@@ -220,9 +227,10 @@ public class MariaXaResource implements XAResource {
      * Obtains a list of prepared transaction branches from a resource manager.
      * The transaction manager calls this method during recovery to obtain the list of transaction branches that are currently in prepared
      * or heuristically completed states.
+     *
      * @param flags One of TMSTARTRSCAN, TMENDRSCAN, TMNOFLAGS. TMNOFLAGS must be used when no other flags are set in the parameter.
      * @return The resource manager returns zero or more XIDs of the transaction branches.
-     * @throws XAException  An error has occurred. Possible values are XAER_RMERR, XAER_RMFAIL, XAER_INVAL, and XAER_PROTO.
+     * @throws XAException An error has occurred. Possible values are XAER_RMERR, XAER_RMFAIL, XAER_INVAL, and XAER_PROTO.
      */
     public Xid[] recover(int flags) throws XAException {
         // Return all Xid  at once, when STARTRSCAN is specified
@@ -262,7 +270,8 @@ public class MariaXaResource implements XAResource {
 
     /**
      * Informs the resource manager to roll back work done on behalf of a transaction branch.
-     * @param xid  A global transaction identifier.
+     *
+     * @param xid A global transaction identifier.
      * @throws XAException An error has occurred.
      */
     public void rollback(Xid xid) throws XAException {
@@ -275,6 +284,7 @@ public class MariaXaResource implements XAResource {
      * To reset the timeout value to the default value used by the resource manager, set the value to zero.
      * If the timeout operation is performed successfully, the method returns true; otherwise false.
      * If a resource manager does not support explicitly setting the transaction timeout value, this method returns false.
+     *
      * @param timeout The transaction timeout value in seconds.
      * @return true if the transaction timeout value is set successfully; otherwise false.
      * @throws XAException An error has occurred. Possible exception values are XAER_RMERR, XAER_RMFAIL, or XAER_INVAL.
@@ -289,8 +299,9 @@ public class MariaXaResource implements XAResource {
      * If TMRESUME is specified, the start applies to resuming a suspended transaction specified in the parameter xid.
      * If neither TMJOIN nor TMRESUME is specified and the transaction specified by xid has previously been seen by the resource manager,
      * the resource manager throws the XAException exception with XAER_DUPID error code.
-     * @param xid A global transaction identifier to be associated with the resource.
-     * @param flags  One of TMNOFLAGS, TMJOIN, or TMRESUME.
+     *
+     * @param xid   A global transaction identifier to be associated with the resource.
+     * @param flags One of TMNOFLAGS, TMJOIN, or TMRESUME.
      * @throws XAException An error has occurred.
      */
     public void start(Xid xid, int flags) throws XAException {

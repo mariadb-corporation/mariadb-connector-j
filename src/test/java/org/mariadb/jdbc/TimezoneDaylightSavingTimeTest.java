@@ -87,6 +87,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     /**
      * Put the TimeZone to previous state.
+     *
      * @throws SQLException exception
      */
     @AfterClass()
@@ -101,7 +102,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
      * Import some timeZone stuff for testing.
      *
      * @param conn current connection
-     * @param in inputStream
+     * @param in   inputStream
      * @throws SQLException exception
      */
     public static void importSql(Connection conn, InputStream in) throws SQLException {

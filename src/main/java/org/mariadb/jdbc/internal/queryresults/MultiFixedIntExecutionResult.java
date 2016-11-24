@@ -11,12 +11,12 @@ import java.util.Deque;
 
 public class MultiFixedIntExecutionResult implements MultiExecutionResult {
 
+    public Deque<ExecutionResult> cachedExecutionResults;
     private MariaDbStatement statement = null;
     private boolean moreResultAvailable;
     private int fetchSize;
     private boolean selectPossible;
     private boolean canHaveCallableResultset;
-    public Deque<ExecutionResult> cachedExecutionResults;
     private MariaSelectResultSet resultSet = null;
     private long[] insertId;
     private int[] affectedRows;
@@ -25,9 +25,9 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
     /**
      * Constructor. Creating resultSet data with size according to datas.
      *
-     * @param statement current statement
-     * @param size      data size
-     * @param fetchSize resultet fetch size
+     * @param statement      current statement
+     * @param size           data size
+     * @param fetchSize      resultet fetch size
      * @param selectPossible is select command possible
      */
     public MultiFixedIntExecutionResult(MariaDbStatement statement, int size, int fetchSize, boolean selectPossible) {
@@ -92,26 +92,27 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
 
     /**
      * Add missing information when Exception is thrown.
+     *
      * @param sendCommand send number of command
      */
     public void fixStatsError(int sendCommand) {
-        for (;this.affectedRows.length < sendCommand;) {
+        for (; this.affectedRows.length < sendCommand; ) {
             this.affectedRows[currentStat++] = Statement.EXECUTE_FAILED;
         }
     }
 
     /**
      * Set resultSet for rewrite queries.
-     *
+     * <p>
      * INSERT INTO XX VALUES (YYY)
      * INSERT INTO XX VALUES (ZZZ)
      * is rewritten
      * INSERT INTO XX VALUES (YYY), (ZZZ)
-     *
+     * <p>
      * so modified row, will all be on the first row, or on a few rows :
      * queries will split to have query size under the max_allowed_size, so data can be on multiple rows
      *
-     * @param waitedSize waited size
+     * @param waitedSize   waited size
      * @param hasException has exception
      */
     public int[] updateResultsForRewrite(int waitedSize, boolean hasException) {
@@ -120,15 +121,15 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
 
     /**
      * Set update resultSet right on multiple rewrite.
-     *
+     * <p>
      * INSERT XXXX
      * INSERT XXXX
      * is rewritten
      * INSERT XXXX;INSERT XXXX
-     *
+     * <p>
      * So affected rows and insert Id are separate in as many okPacket.
      *
-     * @param waitedSize  batchSize
+     * @param waitedSize   batchSize
      * @param hasException has exception
      */
     public int[] updateResultsMultiple(int waitedSize, boolean hasException) {

@@ -52,18 +52,18 @@ package org.mariadb.jdbc.internal.failover.impl;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.AbstractMastersSlavesListener;
+import org.mariadb.jdbc.internal.failover.HandleErrorResult;
 import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
-import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
-import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.failover.HandleErrorResult;
 import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
+import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
@@ -76,14 +76,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * this class handle the operation when multiple hosts.
  */
 public class MastersSlavesListener extends AbstractMastersSlavesListener {
-    private static Logger logger = LoggerFactory.getLogger(MastersSlavesListener.class);
     private static final double POOL_SIZE_TO_LISTENER_RATIO = 0.3d;
     private static final double FAIL_LOOP_TO_LISTENER_RATIO = 0.3d;
-
-    protected Protocol masterProtocol;
-    protected Protocol secondaryProtocol;
     private static final DynamicSizedSchedulerInterface dynamicSizedScheduler;
     private static final AtomicInteger listenerCount = new AtomicInteger();
+    private static Logger logger = LoggerFactory.getLogger(MastersSlavesListener.class);
 
     static {
         dynamicSizedScheduler = SchedulerServiceProviderHolder.getScheduler(1);
@@ -127,6 +124,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             }
         }, 250, 250, TimeUnit.MILLISECONDS);
     }
+
+    protected Protocol masterProtocol;
+    protected Protocol secondaryProtocol;
 
     /**
      * Initialisation.
@@ -494,7 +494,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                                 }
                             }
                         }
-    
+
                         try {
                             reconnectFailedConnection(new SearchFilter(true, false));
                             handleFailLoop();
@@ -516,7 +516,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                             throwFailoverMessage(failHost, true, new QueryException("master "
                                     + masterProtocol.getHostAddress() + " connection failed"), false);
                         }
-    
+
                     }
                 }
             } finally {
@@ -590,7 +590,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             handleFailLoop();
             if (currentReadOnlyAsked //use master connection temporary in replacement of slave
                     || alreadyClosed //connection was already close
-                    || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args) )) { //connection was not in transaction
+                    || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args))) { //connection was not in transaction
 
                 //can relaunch query
                 logger.info("Connection to master lost, new master " + currentProtocol.getHostAddress() + ", conn:"

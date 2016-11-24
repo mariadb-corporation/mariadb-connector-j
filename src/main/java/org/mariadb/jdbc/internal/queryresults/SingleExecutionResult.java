@@ -23,9 +23,9 @@ public class SingleExecutionResult implements ExecutionResult {
     /**
      * Default constructor.
      *
-     * @param statement current statement
-     * @param fetchSize fetch size
-     * @param selectPossible select result possible
+     * @param statement                current statement
+     * @param fetchSize                fetch size
+     * @param selectPossible           select result possible
      * @param canHaveCallableResultset can be callablestatement
      */
     public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset) {
@@ -38,11 +38,11 @@ public class SingleExecutionResult implements ExecutionResult {
     /**
      * Constructor with possible multiple results.
      *
-     * @param statement current statement
-     * @param fetchSize fetch size
-     * @param selectPossible select result possible
+     * @param statement                current statement
+     * @param fetchSize                fetch size
+     * @param selectPossible           select result possible
      * @param canHaveCallableResultset can be callablestatement
-     * @param canHaveMoreResults tell that results may have multiple resultset
+     * @param canHaveMoreResults       tell that results may have multiple resultset
      */
     public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset,
                                  boolean canHaveMoreResults) {
@@ -56,12 +56,12 @@ public class SingleExecutionResult implements ExecutionResult {
     /**
      * Constructor with affected rows and insertIds.
      *
-     * @param statement current statement
-     * @param fetchSize fetch size
-     * @param selectPossible select result possible
+     * @param statement                current statement
+     * @param fetchSize                fetch size
+     * @param selectPossible           select result possible
      * @param canHaveCallableResultset can be callablestatement
-     * @param affectedRows affected rows
-     * @param insertId insert id (auto generated)
+     * @param affectedRows             affected rows
+     * @param insertId                 insert id (auto generated)
      */
     public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset,
                                  long affectedRows, long insertId) {
@@ -75,11 +75,12 @@ public class SingleExecutionResult implements ExecutionResult {
 
     /**
      * Constructor with additional Resultset.
-     * @param statement current statement
-     * @param fetchSize fetch size
-     * @param selectPossible select result possible
+     *
+     * @param statement                current statement
+     * @param fetchSize                fetch size
+     * @param selectPossible           select result possible
      * @param canHaveCallableResultset can be callablestatement
-     * @param result resultset
+     * @param result                   resultset
      */
     public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset,
                                  MariaSelectResultSet result) {
@@ -144,7 +145,8 @@ public class SingleExecutionResult implements ExecutionResult {
         setMoreResultAvailable(moreResultAvailable);
     }
 
-    public void fixStatsError(int sendCommand) { }
+    public void fixStatsError(int sendCommand) {
+    }
 
     public MariaSelectResultSet getResultSet() {
         return result;

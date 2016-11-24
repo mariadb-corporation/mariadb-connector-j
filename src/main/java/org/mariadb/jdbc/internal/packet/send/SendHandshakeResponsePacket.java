@@ -52,9 +52,9 @@ package org.mariadb.jdbc.internal.packet.send;
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.PidFactory;
 import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.constant.Version;
 
 import java.io.IOException;
@@ -87,12 +87,12 @@ import java.util.StringTokenizer;
  * databasename:            name of schema to use initially
  */
 public class SendHandshakeResponsePacket implements InterfaceSendPacket {
+    private final byte serverLanguage;
     private byte packetSeq;
     private String username;
     private String password;
     private byte[] seed;
     private long clientCapabilities;
-    private final byte serverLanguage;
     private String database;
     private String plugin;
     private String connectionAttributes;
@@ -103,16 +103,17 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
 
     /**
      * Initialisation of parameters.
-     * @param username username
-     * @param password user password
-     * @param database initial database connection
-     * @param clientCapabilities capabilities
-     * @param serverLanguage serverlanguage
-     * @param seed seed
-     * @param packetSeq stream sequence
-     * @param plugin authentication plugin name
+     *
+     * @param username             username
+     * @param password             user password
+     * @param database             initial database connection
+     * @param clientCapabilities   capabilities
+     * @param serverLanguage       serverlanguage
+     * @param seed                 seed
+     * @param packetSeq            stream sequence
+     * @param plugin               authentication plugin name
      * @param connectionAttributes connection attributes option
-     * @param serverThreadId threadId;
+     * @param serverThreadId       threadId;
      */
     public SendHandshakeResponsePacket(final String username,
                                        final String password,
@@ -138,6 +139,7 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
 
     /**
      * Send authentication stream.
+     *
      * @param os database socket
      * @throws IOException if any connection error occur
      */
@@ -147,14 +149,14 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
         final byte[] authData;
         switch (plugin) {
             case "": //CONJ-274 : permit connection mysql 5.1 db
-            case DefaultAuthenticationProvider.MYSQL_NATIVE_PASSWORD :
+            case DefaultAuthenticationProvider.MYSQL_NATIVE_PASSWORD:
                 try {
                     authData = Utils.encryptPassword(password, seed);
                     break;
                 } catch (NoSuchAlgorithmException e) {
                     throw new RuntimeException("Could not use SHA-1, failing", e);
                 }
-            case DefaultAuthenticationProvider.MYSQL_CLEAR_PASSWORD :
+            case DefaultAuthenticationProvider.MYSQL_CLEAR_PASSWORD:
                 authData = password.getBytes();
                 break;
             default:
@@ -169,7 +171,7 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
                 .writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
 
         if (username == null || "".equals(username)) username = System.getProperty("user.name"); //permit SSO
-        
+
         writeBuffer.writeString(username)     //strlen username
                 .writeByte((byte) 0);        //1
 

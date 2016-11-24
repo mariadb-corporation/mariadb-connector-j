@@ -54,8 +54,8 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -65,7 +65,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 public class FailoverProxy implements InvocationHandler {
-    private static Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
     public static final String METHOD_IS_EXPLICIT_CLOSED = "isExplicitClosed";
     public static final String METHOD_GET_OPTIONS = "getOptions";
     public static final String METHOD_GET_PROXY = "getProxy";
@@ -77,16 +76,16 @@ public class FailoverProxy implements InvocationHandler {
     public static final String METHOD_EXECUTE_PREPARED_QUERY = "executePreparedQuery";
     public static final String METHOD_COM_MULTI_PREPARE_EXECUTES = "prepareAndExecutesComMulti";
     public static final String METHOD_PROLOG_PROXY = "prologProxy";
-
-
+    private static Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
     public final ReentrantLock lock;
 
     private Listener listener;
 
     /**
      * Proxy constructor.
+     *
      * @param listener failover implementation.
-     * @param lock synchronisation lock
+     * @param lock     synchronisation lock
      * @throws QueryException if connection error occur
      */
     public FailoverProxy(Listener listener, ReentrantLock lock) throws QueryException {
@@ -249,6 +248,7 @@ public class FailoverProxy implements InvocationHandler {
 
     /**
      * Launch reconnect implementation.
+     *
      * @throws SQLException exception
      */
     public void reconnect() throws SQLException {

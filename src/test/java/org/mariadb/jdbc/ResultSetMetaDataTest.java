@@ -11,6 +11,7 @@ import static org.junit.Assert.assertEquals;
 public class ResultSetMetaDataTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()

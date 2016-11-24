@@ -1,4 +1,3 @@
-
 /*
 MariaDB Client for Java
 
@@ -72,10 +71,11 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
 
     /**
      * Constructor for getter/setter of callableStatement.
-     * @param connection current connection
-     * @param sql query
-     * @param resultSetScrollType  one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     *
+     * @param connection          current connection
+     * @param sql                 query
+     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @throws SQLException if clientPrepareStatement creation throw an exception
      */
     public AbstractCallableFunctionStatement(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
@@ -97,6 +97,7 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
 
     /**
      * Data initialisation when parameterCount is defined.
+     *
      * @param parametersCount number of parameters
      */
     public void initFunctionData(int parametersCount) {
@@ -152,6 +153,7 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
         }
         throw new SQLException("there is no parameter with the name " + parameterName);
     }
+
     /**
      * Convert parameter index to corresponding outputIndex.
      *
@@ -486,7 +488,7 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
      * should be used for a user-defined or <code>REF</code> output parameter.  Examples
      * of user-defined types include: <code>STRUCT</code>, <code>DISTINCT</code>,
      * <code>JAVA_OBJECT</code>, and named array types.</p>
-     *
+     * <p>
      * <p>All OUT parameters must be registered
      * before a stored procedure is executed.</p>
      * <p>  For a user-defined parameter, the fully-qualified SQL
@@ -501,7 +503,7 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
      * this method may be used to register a parameter of any JDBC type.
      * If the parameter does not have a user-defined or <code>REF</code> type, the
      * <i>typeName</i> parameter is ignored.</p>
-     *
+     * <p>
      * <p><B>Note:</B> When reading the value of an out parameter, you
      * must use the getter method whose Java type corresponds to the
      * parameter's registered SQL type.</p>
@@ -538,11 +540,11 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
      * <code>parameterIndex</code> to be of JDBC type
      * <code>sqlType</code>. All OUT parameters must be registered
      * before a stored procedure is executed.</p>
-     *
+     * <p>
      * <p>The JDBC type specified by <code>sqlType</code> for an OUT
      * parameter determines the Java type that must be used
      * in the <code>get</code> method to read the value of that parameter.</p>
-     *
+     * <p>
      * <p>This version of <code>registerOutParameter</code> should be
      * used when the parameter is of JDBC type <code>NUMERIC</code>
      * or <code>DECIMAL</code>.</p>

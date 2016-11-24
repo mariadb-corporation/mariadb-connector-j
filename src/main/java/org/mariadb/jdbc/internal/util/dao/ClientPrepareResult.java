@@ -71,43 +71,19 @@ public class ClientPrepareResult implements PrepareResult {
         this.rewriteType = rewriteType;
     }
 
-    public String getSql() {
-        return sql;
-    }
-
-    public List<byte[]> getQueryParts() {
-        return queryParts;
-    }
-
-    public boolean isQueryMultiValuesRewritable() {
-        return isQueryMultiValuesRewritable;
-    }
-
-    public boolean isQueryMultipleRewritable() {
-        return isQueryMultipleRewritable;
-    }
-
-    public boolean isRewriteType() {
-        return rewriteType;
-    }
-
-    public int getParamCount() {
-        return paramCount;
-    }
-
     /**
      * Separate query in a String list and set flag isQueryMultipleRewritable.
      * The resulting string list is separed by ? that are not in comments.
      * isQueryMultipleRewritable flag is set if query can be rewrite in one query
      * (all case but if using "-- comment").
      * example for query :
-     *    "INSERT INTO tableName(id, name) VALUES (?, ?)"
+     * "INSERT INTO tableName(id, name) VALUES (?, ?)"
      * result list will be :
-     *    {"INSERT INTO tableName(id, name) VALUES (",
-     *    ", ",
-     *    ")"}
+     * {"INSERT INTO tableName(id, name) VALUES (",
+     * ", ",
+     * ")"}
      *
-     * @param queryString query
+     * @param queryString        query
      * @param noBackslashEscapes escape mode
      * @return ClientPrepareResult
      */
@@ -132,7 +108,7 @@ public class ClientPrepareResult implements PrepareResult {
                 char car = query[i];
                 switch (car) {
                     case '*':
-                        if (state == LexState.Normal && lastChar == '/')  state = LexState.SlashStarComment;
+                        if (state == LexState.Normal && lastChar == '/') state = LexState.SlashStarComment;
                         break;
 
                     case '/':
@@ -231,7 +207,7 @@ public class ClientPrepareResult implements PrepareResult {
     /**
      * Valid that query is valid (no ending semi colon, or end-of line comment ).
      *
-     * @param queryString query
+     * @param queryString        query
      * @param noBackslashEscapes escape
      * @return valid flag
      */
@@ -251,7 +227,7 @@ public class ClientPrepareResult implements PrepareResult {
             char car = query[i];
             switch (car) {
                 case '*':
-                    if (state == LexState.Normal && lastChar == '/')  state = LexState.SlashStarComment;
+                    if (state == LexState.Normal && lastChar == '/') state = LexState.SlashStarComment;
                     break;
 
                 case '/':
@@ -328,36 +304,36 @@ public class ClientPrepareResult implements PrepareResult {
     /**
      * Separate query in a String list and set flag isQueryMultiValuesRewritable
      * The parameters "?" (not in comments) emplacements are to be known.
-     *
+     * <p>
      * The only rewritten queries follow these notation:
      * INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name [PARTITION (partition_list)] [(col,...)]
      * {VALUES | VALUE} (...) [ ON DUPLICATE KEY UPDATE col=expr [, col=expr] ... ]
      * With expr without parameter.
-     *
+     * <p>
      * INSERT ... SELECT will not be rewritten.
-     *
+     * <p>
      * String list :
-     *
-     *  - pre value part
-     *  - After value and first parameter part
-     *  - for each parameters :
-     *       - part after parameter and before last parenthesis
-     *  - Last query part
-     *
+     * <p>
+     * - pre value part
+     * - After value and first parameter part
+     * - for each parameters :
+     * - part after parameter and before last parenthesis
+     * - Last query part
+     * <p>
      * example : INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE col2=col2+10
-     *
-     *  - pre value part : INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES
-     *  - after value part : " (9 "
-     *  - part after parameter 1: ", 5,"
-     *     - ", 5,"
-     *     - ",8)"
-     *  - last part : ON DUPLICATE KEY UPDATE col2=col2+10
-     *
+     * <p>
+     * - pre value part : INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES
+     * - after value part : " (9 "
+     * - part after parameter 1: ", 5,"
+     * - ", 5,"
+     * - ",8)"
+     * - last part : ON DUPLICATE KEY UPDATE col2=col2+10
+     * <p>
      * With 2 series of parameters, this query will be rewritten like
      * [INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES][ (9, param0_1, 5, param0_2, 8)][, (9, param1_1, 5, param1_2, 8)][ ON DUPLICATE
      * KEY UPDATE col2=col2+10]
      *
-     * @param queryString query String
+     * @param queryString        query String
      * @param noBackslashEscapes must backslash be escaped.
      * @return List of query part.
      */
@@ -397,7 +373,7 @@ public class ClientPrepareResult implements PrepareResult {
                 char car = query[i];
                 switch (car) {
                     case '*':
-                        if (state == LexState.Normal && lastChar == '/')  state = LexState.SlashStarComment;
+                        if (state == LexState.Normal && lastChar == '/') state = LexState.SlashStarComment;
                         break;
                     case '/':
                         if (state == LexState.SlashStarComment && lastChar == '*') {
@@ -591,6 +567,30 @@ public class ClientPrepareResult implements PrepareResult {
         }
     }
 
+    public String getSql() {
+        return sql;
+    }
+
+    public List<byte[]> getQueryParts() {
+        return queryParts;
+    }
+
+    public boolean isQueryMultiValuesRewritable() {
+        return isQueryMultiValuesRewritable;
+    }
+
+    public boolean isQueryMultipleRewritable() {
+        return isQueryMultipleRewritable;
+    }
+
+    public boolean isRewriteType() {
+        return rewriteType;
+    }
+
+    public int getParamCount() {
+        return paramCount;
+    }
+
     enum LexState {
         Normal, /* inside  query */
         String, /* inside string */
@@ -599,5 +599,5 @@ public class ClientPrepareResult implements PrepareResult {
         Parameter, /* parameter placeholder found */
         EOLComment, /* # comment, or // comment, or -- comment */
         Backtick /* found backtick */
-    }    
+    }
 }

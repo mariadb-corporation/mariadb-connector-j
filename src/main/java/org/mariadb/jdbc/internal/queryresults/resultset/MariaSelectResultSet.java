@@ -55,8 +55,8 @@ import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.packet.Packet;
+import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.packet.result.*;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -75,12 +75,14 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.*;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.sql.Date;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
@@ -88,21 +90,20 @@ import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 @SuppressWarnings("deprecation")
 public class MariaSelectResultSet implements ResultSet {
-    private static Logger logger = LoggerFactory.getLogger(MariaSelectResultSet.class);
     public static final MariaSelectResultSet EMPTY = createEmptyResultSet();
-
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
+    private static final String zeroTimestamp = "0000-00-00 00:00:00";
+    private static final String zeroDate = "0000-00-00";
     private static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.0+$");
-
+    private static Logger logger = LoggerFactory.getLogger(MariaSelectResultSet.class);
+    private boolean callableResult;
     private Protocol protocol;
     private ReadPacketFetcher packetFetcher;
     private MariaDbInputStream inputStream;
-
     private MariaDbStatement statement;
     private RowPacket rowPacket;
     private ColumnInformation[] columnsInformation;
-
     private byte[] lastReusableArray = null;
     private boolean isEof;
     private boolean isBinaryEncoded;
@@ -121,19 +122,18 @@ public class MariaSelectResultSet implements ResultSet {
     private Options options;
     private boolean returnTableAlias;
     private boolean isClosed;
-    public boolean callableResult;
 
     /**
      * Create Streaming resultset.
      *
-     * @param columnInformation   column information
-     * @param statement           statement
-     * @param protocol            current protocol
-     * @param fetcher             stream fetcher
-     * @param isBinaryEncoded     is binary protocol ?
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param fetchSize           current fetch size
+     * @param columnInformation          column information
+     * @param statement                  statement
+     * @param protocol                   current protocol
+     * @param fetcher                    stream fetcher
+     * @param isBinaryEncoded            is binary protocol ?
+     * @param resultSetScrollType        one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                                   <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param fetchSize                  current fetch size
      * @param isCanHaveCallableResultset is it from a callableStatement ?
      */
     public MariaSelectResultSet(ColumnInformation[] columnInformation, MariaDbStatement statement, Protocol protocol,
@@ -172,6 +172,7 @@ public class MariaSelectResultSet implements ResultSet {
         this.rowPointer = -1;
         this.callableResult = isCanHaveCallableResultset;
     }
+
 
     /**
      * Create filled resultset.
@@ -245,7 +246,6 @@ public class MariaSelectResultSet implements ResultSet {
         }
         return new MariaSelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
     }
-
 
     /**
      * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData, (one example is
@@ -370,7 +370,6 @@ public class MariaSelectResultSet implements ResultSet {
         streaming = false;
     }
 
-
     private void nextStreamingValue() throws IOException, QueryException {
 
         resultSet.clear();
@@ -399,7 +398,9 @@ public class MariaSelectResultSet implements ResultSet {
             //read directly from stream to avoid creating byte array and copy data afterward.
 
             int read = inputStream.read() & 0xff;
-            if (logger.isTraceEnabled()) logger.trace("read packet data(part):0x" + Integer.valueOf(String.valueOf(read), 16));
+            if (logger.isTraceEnabled()) {
+                logger.trace("read packet data(part):0x" + Integer.valueOf(String.valueOf(read), 16));
+            }
             int remaining = length - 1;
 
             if (read == 255) { //ERROR packet
@@ -425,7 +426,7 @@ public class MariaSelectResultSet implements ResultSet {
                 //is sending a bad "more result" flag (without setting more packet to true)
                 //so force the value, since this will corrupt connection.
                 protocol.setMoreResults(callableResult
-                        || (((buffer.buf[2] & 0xff) + ((buffer.buf[3] & 0xff) << 8)) & ServerStatus.MORE_RESULTS_EXISTS) != 0,
+                                || (((buffer.buf[2] & 0xff) + ((buffer.buf[3] & 0xff) << 8)) & ServerStatus.MORE_RESULTS_EXISTS) != 0,
                         isBinaryEncoded);
                 if (!protocol.hasMoreResults()) {
                     if (protocol.getActiveStreamingResult() == this) protocol.setActiveStreamingResult(null);
@@ -474,7 +475,6 @@ public class MariaSelectResultSet implements ResultSet {
         return true;
     }
 
-
     /**
      * Close resultset.
      */
@@ -503,7 +503,9 @@ public class MariaSelectResultSet implements ResultSet {
                             protocol.setHasWarnings(endOfFilePacket.getWarningCount() > 0);
                             protocol.setMoreResults((endOfFilePacket.getStatusFlags() & ServerStatus.MORE_RESULTS_EXISTS) != 0, isBinaryEncoded);
                             if (!protocol.hasMoreResults()) {
-                                if (protocol.getActiveStreamingResult() == this) protocol.setActiveStreamingResult(null);
+                                if (protocol.getActiveStreamingResult() == this) {
+                                    protocol.setActiveStreamingResult(null);
+                                }
                             }
                             lastReusableArray = null;
                             isEof = true;
@@ -599,7 +601,6 @@ public class MariaSelectResultSet implements ResultSet {
             throw new SQLException(message, exceptionCode.sqlState);
         }
     }
-
 
     @Override
     public SQLWarning getWarnings() throws SQLException {
@@ -936,7 +937,7 @@ public class MariaSelectResultSet implements ResultSet {
             case DECIMAL:
             case OLDDECIMAL:
                 BigDecimal bigDecimal = getBigDecimal(rawBytes, columnInfo);
-                return (bigDecimal == null ) ? null : bigDecimal.toString();
+                return (bigDecimal == null) ? null : bigDecimal.toString();
             case GEOMETRY:
                 return new String(rawBytes);
             case NULL:
@@ -978,7 +979,6 @@ public class MariaSelectResultSet implements ResultSet {
     public int getInt(String columnLabel) throws SQLException {
         return getInt(findColumn(columnLabel));
     }
-
 
     /**
      * Get int from raw data.
@@ -1205,14 +1205,12 @@ public class MariaSelectResultSet implements ResultSet {
         return getDouble(findColumn(columnLabel));
     }
 
-
     /**
      * {inheritDoc}.
      */
     public double getDouble(int columnIndex) throws SQLException {
         return getDouble(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1]);
     }
-
 
     /**
      * Get double value from raw data.
@@ -1303,7 +1301,6 @@ public class MariaSelectResultSet implements ResultSet {
     public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
         return getBigDecimal(findColumn(columnLabel));
     }
-
 
     /**
      * Get BigDecimal from rax data.
@@ -1412,7 +1409,6 @@ public class MariaSelectResultSet implements ResultSet {
         return getDate(findColumn(columnLabel), cal);
     }
 
-
     /**
      * Get date from raw data.
      *
@@ -1495,7 +1491,6 @@ public class MariaSelectResultSet implements ResultSet {
     public Time getTime(String columnLabel) throws SQLException {
         return getTime(findColumn(columnLabel));
     }
-
 
     /**
      * {inheritDoc}.
@@ -1581,7 +1576,6 @@ public class MariaSelectResultSet implements ResultSet {
     public Timestamp getTimestamp(String columnLabel) throws SQLException {
         return getTimestamp(findColumn(columnLabel));
     }
-
 
     /**
      * {inheritDoc}.
@@ -1740,7 +1734,6 @@ public class MariaSelectResultSet implements ResultSet {
         return getObject(findColumn(columnLabel));
     }
 
-
     /**
      * {inheritDoc}.
      */
@@ -1898,7 +1891,6 @@ public class MariaSelectResultSet implements ResultSet {
         }
         throw new RuntimeException(columnInfo.getType().toString());
     }
-
 
     /**
      * {inheritDoc}.
@@ -2754,7 +2746,6 @@ public class MariaSelectResultSet implements ResultSet {
         return getBoolean(findColumn(columnLabel));
     }
 
-
     /**
      * Get boolean value from raw data.
      *
@@ -3015,7 +3006,6 @@ public class MariaSelectResultSet implements ResultSet {
         return (negative ? "-" : "") + (hourString + ":" + minuteString + ":" + secondString + "." + microsecondString);
     }
 
-
     private void rangeCheck(Object className, long minValue, long maxValue, long value, ColumnInformation columnInfo) throws SQLException {
         if (value < minValue || value > maxValue) {
             throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value + " is not in "
@@ -3050,7 +3040,6 @@ public class MariaSelectResultSet implements ResultSet {
         }
         return value;
     }
-
 
     private byte parseByte(byte[] rawBytes, ColumnInformation columnInfo) throws SQLException {
         try {
@@ -3169,7 +3158,6 @@ public class MariaSelectResultSet implements ResultSet {
                     + " is not in Short range", "22003", 1264);
         }
     }
-
 
     private int parseInt(byte[] rawBytes, ColumnInformation columnInfo) throws SQLException {
         try {
@@ -3362,7 +3350,6 @@ public class MariaSelectResultSet implements ResultSet {
 
     }
 
-
     private Date binaryDate(byte[] rawBytes, ColumnInformation columnInfo, Calendar cal) throws ParseException {
         switch (columnInfo.getType()) {
             case TIMESTAMP:
@@ -3461,7 +3448,6 @@ public class MariaSelectResultSet implements ResultSet {
         }
     }
 
-
     private Timestamp binaryTimestamp(byte[] rawBytes, ColumnInformation columnInfo, Calendar cal) throws ParseException {
         if (rawBytes.length == 0) {
             return null;
@@ -3555,9 +3541,9 @@ public class MariaSelectResultSet implements ResultSet {
         return nanos;
     }
 
-
     /**
      * Get inputStream value from raw data.
+     *
      * @param rawBytes rowdata
      * @return inputStream
      */
@@ -3567,9 +3553,6 @@ public class MariaSelectResultSet implements ResultSet {
         }
         return new ByteArrayInputStream(new String(rawBytes, StandardCharsets.UTF_8).getBytes());
     }
-
-    static final String zeroTimestamp = "0000-00-00 00:00:00";
-    static final String zeroDate = "0000-00-00";
 
     /**
      * Is data null.

@@ -55,6 +55,6 @@ import org.mariadb.jdbc.internal.util.dao.QueryException;
 import java.io.IOException;
 
 
-public interface InterfaceAuthSwitchSendResponsePacket extends InterfaceSendPacket{
+public interface InterfaceAuthSwitchSendResponsePacket extends InterfaceSendPacket {
     void handleResultPacket(ReadPacketFetcher packetFetcher) throws QueryException, IOException;
 }

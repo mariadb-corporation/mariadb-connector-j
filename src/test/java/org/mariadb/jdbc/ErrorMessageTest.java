@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -15,6 +14,7 @@ public class ErrorMessageTest extends BaseTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -100,7 +100,7 @@ public class ErrorMessageTest extends BaseTest {
         } catch (SQLException sqle) {
             assertTrue("message : " + sqle.getMessage(), sqle.getMessage().contains(
                     "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
-                    + "['more than 10 characters to provoc error',200]"));
+                            + "['more than 10 characters to provoc error',200]"));
         }
     }
 

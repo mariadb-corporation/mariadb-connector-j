@@ -60,7 +60,9 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
-import java.io.*;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
 

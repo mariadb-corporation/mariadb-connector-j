@@ -67,8 +67,9 @@ public class TimeParameter implements ParameterHolder, Cloneable {
 
     /**
      * Constructor.
-     * @param time time to write
-     * @param cal session calendar
+     *
+     * @param time              time to write
+     * @param cal               session calendar
      * @param fractionalSeconds must fractional seconds be send.
      */
     public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds) {
@@ -91,6 +92,7 @@ public class TimeParameter implements ParameterHolder, Cloneable {
 
     /**
      * Write time parameter to outputStream without checking buffer size.
+     *
      * @param os the stream to write to
      */
     public void writeUnsafeTo(final PacketOutputStream os) {
@@ -116,6 +118,7 @@ public class TimeParameter implements ParameterHolder, Cloneable {
 
     /**
      * Write time in binary format.
+     *
      * @param writeBuffer write buffer
      */
     public void writeBinary(final PacketOutputStream writeBuffer) {

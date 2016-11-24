@@ -10,13 +10,12 @@ import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class DateTest extends BaseTest {
     /**
      * Initialization.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -48,6 +47,7 @@ public class DateTest extends BaseTest {
 
     /**
      * Date testing.
+     *
      * @param useLegacy use legacy client side timezone or server side timezone.
      * @throws SQLException exception
      */
@@ -309,7 +309,7 @@ public class DateTest extends BaseTest {
         checkResult(rs, currentTimeStamp, cal, dateWithoutTime, zeroTime);
 
         PreparedStatement pstmt = sharedConnection.prepareStatement("select * from timestampAsDate where 1 = ?");
-        pstmt.setInt(1,1);
+        pstmt.setInt(1, 1);
         pstmt.addBatch();
         rs = pstmt.executeQuery();
         checkResult(rs, currentTimeStamp, cal, dateWithoutTime, zeroTime);

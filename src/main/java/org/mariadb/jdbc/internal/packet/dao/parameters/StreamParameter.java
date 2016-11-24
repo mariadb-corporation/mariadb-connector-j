@@ -55,10 +55,7 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 
 public class StreamParameter implements ParameterHolder {
@@ -68,8 +65,9 @@ public class StreamParameter implements ParameterHolder {
 
     /**
      * Constructor.
-     * @param is stream to write
-     * @param length max length to write (if null the whole stream will be send)
+     *
+     * @param is                 stream to write
+     * @param length             max length to write (if null the whole stream will be send)
      * @param noBackslashEscapes must backslash be escape
      */
     public StreamParameter(InputStream is, long length, boolean noBackslashEscapes) {
@@ -119,6 +117,7 @@ public class StreamParameter implements ParameterHolder {
 
     /**
      * Write stream in binary format.
+     *
      * @param os database outputStream
      * @throws IOException if any error occur when reader stream
      */

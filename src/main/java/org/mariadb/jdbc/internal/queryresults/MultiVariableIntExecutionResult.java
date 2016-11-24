@@ -9,12 +9,12 @@ import java.util.*;
 
 public class MultiVariableIntExecutionResult implements MultiExecutionResult {
 
+    public Deque<ExecutionResult> cachedExecutionResults;
     private MariaDbStatement statement = null;
     private boolean moreResultAvailable;
     private int fetchSize;
     private boolean selectPossible;
     private boolean canHaveCallableResultset;
-    public Deque<ExecutionResult> cachedExecutionResults;
     private MariaSelectResultSet resultSet = null;
     private List<Long> insertId;
     private List<Integer> affectedRows;
@@ -23,9 +23,9 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
     /**
      * Constructor. Creating resultSet data with size according to datas.
      *
-     * @param statement current statement
-     * @param size      initial data size
-     * @param fetchSize resultet fetch size
+     * @param statement      current statement
+     * @param size           initial data size
+     * @param fetchSize      resultet fetch size
      * @param selectPossible is select command possible
      */
     public MultiVariableIntExecutionResult(MariaDbStatement statement, int size, int fetchSize, boolean selectPossible) {
@@ -67,6 +67,7 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
 
     /**
      * Get insert ids.
+     *
      * @return insert ids results
      */
     public long[] getInsertIds() {
@@ -80,6 +81,7 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
 
     /**
      * Get update array.
+     *
      * @return update array.
      */
     public int[] getAffectedRows() {
@@ -101,6 +103,7 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
 
     /**
      * Add resutl information when an Exception occur during batch.
+     *
      * @param moreResultAvailable has more result flag
      */
     public void addStatsError(boolean moreResultAvailable) {
@@ -116,10 +119,11 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
 
     /**
      * Add missing information when Exception is thrown.
+     *
      * @param sendCommand send number of command
      */
     public void fixStatsError(int sendCommand) {
-        for (;this.affectedRows.size() < sendCommand;) {
+        for (; this.affectedRows.size() < sendCommand; ) {
             this.affectedRows.add(Statement.EXECUTE_FAILED);
             this.insertId.add(null);
         }
@@ -127,16 +131,16 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
 
     /**
      * Set resultSet for rewrite queries.
-     *
+     * <p>
      * INSERT INTO XX VALUES (YYY)
      * INSERT INTO XX VALUES (ZZZ)
      * is rewritten
      * INSERT INTO XX VALUES (YYY), (ZZZ)
-     *
+     * <p>
      * so modified row, will all be on the first row, or on a few rows :
      * queries will split to have query size under the max_allowed_size, so data can be on multiple rows
      *
-     * @param waitedSize  batchSize
+     * @param waitedSize   batchSize
      * @param hasException has exception
      * @return affected rows
      */
@@ -158,7 +162,9 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
             int affectedRow = iterator.next().intValue();
             for (int i = 0; i < affectedRow; i++) arr[counter++] = baseResult;
         }
-        for (;counter < realSize;) arr[counter++] = hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO;
+        for (; counter < realSize; ) {
+            arr[counter++] = hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO;
+        }
         return arr;
     }
 
@@ -168,11 +174,10 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
      * Problem is rewrite queries cannot exceed max_allowed_packet size.
      * so when sending many packet, driver must reconstruct the insert ids according to each packet first insert ids
      * and connection AUTO_INCREMENT.
-     *
+     * <p>
      * //TODO innodb_autoinc_lock_mode if  changed to "Interleaved Lock Mode", driver cannot ensure that insert ids values.
-     *
+     * <p>
      * Id's can be reconstruct using
-     *
      *
      * @param autoIncrementIncrement connection AUTO_INCREMENT variable
      * @return insert ids array
@@ -198,26 +203,26 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
             if (affectedRow == Statement.EXECUTE_FAILED) break;
             for (int i = 0; i < affectedRow; i++) arr[counter++] = id + i * autoIncrementIncrement;
         }
-        for (;counter < realSize;) arr[counter++] = Statement.EXECUTE_FAILED;
+        for (; counter < realSize; ) arr[counter++] = Statement.EXECUTE_FAILED;
         return arr;
     }
 
     /**
      * Set update resultSet right on multiple rewrite.
-     *
+     * <p>
      * INSERT XXXX
      * INSERT XXXX
      * is rewritten
      * INSERT XXXX;INSERT XXXX
-     *
+     * <p>
      * So affected rows and insert Id are separate in as many okPacket.
      *
-     * @param waitedSize  batchSize
+     * @param waitedSize   batchSize
      * @param hasException has exception
      */
     public int[] updateResultsMultiple(int waitedSize, boolean hasException) {
         if (hasException) {
-            for (int i = affectedRows.size() ; i < waitedSize; i++) {
+            for (int i = affectedRows.size(); i < waitedSize; i++) {
                 addStatsError();
             }
         }

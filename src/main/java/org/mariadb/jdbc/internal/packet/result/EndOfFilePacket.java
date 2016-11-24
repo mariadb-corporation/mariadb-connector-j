@@ -59,9 +59,10 @@ public class EndOfFilePacket {
 
     /**
      * Read EOF stream.
+     *
      * @param buffer stream rawBytes
      */
-    public EndOfFilePacket(Buffer buffer)  {
+    public EndOfFilePacket(Buffer buffer) {
         buffer.skipByte();
         warningCount = buffer.readShort();
         statusFlags = buffer.readShort();

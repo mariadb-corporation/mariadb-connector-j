@@ -60,6 +60,7 @@ public class OkPacket {
 
     /**
      * Read Ok stream result.
+     *
      * @param buffer current stream's rawBytes
      */
     public OkPacket(Buffer buffer) {

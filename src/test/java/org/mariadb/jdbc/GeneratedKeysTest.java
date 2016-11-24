@@ -11,6 +11,7 @@ import static org.junit.Assert.*;
 public class GeneratedKeysTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -77,7 +78,7 @@ public class GeneratedKeysTest extends BaseTest {
         preparedStatement.execute();
         ResultSet rs = preparedStatement.getGeneratedKeys();
         rs.next();
-        Assert.assertEquals(65500,rs.getInt(1));
+        Assert.assertEquals(65500, rs.getInt(1));
     }
 
 }

@@ -55,6 +55,7 @@ import java.util.concurrent.TimeUnit;
 public class FixedSizedSchedulerImpl extends ScheduledThreadPoolExecutor {
     /**
      * Create scheduler with fixed size.
+     *
      * @param corePoolSize core pool size
      */
     public FixedSizedSchedulerImpl(int corePoolSize) {

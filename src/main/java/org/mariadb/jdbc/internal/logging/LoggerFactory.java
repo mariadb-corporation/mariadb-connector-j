@@ -1,19 +1,17 @@
 package org.mariadb.jdbc.internal.logging;
 
-import org.mariadb.jdbc.internal.util.dao.QueryException;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 public class LoggerFactory {
-    public static Boolean hasToLog = null;
     public static final Logger NO_LOGGER = new NoLogger();
-
+    public static Boolean hasToLog = null;
     public static Class loggerClass = null;
     public static Method method = null;
 
     /**
      * Initialize factory.
+     *
      * @param mustLog indicate if must initiate Slf4j log
      */
     @SuppressWarnings("unchecked")
@@ -38,6 +36,7 @@ public class LoggerFactory {
 
     /**
      * Initialize logger.
+     *
      * @param clazz initiator class
      * @return logger
      */

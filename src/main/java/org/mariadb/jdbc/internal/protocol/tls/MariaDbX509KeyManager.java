@@ -1,4 +1,3 @@
-
 /*
 MariaDB Client for Java
 
@@ -72,7 +71,7 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
      * Creates Key manager.
      *
      * @param keyStore keyStore (must have been initialized)
-     * @param pwd keyStore password
+     * @param pwd      keyStore password
      * @throws KeyStoreException if keyStore hasn't been initialized.
      */
     public MariaDbX509KeyManager(KeyStore keyStore, char[] pwd) throws KeyStoreException {
@@ -94,7 +93,7 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
 
     @Override
     public String[] getClientAliases(String keyType, Principal[] issuers) {
-        List<String> accurateAlias = searchAccurateAliases(new String[] { keyType }, issuers);
+        List<String> accurateAlias = searchAccurateAliases(new String[]{keyType}, issuers);
         if (accurateAlias.size() == 0) return null;
         return accurateAlias.toArray(new String[accurateAlias.size()]);
     }
@@ -134,14 +133,14 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
      * Search aliases corresponding to algorithms and issuers.
      *
      * @param keyTypes list of algorithms
-     * @param issuers list of issuers;
+     * @param issuers  list of issuers;
      * @return list of corresponding aliases
      */
     private ArrayList<String> searchAccurateAliases(String[] keyTypes, Principal[] issuers) {
         if (keyTypes == null || keyTypes.length == 0) return null;
 
         ArrayList<String> accurateAliases = new ArrayList<>();
-        for (Map.Entry<String, KeyStore.PrivateKeyEntry> mapEntry  : privateKeyHash.entrySet()) {
+        for (Map.Entry<String, KeyStore.PrivateKeyEntry> mapEntry : privateKeyHash.entrySet()) {
 
             Certificate[] certs = mapEntry.getValue().getCertificateChain();
             String alg = certs[0].getPublicKey().getAlgorithm();
@@ -149,7 +148,8 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
             for (String keyType : keyTypes) {
                 if (alg.equals(keyType)) {
                     if (issuers != null && issuers.length != 0) {
-                        checkLoop: for (Certificate cert : certs) {
+                        checkLoop:
+                        for (Certificate cert : certs) {
                             if (cert instanceof X509Certificate) {
                                 X500Principal certificateIssuer = ((X509Certificate) cert).getIssuerX500Principal();
                                 for (Principal issuer : issuers) {

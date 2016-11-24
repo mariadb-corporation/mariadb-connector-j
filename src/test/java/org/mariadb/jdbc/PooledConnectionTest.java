@@ -3,7 +3,8 @@ package org.mariadb.jdbc;
 import org.junit.Assert;
 import org.junit.Test;
 
-import javax.sql.*;
+import javax.sql.ConnectionPoolDataSource;
+import javax.sql.PooledConnection;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;

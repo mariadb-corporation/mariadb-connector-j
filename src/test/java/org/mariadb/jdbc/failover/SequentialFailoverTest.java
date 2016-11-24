@@ -3,12 +3,13 @@ package org.mariadb.jdbc.failover;
 import org.junit.*;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.threadly.test.concurrent.TestableScheduler;
 
-import java.sql.*;
-import java.util.Map;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -20,6 +21,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -30,6 +32,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @Before
@@ -90,7 +93,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             //check blacklist shared
             scheduler.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklistKeys()));
             scheduler.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklistKeys()));
-            
+
             // deterministically execute CheckBlacklists
             scheduler.tick();
         } catch (Throwable e) {

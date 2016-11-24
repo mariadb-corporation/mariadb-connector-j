@@ -50,11 +50,11 @@ OF SUCH DAMAGE.
 */
 
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -65,16 +65,15 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
 
 
     private static Logger logger = LoggerFactory.getLogger(AbstractMastersSlavesListener.class);
-    /* =========================== Failover variables ========================================= */
-    private volatile long secondaryHostFailNanos = 0;
-    private AtomicBoolean secondaryHostFail = new AtomicBoolean();
-
     //These reference are when failloop reconnect failing connection, but lock is already held by
     //another thread (query in progress), so switching the connection wait for the query to be finish.
     //next query will reconnect those during preExecute method, or if actual used connection failed
     //during reconnection phase.
     protected AtomicReference<Protocol> waitNewSecondaryProtocol = new AtomicReference<>();
     protected AtomicReference<Protocol> waitNewMasterProtocol = new AtomicReference<>();
+    /* =========================== Failover variables ========================================= */
+    private volatile long secondaryHostFailNanos = 0;
+    private AtomicBoolean secondaryHostFail = new AtomicBoolean();
 
     protected AbstractMastersSlavesListener(UrlParser urlParser) {
         super(urlParser);
@@ -83,8 +82,9 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
 
     /**
      * Handle failover on master or slave connection.
-     * @param method called method
-     * @param args methods parameters
+     *
+     * @param method   called method
+     * @param args     methods parameters
      * @param protocol current protocol
      * @return HandleErrorResult object to indicate if query has finally been relaunched or exception if not.
      * @throws Throwable if method with parameters doesn't exist
@@ -142,6 +142,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
 
     /**
      * Set slave connection lost variables.
+     *
      * @return true if fail wasn't seen before
      */
     public boolean setSecondaryHostFail() {

@@ -55,14 +55,14 @@ import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
+
 import java.io.EOFException;
 import java.io.IOException;
 
 public class ReadPacketFetcher {
 
-    private static Logger logger = LoggerFactory.getLogger(ReadPacketFetcher.class);
-
     public static final int AVOID_CREATE_BUFFER_LENGTH = 4096;
+    private static Logger logger = LoggerFactory.getLogger(ReadPacketFetcher.class);
     private static int maxQuerySizeToLog;
     private final MariaDbInputStream inputStream;
 
@@ -71,7 +71,8 @@ public class ReadPacketFetcher {
 
     /**
      * Reader utility to fetch mysql packet.
-     * @param is inputStream
+     *
+     * @param is                inputStream
      * @param maxQuerySizeToLog max query size to log
      */
     public ReadPacketFetcher(final MariaDbInputStream is, int maxQuerySizeToLog) {
@@ -129,7 +130,8 @@ public class ReadPacketFetcher {
 
     /**
      * Get buffer with shared array of designated length.
-     * @param length length to read
+     *
+     * @param length            length to read
      * @param lastReusableArray (optional) lastReusableArray to avoid create new array if possible
      * @return Buffer the buffer
      * @throws IOException if any
@@ -212,8 +214,8 @@ public class ReadPacketFetcher {
     public int getLastPacketSeq() {
         return inputStream.getLastPacketSeq();
     }
-    
-    
+
+
     public void close() throws IOException {
         inputStream.close();
     }

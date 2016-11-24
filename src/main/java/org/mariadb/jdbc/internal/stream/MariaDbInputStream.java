@@ -73,8 +73,8 @@ public interface MariaDbInputStream {
 
     boolean markSupported();
 
-    void setLastPacketSeq(int lastPacketSeq);
-
     int getLastPacketSeq();
+
+    void setLastPacketSeq(int lastPacketSeq);
 
 }

@@ -55,6 +55,7 @@ public class PrepareException extends QueryException {
     public PrepareException(String error) {
         super(error);
     }
+
     /**
      * Creates a Prepare exception with a message.
      *
@@ -63,13 +64,14 @@ public class PrepareException extends QueryException {
      * @param sqlState  the sqlstate
      */
     public PrepareException(final String message,
-                          final int errorCode,
-                          final String sqlState) {
+                            final int errorCode,
+                            final String sqlState) {
         super(message, errorCode, sqlState);
     }
 
     /**
      * Indicate if Exception is due to query not preparable.
+     *
      * @return is excption due because query isn't preparable
      */
     public boolean isPrepareError() {

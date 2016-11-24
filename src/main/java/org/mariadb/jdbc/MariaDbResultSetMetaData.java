@@ -49,11 +49,11 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
-import org.mariadb.jdbc.internal.MariaDbType;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -68,9 +68,10 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
 
     /**
      * Constructor.
-     * @param fieldPackets column informations
+     *
+     * @param fieldPackets         column informations
      * @param datatypeMappingFlags Data type
-     * @param returnTableAlias must return table alias or real table name
+     * @param returnTableAlias     must return table alias or real table name
      */
     public MariaDbResultSetMetaData(ColumnInformation[] fieldPackets, int datatypeMappingFlags, boolean returnTableAlias) {
         this.fieldPackets = fieldPackets;
@@ -418,7 +419,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      * @param iface a Class defining an interface.
      * @return true if this implements the interface or directly or indirectly wraps an object that does.
      * @throws SQLException if an error occurs while determining whether this is a wrapper for an object with
-     *                               the given interface.
+     *                      the given interface.
      * @since 1.6
      */
     public boolean isWrapperFor(final Class<?> iface) throws SQLException {

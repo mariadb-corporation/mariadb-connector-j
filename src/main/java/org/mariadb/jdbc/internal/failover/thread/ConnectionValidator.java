@@ -59,7 +59,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class ConnectionValidator  {
+public class ConnectionValidator {
     private static final ScheduledExecutorService fixedSizedScheduler = SchedulerServiceProviderHolder.getFixedSizeScheduler(1);
     private static final int MINIMUM_CHECK_DELAY_MILLIS = 100;
 
@@ -69,12 +69,13 @@ public class ConnectionValidator  {
 
     /**
      * Add listener to validation list.
-     * @param listener listener
+     *
+     * @param listener            listener
      * @param listenerCheckMillis schedule time
      */
     public void addListener(Listener listener, long listenerCheckMillis) {
         queue.add(listener);
-        
+
         while (true) {
             long casFrequency = currentScheduledFrequency.get();
             if (casFrequency == listenerCheckMillis || (casFrequency != -1 && casFrequency <= MINIMUM_CHECK_DELAY_MILLIS)) {
@@ -104,13 +105,14 @@ public class ConnectionValidator  {
 
     /**
      * Remove listener to validation list.
+     *
      * @param listener listener
      */
     public void removeListener(Listener listener) {
         queue.remove(listener);
-        
+
         long casFrequency;
-        while ((casFrequency = currentScheduledFrequency.get()) > 0 
+        while ((casFrequency = currentScheduledFrequency.get()) > 0
                 && queue.isEmpty()) {   // must check queue count after casFrequency
             if (currentScheduledFrequency.compareAndSet(casFrequency, -1)) {
                 break;
@@ -130,7 +132,7 @@ public class ConnectionValidator  {
                 }
             }
         }
-        
+
         private void doRun() {
             Listener listener;
             Iterator<Listener> tmpQueue = queue.iterator();

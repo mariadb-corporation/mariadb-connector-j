@@ -303,15 +303,14 @@ public enum DefaultOptions {
      * File path of the trustStore file (similar to java System property "javax.net.ssl.trustStore").
      * Use the specified keystore for trusted root certificates.
      * When set, overrides serverSslCert.
-     *
+     * <p>
      * (legacy alias trustCertificateKeyStoreUrl)
-     *
      */
     TRUST_CERTIFICATE_KEYSTORE_URL("trustStore", "1.3.0"),
 
     /**
      * Password for the trusted root certificate file (similar to java System property "javax.net.ssl.trustStorePassword").
-     *
+     * <p>
      * (legacy alias trustCertificateKeyStorePassword)
      */
     TRUST_CERTIFICATE_KEYSTORE_PASSWORD("trustStorePassword", "1.3.0"),
@@ -393,7 +392,7 @@ public enum DefaultOptions {
     /**
      * Enable log information. require Slf4j version &gt; 1.4 dependency.
      * log informations :
-     *  - info : query log
+     * - info : query log
      * default to false.
      */
     LOGGING("log", Boolean.FALSE, "1.5.0"),
@@ -477,9 +476,10 @@ public enum DefaultOptions {
 
     /**
      * Add a property (name + value) to current session options
-     * @param haMode current haMode.
-     * @param name property name
-     * @param value new property value
+     *
+     * @param haMode  current haMode.
+     * @param name    property name
+     * @param value   new property value
      * @param options session options.
      * @return new session options.
      */
@@ -645,6 +645,7 @@ public enum DefaultOptions {
 
     /**
      * Get properties from session options.
+     *
      * @param options session options.
      * @return properties
      */

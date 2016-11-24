@@ -64,10 +64,11 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
     /**
      * Specific implementation of CallableStatement to handle function call, represent by call like
      * {?= call procedure-name[(arg1,arg2, ...)]}.
-     * @param connection current connection
-     * @param databaseName database name
+     *
+     * @param connection    current connection
+     * @param databaseName  database name
      * @param procedureName function name
-     * @param arguments function args
+     * @param arguments     function args
      * @throws SQLException exception
      */
     public MariaDbFunctionStatement(MariaDbConnection connection, String databaseName, String procedureName, String arguments) throws SQLException {
@@ -102,8 +103,8 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
      * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements
      * that return nothing
      * @throws SQLException if a database access error occurs; this method is called on a closed
-     *                               <code>PreparedStatement</code> or the SQL statement returns a
-     *                               <code>ResultSet</code> object
+     *                      <code>PreparedStatement</code> or the SQL statement returns a
+     *                      <code>ResultSet</code> object
      */
     @Override
     public int executeUpdate() throws SQLException {

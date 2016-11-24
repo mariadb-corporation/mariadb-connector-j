@@ -198,7 +198,8 @@ public class MastersSlavesProtocol extends MasterProtocol {
 
     /**
      * Get new instance of MastersSlavesProtocol.
-     * @param proxy proxy
+     *
+     * @param proxy     proxy
      * @param urlParser connection string Object.
      * @return a new MastersSlavesProtocol instance
      */

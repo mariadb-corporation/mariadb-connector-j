@@ -51,11 +51,10 @@ package org.mariadb.jdbc.internal.failover;
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
@@ -78,7 +77,7 @@ public interface Listener {
 
     HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable;
 
-    Object invoke(Method method, Object[] args, Protocol specificProtocol) throws Throwable ;
+    Object invoke(Method method, Object[] args, Protocol specificProtocol) throws Throwable;
 
     Object invoke(Method method, Object[] args) throws Throwable;
 

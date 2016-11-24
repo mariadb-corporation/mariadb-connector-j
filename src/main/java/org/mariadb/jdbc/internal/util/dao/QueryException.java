@@ -109,10 +109,11 @@ public class QueryException extends Exception {
         this.errorCode = errorCode;
         this.sqlState = sqlState.getSqlState();
     }
+
     /**
      * Creates a query exception with a message.
      *
-     * @param message   the message
+     * @param message       the message
      * @param exceptionCode exceptionCode
      */
     public QueryException(final String message, ExceptionCode exceptionCode) {
@@ -169,6 +170,7 @@ public class QueryException extends Exception {
 
     /**
      * Indicate if Exception is due to query not preparable.
+     *
      * @return is excption due because query isn't preparable
      */
     public boolean isPrepareError() {

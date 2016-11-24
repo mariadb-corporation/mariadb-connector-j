@@ -52,8 +52,6 @@ package org.mariadb.jdbc.internal.stream;
 
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.util.Utils;
 
 import java.io.BufferedInputStream;
 import java.io.EOFException;
@@ -72,6 +70,7 @@ public class MariaDbBufferedInputStream extends BufferedInputStream implements M
     /**
      * Permit to return mysql packet header length super fast if already in cache.
      * (no System.arraycopy)
+     *
      * @return headerLength.
      * @throws IOException id stream throw error
      */

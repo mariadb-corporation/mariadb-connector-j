@@ -48,12 +48,12 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWIS
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
 OF SUCH DAMAGE.
 */
+
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.logging.ProtocolLoggingProxy;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
@@ -71,7 +71,7 @@ import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 
 
@@ -80,7 +80,8 @@ public class Utils {
 
     /**
      * Escape String.
-     * @param value value to escape
+     *
+     * @param value              value to escape
      * @param noBackslashEscapes must backslash be escaped
      * @return escaped string.
      */
@@ -302,7 +303,8 @@ public class Utils {
 
     /**
      * Escape sql String
-     * @param sql initial sql
+     *
+     * @param sql                initial sql
      * @param noBackslashEscapes must backslash be escape
      * @return escaped sql string
      * @throws SQLException if escape sequence is incorrect.
@@ -439,25 +441,25 @@ public class Utils {
      * if a failover option is precised, protocol will be proxied so that any connection error will be handle directly.
      *
      * @param urlParser urlParser corresponding to connection url string.
-     * @param lock lock to handle thread synchronisation
+     * @param lock      lock to handle thread synchronisation
      * @return protocol
      * @throws QueryException if any error occur during connection
-     * @throws SQLException if any error occur during connection
+     * @throws SQLException   if any error occur during connection
      */
     public static Protocol retrieveProxy(final UrlParser urlParser, final ReentrantLock lock) throws QueryException, SQLException {
         Protocol protocol;
         switch (urlParser.getHaMode()) {
             case AURORA:
                 return getProxyLoggingIfNeeded(urlParser, (Protocol) Proxy.newProxyInstance(
-                            AuroraProtocol.class.getClassLoader(),
-                            new Class[]{Protocol.class},
-                            new FailoverProxy(new AuroraListener(urlParser), lock)));
+                        AuroraProtocol.class.getClassLoader(),
+                        new Class[]{Protocol.class},
+                        new FailoverProxy(new AuroraListener(urlParser), lock)));
             case REPLICATION:
                 return getProxyLoggingIfNeeded(urlParser,
                         (Protocol) Proxy.newProxyInstance(
-                        MastersSlavesProtocol.class.getClassLoader(),
-                        new Class[]{Protocol.class},
-                        new FailoverProxy(new MastersSlavesListener(urlParser), lock)));
+                                MastersSlavesProtocol.class.getClassLoader(),
+                                new Class[]{Protocol.class},
+                                new FailoverProxy(new MastersSlavesListener(urlParser), lock)));
             case FAILOVER:
             case SEQUENTIAL:
                 return getProxyLoggingIfNeeded(urlParser, (Protocol) Proxy.newProxyInstance(
@@ -480,6 +482,7 @@ public class Utils {
         }
         return protocol;
     }
+
     /**
      * Get timezone from Id.
      * This differ from java implementation : by default, if timezone Id is unknown, java return GMT timezone.
@@ -501,8 +504,9 @@ public class Utils {
 
     /**
      * Create socket accordingly to options.
+     *
      * @param urlParser urlParser
-     * @param host hostName ( mandatory only for named pipe)
+     * @param host      hostName ( mandatory only for named pipe)
      * @return a nex socket
      * @throws IOException if connection error occur
      */
@@ -541,8 +545,8 @@ public class Utils {
     /**
      * Hexdump.
      *
-     * @param bytes byte array
-     * @param maxQuerySizeToLog  max log size
+     * @param bytes             byte array
+     * @param maxQuerySizeToLog max log size
      * @return String
      */
     public static String hexdump(byte[] bytes, int maxQuerySizeToLog) {
@@ -552,9 +556,9 @@ public class Utils {
     /**
      * Hexdump.
      *
-     * @param bytes byte array
-     * @param maxQuerySizeToLog  max log size
-     * @param offset offset
+     * @param bytes             byte array
+     * @param maxQuerySizeToLog max log size
+     * @param offset            offset
      * @return String
      */
     public static String hexdump(byte[] bytes, int maxQuerySizeToLog, int offset) {
@@ -564,17 +568,17 @@ public class Utils {
     /**
      * Hexdump.
      *
-     * @param bytes byte array
-     * @param maxQuerySizeToLog  max log size
-     * @param offset offset
-     * @param length length
+     * @param bytes             byte array
+     * @param maxQuerySizeToLog max log size
+     * @param offset            offset
+     * @param length            length
      * @return String
      */
     public static String hexdump(byte[] bytes, int maxQuerySizeToLog, int offset, int length) {
         if (bytes.length <= offset) return "";
         int dataLength = Math.min(maxQuerySizeToLog, Math.min(bytes.length - offset, length));
-        char[] hexChars = new char[ dataLength * 2];
-        for ( int j = 0; j < dataLength; j++ ) {
+        char[] hexChars = new char[dataLength * 2];
+        for (int j = 0; j < dataLength; j++) {
             int byteValue = bytes[j + offset] & 0xFF;
             hexChars[j * 2] = hexArray[byteValue >>> 4];
             hexChars[j * 2 + 1] = hexArray[byteValue & 0x0F];

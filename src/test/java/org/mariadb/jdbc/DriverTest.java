@@ -22,6 +22,7 @@ public class DriverTest extends BaseTest {
 
     /**
      * Tables initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -348,7 +349,6 @@ public class DriverTest extends BaseTest {
     }
 
 
-
     @Test
     public void testAliasReplication() throws SQLException {
         UrlParser url = UrlParser.parse("jdbc:mysql:replication://localhost/test");
@@ -412,7 +412,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void batchTest() throws SQLException {
         Assume.assumeFalse(sharedIsRewrite());
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into test_batch values (null, ?)", 
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into test_batch values (null, ?)",
                 Statement.RETURN_GENERATED_KEYS);
         ps.setString(1, "aaa");
         ps.addBatch();
@@ -544,7 +544,6 @@ public class DriverTest extends BaseTest {
     }
 
 
-
     @Test(expected = SQLIntegrityConstraintViolationException.class)
     public void testException1() throws SQLException {
         sharedConnection.createStatement().execute("insert into extest values (1)");
@@ -629,7 +628,7 @@ public class DriverTest extends BaseTest {
         assertTrue(rs.isFirst());
         rs.beforeFirst();
         assertTrue(rs.isBeforeFirst());
-        while (rs.next()){
+        while (rs.next()) {
             //just load datas.
         }
         assertTrue(rs.isAfterLast());
@@ -934,7 +933,6 @@ public class DriverTest extends BaseTest {
         rs.next();
         assertNotNull(rs.getLong("unsignedtest.a"));
     }
-
 
 
     @Test
@@ -1316,6 +1314,7 @@ public class DriverTest extends BaseTest {
 
     /**
      * CONJ-275 : Streaming resultSet with no result must not have a next() value to true.
+     *
      * @throws Exception exception
      */
     @Test

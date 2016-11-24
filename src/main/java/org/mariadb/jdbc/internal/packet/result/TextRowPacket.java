@@ -53,9 +53,7 @@ import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
-import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
 
 
 public class TextRowPacket implements RowPacket {
@@ -102,7 +100,7 @@ public class TextRowPacket implements RowPacket {
      * Read text row stream. (to fetch Resulset.next() datas)
      *
      * @param packetFetcher packetFetcher
-     * @param inputStream inputStream
+     * @param inputStream   inputStream
      * @return datas object
      * @throws IOException if any connection error occur
      */

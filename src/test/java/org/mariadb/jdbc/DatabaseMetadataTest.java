@@ -10,6 +10,7 @@ import static org.junit.Assert.*;
 public class DatabaseMetadataTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -177,19 +178,19 @@ public class DatabaseMetadataTest extends BaseTest {
         st.execute("CREATE TABLE `cus``tomer` (id INT NOT NULL, PRIMARY KEY (id))   ENGINE=INNODB");
 
         st.execute("CREATE TABLE product_order (\n"
-                        + "    no INT NOT NULL AUTO_INCREMENT,\n"
-                        + "    product_category INT NOT NULL,\n"
-                        + "    product_id INT NOT NULL,\n"
-                        + "    customer_id INT NOT NULL,\n"
-                        + "    PRIMARY KEY(no),\n"
-                        + "    INDEX (product_category, product_id),\n"
-                        + "    INDEX (customer_id),\n"
-                        + "    FOREIGN KEY (product_category, product_id)\n"
-                        + "      REFERENCES t1.product(category, id)\n"
-                        + "      ON UPDATE CASCADE ON DELETE RESTRICT,\n"
-                        + "    FOREIGN KEY (customer_id)\n"
-                        + "      REFERENCES `cus``tomer`(id)\n"
-                        + ")   ENGINE=INNODB;"
+                + "    no INT NOT NULL AUTO_INCREMENT,\n"
+                + "    product_category INT NOT NULL,\n"
+                + "    product_id INT NOT NULL,\n"
+                + "    customer_id INT NOT NULL,\n"
+                + "    PRIMARY KEY(no),\n"
+                + "    INDEX (product_category, product_id),\n"
+                + "    INDEX (customer_id),\n"
+                + "    FOREIGN KEY (product_category, product_id)\n"
+                + "      REFERENCES t1.product(category, id)\n"
+                + "      ON UPDATE CASCADE ON DELETE RESTRICT,\n"
+                + "    FOREIGN KEY (customer_id)\n"
+                + "      REFERENCES `cus``tomer`(id)\n"
+                + ")   ENGINE=INNODB;"
         );
 
 
@@ -385,7 +386,7 @@ public class DatabaseMetadataTest extends BaseTest {
         ResultSet rs = dbmd.getColumns(null, null, "tablegetcolumns", null);
 
         Assert.assertTrue(rs.next());
-        Assert.assertEquals("testj",rs.getString(1)); //TABLE_CAT
+        Assert.assertEquals("testj", rs.getString(1)); //TABLE_CAT
         Assert.assertEquals(null, rs.getString(2)); //TABLE_SCHEM
         Assert.assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
         Assert.assertEquals("a", rs.getString(4)); //COLUMN_NAME
@@ -408,7 +409,7 @@ public class DatabaseMetadataTest extends BaseTest {
         Assert.assertEquals("NO", rs.getString(24)); //IS_GENERATEDCOLUMN
 
         Assert.assertTrue(rs.next());
-        Assert.assertEquals("testj",rs.getString(1)); //TABLE_CAT
+        Assert.assertEquals("testj", rs.getString(1)); //TABLE_CAT
         Assert.assertEquals(null, rs.getString(2)); //TABLE_SCHEM
         Assert.assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
         Assert.assertEquals("b", rs.getString(4)); //COLUMN_NAME
@@ -431,7 +432,7 @@ public class DatabaseMetadataTest extends BaseTest {
         Assert.assertEquals("NO", rs.getString(24)); //IS_GENERATEDCOLUMN
 
         Assert.assertTrue(rs.next());
-        Assert.assertEquals("testj",rs.getString(1)); //TABLE_CAT
+        Assert.assertEquals("testj", rs.getString(1)); //TABLE_CAT
         Assert.assertEquals(null, rs.getString(2)); //TABLE_SCHEM
         Assert.assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
         Assert.assertEquals("c", rs.getString(4)); //COLUMN_NAME
@@ -454,7 +455,7 @@ public class DatabaseMetadataTest extends BaseTest {
         Assert.assertEquals("YES", rs.getString(24)); //IS_GENERATEDCOLUMN
 
         Assert.assertTrue(rs.next());
-        Assert.assertEquals("testj",rs.getString(1)); //TABLE_CAT
+        Assert.assertEquals("testj", rs.getString(1)); //TABLE_CAT
         Assert.assertEquals(null, rs.getString(2)); //TABLE_SCHEM
         Assert.assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
         Assert.assertEquals("d", rs.getString(4)); //COLUMN_NAME
@@ -1050,6 +1051,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
     /**
      * CONJ-381 - getProcedureColumns returns NULL as TIMESTAMP/DATETIME precision instead of 19.
+     *
      * @throws SQLException if connection error occur
      */
     @Test

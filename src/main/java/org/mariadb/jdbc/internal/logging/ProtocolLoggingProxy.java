@@ -67,20 +67,18 @@ import java.text.NumberFormat;
 import java.util.List;
 
 public class ProtocolLoggingProxy implements InvocationHandler {
-    private static Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
     private static final NumberFormat numberFormat = DecimalFormat.getInstance();
-
+    private static Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
     protected boolean profileSql;
     protected Long slowQueryThresholdNanos;
     protected int maxQuerySizeToLog;
     protected Protocol protocol;
 
-    public ProtocolLoggingProxy() { }
-
     /**
      * Constructor. Will create a proxy around protocol to log queries.
+     *
      * @param protocol protocol to proxy
-     * @param options options
+     * @param options  options
      */
     public ProtocolLoggingProxy(Protocol protocol, Options options) {
         this.protocol = protocol;
@@ -211,7 +209,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
             for (int paramNo = 0; paramNo < parameterList.size(); paramNo++) {
                 ParameterHolder[] parameters = parameterList.get(paramNo);
 
-                if (paramNo != 0 ) sb.append(",");
+                if (paramNo != 0) sb.append(",");
                 sb.append("[");
                 for (int i = 0; i < parameterLength; i++) {
                     if (i != 0) sb.append(",");
@@ -227,7 +225,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
         }
     }
 
-    private String getQueryFromPrepareParameters(PrepareResult serverPrepareResult,  ParameterHolder[] paramHolders, int parameterLength) {
+    private String getQueryFromPrepareParameters(PrepareResult serverPrepareResult, ParameterHolder[] paramHolders, int parameterLength) {
         StringBuilder sb = new StringBuilder(serverPrepareResult.getSql());
         if (paramHolders.length > 0) {
             sb.append(", parameters [");
@@ -245,7 +243,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
         ByteBuffer buffer = protocol.getWriter();
         //log first 1024 utf-8 characters
         String queryString = new String(buffer.array(), 5, Math.min(buffer.limit(), (1024 * 3) + 5));
-        if (queryString.length() > 1021 ) queryString = queryString.substring(0, 1021) + "...";
+        if (queryString.length() > 1021) queryString = queryString.substring(0, 1021) + "...";
         return queryString;
     }
 

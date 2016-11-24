@@ -72,10 +72,10 @@ public class ServerPrepareResult implements PrepareResult {
     /**
      * PrepareStatement Result object.
      *
-     * @param sql query
-     * @param statementId server statement Id.
-     * @param columns columns information
-     * @param parameters parameters information
+     * @param sql               query
+     * @param statementId       server statement Id.
+     * @param columns           columns information
+     * @param parameters        parameters information
      * @param unProxiedProtocol indicate the protocol on which the prepare has been done
      */
     public ServerPrepareResult(String sql, int statementId, ColumnInformation[] columns, ColumnInformation[] parameters,
@@ -94,7 +94,8 @@ public class ServerPrepareResult implements PrepareResult {
 
     /**
      * Update information after a failover.
-     * @param statementId new statement Id
+     *
+     * @param statementId       new statement Id
      * @param unProxiedProtocol the protocol on which the prepare has been done
      */
     public void failover(int statementId, Protocol unProxiedProtocol) {
@@ -116,6 +117,7 @@ public class ServerPrepareResult implements PrepareResult {
 
     /**
      * Increment share counter.
+     *
      * @return true if can be used (is not been deallocate).
      */
     public synchronized boolean incrementShareCounter() {

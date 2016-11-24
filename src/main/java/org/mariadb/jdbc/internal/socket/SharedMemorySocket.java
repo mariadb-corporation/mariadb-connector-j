@@ -95,6 +95,7 @@ public class SharedMemorySocket extends Socket {
 
     /**
      * Create ShareMemorySocket.
+     *
      * @param name name
      * @throws IOException exception
      */
@@ -111,9 +112,10 @@ public class SharedMemorySocket extends Socket {
 
     /**
      * Map memory
+     *
      * @param mapName map name
-     * @param mode mode
-     * @param size size
+     * @param mode    mode
+     * @param size    size
      * @return Pointer
      */
     public static Pointer mapMemory(String mapName, int mode, int size) {

@@ -61,14 +61,14 @@ public abstract class TerminatableRunnable implements Runnable {
     private final AtomicBoolean unschedule = new AtomicBoolean();
     private volatile ScheduledFuture<?> scheduledFuture = null;
 
-    protected abstract void doRun();
-
     public TerminatableRunnable(ScheduledExecutorService scheduler,
                                 long initialDelay,
                                 long delay,
                                 TimeUnit unit) {
         this.scheduledFuture = scheduler.scheduleWithFixedDelay(this, initialDelay, delay, unit);
     }
+
+    protected abstract void doRun();
 
     @Override
     public final void run() {

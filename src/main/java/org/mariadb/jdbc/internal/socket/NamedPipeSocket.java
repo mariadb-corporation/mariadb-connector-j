@@ -85,8 +85,9 @@ public class NamedPipeSocket extends Socket {
 
     /**
      * Name pipe connection.
+     *
      * @param endpoint endPoint
-     * @param timeout timeout
+     * @param timeout  timeout
      * @throws IOException exception
      */
     public void connect(SocketAddress endpoint, int timeout) throws IOException {

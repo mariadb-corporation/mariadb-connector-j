@@ -11,6 +11,7 @@ import java.sql.Statement;
 public class LocalInfileDisableTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()

@@ -102,7 +102,6 @@ public class DataTypeSignedTest extends BaseTest {
     }
 
 
-
     @Test
     public void signedMediumIntTest() throws SQLException {
         sharedConnection.createStatement().execute("insert into signedMediumIntTest values (8388607)");
@@ -331,7 +330,7 @@ public class DataTypeSignedTest extends BaseTest {
             if (decimal) {
                 if (floatingPoint) {
                     BigDecimal bd = rs.getBigDecimal(1);
-                    if (!bd.equals(new BigDecimal("1")) && !bd.equals(new BigDecimal("1.0")) ) {
+                    if (!bd.equals(new BigDecimal("1")) && !bd.equals(new BigDecimal("1.0"))) {
                         fail("getBigDecimal error : is " + bd.toString());
                     }
                     assertEquals("1.0", rs.getString(1));

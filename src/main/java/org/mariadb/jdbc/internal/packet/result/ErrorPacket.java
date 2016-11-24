@@ -62,6 +62,7 @@ public class ErrorPacket {
 
     /**
      * Reading error stream.
+     *
      * @param buffer current stream rawBytes
      */
     public ErrorPacket(Buffer buffer) {
@@ -83,7 +84,7 @@ public class ErrorPacket {
      * Constructor of error packet.
      * Permit to avoid first byte if already read.
      *
-     * @param buffer buffer
+     * @param buffer          buffer
      * @param firstByteToSkip has first byte is already read
      */
     public ErrorPacket(Buffer buffer, boolean firstByteToSkip) {

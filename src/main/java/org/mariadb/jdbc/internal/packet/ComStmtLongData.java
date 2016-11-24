@@ -52,22 +52,19 @@ package org.mariadb.jdbc.internal.packet;
 
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.BulkStatus;
 
 import java.io.IOException;
 
 
 public class ComStmtLongData {
 
-    public ComStmtLongData() { }
-
     /**
      * Send long data packet.
      *
-     * @param writer output stream
+     * @param writer      output stream
      * @param statementId statement id
      * @param parameterId parameter id
-     * @param param parameter
+     * @param param       parameter
      * @throws IOException if socket orror occur
      */
     public void send(PacketOutputStream writer, int statementId, short parameterId, ParameterHolder param) throws IOException {

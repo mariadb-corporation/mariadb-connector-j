@@ -45,6 +45,7 @@ public enum ExceptionCode {
     INVALID_PARAMETER_VALUE("22023");
 
     public final String sqlState;
+
     ExceptionCode(String sqlState) {
         this.sqlState = sqlState;
     }

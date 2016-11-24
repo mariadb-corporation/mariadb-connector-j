@@ -53,13 +53,15 @@ import java.sql.SQLException;
 
 /**
  * Keep the class name for compatibility
+ *
  * @deprecated use class MariaDbDataSource directly
  */
-public class MySQLDataSource extends  MariaDbDataSource {
+public class MySQLDataSource extends MariaDbDataSource {
     /**
      * Constructor.
+     *
      * @param hostname hostname (ipv4, ipv6, dns name)
-     * @param port server port
+     * @param port     server port
      * @param database database name
      * @throws SQLException exception if connection failed
      */

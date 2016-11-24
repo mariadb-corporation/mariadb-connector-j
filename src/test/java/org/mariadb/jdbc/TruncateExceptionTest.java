@@ -47,6 +47,7 @@ public class TruncateExceptionTest extends BaseTest {
 
     /**
      * Execute a query with truncated data.
+     *
      * @param truncation connection parameter.
      * @throws SQLException if SQLException occur
      */
@@ -63,7 +64,7 @@ public class TruncateExceptionTest extends BaseTest {
     public void queryTruncationFetch() throws SQLException {
         try (Connection connection = setConnection("&jdbcCompliantTruncation=true")) {
             Statement stmt = connection.createStatement();
-            for (int i = 0 ; i < 10; i++    ) {
+            for (int i = 0; i < 10; i++) {
                 stmt.execute("INSERT INTO TruncateExceptionTest2 (id2) VALUES (" + i + ")");
             }
             stmt.setFetchSize(1);

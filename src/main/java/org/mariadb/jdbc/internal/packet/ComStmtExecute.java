@@ -50,11 +50,9 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet;
 
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.packet.dao.parameters.NullParameter;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.packet.send.InterfaceSendPacket;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.BulkStatus;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -82,27 +80,13 @@ public class ComStmtExecute implements InterfaceSendPacket {
     }
 
     /**
-     * Send a prepare statement binary stream.
-     *
-     * @param os database socket
-     * @throws IOException if a connection error occur
-     */
-    public void send(final OutputStream os) throws IOException {
-        PacketOutputStream buffer = (PacketOutputStream) os;
-        buffer.startPacket(0, true);
-        writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, buffer);
-        buffer.finishPacketWithoutRelease(true);
-        buffer.releaseBuffer();
-    }
-
-    /**
      * Write COM_STMT_EXECUTE sub-command to output buffer.
      *
      * @param statementId         prepareResult object received after preparation.
      * @param parameters          parameters
      * @param parameterCount      parameters number
      * @param parameterTypeHeader parameters header1
-     * @param pos outputStream
+     * @param pos                 outputStream
      * @throws IOException if a connection error occur
      */
     public static void writeCmd(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
@@ -154,5 +138,19 @@ public class ComStmtExecute implements InterfaceSendPacket {
         for (int i = 0; i < parameterCount; i++) {
             if (!parameters[i].isLongData()) parameters[i].writeBinary(pos);
         }
+    }
+
+    /**
+     * Send a prepare statement binary stream.
+     *
+     * @param os database socket
+     * @throws IOException if a connection error occur
+     */
+    public void send(final OutputStream os) throws IOException {
+        PacketOutputStream buffer = (PacketOutputStream) os;
+        buffer.startPacket(0, true);
+        writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, buffer);
+        buffer.finishPacketWithoutRelease(true);
+        buffer.releaseBuffer();
     }
 }

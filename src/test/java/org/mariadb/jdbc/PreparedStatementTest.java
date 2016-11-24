@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -16,6 +15,7 @@ public class PreparedStatementTest extends BaseTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -30,8 +30,8 @@ public class PreparedStatementTest extends BaseTest {
                         + "`isM&M'sTasty?` bit(1) DEFAULT NULL,"
                         + "`Seems:LikeParam?` bit(1) DEFAULT NULL,"
                         + "`Webinar10-TM/ProjComp` text",
-                 "ENGINE=InnoDB DEFAULT CHARSET=utf8");
-        createTable("test_insert_select","`field1` varchar(20)");
+                "ENGINE=InnoDB DEFAULT CHARSET=utf8");
+        createTable("test_insert_select", "`field1` varchar(20)");
         createTable("test_decimal_insert", "`field1` decimal(10, 7)");
         createTable("PreparedStatementTest1", "id int not null primary key auto_increment, test longblob");
         createTable("PreparedStatementTest2", "my_col varchar(20)");
@@ -217,6 +217,7 @@ public class PreparedStatementTest extends BaseTest {
 
     /**
      * CONJ-345 : COLLATE keyword failed on PREPARE statement.
+     *
      * @throws SQLException exception
      */
     @Test
@@ -278,7 +279,7 @@ public class PreparedStatementTest extends BaseTest {
             // add 2 bytes (2 QUOTES for string parameter without need of escaping)
             // add 4 bytes if compression
 
-            char[] arr = new char[maxAllowedPacket - (query.length() + (sharedUseCompression() ? 8 : 4 ))];
+            char[] arr = new char[maxAllowedPacket - (query.length() + (sharedUseCompression() ? 8 : 4))];
             for (int i = 0; i < arr.length; i++) {
                 arr[i] = (char) ('a' + (i % 10));
             }
@@ -322,6 +323,7 @@ public class PreparedStatementTest extends BaseTest {
 
     /**
      * Goal is send rewritten query with 2 parameters with size exacting max_allowed_packet.
+     *
      * @param rewritableMulti rewritableMulti
      * @throws SQLException exception
      */
@@ -335,7 +337,7 @@ public class PreparedStatementTest extends BaseTest {
             String query = "INSERT INTO PreparedStatementTest1 VALUES (null, ?)"
                     + (rewritableMulti ? "" : " ON DUPLICATE KEY UPDATE id=?");
             //to have query with exactly 2 values exacting maxAllowedPacket size :
-            char[] arr = new char[(maxAllowedPacket - (query.length() + 18) ) / 2];
+            char[] arr = new char[(maxAllowedPacket - (query.length() + 18)) / 2];
             for (int i = 0; i < arr.length; i++) {
                 arr[i] = (char) ('a' + (i % 10));
             }
@@ -368,6 +370,7 @@ public class PreparedStatementTest extends BaseTest {
 
     /**
      * CONJ-273: permit client PrepareParameter without parameters.
+     *
      * @throws Throwable exception
      */
     @Test
@@ -384,6 +387,7 @@ public class PreparedStatementTest extends BaseTest {
 
     /**
      * CONJ-361: empty string test.
+     *
      * @throws Throwable exception
      */
     @Test

@@ -66,11 +66,12 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
     /**
      * Specific implementation of CallableStatement to handle function call, represent by call like
      * {?= call procedure-name[(arg1,arg2, ...)]}.
-     * @param query query
-     * @param connection current connection
+     *
+     * @param query         query
+     * @param connection    current connection
      * @param procedureName procedure name
-     * @param database database
-     * @param arguments function args
+     * @param database      database
+     * @param arguments     function args
      * @throws SQLException exception
      */
     public MariaDbProcedureStatement(String query, MariaDbConnection connection,
@@ -84,7 +85,7 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
 
     private void setParamsAccordingToSetArguments() throws SQLException {
         params = new ArrayList<>(this.parameterCount);
-        for (int index = 0 ; index < this.parameterCount; index++) {
+        for (int index = 0; index < this.parameterCount; index++) {
             params.add(new CallParameter());
         }
     }
@@ -128,8 +129,8 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
      * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements
      * that return nothing
      * @throws SQLException if a database access error occurs; this method is called on a closed
-     *                               <code>PreparedStatement</code> or the SQL statement returns a
-     *                               <code>ResultSet</code> object
+     *                      <code>PreparedStatement</code> or the SQL statement returns a
+     *                      <code>ResultSet</code> object
      */
     public int executeUpdate() throws SQLException {
         validAllParameters();
@@ -177,13 +178,14 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
 
     /**
      * Valid that all parameters are set.
+     *
      * @throws SQLException if set parameters is not right
      */
     private void validAllParameters() throws SQLException {
 
         setInputOutputParameterMap();
         //Set value for OUT parameters
-        for (int index = 0; index < params.size() ; index++) {
+        for (int index = 0; index < params.size(); index++) {
             if (!params.get(index).isInput) {
                 super.setParameter(index + 1, new NullParameter());
             }

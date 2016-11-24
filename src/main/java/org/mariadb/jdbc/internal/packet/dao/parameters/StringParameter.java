@@ -49,12 +49,9 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.ReflectPermission;
-import java.security.Permission;
 import java.sql.SQLException;
 
 
@@ -137,34 +134,33 @@ public class StringParameter implements ParameterHolder, Cloneable {
 
     /**
      * Encode char array to UTF-8 byte array, with SQL escape.
-     *
+     * <p>
      * Driver exchange with server use exclusively UTF-8 and lot of parameters are string.
      * Most the time spend using driver is spend transforming String parameters in UTF-8 escaped bytes.
-     *
+     * <p>
      * Every String as to be escaped to avoid SQL injection, so whe must loop through the String char array
      * to add escape chars, creating a new char array, and after decoding this char array to UTF-8 bytes.
-     *
+     * <p>
      * Using standard java, this result in :
      * - recreating a lot of char array (and copy to new array) during escape.
      * - utf-8 encoding is using internally a byte array initialized to 3 * the char length and will be spliced when final length is known.
      * when dealing with big string, that is using a lot of array for nothing (and so memory issues)
-     *
+     * <p>
      * Resulting byte array will be send to outputStream, so :
      * - escape characters are ASCII characters (one byte) -> the escaped characters can be put directly in array
      * - driver don't need the final byte array shrink, the byte array can be send directly in outputStream.
-     *
-     *
+     * <p>
+     * <p>
      * Example for a 1k character String :
      * if using standard java
      * - getting toCharArray() will create a new 1k char array (and copy existing array into it).
      * - escaping (using a StringBuffer) will use a new 1k char array and the internal array may expand (=> new allocation + copy) if there is
-     *   any char to be escape
+     * any char to be escape
      * - getBytes("UTF-8") : a new 3k byte buffer will be created, and finally a new one (+copy into it) when real length is known.
-     *
+     * <p>
      * Current implementation :
      * - creating a 3k bytes array, send directly these array with length into outputStream.
      * => only one array.
-     *
      */
     private void escapeUtf8() {
         int charsLength = stringValue.length();
@@ -174,7 +170,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
         //handle "" String value
         if (charsLength == 0) {
             position = 2;
-            escapedArray = new byte[] {(byte)'\'', (byte)'\''};
+            escapedArray = new byte[]{(byte) '\'', (byte) '\''};
             return;
         }
 
@@ -184,7 +180,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
         //so max size is 3 * charLength + 2 for the quotes.
         //(escaping concern only ASCII characters (1 bytes) and when escaped will be 2 bytes = won't cause any problems)
         escapedArray = new byte[(charsLength * 3) + 2];
-        escapedArray[position++] = (byte)'\'';
+        escapedArray[position++] = (byte) '\'';
 
         char charValue;
         //Handle fast conversion without testing kind of escape for each character
@@ -203,7 +199,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
             do {
                 charValue = stringValue.charAt(charsOffset);
                 if (charValue < 0x80) {
-                    if (charValue  == '\''
+                    if (charValue == '\''
                             || charValue == '\\'
                             || charValue == '"'
                             || charValue == 0) escapedArray[position++] = (byte) '\\'; //add escape slash
@@ -222,7 +218,7 @@ public class StringParameter implements ParameterHolder, Cloneable {
             if (currChar < 0x80) {
                 if (currChar == '\'') {
                     escapedArray[position++] = noBackslashEscapes ? (byte) '\'' : (byte) '\\';
-                } else if (!noBackslashEscapes && (currChar  == '\\' || currChar  == '"' || currChar  == 0)) {
+                } else if (!noBackslashEscapes && (currChar == '\\' || currChar == '"' || currChar == 0)) {
                     escapedArray[position++] = (byte) '\\';
                 }
                 escapedArray[position++] = (byte) currChar;
@@ -242,13 +238,13 @@ public class StringParameter implements ParameterHolder, Cloneable {
             if (currChar >= 0xD800 && currChar < 0xDC00) {
                 //is high surrogate
                 if (charsOffset + 1 > charsLength) {
-                    escapedArray[position++] = (byte)0x63;
+                    escapedArray[position++] = (byte) 0x63;
                     return;
                 }
                 char nextChar = stringValue.charAt(charsOffset);
                 if (nextChar >= 0xDC00 && nextChar < 0xE000) {
                     //is low surrogate
-                    int surrogatePairs =  ((currChar << 10) + nextChar) + (0x010000 - (0xD800 << 10) - 0xDC00);
+                    int surrogatePairs = ((currChar << 10) + nextChar) + (0x010000 - (0xD800 << 10) - 0xDC00);
                     escapedArray[position++] = (byte) (0xf0 | ((surrogatePairs >> 18)));
                     escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 12) & 0x3f));
                     escapedArray[position++] = (byte) (0x80 | ((surrogatePairs >> 6) & 0x3f));
@@ -256,11 +252,11 @@ public class StringParameter implements ParameterHolder, Cloneable {
                     charsOffset++;
                 } else {
                     //must have low surrogate
-                    escapedArray[position++] = (byte)0x63;
+                    escapedArray[position++] = (byte) 0x63;
                 }
             } else {
                 //low surrogate without high surrogate before
-                escapedArray[position++] = (byte)0x63;
+                escapedArray[position++] = (byte) 0x63;
             }
         } else {
             escapedArray[position++] = (byte) (0xe0 | ((currChar >> 12)));

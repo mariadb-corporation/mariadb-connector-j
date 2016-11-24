@@ -75,7 +75,8 @@ import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
 public abstract class AbstractMultiSend {
 
     private static final ThreadPoolExecutor readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
-
+    protected int statementId = -1;
+    protected MariaDbType[] parameterTypeHeader;
     private Protocol protocol;
     private PacketOutputStream writer;
     private ExecutionResult executionResult;
@@ -86,8 +87,6 @@ public abstract class AbstractMultiSend {
     private boolean binaryProtocol;
     private boolean readPrepareStmtResult;
     private String sql;
-    int statementId = -1;
-    MariaDbType[] parameterTypeHeader;
 
     /**
      * Bulk execute for Server PreparedStatement.executeBatch (when no COM_MULTI)
@@ -242,7 +241,7 @@ public abstract class AbstractMultiSend {
                     }
                 }
 
-                for (; status.sendSubCmdCounter < requestNumberByBulk;) {
+                for (; status.sendSubCmdCounter < requestNumberByBulk; ) {
                     sendCmd(writer, executionResult, parametersList, queries, paramCount, status, prepareResult);
                     status.sendSubCmdCounter++;
                     status.sendCmdCounter++;

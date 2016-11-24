@@ -15,9 +15,7 @@ import java.util.Collection;
 import java.util.Properties;
 import java.util.UUID;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class SslTest extends BaseTest {
     String serverCertificatePath;
@@ -65,7 +63,8 @@ public class SslTest extends BaseTest {
         Statement stmt = sharedConnection.createStatement();
         try {
             stmt.execute("DROP USER 'ssltestUser'@'%'");
-        } catch (SQLException e) { }
+        } catch (SQLException e) {
+        }
         stmt.execute("CREATE USER 'ssltestUser'@'%'");
         stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%' REQUIRE SSL");
     }
@@ -220,7 +219,6 @@ public class SslTest extends BaseTest {
     }
 
 
-
     @Test
     public void useSslForceTlsCombination() throws Exception {
         if (isMariadbServer()) {
@@ -308,7 +306,7 @@ public class SslTest extends BaseTest {
     /**
      * Test connection.
      *
-     * @param info connection properties
+     * @param info        connection properties
      * @param sslExpected is SSL expected
      * @throws SQLException exception
      */
@@ -319,10 +317,10 @@ public class SslTest extends BaseTest {
     /**
      * Test connection.
      *
-     * @param info connection properties
+     * @param info        connection properties
      * @param sslExpected is SSL expected
-     * @param user user
-     * @param pwd password
+     * @param user        user
+     * @param pwd         password
      * @throws SQLException if exception occur
      */
     public void testConnect(Properties info, boolean sslExpected, String user, String pwd) throws SQLException {

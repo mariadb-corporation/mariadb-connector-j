@@ -4,14 +4,7 @@ import com.amazonaws.services.rds.model.DBInstanceNotFoundException;
 import com.amazonaws.services.rds.model.InvalidDBClusterStateException;
 import com.amazonaws.services.rds.model.InvalidDBInstanceStateException;
 import com.amazonaws.services.rds.model.ModifyDBInstanceRequest;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
+import org.junit.*;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
@@ -20,7 +13,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -115,7 +107,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
     /**
      * Takes down the table created solely for these tests.
      *
-     * @throws SQLException  if unexpected error occur
+     * @throws SQLException if unexpected error occur
      */
     @After
     public void after() throws SQLException {

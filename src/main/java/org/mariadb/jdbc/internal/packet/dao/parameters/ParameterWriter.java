@@ -52,15 +52,18 @@ package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Reader;
 import java.util.ArrayList;
 
 /**
  * Helper class for serializing query parameters.
  */
 public class ParameterWriter {
+    public static final byte QUOTE = (byte) '\'';
     private static final byte[] BINARY_INTRODUCER = {'_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\''};
-    public static final byte QUOTE = (byte)'\'';
 
     private static void writeBytesEscaped(OutputStream out, byte[] bytes, int count, boolean noBackslashEscapes)
             throws IOException {
@@ -71,10 +74,10 @@ public class ParameterWriter {
             }
         } else {
             for (int i = 0; i < count; i++) {
-                if (bytes[i]  == '\''
-                        || bytes[i]  == '\\'
-                        || bytes[i]  == '"'
-                        || bytes[i]  == 0) out.write('\\'); //add escape slash
+                if (bytes[i] == '\''
+                        || bytes[i] == '\\'
+                        || bytes[i] == '"'
+                        || bytes[i] == 0) out.write('\\'); //add escape slash
                 out.write(bytes[i]);
             }
         }
@@ -88,10 +91,10 @@ public class ParameterWriter {
             }
         } else {
             for (int i = 0; i < count; i++) {
-                if (bytes[i]  == '\''
-                        || bytes[i]  == '\\'
-                        || bytes[i]  == '"'
-                        || bytes[i]  == 0) out.writeUnsafe('\\'); //add escape slash
+                if (bytes[i] == '\''
+                        || bytes[i] == '\\'
+                        || bytes[i] == '"'
+                        || bytes[i] == 0) out.writeUnsafe('\\'); //add escape slash
                 out.writeUnsafe(bytes[i]);
             }
         }
@@ -100,8 +103,8 @@ public class ParameterWriter {
     /**
      * Write byte array in text format.
      *
-     * @param out database stream
-     * @param bytes byte arrayto send
+     * @param out                database stream
+     * @param bytes              byte arrayto send
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
@@ -114,8 +117,8 @@ public class ParameterWriter {
     /**
      * Write string in text format.
      *
-     * @param out database stream
-     * @param value String value to send
+     * @param out                database stream
+     * @param value              String value to send
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
@@ -129,8 +132,8 @@ public class ParameterWriter {
     /**
      * Write stream in text format.
      *
-     * @param out database stream
-     * @param is input stream to write
+     * @param out                database stream
+     * @param is                 input stream to write
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
@@ -147,9 +150,9 @@ public class ParameterWriter {
     /**
      * Write stream in text format.
      *
-     * @param out database stream
-     * @param is input stream to write
-     * @param length max inputstream length to write
+     * @param out                database stream
+     * @param is                 input stream to write
+     * @param length             max inputstream length to write
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
@@ -177,8 +180,8 @@ public class ParameterWriter {
     /**
      * Write whole reader in text format.
      *
-     * @param out database stream
-     * @param reader reader to write
+     * @param out                database stream
+     * @param reader             reader to write
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
@@ -196,9 +199,9 @@ public class ParameterWriter {
     /**
      * Write reader in text format.
      *
-     * @param out database stream
-     * @param reader reader to write
-     * @param length reader max length to write
+     * @param out                database stream
+     * @param reader             reader to write
+     * @param length             reader max length to write
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
@@ -240,8 +243,8 @@ public class ParameterWriter {
     /**
      * Write whole reader in text format without checking buffer size.
      *
-     * @param out database stream
-     * @param reader reader to write
+     * @param out                database stream
+     * @param reader             reader to write
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
@@ -259,8 +262,8 @@ public class ParameterWriter {
     /**
      * Write cached reader char array to buffer without checking buffer size.
      *
-     * @param out output buffer
-     * @param readArrays cache char array
+     * @param out                output buffer
+     * @param readArrays         cache char array
      * @param noBackslashEscapes backslash must be escape flag
      * @throws IOException if error occur when writing to buffer
      */
@@ -276,8 +279,8 @@ public class ParameterWriter {
     /**
      * Write stream in text format without checking buffer size.
      *
-     * @param out database stream
-     * @param is input stream to write
+     * @param out                database stream
+     * @param is                 input stream to write
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
@@ -294,8 +297,8 @@ public class ParameterWriter {
     /**
      * Write string in text format without checking buffer size.
      *
-     * @param out database stream
-     * @param value String value to send
+     * @param out                database stream
+     * @param value              String value to send
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if any error occur when writing to database
      */
@@ -309,9 +312,9 @@ public class ParameterWriter {
     /**
      * Write stream in text format without checking buffer size.
      *
-     * @param out database stream
-     * @param is input stream to write
-     * @param length max inputstream length to write
+     * @param out                database stream
+     * @param is                 input stream to write
+     * @param length             max inputstream length to write
      * @param noBackslashEscapes must backslash be escape
      * @throws IOException if InputStream read failed
      */
@@ -339,8 +342,8 @@ public class ParameterWriter {
     /**
      * Write byte array in text format without checking buffer size.
      *
-     * @param out database stream
-     * @param bytes byte arrayto send
+     * @param out                database stream
+     * @param bytes              byte arrayto send
      * @param noBackslashEscapes must backslash be escape
      */
     public static void writeUnsafe(PacketOutputStream out, byte[] bytes, boolean noBackslashEscapes) {

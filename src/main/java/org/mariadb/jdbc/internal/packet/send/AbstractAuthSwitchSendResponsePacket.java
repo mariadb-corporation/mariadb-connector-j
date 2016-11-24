@@ -65,7 +65,8 @@ public abstract class AbstractAuthSwitchSendResponsePacket implements InterfaceA
 
     /**
      * Handle Authentication.
-     * @param packSeq packet sequence
+     *
+     * @param packSeq  packet sequence
      * @param authData authentication data
      * @param password password
      */
@@ -77,9 +78,10 @@ public abstract class AbstractAuthSwitchSendResponsePacket implements InterfaceA
 
     /**
      * Handle response packet.
+     *
      * @param packetFetcher packet fetcher
      * @throws QueryException if any functional error occur
-     * @throws IOException if any connection error occur
+     * @throws IOException    if any connection error occur
      */
     public void handleResultPacket(ReadPacketFetcher packetFetcher) throws QueryException, IOException {
         Buffer buffer = packetFetcher.getReusableBuffer();

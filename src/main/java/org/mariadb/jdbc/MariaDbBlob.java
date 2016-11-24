@@ -126,7 +126,7 @@ public class MariaDbBlob implements Blob, Serializable {
      * @return a byte array containing up to <code>length</code> consecutive bytes from the <code>BLOB</code> value
      * designated by this <code>Blob</code> object, starting with the byte at position <code>pos</code>
      * @throws SQLException if there is an error accessing the <code>BLOB</code> value; if pos is less than 1
-     *                               or length is less than 0
+     *                      or length is less than 0
      * @see #setBytes
      * @since 1.2
      */
@@ -158,8 +158,8 @@ public class MariaDbBlob implements Blob, Serializable {
      * @param length the length in bytes of the partial value to be retrieved
      * @return <code>InputStream</code> through which the partial <code>Blob</code> value can be read.
      * @throws SQLException if pos is less than 1 or if pos is greater than the number of bytes in the
-     *                               <code>Blob</code> or if pos + length is greater than the number of bytes in the
-     *                               <code>Blob</code>
+     *                      <code>Blob</code> or if pos + length is greater than the number of bytes in the
+     *                      <code>Blob</code>
      */
     public InputStream getBinaryStream(final long pos, final long length) throws SQLException {
         if (pos < 1) {
@@ -281,7 +281,7 @@ public class MariaDbBlob implements Blob, Serializable {
      *               <code>bytes</code>
      * @return the number of bytes written
      * @throws SQLException if there is an error accessing the <code>BLOB</code> value or if pos is less than
-     *                               1
+     *                      1
      * @see #getBytes
      */
     public int setBytes(final long pos,
@@ -319,7 +319,7 @@ public class MariaDbBlob implements Blob, Serializable {
      * @param pos the position in the <code>BLOB</code> value at which to start writing; the first position is 1
      * @return a <code>java.io.OutputStream</code> object to which data can be written
      * @throws SQLException if there is an error accessing the <code>BLOB</code> value or if pos is less than
-     *                               1
+     *                      1
      * @see #getBinaryStream
      * @since 1.4
      */
@@ -341,7 +341,7 @@ public class MariaDbBlob implements Blob, Serializable {
      * @param len the length, in bytes, to which the <code>BLOB</code> value that this <code>Blob</code> object
      *            represents should be truncated
      * @throws SQLException if there is an error accessing the <code>BLOB</code> value or if len is less than
-     *                               0
+     *                      0
      */
     public void truncate(final long len) throws SQLException {
         this.blobContent = Utils.copyWithLength(this.blobContent, (int) len);

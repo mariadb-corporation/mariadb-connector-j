@@ -67,7 +67,7 @@ public abstract class BaseReplication extends BaseMonoServer {
                     break;
                 }
             }
-            Assert.assertTrue("Prepare statement has not return on Slave",hasReturnOnSlave);
+            Assert.assertTrue("Prepare statement has not return on Slave", hasReturnOnSlave);
 
         } finally {
             if (connection != null) {
@@ -295,19 +295,6 @@ public abstract class BaseReplication extends BaseMonoServer {
 
     }
 
-    class MutableInt {
-
-        private int value = 1; // note that we start at 1 since we're counting
-
-        public void increment() {
-            ++value;
-        }
-
-        public int get() {
-            return value;
-        }
-    }
-
     @Test
     public void closeWhenInReconnectionLoop() throws Throwable {
         Connection connection = null;
@@ -381,6 +368,19 @@ public abstract class BaseReplication extends BaseMonoServer {
             if (connection != null) {
                 connection.close();
             }
+        }
+    }
+
+    class MutableInt {
+
+        private int value = 1; // note that we start at 1 since we're counting
+
+        public void increment() {
+            ++value;
+        }
+
+        public int get() {
+            return value;
         }
     }
 }

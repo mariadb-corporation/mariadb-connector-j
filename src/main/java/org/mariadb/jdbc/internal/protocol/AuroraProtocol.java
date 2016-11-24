@@ -76,7 +76,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      * Connect aurora probable master.
      * Aurora master change in time. The only way to check that a server is a master is to asked him.
      *
-     * @param listener aurora failover to call back if master is found
+     * @param listener       aurora failover to call back if master is found
      * @param probableMaster probable master host
      */
     public static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster) {
@@ -220,7 +220,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
         if (listener.isMasterHostFailReconnect() || listener.isSecondaryHostFailReconnect()) {
             String error = "No active connection found for replica";
-            if (listener.isMasterHostFailReconnect())  {
+            if (listener.isMasterHostFailReconnect()) {
                 error = "No active connection found for master";
             }
             if (lastQueryException != null) {
@@ -232,7 +232,8 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
     /**
      * Initialize new protocol instance.
-     * @param proxy proxy
+     *
+     * @param proxy     proxy
      * @param urlParser connection string data's
      * @return new AuroraProtocol
      */

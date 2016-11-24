@@ -55,7 +55,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -68,13 +67,14 @@ public class MariaDbPooledConnection implements PooledConnection {
 
     /**
      * Constructor.
+     *
      * @param connection connection to retrieve connection options
      */
     public MariaDbPooledConnection(MariaDbConnection connection) {
         this.connection = connection;
         connection.pooledConnection = this;
-        statementEventListeners = new CopyOnWriteArrayList<StatementEventListener>();
-        connectionEventListeners = new CopyOnWriteArrayList<ConnectionEventListener>();
+        statementEventListeners = new CopyOnWriteArrayList<>();
+        connectionEventListeners = new CopyOnWriteArrayList<>();
     }
 
     /**
@@ -89,8 +89,8 @@ public class MariaDbPooledConnection implements PooledConnection {
      * @return a <code>Connection</code> object that is a handle to
      * this <code>PooledConnection</code> object
      * @throws SQLException if a database access error occurs
-     *                               if the JDBC driver does not support
-     *                               this method
+     *                      if the JDBC driver does not support
+     *                      this method
      * @since 1.4
      */
     public Connection getConnection() throws SQLException {
@@ -106,8 +106,8 @@ public class MariaDbPooledConnection implements PooledConnection {
      * information.
      *
      * @throws SQLException if a database access error occurs
-     *                               if the JDBC driver does not support
-     *                               this method
+     *                      if the JDBC driver does not support
+     *                      this method
      * @since 1.4
      */
     public void close() throws SQLException {
@@ -179,6 +179,7 @@ public class MariaDbPooledConnection implements PooledConnection {
 
     /**
      * Fire statement close event to listeners.
+     *
      * @param st statement
      */
     public void fireStatementClosed(Statement st) {
@@ -192,6 +193,7 @@ public class MariaDbPooledConnection implements PooledConnection {
 
     /**
      * Fire statement error to listeners.
+     *
      * @param st statement
      * @param ex exception
      */
@@ -216,6 +218,7 @@ public class MariaDbPooledConnection implements PooledConnection {
 
     /**
      * Fire connection error to listening listerners.
+     *
      * @param ex exception
      */
     public void fireConnectionErrorOccured(SQLException ex) {

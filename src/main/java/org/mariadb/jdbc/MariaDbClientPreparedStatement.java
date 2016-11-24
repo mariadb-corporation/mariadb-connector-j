@@ -55,12 +55,14 @@ import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Iterator;
+import java.util.List;
 
 
 public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatement implements Cloneable {
@@ -74,10 +76,11 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
 
     /**
      * Constructor.
-     * @param connection connection
-     * @param sql sql query
+     *
+     * @param connection          connection
+     * @param sql                 sql query
      * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @throws SQLException exception
      */
     public MariaDbClientPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
@@ -153,8 +156,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      * object; <code>false</code> if the first result is an update
      * count or there is no result
      * @throws SQLException if a database access error occurs;
-     *                               this method is called on a closed <code>PreparedStatement</code>
-     *                               or an argument is supplied to this method
+     *                      this method is called on a closed <code>PreparedStatement</code>
+     *                      or an argument is supplied to this method
      * @see Statement#execute
      * @see Statement#getResultSet
      * @see Statement#getUpdateCount
@@ -171,8 +174,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      * @return a <code>ResultSet</code> object that contains the data produced by the
      * query; never <code>null</code>
      * @throws SQLException if a database access error occurs;
-     *                               this method is called on a closed  <code>PreparedStatement</code> or the SQL
-     *                               statement does not return a <code>ResultSet</code> object
+     *                      this method is called on a closed  <code>PreparedStatement</code> or the SQL
+     *                      statement does not return a <code>ResultSet</code> object
      */
     public ResultSet executeQuery() throws SQLException {
         if (executeInternal()) {
@@ -180,7 +183,6 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
         }
         return MariaSelectResultSet.EMPTY;
     }
-
 
 
     /**
@@ -191,8 +193,8 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements
      * that return nothing
      * @throws SQLException if a database access error occurs; this method is called on a closed
-     *                               <code>PreparedStatement</code> or the SQL statement returns a
-     *                               <code>ResultSet</code> object
+     *                      <code>PreparedStatement</code> or the SQL statement returns a
+     *                      <code>ResultSet</code> object
      */
     public int executeUpdate() throws SQLException {
         if (executeInternal()) {
@@ -247,7 +249,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      * <br>
      *
      * @throws SQLException if a database access error occurs or this method is called on a closed
-     *                               <code>PreparedStatement</code>
+     *                      <code>PreparedStatement</code>
      * @see Statement#addBatch
      * @since 1.2
      */
@@ -267,6 +269,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
 
     /**
      * Add batch.
+     *
      * @param sql typically this is a SQL <code>INSERT</code> or <code>UPDATE</code> statement
      * @throws SQLException every time since that method is forbidden on prepareStatement
      */
@@ -336,7 +339,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      * Choose better way to execute queries according to query and options.
      *
      * @param internalExecutionResult results
-     * @param size parameters number
+     * @param size                    parameters number
      * @return affected rows
      * @throws QueryException if any error occur
      */
@@ -451,7 +454,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      * @return the description of a <code>ResultSet</code> object's columns or <code>null</code> if the driver cannot
      * return a <code>ResultSetMetaData</code> object
      * @throws SQLException                    if a database access error occurs or this method is called on a closed
-     *                                                  <code>PreparedStatement</code>
+     *                                         <code>PreparedStatement</code>
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.2
      */
@@ -469,7 +472,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
 
 
     protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
-        if (parameterIndex >= 1 && parameterIndex  < prepareResult.getParamCount() + 1) {
+        if (parameterIndex >= 1 && parameterIndex < prepareResult.getParamCount() + 1) {
             parameters[parameterIndex - 1] = holder;
         } else {
             logger.error("Could not set parameter at position " + parameterIndex
@@ -487,7 +490,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
      * @return a <code>ParameterMetaData</code> object that contains information about the number, types and properties
      * for each parameter marker of this <code>PreparedStatement</code> object
      * @throws SQLException if a database access error occurs or this method is called on a closed
-     *                               <code>PreparedStatement</code>
+     *                      <code>PreparedStatement</code>
      * @see ParameterMetaData
      * @since 1.4
      */
@@ -565,7 +568,7 @@ public class MariaDbClientPreparedStatement extends AbstractMariaDbPrepareStatem
             this.parameters = serverPreparedStatement.currentParameterHolder.values().toArray(new ParameterHolder[0]);
         } else {
             Iterator<ParameterHolder> paramsIterator = serverPreparedStatement.currentParameterHolder.values().iterator();
-            for (int i = 0 ; i < prepareResult.getParamCount() && paramsIterator.hasNext(); i++) {
+            for (int i = 0; i < prepareResult.getParamCount() && paramsIterator.hasNext(); i++) {
                 this.parameters[i] = paramsIterator.next();
             }
         }

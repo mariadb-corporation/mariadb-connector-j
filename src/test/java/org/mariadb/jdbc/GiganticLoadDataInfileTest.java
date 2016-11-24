@@ -18,6 +18,7 @@ public class GiganticLoadDataInfileTest extends BaseTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -40,9 +41,9 @@ public class GiganticLoadDataInfileTest extends BaseTest {
         }
 
         String sql = "LOAD DATA LOCAL INFILE 'dummyFileName'"
-                    + " INTO TABLE gigantic_load_data_infile "
-                    + " FIELDS TERMINATED BY '\\t' ENCLOSED BY ''"
-                    + " ESCAPED BY '\\\\' LINES TERMINATED BY '\\n'";
+                + " INTO TABLE gigantic_load_data_infile "
+                + " FIELDS TERMINATED BY '\\t' ENCLOSED BY ''"
+                + " ESCAPED BY '\\\\' LINES TERMINATED BY '\\n'";
 
         statement.execute(sql);
         ResultSet resultSet = statement.executeQuery("select count(*) from gigantic_load_data_infile");

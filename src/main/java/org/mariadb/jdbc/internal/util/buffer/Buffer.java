@@ -72,6 +72,7 @@ public class Buffer {
     public int remaining() {
         return limit - position;
     }
+
     /**
      * Reads a string from the buffer, looks for a 0 to end the string.
      *
@@ -100,6 +101,7 @@ public class Buffer {
 
     /**
      * Read 24 bit integer.
+     *
      * @return length
      */
     public int read24bitword() {
@@ -147,6 +149,7 @@ public class Buffer {
 
     /**
      * Read raw data.
+     *
      * @param numberOfBytes raw data length.
      * @return raw data
      */
@@ -198,6 +201,7 @@ public class Buffer {
 
     /**
      * Get next binary data length.
+     *
      * @return length of next binary data
      */
     public long getLengthEncodedBinary() {
@@ -218,6 +222,7 @@ public class Buffer {
 
     /**
      * Get next data bytes with unknown length.
+     *
      * @return the raw binary data
      * @throws IOException if connection problem occur
      */
@@ -231,6 +236,7 @@ public class Buffer {
 
     /**
      * Get next data bytes with known length.
+     *
      * @param length binary data length
      * @return the raw binary data
      */
@@ -250,6 +256,7 @@ public class Buffer {
 
     /**
      * Add stream to bytebuffer.
+     *
      * @param otherBuffer stream to add if needed
      */
     public void appendPacket(Buffer otherBuffer) {
@@ -263,6 +270,7 @@ public class Buffer {
 
     /**
      * Return next binary field length without moving cursor position.
+     *
      * @return next binary field length
      */
     public long getSilentLengthEncodedBinary() {

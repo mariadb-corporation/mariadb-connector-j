@@ -66,10 +66,10 @@ public class ExceptionMapper {
     /**
      * Helper to throw exception. Exception is logged.
      *
-     * @param exception exception
+     * @param exception  exception
      * @param connection current connection
-     * @param statement current statement
-     * @param logger logger
+     * @param statement  current statement
+     * @param logger     logger
      * @throws SQLException exception
      */
     public static void throwAndLogException(QueryException exception, MariaDbConnection connection, MariaDbStatement statement, Logger logger)
@@ -82,9 +82,9 @@ public class ExceptionMapper {
     /**
      * Helper to throw exception.
      *
-     * @param exception exception
+     * @param exception  exception
      * @param connection current connection
-     * @param statement current statement
+     * @param statement  current statement
      * @throws SQLException exception
      */
     public static void throwException(QueryException exception, MariaDbConnection connection, MariaDbStatement statement) throws SQLException {
@@ -164,6 +164,7 @@ public class ExceptionMapper {
 
     /**
      * Mapp code to State.
+     *
      * @param code code
      * @return String
      */

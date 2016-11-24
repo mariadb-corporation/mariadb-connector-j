@@ -51,8 +51,8 @@ OF SUCH DAMAGE.
 
 
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.Options;
 
 import java.sql.Date;
 import java.text.SimpleDateFormat;

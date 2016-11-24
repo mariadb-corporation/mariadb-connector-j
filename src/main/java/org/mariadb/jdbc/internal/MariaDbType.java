@@ -106,6 +106,7 @@ public enum MariaDbType {
 
     /**
      * Is type numeric.
+     *
      * @param type mariadb type
      * @return true if type is numeric
      */
@@ -127,51 +128,11 @@ public enum MariaDbType {
         }
     }
 
-    public String getClassName() {
-        return className;
-    }
-
-    /**
-     * Get class name.
-     * @param type type
-     * @param len len
-     * @param signed signed
-     * @param binary binary
-     * @param flags flags
-     * @return class name
-     */
-    public static String getClassName(MariaDbType type, int len, boolean signed, boolean binary, int flags) {
-        switch (type) {
-            case TINYINT:
-                if (len == 1 && ((flags & MariaSelectResultSet.TINYINT1_IS_BIT) != 0)) {
-                    return Boolean.class.getName();
-                }
-                return Integer.class.getName();
-            case INTEGER:
-                return (signed) ? Integer.class.getName() : Long.class.getName();
-            case BIGINT:
-                return (signed) ? Long.class.getName() : BigInteger.class.getName();
-            case YEAR:
-                if ((flags & MariaSelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
-                    return java.sql.Date.class.getName();
-                }
-                return Short.class.getName();
-            case BIT:
-                return (len == 1) ? Boolean.class.getName() : "[B";
-            case STRING:
-            case VARCHAR:
-            case VARSTRING:
-                return binary ? "[B" : String.class.getName();
-            default:
-                break;
-        }
-        return type.getClassName();
-    }
-
     /**
      * Get columnTypeName.
-     * @param type type
-     * @param len len
+     *
+     * @param type   type
+     * @param len    len
      * @param signed signed
      * @param binary binary
      * @return type
@@ -221,6 +182,7 @@ public enum MariaDbType {
 
     /**
      * Convert server Type to server type.
+     *
      * @param typeValue type value
      * @return MariaDb type
      */
@@ -240,6 +202,7 @@ public enum MariaDbType {
 
     /**
      * Convert javatype to MariaDbType.
+     *
      * @param javaType javatype value
      * @return mariaDb type value
      */
@@ -250,6 +213,48 @@ public enum MariaDbType {
             }
         }
         return MariaDbType.BLOB;
+    }
+
+    public String getClassName() {
+        return className;
+    }
+
+    /**
+     * Get class name.
+     *
+     * @param type   type
+     * @param len    len
+     * @param signed signed
+     * @param binary binary
+     * @param flags  flags
+     * @return class name
+     */
+    public static String getClassName(MariaDbType type, int len, boolean signed, boolean binary, int flags) {
+        switch (type) {
+            case TINYINT:
+                if (len == 1 && ((flags & MariaSelectResultSet.TINYINT1_IS_BIT) != 0)) {
+                    return Boolean.class.getName();
+                }
+                return Integer.class.getName();
+            case INTEGER:
+                return (signed) ? Integer.class.getName() : Long.class.getName();
+            case BIGINT:
+                return (signed) ? Long.class.getName() : BigInteger.class.getName();
+            case YEAR:
+                if ((flags & MariaSelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
+                    return java.sql.Date.class.getName();
+                }
+                return Short.class.getName();
+            case BIT:
+                return (len == 1) ? Boolean.class.getName() : "[B";
+            case STRING:
+            case VARCHAR:
+            case VARSTRING:
+                return binary ? "[B" : String.class.getName();
+            default:
+                break;
+        }
+        return type.getClassName();
     }
 
     public int getSqlType() {

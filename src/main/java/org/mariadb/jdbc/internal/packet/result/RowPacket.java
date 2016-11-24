@@ -55,7 +55,6 @@ import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
 import java.io.IOException;
-import java.io.InputStream;
 
 public interface RowPacket {
 

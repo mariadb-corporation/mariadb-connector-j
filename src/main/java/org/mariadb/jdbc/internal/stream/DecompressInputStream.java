@@ -73,6 +73,7 @@ public class DecompressInputStream extends InputStream implements MariaDbInputSt
 
     /**
      * Constructor of inputStream when compression is used.
+     *
      * @param baseStream socket inputStream.
      */
     public DecompressInputStream(InputStream baseStream) {
@@ -83,6 +84,7 @@ public class DecompressInputStream extends InputStream implements MariaDbInputSt
 
     /**
      * Permit to return mysql packet header length.
+     *
      * @return header length
      * @throws IOException if socket error happen
      */
