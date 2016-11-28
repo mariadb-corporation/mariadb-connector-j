@@ -543,7 +543,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 if (buffer.remaining() > 0) {
                     //AuthSwitchRequest packet.
                     plugin = buffer.readString(Charset.forName("ASCII"));
-                    authData = buffer.readRawBytes(buffer.remaining());
+                    //Skip the null terminator and the end
+                    authData = buffer.readRawBytes(buffer.remaining() - 1);
                 } else {
                     //OldAuthSwitchRequest
                     plugin = DefaultAuthenticationProvider.MYSQL_OLD_PASSWORD;
