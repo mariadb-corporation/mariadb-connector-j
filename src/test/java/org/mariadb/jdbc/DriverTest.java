@@ -836,7 +836,7 @@ public class DriverTest extends BaseTest {
             st.setQueryTimeout(1);
             st.execute("select sleep(0.5)");
             try {
-                st.execute("select sleep(1.5)");
+                st.execute("select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2");
                 assertFalse("must be exception here", true);
             } catch (Exception e) {
                 //normal exception
@@ -845,11 +845,11 @@ public class DriverTest extends BaseTest {
             Statement st2 = connection.createStatement();
             assertEquals(st2.getQueryTimeout(), 0);
             // no exception
-            st2.execute("select sleep(1.5)");
+            st2.execute("select * from information_schema.columns as c1,  information_schema.tables as t2");
 
             Statement st3 = connection.createStatement();
             st3.setQueryTimeout(1);
-            st3.execute("select sleep(0.1)");
+            st3.execute("select * from information_schema.columns as c1");
             assertEquals(st3.getQueryTimeout(), 1);
         }
     }
