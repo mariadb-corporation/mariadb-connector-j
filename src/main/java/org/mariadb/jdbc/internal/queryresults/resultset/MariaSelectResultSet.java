@@ -426,6 +426,7 @@ public class MariaSelectResultSet implements ResultSet {
                 //There is always a OK packet after a callable output result, but mysql 5.6-7
                 //is sending a bad "more result" flag (without setting more packet to true)
                 //so force the value, since this will corrupt connection.
+                //corrected in MariaDB since MDEV-4604 (10.0.4, 5.5.32)
                 protocol.setMoreResults(callableResult
                                 || (((buffer.buf[2] & 0xff) + ((buffer.buf[3] & 0xff) << 8)) & ServerStatus.MORE_RESULTS_EXISTS) != 0,
                         isBinaryEncoded);

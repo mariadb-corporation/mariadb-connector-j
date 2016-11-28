@@ -265,7 +265,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     }
 
     private String getTimeoutSql(String sql) {
-        if (queryTimeout != 0) {
+        if (queryTimeout != 0 && canUseServerTimeout) {
             return "SET STATEMENT max_statement_time=" + queryTimeout + " FOR " + sql;
         }
         return sql;
