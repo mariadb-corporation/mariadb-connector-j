@@ -488,7 +488,6 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
      * should be used for a user-defined or <code>REF</code> output parameter.  Examples
      * of user-defined types include: <code>STRUCT</code>, <code>DISTINCT</code>,
      * <code>JAVA_OBJECT</code>, and named array types.</p>
-     * <p>
      * <p>All OUT parameters must be registered
      * before a stored procedure is executed.</p>
      * <p>  For a user-defined parameter, the fully-qualified SQL
@@ -498,12 +497,10 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
      * type code and type name information may ignore it.   To be portable,
      * however, applications should always provide these values for
      * user-defined and <code>REF</code> parameters.</p>
-     * <p>
-     * Although it is intended for user-defined and <code>REF</code> parameters,
+     * <p>Although it is intended for user-defined and <code>REF</code> parameters,
      * this method may be used to register a parameter of any JDBC type.
      * If the parameter does not have a user-defined or <code>REF</code> type, the
      * <i>typeName</i> parameter is ignored.</p>
-     * <p>
      * <p><B>Note:</B> When reading the value of an out parameter, you
      * must use the getter method whose Java type corresponds to the
      * parameter's registered SQL type.</p>
@@ -540,11 +537,9 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
      * <code>parameterIndex</code> to be of JDBC type
      * <code>sqlType</code>. All OUT parameters must be registered
      * before a stored procedure is executed.</p>
-     * <p>
      * <p>The JDBC type specified by <code>sqlType</code> for an OUT
      * parameter determines the Java type that must be used
      * in the <code>get</code> method to read the value of that parameter.</p>
-     * <p>
      * <p>This version of <code>registerOutParameter</code> should be
      * used when the parameter is of JDBC type <code>NUMERIC</code>
      * or <code>DECIMAL</code>.</p>

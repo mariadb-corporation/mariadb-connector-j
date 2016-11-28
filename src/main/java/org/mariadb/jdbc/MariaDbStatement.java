@@ -101,6 +101,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     //are warnings cleared?
     private boolean warningsCleared;
     private int fetchSize;
+    private boolean canUseServerTimeout;
 
     /**
      * Creates a new Statement.
@@ -112,6 +113,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     public MariaDbStatement(MariaDbConnection connection, int resultSetScrollType) {
         this.protocol = connection.getProtocol();
         this.connection = connection;
+        this.canUseServerTimeout = connection.canUseServerTimeout();
         this.resultSetScrollType = resultSetScrollType;
         this.lock = this.connection.lock;
         this.options = this.protocol.getOptions();
@@ -174,7 +176,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             throw new SQLException("execute() is called on closed statement");
         }
         protocol.prolog(executionResult, maxRows, protocol.getProxy() != null, connection, this);
-        if (queryTimeout != 0) {
+        if (queryTimeout != 0 && !canUseServerTimeout) {
             setTimerTask();
         }
     }
@@ -222,7 +224,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             close();
         }
 
-        ExceptionMapper.throwAndLogException(queryException, connection, this, logger);
+        ExceptionMapper.throwAndLogException(queryException, connection, this, logger, queryTimeout != 0);
     }
 
     /**
@@ -247,8 +249,9 @@ public class MariaDbStatement implements Statement, Cloneable {
             } else {
                 internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, false, true);
             }
+
             protocol.executeQuery(protocol.isMasterConnection(), internalExecutionResult,
-                    Utils.nativeSql(sql, connection.noBackslashEscapes), resultSetScrollType);
+                    Utils.nativeSql(getTimeoutSql(sql), connection.noBackslashEscapes), resultSetScrollType);
             executionResult = internalExecutionResult;
             return executionResult.getResultSet() != null;
         } catch (QueryException e) {
@@ -259,6 +262,13 @@ public class MariaDbStatement implements Statement, Cloneable {
             executeQueryEpilog(exception);
             executing = false;
         }
+    }
+
+    private String getTimeoutSql(String sql) {
+        if (queryTimeout != 0) {
+            return "SET STATEMENT max_statement_time=" + queryTimeout + " FOR " + sql;
+        }
+        return sql;
     }
 
     /**

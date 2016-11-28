@@ -91,10 +91,11 @@ public final class MariaDbConnection implements Connection {
     private final ClientPrepareStatementCache clientPrepareStatementCache;
     public MariaDbPooledConnection pooledConnection;
     protected CallableStatementCache callableStatementCache;
-    boolean noBackslashEscapes;
-    boolean nullCatalogMeansCurrent = true;
-    int autoIncrementIncrement;
-    volatile int lowercaseTableNames = -1;
+    protected boolean noBackslashEscapes;
+    protected boolean nullCatalogMeansCurrent = true;
+    private int autoIncrementIncrement;
+    private volatile int lowercaseTableNames = -1;
+    private boolean canUseServerTimeout = false;
 
     /**
      * save point count - to generate good names for the savepoints.
@@ -114,6 +115,7 @@ public final class MariaDbConnection implements Connection {
     private MariaDbConnection(Protocol protocol, ReentrantLock lock) throws SQLException {
         this.protocol = protocol;
         options = protocol.getOptions();
+        canUseServerTimeout = protocol.versionGreaterOrEqual(10, 1, 2);
         noBackslashEscapes = protocol.noBackslashEscapes();
         nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
         if (options.cacheCallableStmts) {
@@ -1573,5 +1575,9 @@ public final class MariaDbConnection implements Connection {
 
     public long getServerThreadId() {
         return (protocol != null) ? protocol.getServerThreadId() : -1;
+    }
+
+    public boolean canUseServerTimeout() {
+        return canUseServerTimeout;
     }
 }
