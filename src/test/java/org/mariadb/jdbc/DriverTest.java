@@ -845,11 +845,15 @@ public class DriverTest extends BaseTest {
             Statement st2 = connection.createStatement();
             assertEquals(st2.getQueryTimeout(), 0);
             // no exception
-            st2.execute("select * from information_schema.columns as c1,  information_schema.tables as t2");
-
+            ResultSet rs = st2.executeQuery("select sleep(1.5)");
+            assertTrue(rs.next());
+            assertEquals(0, rs.getInt(1));
             Statement st3 = connection.createStatement();
+
             st3.setQueryTimeout(1);
-            st3.execute("select * from information_schema.columns as c1");
+            rs = st3.executeQuery("select sleep(0.1)");
+            assertTrue(rs.next());
+            assertEquals(0, rs.getInt(1));
             assertEquals(st3.getQueryTimeout(), 1);
         }
     }
