@@ -1,13 +1,15 @@
 package org.mariadb.jdbc.internal.queryresults;
 
 import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayDeque;
-import java.util.Arrays;
-import java.util.Deque;
+import java.util.*;
 
 public class MultiFixedIntExecutionResult implements MultiExecutionResult {
 
@@ -16,9 +18,9 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
     private boolean moreResultAvailable;
     private int fetchSize;
     private boolean selectPossible;
-    private boolean canHaveCallableResultset;
+    private boolean canHaveCallableResultSet;
     private MariaSelectResultSet resultSet = null;
-    private long[] insertId;
+    private long[] insertIds;
     private int[] affectedRows;
     private int currentStat = 0;
 
@@ -34,13 +36,13 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.selectPossible = selectPossible;
-        this.canHaveCallableResultset = false;
+        this.canHaveCallableResultSet = false;
         this.cachedExecutionResults = new ArrayDeque<>();
 
         affectedRows = new int[size];
-        insertId = new long[size];
+        insertIds = new long[size];
         Arrays.fill(affectedRows, Statement.EXECUTE_FAILED);
-        Arrays.fill(insertId, Statement.EXECUTE_FAILED);
+        Arrays.fill(insertIds, 0);
     }
 
     /**
@@ -51,7 +53,7 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
      */
     public void addResultSet(MariaSelectResultSet result, boolean moreResultAvailable) {
         this.resultSet = result;
-        this.insertId[currentStat] = Statement.SUCCESS_NO_INFO;
+        this.insertIds[currentStat] = 0;
         this.affectedRows[currentStat++] = -1;
         this.setMoreResultAvailable(moreResultAvailable);
     }
@@ -64,21 +66,13 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
      * @param moreResultAvailable is there additional packet
      */
     public void addStats(long affectedRows, long insertId, boolean moreResultAvailable) {
-        this.insertId[currentStat] = insertId;
+        this.insertIds[currentStat] = insertId;
         this.affectedRows[currentStat++] = (int) affectedRows;
         setMoreResultAvailable(moreResultAvailable);
     }
 
-    public long[] getInsertIds() {
-        return insertId;
-    }
-
     public int[] getAffectedRows() {
         return affectedRows;
-    }
-
-    public boolean hasMoreThanOneAffectedRows() {
-        return affectedRows.length > 0 && affectedRows[0] > 1;
     }
 
     public int getFirstAffectedRows() {
@@ -175,23 +169,57 @@ public class MultiFixedIntExecutionResult implements MultiExecutionResult {
         return selectPossible;
     }
 
-    public boolean isCanHaveCallableResultset() {
-        return canHaveCallableResultset;
+    public boolean isCanHaveCallableResultSet() {
+        return canHaveCallableResultSet;
     }
 
     public Deque<ExecutionResult> getCachedExecutionResults() {
         return cachedExecutionResults;
     }
 
-    public void addResult(ExecutionResult executionResult) {
-        cachedExecutionResults.add(executionResult);
-    }
-
-    public boolean isSingleExecutionResult() {
-        return false;
-    }
-
     public int getCurrentStat() {
         return currentStat;
+    }
+
+    /**
+     * Return auto_increment keys in resultSet.
+     *
+     * @param autoIncrementIncrement connection autoIncrementIncrement variable value
+     * @param protocol current protocol
+     * @return resultSet
+     */
+    public ResultSet getGeneratedKeys(int autoIncrementIncrement, Protocol protocol) {
+        if (resultSet == null) {
+            ColumnInformation[] columns = new ColumnInformation[1];
+            columns[0] = ColumnInformation.create(INSERT_ID_ROW_NAME, MariaDbType.BIGINT);
+
+            List<byte[][]> rows = new ArrayList<>();
+
+            //multi insert in one execution. will create result based on autoincrement
+            if (affectedRows.length > 0 && affectedRows[0] > 1) {
+                for (int affectedRow : affectedRows) {
+                    for (int counter = 0; counter < affectedRow; counter++) {
+                        for (long insertId : insertIds) {
+                            byte[][] row = {String.valueOf(insertId + counter * autoIncrementIncrement).getBytes()};
+                            rows.add(row);
+                        }
+                    }
+                }
+            } else {
+                for (long insertId : insertIds) {
+                    if (insertId != 0) {
+                        byte[][] row = {String.valueOf(insertId).getBytes()};
+                        rows.add(row);
+                    }
+                }
+            }
+            return new MariaSelectResultSet(columns, rows, protocol, ResultSet.TYPE_SCROLL_SENSITIVE) {
+                @Override
+                public int findColumn(String name) {
+                    return 1;
+                }
+            };
+        }
+        return MariaSelectResultSet.EMPTY;
     }
 }

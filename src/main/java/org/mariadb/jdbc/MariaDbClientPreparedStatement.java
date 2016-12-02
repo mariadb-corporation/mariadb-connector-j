@@ -385,61 +385,6 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
     }
 
     /**
-     * {inheritdoc}.
-     */
-    @Override
-    public ResultSet getGeneratedKeys() throws SQLException {
-        if (executionResult != null && executionResult.getResultSet() == null) {
-            int autoIncrementIncrement = connection.getAutoIncrementIncrement();
-            //multi insert in one execution. will create result based on autoincrement
-            if (executionResult.hasMoreThanOneAffectedRows()) {
-                long[] data;
-                if (executionResult.isSingleExecutionResult()) {
-                    int updateCount = executionResult.getFirstAffectedRows();
-                    data = new long[updateCount];
-                    for (int i = 0; i < updateCount; i++) {
-                        data[i] = ((SingleExecutionResult) executionResult).getInsertId() + i * autoIncrementIncrement;
-                    }
-                } else {
-                    if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
-                        MultiVariableIntExecutionResult multiExecution = (MultiVariableIntExecutionResult) executionResult;
-                        data = multiExecution.getInsertIdsForRewrite(autoIncrementIncrement);
-                    } else {
-                        MultiExecutionResult multiExecution = (MultiExecutionResult) executionResult;
-                        int size = 0;
-                        int affectedRowsLength = multiExecution.getAffectedRows().length;
-                        for (int i = 0; i < affectedRowsLength; i++) {
-                            int affectedRows = multiExecution.getAffectedRows()[i];
-                            if (affectedRows >= 0) {
-                                size += multiExecution.getAffectedRows()[i];
-                            } else {
-                                size += 1;
-                            }
-                        }
-
-                        data = new long[(size < 0) ? 0 : size];
-                        int insertIdCounter = 0;
-                        for (int affectedRowsCounter = 0; affectedRowsCounter < affectedRowsLength; affectedRowsCounter++) {
-                            int affectedRows = multiExecution.getAffectedRows()[affectedRowsCounter];
-                            if (affectedRows > 0) {
-                                for (int i = 0; i < affectedRows; i++) {
-                                    data[insertIdCounter++] = multiExecution.getInsertIds()[affectedRowsCounter] + i * autoIncrementIncrement;
-                                }
-                            } else {
-                                data[insertIdCounter++] = multiExecution.getInsertIds()[affectedRowsCounter];
-                            }
-                        }
-                    }
-                }
-                return MariaSelectResultSet.createGeneratedData(data, connection.getProtocol(), true);
-            }
-            return MariaSelectResultSet.createGeneratedData(executionResult.getInsertIds(), connection.getProtocol(), true);
-        }
-        return MariaSelectResultSet.EMPTY;
-    }
-
-
-    /**
      * Retrieves a <code>ResultSetMetaData</code> object that contains information about the columns of the
      * <code>ResultSet</code> object that will be returned when this <code>PreparedStatement</code> object is executed.
      * <br>

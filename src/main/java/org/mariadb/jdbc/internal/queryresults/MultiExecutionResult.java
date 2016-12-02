@@ -9,5 +9,6 @@ public interface MultiExecutionResult extends ExecutionResult {
     int[] getAffectedRows();
 
     int getFirstAffectedRows();
+
 }
 

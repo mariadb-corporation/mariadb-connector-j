@@ -55,8 +55,6 @@ import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.*;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
@@ -1161,7 +1159,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     if (bufferEof.getByteAt(0) != Packet.EOF) {
                         throw new QueryException("Packets out of order when reading field packets, expected was EOF stream. "
                                 + "Packet contents (hex) = " + Utils.hexdump(bufferEof.buf, options.maxQuerySizeToLog, 0, buffer.position));
-                    } else if (executionResult.isCanHaveCallableResultset() || checkCallableResultSet) {
+                    } else if (executionResult.isCanHaveCallableResultSet() || checkCallableResultSet) {
                         //Identify if this is a "callable OUT packet" (callableResult=true)
                         //needed because :
                         // - will permit for callableStatement to identify the output result packet
@@ -1183,7 +1181,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                             } catch (QueryException e) {
                             }
                         }
-                        if (!executionResult.isCanHaveCallableResultset()) {
+                        if (!executionResult.isCanHaveCallableResultSet()) {
                             throw new QueryException("Select command are not permitted via executeBatch() command");
                         }
                     }

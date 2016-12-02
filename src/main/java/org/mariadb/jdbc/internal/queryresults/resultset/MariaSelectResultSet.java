@@ -217,40 +217,6 @@ public class MariaSelectResultSet implements ResultSet {
      * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData, (one example is
      * MariaDbDatabaseMetaData.getTypeInfo())
      *
-     * @param data                 - each element of this array represents a complete row in the ResultSet. Each value is given in its
-     *                             string representation, as in MySQL text protocol, except boolean (BIT(1)) values that are represented
-     *                             as "1" or "0" strings
-     * @param protocol             protocol
-     * @param findColumnReturnsOne - special parameter, used only in generated key result sets
-     * @return resultset
-     */
-    public static ResultSet createGeneratedData(long[] data, Protocol protocol, boolean findColumnReturnsOne) {
-        ColumnInformation[] columns = new ColumnInformation[1];
-        columns[0] = ColumnInformation.create("insert_id", MariaDbType.BIGINT);
-
-        List<byte[][]> rows = new ArrayList<>();
-        for (long rowData : data) {
-            if (rowData != 0) {
-                byte[][] row = new byte[1][];
-                row[0] = String.valueOf(rowData).getBytes();
-                rows.add(row);
-            }
-        }
-        if (findColumnReturnsOne) {
-            return new MariaSelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE) {
-                @Override
-                public int findColumn(String name) {
-                    return 1;
-                }
-            };
-        }
-        return new MariaSelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
-    }
-
-    /**
-     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData, (one example is
-     * MariaDbDatabaseMetaData.getTypeInfo())
-     *
      * @param columnNames - string array of column names
      * @param columnTypes - column types
      * @param data        - each element of this array represents a complete row in the ResultSet. Each value is given in its string representation,

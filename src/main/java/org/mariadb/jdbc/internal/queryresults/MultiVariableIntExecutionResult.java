@@ -1,8 +1,12 @@
 package org.mariadb.jdbc.internal.queryresults;
 
 import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
@@ -16,16 +20,15 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
     private boolean selectPossible;
     private boolean canHaveCallableResultset;
     private MariaSelectResultSet resultSet = null;
-    private List<Long> insertId;
+    private List<Long> insertIds;
     private List<Integer> affectedRows;
-    private int waitedSize;
 
     /**
      * Constructor. Creating resultSet data with size according to datas.
      *
      * @param statement      current statement
      * @param size           initial data size
-     * @param fetchSize      resultet fetch size
+     * @param fetchSize      resultSet fetch size
      * @param selectPossible is select command possible
      */
     public MultiVariableIntExecutionResult(MariaDbStatement statement, int size, int fetchSize, boolean selectPossible) {
@@ -34,9 +37,8 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
         this.selectPossible = selectPossible;
         this.canHaveCallableResultset = false;
         this.cachedExecutionResults = new ArrayDeque<>();
-
         affectedRows = new ArrayList<>(size);
-        insertId = new ArrayList<>(size);
+        insertIds = new ArrayList<>(size);
     }
 
     /**
@@ -47,7 +49,7 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
      */
     public void addResultSet(MariaSelectResultSet result, boolean moreResultAvailable) {
         this.resultSet = result;
-        this.insertId.add((long) Statement.SUCCESS_NO_INFO);
+        this.insertIds.add(0L);
         this.affectedRows.add(-1);
         this.setMoreResultAvailable(moreResultAvailable);
     }
@@ -60,23 +62,9 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
      * @param moreResultAvailable is there additional packet
      */
     public void addStats(long affectedRows, long insertId, boolean moreResultAvailable) {
-        this.insertId.add(insertId);
+        this.insertIds.add(insertId);
         this.affectedRows.add((int) affectedRows);
         setMoreResultAvailable(moreResultAvailable);
-    }
-
-    /**
-     * Get insert ids.
-     *
-     * @return insert ids results
-     */
-    public long[] getInsertIds() {
-        long[] ret = new long[insertId.size()];
-        Iterator<Long> iterator = insertId.iterator();
-        for (int i = 0; i < ret.length; i++) {
-            ret[i] = iterator.next().longValue();
-        }
-        return ret;
     }
 
     /**
@@ -93,10 +81,6 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
         return ret;
     }
 
-    public boolean hasMoreThanOneAffectedRows() {
-        return affectedRows.size() > 0;
-    }
-
     public int getFirstAffectedRows() {
         return affectedRows.get(0);
     }
@@ -108,13 +92,13 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
      */
     public void addStatsError(boolean moreResultAvailable) {
         this.affectedRows.add(Statement.EXECUTE_FAILED);
-        this.insertId.add(null);
+        this.insertIds.add(0L);
         setMoreResultAvailable(moreResultAvailable);
     }
 
     public void addStatsError() {
         this.affectedRows.add(Statement.EXECUTE_FAILED);
-        this.insertId.add(null);
+        this.insertIds.add(0L);
     }
 
     /**
@@ -125,7 +109,7 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
     public void fixStatsError(int sendCommand) {
         for (; this.affectedRows.size() < sendCommand; ) {
             this.affectedRows.add(Statement.EXECUTE_FAILED);
-            this.insertId.add(null);
+            this.insertIds.add(0L);
         }
     }
 
@@ -140,19 +124,18 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
      * so modified row, will all be on the first row, or on a few rows :
      * queries will split to have query size under the max_allowed_size, so data can be on multiple rows
      *
-     * @param waitedSize   batchSize
+     * @param expectedSize   batchSize
      * @param hasException has exception
      * @return affected rows
      */
-    public int[] updateResultsForRewrite(int waitedSize, boolean hasException) {
-        this.waitedSize = waitedSize;
+    public int[] updateResultsForRewrite(int expectedSize, boolean hasException) {
         long totalAffectedRows = 0;
         Iterator<Integer> iterator = affectedRows.iterator();
 
         while (iterator.hasNext()) {
             totalAffectedRows += iterator.next().intValue();
         }
-        int realSize = (int) Math.max(waitedSize, totalAffectedRows);
+        int realSize = (int) Math.max(expectedSize, totalAffectedRows);
         int baseResult = totalAffectedRows == realSize ? 1 : Statement.SUCCESS_NO_INFO;
 
         int[] arr = new int[realSize];
@@ -165,45 +148,6 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
         for (; counter < realSize; ) {
             arr[counter++] = hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO;
         }
-        return arr;
-    }
-
-    /**
-     * Generate insert id's array for rewrite operation.
-     * Rewrite operation will return only the first insert ids.
-     * Problem is rewrite queries cannot exceed max_allowed_packet size.
-     * so when sending many packet, driver must reconstruct the insert ids according to each packet first insert ids
-     * and connection AUTO_INCREMENT.
-     * <p>
-     * //TODO innodb_autoinc_lock_mode if  changed to "Interleaved Lock Mode", driver cannot ensure that insert ids values.
-     * <p>
-     * Id's can be reconstruct using
-     *
-     * @param autoIncrementIncrement connection AUTO_INCREMENT variable
-     * @return insert ids array
-     */
-    public long[] getInsertIdsForRewrite(int autoIncrementIncrement) {
-        long totalAffectedRows = 0L;
-        Iterator<Integer> iterator = affectedRows.iterator();
-        Iterator<Long> idsIterator = insertId.iterator();
-
-        while (iterator.hasNext()) {
-            int affectedRow = iterator.next().intValue();
-            if (affectedRow == Statement.EXECUTE_FAILED) return new long[0];
-            totalAffectedRows += affectedRow;
-        }
-        long realSize = Math.max(waitedSize, totalAffectedRows);
-
-        long[] arr = new long[(int) realSize];
-        int counter = 0;
-        iterator = affectedRows.iterator();
-        while (iterator.hasNext()) {
-            long id = idsIterator.next().longValue();
-            int affectedRow = iterator.next().intValue();
-            if (affectedRow == Statement.EXECUTE_FAILED) break;
-            for (int i = 0; i < affectedRow; i++) arr[counter++] = id + i * autoIncrementIncrement;
-        }
-        for (; counter < realSize; ) arr[counter++] = Statement.EXECUTE_FAILED;
         return arr;
     }
 
@@ -268,7 +212,7 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
         return selectPossible;
     }
 
-    public boolean isCanHaveCallableResultset() {
+    public boolean isCanHaveCallableResultSet() {
         return canHaveCallableResultset;
     }
 
@@ -276,12 +220,55 @@ public class MultiVariableIntExecutionResult implements MultiExecutionResult {
         return cachedExecutionResults;
     }
 
-    public void addResult(ExecutionResult executionResult) {
-        cachedExecutionResults.add(executionResult);
-    }
+    /**
+     * Return auto_increment keys in resultSet.
+     *
+     * @param autoIncrementIncrement connection autoIncrementIncrement variable value
+     * @param protocol current protocol
+     * @return resultSet
+     */
+    public ResultSet getGeneratedKeys(int autoIncrementIncrement, Protocol protocol) {
+        if (resultSet == null) {
+            ColumnInformation[] columns = new ColumnInformation[1];
+            columns[0] = ColumnInformation.create(INSERT_ID_ROW_NAME, MariaDbType.BIGINT);
+            List<byte[][]> rows = new ArrayList<>();
 
-    public boolean isSingleExecutionResult() {
-        return false;
-    }
+            //multi insert in one execution. will create result based on autoincrement
+            if (affectedRows.size() > 0 && affectedRows.get(0) > 1) {
 
+
+                Iterator<Integer> iterator = affectedRows.iterator();
+                Iterator<Long> idsIterator = insertIds.iterator();
+                while (iterator.hasNext()) {
+                    int affectedRow = iterator.next().intValue();
+                    if (affectedRow != Statement.EXECUTE_FAILED) {
+                        if (idsIterator.hasNext()) {
+                            Long insertId = idsIterator.next().longValue();
+                            if (insertId != null && insertId != 0) {
+                                for (int i = 0; i < affectedRow; i++) {
+                                    byte[][] row = {String.valueOf(insertId + i * autoIncrementIncrement).getBytes()};
+                                    rows.add(row);
+                                }
+                            }
+                        }
+                    }
+                }
+
+            } else {
+                for (Long insertId : insertIds) {
+                    if (insertId != null && insertId != 0) {
+                        byte[][] row = {String.valueOf(insertId).getBytes()};
+                        rows.add(row);
+                    }
+                }
+            }
+            return new MariaSelectResultSet(columns, rows, protocol, ResultSet.TYPE_SCROLL_SENSITIVE) {
+                @Override
+                public int findColumn(String name) {
+                    return 1;
+                }
+            };
+        }
+        return MariaSelectResultSet.EMPTY;
+    }
 }

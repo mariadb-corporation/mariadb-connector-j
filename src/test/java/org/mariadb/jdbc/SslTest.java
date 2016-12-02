@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import com.sun.jna.Platform;
 import org.junit.*;
 
 import java.io.*;
@@ -151,15 +152,17 @@ public class SslTest extends BaseTest {
 
     @Test
     public void useSslForceTlsV12() throws Exception {
+        Assume.assumeFalse(Platform.isWindows());
         // Only test with MariaDB since MySQL community is compiled with yaSSL
         if (isMariadbServer()) useSslForceTls("TLSv1.2");
     }
 
     @Test
     public void useSslForceTlsV12AndCipher() throws Exception {
+        Assume.assumeFalse(Platform.isWindows());
         // Only test with MariaDB since MySQL community is compiled with yaSSL
         if (isMariadbServer()) {
-            useSslForceTls("TLSv1.2", "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384");
+            useSslForceTls("TLSv1.2", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
         }
     }
 
@@ -168,7 +171,7 @@ public class SslTest extends BaseTest {
         // Only test with MariaDB since MySQL community is compiled with yaSSL
         try {
             if (isMariadbServer()) {
-                useSslForceTls("TLSv1.2", "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, UNKNOWN_CIPHER");
+                useSslForceTls("TLSv1.2", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256, UNKNOWN_CIPHER");
                 fail("Must have thrown error since cipher is refused by server");
             }
         } catch (SQLException e) {
@@ -182,7 +185,7 @@ public class SslTest extends BaseTest {
         // Only test with MariaDB since MySQL community is compiled with yaSSL
         try {
             if (isMariadbServer()) {
-                useSslForceTls("TLSv1.1", "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
+                useSslForceTls("TLSv1.1", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
                 fail("Must have thrown error since cipher aren't TLSv1.1 ciphers");
             }
         } catch (SQLException e) {
@@ -203,7 +206,7 @@ public class SslTest extends BaseTest {
                 info.setProperty("trustServerCertificate", "true");
                 info.setProperty("enabledSslProtocolSuites", "TLSv1.1");
                 //enabledSSLCipherSuites, not enabledSslCipherSuites (different case)
-                info.setProperty("enabledSSLCipherSuites", "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
+                info.setProperty("enabledSSLCipherSuites", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
 
                 Connection connection = setConnection(info);
                 try {
@@ -221,7 +224,7 @@ public class SslTest extends BaseTest {
 
     @Test
     public void useSslForceTlsCombination() throws Exception {
-        if (isMariadbServer()) {
+        if (isMariadbServer() && !Platform.isWindows()) {
             useSslForceTls("TLSv1,TLSv1.1,TLSv1.2");
         } else {
             useSslForceTls("TLSv1,TLSv1");
@@ -230,7 +233,7 @@ public class SslTest extends BaseTest {
 
     @Test
     public void useSslForceTlsCombinationWithSpace() throws Exception {
-        if (isMariadbServer()) {
+        if (isMariadbServer() && !Platform.isWindows()) {
             useSslForceTls("TLSv1, TLSv1.1, TLSv1.2");
         } else {
             useSslForceTls("TLSv1, TLSv1");
@@ -240,7 +243,7 @@ public class SslTest extends BaseTest {
 
     @Test
     public void useSslForceTlsCombinationWithOnlySpace() throws Exception {
-        if (isMariadbServer()) {
+        if (isMariadbServer() && !Platform.isWindows()) {
             useSslForceTls("TLSv1 TLSv1.1 TLSv1.2");
         } else {
             useSslForceTls("TLSv1 TLSv1");
@@ -659,6 +662,7 @@ public class SslTest extends BaseTest {
 
     @Test
     public void testKeyStoreWithProperties() throws Exception {
+        Assume.assumeNotNull(clientKeystorePath);
         // generate a trustStore from the canned serverCertificate
         File tempKeystore = File.createTempFile("keystore", ".tmp");
         String keystorePath = tempKeystore.getAbsolutePath();
@@ -710,6 +714,7 @@ public class SslTest extends BaseTest {
 
     @Test
     public void testKeyStoreWhenServerTrustedWithProperties() throws Exception {
+        Assume.assumeNotNull(clientKeystorePath);
         // generate a trustStore from the canned serverCertificate
         File tempKeystore = File.createTempFile("keystore", ".tmp");
         String keystorePath = tempKeystore.getAbsolutePath();

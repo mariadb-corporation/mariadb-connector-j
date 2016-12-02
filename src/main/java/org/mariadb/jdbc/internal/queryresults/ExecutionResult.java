@@ -1,12 +1,15 @@
 package org.mariadb.jdbc.internal.queryresults;
 
 import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Deque;
 
 public interface ExecutionResult {
+    String INSERT_ID_ROW_NAME = "insert_id";
 
     MariaSelectResultSet getResultSet();
 
@@ -33,18 +36,14 @@ public interface ExecutionResult {
 
     void fixStatsError(int sendCommand);
 
-    long[] getInsertIds();
-
-    boolean hasMoreThanOneAffectedRows();
-
     int getFirstAffectedRows();
 
     boolean isSelectPossible();
 
-    boolean isCanHaveCallableResultset();
+    boolean isCanHaveCallableResultSet();
 
     Deque<ExecutionResult> getCachedExecutionResults();
 
-    boolean isSingleExecutionResult();
+    ResultSet getGeneratedKeys(int autoIncrementIncrement, Protocol protocol);
 }
 

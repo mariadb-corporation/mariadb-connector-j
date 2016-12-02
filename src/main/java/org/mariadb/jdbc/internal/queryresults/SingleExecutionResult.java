@@ -1,12 +1,18 @@
 package org.mariadb.jdbc.internal.queryresults;
 
 import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 
 public class SingleExecutionResult implements ExecutionResult {
 
@@ -15,7 +21,7 @@ public class SingleExecutionResult implements ExecutionResult {
     private boolean moreResultAvailable;
     private int fetchSize;
     private boolean selectPossible;
-    private boolean canHaveCallableResultset;
+    private boolean canHaveCallableResultSet;
     private Deque<ExecutionResult> cachedExecutionResults;
     private long insertId;
     private long affectedRows = -1;
@@ -26,13 +32,13 @@ public class SingleExecutionResult implements ExecutionResult {
      * @param statement                current statement
      * @param fetchSize                fetch size
      * @param selectPossible           select result possible
-     * @param canHaveCallableResultset can be callablestatement
+     * @param canHaveCallableResultSet can be callablestatement
      */
-    public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset) {
+    public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultSet) {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.selectPossible = selectPossible;
-        this.canHaveCallableResultset = canHaveCallableResultset;
+        this.canHaveCallableResultSet = canHaveCallableResultSet;
     }
 
     /**
@@ -41,15 +47,15 @@ public class SingleExecutionResult implements ExecutionResult {
      * @param statement                current statement
      * @param fetchSize                fetch size
      * @param selectPossible           select result possible
-     * @param canHaveCallableResultset can be callablestatement
+     * @param canHaveCallableResultSet can be callablestatement
      * @param canHaveMoreResults       tell that results may have multiple resultset
      */
-    public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset,
+    public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultSet,
                                  boolean canHaveMoreResults) {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.selectPossible = selectPossible;
-        this.canHaveCallableResultset = canHaveCallableResultset;
+        this.canHaveCallableResultSet = canHaveCallableResultSet;
         this.cachedExecutionResults = new ArrayDeque<>();
     }
 
@@ -59,16 +65,16 @@ public class SingleExecutionResult implements ExecutionResult {
      * @param statement                current statement
      * @param fetchSize                fetch size
      * @param selectPossible           select result possible
-     * @param canHaveCallableResultset can be callablestatement
+     * @param canHaveCallableResultSet can be callablestatement
      * @param affectedRows             affected rows
      * @param insertId                 insert id (auto generated)
      */
-    public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset,
+    public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultSet,
                                  long affectedRows, long insertId) {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.selectPossible = selectPossible;
-        this.canHaveCallableResultset = canHaveCallableResultset;
+        this.canHaveCallableResultSet = canHaveCallableResultSet;
         this.insertId = insertId;
         this.affectedRows = affectedRows;
     }
@@ -79,17 +85,17 @@ public class SingleExecutionResult implements ExecutionResult {
      * @param statement                current statement
      * @param fetchSize                fetch size
      * @param selectPossible           select result possible
-     * @param canHaveCallableResultset can be callablestatement
+     * @param canHaveCallableResultSet can be callablestatement
      * @param result                   resultset
      */
-    public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultset,
+    public SingleExecutionResult(MariaDbStatement statement, int fetchSize, boolean selectPossible, boolean canHaveCallableResultSet,
                                  MariaSelectResultSet result) {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.selectPossible = selectPossible;
-        this.canHaveCallableResultset = canHaveCallableResultset;
+        this.canHaveCallableResultSet = canHaveCallableResultSet;
         this.result = result;
-        this.insertId = Statement.SUCCESS_NO_INFO;
+        this.insertId = 0;
         this.affectedRows = -1;
     }
 
@@ -101,7 +107,7 @@ public class SingleExecutionResult implements ExecutionResult {
      */
     public void addResultSet(MariaSelectResultSet result, boolean moreResultAvailable) {
         this.result = result;
-        this.insertId = Statement.SUCCESS_NO_INFO;
+        this.insertId = 0;
         this.affectedRows = -1;
         this.setMoreResultAvailable(moreResultAvailable);
     }
@@ -118,23 +124,6 @@ public class SingleExecutionResult implements ExecutionResult {
         this.affectedRows = affectedRows;
         setMoreResultAvailable(moreResultAvailable);
     }
-
-    public long[] getInsertIds() {
-        return new long[]{insertId};
-    }
-
-    public long getInsertId() {
-        return insertId;
-    }
-
-    public long getAffectedRows() {
-        return affectedRows;
-    }
-
-    public boolean hasMoreThanOneAffectedRows() {
-        return affectedRows > 1;
-    }
-
 
     public int getFirstAffectedRows() {
         return (int) affectedRows;
@@ -187,15 +176,49 @@ public class SingleExecutionResult implements ExecutionResult {
         return selectPossible;
     }
 
-    public boolean isCanHaveCallableResultset() {
-        return canHaveCallableResultset;
+    public boolean isCanHaveCallableResultSet() {
+        return canHaveCallableResultSet;
     }
 
     public Deque<ExecutionResult> getCachedExecutionResults() {
         return cachedExecutionResults;
     }
 
-    public boolean isSingleExecutionResult() {
-        return true;
+    /**
+     * Return auto_increment keys in resultSet.
+     *
+     * @param autoIncrementIncrement connection autoIncrementIncrement variable value
+     * @param protocol current protocol
+     * @return resultSet
+     */
+    public ResultSet getGeneratedKeys(int autoIncrementIncrement, Protocol protocol) {
+        if (result == null) {
+            ColumnInformation[] columns = new ColumnInformation[1];
+            columns[0] = ColumnInformation.create(INSERT_ID_ROW_NAME, MariaDbType.BIGINT);
+
+            List<byte[][]> rows = new ArrayList<>();
+
+            //multi insert in one execution. will create result based on autoincrement
+            if (affectedRows > 1) {
+                for (int i = 0; i < affectedRows; i++) {
+                    if (insertId != 0) {
+                        byte[][] row = {String.valueOf(insertId  + i * autoIncrementIncrement).getBytes()};
+                        rows.add(row);
+                    }
+                }
+            } else {
+                if (insertId != 0) {
+                    byte[][] row = {String.valueOf(insertId).getBytes()};
+                    rows.add(row);
+                }
+            }
+            return new MariaSelectResultSet(columns, rows, protocol, ResultSet.TYPE_SCROLL_SENSITIVE) {
+                @Override
+                public int findColumn(String name) {
+                    return 1;
+                }
+            };
+        }
+        return MariaSelectResultSet.EMPTY;
     }
 }

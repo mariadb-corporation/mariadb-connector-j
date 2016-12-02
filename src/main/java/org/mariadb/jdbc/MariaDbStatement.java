@@ -769,34 +769,9 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
-        if (executionResult != null && executionResult.getResultSet() == null) {
+        if (executionResult != null) {
             int autoIncrementIncrement = connection.getAutoIncrementIncrement();
-            //multi insert in one execution. will create result based on autoincrement
-            if (executionResult.hasMoreThanOneAffectedRows()) {
-                long[] data;
-                if (executionResult.isSingleExecutionResult()) {
-                    int updateCount = executionResult.getFirstAffectedRows();
-                    data = new long[updateCount];
-                    for (int i = 0; i < updateCount; i++) {
-                        data[i] = ((SingleExecutionResult) executionResult).getInsertId() + i * autoIncrementIncrement;
-                    }
-                } else {
-                    MultiExecutionResult multiExecution = (MultiExecutionResult) executionResult;
-                    int size = 0;
-                    int affectedRowsLength = multiExecution.getAffectedRows().length;
-                    for (int i = 0; i < affectedRowsLength; i++) {
-                        size += multiExecution.getAffectedRows()[i];
-                    }
-                    data = new long[size];
-                    for (int affectedRows = 0; affectedRows < affectedRowsLength; affectedRows++) {
-                        for (int i = 0; i < multiExecution.getAffectedRows()[affectedRows]; i++) {
-                            data[i] = multiExecution.getInsertIds()[affectedRows] + i * autoIncrementIncrement;
-                        }
-                    }
-                }
-                return MariaSelectResultSet.createGeneratedData(data, connection.getProtocol(), true);
-            }
-            return MariaSelectResultSet.createGeneratedData(executionResult.getInsertIds(), connection.getProtocol(), true);
+            return executionResult.getGeneratedKeys(autoIncrementIncrement, protocol);
         }
         return MariaSelectResultSet.EMPTY;
     }
@@ -878,11 +853,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         if (executionResult == null || executionResult.getResultSet() != null) {
             return -1;  /* Result comes from SELECT , or there are no more results */
         }
-        if (executionResult.isSingleExecutionResult()) {
-            return (int) ((SingleExecutionResult) executionResult).getAffectedRows();
-        } else {
-            return executionResult.getFirstAffectedRows();
-        }
+        return executionResult.getFirstAffectedRows();
     }
 
     protected void skipMoreResults() throws SQLException {
@@ -1145,8 +1116,8 @@ public class MariaDbStatement implements Statement, Cloneable {
                 }
             } catch (QueryException e) {
                 exception = e;
-            } finally {
                 internalExecutionResult.fixStatsError(batchQueries.size());
+            } finally {
                 if (exception != null && multipleExecution) {
                     internalExecutionResult.updateResultsMultiple(batchQueries.size(), true);
                 }
