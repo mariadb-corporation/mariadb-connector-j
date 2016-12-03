@@ -162,7 +162,7 @@ public class SslTest extends BaseTest {
         Assume.assumeFalse(Platform.isWindows());
         // Only test with MariaDB since MySQL community is compiled with yaSSL
         if (isMariadbServer()) {
-            useSslForceTls("TLSv1.2", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
+            useSslForceTls("TLSv1.2", "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384");
         }
     }
 
