@@ -67,6 +67,10 @@ public class SendClearPasswordAuthPacket extends AbstractAuthSwitchSendResponseP
      */
     public void send(OutputStream os) throws IOException {
         PacketOutputStream writer = (PacketOutputStream) os;
+        if (password == null || password.equals("")) {
+            writer.writeEmptyPacket(packSeq);
+            return;
+        }
         writer.startPacket(packSeq);
         writer.write(password.getBytes());
         writer.write(0);
