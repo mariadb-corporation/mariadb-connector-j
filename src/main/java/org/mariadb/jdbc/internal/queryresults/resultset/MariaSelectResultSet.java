@@ -930,7 +930,13 @@ public class MariaSelectResultSet implements ResultSet {
             case DATETIME:
                 try {
                     Timestamp timestamp = getTimestamp(rawBytes, columnInfo, cal);
-                    return (timestamp == null) ? null : timestamp.toString();
+                    if (timestamp == null) {
+                        if (rawBytes != null && !this.isBinaryEncoded) {
+                            return new String(rawBytes, StandardCharsets.UTF_8);
+                        }
+                        return null;
+                    }
+                    return timestamp.toString();
                 } catch (ParseException e) {
                 }
                 break;

@@ -572,4 +572,28 @@ public class DateTest extends BaseTest {
         }
     }
 
+    /**
+     * CONJ-388 : getString on a '0000-00-00 00:00:00' must not return null.
+     *
+     * @throws SQLException if exception occur
+     */
+    @Test
+    public void getZeroDateString() throws SQLException {
+        createTable("zeroTimestamp", "ts timestamp(6) NULL ");
+        try (Statement statement = sharedConnection.createStatement()) {
+            statement.execute("INSERT INTO zeroTimestamp values ('0000-00-00 00:00:00')");
+            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT * from zeroTimestamp")) {
+                ResultSet resultSet = preparedStatement.executeQuery();
+                Assert.assertTrue(resultSet.next());
+                Assert.assertEquals(null, resultSet.getDate(1));
+                Assert.assertEquals(null, resultSet.getString(1));
+            }
+
+            ResultSet resultSet = statement.executeQuery("SELECT * from zerotimestamp");
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(null, resultSet.getDate(1));
+            Assert.assertEquals("0000-00-00 00:00:00", resultSet.getString(1));
+        }
+    }
+
 }
