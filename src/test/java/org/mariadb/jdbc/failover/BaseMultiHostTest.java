@@ -370,6 +370,18 @@ public class BaseMultiHostTest {
         return hostAddressList.indexOf(hostAddress) + 1;
     }
 
+    /**
+     * Retrieve current HostAddress.
+     *
+     * @param connection connection
+     * @return Current Host address
+     * @throws Throwable if any exception occur
+     */
+    public HostAddress getServerHostAddress(Connection connection) throws Throwable {
+        Protocol protocol = getProtocolFromConnection(connection);
+        return protocol.getHostAddress();
+    }
+
     public boolean inTransaction(Connection connection) throws Throwable {
         Protocol protocol = getProtocolFromConnection(connection);
         return protocol.inTransaction();
