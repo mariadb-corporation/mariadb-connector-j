@@ -579,7 +579,7 @@ public class DateTest extends BaseTest {
      */
     @Test
     public void getZeroDateString() throws SQLException {
-        createTable("zeroTimestamp", "ts timestamp(6) NULL ");
+        createTable("zeroTimestamp", "ts timestamp NULL ");
         try (Statement statement = sharedConnection.createStatement()) {
             statement.execute("INSERT INTO zeroTimestamp values ('0000-00-00 00:00:00')");
             try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT * from zeroTimestamp")) {
@@ -592,7 +592,7 @@ public class DateTest extends BaseTest {
             ResultSet resultSet = statement.executeQuery("SELECT * from zerotimestamp");
             Assert.assertTrue(resultSet.next());
             Assert.assertEquals(null, resultSet.getDate(1));
-            Assert.assertEquals("0000-00-00 00:00:00", resultSet.getString(1));
+            Assert.assertTrue(resultSet.getString(1).contains("0000-00-00 00:00:00"));
         }
     }
 
