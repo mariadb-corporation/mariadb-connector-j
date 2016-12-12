@@ -55,6 +55,7 @@ import org.mariadb.jdbc.internal.util.Utils;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 public class SendNativePasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
 
@@ -71,8 +72,21 @@ public class SendNativePasswordAuthPacket extends AbstractAuthSwitchSendResponse
     public void send(OutputStream os) throws IOException {
         PacketOutputStream writer = (PacketOutputStream) os;
         try {
+            if (password == null || password.equals("")) {
+                writer.writeEmptyPacket(packSeq);
+                return;
+            }
+
             writer.startPacket(packSeq);
-            writer.write(Utils.encryptPassword(password, authData));
+
+            byte[] seed;
+            if (authData.length > 0) {
+                //Seed is ended with a null byte value.
+                seed = Arrays.copyOfRange(authData, 0, authData.length - 1);
+            } else {
+                seed = new byte[0];
+            }
+            writer.write(Utils.encryptPassword(password, seed));
             writer.finishPacketWithoutRelease(false);
             writer.releaseBuffer();
         } catch (NoSuchAlgorithmException e) {
