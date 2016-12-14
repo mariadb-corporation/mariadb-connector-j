@@ -589,7 +589,7 @@ public class DateTest extends BaseTest {
                 Assert.assertEquals(null, resultSet.getString(1));
             }
 
-            ResultSet resultSet = statement.executeQuery("SELECT * from zerotimestamp");
+            ResultSet resultSet = statement.executeQuery("SELECT * from zeroTimestamp");
             Assert.assertTrue(resultSet.next());
             Assert.assertEquals(null, resultSet.getDate(1));
             Assert.assertTrue(resultSet.getString(1).contains("0000-00-00 00:00:00"));
