@@ -34,8 +34,6 @@ public class CollationTest extends BaseTest {
      */
     @Test
     public void emoji() throws SQLException {
-        //temporary. waiting for https://jira.mariadb.org/browse/MXS-953
-        Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
         Connection connection = null;
         try {
             connection = setConnection();
@@ -75,9 +73,6 @@ public class CollationTest extends BaseTest {
      */
     @Test
     public void test4BytesUtf8() throws Exception {
-        //temporary. waiting for https://jira.mariadb.org/browse/MXS-953
-        Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
-
         String sqlForCharset = "select @@character_set_server";
         ResultSet rs = sharedConnection.createStatement().executeQuery(sqlForCharset);
         if (rs.next()) {
