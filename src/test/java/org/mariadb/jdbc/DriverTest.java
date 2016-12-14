@@ -829,6 +829,8 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void conj1() throws Exception {
+        Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
+
         requireMinimumVersion(5, 0);
 
         try (Connection connection = setConnection("&profileSql=true")) {
