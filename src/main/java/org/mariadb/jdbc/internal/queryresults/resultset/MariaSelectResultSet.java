@@ -3238,6 +3238,8 @@ public class MariaSelectResultSet implements ResultSet {
                     }
                     //specific for BIGINT : if value > Long.MAX_VALUE , will become negative until -1
                     if (result < 0) {
+                        //CONJ-399 : handle specifically Long.MIN_VALUE that has absolute value +1 compare to LONG.MAX_VALUE
+                        if (result == Long.MIN_VALUE && negate) return Long.MIN_VALUE;
                         throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
                                 + new String(rawBytes, StandardCharsets.UTF_8)
                                 + " is not in Long range", "22003", 1264);

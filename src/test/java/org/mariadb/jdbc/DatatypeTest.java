@@ -862,4 +862,35 @@ public class DatatypeTest extends BaseTest {
             }
         }
     }
+
+    @Test
+    public void longMinValueSpecificity() throws SQLException {
+        createTable("longMinValueSpecificity", "ii BIGINT");
+        try (Statement statement = sharedConnection.createStatement()) {
+
+            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                    "INSERT INTO longMinValueSpecificity values (?)")) {
+                preparedStatement.setLong(1, Long.MAX_VALUE);
+                preparedStatement.executeQuery();
+                preparedStatement.setLong(1, Long.MIN_VALUE);
+                preparedStatement.executeQuery();
+            }
+
+            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                    "SELECT * from longMinValueSpecificity")) {
+                ResultSet resultSet = preparedStatement.executeQuery();
+                Assert.assertTrue(resultSet.next());
+                Assert.assertEquals(Long.MAX_VALUE, resultSet.getLong(1));
+                Assert.assertTrue(resultSet.next());
+                Assert.assertEquals(Long.MIN_VALUE, resultSet.getLong(1));
+            }
+
+            ResultSet resultSet = statement.executeQuery("SELECT * from longMinValueSpecificity");
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(Long.MAX_VALUE, resultSet.getLong(1));
+            Assert.assertTrue(resultSet.next());
+            Assert.assertEquals(Long.MIN_VALUE, resultSet.getLong(1));
+        }
+    }
+
 }
