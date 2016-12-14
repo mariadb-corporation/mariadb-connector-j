@@ -546,6 +546,7 @@ public class DateTest extends BaseTest {
      */
     @Test
     public void nullDateFromTimestamp() throws Throwable {
+        Assume.assumeTrue(isMariadbServer());
 
         createTable("nulltimestamp", "ts timestamp(6) NULL ");
         Statement stmt = sharedConnection.createStatement();
@@ -556,7 +557,11 @@ public class DateTest extends BaseTest {
             pst.setInt(1, 1);
             ResultSet rs = pst.executeQuery();
             Assert.assertTrue(rs.next());
-            Assert.assertNull(rs.getString(1));
+            if (sharedUsePrepare()) {
+                Assert.assertEquals(null, rs.getString(1));
+            } else {
+                Assert.assertTrue(rs.getString(1).contains("0000-00-00 00:00:00"));
+            }
             Assert.assertNull(rs.getDate(1));
             Assert.assertNull(rs.getTimestamp(1));
             Assert.assertNull(rs.getTime(1));
@@ -579,6 +584,7 @@ public class DateTest extends BaseTest {
      */
     @Test
     public void getZeroDateString() throws SQLException {
+        Assume.assumeTrue(isMariadbServer());
         createTable("zeroTimestamp", "ts timestamp NULL ");
         try (Statement statement = sharedConnection.createStatement()) {
             statement.execute("INSERT INTO zeroTimestamp values ('0000-00-00 00:00:00')");
@@ -586,7 +592,11 @@ public class DateTest extends BaseTest {
                 ResultSet resultSet = preparedStatement.executeQuery();
                 Assert.assertTrue(resultSet.next());
                 Assert.assertEquals(null, resultSet.getDate(1));
-                Assert.assertEquals(null, resultSet.getString(1));
+                if (sharedUsePrepare()) {
+                    Assert.assertEquals(null, resultSet.getString(1));
+                } else {
+                    Assert.assertTrue(resultSet.getString(1).contains("0000-00-00 00:00:00"));
+                }
             }
 
             ResultSet resultSet = statement.executeQuery("SELECT * from zeroTimestamp");
