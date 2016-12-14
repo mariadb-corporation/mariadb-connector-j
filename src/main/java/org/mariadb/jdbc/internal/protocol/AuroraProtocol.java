@@ -176,9 +176,23 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
                 } else if (!protocol.isMasterConnection()) {
                     if (listener.isSecondaryHostFailReconnect()) {
-                        if (foundSecondary(listener, protocol, searchFilter)) {
-                            return;
+                        //in case cluster DNS is currently pointing to a slave host
+                        if (listener.getUrlParser().getHostAddresses().size() <= 1
+                                && protocol.getHostAddress().equals(listener.getClusterHostAddress())) {
+                            listener.retrieveAllEndpointsAndSet(protocol);
+
+                            if (listener.getUrlParser().getHostAddresses().size() > 1) {
+                                //add newly discovered end-point to loop
+                                loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
+                                //since there is more than one end point, reactivate connection to a read-only host
+                                searchFilter = new SearchFilter(false);
+                            }
+                        } else {
+                            if (foundSecondary(listener, protocol, searchFilter)) {
+                                return;
+                            }
                         }
+
                     }
 
                     if (listener.isSecondaryHostFailReconnect()

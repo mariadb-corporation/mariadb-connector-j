@@ -74,9 +74,8 @@ public class AuroraListener extends MastersSlavesListener {
     private final Logger log = Logger.getLogger(AuroraListener.class.getName());
     private final Pattern clusterPattern = Pattern.compile("(.+)\\.cluster-([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)");
     private final HostAddress clusterHostAddress;
-    private final SimpleDateFormat sqlDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
     private String urlEndStr = "";
-    private String dbName = "information_schema";
+
 
     /**
      * Constructor for Aurora.
@@ -192,6 +191,7 @@ public class AuroraListener extends MastersSlavesListener {
             } while (searchFilter.isInitialConnection() && masterProtocol == null);
         }
 
+        //When reconnecting, search if replicas list has change since first initialisation
         if (getCurrentProtocol() != null && !getCurrentProtocol().isClosed()) {
             retrieveAllEndpointsAndSet(getCurrentProtocol());
         }
@@ -233,15 +233,10 @@ public class AuroraListener extends MastersSlavesListener {
             try {
                 // Deleted instance may remain in db for 24 hours so ignoring instances that have had no change
                 // for 3 minutes
-                Date date = new Date();
-
-                Timestamp currentTime = new Timestamp(date.getTime() - 3 * 60 * 1000); // 3 minutes
-                sqlDateFormat.setTimeZone(TimeZone.getTimeZone(protocol.getServerData("system_time_zone")));
-
                 SingleExecutionResult queryResult = new SingleExecutionResult(null, 0, true, false);
                 protocol.executeQuery(false, queryResult,
-                        "select server_id, session_id from " + dbName + ".replica_host_status "
-                                + "where last_update_timestamp > '" + sqlDateFormat.format(currentTime) + "'",
+                        "select server_id, session_id from information_schema.replica_host_status "
+                                + "where last_update_timestamp > UTC_TIMESTAMP - INTERVAL 3 MINUTE",
                         ResultSet.TYPE_FORWARD_ONLY);
                 MariaSelectResultSet resultSet = queryResult.getResultSet();
 
@@ -348,18 +343,12 @@ public class AuroraListener extends MastersSlavesListener {
         String masterHostName = null;
         proxy.lock.lock();
         try {
-            Date date = new Date();
-            Timestamp currentTime = new Timestamp(date.getTime() - 3 * 60 * 1000); // 3 minutes
-            sqlDateFormat.setTimeZone(TimeZone.getTimeZone(protocol.getServerData("system_time_zone")));
-
             SingleExecutionResult executionResult = new SingleExecutionResult(null, 0, true, false);
             protocol.executeQuery(false, executionResult,
-                    "select server_id from " + dbName + ".replica_host_status "
+                    "select server_id from information_schema.replica_host_status "
                             + "where session_id = 'MASTER_SESSION_ID' "
-                            + "and last_update_timestamp = ("
-                            + "select max(last_update_timestamp) from " + dbName + ".replica_host_status "
-                            + "where session_id = 'MASTER_SESSION_ID' "
-                            + "and last_update_timestamp > '" + currentTime + "')",
+                            + "and last_update_timestamp > UTC_TIMESTAMP - INTERVAL 3 MINUTE "
+                            + "ORDER BY last_update_timestamp DESC LIMIT 1",
                     ResultSet.TYPE_FORWARD_ONLY);
             MariaSelectResultSet queryResult = executionResult.getResultSet();
 
