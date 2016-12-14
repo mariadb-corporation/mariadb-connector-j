@@ -50,6 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet.send;
 
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.Utils;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -68,8 +69,13 @@ public class SendOldPasswordAuthPacket extends AbstractAuthSwitchSendResponsePac
      */
     public void send(OutputStream os) throws IOException {
         PacketOutputStream pos = (PacketOutputStream) os;
+        if (password == null || password.equals("")) {
+            pos.writeEmptyPacket(packSeq);
+            return;
+        }
         pos.startPacket(packSeq);
-        pos.writeByteArray(cryptOldFormatPassword(password, new String(authData))).writeByte((byte) 0x00);
+        byte[] seed = Utils.copyWithLength(authData, 8);
+        pos.writeByteArray(cryptOldFormatPassword(password, new String(seed))).writeByte((byte) 0x00);
         pos.finishPacketWithoutRelease(false);
         pos.releaseBuffer();
     }

@@ -79,7 +79,7 @@ public class DefaultAuthenticationProvider {
             case MYSQL_NATIVE_PASSWORD:
                 return new SendNativePasswordAuthPacket(password, authData, seqNo);
             case MYSQL_OLD_PASSWORD:
-                return new SendOldPasswordAuthPacket(password, Utils.copyWithLength(authData, 8), seqNo);
+                return new SendOldPasswordAuthPacket(password, authData, seqNo);
             case MYSQL_CLEAR_PASSWORD:
                 return new SendClearPasswordAuthPacket(password, authData, seqNo);
             case DIALOG:
