@@ -3,6 +3,7 @@ package org.mariadb.jdbc.failover;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
+import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbServerPreparedStatement;
 
 import java.sql.*;
@@ -262,7 +263,7 @@ public abstract class BaseReplication extends BaseMonoServer {
     @Test
     public void randomConnection() throws Throwable {
         Connection connection = null;
-        Map<String, MutableInt> connectionMap = new HashMap<>();
+        Map<HostAddress, MutableInt> connectionMap = new HashMap<>();
         int masterId = -1;
         for (int i = 0; i < 20; i++) {
             try {
@@ -273,10 +274,10 @@ public abstract class BaseReplication extends BaseMonoServer {
                 }
                 masterId = serverId;
                 connection.setReadOnly(true);
-                int replicaId = getServerId(connection);
-                MutableInt count = connectionMap.get(String.valueOf(replicaId));
+                HostAddress replicaHost = getServerHostAddress(connection);
+                MutableInt count = connectionMap.get(replicaHost);
                 if (count == null) {
-                    connectionMap.put(String.valueOf(replicaId), new MutableInt());
+                    connectionMap.put(replicaHost, new MutableInt());
                 } else {
                     count.increment();
                 }
@@ -288,7 +289,7 @@ public abstract class BaseReplication extends BaseMonoServer {
         }
 
         Assert.assertTrue(connectionMap.size() >= 2);
-        for (String key : connectionMap.keySet()) {
+        for (HostAddress key : connectionMap.keySet()) {
             Integer connectionCount = connectionMap.get(key).get();
             Assert.assertTrue(connectionCount > 1);
         }

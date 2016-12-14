@@ -244,6 +244,9 @@ public class AuroraListener extends MastersSlavesListener {
                     endpoints.add(resultSet.getString(1) + urlEndStr);
                 }
 
+                //randomize order for distributed load-balancing
+                Collections.shuffle(endpoints);
+
             } finally {
                 proxy.lock.unlock();
             }
