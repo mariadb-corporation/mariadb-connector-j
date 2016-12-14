@@ -403,67 +403,6 @@ public class DriverTest extends BaseTest {
     }
 
     @Test
-    public void batchTest() throws SQLException {
-        Assume.assumeFalse(sharedIsRewrite());
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into test_batch values (null, ?)",
-                Statement.RETURN_GENERATED_KEYS);
-        ps.setString(1, "aaa");
-        ps.addBatch();
-        ps.setString(1, "bbb");
-        ps.addBatch();
-        ps.setString(1, "ccc");
-        ps.addBatch();
-        int[] batchResult = ps.executeBatch();
-        ResultSet rs1 = ps.getGeneratedKeys();
-        for (int count = 1; count <= 3; count++) {
-            assertTrue(rs1.next());
-            assertTrue(String.valueOf(count).equalsIgnoreCase(rs1.getString(1)));
-        }
-        for (int unitInsertNumber : batchResult) {
-            assertEquals(1, unitInsertNumber);
-        }
-        ps.setString(1, "aaa");
-        ps.addBatch();
-        ps.setString(1, "bbb");
-        ps.addBatch();
-        ps.setString(1, "ccc");
-        ps.addBatch();
-        batchResult = ps.executeBatch();
-        for (int unitInsertNumber : batchResult) {
-            assertEquals(1, unitInsertNumber);
-        }
-        final ResultSet rs = sharedConnection.createStatement().executeQuery("select * from test_batch");
-        ps.executeQuery("SELECT 1");
-        rs1 = ps.getGeneratedKeys();
-        assertEquals(MariaSelectResultSet.EMPTY, rs1);
-        assertEquals(true, rs.next());
-        assertEquals("aaa", rs.getString(2));
-        assertEquals(true, rs.next());
-        assertEquals("bbb", rs.getString(2));
-        assertEquals(true, rs.next());
-        assertEquals("ccc", rs.getString(2));
-
-    }
-
-    @Test
-    public void batchTestStmt() throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
-        stmt.addBatch("insert into test_batch2 values (null, 'hej1')");
-        stmt.addBatch("insert into test_batch2 values (null, 'hej2')");
-        stmt.addBatch("insert into test_batch2 values (null, 'hej3')");
-        stmt.addBatch("insert into test_batch2 values (null, 'hej4')");
-        stmt.executeBatch();
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from test_batch2");
-        for (int i = 1; i <= 4; i++) {
-            assertEquals(true, rs.next());
-            assertEquals(i, rs.getInt(1));
-            assertEquals("hej" + i, rs.getString(2));
-        }
-        assertEquals(false, rs.next());
-
-    }
-
-    @Test
     public void floatingNumbersTest() throws SQLException {
 
         PreparedStatement ps = sharedConnection.prepareStatement("insert into test_float (a) values (?)");
@@ -897,7 +836,7 @@ public class DriverTest extends BaseTest {
             st.setQueryTimeout(1);
             st.execute("select sleep(0.5)");
             try {
-                st.execute("select sleep(1.5)");
+                st.execute("select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2");
                 assertFalse("must be exception here", true);
             } catch (Exception e) {
                 //normal exception
@@ -906,11 +845,15 @@ public class DriverTest extends BaseTest {
             Statement st2 = connection.createStatement();
             assertEquals(st2.getQueryTimeout(), 0);
             // no exception
-            st2.execute("select sleep(1.5)");
-
+            ResultSet rs = st2.executeQuery("select sleep(1.5)");
+            assertTrue(rs.next());
+            assertEquals(0, rs.getInt(1));
             Statement st3 = connection.createStatement();
+
             st3.setQueryTimeout(1);
-            st3.execute("select sleep(0.1)");
+            rs = st3.executeQuery("select sleep(0.1)");
+            assertTrue(rs.next());
+            assertEquals(0, rs.getInt(1));
             assertEquals(st3.getQueryTimeout(), 1);
         }
     }
