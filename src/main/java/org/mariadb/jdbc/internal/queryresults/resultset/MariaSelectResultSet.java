@@ -321,7 +321,21 @@ public class MariaSelectResultSet implements ResultSet {
             protocol.setActiveStreamingResult(this);
             resultSet = new ArrayList<>(fetchSize);
             nextStreamingValue();
-            streaming = true;
+            // streaming = true;
+            /*
+             * This is a hack related to MariaDBConnection.createStatement(), where scroll type is always set to TYPE_FORWARD_ONLY.
+             * If fetchSize>0, streaming is always activated, which cause some seek functions (first, last, absolute) become disabled.
+             * Setting streaming to false, keeps the seek functions functional.
+             * This is also more consistent with this.setFetchSize(), which disables streaming too.
+             * 
+             * setFetchSize(Integer.MIN_VALUE) is used to signal streaming=true, so we still have to respect that.
+             * but, MariaDbStatement.setFetchSize(Integer.MIN_VALUE), sets it to 1
+             */
+            if (fetchSize <= 1) {
+                streaming = true;
+            } else {
+                streaming = false;
+            }
         }
     }
 

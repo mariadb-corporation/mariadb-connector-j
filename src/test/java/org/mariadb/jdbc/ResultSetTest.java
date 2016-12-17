@@ -4,6 +4,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -269,6 +270,24 @@ public class ResultSetTest extends BaseTest {
         }
     }
 
+    @Test
+    public void scrollScrollableResultTest() throws SQLException {
+        insertRows(2);
+        PreparedStatement stmt = sharedConnection.prepareStatement(
+            "SELECT * FROM result_set_test", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        stmt.setFetchSize(2);    // setting it to 1, would indicate streaming to driver
+        ResultSet rs = stmt.executeQuery();
+        try {
+            rs.beforeFirst();
+            assertTrue(true);
+        } catch (SQLException sqle) {
+            fail("beforeFirst() should work on a TYPE_SCROLL_INSENSITIVE result set");
+        } finally {
+            stmt.close();
+            rs.close();
+        }
+    }
+    
     private void insertRows(int numberOfRowsToInsert) throws SQLException {
         sharedConnection.createStatement().execute("truncate result_set_test ");
         for (int i = 1; i <= numberOfRowsToInsert; i++) {
