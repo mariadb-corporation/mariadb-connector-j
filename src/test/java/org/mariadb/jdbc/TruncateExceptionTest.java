@@ -79,7 +79,7 @@ public class TruncateExceptionTest extends BaseTest {
                 fail("Must have thrown SQLException");
             } catch (SQLException e) {
             }
-            //resultset must have been fetch
+            //resultSet must have been fetch
             ResultSet rs = pstmt.getGeneratedKeys();
             if (sharedIsRewrite()) {
                 assertFalse(rs.next());

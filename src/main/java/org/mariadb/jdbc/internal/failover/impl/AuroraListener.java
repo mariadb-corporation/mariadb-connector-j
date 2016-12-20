@@ -54,15 +54,13 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
+import org.mariadb.jdbc.internal.queryresults.Results;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -233,12 +231,13 @@ public class AuroraListener extends MastersSlavesListener {
             try {
                 // Deleted instance may remain in db for 24 hours so ignoring instances that have had no change
                 // for 3 minutes
-                SingleExecutionResult queryResult = new SingleExecutionResult(null, 0, true, false);
-                protocol.executeQuery(false, queryResult,
+                Results results = new Results(null, 0, false, 1, false);
+                protocol.executeQuery(false, results,
                         "select server_id, session_id from information_schema.replica_host_status "
                                 + "where last_update_timestamp > UTC_TIMESTAMP - INTERVAL 3 MINUTE",
                         ResultSet.TYPE_FORWARD_ONLY);
-                MariaSelectResultSet resultSet = queryResult.getResultSet();
+                results.commandEnd();
+                MariaSelectResultSet resultSet = results.getResultSet();
 
                 while (resultSet.next()) {
                     endpoints.add(resultSet.getString(1) + urlEndStr);
@@ -346,14 +345,15 @@ public class AuroraListener extends MastersSlavesListener {
         String masterHostName = null;
         proxy.lock.lock();
         try {
-            SingleExecutionResult executionResult = new SingleExecutionResult(null, 0, true, false);
-            protocol.executeQuery(false, executionResult,
+            Results results = new Results(null, 0, false, 1, false);
+            protocol.executeQuery(false, results,
                     "select server_id from information_schema.replica_host_status "
                             + "where session_id = 'MASTER_SESSION_ID' "
                             + "and last_update_timestamp > UTC_TIMESTAMP - INTERVAL 3 MINUTE "
                             + "ORDER BY last_update_timestamp DESC LIMIT 1",
                     ResultSet.TYPE_FORWARD_ONLY);
-            MariaSelectResultSet queryResult = executionResult.getResultSet();
+            results.commandEnd();
+            MariaSelectResultSet queryResult = results.getResultSet();
 
             if (!queryResult.isBeforeFirst()) {
                 return null;

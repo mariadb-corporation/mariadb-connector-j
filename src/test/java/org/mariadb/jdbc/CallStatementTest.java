@@ -258,6 +258,7 @@ public class CallStatementTest extends BaseTest {
                 }
                 Assert.assertEquals(1, rowCount);
             }
+            statement.execute("SELECT 1");
         }
     }
 
