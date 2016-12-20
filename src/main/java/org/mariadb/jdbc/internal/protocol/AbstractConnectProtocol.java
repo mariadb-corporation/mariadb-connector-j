@@ -1062,6 +1062,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
         this.activeStreamingResult = activeStreamingResult;
     }
 
+    /**
+     * Remove stream result and since totally fetched, set fetch size to 0.
+     */
     public void removeActiveStreamingResult() {
         if (this.activeStreamingResult != null) {
             this.activeStreamingResult.removeFetchSize();
