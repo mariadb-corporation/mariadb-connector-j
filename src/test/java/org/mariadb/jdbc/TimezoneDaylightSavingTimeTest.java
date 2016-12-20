@@ -77,9 +77,11 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
             utcDateFormatSimple = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             utcDateFormatSimple.setTimeZone(utcTimeZone);
-            createTable("timeZoneTime", "id int, tt TIME(6)");
             createTable("daylightMysql", " tt DATE");
-            createTable("ttimeTest", "id int not null primary key auto_increment, dd TIME(3), dd2 TIME(3)");
+            if (doPrecisionTest) {
+                createTable("timeZoneTime", "id int, tt TIME(6)");
+                createTable("ttimeTest", "id int not null primary key auto_increment, dd TIME(3), dd2 TIME(3)");
+            }
 
         }
 
@@ -204,6 +206,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testDifferentTime() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         TimeZone.setDefault(parisTimeZone);
         Connection connection = null;
         try {
@@ -270,6 +273,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testTimeUtc() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
+
         TimeZone.setDefault(parisTimeZone);
         Connection connection = null;
         try {
@@ -394,6 +399,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
 
     private void testDayLight(boolean legacy) throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         Assume.assumeTrue(hasSuperPrivilege("testDayLight") && !sharedIsRewrite());
         TimeZone.setDefault(parisTimeZone);
         Connection connection = null;
@@ -504,9 +510,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
 
     @Test
-    public void testDayLightnotUtC() throws SQLException {
-
-        Assume.assumeTrue(hasSuperPrivilege("testDayLight") && !sharedIsRewrite());
+    public void testDayLightNotUtC() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest && hasSuperPrivilege("testDayLight") && !sharedIsRewrite());
         TimeZone.setDefault(canadaTimeZone);
         Connection connection = null;
         try {
@@ -576,7 +581,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testDayLightWithClientTimeZoneDifferent() throws SQLException {
-        Assume.assumeTrue(!sharedIsRewrite());
+        Assume.assumeTrue(doPrecisionTest && !sharedIsRewrite());
         TimeZone.setDefault(parisTimeZone);
         Connection connection = null;
         try {

@@ -975,6 +975,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void getTimePrecision() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         createTable("getTimePrecision", "d date, "
                 + "t1 datetime(0),"
                 + "t2 datetime(6),"
@@ -1011,6 +1012,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void metaTimeResultSet() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         createTable("getTimePrecision", "d date, "
                 + "t1 datetime(0),"
                 + "t2 datetime(6),"
@@ -1048,12 +1050,57 @@ public class DatabaseMetadataTest extends BaseTest {
         assertFalse(rs.next());
     }
 
+
+    /**
+     * CONJ-401 - getProcedureColumns precision when server doesn't support precision
+     * @throws SQLException if connection error occur
+     */
+    @Test
+    public void metaTimeNoPrecisionProcedureResultSet() throws SQLException {
+        createProcedure("getProcTimePrecision2", "(IN  I date, "
+                + "IN t1 DATETIME,"
+                + "IN t3 timestamp,"
+                + "IN t5 time) BEGIN SELECT I; END");
+
+        final int precisionField = 8;
+        final int lengthField = 9;
+        final int scaleField = 10;
+
+        DatabaseMetaData dmd = sharedConnection.getMetaData();
+        ResultSet rs = dmd.getProcedureColumns(null, null, "getProcTimePrecision2", null);
+        //date
+        assertTrue(rs.next());
+        assertEquals(10, rs.getInt(precisionField));
+        assertEquals(10, rs.getInt(lengthField));
+        assertEquals(0, rs.getInt(scaleField));
+        assertTrue(rs.wasNull());
+        //datetime(0)
+        assertTrue(rs.next());
+        assertEquals(19, rs.getInt(precisionField));
+        assertEquals(19, rs.getInt(lengthField));
+        assertEquals(0, rs.getInt(scaleField));
+        //timestamp(0)
+        assertTrue(rs.next());
+        assertEquals(19, rs.getInt(precisionField));
+        assertEquals(19, rs.getInt(lengthField));
+        assertEquals(0, rs.getInt(scaleField));
+        //time(0)
+        assertTrue(rs.next());
+        assertEquals(10, rs.getInt(precisionField));
+        assertEquals(10, rs.getInt(lengthField));
+        assertEquals(0, rs.getInt(scaleField));
+
+        assertFalse(rs.next());
+    }
+
+
     /**
      * CONJ-381 - getProcedureColumns returns NULL as TIMESTAMP/DATETIME precision instead of 19.
      * @throws SQLException if connection error occur
      */
     @Test
     public void metaTimeProcedureResultSet() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         createProcedure("getProcTimePrecision", "(IN  I date, "
                 + "IN t1 DATETIME(0),"
                 + "IN t2 DATETIME(6),"
