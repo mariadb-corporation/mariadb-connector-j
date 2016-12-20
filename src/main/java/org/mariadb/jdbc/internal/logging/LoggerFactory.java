@@ -16,18 +16,22 @@ public class LoggerFactory {
      */
     @SuppressWarnings("unchecked")
     public static void init(boolean mustLog) {
-        if (hasToLog == null || hasToLog.booleanValue() != mustLog) {
+        if (hasToLog == null || hasToLog != mustLog) {
             if (mustLog) {
-                try {
-                    hasToLog = Boolean.TRUE;
-                    loggerClass = Class.forName("org.slf4j.LoggerFactory");
-                    method = loggerClass.getMethod("getLogger", Class.class);
-                } catch (ClassNotFoundException classNotFound) {
-                    System.out.println("Logging cannot be activated, missing slf4j dependency");
-                    hasToLog = Boolean.FALSE;
-                } catch (NoSuchMethodException classNotFound) {
-                    System.out.println("Logging cannot be activated, missing slf4j dependency");
-                    hasToLog = Boolean.FALSE;
+                synchronized (LoggerFactory.class) {
+                    if (hasToLog == null || hasToLog != mustLog) {
+                        try {
+                            loggerClass = Class.forName("org.slf4j.LoggerFactory");
+                            method = loggerClass.getMethod("getLogger", Class.class);
+                            hasToLog = Boolean.TRUE;
+                        } catch (ClassNotFoundException classNotFound) {
+                            System.out.println("Logging cannot be activated, missing slf4j dependency");
+                            hasToLog = Boolean.FALSE;
+                        } catch (NoSuchMethodException classNotFound) {
+                            System.out.println("Logging cannot be activated, missing slf4j dependency");
+                            hasToLog = Boolean.FALSE;
+                        }
+                    }
                 }
             }
         }

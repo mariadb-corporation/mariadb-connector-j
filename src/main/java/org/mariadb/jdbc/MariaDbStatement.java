@@ -245,7 +245,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             batchResultSet = null;
             Results internalResults = new Results(this, fetchSize, false, 1, false);
             protocol.executeQuery(protocol.isMasterConnection(), internalResults,
-                    Utils.nativeSql(sql, connection.noBackslashEscapes), resultSetScrollType);
+                    getTimeoutSql(Utils.nativeSql(sql, connection.noBackslashEscapes)), resultSetScrollType);
             internalResults.commandEnd();
             results = internalResults;
             return results.getResultSet() != null;
