@@ -83,8 +83,6 @@ innodb_log_file_size=$INNODB_LOG_FILE_SIZE
 END
     fi
 
-    sudo service mysql restart
-
     # Generate SSL files:
     sudo .travis/gen-ssl.sh mariadb.example.com /etc/mysql
     sudo chown mysql:mysql /etc/mysql/*.crt /etc/mysql/*.key /etc/mysql/*.p12
