@@ -38,12 +38,14 @@ public class BaseTest {
     protected static boolean testSingleHost;
     protected static Connection sharedConnection;
     protected static boolean runLongTest = false;
+    protected static boolean doPrecisionTest = true;
     private static Deque<String> tempTableList = new ArrayDeque<>();
     private static Deque<String> tempViewList = new ArrayDeque<>();
     private static Deque<String> tempProcedureList = new ArrayDeque<>();
     private static Deque<String> tempFunctionList = new ArrayDeque<>();
     private static TcpProxy proxy = null;
     private static UrlParser urlParser;
+
     @Rule
     public TestRule watcher = new TestWatcher() {
         protected void starting(Description description) {
@@ -90,6 +92,7 @@ public class BaseTest {
         String url = System.getProperty("dbUrl", mDefUrl);
         runLongTest = Boolean.getBoolean(System.getProperty("runLongTest", "false"));
         testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
+
         if (testSingleHost) {
             urlParser = UrlParser.parse(url);
             if (urlParser.getHostAddresses().size() > 0) {
@@ -132,6 +135,9 @@ public class BaseTest {
             setUri();
 
             sharedConnection = DriverManager.getConnection(url);
+
+            String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
+            doPrecisionTest = isMariadbServer() || !dbVersion.startsWith("5.5"); //MySQL 5.5 doesn't support precision
         }
     }
 
@@ -670,7 +676,7 @@ public class BaseTest {
      * @return true if DB is mariadb
      * @throws SQLException exception
      */
-    boolean isMariadbServer() throws SQLException {
+    static boolean isMariadbServer() throws SQLException {
         DatabaseMetaData md = sharedConnection.getMetaData();
         return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
     }
