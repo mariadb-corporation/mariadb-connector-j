@@ -73,8 +73,6 @@ END
         sudo tee /etc/mysql/conf.d/map.cnf << END
 [mysqld]
 character_set_server = utf8
-max_allowed_packet=$PACKET
-innodb_log_file_size=$INNODB_LOG_FILE_SIZE
 END
     else
         sudo tee /etc/mysql/conf.d/map.cnf << END
@@ -84,6 +82,8 @@ max_allowed_packet=$PACKET
 innodb_log_file_size=$INNODB_LOG_FILE_SIZE
 END
     fi
+
+    sudo service mysql restart
 
     # Generate SSL files:
     sudo .travis/gen-ssl.sh mariadb.example.com /etc/mysql
