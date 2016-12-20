@@ -1053,7 +1053,8 @@ public class DatabaseMetadataTest extends BaseTest {
 
 
     /**
-     * CONJ-401 - getProcedureColumns precision when server doesn't support precision
+     * CONJ-401 - getProcedureColumns precision when server doesn't support precision.
+     *
      * @throws SQLException if connection error occur
      */
     @Test

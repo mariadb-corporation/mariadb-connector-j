@@ -79,6 +79,7 @@ public class Results {
      * @param statement current statement
      * @param fetchSize fetch size
      * @param batch select result possible
+     * @param expectedSize expected size
      * @param binaryFormat use binary protocol
      */
     public Results(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat) {
@@ -179,8 +180,10 @@ public class Results {
      *
      * <i>Lock must be set before using this method</i>
      *
-     * @param skip must result be available, or only the
+     * @param skip      must result be available afterwhile
+     * @param protocol  current protocol
      * @throws SQLException if any connection error occur
+     * @throws QueryException if any connection error occur
      */
     public void loadFully(boolean skip, Protocol protocol) throws SQLException, QueryException {
         if (fetchSize != 0) {
@@ -211,9 +214,11 @@ public class Results {
     /**
      * Position to next resultSet.
      *
-     * @param current one of the following <code>Statement</code> constants indicating what should happen to current <code>ResultSet</code> objects
-     * obtained using the method <code>getResultSet</code>: <code>Statement.CLOSE_CURRENT_RESULT</code>, <code>Statement.KEEP_CURRENT_RESULT</code>,
+     * @param current one of the following <code>Statement</code> constants indicating what should happen to current
+     *                <code>ResultSet</code> objects obtained using the method <code>getResultSet</code>:
+     *                <code>Statement.CLOSE_CURRENT_RESULT</code>, <code>Statement.KEEP_CURRENT_RESULT</code>,
      * or <code>Statement.CLOSE_ALL_RESULTS</code>
+     * @param protocol current protocol
      * @return true if other resultSet exists.
      * @throws SQLException if any connection error occur.
      */

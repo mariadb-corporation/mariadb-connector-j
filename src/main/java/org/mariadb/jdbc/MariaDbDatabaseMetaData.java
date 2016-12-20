@@ -645,30 +645,33 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern)
             throws SQLException {
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
-                    + dataTypeClause("COLUMN_TYPE") + " DATA_TYPE,"
-                    + columnTypeClause("COLUMN_TYPE") + " TYPE_NAME, "
-                    + " CASE DATA_TYPE"
-                    + "  WHEN 'time' THEN " + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
-                    + "  WHEN 'date' THEN 10"
-                    + "  WHEN 'datetime' THEN " + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
-                    + "  WHEN 'timestamp' THEN " + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
-                    + "  ELSE "
-                    + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
-                    + " END"
-                    + " COLUMN_SIZE, 65535 BUFFER_LENGTH, NUMERIC_SCALE DECIMAL_DIGITS,"
-                    + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
-                    + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
-                    + " LEAST(CHARACTER_OCTET_LENGTH," + Integer.MAX_VALUE + ") CHAR_OCTET_LENGTH,"
-                    + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
-                    + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
-                    + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
-                    + " FROM INFORMATION_SCHEMA.COLUMNS  WHERE "
-                    + catalogCond("TABLE_SCHEMA", catalog)
-                    + " AND "
-                    + patternCond("TABLE_NAME", tableNamePattern)
-                    + " AND "
-                    + patternCond("COLUMN_NAME", columnNamePattern)
-                    + " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
+                + dataTypeClause("COLUMN_TYPE") + " DATA_TYPE,"
+                + columnTypeClause("COLUMN_TYPE") + " TYPE_NAME, "
+                + " CASE DATA_TYPE"
+                + "  WHEN 'time' THEN "
+                +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
+                + "  WHEN 'date' THEN 10"
+                + "  WHEN 'datetime' THEN "
+                +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                + "  WHEN 'timestamp' THEN "
+                +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                + "  ELSE "
+                + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
+                + " END"
+                + " COLUMN_SIZE, 65535 BUFFER_LENGTH, NUMERIC_SCALE DECIMAL_DIGITS,"
+                + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
+                + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
+                + " LEAST(CHARACTER_OCTET_LENGTH," + Integer.MAX_VALUE + ") CHAR_OCTET_LENGTH,"
+                + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
+                + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
+                + " IF(EXTRA in ('VIRTUAL', 'PERSISTENT', 'VIRTUAL GENERATED', 'STORED GENERATED') ,'YES','NO') IS_GENERATEDCOLUMN "
+                + " FROM INFORMATION_SCHEMA.COLUMNS  WHERE "
+                + catalogCond("TABLE_SCHEMA", catalog)
+                + " AND "
+                + patternCond("TABLE_NAME", tableNamePattern)
+                + " AND "
+                + patternCond("COLUMN_NAME", columnNamePattern)
+                + " ORDER BY TABLE_CAT, TABLE_SCHEM, TABLE_NAME, ORDINAL_POSITION";
 
         try {
             return executeQuery(sql);
@@ -1677,19 +1680,25 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                     + dataTypeClause("DTD_IDENTIFIER") + " DATA_TYPE,"
                     + "DATA_TYPE TYPE_NAME,"
                     + " CASE DATA_TYPE"
-                    + "  WHEN 'time' THEN " + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
+                    + "  WHEN 'time' THEN "
+                    +        (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
                     + "  WHEN 'date' THEN 10"
-                    + "  WHEN 'datetime' THEN " + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
-                    + "  WHEN 'timestamp' THEN " + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                    + "  WHEN 'datetime' THEN "
+                    +        (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                    + "  WHEN 'timestamp' THEN "
+                    +        (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                     + "  ELSE "
                     + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
                     + " END `PRECISION`,"
 
                     + " CASE DATA_TYPE"
-                    + "  WHEN 'time' THEN " + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
+                    + "  WHEN 'time' THEN "
+                    +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
                     + "  WHEN 'date' THEN 10"
-                    + "  WHEN 'datetime' THEN " + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
-                    + "  WHEN 'timestamp' THEN " + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                    + "  WHEN 'datetime' THEN "
+                    +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                    + "  WHEN 'timestamp' THEN "
+                    +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                     + "  ELSE "
                     + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
                     + " END `LENGTH`,"

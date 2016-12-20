@@ -64,7 +64,8 @@ public class DatatypeCompatibilityTest extends BaseTest {
         if (doPrecisionTest) {
             createTable("time_test", "ID int unsigned NOT NULL, time_test time(6), PRIMARY KEY (ID)", "engine=InnoDB");
             if (testSingleHost) {
-                sharedConnection.createStatement().execute("insert into time_test(id, time_test) values(1, '00:00:00'), (2, '00:00:00.123'), (3, null)");
+                sharedConnection.createStatement().execute(
+                        "insert into time_test(id, time_test) values(1, '00:00:00'), (2, '00:00:00.123'), (3, null)");
             }
         }
     }

@@ -511,7 +511,8 @@ public class MariaSelectResultSet implements ResultSet {
                 }
 
             } catch (IOException ioexception) {
-                ExceptionMapper.throwException(new QueryException("Could not close resultSet : " + ioexception.getMessage(), -1, CONNECTION_EXCEPTION, ioexception), null, this.statement);
+                ExceptionMapper.throwException(new QueryException(
+                        "Could not close resultSet : " + ioexception.getMessage(), -1, CONNECTION_EXCEPTION, ioexception), null, this.statement);
             } catch (QueryException queryException) {
                 ExceptionMapper.throwException(queryException, null, this.statement);
             } finally {
