@@ -22,6 +22,7 @@
 * CONJ-388 : handle timestamp '0000-00-00 00:00:00' getString()
 * CONJ-380 : add maxscale in CI
 * CONJ-391 : Use SELECT in place of SHOW command on connection
+* CONJ-396 : handling multiple resultSet correctly (was failing if more than 2)
 
 == 1.5.5
 * CONJ-386 : Disabling useBatchMultiSend option for Aurora, since can hang connection.
