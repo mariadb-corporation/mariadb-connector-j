@@ -53,7 +53,7 @@ package org.mariadb.jdbc.internal.protocol;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
+import org.mariadb.jdbc.internal.queryresults.Results;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
@@ -78,7 +78,7 @@ public abstract class AbstractMultiSend {
 
     private Protocol protocol;
     private PacketOutputStream writer;
-    private ExecutionResult executionResult;
+    private Results results;
     private List<ParameterHolder[]> parametersList;
     private PrepareResult prepareResult;
     private int resultSetScrollType;
@@ -94,18 +94,18 @@ public abstract class AbstractMultiSend {
      *
      * @param protocol              protocol
      * @param writer                outputStream
-     * @param executionResult       query results
+     * @param results               query results
      * @param serverPrepareResult   Prepare result
      * @param parametersList        parameters
      * @param resultSetScrollType   resultSet scroll type
      * @param readPrepareStmtResult must execute prepare result
      * @param sql                   sql query.
      */
-    public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, ExecutionResult executionResult, ServerPrepareResult serverPrepareResult,
+    public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results, ServerPrepareResult serverPrepareResult,
                              List<ParameterHolder[]> parametersList, int resultSetScrollType, boolean readPrepareStmtResult, String sql) {
         this.protocol = protocol;
         this.writer = writer;
-        this.executionResult = executionResult;
+        this.results = results;
         this.prepareResult = serverPrepareResult;
         this.parametersList = parametersList;
         this.resultSetScrollType = resultSetScrollType;
@@ -119,16 +119,16 @@ public abstract class AbstractMultiSend {
      *
      * @param protocol            current protocol
      * @param writer              outputStream
-     * @param executionResult     results
+     * @param results             results
      * @param clientPrepareResult clientPrepareResult
      * @param parametersList      parameters
      * @param resultSetScrollType resultSet scroll type
      */
-    public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, ExecutionResult executionResult,
+    public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results,
                              final ClientPrepareResult clientPrepareResult, List<ParameterHolder[]> parametersList, int resultSetScrollType) {
         this.protocol = protocol;
         this.writer = writer;
-        this.executionResult = executionResult;
+        this.results = results;
         this.prepareResult = clientPrepareResult;
         this.parametersList = parametersList;
         this.resultSetScrollType = resultSetScrollType;
@@ -141,26 +141,26 @@ public abstract class AbstractMultiSend {
      *
      * @param protocol            protocol
      * @param writer              outputStream
-     * @param executionResult     results
+     * @param results             results
      * @param queries             query list
      * @param resultSetScrollType resultset type
      */
-    public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, ExecutionResult executionResult, List<String> queries,
+    public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results, List<String> queries,
                              int resultSetScrollType) {
         this.protocol = protocol;
         this.writer = writer;
-        this.executionResult = executionResult;
+        this.results = results;
         this.queries = queries;
         this.resultSetScrollType = resultSetScrollType;
         this.binaryProtocol = false;
         this.readPrepareStmtResult = false;
     }
 
-    public abstract void sendCmd(PacketOutputStream writer, ExecutionResult executionResult,
+    public abstract void sendCmd(PacketOutputStream writer, Results results,
                                  List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
                                  PrepareResult prepareResult) throws QueryException, IOException;
 
-    public abstract QueryException handleResultException(QueryException qex, ExecutionResult executionResult,
+    public abstract QueryException handleResultException(QueryException qex, Results results,
                                                          List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
                                                          int sendCmdCounter, int paramCount, PrepareResult prepareResult)
             throws QueryException;
@@ -241,7 +241,7 @@ public abstract class AbstractMultiSend {
                 }
 
                 for (; status.sendSubCmdCounter < requestNumberByBulk;) {
-                    sendCmd(writer, executionResult, parametersList, queries, paramCount, status, prepareResult);
+                    sendCmd(writer, results, parametersList, queries, paramCount, status, prepareResult);
                     status.sendSubCmdCounter++;
                     status.sendCmdCounter++;
 
@@ -249,7 +249,7 @@ public abstract class AbstractMultiSend {
                     if (futureReadTask == null) {
                         futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, requestNumberByBulk, (status.sendCmdCounter - 1),
                                 protocol, false, this, paramCount,
-                                resultSetScrollType, binaryProtocol, executionResult, parametersList, queries, prepareResult));
+                                resultSetScrollType, binaryProtocol, results, parametersList, queries, prepareResult));
                         readScheduler.execute(futureReadTask);
                     }
                 }

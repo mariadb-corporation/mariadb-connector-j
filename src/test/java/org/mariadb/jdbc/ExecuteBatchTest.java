@@ -166,7 +166,9 @@ public class ExecuteBatchTest extends BaseTest {
                 }
                 int[] updateCounts = pstmt.executeBatch();
                 Assert.assertEquals(10, updateCounts.length);
-                for (int i = 0; i < updateCounts.length; i++) Assert.assertEquals(1, updateCounts[i]);
+                for (int i = 0; i < updateCounts.length; i++) {
+                    Assert.assertEquals(sharedIsRewrite() ? Statement.SUCCESS_NO_INFO : 1, updateCounts[i]);
+                }
             }
         }
     }

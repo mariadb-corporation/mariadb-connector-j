@@ -145,8 +145,8 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
     private void retrieveOutputResult() throws SQLException {
 
         if (hasOutParameters) {
-            //resultset will be just before last packet
-            outputResultSet = (MariaSelectResultSet) super.retrieveCallableResult();
+            //resultSet will be just before last packet
+            outputResultSet = results.getCallableResultSet();
             if (outputResultSet != null) {
                 outputResultSet.next();
             }
@@ -167,7 +167,7 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
             validAllParameters();
             super.executeInternal(0, hasOutParameters);
             retrieveOutputResult();
-            return executionResult != null && executionResult.getResultSet() != null;
+            return results != null && results.getResultSet() != null;
         } finally {
             connection.lock.unlock();
         }

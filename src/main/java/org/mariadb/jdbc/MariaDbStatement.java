@@ -96,7 +96,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     private int fetchSize;
     protected int maxRows;
     protected final ReentrantLock lock;
-    protected ExecutionResult executionResult = null;
+    protected Results results = null;
     protected int resultSetScrollType;
     protected boolean mustCloseOnCompletion = false;
     protected Options options;
@@ -127,7 +127,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         clone.protocol = protocol;
         clone.timerTaskFuture = null;
         clone.batchQueries = new ArrayList<>();
-        clone.executionResult = null;
+        clone.results = null;
         clone.closed = false;
         clone.warningsCleared = true;
         clone.fetchSize = 0;
@@ -172,7 +172,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         if (closed) {
             throw new SQLException("execute() is called on closed statement");
         }
-        protocol.prolog(executionResult, maxRows, protocol.getProxy() != null, connection, this);
+        protocol.prolog(results, maxRows, protocol.getProxy() != null, connection, this);
         if (queryTimeout != 0) {
             setTimerTask();
         }
@@ -239,17 +239,12 @@ public class MariaDbStatement implements Statement, Cloneable {
         try {
             executeQueryProlog();
             batchResultSet = null;
-            ExecutionResult internalExecutionResult;
-            if (options.allowMultiQueries || options.rewriteBatchedStatements) {
-                //permit multi query in one execution
-                internalExecutionResult = new MultiVariableIntExecutionResult(this, 1, fetchSize, true);
-            } else {
-                internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, false, true);
-            }
-            protocol.executeQuery(protocol.isMasterConnection(), internalExecutionResult,
+            Results internalResults = new Results(this, fetchSize, false, 1, false);
+            protocol.executeQuery(protocol.isMasterConnection(), internalResults,
                     Utils.nativeSql(sql, connection.noBackslashEscapes), resultSetScrollType);
-            executionResult = internalExecutionResult;
-            return executionResult.getResultSet() != null;
+            internalResults.commandEnd();
+            results = internalResults;
+            return results.getResultSet() != null;
         } catch (QueryException e) {
             exception = e;
             return false;
@@ -369,7 +364,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     public ResultSet executeQuery(String sql) throws SQLException {
         if (executeInternal(sql, fetchSize)) {
-            return executionResult.getResultSet();
+            return results.getResultSet();
         }
         //throw new SQLException("executeQuery() with query '" + query +"' did not return a result set");
         return MariaSelectResultSet.EMPTY;
@@ -474,26 +469,13 @@ public class MariaDbStatement implements Statement, Cloneable {
         lock.lock();
         try {
             closed = true;
-            boolean hasMoreResult = false;
-            if (executionResult != null) {
-                hasMoreResult = executionResult.hasMoreResultAvailable();
-                if (executionResult.getFetchSize() > 0) {
-                    executionResult.close();
-                }
-                executionResult = null;
+
+            if (results != null) {
+                if (results.getFetchSize() != 0) skipMoreResults();
+                results = null;
             }
 
-            if (hasMoreResult) {
-                connection.lock.lock();
-                try {
-                    skipMoreResults();
-                } finally {
-                    protocol = null;
-                    connection.lock.unlock();
-                }
-            } else {
-                protocol = null;
-            }
+            protocol = null;
             if (connection == null || connection.pooledConnection == null
                     || connection.pooledConnection.statementEventListeners.isEmpty()) {
                 return;
@@ -502,30 +484,6 @@ public class MariaDbStatement implements Statement, Cloneable {
         } finally {
             lock.unlock();
         }
-    }
-
-    /**
-     * Retrieve the output parameter result
-     * @return a resultset.
-     * @throws SQLException if any error occur
-     */
-    protected ResultSet retrieveCallableResult() throws SQLException {
-        if (executionResult != null && executionResult.getResultSet() != null
-                && executionResult.getResultSet().isCallableResult()) {
-            MariaSelectResultSet resultSet = executionResult.getResultSet();
-            getMoreResults();
-            return resultSet;
-        }
-        for (ExecutionResult batchExecutionResult : executionResult.getCachedExecutionResults()) {
-            if (batchExecutionResult.getResultSet() != null
-                    && batchExecutionResult.getResultSet() != null
-                    && batchExecutionResult.getResultSet().isCallableResult()) {
-                MariaSelectResultSet resultSet = batchExecutionResult.getResultSet();
-                executionResult.getCachedExecutionResults().remove(batchExecutionResult);
-                return resultSet;
-            }
-        }
-        return null;
     }
 
     /**
@@ -725,34 +683,8 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
-        if (executionResult != null && executionResult.getResultSet() == null) {
-            int autoIncrementIncrement = connection.getAutoIncrementIncrement();
-            //multi insert in one execution. will create result based on autoincrement
-            if (executionResult.hasMoreThanOneAffectedRows()) {
-                long[] data;
-                if (executionResult.isSingleExecutionResult()) {
-                    int updateCount = executionResult.getFirstAffectedRows();
-                    data = new long[updateCount];
-                    for (int i = 0; i < updateCount; i++) {
-                        data[i] = ((SingleExecutionResult) executionResult).getInsertId() + i * autoIncrementIncrement;
-                    }
-                } else {
-                    MultiExecutionResult multiExecution = (MultiExecutionResult) executionResult;
-                    int size = 0;
-                    int affectedRowsLength = multiExecution.getAffectedRows().length;
-                    for (int i = 0; i < affectedRowsLength; i++) {
-                        size += multiExecution.getAffectedRows()[i];
-                    }
-                    data =  new long[size];
-                    for (int affectedRows = 0; affectedRows < affectedRowsLength; affectedRows++) {
-                        for (int i = 0; i < multiExecution.getAffectedRows()[affectedRows]; i++) {
-                            data[i] = multiExecution.getInsertIds()[affectedRows] + i * autoIncrementIncrement;
-                        }
-                    }
-                }
-                return MariaSelectResultSet.createGeneratedData(data, connection.getProtocol(), true);
-            }
-            return MariaSelectResultSet.createGeneratedData(executionResult.getInsertIds(), connection.getProtocol(), true);
+        if (results != null && results.getCmdInformation() != null) {
+            return results.getCmdInformation().getGeneratedKeys(protocol);
         }
         return MariaSelectResultSet.EMPTY;
     }
@@ -816,8 +748,8 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     public ResultSet getResultSet() throws SQLException {
         checkClose();
-        if (executionResult != null) {
-            return executionResult.getResultSet();
+        if (results != null) {
+            return results.getResultSet();
         }
         return null;
     }
@@ -830,14 +762,10 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException if a database access error occurs or this method is called on a closed Statement
      */
     public int getUpdateCount() throws SQLException {
-        if (executionResult == null || executionResult.getResultSet() != null) {
-            return -1;  /* Result comes from SELECT , or there are no more results */
+        if (results != null && results.getCmdInformation() != null) {
+            return results.getCmdInformation().getUpdateCount();
         }
-        if (executionResult.isSingleExecutionResult()) {
-            return (int) ((SingleExecutionResult) executionResult).getAffectedRows();
-        } else {
-            return executionResult.getFirstAffectedRows();
-        }
+        return -1;
     }
 
     protected void skipMoreResults() throws SQLException {
@@ -886,35 +814,11 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @since 1.4
      */
     public boolean getMoreResults(final int current) throws SQLException {
-        //if fetch size is set to read fully, other resultset are put in cache
-        if (executionResult != null) {
-            if (executionResult.getFetchSize() == 0) {
-                executionResult = (executionResult.getCachedExecutionResults() == null)
-                        ? null : executionResult.getCachedExecutionResults().poll();
-                return executionResult != null && executionResult.getResultSet() != null;
-            }
-
+        //if fetch size is set to read fully, other resultSet are put in cache
+        if (results != null) {
             //must fetch new data
             checkClose();
-            lock.lock();
-            try {
-                executionResult.close();
-                SingleExecutionResult internalExecutionResult = new SingleExecutionResult(this, fetchSize, true, false);
-                if (internalExecutionResult.hasMoreResultAvailable()) {
-                    protocol.getMoreResults(internalExecutionResult);
-                    executionResult = internalExecutionResult;
-                    return executionResult.getResultSet() != null;
-                } else {
-                    executionResult = null;
-                    return false;
-                }
-            } catch (QueryException queryException) {
-                logger.debug("error retrieving more results ", queryException);
-                ExceptionMapper.throwException(queryException, connection, this);
-                return false;
-            } finally {
-                lock.unlock();
-            }
+            return results.getMoreResults(current, protocol);
         } else {
             return false;
         }
@@ -1063,11 +967,12 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     public int[] executeBatch() throws SQLException {
         checkClose();
-        if (batchQueries == null || batchQueries.size() == 0) {
+        int size;
+        if (batchQueries == null || (size = batchQueries.size()) == 0) {
             return new int[0];
         }
-        MultiFixedIntExecutionResult internalExecutionResult = new MultiFixedIntExecutionResult(this, batchQueries.size(), 0, false);
-        boolean multipleExecution = false;
+
+        Results internalResults = new Results(this, 0, true, size, false);
         lock.lock();
         try {
             QueryException exception = null;
@@ -1084,31 +989,31 @@ public class MariaDbStatement implements Statement, Cloneable {
                         }
                     }
                     if (batchQueryMultiRewritable) {
-                        multipleExecution = true;
-                        protocol.executeBatchMultiple(protocol.isMasterConnection(), internalExecutionResult, batchQueries, resultSetScrollType);
-                        internalExecutionResult.updateResultsMultiple(batchQueries.size(), false);
+                        protocol.executeBatchMultiple(protocol.isMasterConnection(), internalResults, batchQueries, resultSetScrollType);
                     } else {
-                        protocol.executeBatch(protocol.isMasterConnection(), internalExecutionResult, batchQueries, resultSetScrollType);
+                        protocol.executeBatch(protocol.isMasterConnection(), internalResults, batchQueries, resultSetScrollType);
                     }
                 } else {
-                    protocol.executeBatch(protocol.isMasterConnection(), internalExecutionResult, batchQueries, resultSetScrollType);
+                    protocol.executeBatch(protocol.isMasterConnection(), internalResults, batchQueries, resultSetScrollType);
                 }
             } catch (QueryException e) {
                 exception = e;
             } finally {
-                internalExecutionResult.fixStatsError(batchQueries.size());
-                if (exception != null && multipleExecution) {
-                    internalExecutionResult.updateResultsMultiple(batchQueries.size(), true);
-                }
-                executionResult = internalExecutionResult;
+                internalResults.commandEnd();
+                results = internalResults;
                 executing = false;
                 executeQueryEpilog(exception);
             }
-            return internalExecutionResult.getAffectedRows();
+            return internalResults.getCmdInformation().getUpdateCounts();
 
         } catch (SQLException sqle) {
-            throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), internalExecutionResult.getAffectedRows(),
-                    sqle);
+            int[] ret;
+            if (internalResults.getCmdInformation() == null) {
+                ret = new int[size];
+                Arrays.fill(ret, Statement.EXECUTE_FAILED);
+            } else ret = internalResults.getCmdInformation().getUpdateCounts();
+
+            throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), ret, sqle);
         } finally {
             lock.unlock();
             clearBatch();
@@ -1167,14 +1072,14 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     /**
      * Check that close on completion is asked, and close if so.
-     * @param resultSet resultset
+     * @param resultSet resultSet
      * @throws SQLException if close has error
      */
     public void checkCloseOnCompletion(ResultSet resultSet) throws SQLException {
         if (mustCloseOnCompletion
                 && !closed
-                && executionResult != null
-                && resultSet.equals(executionResult.getResultSet())) {
+                && results != null
+                && resultSet.equals(results.getResultSet())) {
             close();
         }
     }

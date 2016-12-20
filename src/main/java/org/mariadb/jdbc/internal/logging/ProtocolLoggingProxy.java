@@ -146,11 +146,13 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                         sql = getQueryFromWriterBuffer();
                 }
                 break;
+
             case "executeBatchMulti":
                 ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
                 sql = getQueryFromPrepareParameters(clientPrepareResult.getSql(), (List<ParameterHolder[]>) args[3],
                         clientPrepareResult.getParamCount());
                 break;
+
             case "executeBatch":
                 List<String> queries = (List<String>) args[2];
                 for (int counter = 0; counter < queries.size(); counter++) {
@@ -158,6 +160,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                     if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog) break;
                 }
                 break;
+
             case "executeBatchMultiple":
                 List<String> multipleQueries = (List<String>) args[2];
                 if (multipleQueries.size() == 1) {
@@ -166,21 +169,25 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 }
                 sql = getQueryFromWriterBuffer();
                 break;
+
             case "prepareAndExecute":
                 ParameterHolder[] parameters = (ParameterHolder[]) args[4];
                 ServerPrepareResult serverPrepareResult1 = (ServerPrepareResult) returnObj;
                 sql = getQueryFromPrepareParameters(serverPrepareResult1, parameters, serverPrepareResult1.getParamCount());
                 break;
+
             case "prepareAndExecutes":
                 List<ParameterHolder[]> parameterList = (List<ParameterHolder[]>) args[4];
                 ServerPrepareResult serverPrepareResult = (ServerPrepareResult) returnObj;
                 sql = getQueryFromPrepareParameters(serverPrepareResult.getSql(), parameterList, serverPrepareResult.getParamCount());
                 break;
+
             case "executeBatchRewrite":
                 ClientPrepareResult prepareResultRewrite = (ClientPrepareResult) args[2];
                 List<ParameterHolder[]> parameterListRewrite = (List<ParameterHolder[]>) args[3];
                 sql = getQueryFromPrepareParameters(prepareResultRewrite.getSql(), parameterListRewrite, prepareResultRewrite.getParamCount());
                 break;
+
             case "executePreparedQuery":
                 ServerPrepareResult prepareResult = (ServerPrepareResult) args[1];
                 if (args[3] instanceof ParameterHolder[]) {
@@ -190,6 +197,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                             prepareResult.getParameters().length);
                 }
                 break;
+
             default:
                 sql = getQueryFromWriterBuffer();
                 break;

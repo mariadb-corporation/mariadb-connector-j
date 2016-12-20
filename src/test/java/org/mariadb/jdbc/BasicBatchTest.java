@@ -7,9 +7,7 @@ import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
 import java.sql.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class BasicBatchTest extends BaseTest {
 
@@ -22,6 +20,7 @@ public class BasicBatchTest extends BaseTest {
     public static void initClass() throws SQLException {
         createTable("test_batch", "id int not null primary key auto_increment, test varchar(10)");
         createTable("test_batch2", "id int not null primary key auto_increment, test varchar(10)");
+        createTable("test_batch3", "id int not null primary key auto_increment, test varchar(10)");
         createTable("batchUpdateException", "i int,PRIMARY KEY (i)");
         createTable("batchPrepareUpdateException", "i int,PRIMARY KEY (i)");
         createTable("rewritetest", "id int not null primary key, a varchar(10), b int", "engine=innodb");
@@ -208,6 +207,52 @@ public class BasicBatchTest extends BaseTest {
         ps.addBatch();
 
         ps.executeBatch();
+    }
+
+
+    @Test
+    public void testMultipleStatementBatch() throws SQLException {
+
+        Statement stmt = sharedConnection.createStatement();
+        stmt.addBatch("INSERT INTO test_batch3(test) value ('a')");
+        stmt.addBatch("INSERT INTO test_batch3(test) value ('b')");
+        stmt.addBatch("INSERT INTO test_batch3(test) value ('a')");
+        stmt.addBatch("UPDATE test_batch3 set test='c' WHERE test = 'a'");
+        stmt.addBatch("UPDATE test_batch3 set test='d' WHERE test = 'b'");
+        stmt.addBatch("INSERT INTO test_batch3(test) value ('e')");
+
+        int[] updateCount = stmt.executeBatch();
+        assertEquals(6, updateCount.length);
+        assertEquals(1, updateCount[0]);
+        assertEquals(1, updateCount[1]);
+        assertEquals(1, updateCount[2]);
+        assertEquals(2, updateCount[3]);
+        assertEquals(1, updateCount[4]);
+        assertEquals(1, updateCount[5]);
+
+        assertEquals(1, stmt.getUpdateCount());
+        assertTrue(stmt.getMoreResults());
+        assertEquals(1, stmt.getUpdateCount());
+        assertTrue(stmt.getMoreResults());
+        assertEquals(1, stmt.getUpdateCount());
+        assertTrue(stmt.getMoreResults());
+        assertEquals(2, stmt.getUpdateCount());
+        assertTrue(stmt.getMoreResults());
+        assertEquals(1, stmt.getUpdateCount());
+        assertTrue(stmt.getMoreResults());
+        assertEquals(1, stmt.getUpdateCount());
+        assertFalse(stmt.getMoreResults());
+
+        ResultSet resultSet = stmt.getGeneratedKeys();
+        assertTrue(resultSet.next());
+        assertEquals(1, resultSet.getInt(1));
+        assertTrue(resultSet.next());
+        assertEquals(2, resultSet.getInt(1));
+        assertTrue(resultSet.next());
+        assertEquals(3, resultSet.getInt(1));
+        assertTrue(resultSet.next());
+        assertEquals(4, resultSet.getInt(1));
+        assertFalse(resultSet.next());
     }
 
 }

@@ -2,7 +2,6 @@ package org.mariadb.jdbc;
 
 import static org.junit.Assert.*;
 
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -22,6 +21,7 @@ public class FetchSizeTest extends BaseTest {
         createTable("fetchSizeTest2", "id int, test varchar(100)");
         createTable("fetchSizeTest3", "id int, test varchar(100)");
         createTable("fetchSizeTest4", "id int, test varchar(100)");
+        createTable("fetchSizeTest5", "id int, test varchar(100)");
     }
 
     @Test
@@ -50,7 +50,7 @@ public class FetchSizeTest extends BaseTest {
 
     @Test
     public void fetchSizeNormalTest() throws SQLException {
-        prepare100record("fetchSizeTest4");
+        prepareRecords(100, "fetchSizeTest4");
 
         Statement stmt = sharedConnection.createStatement();
         stmt.setFetchSize(1);
@@ -65,7 +65,7 @@ public class FetchSizeTest extends BaseTest {
 
     @Test
     public void fetchSizeErrorWhileFetchTest() throws SQLException {
-        prepare100record("fetchSizeTest3");
+        prepareRecords(100, "fetchSizeTest3");
 
         Statement stmt = sharedConnection.createStatement();
         stmt.setFetchSize(1);
@@ -100,13 +100,49 @@ public class FetchSizeTest extends BaseTest {
         }
     }
 
+    @Test
+    public void fetchSizeBigSkipTest() throws SQLException {
+        prepareRecords(300, "fetchSizeTest5");
 
-    private void prepare100record(String tableName) throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        stmt.setFetchSize(1);
+        ResultSet resultSet = stmt.executeQuery("SELECT test FROM fetchSizeTest5");
+        for (int counter = 0; counter < 100; counter++) {
+            assertTrue(resultSet.next());
+            assertEquals("" + counter, resultSet.getString(1));
+        }
+        resultSet.close();
+        try {
+            resultSet.next();
+            fail("Must have thrown exception");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+
+        resultSet = stmt.executeQuery("SELECT test FROM fetchSizeTest5");
+        for (int counter = 0; counter < 100; counter++) {
+            assertTrue(resultSet.next());
+            assertEquals("" + counter, resultSet.getString(1));
+        }
+        stmt.execute("Select 1");
+        //result must be completely loaded
+        for (int counter = 100; counter < 200; counter++) {
+            assertTrue(resultSet.next());
+            assertEquals("" + counter, resultSet.getString(1));
+        }
+        stmt.close();
+        resultSet.last();
+        assertEquals("299", resultSet.getString(1));
+    }
+
+    private void prepareRecords(int recordNumber, String tableName) throws SQLException {
         PreparedStatement pstmt = sharedConnection.prepareStatement("INSERT INTO " + tableName + " (test) values (?)");
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < recordNumber; i++) {
             pstmt.setString(1, "" + i);
             pstmt.addBatch();
         }
         pstmt.executeBatch();
     }
+
+
 }

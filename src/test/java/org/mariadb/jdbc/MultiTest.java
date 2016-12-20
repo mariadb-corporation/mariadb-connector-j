@@ -111,17 +111,24 @@ public class MultiTest extends BaseTest {
             connection = setConnection("&allowMultiQueries=true");
             Statement statement = connection.createStatement();
             statement.execute("update MultiTestt5 set test='a " + System.currentTimeMillis()
-                    + "' where id = 2;select * from MultiTestt2;");
-            int updateNb = statement.getUpdateCount();
-            assertTrue(updateNb == 2);
+                    + "' where id = 2;select * from MultiTestt2;update MultiTestt5 set test='a2 " + System.currentTimeMillis()
+                    + "' where id = 1;");
+            assertNull(statement.getResultSet());
+            assertEquals(2, statement.getUpdateCount());
             assertTrue(statement.getMoreResults());
+            assertEquals(-1, statement.getUpdateCount());
             ResultSet rs = statement.getResultSet();
             int count = 0;
             while (rs.next()) {
                 count++;
             }
             assertTrue(count > 0);
+
+            assertTrue(statement.getMoreResults());
+            assertEquals(1, statement.getUpdateCount());
+            assertNull(statement.getResultSet());
             assertFalse(statement.getMoreResults());
+
         } finally {
             connection.close();
         }
@@ -441,11 +448,11 @@ public class MultiTest extends BaseTest {
 
             // rewrite should be ok, so the above should be executed in 1 command updating 5 rows
             Assert.assertEquals(5, updateCounts.length);
-            Assert.assertEquals(1, updateCounts[0]);
-            Assert.assertEquals(1, updateCounts[1]);
-            Assert.assertEquals(1, updateCounts[2]);
-            Assert.assertEquals(1, updateCounts[3]);
-            Assert.assertEquals(1, updateCounts[4]);
+            Assert.assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[0]);
+            Assert.assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[1]);
+            Assert.assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[2]);
+            Assert.assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[3]);
+            Assert.assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[4]);
             assertEquals(1, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - currentInsert);
 
             final int secondCurrentInsert = retrieveSessionVariableFromServer(tmpConnection, "Com_insert");

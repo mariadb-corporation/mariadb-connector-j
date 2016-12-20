@@ -1,3 +1,5 @@
+package org.mariadb.jdbc.internal.queryresults;
+
 /*
 MariaDB Client for Java
 
@@ -47,15 +49,65 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.queryresults;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
-import org.mariadb.jdbc.internal.util.dao.QueryException;
+import java.sql.ResultSet;
 
+public class CmdInformationSingle implements CmdInformation {
+    private long insertId;
+    private int updateCount;
 
-public class NoSuchColumnException extends QueryException {
-    private static final long serialVersionUID = -4592661729870053440L;
+    public CmdInformationSingle(long insertId, int updateCount) {
+        this.insertId = insertId;
+        this.updateCount = updateCount;
+    }
 
-    public NoSuchColumnException(final String reason) {
-        super(reason);
+    @Override
+    public int[] getUpdateCounts() {
+        return new int[] {updateCount};
+    }
+
+    @Override
+    public int getUpdateCount() {
+        return updateCount;
+    }
+
+    @Override
+    public void addStats(int updateCount, long insertId) {
+        //not expected
+    }
+
+    @Override
+    public void addStats(int updateCount) {
+        //not expected
+    }
+
+    /**
+     * Get generated Keys.
+     *
+     * @param protocol current protocol
+     * @return a resultSet containing the single insert ids.
+     */
+    public ResultSet getGeneratedKeys(Protocol protocol) {
+        if (insertId == 0) {
+            return MariaSelectResultSet.EMPTY;
+        }
+        return MariaSelectResultSet.createGeneratedData(new long[] {insertId}, protocol, true);
+    }
+
+    public int getCurrentStatNumber() {
+        return 1;
+    }
+
+    @Override
+    public boolean moreResults() {
+        updateCount = NO_UPDATE_COUNT;
+        return false;
+    }
+
+    public boolean isCurrentUpdateCount() {
+        return updateCount != NO_UPDATE_COUNT;
     }
 }
+

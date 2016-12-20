@@ -63,8 +63,7 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.send.*;
 import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
-import org.mariadb.jdbc.internal.queryresults.ExecutionResult;
-import org.mariadb.jdbc.internal.queryresults.SingleExecutionResult;
+import org.mariadb.jdbc.internal.queryresults.Results;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.stream.MariaDbBufferedInputStream;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
@@ -127,9 +126,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected ServerPrepareStatementCache serverPrepareStatementCache;
     protected boolean moreResults = false;
 
-    public boolean moreResultsTypeBinary = false;
     public boolean hasWarnings = false;
-    public MariaSelectResultSet activeStreamingResult = null;
+    public Results activeStreamingResult = null;
     public int dataTypeMappingFlags;
     public short serverStatus;
 
@@ -159,24 +157,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * Packets are read according to needs.
      * If some data have not been read before next execution, skip it.
      *
+     * <i>Lock must be set before using this method</i>
      * @throws QueryException exception
      */
     public void skip() throws SQLException, QueryException {
         if (activeStreamingResult != null) {
-            activeStreamingResult.close();
-        }
-
-        while (moreResults) {
-            SingleExecutionResult execution = new SingleExecutionResult(null, 0, true, false);
-            getMoreResults(execution);
+            activeStreamingResult.loadFully(true, this);
         }
     }
 
-    public abstract void getMoreResults(ExecutionResult executionResult) throws QueryException;
-
-    public void setMoreResults(boolean moreResults, boolean isBinary) {
+    public void setMoreResults(boolean moreResults) {
         this.moreResults = moreResults;
-        this.moreResultsTypeBinary = isBinary;
     }
 
     /**
@@ -663,15 +654,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private void loadServerData() throws QueryException, IOException {
         serverData = new TreeMap<>();
-        SingleExecutionResult qr = new SingleExecutionResult(null, 0, true, false);
-
         try {
-            executeQuery(true, qr, "SELECT @@max_allowed_packet , "
+            Results results = new Results(null, 0, false, 1, false);
+            executeQuery(true, results, "SELECT @@max_allowed_packet , "
                             + "@@system_time_zone, "
                             + "@@time_zone, "
                             + "@@sql_mode",
                     ResultSet.TYPE_FORWARD_ONLY);
-            MariaSelectResultSet resultSet = qr.getResultSet();
+            results.commandEnd();
+            MariaSelectResultSet resultSet = results.getResultSet();
             resultSet.next();
 
             serverData.put("max_allowed_packet", resultSet.getString(1));
@@ -683,13 +674,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             //fallback in case of galera non primary nodes that permit only show / set command
             try {
-                executeQuery(true, qr, "SHOW VARIABLES WHERE Variable_name in ("
+                Results results = new Results(null, 0, false, 1, false);
+                executeQuery(true, results, "SHOW VARIABLES WHERE Variable_name in ("
                         + "'max_allowed_packet', "
                         + "'system_time_zone', "
                         + "'time_zone', "
                         + "'sql_mode'"
                         + ")", ResultSet.TYPE_FORWARD_ONLY);
-                MariaSelectResultSet resultSet = qr.getResultSet();
+                results.commandEnd();
+                MariaSelectResultSet resultSet = results.getResultSet();
                 while (resultSet.next()) {
                     logger.debug("server data " + resultSet.getString(1) + " : " + resultSet.getString(2));
                     serverData.put(resultSet.getString(1), resultSet.getString(2));
@@ -757,9 +750,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
         switch (buffer.getByteAt(0)) {
             case (byte) 0xfe: //EOF
                 break;
+
             case (byte) 0xff: //ERROR
                 ErrorPacket ep = new ErrorPacket(buffer);
                 throw new QueryException("Could not connect: " + ep.getMessage(), ep.getErrorNumber(), ep.getSqlState());
+
             default:
                 throw new QueryException("Unexpected stream type " + buffer.getByteAt(0)
                         + " instead of EOF");
@@ -1059,12 +1054,19 @@ public abstract class AbstractConnectProtocol implements Protocol {
         this.hasWarnings = hasWarnings;
     }
 
-    public MariaSelectResultSet getActiveStreamingResult() {
+    public Results getActiveStreamingResult() {
         return activeStreamingResult;
     }
 
-    public void setActiveStreamingResult(MariaSelectResultSet activeStreamingResult) {
+    public void setActiveStreamingResult(Results activeStreamingResult) {
         this.activeStreamingResult = activeStreamingResult;
+    }
+
+    public void removeActiveStreamingResult() {
+        if (this.activeStreamingResult != null) {
+            this.activeStreamingResult.removeFetchSize();
+            this.activeStreamingResult = null;
+        }
     }
 
     @Override

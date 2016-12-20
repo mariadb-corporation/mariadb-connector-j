@@ -221,24 +221,24 @@ public class DriverTest extends BaseTest {
         /* multi-row inserts */
         stmt.execute("INSERT INTO Drivert3 (test) VALUES ('bb'),('cc'),('dd')", Statement.RETURN_GENERATED_KEYS);
         rs = stmt.getGeneratedKeys();
-        for (int i = 0; i < 3; i++) {
-            assertTrue(rs.next());
-            assertEquals(3 + i, rs.getInt(1));
-        }
+        assertTrue(rs.next());
+        assertEquals(3, rs.getInt(1));
 
         requireMinimumVersion(5, 0);
         /* non-standard autoIncrementIncrement */
         int autoIncrementIncrement = 2;
         Connection connection = null;
         try {
-            connection = setConnection("&sessionVariables=auto_increment_increment=" + autoIncrementIncrement);
+            connection = setConnection("&sessionVariables=auto_increment_increment=" + autoIncrementIncrement + "&allowMultiQueries=true");
             stmt = connection.createStatement();
-            stmt.execute("INSERT INTO Drivert3 (test) values ('bb'),('cc')", Statement.RETURN_GENERATED_KEYS);
+            stmt.execute("INSERT INTO Drivert3 (test) values ('bb'),('cc');INSERT INTO Drivert3 (test) values ('dd'),('ee')",
+                    Statement.RETURN_GENERATED_KEYS);
             rs = stmt.getGeneratedKeys();
             assertTrue(rs.next());
             assertEquals(7, rs.getInt(1));
             assertTrue(rs.next());
-            assertEquals(7 + autoIncrementIncrement, rs.getInt(1));
+            assertEquals(7 + 2 * autoIncrementIncrement, rs.getInt(1));
+            assertFalse(rs.next());
         } finally {
             if (connection != null) {
                 connection.close();
@@ -944,12 +944,10 @@ public class DriverTest extends BaseTest {
             assertTrue(st.getResultSet() != null);
             
             /* Next result is no ResultSet */
-            assertFalse(st.getMoreResults());
-            
-            /* Second result (use) */
+            assertTrue(st.getMoreResults());
+            assertNull(st.getResultSet());
             assertEquals(0, st.getUpdateCount());
-            assertTrue(st.getResultSet() == null);
-            
+
             /* no more results */
             assertFalse(st.getMoreResults());
             assertEquals(-1, st.getUpdateCount());
