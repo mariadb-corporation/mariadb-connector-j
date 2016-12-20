@@ -112,7 +112,7 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
         try {
             super.execute();
             retrieveOutputResult();
-            if (executionResult != null && executionResult.getResultSet() == null) {
+            if (results != null && results.getResultSet() == null) {
                 return 0;
             }
             return getUpdateCount();
@@ -123,7 +123,7 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
 
 
     private void retrieveOutputResult() throws SQLException {
-        outputResultSet = executionResult.getResultSet();
+        outputResultSet = results.getResultSet();
         if (outputResultSet != null) {
             outputResultSet.next();
         }
@@ -140,8 +140,8 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
         try {
             super.execute();
             retrieveOutputResult();
-            if (executionResult != null && executionResult.getResultSet() == null) {
-                return executionResult.getResultSet();
+            if (results != null && results.getResultSet() == null) {
+                return results.getResultSet();
             }
             return MariaSelectResultSet.EMPTY;
         } finally {
@@ -155,7 +155,7 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
         try {
             super.execute();
             retrieveOutputResult();
-            return executionResult != null && executionResult.getResultSet() == null;
+            return results != null && results.getResultSet() == null;
         } finally {
             connection.lock.unlock();
         }

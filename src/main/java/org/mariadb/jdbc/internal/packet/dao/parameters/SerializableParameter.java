@@ -124,7 +124,11 @@ public class SerializableParameter implements ParameterHolder {
 
     @Override
     public String toString() {
-        return "<Serializable:" + object.toString() + ">";
+        if (loadedStream != null) {
+            return "<Serializable:" + new String(loadedStream) + ">";
+        } else {
+            return "<Serializable:" + object.toString() + ">";
+        }
     }
 
     public MariaDbType getMariaDbType() {

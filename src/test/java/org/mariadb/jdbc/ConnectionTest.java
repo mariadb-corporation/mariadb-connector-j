@@ -193,7 +193,7 @@ public class ConnectionTest extends BaseTest {
 
         statement.execute("select count(*) from dummy"); //check that the connection is still working
 
-        //added in CONJ-151 to check the 2 differents type of query implementation
+        //added in CONJ-151 to check the 2 different type of query implementation
         PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO dummy VALUES (?)");
         try {
             byte[] arr = new byte[maxAllowedPacket + 1000];
@@ -208,6 +208,7 @@ public class ConnectionTest extends BaseTest {
         } catch (SQLException e) {
             assertTrue(e.getMessage().contains("max_allowed_packet"));
         } catch (Exception e) {
+            e.printStackTrace();
             fail("The previous statement should throw an SQLException not a general Exception");
         } finally {
             statement.execute("select count(*) from dummy"); //to check that connection is open

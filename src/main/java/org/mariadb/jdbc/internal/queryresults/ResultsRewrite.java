@@ -1,8 +1,8 @@
+package org.mariadb.jdbc.internal.queryresults;
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
-Copyright (c) 2015-2016 MariaDB Ab.
+Copyright (c) 2012-2014 Monty Program Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -48,13 +48,53 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.util.constant;
+import org.mariadb.jdbc.MariaDbStatement;
 
-public final class Version {
-    public static final String version = "1.5.6-SNAPSHOT";
-    public static final int majorVersion = 1;
-    public static final int minorVersion = 5;
-    public static final int patchVersion = 6;
-    public static final String qualifier = "SNAPSHOT";
+import java.sql.Statement;
 
+public class ResultsRewrite extends Results {
+
+    /**
+     * Default constructor.
+     *
+     * @param statement current statement
+     * @param fetchSize fetch size
+     * @param batch select result possible
+     * @param binaryFormat use binary protocol
+     */
+    public ResultsRewrite(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat) {
+        super(statement, fetchSize, batch, expectedSize, binaryFormat);
+        setCmdInformation(new CmdInformationRewrite(expectedSize));
+    }
+
+    /**
+     * Add execution statistics.
+     *
+     * @param updateCount         number of updated rows
+     * @param insertId            primary key
+     * @param moreResultAvailable is there additional packet
+     */
+    @Override
+    public void addStats(int updateCount, long insertId, boolean moreResultAvailable) {
+        getCmdInformation().addStats(updateCount, insertId);
+    }
+
+    @Override
+    public void addStatsError(boolean moreResultAvailable) {
+        getCmdInformation().addStats(Statement.EXECUTE_FAILED);
+    }
+
+    @Override
+    public int getCurrentStatNumber() {
+        return getCmdInformation().getCurrentStatNumber();
+    }
+
+    @Override
+    public boolean isBatch() {
+        return true;
+    }
+
+    public void setAutoIncrement(int autoIncrement) {
+        ((CmdInformationRewrite) getCmdInformation()).setAutoIncrement(autoIncrement);
+    }
 }

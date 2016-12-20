@@ -1,5 +1,6 @@
 = Changelog
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#160|1.6.0]] not Released
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#156|1.5.6]] not Released
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.5]] Released on 07 Nov. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#154|1.5.4]] Released on 10 Oct. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#153|1.5.3]] Released on 03 Oct. 2016
@@ -24,6 +25,15 @@ When timeout is reached, a temporary connection will be created to permit execut
 When query ended before timeout, the scheduled task will be canceled.
 
 If server is > 10.1.2, query timeout will be handle server side using "SET MAX_STATEMENT_TIME FOR" command.
+
+== 1.5.6
+* CONJ-399 : resultSet getLong() for BIGINT column fails if value is Long.MIN_VALUE in Text protocol
+* CONJ-395 : Aurora does not randomise selection of read replicas
+* CONJ-392 : Aurora cluster endpoint detection timezone issue
+* CONJ-394 : mysql_native_password plugin authentication fail when default-auth set
+* CONJ-388 : handle timestamp '0000-00-00 00:00:00' getString()
+* CONJ-380 : add maxscale in CI
+* CONJ-391 : Use SELECT in place of SHOW command on connection
 
 == 1.5.5
 * CONJ-386 : Disabling useBatchMultiSend option for Aurora, since can hang connection.

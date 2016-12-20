@@ -293,7 +293,11 @@ public class PreparedStatementTest extends BaseTest {
                 }
                 int[] results = pstmt.executeBatch();
                 assertEquals(2, results.length);
-                for (int result : results) assertEquals(1, result);
+                if (notRewritable || sharedIsRewrite()) {
+                    for (int result : results) assertEquals(1, result);
+                } else {
+                    for (int result : results) assertEquals(Statement.SUCCESS_NO_INFO, result);
+                }
             }
 
             rs = statement.executeQuery("select * from PreparedStatementTest1");
@@ -351,7 +355,11 @@ public class PreparedStatementTest extends BaseTest {
                 }
                 int[] results = pstmt.executeBatch();
                 assertEquals(4, results.length);
-                for (int result : results) assertEquals(1, result);
+                if (rewritableMulti || sharedIsRewrite()) {
+                    for (int result : results) assertEquals(Statement.SUCCESS_NO_INFO, result);
+                } else {
+                    for (int result : results) assertEquals(1, result);
+                }
             }
 
             rs = statement.executeQuery("select * from PreparedStatementTest1");

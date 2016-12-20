@@ -94,7 +94,11 @@ public class CheckDataTest extends BaseTest {
         stmt.addBatch();
         int[] nbBatch = stmt.executeBatch();
         Assert.assertEquals(1, nbBatch.length);
-        Assert.assertEquals(1, nbBatch[0]);
+        if (sharedIsRewrite()) {
+            Assert.assertEquals(Statement.SUCCESS_NO_INFO, nbBatch[0]);
+        } else {
+            Assert.assertEquals(1, nbBatch[0]);
+        }
 
         rs = stmt.getGeneratedKeys();
         assertTrue(rs.next());
@@ -125,9 +129,15 @@ public class CheckDataTest extends BaseTest {
         int[] res = stmt.executeBatch();
 
         Assert.assertEquals(3, res.length);
-        Assert.assertEquals(1, res[0]);
-        Assert.assertEquals(1, res[1]);
-        Assert.assertEquals(1, res[2]);
+        if (sharedIsRewrite()) {
+            Assert.assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+            Assert.assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+            Assert.assertEquals(Statement.SUCCESS_NO_INFO, res[2]);
+        } else {
+            Assert.assertEquals(1, res[0]);
+            Assert.assertEquals(1, res[1]);
+            Assert.assertEquals(1, res[2]);
+        }
 
         ResultSet rs = stmt.getGeneratedKeys();
         assertTrue(rs.next());
