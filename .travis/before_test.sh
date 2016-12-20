@@ -68,7 +68,7 @@ END
     fi
 
     INNODB_LOG_FILE_SIZE=$(echo $PACKET| cut -d'M' -f 1)0M
-    if [ "$MYSQL" == "5.5" ]
+    if [ -n "$UTF8_ONLY" ]
     then
         sudo tee /etc/mysql/conf.d/map.cnf << END
 [mysqld]
