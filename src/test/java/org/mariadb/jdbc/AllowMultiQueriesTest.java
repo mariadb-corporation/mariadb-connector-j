@@ -20,8 +20,10 @@ public class AllowMultiQueriesTest extends BaseTest {
     public static void initClass() throws SQLException {
         createTable("AllowMultiQueriesTest", "id int not null primary key auto_increment, test varchar(10)");
         createTable("AllowMultiQueriesTest2", "id int not null primary key auto_increment, test varchar(10)");
-        try (Statement stmt = sharedConnection.createStatement()) {
-            stmt.execute("INSERT INTO AllowMultiQueriesTest(test) VALUES ('a'), ('b')");
+        if (testSingleHost) {
+            try (Statement stmt = sharedConnection.createStatement()) {
+                stmt.execute("INSERT INTO AllowMultiQueriesTest(test) VALUES ('a'), ('b')");
+            }
         }
     }
 
