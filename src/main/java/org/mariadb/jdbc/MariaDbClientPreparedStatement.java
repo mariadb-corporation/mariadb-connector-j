@@ -219,9 +219,8 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
         try {
             executeQueryProlog();
             batchResultSet = null;
-            Results internalResult = new Results(this, getFetchSize(), false, 1, false);
-            protocol.executeQuery(protocol.isMasterConnection(), internalResult, prepareResult,
-                    parameters, resultSetScrollType);
+            Results internalResult = new Results(this, getFetchSize(), false, 1, false, resultSetScrollType);
+            protocol.executeQuery(protocol.isMasterConnection(), internalResult, prepareResult, parameters);
             internalResult.commandEnd();
             results = internalResult;
             return results.getResultSet() != null;
@@ -289,9 +288,9 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
 
         Results internalResults;
         if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
-            internalResults = new ResultsRewrite(this, 0, true, size, false);
+            internalResults = new ResultsRewrite(this, 0, true, size, false, resultSetScrollType);
         } else {
-            internalResults = new Results(this, 0, true, size, false);
+            internalResults = new Results(this, 0, true, size, false, resultSetScrollType);
         }
         lock.lock();
         try {
@@ -341,27 +340,28 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
                 //values rewritten in one query :
                 // INSERT INTO X(a,b) VALUES (1,2), (3,4), ...
                 protocol.executeBatchRewrite(protocol.isMasterConnection(), results, prepareResult,
-                        parameterList, resultSetScrollType, true);
+                        parameterList, true);
                 return;
             } else if (prepareResult.isQueryMultipleRewritable()) {
                 //multi rewritten in one query :
                 // INSERT INTO X(a,b) VALUES (1,2);INSERT INTO X(a,b) VALUES (3,4); ...
                 protocol.executeBatchRewrite(protocol.isMasterConnection(), results, prepareResult,
-                        parameterList, resultSetScrollType, false);
+                        parameterList, false);
                 return;
             }
         }
 
         if (options.useBatchMultiSend) {
             //send by bulk : send data by bulk before reading corresponding results
-            protocol.executeBatchMulti(protocol.isMasterConnection(), results, prepareResult, parameterList, resultSetScrollType);
+            protocol.executeBatchMulti(protocol.isMasterConnection(), results, prepareResult, parameterList);
         } else {
             //send query one by one, reading results for each query before sending another one
             QueryException exception = null;
             for (int batchQueriesCount = 0; batchQueriesCount < size; batchQueriesCount++) {
                 try {
-                    protocol.executeQuery(protocol.isMasterConnection(), results, prepareResult,
-                            parameterList.get(batchQueriesCount), resultSetScrollType);
+
+                    protocol.executeQuery(protocol.isMasterConnection(), results, prepareResult, parameterList.get(batchQueriesCount));
+
                 } catch (QueryException e) {
                     if (options.continueBatchOnError) {
                         exception = e;

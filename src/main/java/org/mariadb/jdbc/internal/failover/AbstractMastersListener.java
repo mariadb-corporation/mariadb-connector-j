@@ -292,7 +292,6 @@ public abstract class AbstractMastersListener implements Listener {
                         }
                     }
                     break;
-                case "prepareAndExecutesComMulti":
                 case "executePreparedQuery":
                     //the statementId has been discarded with previous session
                     try {

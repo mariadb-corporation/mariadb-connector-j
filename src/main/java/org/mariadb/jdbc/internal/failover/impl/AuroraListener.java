@@ -233,11 +233,10 @@ public class AuroraListener extends MastersSlavesListener {
             try {
                 // Deleted instance may remain in db for 24 hours so ignoring instances that have had no change
                 // for 3 minutes
-                Results results = new Results(null, 0, false, 1, false);
+                Results results = new Results();
                 protocol.executeQuery(false, results,
                         "select server_id, session_id from information_schema.replica_host_status "
-                                + "where last_update_timestamp > UTC_TIMESTAMP - INTERVAL 3 MINUTE",
-                        ResultSet.TYPE_FORWARD_ONLY);
+                                + "where last_update_timestamp > UTC_TIMESTAMP - INTERVAL 3 MINUTE");
                 results.commandEnd();
                 MariaSelectResultSet resultSet = results.getResultSet();
 
@@ -347,13 +346,12 @@ public class AuroraListener extends MastersSlavesListener {
         String masterHostName = null;
         proxy.lock.lock();
         try {
-            Results results = new Results(null, 0, false, 1, false);
+            Results results = new Results();
             protocol.executeQuery(false, results,
                     "select server_id from information_schema.replica_host_status "
                             + "where session_id = 'MASTER_SESSION_ID' "
                             + "and last_update_timestamp > UTC_TIMESTAMP - INTERVAL 3 MINUTE "
-                            + "ORDER BY last_update_timestamp DESC LIMIT 1",
-                    ResultSet.TYPE_FORWARD_ONLY);
+                            + "ORDER BY last_update_timestamp DESC LIMIT 1");
             results.commandEnd();
             MariaSelectResultSet queryResult = results.getResultSet();
 

@@ -124,23 +124,21 @@ public class MariaSelectResultSet implements ResultSet {
     private boolean isClosed;
 
     /**
-     * Create Streaming resultset.
+     * Create Streaming resultSet.
      *
      * @param columnInformation   column information
-     * @param statement           statement
+     * @param results             results
      * @param protocol            current protocol
      * @param fetcher             stream fetcher
-     * @param isBinaryEncoded     is binary protocol ?
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param fetchSize           current fetch size
      * @param callableResult      is it from a callableStatement ?
+     * @throws IOException if any connection error occur
+     * @throws QueryException if any connection error occur
      */
-    public MariaSelectResultSet(ColumnInformation[] columnInformation, MariaDbStatement statement, Protocol protocol,
-                                ReadPacketFetcher fetcher, boolean isBinaryEncoded,
-                                int resultSetScrollType, int fetchSize, boolean callableResult) {
+    public MariaSelectResultSet(ColumnInformation[] columnInformation, Results results, Protocol protocol,
+                                ReadPacketFetcher fetcher, boolean callableResult)
+            throws IOException, QueryException {
 
-        this.statement = statement;
+        this.statement = results.getStatement();
         this.isClosed = false;
         this.protocol = protocol;
         if (protocol != null) {
@@ -156,21 +154,35 @@ public class MariaSelectResultSet implements ResultSet {
         }
         this.columnsInformation = columnInformation;
         this.columnNameMap = new ColumnNameMap(columnsInformation);
-        this.statement = statement;
-
 
         this.columnInformationLength = columnInformation.length;
         this.packetFetcher = fetcher;
         this.inputStream = packetFetcher.getInputStream();
         this.isEof = false;
-        this.isBinaryEncoded = isBinaryEncoded;
-        this.fetchSize = fetchSize;
-        this.resultSetScrollType = resultSetScrollType;
+        this.isBinaryEncoded = results.isBinaryFormat();
+        if (isBinaryEncoded) {
+            rowPacket = new BinaryRowPacket(columnsInformation, columnInformationLength);
+        } else {
+            rowPacket = new TextRowPacket(columnInformationLength);
+        }
+        this.fetchSize = results.getFetchSize();
+        this.resultSetScrollType = results.getResultSetScrollType();
         this.resultSet = new ArrayList<>();
         this.resultSetSize = 0;
         this.dataFetchTime = 0;
         this.rowPointer = -1;
         this.callableResult = callableResult;
+
+        if (fetchSize == 0 || resultSetScrollType != TYPE_FORWARD_ONLY || callableResult) {
+            fetchAllResults();
+            streaming = false;
+        } else {
+            protocol.setActiveStreamingResult(results);
+            resultSet = new ArrayList<>(fetchSize);
+            nextStreamingValue();
+            streaming = true;
+        }
+
     }
 
 
@@ -306,32 +318,6 @@ public class MariaSelectResultSet implements ResultSet {
                 TYPE_SCROLL_SENSITIVE);
     }
 
-    /**
-     * Initialize and fetch first value.
-     *
-     * @throws IOException    exception
-     * @throws QueryException exception
-     */
-    public void initFetch() throws IOException, QueryException {
-        if (isBinaryEncoded) {
-            rowPacket = new BinaryRowPacket(columnsInformation, columnInformationLength);
-        } else {
-            rowPacket = new TextRowPacket(columnInformationLength);
-        }
-        if (fetchSize == 0 || resultSetScrollType != TYPE_FORWARD_ONLY || callableResult) {
-            fetchAllResults();
-            streaming = false;
-        } else {
-            resultSet = new ArrayList<>(fetchSize);
-            nextStreamingValue();
-            streaming = true;
-        }
-    }
-
-    public boolean isBinaryEncoded() {
-        return isBinaryEncoded;
-    }
-
     private void fetchAllResults() throws IOException, QueryException {
 
         final List<byte[][]> valueObjects = new ArrayList<>();
@@ -410,6 +396,7 @@ public class MariaSelectResultSet implements ResultSet {
 
             if (read == 255) { //ERROR packet
                 protocol.removeActiveStreamingResult();
+                protocol.setMoreResults(false);
                 Buffer buffer = packetFetcher.getReusableBuffer(remaining, lastReusableArray);
                 ErrorPacket errorPacket = new ErrorPacket(buffer, false);
                 lastReusableArray = null;
@@ -455,9 +442,18 @@ public class MariaSelectResultSet implements ResultSet {
         //is error Packet
         if (buffer.getByteAt(0) == Packet.ERROR) {
             protocol.removeActiveStreamingResult();
+            protocol.setMoreResults(false);
             ErrorPacket errorPacket = new ErrorPacket(buffer);
             lastReusableArray = null;
-            throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
+            protocol = null;
+            packetFetcher = null;
+            inputStream = null;
+            if (statement != null) {
+                throw new QueryException("(conn:" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
+                        errorPacket.getErrorNumber(), errorPacket.getSqlState());
+            } else {
+                throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
+            }
         }
 
         //is EOF stream
@@ -493,6 +489,7 @@ public class MariaSelectResultSet implements ResultSet {
                     //is error Packet
                     if (buffer.getByteAt(0) == Packet.ERROR) {
                         protocol.removeActiveStreamingResult();
+                        protocol.setMoreResults(false);
                         ErrorPacket errorPacket = new ErrorPacket(buffer);
                         throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
                     }
@@ -502,7 +499,7 @@ public class MariaSelectResultSet implements ResultSet {
                         final EndOfFilePacket endOfFilePacket = new EndOfFilePacket(buffer);
 
                         protocol.setHasWarnings(endOfFilePacket.getWarningCount() > 0);
-                        protocol.setMoreResults((endOfFilePacket.getStatusFlags() & ServerStatus.MORE_RESULTS_EXISTS) != 0);
+                        protocol.setMoreResults(callableResult || (endOfFilePacket.getStatusFlags() & ServerStatus.MORE_RESULTS_EXISTS) != 0);
                         if (!protocol.hasMoreResults()) protocol.removeActiveStreamingResult();
 
                         lastReusableArray = null;
@@ -804,10 +801,6 @@ public class MariaSelectResultSet implements ResultSet {
 
     public boolean isCallableResult() {
         return callableResult;
-    }
-
-    public void setCallableResult(boolean callableResult) {
-        this.callableResult = callableResult;
     }
 
     public boolean isClosed() {

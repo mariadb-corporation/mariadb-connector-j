@@ -82,7 +82,6 @@ public abstract class AbstractMultiSend {
     private Results results;
     private List<ParameterHolder[]> parametersList;
     private PrepareResult prepareResult;
-    private int resultSetScrollType;
     private List<String> queries;
     private boolean binaryProtocol;
     private boolean readPrepareStmtResult;
@@ -96,18 +95,16 @@ public abstract class AbstractMultiSend {
      * @param results               query results
      * @param serverPrepareResult   Prepare result
      * @param parametersList        parameters
-     * @param resultSetScrollType   resultSet scroll type
      * @param readPrepareStmtResult must execute prepare result
      * @param sql                   sql query.
      */
     public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results, ServerPrepareResult serverPrepareResult,
-                             List<ParameterHolder[]> parametersList, int resultSetScrollType, boolean readPrepareStmtResult, String sql) {
+                             List<ParameterHolder[]> parametersList, boolean readPrepareStmtResult, String sql) {
         this.protocol = protocol;
         this.writer = writer;
         this.results = results;
         this.prepareResult = serverPrepareResult;
         this.parametersList = parametersList;
-        this.resultSetScrollType = resultSetScrollType;
         this.binaryProtocol = true;
         this.readPrepareStmtResult = readPrepareStmtResult;
         this.sql = sql;
@@ -121,16 +118,14 @@ public abstract class AbstractMultiSend {
      * @param results             results
      * @param clientPrepareResult clientPrepareResult
      * @param parametersList      parameters
-     * @param resultSetScrollType resultSet scroll type
      */
     public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results,
-                             final ClientPrepareResult clientPrepareResult, List<ParameterHolder[]> parametersList, int resultSetScrollType) {
+                             final ClientPrepareResult clientPrepareResult, List<ParameterHolder[]> parametersList) {
         this.protocol = protocol;
         this.writer = writer;
         this.results = results;
         this.prepareResult = clientPrepareResult;
         this.parametersList = parametersList;
-        this.resultSetScrollType = resultSetScrollType;
         this.binaryProtocol = false;
         this.readPrepareStmtResult = false;
     }
@@ -142,15 +137,12 @@ public abstract class AbstractMultiSend {
      * @param writer              outputStream
      * @param results             results
      * @param queries             query list
-     * @param resultSetScrollType resultset type
      */
-    public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results, List<String> queries,
-                             int resultSetScrollType) {
+    public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results, List<String> queries) {
         this.protocol = protocol;
         this.writer = writer;
         this.results = results;
         this.queries = queries;
-        this.resultSetScrollType = resultSetScrollType;
         this.binaryProtocol = false;
         this.readPrepareStmtResult = false;
     }
@@ -248,7 +240,7 @@ public abstract class AbstractMultiSend {
                     if (futureReadTask == null) {
                         futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, requestNumberByBulk, (status.sendCmdCounter - 1),
                                 protocol, false, this, paramCount,
-                                resultSetScrollType, binaryProtocol, results, parametersList, queries, prepareResult));
+                                binaryProtocol, results, parametersList, queries, prepareResult));
                         readScheduler.execute(futureReadTask);
                     }
                 }
