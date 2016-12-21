@@ -82,7 +82,6 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.ServiceLoader;
@@ -1028,7 +1027,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             //* OK response
             //*********************************************************************************************************
             case Packet.OK:
-                readOKPacket(buffer, results);
+                readOkPacket(buffer, results);
                 break;
 
             //*********************************************************************************************************
@@ -1062,7 +1061,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @param results result object
      * @throws QueryException if sub-result connection fail
      */
-    public void readOKPacket(Buffer buffer, Results results) throws QueryException {
+    public void readOkPacket(Buffer buffer, Results results) throws QueryException {
         buffer.skipByte(); //fieldCount
         final int updateCount = (int) buffer.getLengthEncodedBinary();
         final long insertId = buffer.getLengthEncodedBinary();
