@@ -62,9 +62,11 @@ public class ResultsRewrite extends Results {
      * @param batch select result possible
      * @param expectedSize expected size
      * @param binaryFormat use binary protocol
+     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      */
-    public ResultsRewrite(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat) {
-        super(statement, fetchSize, batch, expectedSize, binaryFormat);
+    public ResultsRewrite(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType) {
+        super(statement, fetchSize, batch, expectedSize, binaryFormat, resultSetScrollType);
         setCmdInformation(new CmdInformationRewrite(expectedSize));
     }
 

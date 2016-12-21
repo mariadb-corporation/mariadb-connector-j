@@ -97,6 +97,7 @@ public class ErrorPacket {
             this.message = buffer.readString(StandardCharsets.UTF_8);
         } else {
             // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
+            buffer.position -= 1;
             this.message = new String(buffer.buf, buffer.position, buffer.limit, StandardCharsets.UTF_8);
             this.sqlState = "HY000".getBytes();
         }

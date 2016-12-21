@@ -262,7 +262,7 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
         try {
             executeQueryProlog(serverPrepareResult);
             try {
-                internalResult = new Results(this, 0, true, queryParameterSize, true);
+                internalResult = new Results(this, 0, true, queryParameterSize, true, resultSetScrollType);
                 executeBatchInternal(internalResult, queryParameterSize);
             } catch (QueryException queryException) {
                 exception = queryException;
@@ -303,8 +303,7 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
         //if  multi send capacity
         if (options.useBatchMultiSend) {
             //send all sub-command in one packet (or more if > max_allowed_packet)
-            serverPrepareResult = protocol.prepareAndExecutes(mustExecuteOnMaster, serverPrepareResult, results, sql,
-                    queryParameters, resultSetScrollType);
+            serverPrepareResult = protocol.prepareAndExecutes(mustExecuteOnMaster, serverPrepareResult, results, sql, queryParameters);
             if (metadata == null) setMetaFromResult(); //first prepare
             return;
         }
@@ -315,8 +314,7 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
             ParameterHolder[] parameterHolder = queryParameters.get(counter);
             try {
                 serverPrepareResult.resetParameterTypeHeader();
-                protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, results,
-                        parameterHolder, resultSetScrollType);
+                protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
             } catch (QueryException queryException) {
                 if (options.continueBatchOnError || queryException.isPrepareError()) {
                     if (exception == null) exception = queryException;
@@ -394,15 +392,13 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
             executeQueryProlog(serverPrepareResult);
             try {
                 batchResultSet = null;
-                Results internalResults = new Results(this, fetchSize, false,1, true);
+                Results internalResults = new Results(this, fetchSize, false,1, true, resultSetScrollType);
                 ParameterHolder[] parameterHolders = currentParameterHolder.values().toArray(new ParameterHolder[0]);
                 if (serverPrepareResult != null) {
                     serverPrepareResult.resetParameterTypeHeader();
-                    protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, internalResults,
-                            parameterHolders, resultSetScrollType);
+                    protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, internalResults, parameterHolders);
                 } else {
-                    serverPrepareResult = protocol.prepareAndExecute(mustExecuteOnMaster, null, internalResults, sql,
-                            parameterHolders, resultSetScrollType);
+                    serverPrepareResult = protocol.prepareAndExecute(mustExecuteOnMaster, null, internalResults, sql, parameterHolders);
                     setMetaFromResult();
                 }
                 internalResults.commandEnd();

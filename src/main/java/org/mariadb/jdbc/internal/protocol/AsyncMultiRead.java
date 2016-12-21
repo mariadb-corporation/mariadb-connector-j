@@ -17,7 +17,6 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
     private final Protocol protocol;
     private final boolean readPrepareStmtResult;
     private Results results;
-    private final int resultSetScrollType;
     private boolean binaryProtocol;
     private final AbstractMultiSend bulkSend;
     private int paramCount;
@@ -36,7 +35,6 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
      * @param readPrepareStmtResult must read prepare statement result
      * @param bulkSend bulk sender object
      * @param paramCount number of parameters
-     * @param resultSetScrollType resultset scroll type
      * @param binaryProtocol using binary protocol
      * @param results execution result
      * @param parametersList parameter list
@@ -45,7 +43,7 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
      */
     public AsyncMultiRead(ComStmtPrepare comStmtPrepare, int nbResult, int sendCmdCounter,
                           Protocol protocol, boolean readPrepareStmtResult, AbstractMultiSend bulkSend, int paramCount,
-                          int resultSetScrollType, boolean binaryProtocol, Results results,
+                          boolean binaryProtocol, Results results,
                           List<ParameterHolder[]> parametersList, List<String> queries, PrepareResult prepareResult) {
         this.comStmtPrepare = comStmtPrepare;
         this.nbResult = nbResult;
@@ -54,7 +52,6 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
         this.readPrepareStmtResult = readPrepareStmtResult;
         this.bulkSend = bulkSend;
         this.paramCount = paramCount;
-        this.resultSetScrollType = resultSetScrollType;
         this.binaryProtocol = binaryProtocol;
         this.results = results;
         this.parametersList = parametersList;
@@ -81,7 +78,7 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
         //read all corresponding results
         for (int counter = 0; counter < nbResult; counter++) {
             try {
-                protocol.getResult(results, resultSetScrollType, true);
+                protocol.getResult(results);
             } catch (QueryException qex) {
                 if (asyncMultiReadResult.getException() == null) {
                     asyncMultiReadResult.setException(bulkSend.handleResultException(qex, results,

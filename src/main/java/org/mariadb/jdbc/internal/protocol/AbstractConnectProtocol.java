@@ -163,6 +163,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public void skip() throws SQLException, QueryException {
         if (activeStreamingResult != null) {
             activeStreamingResult.loadFully(true, this);
+            activeStreamingResult = null;
         }
     }
 
@@ -655,12 +656,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void loadServerData() throws QueryException, IOException {
         serverData = new TreeMap<>();
         try {
-            Results results = new Results(null, 0, false, 1, false);
+            Results results = new Results();
             executeQuery(true, results, "SELECT @@max_allowed_packet , "
                             + "@@system_time_zone, "
                             + "@@time_zone, "
-                            + "@@sql_mode",
-                    ResultSet.TYPE_FORWARD_ONLY);
+                            + "@@sql_mode");
             results.commandEnd();
             MariaSelectResultSet resultSet = results.getResultSet();
             resultSet.next();
@@ -674,13 +674,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             //fallback in case of galera non primary nodes that permit only show / set command
             try {
-                Results results = new Results(null, 0, false, 1, false);
+                Results results = new Results();
                 executeQuery(true, results, "SHOW VARIABLES WHERE Variable_name in ("
                         + "'max_allowed_packet', "
                         + "'system_time_zone', "
                         + "'time_zone', "
                         + "'sql_mode'"
-                        + ")", ResultSet.TYPE_FORWARD_ONLY);
+                        + ")");
                 results.commandEnd();
                 MariaSelectResultSet resultSet = results.getResultSet();
                 while (resultSet.next()) {
