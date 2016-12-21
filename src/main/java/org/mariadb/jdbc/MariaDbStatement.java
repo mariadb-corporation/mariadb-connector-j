@@ -239,9 +239,9 @@ public class MariaDbStatement implements Statement, Cloneable {
         try {
             executeQueryProlog();
             batchResultSet = null;
-            Results internalResults = new Results(this, fetchSize, false, 1, false);
+            Results internalResults = new Results(this, fetchSize, false, 1, false, resultSetScrollType);
             protocol.executeQuery(protocol.isMasterConnection(), internalResults,
-                    Utils.nativeSql(sql, connection.noBackslashEscapes), resultSetScrollType);
+                    Utils.nativeSql(sql, connection.noBackslashEscapes));
             internalResults.commandEnd();
             results = internalResults;
             return results.getResultSet() != null;
@@ -972,7 +972,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             return new int[0];
         }
 
-        Results internalResults = new Results(this, 0, true, size, false);
+        Results internalResults = new Results(this, 0, true, size, false, resultSetScrollType);
         lock.lock();
         try {
             QueryException exception = null;
@@ -989,12 +989,12 @@ public class MariaDbStatement implements Statement, Cloneable {
                         }
                     }
                     if (batchQueryMultiRewritable) {
-                        protocol.executeBatchMultiple(protocol.isMasterConnection(), internalResults, batchQueries, resultSetScrollType);
+                        protocol.executeBatchMultiple(protocol.isMasterConnection(), internalResults, batchQueries);
                     } else {
-                        protocol.executeBatch(protocol.isMasterConnection(), internalResults, batchQueries, resultSetScrollType);
+                        protocol.executeBatch(protocol.isMasterConnection(), internalResults, batchQueries);
                     }
                 } else {
-                    protocol.executeBatch(protocol.isMasterConnection(), internalResults, batchQueries, resultSetScrollType);
+                    protocol.executeBatch(protocol.isMasterConnection(), internalResults, batchQueries);
                 }
             } catch (QueryException e) {
                 exception = e;

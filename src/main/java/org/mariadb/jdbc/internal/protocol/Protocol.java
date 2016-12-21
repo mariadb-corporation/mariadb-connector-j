@@ -134,38 +134,33 @@ public interface Protocol {
 
     void executeQuery(String sql) throws QueryException;
 
-    void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql, int resultSetScrollType) throws QueryException;
+    void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql) throws QueryException;
 
     void executeQuery(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
-                      ParameterHolder[] parameters, int resultSetScrollType) throws QueryException;
+                      ParameterHolder[] parameters) throws QueryException;
 
     void executeBatchMulti(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
-                           List<ParameterHolder[]> parameterList, int resultSetScrollType) throws QueryException;
+                           List<ParameterHolder[]> parameterList) throws QueryException;
 
-    void executeBatch(boolean mustExecuteOnMaster, Results results, List<String> queries, int resultSetScrollType)
-            throws QueryException;
+    void executeBatch(boolean mustExecuteOnMaster, Results results, List<String> queries) throws QueryException;
 
-    void executeBatchMultiple(boolean mustExecuteOnMaster, Results results, List<String> queries,
-                              int resultSetScrollType) throws QueryException;
+    void executeBatchMultiple(boolean mustExecuteOnMaster, Results results, List<String> queries) throws QueryException;
 
     void executeBatchRewrite(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult prepareResult,
-                             List<ParameterHolder[]> parameterList,
-                             int resultSetScrollType, boolean rewriteValues) throws QueryException;
+                             List<ParameterHolder[]> parameterList, boolean rewriteValues) throws QueryException;
 
 
     void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                              Results results, ParameterHolder[] parameters,
-                              int resultSetScrollType) throws QueryException;
+                              Results results, ParameterHolder[] parameters) throws QueryException;
 
     ServerPrepareResult prepareAndExecutes(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
                                            Results results, String sql,
-                                           List<ParameterHolder[]> parameterList, int resultSetScrollType) throws QueryException;
+                                           List<ParameterHolder[]> parameterList) throws QueryException;
 
     ServerPrepareResult prepareAndExecute(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                                          Results results, String sql,
-                                          ParameterHolder[] parameters, int resultSetScrollType) throws QueryException;
+                                          Results results, String sql, ParameterHolder[] parameters) throws QueryException;
 
-    void getResult(Results results, int resultSetScrollType, boolean loadAllResults) throws QueryException;
+    void getResult(Results results) throws QueryException;
 
     void cancelCurrentQuery() throws QueryException, IOException;
 
@@ -255,8 +250,6 @@ public interface Protocol {
     void changeSocketTcpNoDelay(boolean setTcpNoDelay) throws SocketException;
 
     void changeSocketSoTimeout(int setSoTimeout) throws SocketException;
-
-    ServerPrepareResult getPrepareStatementFromCache(String key);
 
     void removeActiveStreamingResult();
 }

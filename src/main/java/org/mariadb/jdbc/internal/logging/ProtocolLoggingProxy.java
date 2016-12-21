@@ -135,10 +135,10 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                     case 1:
                         sql = (String) args[0];
                         break;
-                    case 4:
+                    case 3:
                         sql = (String) args[2];
                         break;
-                    case 5:
+                    case 4:
                         ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
                         sql = getQueryFromPrepareParameters(clientPrepareResult, (ParameterHolder[]) args[3], clientPrepareResult.getParamCount());
                         break;

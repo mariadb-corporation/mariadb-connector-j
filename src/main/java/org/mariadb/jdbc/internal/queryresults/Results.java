@@ -59,7 +59,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class Results {
 
@@ -72,6 +71,21 @@ public class Results {
     private MariaSelectResultSet resultSet;
     private MariaSelectResultSet callableResultSet;
     private boolean binaryFormat;
+    private int resultSetScrollType;
+
+    /**
+     * Single Text query.
+     *
+     */
+    public Results() {
+        this.statement = null;
+        this.fetchSize = 0;
+        this.batch = false;
+        this.expectedSize = 1;
+        this.cmdInformation = null;
+        this.binaryFormat = false;
+        this.resultSetScrollType = ResultSet.TYPE_FORWARD_ONLY;
+    }
 
     /**
      * Default constructor.
@@ -81,14 +95,17 @@ public class Results {
      * @param batch select result possible
      * @param expectedSize expected size
      * @param binaryFormat use binary protocol
+     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      */
-    public Results(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat) {
+    public Results(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType) {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.batch = batch;
         this.expectedSize = expectedSize;
         this.cmdInformation = null;
         this.binaryFormat = binaryFormat;
+        this.resultSetScrollType = resultSetScrollType;
     }
 
     /**
@@ -206,9 +223,7 @@ public class Results {
             }
         }
 
-        while (protocol.hasMoreResults()) {
-            protocol.getResult(this, ResultSet.TYPE_FORWARD_ONLY,false);
-        }
+        if (protocol.hasMoreResults()) protocol.getResult(this);
     }
 
     /**
@@ -235,9 +250,8 @@ public class Results {
                     }
 
                     //load next data if there is
-                    if (protocol.hasMoreResults()) {
-                        protocol.getResult(this, ResultSet.TYPE_FORWARD_ONLY,false);
-                    }
+                    if (protocol.hasMoreResults()) protocol.getResult(this);
+
                 } catch (QueryException e) {
                     ExceptionMapper.throwException(e, null, statement);
                 } finally {
@@ -248,13 +262,17 @@ public class Results {
         }
 
         if (cmdInformation.moreResults()) {
+
             if (current == Statement.CLOSE_CURRENT_RESULT && resultSet != null) resultSet.close();
             resultSet = null;
             return true;
+
         } else {
+
             if (current == Statement.CLOSE_CURRENT_RESULT && resultSet != null) resultSet.close();
             if (executionResults != null) resultSet = executionResults.poll();
             return resultSet != null;
+
         }
 
     }
@@ -286,4 +304,9 @@ public class Results {
     public void removeFetchSize() {
         fetchSize = 0;
     }
+
+    public int getResultSetScrollType() {
+        return resultSetScrollType;
+    }
+
 }
