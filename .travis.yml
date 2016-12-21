@@ -31,5 +31,5 @@ env:
     - COMPRESSION=false MARIA=10.2 PACKET=40M
     - MYSQL=5.7 PACKET=8M
     - MYSQL=5.6 PACKET=8M
-    - MYSQL=5.5 PACKET=8M
+    - MYSQL=5.5 PACKET=8M UTF8_ONLY=true
 script: .travis/script.sh

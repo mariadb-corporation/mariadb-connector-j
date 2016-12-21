@@ -68,7 +68,7 @@ END
     fi
 
     INNODB_LOG_FILE_SIZE=$(echo $PACKET| cut -d'M' -f 1)0M
-    if [ "$MYSQL" == "5.5" ]
+    if [ -n "$UTF8_ONLY" ]
     then
         sudo tee /etc/mysql/conf.d/map.cnf << END
 [mysqld]
@@ -82,8 +82,6 @@ max_allowed_packet=$PACKET
 innodb_log_file_size=$INNODB_LOG_FILE_SIZE
 END
     fi
-
-    sudo service mysql restart
 
     # Generate SSL files:
     sudo .travis/gen-ssl.sh mariadb.example.com /etc/mysql
