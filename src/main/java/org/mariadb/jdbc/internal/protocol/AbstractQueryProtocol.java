@@ -58,7 +58,6 @@ import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.*;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.packet.result.EndOfFilePacket;
 import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
 import org.mariadb.jdbc.internal.packet.send.SendChangeDbPacket;
 import org.mariadb.jdbc.internal.packet.send.SendPingPacket;
@@ -83,7 +82,6 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.ServiceLoader;
@@ -1004,7 +1002,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     /**
-     * Read server response packet (see {@linktourl https://mariadb.com/kb/en/mariadb/4-server-response-packets/}).
+     * Read server response packet.
+     *
+     * @see <a href="https://mariadb.com/kb/en/mariadb/4-server-response-packets/">server response packets</a>
      *
      * @param results result object
      * @throws QueryException if sub-result connection fail
@@ -1030,7 +1030,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             //* OK response
             //*********************************************************************************************************
             case Packet.OK:
-                readOKPacket(buffer, results);
+                readOkPacket(buffer, results);
                 break;
 
             //*********************************************************************************************************
@@ -1058,13 +1058,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     /**
-     * Read OK_Packet (see {@linktourl https://mariadb.com/kb/en/mariadb/ok_packet/}).
+     * Read OK_Packet.
+     *
+     * @see <a href="https://mariadb.com/kb/en/mariadb/ok_packet/">OK_Packet</a>
      *
      * @param buffer current buffer
      * @param results result object
      * @throws QueryException if sub-result connection fail
      */
-    public void readOKPacket(Buffer buffer, Results results) throws QueryException {
+    public void readOkPacket(Buffer buffer, Results results) throws QueryException {
         buffer.skipByte(); //fieldCount
         final int updateCount = (int) buffer.getLengthEncodedBinary();
         final long insertId = buffer.getLengthEncodedBinary();
@@ -1077,11 +1079,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
 
     /**
-     * Read ERR_Packet (see {@linktourl https://mariadb.com/kb/en/mariadb/err_packet/}).
+     * Read ERR_Packet.
+     *
+     * @see <a href="https://mariadb.com/kb/en/mariadb/err_packet/">ERR_Packet</a>
      *
      * @param buffer current buffer
      * @param results result object
-     * @throws QueryException if sub-result connection fail
+     * @return QueryException if sub-result connection fail
      */
     public QueryException readErrorPacket(Buffer buffer, Results results) {
         this.moreResults = false;
@@ -1105,7 +1109,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     /**
-     * Read Local_infile Packet (see {@linktourl https://mariadb.com/kb/en/mariadb/local_infile-packet/}).
+     * Read Local_infile Packet.
+     *
+     * @see <a href="https://mariadb.com/kb/en/mariadb/local_infile-packet/">local_infile packet</a>
      *
      * @param buffer current buffer
      * @param results result object
@@ -1142,7 +1148,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     /**
-     * Read ResultSet Packet (see {@linktourl https://mariadb.com/kb/en/mariadb/resultset/}).
+     * Read ResultSet Packet.
+     *
+     * @see <a href="https://mariadb.com/kb/en/mariadb/resultset/">resultSet packets</a>
      *
      * @param buffer current buffer
      * @param results result object
