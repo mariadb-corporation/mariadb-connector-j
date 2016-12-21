@@ -209,7 +209,7 @@ public class MariaDbStatement implements Statement, Cloneable {
 
         if (isTimedout) {
             isTimedout = false;
-            queryException = new QueryException("(conn:" + getServerThreadId() + ") Query timed out", 1317, "JZ0002", queryException);
+            queryException = new QueryException("Query timed out", 1317, "JZ0002", queryException);
         }
 
         if (queryException == null) {
