@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -290,6 +291,8 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testFractionalTimeBatch() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
+
         createTable("testFractionalTimeBatch", "tt TIMESTAMP(6)");
         Timestamp currTime = new Timestamp(System.currentTimeMillis());
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(

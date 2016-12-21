@@ -9,7 +9,6 @@ remove_mysql(){
     sudo rm -rf /etc/mysql||true
     sudo rm -rf /var/lib/mysql||true
 }
-remove_mysql
 
 if [ "$TYPE" == "MAXSCALE" ]
 then
@@ -27,25 +26,37 @@ fi
 if [ -n "$AURORA" ]
 then
     # AURORA tests doesn't need an installation
+    remove_mysql
     echo "$MYSQL"
 else
     if [ -n "$MYSQL" ]
     then
-        sudo tee /etc/apt/sources.list.d/mysql.list << END
+        if [ "$MYSQL" == "5.5" ]
+        then
+            sudo apt-get -qq update --force-yes
+
+            dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL/-dmr/}
+            sudo mysql -u root -e "SELECT 1"
+
+        else
+            remove_mysql
+            sudo tee /etc/apt/sources.list.d/mysql.list << END
 deb http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL
 deb-src http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL
 END
-        #normal way, but working only 90% of the time. Temporary force with key in project.
-        #sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 5072E1F5
-        sudo apt-key add .travis/mysql_pubkey.asc
+            #normal way, but working only 90% of the time. Temporary force with key in project.
+            #sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 5072E1F5
+            sudo apt-key add .travis/mysql_pubkey.asc
 
-        sudo apt-get -qq update --force-yes
-        sudo apt-get -qq install mysql-server --force-yes
+            sudo apt-get -qq update --force-yes
+            sudo apt-get -qq install mysql-server --force-yes
 
-        dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL/-dmr/}
+            dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL/-dmr/}
+        fi
 
     else
 
+        remove_mysql
         sudo apt-get -qq install python-software-properties
 
         sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
@@ -57,12 +68,20 @@ END
     fi
 
     INNODB_LOG_FILE_SIZE=$(echo $PACKET| cut -d'M' -f 1)0M
-    sudo tee /etc/mysql/conf.d/map.cnf << END
+    if [ -n "$UTF8_ONLY" ]
+    then
+        sudo tee /etc/mysql/conf.d/map.cnf << END
 [mysqld]
+character_set_server = utf8
+END
+    else
+        sudo tee /etc/mysql/conf.d/map.cnf << END
+[mysqld]
+character_set_server = utf8mb4
 max_allowed_packet=$PACKET
 innodb_log_file_size=$INNODB_LOG_FILE_SIZE
-character_set_server = utf8mb4
 END
+    fi
 
     # Generate SSL files:
     sudo .travis/gen-ssl.sh mariadb.example.com /etc/mysql

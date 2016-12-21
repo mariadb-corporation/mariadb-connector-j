@@ -60,6 +60,7 @@ public class ResultsRewrite extends Results {
      * @param statement current statement
      * @param fetchSize fetch size
      * @param batch select result possible
+     * @param expectedSize expected size
      * @param binaryFormat use binary protocol
      */
     public ResultsRewrite(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat) {

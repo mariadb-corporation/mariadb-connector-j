@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -59,10 +60,12 @@ public class DatatypeCompatibilityTest extends BaseTest {
         );
         createTable("ytab", "y year");
         createTable("maxcharlength", "maxcharlength char(1)", "character set utf8");
-        createTable("time_test", "ID int unsigned NOT NULL, time_test time(6), PRIMARY KEY (ID)", "engine=InnoDB");
-
-        if (testSingleHost) {
-            sharedConnection.createStatement().execute("insert into time_test(id, time_test) values(1, '00:00:00'), (2, '00:00:00.123'), (3, null)");
+        if (doPrecisionTest) {
+            createTable("time_test", "ID int unsigned NOT NULL, time_test time(6), PRIMARY KEY (ID)", "engine=InnoDB");
+            if (testSingleHost) {
+                sharedConnection.createStatement().execute(
+                        "insert into time_test(id, time_test) values(1, '00:00:00'), (2, '00:00:00.123'), (3, null)");
+            }
         }
     }
 
@@ -170,6 +173,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
      * @throws SQLException if any error occur
      */
     public void testStatementGetTime(Connection connection) throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         try (Statement statement = connection.createStatement()) {
             try (ResultSet resultSet = statement.executeQuery(sql)) {
                 Assert.assertTrue(resultSet.next());
@@ -190,6 +194,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
      * @throws SQLException if any error occur
      */
     public void testStatementGetString(Connection connection) throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         try (Statement statement = connection.createStatement()) {
             try (ResultSet resultSet = statement.executeQuery(sql)) {
                 Assert.assertTrue(resultSet.next());
@@ -210,6 +215,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
      * @throws SQLException if any error occur
      */
     public void testPreparedStatementGetTime(Connection connection) throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         try (Statement statement = connection.createStatement()) {
             try (ResultSet resultSet = statement.executeQuery(sql)) {
                 Assert.assertTrue(resultSet.next());
@@ -230,6 +236,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
      * @throws SQLException if any error occur
      */
     public void testPreparedStatementGetString(Connection connection) throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 Assert.assertTrue(resultSet.next());

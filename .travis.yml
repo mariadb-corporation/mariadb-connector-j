@@ -8,14 +8,12 @@ jdk:
     - oraclejdk8
     - oraclejdk7
     - openjdk7
+services:
+    - mysql
 env:
     - AURORA=true
     - MARIA=5.5 PACKET=8M
-    - MARIA=5.5 PACKET=20M
-    - MARIA=5.5 PACKET=40M
     - MARIA=10.0 PACKET=8M
-    - MARIA=10.0 PACKET=20M
-    - MARIA=10.0 PACKET=40M
     - MARIA=10.1 PACKET=8M
     - MARIA=10.1 PACKET=20M
     - MARIA=10.1 PACKET=40M
@@ -32,9 +30,6 @@ env:
     - TYPE=NO_BULK_SERVER MARIA=10.2 PACKET=40M
     - COMPRESSION=false MARIA=10.2 PACKET=40M
     - MYSQL=5.7 PACKET=8M
-    - MYSQL=5.7 PACKET=20M
-    - MYSQL=5.7 PACKET=40M
     - MYSQL=5.6 PACKET=8M
-    - MYSQL=5.6 PACKET=20M
-    - MYSQL=5.6 PACKET=40M
+    - MYSQL=5.5 PACKET=8M UTF8_ONLY=true
 script: .travis/script.sh

@@ -4,7 +4,6 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.protocol.MasterProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.io.*;
@@ -32,7 +31,9 @@ public class ServerPrepareStatementTest extends BaseTest {
         createTable("ServerPrepareStatementTestt2", "id int not null primary key auto_increment, test boolean");
         createTable("ServerPrepareStatementTestCache", "id int not null primary key auto_increment, test boolean");
         createTable("ServerPrepareStatementCacheSize3", "id int not null primary key auto_increment, test boolean");
-        createTable("preparetestFactionnal", "time0 TIME(6) default '22:11:00', timestamp0 timestamp(6), datetime0 datetime(6) ");
+        if (doPrecisionTest) {
+            createTable("preparetestFactionnal", "time0 TIME(6) default '22:11:00', timestamp0 timestamp(6), datetime0 datetime(6) ");
+        }
         createTable("ServerPrepareStatementCacheSize2", "id int not null primary key auto_increment, test boolean");
         createTable("ServerPrepareStatementCacheSize3", "id int not null primary key auto_increment, test blob");
         createTable("ServerPrepareStatementParameters", "id int, id2 int");
@@ -243,6 +244,8 @@ public class ServerPrepareStatementTest extends BaseTest {
      */
     @Test
     public void timeFractionnalSecondTest() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
+
         Connection connection = null;
         try {
             connection = setConnection("&useFractionalSeconds=false");
@@ -322,6 +325,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void dataConformity() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         TimeZone defaultTimeZone = TimeZone.getDefault();
         try {
             prepareTestTable();
@@ -628,6 +632,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void dataConformity2() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         prepareTestTable();
 
         PreparedStatement ps = sharedConnection.prepareStatement("INSERT INTO preparetest "

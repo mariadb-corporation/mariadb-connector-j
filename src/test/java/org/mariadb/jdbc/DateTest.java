@@ -32,7 +32,9 @@ public class DateTest extends BaseTest {
         createTable("dtest4", "d  time");
         createTable("date_test3", " x date");
         createTable("date_test4", "x date");
-        createTable("timestampAsDate", "ts timestamp(6), dt datetime(6), dd date");
+        if (doPrecisionTest) {
+            createTable("timestampAsDate", "ts timestamp(6), dt datetime(6), dd date");
+        }
     }
 
 
@@ -272,6 +274,7 @@ public class DateTest extends BaseTest {
 
     @Test
     public void timestampAsDate() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
 
         Calendar cal = Calendar.getInstance();
         cal.set(Calendar.HOUR_OF_DAY, 0);

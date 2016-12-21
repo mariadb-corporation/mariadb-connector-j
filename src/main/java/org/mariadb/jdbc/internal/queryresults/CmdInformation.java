@@ -9,7 +9,7 @@ import java.sql.SQLException;
  * Created by kolzeq on 16/12/2016.
  */
 public interface CmdInformation {
-    public final static int NO_UPDATE_COUNT = -1;
+    public static final int NO_UPDATE_COUNT = -1;
 
     int[] getUpdateCounts();
 
