@@ -156,7 +156,7 @@ public class BaseTest {
     @AfterClass
     public static void afterClassBaseTest() throws SQLException {
         if (testSingleHost) {
-            if (!sharedConnection.isClosed()) {
+            if (sharedConnection != null && !sharedConnection.isClosed()) {
                 if (!tempViewList.isEmpty()) {
                     Statement stmt = sharedConnection.createStatement();
                     String viewName;
@@ -202,11 +202,11 @@ public class BaseTest {
                     }
                 }
 
-            }
-            try {
-                sharedConnection.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
+                try {
+                    sharedConnection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

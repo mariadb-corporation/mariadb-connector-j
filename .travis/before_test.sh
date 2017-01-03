@@ -97,7 +97,7 @@ END
 
     # Generate SSL files:
     sudo .travis/gen-ssl.sh mariadb.example.com /etc/mysql
-    sudo chown mysql:mysql /etc/mysql/*.crt /etc/mysql/*.key /etc/mysql/*.p12
+    sudo chown mysql:mysql /etc/mysql/*.crt /etc/mysql/*.key /etc/mysql/*.p12 /etc/mysql/*.jks
 
     # Enable SSL:
     sudo tee /etc/mysql/conf.d/ssl.cnf << END
