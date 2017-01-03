@@ -162,7 +162,7 @@ public class SslTest extends BaseTest {
         Assume.assumeFalse(Platform.isWindows());
         // Only test with MariaDB since MySQL community is compiled with yaSSL
         if (isMariadbServer()) {
-            useSslForceTls("TLSv1.2", "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384");
+            useSslForceTls("TLSv1.2", "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
         }
     }
 
@@ -557,6 +557,8 @@ public class SslTest extends BaseTest {
             info.setProperty("keyStore", "file:///" + clientKeystorePath);
             info.setProperty("keyStorePassword", clientKeystorePassword);
             testConnect(info, true, testUser, "ssltestpassword");
+        } catch (SQLNonTransientConnectionException nonTransient) {
+            //java 9 doesn't accept empty keystore
         } finally {
             tempTruststore.delete();
             deleteSslTestUser(testUser);
@@ -631,7 +633,9 @@ public class SslTest extends BaseTest {
         String clientKeyStore2Path = System.getProperty("keystore2Path");
         String clientKeyStore2Password = System.getProperty("keystore2Password");
         String clientKeyPassword = System.getProperty("keyPassword");
-        Assume.assumeTrue(clientKeyPassword != null);
+        Assume.assumeTrue(clientKeyPassword != null
+                && clientKeyStore2Password != null
+                && clientKeyStore2Path != null);
         String testUser = "testKeystore";
         // For this testcase, the testUser must be configured with ssl_type=X509
         createSslTestUser(testUser);
