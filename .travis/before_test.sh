@@ -13,7 +13,7 @@ remove_mysql(){
 if [ "$TYPE" == "MAXSCALE" ]
 then
     #install maxscale
-    wget "https://downloads.mariadb.com/MaxScale/${MAXSCALE_VERSION}/ubuntu/dists/trusty/main/binary-amd64/maxscale-2.0.2-1.ubuntu.precise.x86_64.deb"
+    wget "https://downloads.mariadb.com/MaxScale/${MAXSCALE_VERSION}/ubuntu/dists/trusty/main/binary-amd64/maxscale-2.0.2-1.ubuntu.trusty.x86_64.deb"
     sudo dpkg -i maxscale-2.0.2-1.ubuntu.precise.x86_64.deb
     sudo apt-get install -f
     sudo sed -i 's/user=myuser/user=root/g' /etc/maxscale.cnf
