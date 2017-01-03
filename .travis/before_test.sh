@@ -58,7 +58,7 @@ END
 
         remove_mysql
 
-        sudo apt-get install software-properties-common
+        sudo apt-get -qq install software-properties-common
 
 
         sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
@@ -71,12 +71,12 @@ Pin: origin nyc2.mirrors.digitalocean.com
 Pin-Priority: 1000
 END
 
-        sudo apt-get update
+        sudo apt-get -qq update
         if [ "$MARIA" == "5.5" ]
         then
-            sudo apt-get install mariadb-server-5.5=5.5.54+maria-1~trusty mariadb-client-5.5=5.5.54+maria-1~trusty
+            sudo apt-get install mariadb-server-core-5.5=5.5.54+maria-1~trusty mariadb-server-5.5=5.5.54+maria-1~trusty mariadb-client-5.5=5.5.54+maria-1~trusty
         fi
-        sudo apt-get install mariadb-server
+        sudo apt-get -qq install mariadb-server
     fi
 
     INNODB_LOG_FILE_SIZE=$(echo $PACKET| cut -d'M' -f 1)0M
