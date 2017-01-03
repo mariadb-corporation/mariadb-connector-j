@@ -436,6 +436,8 @@ public class SslTest extends BaseTest {
             info.setProperty("useSSL", "true");
             info.setProperty("trustStore", "file:///" + keystorePath);
             testConnect(info, true);
+        } catch (SQLNonTransientConnectionException nonTransient) {
+            //java 9 doesn't accept empty keystore
         } finally {
             tempKeystore.delete();
         }

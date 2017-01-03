@@ -752,7 +752,7 @@ public class StoredProcedureTest extends BaseTest {
                 if (args.length == 2 && args[0].equals(Integer.TYPE)) {
                     if (!args[1].isPrimitive()) {
                         try {
-                            setters[i].invoke(callable, new Object[]{new Integer(2), null});
+                            setters[i].invoke(callable, new Object[]{2, null});
                         } catch (InvocationTargetException ive) {
                             if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                 throw ive;
@@ -761,7 +761,7 @@ public class StoredProcedureTest extends BaseTest {
                     } else {
                         if (args[1].getName().equals("boolean")) {
                             try {
-                                setters[i].invoke(callable, new Object[]{new Integer(2), Boolean.FALSE});
+                                setters[i].invoke(callable, new Object[]{2, Boolean.FALSE});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -772,7 +772,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("byte")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[]{new Integer(2), new Byte((byte) 0)});
+                                setters[i].invoke(callable, new Object[]{2, (byte) 0});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -784,7 +784,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("double")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[]{new Integer(2), new Double(0)});
+                                setters[i].invoke(callable, new Object[]{2, 0D});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -796,7 +796,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("float")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[]{new Integer(2), new Float(0)});
+                                setters[i].invoke(callable, new Object[]{2, 0f});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -808,7 +808,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("int")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[]{new Integer(2), new Integer(0)});
+                                setters[i].invoke(callable, new Object[]{2, 0});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -819,7 +819,7 @@ public class StoredProcedureTest extends BaseTest {
 
                         if (args[1].getName().equals("long")) {
                             try {
-                                setters[i].invoke(callable, new Object[]{new Integer(2), new Long(0)});
+                                setters[i].invoke(callable, new Object[]{2, 0L});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -829,7 +829,7 @@ public class StoredProcedureTest extends BaseTest {
 
                         if (args[1].getName().equals("short")) {
                             try {
-                                setters[i].invoke(callable, new Object[]{new Integer(2), new Short((short) 0)});
+                                setters[i].invoke(callable, new Object[]{2, (short) 0});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;

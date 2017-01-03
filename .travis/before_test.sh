@@ -6,14 +6,14 @@ set -e
 remove_mysql(){
     sudo service mysql stop
     sudo apt-get -qq autoremove --purge mysql-server mysql-client mysql-common
-    sudo rm -rf /etc/mysql||true
-    sudo rm -rf /var/lib/mysql||true
+    sudo rm -Rf /etc/mysql||true
+    sudo rm -Rf /var/lib/mysql||true
 }
 
 if [ "$TYPE" == "MAXSCALE" ]
 then
     #install maxscale
-    wget "https://downloads.mariadb.com/MaxScale/${MAXSCALE_VERSION}/ubuntu/dists/precise/main/binary-amd64/maxscale-2.0.2-1.ubuntu.precise.x86_64.deb"
+    wget "https://downloads.mariadb.com/MaxScale/${MAXSCALE_VERSION}/ubuntu/dists/trusty/main/binary-amd64/maxscale-2.0.2-1.ubuntu.precise.x86_64.deb"
     sudo dpkg -i maxscale-2.0.2-1.ubuntu.precise.x86_64.deb
     sudo apt-get install -f
     sudo sed -i 's/user=myuser/user=root/g' /etc/maxscale.cnf
@@ -57,14 +57,26 @@ END
     else
 
         remove_mysql
-        sudo apt-get -qq install python-software-properties
+
+        sudo apt-get install software-properties-common
+
 
         sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
-        sudo add-apt-repository "deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/${MARIA}/ubuntu precise main"
+        sudo add-apt-repository "deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/${MARIA}/ubuntu trusty main"
 
-        sudo apt-get -qq update
+        #Force using MariaDB repo in place of System repo
+        sudo tee /etc/apt/preferences.d/MariaDB.pref << END
+Package: *
+Pin: origin nyc2.mirrors.digitalocean.com
+Pin-Priority: 1000
+END
 
-        sudo apt-get -qq install mariadb-server
+        sudo apt-get update
+        if [ "$MARIA" == "5.5" ]
+        then
+            sudo apt-get install mariadb-server-5.5=5.5.54+maria-1~trusty mariadb-client-5.5=5.5.54+maria-1~trusty
+        fi
+        sudo apt-get install mariadb-server
     fi
 
     INNODB_LOG_FILE_SIZE=$(echo $PACKET| cut -d'M' -f 1)0M
