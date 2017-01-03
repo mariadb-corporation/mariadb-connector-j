@@ -401,6 +401,7 @@ public class MariaSelectResultSet implements ResultSet {
                 ErrorPacket errorPacket = new ErrorPacket(buffer, false);
                 lastReusableArray = null;
                 protocol = null;
+                isEof = true;
                 packetFetcher = null;
                 inputStream = null;
                 if (statement != null) {
@@ -446,6 +447,7 @@ public class MariaSelectResultSet implements ResultSet {
             ErrorPacket errorPacket = new ErrorPacket(buffer);
             lastReusableArray = null;
             protocol = null;
+            isEof = true;
             packetFetcher = null;
             inputStream = null;
             if (statement != null) {
@@ -514,6 +516,7 @@ public class MariaSelectResultSet implements ResultSet {
                 ExceptionMapper.throwException(queryException, null, this.statement);
             } finally {
                 protocol = null;
+                isEof = true;
                 packetFetcher = null;
                 inputStream = null;
                 lock.unlock();
