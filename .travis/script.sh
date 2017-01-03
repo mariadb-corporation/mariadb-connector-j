@@ -37,5 +37,5 @@ fi
 
 mvn clean test $urlString -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID  \
     -DkeystorePath="/etc/mysql/client-keystore.jks" -DkeystorePassword="kspass"  \
-    -Dkeystore2Path="/etc/mysql/fullclient-keystore.jks" -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"
+    -Dkeystore2Path="/etc/mysql/fullclient-keystore.jks" -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
     -Dkeystore2PathP12="/etc/mysql/fullclient-keystore.p12"
