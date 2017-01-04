@@ -23,40 +23,29 @@ then
     sudo sed -i 's|port=4006|port=4006\naddress=localhost|g' /etc/maxscale.cnf
 fi
 
+remove_mysql
+
 if [ -n "$AURORA" ]
 then
     # AURORA tests doesn't need an installation
-    remove_mysql
     echo "$MYSQL"
 else
     if [ -n "$MYSQL" ]
     then
-        if [ "$MYSQL" == "5.5" ]
-        then
-            sudo apt-get -qq update --force-yes
-
-            dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL/-dmr/}
-            sudo mysql -u root -e "SELECT 1"
-
-        else
-            remove_mysql
-            sudo tee /etc/apt/sources.list.d/mysql.list << END
+        sudo tee /etc/apt/sources.list.d/mysql.list << END
 deb http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL
 deb-src http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL
 END
-            #normal way, but working only 90% of the time. Temporary force with key in project.
-            #sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 5072E1F5
-            sudo apt-key add .travis/mysql_pubkey.asc
+        #normal way, but working only 90% of the time. Temporary force with key in project.
+        #sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 5072E1F5
+        sudo apt-key add .travis/mysql_pubkey.asc
 
-            sudo apt-get -qq update --force-yes
-            sudo apt-get -qq install mysql-server --force-yes
+        sudo apt-get -qq update --force-yes
+        sudo apt-get -qq install mysql-server --force-yes
 
-            dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL/-dmr/}
-        fi
+        dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL/-dmr/}
 
     else
-
-        remove_mysql
 
         sudo apt-get -qq install software-properties-common
 
