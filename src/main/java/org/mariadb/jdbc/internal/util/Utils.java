@@ -66,6 +66,7 @@ import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import javax.net.SocketFactory;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Proxy;
 import java.net.Socket;
 import java.security.MessageDigest;
@@ -510,6 +511,7 @@ public class Utils {
      * @return a nex socket
      * @throws IOException if connection error occur
      */
+    @SuppressWarnings("unchecked")
     public static Socket createSocket(UrlParser urlParser, String host) throws IOException {
 
         if (urlParser.getOptions().pipe != null) {
@@ -531,16 +533,32 @@ public class Utils {
             String socketFactoryName = urlParser.getOptions().socketFactory;
             if (socketFactoryName != null) {
                 try {
-                    socketFactory = (SocketFactory) (Class.forName(socketFactoryName).newInstance());
+                    Class<? extends SocketFactory> socketFactoryClass = (Class<? extends SocketFactory>) Class.forName(socketFactoryName);
+                    if (socketFactoryClass != null) {
+                        Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
+                        socketFactory = constructor.newInstance();
+                        return socketFactory.createSocket();
+                    }
                 } catch (Exception sfex) {
-                    socketFactory = SocketFactory.getDefault();
+                    throw new IOException("Socket factory failed to initialized with option \"socketFactory\" set to \""
+                            + urlParser.getOptions().socketFactory + "\"", sfex);
                 }
-            } else {
-                socketFactory = SocketFactory.getDefault();
             }
+            socketFactory = SocketFactory.getDefault();
             return socketFactory.createSocket();
         }
     }
+
+    /**
+     * Hexdump.
+     *
+     * @param bytes             byte array
+     * @return String
+     */
+    public static String hexdump(byte[] bytes) {
+        return hexdump(bytes, Integer.MAX_VALUE, 0, bytes.length);
+    }
+
 
     /**
      * Hexdump.

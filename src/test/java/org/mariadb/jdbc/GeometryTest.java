@@ -2,8 +2,8 @@ package org.mariadb.jdbc;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mariadb.jdbc.internal.util.Utils;
 
-import javax.xml.bind.DatatypeConverter;
 import java.math.BigInteger;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -31,7 +31,7 @@ public class GeometryTest extends BaseTest {
         if (tmpGeometryBinary == null) {
             rs = stmt.executeQuery("SELECT AsWKB(GeomFromText('" + geometryString + "'))");
             rs.next();
-            tmpGeometryBinary = DatatypeConverter.printHexBinary(rs.getBytes(1));
+            tmpGeometryBinary = Utils.hexdump(rs.getBytes(1));
         }
         String sql = "INSERT INTO geom_test VALUES (GeomFromText('" + geometryString + "'))";
         stmt.execute(sql);
@@ -40,7 +40,7 @@ public class GeometryTest extends BaseTest {
         // as text
         assertEquals(geometryString, rs.getString(1));
         // as binary
-        String returnWkb = DatatypeConverter.printHexBinary((byte[]) rs.getObject(2));
+        String returnWkb = Utils.hexdump((byte[]) rs.getObject(2));
         assertEquals(tmpGeometryBinary, returnWkb);
         // as object
         Object geometry = null;
@@ -49,7 +49,7 @@ public class GeometryTest extends BaseTest {
         } catch (Exception e) {
             fail();
         }
-        String returnGeometry = DatatypeConverter.printHexBinary((byte[]) geometry);
+        String returnGeometry = Utils.hexdump((byte[]) geometry);
         BigInteger returnNumber = new BigInteger(returnGeometry, 16);
         BigInteger geometryNumber = new BigInteger(tmpGeometryBinary, 16);
         assertEquals(geometryNumber, returnNumber);

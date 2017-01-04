@@ -65,7 +65,7 @@ public enum DefaultOptions {
      */
     PASSWORD("password", "1.0.0"),
 
-    CONNECT_TIMEOUT("connectTimeout", (Integer) null, new Integer(0), Integer.MAX_VALUE, "1.1.8"),
+    CONNECT_TIMEOUT("connectTimeout", (Integer) null, 0, Integer.MAX_VALUE, "1.1.8"),
 
     /**
      * On Windows, specify named pipe name to connect to mysqld.exe.
@@ -102,7 +102,7 @@ public enum DefaultOptions {
      * Defined the network socket timeout (SO_TIMEOUT) in milliseconds.
      * 0 (default) disable this timeout
      */
-    SOCKET_TIMEOUT("socketTimeout", new Integer[]{10000, null, null, null, null, null}, new Integer(0), Integer.MAX_VALUE, "1.1.8"),
+    SOCKET_TIMEOUT("socketTimeout", new Integer[]{10000, null, null, null, null, null}, 0, Integer.MAX_VALUE, "1.1.8"),
 
     /**
      * Session timeout is defined by the wait_timeout server variable.
@@ -187,12 +187,12 @@ public enum DefaultOptions {
     /**
      * set buffer size for TCP buffer (SO_RCVBUF).
      */
-    TCP_RCV_BUF("tcpRcvBuf", (Integer) null, new Integer(0), Integer.MAX_VALUE, "1.0.0"),
+    TCP_RCV_BUF("tcpRcvBuf", (Integer) null, 0, Integer.MAX_VALUE, "1.0.0"),
 
     /**
      * set buffer size for TCP buffer (SO_SNDBUF).
      */
-    TCP_SND_BUF("tcpSndBuf", (Integer) null, new Integer(0), Integer.MAX_VALUE, "1.0.0"),
+    TCP_SND_BUF("tcpSndBuf", (Integer) null, 0, Integer.MAX_VALUE, "1.0.0"),
 
     /**
      * to use custom socket factory, set it to full name of the class that implements javax.net.SocketFactory.
@@ -232,26 +232,26 @@ public enum DefaultOptions {
      * When using loadbalancing, the number of times the driver should cycle through available hosts, attempting to connect.
      * Between cycles, the driver will pause for 250ms if no servers are available.
      */
-    RETRY_ALL_DOWN("retriesAllDown", new Integer(120), new Integer(0), Integer.MAX_VALUE, "1.2.0"),
+    RETRY_ALL_DOWN("retriesAllDown", 120, 0, Integer.MAX_VALUE, "1.2.0"),
 
     /**
      * When using failover, the number of times the driver should cycle silently through available hosts, attempting to connect.
      * Between cycles, the driver will pause for 250ms if no servers are available.
      * if set to 0, there will be no silent reconnection
      */
-    FAILOVER_LOOP_RETRIES("failoverLoopRetries", new Integer(120), new Integer(0), Integer.MAX_VALUE, "1.2.0"),
+    FAILOVER_LOOP_RETRIES("failoverLoopRetries", 120, 0, Integer.MAX_VALUE, "1.2.0"),
 
 
     /**
      * When in multiple hosts, after this time in second without used, verification that the connections havn't been lost.
      * When 0, no verification will be done. Defaults to 120
      */
-    VALID_CONNECTION_TIMEOUT("validConnectionTimeout", new Integer(120), new Integer(0), Integer.MAX_VALUE, "1.2.0"),
+    VALID_CONNECTION_TIMEOUT("validConnectionTimeout", 120, 0, Integer.MAX_VALUE, "1.2.0"),
 
     /**
      * time in second a server is blacklisted after a connection failure.  default to 50s
      */
-    LOAD_BALANCE_BLACKLIST_TIMEOUT("loadBalanceBlacklistTimeout", new Integer(50), new Integer(0), Integer.MAX_VALUE, "1.2.0"),
+    LOAD_BALANCE_BLACKLIST_TIMEOUT("loadBalanceBlacklistTimeout", 50, 0, Integer.MAX_VALUE, "1.2.0"),
 
     /**
      * enable/disable prepare Statement cache, default true.
@@ -262,13 +262,13 @@ public enum DefaultOptions {
      * This sets the number of prepared statements that the driver will cache per VM if "cachePrepStmts" is enabled.
      * default to 250.
      */
-    PREPSTMTCACHESIZE("prepStmtCacheSize", new Integer(250), new Integer(0), Integer.MAX_VALUE, "1.3.0"),
+    PREPSTMTCACHESIZE("prepStmtCacheSize", 250, 0, Integer.MAX_VALUE, "1.3.0"),
 
     /**
      * This is the maximum length of a prepared SQL statement that the driver will cache  if "cachePrepStmts" is enabled.
      * default to 2048.
      */
-    PREPSTMTCACHESQLLIMIT("prepStmtCacheSqlLimit", new Integer(2048), new Integer(0), Integer.MAX_VALUE, "1.3.0"),
+    PREPSTMTCACHESQLLIMIT("prepStmtCacheSqlLimit", 2048, 0, Integer.MAX_VALUE, "1.3.0"),
 
     /**
      * when in high availalability, and switching to a read-only host, assure that this host is in read-only mode by
@@ -367,7 +367,7 @@ public enum DefaultOptions {
      * This sets the number of callable statements that the driver will cache per VM if "cacheCallableStmts" is enabled.
      * default to 150.
      */
-    CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", new Integer(150), new Integer(0), Integer.MAX_VALUE, "1.4.0"),
+    CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", 150, 0, Integer.MAX_VALUE, "1.4.0"),
 
     /**
      * Indicate to server some client information in a key;value pair.
@@ -387,7 +387,7 @@ public enum DefaultOptions {
      * When using useBatchMultiSend, indicate maximum query that can be send at a time.
      * default to 100
      */
-    USE_BATCH_MULTI_SEND_NUMBER("useBatchMultiSendNumber", new Integer(100), new Integer(1), Integer.MAX_VALUE, "1.5.0"),
+    USE_BATCH_MULTI_SEND_NUMBER("useBatchMultiSendNumber", 100, 1, Integer.MAX_VALUE, "1.5.0"),
 
     /**
      * Enable log information. require Slf4j version &gt; 1.4 dependency.
@@ -407,13 +407,13 @@ public enum DefaultOptions {
      * Max query log size.
      * default to 1024.
      */
-    MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", new Integer(1024), new Integer(0), Integer.MAX_VALUE, "1.5.0"),
+    MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", 1024, 0, Integer.MAX_VALUE, "1.5.0"),
 
     /**
      * Will log query with execution time superior to this value (if defined )
      * default to null.
      */
-    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, new Long(0), Long.MAX_VALUE, "1.5.0");
+    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, 0L, Long.MAX_VALUE, "1.5.0");
 
 
     protected final String name;
