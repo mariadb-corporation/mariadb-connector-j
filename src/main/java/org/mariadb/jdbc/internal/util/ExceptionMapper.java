@@ -53,7 +53,12 @@ import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.logging.Logger;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.ReflectPermission;
+import java.security.Permission;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLTimeoutException;
 import java.sql.SQLWarning;
 
@@ -158,12 +163,19 @@ public class ExceptionMapper {
                 if (timeout && "70100".equals(sqlState)) {
                     return new SQLTimeoutException(message, sqlState, exception.getErrorCode(), exception);
                 }
+                if (exception instanceof SQLNonTransientConnectionException) {
+                    return new SQLNonTransientConnectionException(message, exception.getSQLState(), exception.getErrorCode(), exception);
+                }
                 return new java.sql.SQLTransientException(message, sqlState, exception.getErrorCode(), exception);
             case TIMEOUT_EXCEPTION:
                 return new SQLTimeoutException(message, sqlState, exception.getErrorCode(), exception);
+            case UNDEFINED_SQLSTATE:
+                if (exception instanceof SQLNonTransientConnectionException) {
+                    return new SQLNonTransientConnectionException(message, exception.getSQLState(), exception.getErrorCode(), exception);
+                }
             default:
                 // DISTRIBUTED_TRANSACTION_ERROR,
-                return new SQLException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLException(message, exception.getSQLState(), exception.getErrorCode(), exception);
         }
     }
 
@@ -461,5 +473,6 @@ public class ExceptionMapper {
                 return null;
         }
     }
+
 
 }

@@ -26,6 +26,16 @@ When query ended before timeout, the scheduled task will be canceled.
 
 If server is > 10.1.2, query timeout will be handle server side using "SET MAX_STATEMENT_TIME FOR" command.
 
+[CONJ-402]\\
+
+tcpKeepAlive option now default to true.
+
+Usually pool will ensure that connection is still valid.
+Since the process doesn't start until a connection has been idle for two hours (this time is OS dependant),
+TCP keep alive after this time will ensure that socket is still OK..
+
+
+
 == 1.5.6
 * CONJ-399 : resultSet getLong() for BIGINT column fails if value is Long.MIN_VALUE in Text protocol
 * CONJ-395 : Aurora does not randomise selection of read replicas

@@ -135,8 +135,8 @@ public class BufferTest extends BaseTest {
             sendByteBufferData(false, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
+                    sqlexception.getCause().getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -147,8 +147,8 @@ public class BufferTest extends BaseTest {
             sendByteBufferData(true, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
+                    sqlexception.getCause().getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -159,8 +159,8 @@ public class BufferTest extends BaseTest {
             sendByteBufferData(false, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
+                    sqlexception.getCause().getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -171,8 +171,9 @@ public class BufferTest extends BaseTest {
             sendByteBufferData(true, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
+            sqlexception.printStackTrace();
+            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
+                    sqlexception.getCause().getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 

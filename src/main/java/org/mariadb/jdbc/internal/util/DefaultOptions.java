@@ -181,8 +181,9 @@ public enum DefaultOptions {
 
     /**
      * Sets corresponding option on the connection socket.
+     * Defaults to true since 1.6.0 (false before)
      */
-    TCP_KEEP_ALIVE("tcpKeepAlive", Boolean.FALSE, "1.0.0"),
+    TCP_KEEP_ALIVE("tcpKeepAlive", Boolean.TRUE, "1.0.0"),
 
     /**
      * set buffer size for TCP buffer (SO_RCVBUF).

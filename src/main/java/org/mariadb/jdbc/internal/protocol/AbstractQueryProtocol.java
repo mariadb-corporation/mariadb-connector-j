@@ -136,7 +136,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throw addQueryInfo(sql, sqlException);
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) connect();
-            throw new SQLNonTransientConnectionException("Could not send query: " + e.getMessage(), INTERRUPTED_EXCEPTION.getSqlState(), e);
+            throw new SQLNonTransientConnectionException("Could not send query: " + e.getMessage(), UNDEFINED_SQLSTATE.getSqlState(), e);
         } catch (IOException e) {
             throw new SQLNonTransientConnectionException("Could not send query: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
         }
@@ -175,7 +175,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throw throwErrorWithQuery(parameters, queryException, clientPrepareResult);
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) connect();
-            throw new SQLNonTransientConnectionException("Could not execute query", INTERRUPTED_EXCEPTION.getSqlState(), e);
+            throw new SQLNonTransientConnectionException("Could not execute query", UNDEFINED_SQLSTATE.getSqlState(), e);
         } catch (IOException e) {
             throw new SQLNonTransientConnectionException("Could not execute query", CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
@@ -341,7 +341,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throw addQueryInfo(sql, queryException);
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) connect();
-            throw new SQLNonTransientConnectionException("Could not execute query \"" + sql + "\"", INTERRUPTED_EXCEPTION.getSqlState(), e);
+            throw new SQLNonTransientConnectionException("Could not execute query \"" + sql + "\"", UNDEFINED_SQLSTATE.getSqlState(), e);
         } catch (IOException e) {
             throw new SQLNonTransientConnectionException("Could not prepare query \"" + sql + "\"", CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
@@ -389,7 +389,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 if (exception == null) exception = queryException;
             } catch (MaxAllowedPacketException e) {
                 if (e.isMustReconnect()) connect();
-                throw new SQLNonTransientConnectionException("Could not execute query", INTERRUPTED_EXCEPTION.getSqlState(), e);
+                throw new SQLNonTransientConnectionException("Could not execute query", UNDEFINED_SQLSTATE.getSqlState(), e);
             } catch (IOException e) {
                 throw new SQLNonTransientConnectionException("Could not execute query", CONNECTION_EXCEPTION.getSqlState(), e);
             } finally {
@@ -435,7 +435,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throwErrorWithQuery(writer.buffer, sqlEx);
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) connect();
-            throw new SQLNonTransientConnectionException("Could not execute query", INTERRUPTED_EXCEPTION.getSqlState(), e);
+            throw new SQLNonTransientConnectionException("Could not execute query", UNDEFINED_SQLSTATE.getSqlState(), e);
         } catch (IOException e) {
             throw new SQLNonTransientConnectionException("Could not execute query", CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
@@ -583,7 +583,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throw throwErrorWithQuery(parameters, qex, serverPrepareResult);
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) connect();
-            throw new SQLNonTransientConnectionException("Could not execute query", INTERRUPTED_EXCEPTION.getSqlState(), e);
+            throw new SQLNonTransientConnectionException("Could not execute query", UNDEFINED_SQLSTATE.getSqlState(), e);
         } catch (IOException e) {
             throw new SQLNonTransientConnectionException("Could not execute query", CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
@@ -630,7 +630,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throw throwErrorWithQuery(parameters, qex, serverPrepareResult);
         } catch (MaxAllowedPacketException e) {
             if (e.isMustReconnect()) connect();
-            throw new SQLNonTransientConnectionException("Could not execute query", INTERRUPTED_EXCEPTION.getSqlState(), e);
+            throw new SQLNonTransientConnectionException("Could not execute query", UNDEFINED_SQLSTATE.getSqlState(), e);
         } catch (IOException e) {
             throw new SQLNonTransientConnectionException("Could not execute query", CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
@@ -1212,7 +1212,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
             } catch (IOException ee) {
             }
-            throw new SQLNonTransientConnectionException("Could not send query: " + e.getMessage(), INTERRUPTED_EXCEPTION.getSqlState(), e);
+            throw new SQLNonTransientConnectionException("Could not send query: " + e.getMessage(), UNDEFINED_SQLSTATE.getSqlState(), e);
         } catch (IOException e) {
             try {
                 if (writer != null) {
