@@ -101,9 +101,6 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
 
     protected MariaSelectResultSet getResult() throws SQLException {
         if (outputResultSet == null) {
-            if (!hasOutParameters) {
-                throw new SQLException("No output result. registerOutParameter() must be call before executing command  !");
-            }
             throw new SQLException("No output result.");
         }
         return outputResultSet;
@@ -134,7 +131,7 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
         validAllParameters();
         connection.lock.lock();
         try {
-            super.executeInternal(0, hasOutParameters);
+            super.executeInternal(0);
             retrieveOutputResult();
             return getUpdateCount();
         } finally {
@@ -143,15 +140,10 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
     }
 
     private void retrieveOutputResult() throws SQLException {
-
-        if (hasOutParameters) {
-            //resultSet will be just before last packet
-            outputResultSet = results.getCallableResultSet();
-            if (outputResultSet != null) {
-                outputResultSet.next();
-            }
-        } else {
-            outputResultSet = null;
+        //resultSet will be just before last packet
+        outputResultSet = results.getCallableResultSet();
+        if (outputResultSet != null) {
+            outputResultSet.next();
         }
     }
 
@@ -165,7 +157,7 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
         connection.lock.lock();
         try {
             validAllParameters();
-            super.executeInternal(0, hasOutParameters);
+            super.executeInternal(0);
             retrieveOutputResult();
             return results != null && results.getResultSet() != null;
         } finally {

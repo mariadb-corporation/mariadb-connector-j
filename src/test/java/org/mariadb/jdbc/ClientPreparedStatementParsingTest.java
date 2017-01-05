@@ -293,7 +293,7 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
                 preparedStatement.executeBatch();
                 fail("must have thrown error since parameters are not good");
             } catch (SQLException e) {
-                assertTrue(e.getMessage().contains("Query is : INSERT INTO errorTable (a, b) VALUES ('1', '2', '3')"));
+                assertTrue(e.getCause().getCause().getMessage().contains("Query is : INSERT INTO errorTable (a, b) VALUES ('1', '2', '3')"));
             }
         }
     }

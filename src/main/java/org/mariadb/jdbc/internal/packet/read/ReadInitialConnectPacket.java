@@ -54,10 +54,10 @@ import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 
 
 public class ReadInitialConnectPacket {
@@ -81,13 +81,13 @@ public class ReadInitialConnectPacket {
      *
      * @param packetFetcher packetFetcher
      * @throws IOException    if a connection error occur
-     * @throws QueryException if received an error packet
+     * @throws SQLException if received an error packet
      */
-    public ReadInitialConnectPacket(final ReadPacketFetcher packetFetcher) throws IOException, QueryException {
+    public ReadInitialConnectPacket(final ReadPacketFetcher packetFetcher) throws IOException, SQLException {
         Buffer buffer = packetFetcher.getReusableBuffer();
         if (buffer.getByteAt(0) == Packet.ERROR) {
             ErrorPacket errorPacket = new ErrorPacket(buffer);
-            throw new QueryException(errorPacket.getMessage());
+            throw new SQLException(errorPacket.getMessage());
         }
 
         protocolVersion = buffer.readByte();

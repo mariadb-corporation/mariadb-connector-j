@@ -53,7 +53,6 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.sql.*;
 import java.util.Properties;
@@ -105,7 +104,7 @@ public final class Driver implements java.sql.Driver {
                 return MariaDbConnection.newConnection(protocol, lock);
             }
 
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             ExceptionMapper.throwException(e, null, null);
             return null;
         }

@@ -868,7 +868,7 @@ public class DriverTest extends BaseTest {
             Statement st = sharedConnection.createStatement();
             st.execute(syntacticallyWrongQuery);
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("Query is : " + syntacticallyWrongQuery));
+            assertTrue(sqle.getCause().getMessage().contains("Query is : " + syntacticallyWrongQuery));
         }
     }
 
@@ -881,7 +881,7 @@ public class DriverTest extends BaseTest {
                 Statement st = connection.createStatement();
                 st.execute(selectFromNonExistingTable);
             } catch (SQLException sqle) {
-                assertTrue(sqle.getMessage().contains("Query is : " + selectFromNonExistingTable));
+                assertTrue(sqle.getCause().getMessage().contains("Query is : " + selectFromNonExistingTable));
             }
         }
     }

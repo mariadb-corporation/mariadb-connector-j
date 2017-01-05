@@ -4,8 +4,8 @@ import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.Results;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -70,7 +70,7 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
         if (readPrepareStmtResult) {
             try {
                 asyncMultiReadResult.setPrepareResult(comStmtPrepare.read(protocol.getPacketFetcher()));
-            } catch (QueryException queryException) {
+            } catch (SQLException queryException) {
                 asyncMultiReadResult.setException(queryException);
             }
         }
@@ -79,7 +79,7 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
         for (int counter = 0; counter < nbResult; counter++) {
             try {
                 protocol.getResult(results);
-            } catch (QueryException qex) {
+            } catch (SQLException qex) {
                 if (asyncMultiReadResult.getException() == null) {
                     asyncMultiReadResult.setException(bulkSend.handleResultException(qex, results,
                             parametersList, queries, counter, sendCmdCounter, paramCount,

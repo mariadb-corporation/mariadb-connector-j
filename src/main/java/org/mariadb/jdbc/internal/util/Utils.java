@@ -62,7 +62,6 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.socket.NamedPipeSocket;
 import org.mariadb.jdbc.internal.socket.SharedMemorySocket;
 import org.mariadb.jdbc.internal.socket.UnixDomainSocket;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import javax.net.SocketFactory;
 import java.io.IOException;
@@ -444,10 +443,9 @@ public class Utils {
      * @param urlParser urlParser corresponding to connection url string.
      * @param lock      lock to handle thread synchronisation
      * @return protocol
-     * @throws QueryException if any error occur during connection
      * @throws SQLException   if any error occur during connection
      */
-    public static Protocol retrieveProxy(final UrlParser urlParser, final ReentrantLock lock) throws QueryException, SQLException {
+    public static Protocol retrieveProxy(final UrlParser urlParser, final ReentrantLock lock) throws SQLException {
         Protocol protocol;
         switch (urlParser.getHaMode()) {
             case AURORA:

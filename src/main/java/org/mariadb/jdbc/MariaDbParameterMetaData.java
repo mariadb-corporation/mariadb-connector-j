@@ -76,7 +76,7 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
             return parametersInformation[param - 1];
         }
         throw new SQLException("Parameter metadata out of range : param was " + param + " and must be 1 <= param <=" + parametersInformation.length,
-                "22003");
+                "07009");
     }
 
     @Override

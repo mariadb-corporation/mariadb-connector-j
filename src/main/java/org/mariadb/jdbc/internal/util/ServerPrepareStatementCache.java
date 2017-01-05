@@ -50,9 +50,9 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.util;
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
+import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -87,7 +87,7 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
             if (serverPrepareResult.canBeDeallocate()) {
                 try {
                     protocol.forceReleasePrepareStatement(serverPrepareResult.getStatementId());
-                } catch (QueryException e) {
+                } catch (SQLException e) {
                     //eat exception
                 }
             }

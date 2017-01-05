@@ -68,7 +68,6 @@ import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -132,11 +131,11 @@ public class MariaSelectResultSet implements ResultSet {
      * @param fetcher             stream fetcher
      * @param callableResult      is it from a callableStatement ?
      * @throws IOException if any connection error occur
-     * @throws QueryException if any connection error occur
+     * @throws SQLException if any connection error occur
      */
     public MariaSelectResultSet(ColumnInformation[] columnInformation, Results results, Protocol protocol,
                                 ReadPacketFetcher fetcher, boolean callableResult)
-            throws IOException, QueryException {
+            throws IOException, SQLException {
 
         this.statement = results.getStatement();
         this.isClosed = false;
@@ -318,7 +317,7 @@ public class MariaSelectResultSet implements ResultSet {
                 TYPE_SCROLL_SENSITIVE);
     }
 
-    private void fetchAllResults() throws IOException, QueryException {
+    private void fetchAllResults() throws IOException, SQLException {
 
         final List<byte[][]> valueObjects = new ArrayList<>();
         while (readNextValue(valueObjects)) {
@@ -351,9 +350,10 @@ public class MariaSelectResultSet implements ResultSet {
                 }
 
             } catch (IOException ioexception) {
-                throw new QueryException("Could not close resultset : " + ioexception.getMessage(), -1, CONNECTION_EXCEPTION, ioexception);
+                throw new SQLException("Could not close resultSet : " + ioexception.getMessage(),
+                        CONNECTION_EXCEPTION.getSqlState(), ioexception);
             }
-        } catch (QueryException queryException) {
+        } catch (SQLException queryException) {
             ExceptionMapper.throwException(queryException, null, this.statement);
         }
 
@@ -361,7 +361,7 @@ public class MariaSelectResultSet implements ResultSet {
         streaming = false;
     }
 
-    private void nextStreamingValue() throws IOException, QueryException {
+    private void nextStreamingValue() throws IOException, SQLException {
 
         resultSet.clear();
         //fetch maximum fetchSize results
@@ -379,9 +379,9 @@ public class MariaSelectResultSet implements ResultSet {
      * @param values values
      * @return true if have a new value
      * @throws IOException    exception
-     * @throws QueryException exception
+     * @throws SQLException exception
      */
-    public boolean readNextValue(List<byte[][]> values) throws IOException, QueryException {
+    public boolean readNextValue(List<byte[][]> values) throws IOException, SQLException {
         int length = inputStream.readHeader();
         if (length < 0x00ffffff) {
             //There is only one packet.
@@ -405,10 +405,10 @@ public class MariaSelectResultSet implements ResultSet {
                 packetFetcher = null;
                 inputStream = null;
                 if (statement != null) {
-                    throw new QueryException("(conn:" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
-                            errorPacket.getErrorNumber(), errorPacket.getSqlState());
+                    throw new SQLException("(conn:" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
+                            errorPacket.getSqlState(), errorPacket.getErrorNumber());
                 } else {
-                    throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
+                    throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorNumber());
                 }
             }
 
@@ -451,10 +451,10 @@ public class MariaSelectResultSet implements ResultSet {
             packetFetcher = null;
             inputStream = null;
             if (statement != null) {
-                throw new QueryException("(conn:" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
-                        errorPacket.getErrorNumber(), errorPacket.getSqlState());
+                throw new SQLException("(conn:" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
+                        errorPacket.getSqlState(), errorPacket.getErrorNumber());
             } else {
-                throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
+                throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorNumber());
             }
         }
 
@@ -493,7 +493,7 @@ public class MariaSelectResultSet implements ResultSet {
                         protocol.removeActiveStreamingResult();
                         protocol.setMoreResults(false);
                         ErrorPacket errorPacket = new ErrorPacket(buffer);
-                        throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
+                        throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorNumber());
                     }
 
                     //is EOF stream
@@ -510,9 +510,10 @@ public class MariaSelectResultSet implements ResultSet {
                 }
 
             } catch (IOException ioexception) {
-                ExceptionMapper.throwException(new QueryException(
-                        "Could not close resultSet : " + ioexception.getMessage(), -1, CONNECTION_EXCEPTION, ioexception), null, this.statement);
-            } catch (QueryException queryException) {
+                ExceptionMapper.throwException(new SQLException(
+                        "Could not close resultSet : " + ioexception.getMessage(),
+                        CONNECTION_EXCEPTION.getSqlState(), ioexception), null, this.statement);
+            } catch (SQLException queryException) {
                 ExceptionMapper.throwException(queryException, null, this.statement);
             } finally {
                 protocol = null;
@@ -557,8 +558,6 @@ public class MariaSelectResultSet implements ResultSet {
                                 + " read off the result set relatively fast. "
                                 + "In this case, please consider increasing net_wait_timeout session variable."
                                 + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
-                    } catch (QueryException queryException) {
-                        throw new SQLException(queryException);
                     } finally {
                         lock.unlock();
                     }
@@ -591,7 +590,7 @@ public class MariaSelectResultSet implements ResultSet {
 
     private void throwError(String message, ExceptionCode exceptionCode) throws SQLException {
         if (statement != null) {
-            ExceptionMapper.throwException(new QueryException(message, ExceptionCode.INVALID_PARAMETER_VALUE),
+            ExceptionMapper.throwException(new SQLException(message, ExceptionCode.INVALID_PARAMETER_VALUE.sqlState),
                     (MariaDbConnection) this.statement.getConnection(), this.statement);
         } else {
             throw new SQLException(message, exceptionCode.sqlState);
@@ -643,8 +642,6 @@ public class MariaSelectResultSet implements ResultSet {
                 nextStreamingValue();
             } catch (IOException ioe) {
                 throw new SQLException(ioe);
-            } catch (QueryException queryException) {
-                throw new SQLException(queryException);
             } finally {
                 lock.unlock();
             }
@@ -775,8 +772,6 @@ public class MariaSelectResultSet implements ResultSet {
                 }
             } catch (IOException ioException) {
                 throw new SQLException(ioException);
-            } catch (QueryException queryException) {
-                throw new SQLException(queryException);
             }
 
             dataFetchTime++;

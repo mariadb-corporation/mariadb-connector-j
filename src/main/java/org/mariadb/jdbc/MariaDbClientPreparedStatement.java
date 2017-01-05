@@ -56,7 +56,6 @@ import org.mariadb.jdbc.internal.queryresults.*;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.sql.*;
 import java.util.*;
@@ -202,8 +201,6 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
 
 
     protected boolean executeInternal() throws SQLException {
-        executing = true;
-        QueryException exception = null;
 
         //valid parameters
         for (int i = 0; i < prepareResult.getParamCount(); i++) {
@@ -217,21 +214,20 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
 
         lock.lock();
         try {
-            executeQueryProlog();
-            batchResultSet = null;
-            Results internalResult = new Results(this, getFetchSize(), false, 1, false, resultSetScrollType);
-            protocol.executeQuery(protocol.isMasterConnection(), internalResult, prepareResult, parameters);
-            internalResult.commandEnd();
-            results = internalResult;
+
+            executeQueryPrologue();
+            results = new Results(this, getFetchSize(), false, 1, false, resultSetScrollType);
+            protocol.executeQuery(protocol.isMasterConnection(), results, prepareResult, parameters);
+            results.commandEnd();
             return results.getResultSet() != null;
-        } catch (QueryException e) {
-            exception = e;
-            return false;
+
+        } catch (SQLException exception) {
+            throw executeExceptionEpilogue(exception);
         } finally {
+            executeEpilogue();
             lock.unlock();
-            executeQueryEpilog(exception);
-            executing = false;
         }
+
     }
 
     /**
@@ -286,44 +282,29 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
         int size = parameterList.size();
         if (size == 0) return new int[0];
 
-        Results internalResults;
-        if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
-            internalResults = new ResultsRewrite(this, 0, true, size, false, resultSetScrollType);
-        } else {
-            internalResults = new Results(this, 0, true, size, false, resultSetScrollType);
-        }
         lock.lock();
         try {
-            QueryException exception = null;
-            executeQueryProlog();
-            try {
-                executeInternalBatch(internalResults, size);
-            } catch (QueryException e) {
-                exception = e;
-            } finally {
-                if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
-                    ((ResultsRewrite) internalResults).setAutoIncrement(connection.getAutoIncrementIncrement());
-                }
-                internalResults.commandEnd();
-                results = internalResults;
-                executing = false;
-                executeQueryEpilog(exception);
+
+            executeQueryPrologue();
+
+            if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
+                results = new ResultsRewrite(this, 0, true, size, false, resultSetScrollType);
+            } else {
+                results = new Results(this, 0, true, size, false, resultSetScrollType);
             }
 
+            executeInternalBatch(results, size);
+
+            results.commandEnd();
+            return results.getCmdInformation().getUpdateCounts();
+
         } catch (SQLException sqle) {
-
-            int[] ret;
-            if (internalResults.getCmdInformation() == null) {
-                ret = new int[size];
-                Arrays.fill(ret, Statement.EXECUTE_FAILED);
-            } else ret = internalResults.getCmdInformation().getUpdateCounts();
-            throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), ret, sqle);
-
+            throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size);
         } finally {
+            executeBatchEpilogue();
             lock.unlock();
-            clearBatch();
         }
-        return results.getCmdInformation().getUpdateCounts();
+
     }
 
     /**
@@ -331,9 +312,9 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
      *
      * @param results                 results
      * @param size                    parameters number
-     * @throws QueryException if any error occur
+     * @throws SQLException if any error occur
      */
-    private void executeInternalBatch(Results results, int size) throws QueryException {
+    private void executeInternalBatch(Results results, int size) throws SQLException {
 
         if (options.rewriteBatchedStatements) {
             if (prepareResult.isQueryMultiValuesRewritable()) {
@@ -356,13 +337,13 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
             protocol.executeBatchMulti(protocol.isMasterConnection(), results, prepareResult, parameterList);
         } else {
             //send query one by one, reading results for each query before sending another one
-            QueryException exception = null;
+            SQLException exception = null;
             for (int batchQueriesCount = 0; batchQueriesCount < size; batchQueriesCount++) {
                 try {
 
                     protocol.executeQuery(protocol.isMasterConnection(), results, prepareResult, parameterList.get(batchQueriesCount));
 
-                } catch (QueryException e) {
+                } catch (SQLException e) {
                     if (options.continueBatchOnError) {
                         exception = e;
                     } else {

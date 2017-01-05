@@ -55,7 +55,6 @@ import org.mariadb.jdbc.internal.util.DefaultOptions;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import javax.sql.*;
 import java.io.PrintWriter;
@@ -256,7 +255,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
             ReentrantLock lock = new ReentrantLock();
             Protocol proxyfiedProtocol = Utils.retrieveProxy(urlParser, lock);
             return MariaDbConnection.newConnection(proxyfiedProtocol, lock);
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             ExceptionMapper.throwException(e, null, null);
             return null;
         }

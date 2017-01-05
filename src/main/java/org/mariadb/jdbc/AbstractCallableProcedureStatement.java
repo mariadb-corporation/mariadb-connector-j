@@ -72,7 +72,6 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
     protected int[] outputParameterMapper = null;
     protected CallableParameterMetaData parameterMetadata;
     protected boolean hasInOutParameters;
-    protected boolean hasOutParameters;
 
     /**
      * Constructor for getter/setter of callableStatement.
@@ -106,11 +105,9 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
      */
     public void setParametersVariables() {
         hasInOutParameters = false;
-        hasOutParameters = false;
         for (CallParameter param : params) {
             if (param != null) {
                 if (param.isOutput) {
-                    hasOutParameters = true;
                     if (param.isInput) {
                         hasInOutParameters = true;
                         break;
@@ -593,7 +590,6 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
         callParameter.isOutput = true;
         callParameter.outputSqlType = sqlType;
         callParameter.scale = scale;
-        hasOutParameters = true;
     }
 
     @Override
@@ -614,7 +610,7 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
 
     CallParameter getParameter(int index) throws SQLException {
         if (index > params.size() || index <= 0) {
-            throw new SQLException("No parameter with index " + (index));
+            throw new SQLException("No parameter with index " + index);
         }
         return params.get(index - 1);
     }

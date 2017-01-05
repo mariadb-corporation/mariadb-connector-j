@@ -52,9 +52,9 @@ package org.mariadb.jdbc.internal.packet;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 
 public class ComExecute {
@@ -274,9 +274,9 @@ public class ComExecute {
      * @param writer   output stream
      * @param sqlBytes the query in UTF-8 bytes
      * @throws IOException    if connection error occur
-     * @throws QueryException if packet max size is to big.
+     * @throws SQLException if packet max size is to big.
      */
-    public static void sendDirect(final PacketOutputStream writer, byte[] sqlBytes) throws IOException, QueryException {
+    public static void sendDirect(final PacketOutputStream writer, byte[] sqlBytes) throws IOException, SQLException {
         writer.sendDirect(sqlBytes, 0, sqlBytes.length, Packet.COM_QUERY);
     }
 

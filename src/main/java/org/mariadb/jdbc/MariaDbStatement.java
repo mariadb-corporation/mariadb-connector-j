@@ -58,7 +58,6 @@ import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.IOException;
@@ -88,12 +87,11 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     protected MariaDbConnection connection;
     protected Future<?> timerTaskFuture;
-    protected ResultSet batchResultSet = null;
     protected volatile boolean closed = false;
     protected List<String> batchQueries;
     protected int queryTimeout;
     protected int maxRows;
-    protected Results results = null;
+    protected Results results;
     protected int resultSetScrollType;
     protected boolean mustCloseOnCompletion = false;
     protected Options options;
@@ -112,6 +110,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      */
     public MariaDbStatement(MariaDbConnection connection, int resultSetScrollType) {
+        this.results = new Results(this);
         this.protocol = connection.getProtocol();
         this.connection = connection;
         this.canUseServerTimeout = connection.canUseServerTimeout();
@@ -139,7 +138,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         clone.protocol = protocol;
         clone.timerTaskFuture = null;
         clone.batchQueries = new ArrayList<>();
-        clone.results = null;
+        clone.results = new Results(clone);
         clone.closed = false;
         clone.warningsCleared = true;
         clone.fetchSize = 0;
@@ -172,11 +171,12 @@ public class MariaDbStatement implements Statement, Cloneable {
         }, queryTimeout, TimeUnit.SECONDS);
     }
 
-    protected void executeQueryProlog() throws SQLException {
+    protected void executeQueryPrologue() throws SQLException {
+        executing = true;
         if (closed) {
             throw new SQLException("execute() is called on closed statement");
         }
-        protocol.prolog(results, maxRows, protocol.getProxy() != null, connection, this);
+        protocol.prolog(maxRows, protocol.getProxy() != null, connection, this);
         if (queryTimeout != 0 && !canUseServerTimeout) {
             setTimerTask();
         }
@@ -205,28 +205,71 @@ public class MariaDbStatement implements Statement, Cloneable {
     /**
      * Reset timeout after query, re-throw SQL exception
      *
-     * @param queryException exception if exist
-     * @throws SQLException exception with new message in case of timer timeout.
+     * @param sqle current exception
+     * @return SQLException exception with new message in case of timer timeout.
      */
-    protected void executeQueryEpilog(QueryException queryException) throws SQLException {
-        stopTimeoutTask();
+    protected SQLException executeExceptionEpilogue(SQLException sqle) {
+        //if has a failover, closing the statement
+        if (sqle.getSQLState() != null && sqle.getSQLState().startsWith("08")) {
+            try {
+                close();
+            } catch (SQLException sqlee) {
+                //eat exception
+            }
+        }
 
         if (isTimedout) {
-            isTimedout = false;
-            queryException = new QueryException("Query timed out", 1317, "JZ0002", queryException);
+            return new SQLTimeoutException("(conn:" + getServerThreadId() + ") Query timed out", "JZ0002", 1317, sqle);
         }
+        SQLException sqlException = ExceptionMapper.getException(sqle, connection, this, queryTimeout != 0);
+        logger.error("error executing query", sqlException);
+        return sqlException;
+    }
 
-        if (queryException == null) {
-            return;
-        }
+    protected void executeEpilogue() {
+        stopTimeoutTask();
+        isTimedout = false;
+        executing = false;
+    }
+
+
+
+
+    protected void executeBatchEpilogue() {
+        executing = false;
+        stopTimeoutTask();
+        isTimedout = false;
+        clearBatch();
+    }
+
+    protected BatchUpdateException executeBatchExceptionEpilogue(SQLException sqle, CmdInformation cmdInformation, int size) {
 
         //if has a failover, closing the statement
-        if (queryException.getSqlState() != null && queryException.getSqlState().startsWith("08")) {
-            close();
+        if (sqle.getSQLState() != null && sqle.getSQLState().startsWith("08")) {
+            try {
+                close();
+            } catch (SQLException sqlee) {
+                //eat exception
+            }
         }
 
-        ExceptionMapper.throwAndLogException(queryException, connection, this, logger, queryTimeout != 0);
+        if (isTimedout) {
+            sqle = new SQLTimeoutException("(conn:" + getServerThreadId() + ") Query timed out", "JZ0002", 1317, sqle);
+        }
+
+        int[] ret;
+        if (cmdInformation == null) {
+            ret = new int[size];
+            Arrays.fill(ret, Statement.EXECUTE_FAILED);
+        } else ret = cmdInformation.getUpdateCounts();
+
+        sqle = ExceptionMapper.getException(sqle, connection, this, queryTimeout != 0);
+        logger.error("error executing query", sqle);
+
+        return new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), ret, sqle);
     }
+
+
 
     /**
      * executes a query.
@@ -237,26 +280,24 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException the error description
      */
     protected boolean executeInternal(String sql, int fetchSize) throws SQLException {
-        executing = true;
-        QueryException exception = null;
+
         lock.lock();
         try {
-            executeQueryProlog();
-            batchResultSet = null;
-            Results internalResults = new Results(this, fetchSize, false, 1, false, resultSetScrollType);
-            protocol.executeQuery(protocol.isMasterConnection(), internalResults,
+
+            executeQueryPrologue();
+            results.reset(fetchSize, false, 1, false, resultSetScrollType);
+            protocol.executeQuery(protocol.isMasterConnection(), results,
                     getTimeoutSql(Utils.nativeSql(sql, connection.noBackslashEscapes)));
-            internalResults.commandEnd();
-            results = internalResults;
+            results.commandEnd();
             return results.getResultSet() != null;
-        } catch (QueryException e) {
-            exception = e;
-            return false;
+
+        } catch (SQLException exception) {
+            throw executeExceptionEpilogue(exception);
         } finally {
+            executeEpilogue();
             lock.unlock();
-            executeQueryEpilog(exception);
-            executing = false;
         }
+
     }
 
     private String getTimeoutSql(String sql) {
@@ -513,12 +554,11 @@ public class MariaDbStatement implements Statement, Cloneable {
         try {
             closed = true;
 
-            if (results != null) {
-                if (results.getFetchSize() != 0) skipMoreResults();
-                results = null;
-            }
+            if (results.getFetchSize() != 0 && closed) skipMoreResults();
 
+            results.close();
             protocol = null;
+
             if (connection == null || connection.pooledConnection == null
                     || connection.pooledConnection.statementEventListeners.isEmpty()) {
                 return;
@@ -652,7 +692,7 @@ public class MariaDbStatement implements Statement, Cloneable {
                 return;
             }
             protocol.cancelCurrentQuery();
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             logger.error("error cancelling query", e);
             ExceptionMapper.throwException(e, connection, this);
         } catch (IOException e) {
@@ -726,7 +766,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
-        if (results != null && results.getCmdInformation() != null) {
+        if (results.getCmdInformation() != null) {
             return results.getCmdInformation().getGeneratedKeys(protocol);
         }
         return MariaSelectResultSet.EMPTY;
@@ -791,10 +831,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     public ResultSet getResultSet() throws SQLException {
         checkClose();
-        if (results != null) {
-            return results.getResultSet();
-        }
-        return null;
+        return results.getResultSet();
     }
 
     /**
@@ -806,7 +843,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException if a database access error occurs or this method is called on a closed Statement
      */
     public int getUpdateCount() throws SQLException {
-        if (results != null && results.getCmdInformation() != null) {
+        if (results.getCmdInformation() != null) {
             return results.getCmdInformation().getUpdateCount();
         }
         return -1;
@@ -817,7 +854,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             protocol.skip();
             warningsCleared = false;
             connection.reenableWarnings();
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             logger.debug("error skipMoreResults", e);
             ExceptionMapper.throwException(e, connection, this);
         }
@@ -864,13 +901,8 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     public boolean getMoreResults(final int current) throws SQLException {
         //if fetch size is set to read fully, other resultSet are put in cache
-        if (results != null) {
-            //must fetch new data
-            checkClose();
-            return results.getMoreResults(current, protocol);
-        } else {
-            return false;
-        }
+        checkClose();
+        return results.getMoreResults(current, protocol);
     }
 
 
@@ -985,13 +1017,11 @@ public class MariaDbStatement implements Statement, Cloneable {
     /**
      * Empties this <code>Statement</code> object's current list of SQL send.
      *
-     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the driver does
-     *                      not support batch updates
      * @see #addBatch
      * @see DatabaseMetaData#supportsBatchUpdates
      * @since 1.2
      */
-    public void clearBatch() throws SQLException {
+    public void clearBatch() {
         if (batchQueries != null) batchQueries.clear();
     }
 
@@ -1021,51 +1051,43 @@ public class MariaDbStatement implements Statement, Cloneable {
             return new int[0];
         }
 
-        Results internalResults = new Results(this, 0, true, size, false, resultSetScrollType);
         lock.lock();
         try {
-            QueryException exception = null;
-            executing = true;
-            executeQueryProlog();
-            try {
-                if (this.options.rewriteBatchedStatements) {
-                    //check that queries are rewritable
-                    boolean batchQueryMultiRewritable = true;
-                    for (String query : batchQueries) {
-                        if (!ClientPrepareResult.isRewritableBatch(query, connection.noBackslashEscapes)) {
-                            batchQueryMultiRewritable = false;
-                            break;
-                        }
+
+            executeQueryPrologue();
+
+            results.reset(0, true, size, false, resultSetScrollType);
+            if (this.options.rewriteBatchedStatements) {
+
+                //check that queries are rewritable
+                boolean batchQueryMultiRewritable = true;
+                for (String query : batchQueries) {
+                    if (!ClientPrepareResult.isRewritableBatch(query, connection.noBackslashEscapes)) {
+                        batchQueryMultiRewritable = false;
+                        break;
                     }
-                    if (batchQueryMultiRewritable) {
-                        protocol.executeBatchMultiple(protocol.isMasterConnection(), internalResults, batchQueries);
-                    } else {
-                        protocol.executeBatch(protocol.isMasterConnection(), internalResults, batchQueries);
-                    }
-                } else {
-                    protocol.executeBatch(protocol.isMasterConnection(), internalResults, batchQueries);
                 }
-            } catch (QueryException e) {
-                exception = e;
-            } finally {
-                internalResults.commandEnd();
-                results = internalResults;
-                executing = false;
-                executeQueryEpilog(exception);
+
+                if (batchQueryMultiRewritable) {
+                    protocol.executeBatchMultiple(protocol.isMasterConnection(), results, batchQueries);
+                } else {
+                    protocol.executeBatch(protocol.isMasterConnection(), results, batchQueries);
+                }
+
+            } else {
+
+                protocol.executeBatch(protocol.isMasterConnection(), results, batchQueries);
+
             }
-            return internalResults.getCmdInformation().getUpdateCounts();
 
-        } catch (SQLException sqle) {
-            int[] ret;
-            if (internalResults.getCmdInformation() == null) {
-                ret = new int[size];
-                Arrays.fill(ret, Statement.EXECUTE_FAILED);
-            } else ret = internalResults.getCmdInformation().getUpdateCounts();
+            results.commandEnd();
+            return results.getCmdInformation().getUpdateCounts();
 
-            throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), ret, sqle);
+        } catch (SQLException initialSqlEx) {
+            throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), size);
         } finally {
+            executeBatchEpilogue();
             lock.unlock();
-            clearBatch();
         }
     }
 
@@ -1128,7 +1150,6 @@ public class MariaDbStatement implements Statement, Cloneable {
     public void checkCloseOnCompletion(ResultSet resultSet) throws SQLException {
         if (mustCloseOnCompletion
                 && !closed
-                && results != null
                 && resultSet.equals(results.getResultSet())) {
             close();
         }

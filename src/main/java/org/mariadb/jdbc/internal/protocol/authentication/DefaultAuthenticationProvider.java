@@ -52,8 +52,8 @@ package org.mariadb.jdbc.internal.protocol.authentication;
 
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.packet.send.*;
-import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
+
+import java.sql.SQLException;
 
 public class DefaultAuthenticationProvider {
     public static final String MYSQL_NATIVE_PASSWORD = "mysql_native_password";
@@ -71,10 +71,10 @@ public class DefaultAuthenticationProvider {
      * @param authData      auth data
      * @param seqNo         packet sequence number
      * @return authentication response according to parameters
-     * @throws QueryException if error occur.
+     * @throws SQLException if error occur.
      */
     public static InterfaceAuthSwitchSendResponsePacket processAuthPlugin(ReadPacketFetcher packetFetcher, String plugin, String password,
-                                                                          byte[] authData, int seqNo) throws QueryException {
+                                                                          byte[] authData, int seqNo) throws SQLException {
         switch (plugin) {
             case MYSQL_NATIVE_PASSWORD:
                 return new SendNativePasswordAuthPacket(password, authData, seqNo);
@@ -87,8 +87,8 @@ public class DefaultAuthenticationProvider {
             case GSSAPI_CLIENT:
                 return new SendGssApiAuthPacket(packetFetcher, password, authData, seqNo);
             default:
-                throw new QueryException("Client does not support authentication protocol requested by server. "
-                        + "Consider upgrading MariaDB client. plugin was = " + plugin, 1251, "08004");
+                throw new SQLException("Client does not support authentication protocol requested by server. "
+                        + "Consider upgrading MariaDB client. plugin was = " + plugin, "08004", 1251);
         }
     }
 

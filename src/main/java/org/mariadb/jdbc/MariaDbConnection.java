@@ -54,7 +54,6 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.net.SocketException;
 import java.sql.*;
@@ -742,7 +741,7 @@ public final class MariaDbConnection implements Connection {
     public void setReadOnly(final boolean readOnly) throws SQLException {
         try {
             protocol.setReadonly(readOnly);
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             ExceptionMapper.throwException(e, this, null);
         }
     }
@@ -785,7 +784,7 @@ public final class MariaDbConnection implements Connection {
         }
         try {
             protocol.setCatalog(catalog);
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             ExceptionMapper.throwException(e, this, null);
         }
     }
@@ -845,7 +844,7 @@ public final class MariaDbConnection implements Connection {
     public void setTransactionIsolation(final int level) throws SQLException {
         try {
             protocol.setTransactionIsolation(level);
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             ExceptionMapper.throwException(e, this, null);
         }
     }
@@ -1135,7 +1134,7 @@ public final class MariaDbConnection implements Connection {
         }
         try {
             return protocol.ping();
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             return false;
         }
     }

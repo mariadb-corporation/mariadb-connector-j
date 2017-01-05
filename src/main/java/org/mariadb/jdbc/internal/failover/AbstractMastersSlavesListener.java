@@ -54,9 +54,9 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.lang.reflect.Method;
+import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -89,9 +89,9 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
      * @return HandleErrorResult object to indicate if query has finally been relaunched or exception if not.
      * @throws Throwable if method with parameters doesn't exist
      */
-    public HandleErrorResult handleFailover(QueryException qe, Method method, Object[] args, Protocol protocol) throws Throwable {
+    public HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args, Protocol protocol) throws Throwable {
         if (isExplicitClosed()) {
-            throw new QueryException("Connection has been closed !");
+            throw new SQLException("Connection has been closed !");
         }
         if (protocol.mustBeMasterConnection()) {
             if (setMasterHostFail()) {
@@ -177,6 +177,6 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
 
     public abstract HandleErrorResult secondaryFail(Method method, Object[] args) throws Throwable;
 
-    public abstract void foundActiveSecondary(Protocol newSecondaryProtocol) throws QueryException;
+    public abstract void foundActiveSecondary(Protocol newSecondaryProtocol) throws SQLException;
 
 }

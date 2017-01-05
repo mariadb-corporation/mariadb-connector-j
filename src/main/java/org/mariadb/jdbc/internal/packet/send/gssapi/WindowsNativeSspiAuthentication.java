@@ -54,11 +54,11 @@ import com.sun.jna.platform.win32.Sspi;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import waffle.windows.auth.IWindowsSecurityContext;
 import waffle.windows.auth.impl.WindowsSecurityContextImpl;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 public class WindowsNativeSspiAuthentication extends GssapiAuth {
 
@@ -67,7 +67,7 @@ public class WindowsNativeSspiAuthentication extends GssapiAuth {
     }
 
     @Override
-    public void authenticate(PacketOutputStream writer, String serverPrincipalName, String mechanisms) throws QueryException, IOException {
+    public void authenticate(PacketOutputStream writer, String serverPrincipalName, String mechanisms) throws SQLException, IOException {
 
         // initialize a security context on the client
         IWindowsSecurityContext clientContext = WindowsSecurityContextImpl.getCurrent(mechanisms, serverPrincipalName);

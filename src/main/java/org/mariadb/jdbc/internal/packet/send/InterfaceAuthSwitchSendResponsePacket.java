@@ -50,11 +50,11 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet.send;
 
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 
 public interface InterfaceAuthSwitchSendResponsePacket extends InterfaceSendPacket {
-    void handleResultPacket(ReadPacketFetcher packetFetcher) throws QueryException, IOException;
+    void handleResultPacket(ReadPacketFetcher packetFetcher) throws SQLException, IOException;
 }

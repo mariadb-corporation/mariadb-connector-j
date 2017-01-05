@@ -52,7 +52,6 @@ import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -88,6 +87,20 @@ public class Results {
     }
 
     /**
+     * Constructor for specific statement.
+     * @param statement current Statement.
+     */
+    public Results(MariaDbStatement statement) {
+        this.statement = statement;
+        this.fetchSize = 0;
+        this.batch = false;
+        this.expectedSize = 1;
+        this.cmdInformation = null;
+        this.binaryFormat = false;
+        this.resultSetScrollType = ResultSet.TYPE_FORWARD_ONLY;
+    }
+
+    /**
      * Default constructor.
      *
      * @param statement current statement
@@ -100,6 +113,25 @@ public class Results {
      */
     public Results(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType) {
         this.statement = statement;
+        this.fetchSize = fetchSize;
+        this.batch = batch;
+        this.expectedSize = expectedSize;
+        this.cmdInformation = null;
+        this.binaryFormat = binaryFormat;
+        this.resultSetScrollType = resultSetScrollType;
+    }
+
+    /**
+     * Reset.
+     *
+     * @param fetchSize fetch size
+     * @param batch select result possible
+     * @param expectedSize expected size
+     * @param binaryFormat use binary protocol
+     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     */
+    public void reset(int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType) {
         this.fetchSize = fetchSize;
         this.batch = batch;
         this.expectedSize = expectedSize;
@@ -177,11 +209,15 @@ public class Results {
 
     /**
      * Indicate that command / batch is finished, so set current resultSet if needed.
+     * @return current results
      */
-    public void commandEnd() {
+    public Results commandEnd() {
         if (executionResults != null && !cmdInformation.isCurrentUpdateCount()) {
             resultSet = executionResults.poll();
+        } else {
+            resultSet = null;
         }
+        return this;
     }
 
     public MariaSelectResultSet getResultSet() {
@@ -200,9 +236,8 @@ public class Results {
      * @param skip      must result be available afterwhile
      * @param protocol  current protocol
      * @throws SQLException if any connection error occur
-     * @throws QueryException if any connection error occur
      */
-    public void loadFully(boolean skip, Protocol protocol) throws SQLException, QueryException {
+    public void loadFully(boolean skip, Protocol protocol) throws SQLException {
         if (fetchSize != 0) {
             fetchSize = 0;
             if (resultSet != null) {
@@ -253,7 +288,7 @@ public class Results {
                     //load next data if there is
                     if (protocol.hasMoreResults()) protocol.getResult(this);
 
-                } catch (QueryException e) {
+                } catch (SQLException e) {
                     ExceptionMapper.throwException(e, null, statement);
                 } finally {
                     protocol.getLock().unlock();
@@ -310,4 +345,8 @@ public class Results {
         return resultSetScrollType;
     }
 
+    public void close() {
+        statement = null;
+        fetchSize = 0;
+    }
 }

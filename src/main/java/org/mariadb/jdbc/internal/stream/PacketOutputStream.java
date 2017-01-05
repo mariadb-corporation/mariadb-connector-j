@@ -54,11 +54,11 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -938,9 +938,9 @@ public class PacketOutputStream extends OutputStream {
      * @param sql         sql
      * @param commandType command type
      * @throws IOException    if connection error occur.
-     * @throws QueryException if query size is to big according to server max_allowed_size
+     * @throws SQLException if query size is to big according to server max_allowed_size
      */
-    public void send(String sql, byte commandType) throws IOException, QueryException {
+    public void send(String sql, byte commandType) throws IOException, SQLException {
 
         startPacket(0, true);
         int charsLength = sql.length();
@@ -1018,16 +1018,16 @@ public class PacketOutputStream extends OutputStream {
      * @param sqlLength   length to send to stream
      * @param commandType command type
      * @throws IOException    if connection error occur
-     * @throws QueryException if query size is to big according to server max_allowed_size
+     * @throws SQLException if query size is to big according to server max_allowed_size
      */
-    public void sendDirect(byte[] sqlBytes, int offset, int sqlLength, byte commandType) throws IOException, QueryException {
+    public void sendDirect(byte[] sqlBytes, int offset, int sqlLength, byte commandType) throws IOException, SQLException {
         if (isClosed()) throw new IOException("Stream has already closed");
         int seqNo = 0;
         setCompressSeqNo(0);
 
         if (sqlLength + (useCompression ? 5 : 1) > getMaxAllowedPacket()) {
-            throw new QueryException("Could not send query: query size " + (sqlLength + (useCompression ? 5 : 1))
-                    + " is >= to max_allowed_packet (" + maxAllowedPacket + ")", -1, INTERRUPTED_EXCEPTION);
+            throw new SQLException("Could not send query: query size " + (sqlLength + (useCompression ? 5 : 1))
+                    + " is >= to max_allowed_packet (" + maxAllowedPacket + ")", INTERRUPTED_EXCEPTION.getSqlState());
         }
         if (!isUseCompression()) {
 

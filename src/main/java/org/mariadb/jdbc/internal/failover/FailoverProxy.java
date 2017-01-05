@@ -54,7 +54,6 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.lang.reflect.InvocationHandler;
@@ -86,9 +85,9 @@ public class FailoverProxy implements InvocationHandler {
      *
      * @param listener failover implementation.
      * @param lock     synchronisation lock
-     * @throws QueryException if connection error occur
+     * @throws SQLException if connection error occur
      */
-    public FailoverProxy(Listener listener, ReentrantLock lock) throws QueryException {
+    public FailoverProxy(Listener listener, ReentrantLock lock) throws SQLException {
         this.lock = lock;
         this.listener = listener;
         this.listener.setProxy(this);
@@ -119,7 +118,7 @@ public class FailoverProxy implements InvocationHandler {
             case METHOD_EXECUTE_QUERY:
                 try {
                     this.listener.preExecute();
-                } catch (QueryException e) {
+                } catch (SQLException e) {
                     //handle failover only if connection error
                     //normal error can be thrown upon reconnection if there was a transaction in progress.
                     if (hasToHandleFailover(e)) {
@@ -147,7 +146,7 @@ public class FailoverProxy implements InvocationHandler {
                             logger.trace("re-prepare query \"" + serverPrepareResult.getSql() + "\" on slave (was "
                                     + "temporary on master since failover)");
                             this.listener.rePrepareOnSlave(serverPrepareResult, mustBeOnMaster);
-                        } catch (QueryException q) {
+                        } catch (SQLException q) {
                             //error during re-prepare, will do executed on master.
                         }
                     }
@@ -155,9 +154,9 @@ public class FailoverProxy implements InvocationHandler {
                         return listener.invoke(method, args, serverPrepareResult.getUnProxiedProtocol());
                     } catch (InvocationTargetException e) {
                         if (e.getTargetException() != null) {
-                            if (e.getTargetException() instanceof QueryException) {
-                                if (hasToHandleFailover((QueryException) e.getTargetException())) {
-                                    return handleFailOver((QueryException) e.getTargetException(), method, args,
+                            if (e.getTargetException() instanceof SQLException) {
+                                if (hasToHandleFailover((SQLException) e.getTargetException())) {
+                                    return handleFailOver((SQLException) e.getTargetException(), method, args,
                                             serverPrepareResult.getUnProxiedProtocol());
                                 }
                             }
@@ -174,9 +173,9 @@ public class FailoverProxy implements InvocationHandler {
                     }
                 } catch (InvocationTargetException e) {
                     if (e.getTargetException() != null) {
-                        if (e.getTargetException() instanceof QueryException) {
-                            if (hasToHandleFailover((QueryException) e.getTargetException())) {
-                                return handleFailOver((QueryException) e.getTargetException(), method, args,
+                        if (e.getTargetException() instanceof SQLException) {
+                            if (hasToHandleFailover((SQLException) e.getTargetException())) {
+                                return handleFailOver((SQLException) e.getTargetException(), method, args,
                                         ((ServerPrepareResult) args[0]).getUnProxiedProtocol());
                             }
                         }
@@ -191,9 +190,9 @@ public class FailoverProxy implements InvocationHandler {
             return listener.invoke(method, args);
         } catch (InvocationTargetException e) {
             if (e.getTargetException() != null) {
-                if (e.getTargetException() instanceof QueryException) {
-                    if (hasToHandleFailover((QueryException) e.getTargetException())) {
-                        return handleFailOver((QueryException) e.getTargetException(), method, args, listener.getCurrentProtocol());
+                if (e.getTargetException() instanceof SQLException) {
+                    if (hasToHandleFailover((SQLException) e.getTargetException())) {
+                        return handleFailOver((SQLException) e.getTargetException(), method, args, listener.getCurrentProtocol());
                     }
                 }
                 throw e.getTargetException();
@@ -212,7 +211,7 @@ public class FailoverProxy implements InvocationHandler {
      * @return the object return from the method
      * @throws Throwable throwable
      */
-    private Object handleFailOver(QueryException qe, Method method, Object[] args, Protocol protocol) throws Throwable {
+    private Object handleFailOver(SQLException qe, Method method, Object[] args, Protocol protocol) throws Throwable {
         HostAddress failHostAddress = null;
         boolean failIsMaster = true;
         if (protocol != null) {
@@ -242,8 +241,8 @@ public class FailoverProxy implements InvocationHandler {
      * @param exception the Exception
      * @return true if there has been a connection error that must be handled by failover
      */
-    public boolean hasToHandleFailover(QueryException exception) {
-        return exception.getSqlState() != null && exception.getSqlState().startsWith("08");
+    public boolean hasToHandleFailover(SQLException exception) {
+        return exception.getSQLState() != null && exception.getSQLState().startsWith("08");
     }
 
     /**
@@ -254,7 +253,7 @@ public class FailoverProxy implements InvocationHandler {
     public void reconnect() throws SQLException {
         try {
             listener.reconnect();
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             ExceptionMapper.throwException(e, null, null);
         }
     }

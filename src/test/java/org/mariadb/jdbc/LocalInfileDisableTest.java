@@ -41,9 +41,9 @@ public class LocalInfileDisableTest extends BaseTest {
 
             Assert.assertNotNull("Expected an exception to be thrown", ex);
             String message = ex.getMessage();
-            String expectedMessage = "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true\n"
-                    + "Query is : LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)";
+            String expectedMessage = "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true";
             Assert.assertTrue(message.contains(expectedMessage));
+            Assert.assertTrue(ex.getCause().getMessage().contains("Query is : LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)"));
         } finally {
             connection.close();
         }
