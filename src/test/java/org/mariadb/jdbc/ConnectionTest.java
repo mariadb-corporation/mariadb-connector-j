@@ -217,7 +217,7 @@ public class ConnectionTest extends BaseTest {
             System.out.println("skip second test 'maxAllowedPackedExceptionIsPrettyTest' - not enough memory");
             Assume.assumeNoException(e);
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("max_allowed_packet"));
+            assertTrue(e.getCause().getCause().getCause().getMessage().contains("max_allowed_packet"));
         } catch (Exception e) {
             e.printStackTrace();
             fail("The previous statement should throw an SQLException not a general Exception");
