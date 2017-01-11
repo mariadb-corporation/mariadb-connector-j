@@ -1654,6 +1654,7 @@ public class MariaSelectResultSet implements ResultSet {
                         Calendar calendar = options.useLegacyDatetimeCode ? Calendar.getInstance() : cal;
 
                         synchronized (calendar) {
+                            calendar.clear();
                             calendar.set(Calendar.YEAR, year);
                             calendar.set(Calendar.MONTH, month - 1);
                             calendar.set(Calendar.DAY_OF_MONTH, day);
