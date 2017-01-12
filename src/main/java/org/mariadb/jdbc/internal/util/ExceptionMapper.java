@@ -121,6 +121,10 @@ public class ExceptionMapper {
             sqlException = get(message, exception, timeout);
             String sqlState = exception.getSQLState();
             state = SqlStates.fromString(sqlState);
+            SQLException nextException = exception.getNextException();
+            if (nextException != null) {
+                sqlException.setNextException(nextException);
+            }
         } else {
             sqlException = exception;
         }

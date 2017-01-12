@@ -277,4 +277,18 @@ public class ResultSetTest extends BaseTest {
                     + ", 'row" + i + "')");
         }
     }
+
+    /**
+     * CONJ-403: NPE in getGenerated keys.
+     *
+     * @throws SQLException if error occur
+     */
+    @Test
+    public void generatedKeyNpe() throws SQLException {
+        createTable("generatedKeyNpe", "id int not null primary key auto_increment, val int");
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("INSERT INTO generatedKeyNpe(val) values (0)");
+        ResultSet rs = statement.getGeneratedKeys();
+        rs.close();
+    }
 }

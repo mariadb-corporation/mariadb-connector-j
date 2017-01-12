@@ -609,4 +609,47 @@ public class DateTest extends BaseTest {
         }
     }
 
+    private static final String TIMESTAMP_1 = "2015-05-13 08:15:14";
+    private static final String TIMESTAMP_YEAR_ZERO = "0000-11-15 10:15:22";
+
+    /**
+     * CONJ-405 : Calendar instance not cleared before being used in ResultSet.getTimestamp.
+     *
+     * @throws SQLException if error
+     */
+    @Test
+    public void clearCalendar() throws SQLException {
+
+        try (Connection connection = setConnection("&useLegacyDatetimeCode=false&serverTimezone=UTC")) {
+
+            try (Statement statement = connection.createStatement()) {
+                try (ResultSet resultSet = statement.executeQuery(
+                        "SELECT '" + TIMESTAMP_1 + "', '" + TIMESTAMP_YEAR_ZERO + "', '" + TIMESTAMP_1 + "'")) {
+                    testResults(resultSet);
+                }
+            }
+
+            try (PreparedStatement preparedStatement = connection.prepareStatement(
+                    "SELECT STR_TO_DATE('" + TIMESTAMP_1 + "', '%Y-%m-%d %H:%i:%s'), "
+                            + "STR_TO_DATE('" + TIMESTAMP_YEAR_ZERO + "', '%Y-%m-%d %H:%i:%s'), "
+                            + "STR_TO_DATE('" + TIMESTAMP_1 + "', '%Y-%m-%d %H:%i:%s')")) {
+                testResults(preparedStatement.executeQuery());
+            }
+        }
+    }
+
+    private void testResults(ResultSet resultSet) throws SQLException {
+        resultSet.next();
+        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        Timestamp timestamp1 = resultSet.getTimestamp(1, calendar);
+        Date date1 = resultSet.getDate(1, calendar);
+        resultSet.getTimestamp(2, calendar);
+
+        Timestamp timestamp3 = resultSet.getTimestamp(3, calendar);
+        Date date3 = resultSet.getDate(3, calendar);
+
+        Assert.assertEquals(date1.getTime(), date3.getTime());
+        Assert.assertEquals(timestamp1.getTime(), timestamp3.getTime());
+
+    }
 }
