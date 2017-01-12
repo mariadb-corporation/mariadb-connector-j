@@ -3526,6 +3526,7 @@ public class MariaSelectResultSet implements ResultSet {
         Calendar calendar = options.useLegacyDatetimeCode ? Calendar.getInstance() : cal;
         Timestamp tt;
         synchronized (calendar) {
+            calendar.clear();
             calendar.set(year, month - 1, day, hour, minutes, seconds);
             tt = new Timestamp(calendar.getTimeInMillis());
         }
