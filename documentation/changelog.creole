@@ -1,6 +1,6 @@
 = Changelog
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#160|1.6.0]] not Released
-* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.7]] not released
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.7]] Released on 12 Jan. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.6]] Released on 21 Dec. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.5]] Released on 07 Nov. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#154|1.5.4]] Released on 10 Oct. 2016
@@ -37,6 +37,8 @@ TCP keep alive after this time will ensure that socket is still OK..
 
 == 1.5.7
 * CONJ-407 : handling failover when packet > max_allowed_packet reset the connection state.
+* CONJ-403 : possible NPE on ResultSet.close() correction
+* CONJ-405 : Calendar instance not cleared before being used in ResultSet.getTimestamp
 
 
 == 1.5.6
