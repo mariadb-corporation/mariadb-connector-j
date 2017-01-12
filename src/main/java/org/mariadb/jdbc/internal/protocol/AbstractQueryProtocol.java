@@ -67,6 +67,7 @@ import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.LogQueryTool;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
@@ -76,9 +77,7 @@ import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.*;
 import java.net.SocketException;
-import java.net.SocketTimeoutException;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.List;
@@ -98,7 +97,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     private volatile int statementIdToRelease = -1;
 
-
+    private LogQueryTool logQuery;
     /**
      * Get a protocol instance.
      *
@@ -108,6 +107,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     public AbstractQueryProtocol(final UrlParser urlParser, final ReentrantLock lock) {
         super(urlParser, lock);
+        logQuery = new LogQueryTool(options);
     }
 
     public void executeQuery(final String sql) throws SQLException {
@@ -133,12 +133,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             getResult(results);
 
         } catch (SQLException sqlException) {
-            throw addQueryInfo(sql, sqlException);
+            throw logQuery.exceptionWithQuery(sql, sqlException);
         } catch (MaxAllowedPacketException e) {
-            if (e.isMustReconnect()) connect();
-            throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
+            throw handleMaxAllowedFailover("Could not execute query: " + logQuery.subQuery(sql), e);
         } catch (IOException e) {
-            throw new SQLNonTransientConnectionException("Could not send query: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new SQLNonTransientConnectionException("Could not execute query: " + logQuery.subQuery(sql), CONNECTION_EXCEPTION.getSqlState(), e);
         }
 
     }
@@ -172,11 +171,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             getResult(results);
 
         } catch (SQLException queryException) {
-            throw throwErrorWithQuery(parameters, queryException, clientPrepareResult);
+            throw logQuery.exceptionWithQuery(parameters, queryException, clientPrepareResult);
         } catch (MaxAllowedPacketException e) {
-            throw handleMaxAllowedFailover("Could not execute query", e);
+            throw handleMaxAllowedFailover(logQuery.exWithQuery("Could not execute query", clientPrepareResult, parameters), e);
         } catch (IOException e) {
-            throw new SQLNonTransientConnectionException("Could not execute query", CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new SQLNonTransientConnectionException(
+                    logQuery.exWithQuery("Could not execute query", clientPrepareResult, parameters),
+                    CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
             writer.releaseBufferIfNotLogging();
         }
@@ -226,7 +227,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     sql += parameters[i].toString() + new String(queryParts.get(i + 1));
                 }
 
-                return addQueryInfo(sql, qex);
+                return logQuery.exceptionWithQuery(sql, qex);
             }
 
 
@@ -277,7 +278,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     throws SQLException {
 
                 String sql = queries.get(currentCounter + sendCmdCounter);
-                return addQueryInfo(sql, qex);
+                return logQuery.exceptionWithQuery(sql, qex);
 
             }
 
@@ -380,13 +381,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 getResult(results);
 
             } catch (SQLException sqlException) {
-                addQueryInfo(firstSql, sqlException);
+                logQuery.exceptionWithQuery(firstSql, sqlException);
                 if (!getOptions().continueBatchOnError) throw sqlException;
                 if (exception == null) exception = sqlException;
             } catch (MaxAllowedPacketException e) {
-                throw handleMaxAllowedFailover("Could not execute query", e);
+                throw handleMaxAllowedFailover("Could not execute query: " + logQuery.subQuery(firstSql), e);
             } catch (IOException e) {
-                throw new SQLNonTransientConnectionException("Could not execute query", CONNECTION_EXCEPTION.getSqlState(), e);
+                throw new SQLNonTransientConnectionException("Could not execute query: " + logQuery.subQuery(firstSql),
+                        CONNECTION_EXCEPTION.getSqlState(), e);
             } finally {
                 writer.releaseBufferIfNotLogging();
             }
@@ -427,11 +429,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             } while (currentIndex < totalParameterList);
 
         } catch (SQLException sqlEx) {
-            throwErrorWithQuery(writer.buffer, sqlEx);
+            throw logQuery.exceptionWithQuery(writer.buffer, sqlEx);
         } catch (MaxAllowedPacketException e) {
-            throw handleMaxAllowedFailover("Could not execute query", e);
+            throw handleMaxAllowedFailover("Could not execute query: " + logQuery.subQuery(writer.buffer), e);
         } catch (IOException e) {
-            throw new SQLNonTransientConnectionException("Could not execute query", CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new SQLNonTransientConnectionException("Could not execute query: " + logQuery.subQuery(writer.buffer),
+                    CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
             writer.releaseBufferIfNotLogging();
         }
@@ -486,7 +489,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                                         List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
                                                         int sendCmdCounter, int paramCount, PrepareResult prepareResult)
                     throws SQLException {
-                return throwErrorWithQuery(parametersList, qex, (ServerPrepareResult) prepareResult);
+                return logQuery.exceptionWithQuery(parametersList, qex, (ServerPrepareResult) prepareResult);
             }
 
             @Override
@@ -574,11 +577,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             return serverPrepareResult;
 
         } catch (SQLException qex) {
-            throw throwErrorWithQuery(parameters, qex, serverPrepareResult);
+            throw logQuery.exceptionWithQuery(parameters, qex, serverPrepareResult);
         } catch (MaxAllowedPacketException e) {
-            throw handleMaxAllowedFailover("Could not execute query", e);
+            throw handleMaxAllowedFailover(logQuery.exWithQuery("Could not execute query", serverPrepareResult, parameters), e);
         } catch (IOException e) {
-            throw new SQLNonTransientConnectionException("Could not execute query", CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new SQLNonTransientConnectionException(
+                    logQuery.exWithQuery("Could not execute query", serverPrepareResult, parameters),
+                    CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
             writer.releaseBufferIfNotLogging();
         }
@@ -620,11 +625,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             getResult(results);
 
         } catch (SQLException qex) {
-            throw throwErrorWithQuery(parameters, qex, serverPrepareResult);
+            throw logQuery.exceptionWithQuery(parameters, qex, serverPrepareResult);
         } catch (MaxAllowedPacketException e) {
-            throw handleMaxAllowedFailover("Could not execute query", e);
+            throw handleMaxAllowedFailover(logQuery.exWithQuery("Could not execute query", serverPrepareResult, parameters), e);
         } catch (IOException e) {
-            throw new SQLNonTransientConnectionException("Could not execute query", CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new SQLNonTransientConnectionException(
+                    logQuery.exWithQuery("Could not execute query", serverPrepareResult, parameters), CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
             writer.releaseBufferIfNotLogging();
         }
@@ -963,100 +969,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     private void checkClose() throws SQLException {
         if (!this.connected) throw new SQLException("Connection is close", "08000", 1220);
-    }
-
-    private SQLException addQueryInfo(String sql, SQLException sqlException) {
-        if (getOptions().dumpQueriesOnException || sqlException.getErrorCode() == 1064) {
-            if (options.maxQuerySizeToLog > 0 && sql.length() > options.maxQuerySizeToLog - 3) {
-                sql = sql.substring(0, options.maxQuerySizeToLog - 3) + "...";
-            }
-            return new SQLException(sqlException.getMessage() + "\nQuery is : " + sql, sqlException.getSQLState(),
-                    sqlException.getErrorCode(), sqlException.getCause());
-        }
-        return sqlException;
-    }
-
-
-    private void throwErrorWithQuery(ByteBuffer buffer, SQLException sqlEx) throws SQLException {
-        if (getOptions().dumpQueriesOnException || sqlEx.getErrorCode() == 1064) {
-            //log first maxQuerySizeToLog utf-8 characters
-            String queryString;
-            if (options.maxQuerySizeToLog == 0) {
-                queryString = new String(buffer.array(), 5, buffer.limit());
-            } else {
-                queryString = new String(buffer.array(), 5, Math.min(buffer.limit() - 5, (options.maxQuerySizeToLog * 3)));
-                if (queryString.length() > options.maxQuerySizeToLog - 3) {
-                    queryString = queryString.substring(0, options.maxQuerySizeToLog - 3) + "...";
-                }
-            }
-            throw addQueryInfo(queryString, sqlEx);
-        }
-        throw sqlEx;
-    }
-
-    private SQLException throwErrorWithQuery(ParameterHolder[] parameters, SQLException sqlEx, PrepareResult serverPrepareResult)
-            throws SQLException {
-        if (sqlEx.getCause() instanceof SocketTimeoutException) {
-            return new SQLException("Connection timed out", CONNECTION_EXCEPTION.getSqlState(), sqlEx);
-        }
-        if (getOptions().dumpQueriesOnException || sqlEx.getErrorCode() == 1064) {
-            String sql = serverPrepareResult.getSql();
-            if (serverPrepareResult.getParamCount() > 0) {
-                sql += ", parameters [";
-                if (parameters.length > 0) {
-                    for (int i = 0; i < Math.min(parameters.length, serverPrepareResult.getParamCount()); i++) {
-                        sql += parameters[i].toString() + ",";
-                    }
-                    sql = sql.substring(0, sql.length() - 1);
-                }
-                sql += "]";
-            }
-
-            String message = sqlEx.getMessage();
-            if (options.maxQuerySizeToLog != 0 && sql.length() > options.maxQuerySizeToLog - 3) {
-                message += "\nQuery is: " + sql.substring(0, options.maxQuerySizeToLog - 3) + "...";
-            } else {
-                message += "\nQuery is: " + sql;
-            }
-            return new SQLException(message, sqlEx.getSQLState(), sqlEx.getErrorCode(), sqlEx.getCause());
-        }
-        return sqlEx;
-    }
-
-    private SQLException throwErrorWithQuery(List<ParameterHolder[]> parameterList, SQLException sqlEx, ServerPrepareResult serverPrepareResult)
-            throws SQLException {
-        if (getOptions().dumpQueriesOnException || sqlEx.getErrorCode() == 1064) {
-            String querySql = serverPrepareResult.getSql();
-
-            if (serverPrepareResult.getParameters().length > 0) {
-                querySql += ", parameters ";
-                for (int paramNo = 0; paramNo < parameterList.size(); paramNo++) {
-                    ParameterHolder[] parameters = parameterList.get(paramNo);
-                    querySql += "[";
-                    if (parameters.length > 0) {
-                        for (int i = 0; i < parameters.length; i++) {
-                            querySql += parameters[i].toString() + ",";
-                        }
-                        querySql = querySql.substring(0, querySql.length() - 1);
-                    }
-                    if (options.maxQuerySizeToLog > 0 && querySql.length() > options.maxQuerySizeToLog) {
-                        break;
-                    } else {
-                        querySql += "],";
-                    }
-                }
-                querySql = querySql.substring(0, querySql.length() - 1);
-            }
-
-            String message = sqlEx.getMessage();
-            if (options.maxQuerySizeToLog != 0 && querySql.length() > options.maxQuerySizeToLog - 3) {
-                message += "\nQuery is: " +  querySql.substring(0, options.maxQuerySizeToLog - 3) + "...";
-            } else {
-                message += "\nQuery is: " +  querySql;
-            }
-            return new SQLException(message, sqlEx.getSQLState(), sqlEx.getErrorCode(), sqlEx.getCause());
-        }
-        return sqlEx;
     }
 
     @Override

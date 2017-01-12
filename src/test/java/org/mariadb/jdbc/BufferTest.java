@@ -171,7 +171,6 @@ public class BufferTest extends BaseTest {
             sendByteBufferData(true, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            sqlexception.printStackTrace();
             assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
                     sqlexception.getCause().getCause().getMessage().contains("is >= to max_allowed_packet"));
         }

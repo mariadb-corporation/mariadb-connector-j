@@ -252,6 +252,6 @@ public interface Protocol {
     void removeActiveStreamingResult();
 
     void resetStateAfterFailover(int maxRows, int transactionIsolationLevel, String database, boolean autocommit)
-            throws QueryException;
+            throws SQLException;
 
 }
