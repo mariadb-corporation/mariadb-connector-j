@@ -198,7 +198,6 @@ public class MariaSelectResultSet implements ResultSet {
                                 int resultSetScrollType) {
         this.statement = null;
         this.isClosed = false;
-        this.protocol = protocol;
         if (protocol != null) {
             this.options = protocol.getOptions();
             this.cal = protocol.getCalendar();
@@ -210,10 +209,11 @@ public class MariaSelectResultSet implements ResultSet {
             this.dataTypeMappingFlags = 3;
             this.returnTableAlias = false;
         }
+        this.protocol = null;
         this.columnsInformation = columnInformation;
         this.columnNameMap = new ColumnNameMap(columnsInformation);
         this.columnInformationLength = columnInformation.length;
-        this.isEof = false;
+        this.isEof = true;
         this.isBinaryEncoded = false;
         this.fetchSize = 1;
         this.resultSetScrollType = resultSetScrollType;
@@ -1654,6 +1654,7 @@ public class MariaSelectResultSet implements ResultSet {
                         Calendar calendar = options.useLegacyDatetimeCode ? Calendar.getInstance() : cal;
 
                         synchronized (calendar) {
+                            calendar.clear();
                             calendar.set(Calendar.YEAR, year);
                             calendar.set(Calendar.MONTH, month - 1);
                             calendar.set(Calendar.DAY_OF_MONTH, day);
@@ -3525,6 +3526,7 @@ public class MariaSelectResultSet implements ResultSet {
         Calendar calendar = options.useLegacyDatetimeCode ? Calendar.getInstance() : cal;
         Timestamp tt;
         synchronized (calendar) {
+            calendar.clear();
             calendar.set(year, month - 1, day, hour, minutes, seconds);
             tt = new Timestamp(calendar.getTimeInMillis());
         }

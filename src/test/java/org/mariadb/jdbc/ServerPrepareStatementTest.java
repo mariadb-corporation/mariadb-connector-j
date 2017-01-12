@@ -845,7 +845,7 @@ public class ServerPrepareStatementTest extends BaseTest {
      */
     @Test
     public void serverPrepareStatementSync() throws Throwable {
-        Assume.assumeTrue(!checkMaxAllowedPacketMore20m("serverPrepareStatementSync", false)); // to avoid
+        Assume.assumeTrue(!checkMaxAllowedPacketMore20m("serverPrepareStatementSync", false) && sharedIsRewrite()); // to avoid
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         if (rs.next()) {

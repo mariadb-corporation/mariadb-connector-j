@@ -87,9 +87,7 @@ import java.util.List;
 import java.util.ServiceLoader;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
-import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
-import static org.mariadb.jdbc.internal.util.SqlStates.FEATURE_NOT_SUPPORTED;
+import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
@@ -133,8 +131,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         } catch (QueryException queryException) {
             throw addQueryInfo(sql, queryException);
         } catch (MaxAllowedPacketException e) {
-            if (e.isMustReconnect()) connect();
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
+            throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
         }
@@ -166,8 +163,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         } catch (QueryException queryException) {
             throw throwErrorWithQuery(parameters, queryException, clientPrepareResult);
         } catch (MaxAllowedPacketException e) {
-            if (e.isMustReconnect()) connect();
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
+            throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
@@ -306,8 +302,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             ServerPrepareResult result = comStmtPrepare.read(packetFetcher);
             return result;
         } catch (MaxAllowedPacketException e) {
-            if (e.isMustReconnect()) connect();
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
+            throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
         } catch (IOException e) {
             throw new QueryException(e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(),
                     e);
@@ -349,8 +344,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 if (!getOptions().continueBatchOnError) throw queryException;
                 if (exception == null) exception = queryException;
             } catch (MaxAllowedPacketException e) {
-                if (e.isMustReconnect()) connect();
-                throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
+                throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
             } catch (IOException e) {
                 throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
             } finally {
@@ -392,8 +386,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         } catch (QueryException queryException) {
             throwErrorWithQuery(writer.buffer, queryException);
         } catch (MaxAllowedPacketException e) {
-            if (e.isMustReconnect()) connect();
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
+            throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
@@ -540,8 +533,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             return serverPrepareResult;
 
         } catch (MaxAllowedPacketException e) {
-            if (e.isMustReconnect()) connect();
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
+            throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
@@ -581,8 +573,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         } catch (QueryException qex) {
             throw throwErrorWithQuery(parameters, qex, serverPrepareResult);
         } catch (MaxAllowedPacketException e) {
-            if (e.isMustReconnect()) connect();
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
+            throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
         } catch (IOException e) {
             throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
@@ -1124,16 +1115,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
         try {
             sendLocalFile(results, fileName);
-        } catch (MaxAllowedPacketException e) {
-            if (e.isMustReconnect()) connect();
-            try {
-                if (writer != null) {
-                    writer.writeEmptyPacket(packetFetcher.getLastPacketSeq() + 1);
-                    packetFetcher.getReusableBuffer();
-                }
-            } catch (IOException ee) {
-            }
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
         } catch (IOException e) {
             try {
                 if (writer != null) {
@@ -1249,6 +1230,64 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
         this.moreResults = false;
         if (!this.connected) throw new QueryException("Connection is close", 1220, "08000");
+    }
+
+    /**
+     * Set current state after a failover.
+     *
+     * @param maxRows current Max rows
+     * @param transactionIsolationLevel current transactionIsolationLevel
+     * @param database current database
+     * @param autocommit current autocommit state
+     * @throws QueryException if any error occur.
+     */
+    //TODO set all client affected variables when implementing CONJ-319
+    public void resetStateAfterFailover(int maxRows, int transactionIsolationLevel, String database, boolean autocommit) throws QueryException {
+        setMaxRows(maxRows);
+
+        if (transactionIsolationLevel != 0) {
+            setTransactionIsolation(transactionIsolationLevel);
+        }
+
+        if (database != null && !"".equals(database) && !getDatabase().equals(database)) {
+            setCatalog(database);
+        }
+
+        if (getAutocommit() != autocommit) {
+            executeQuery("set autocommit=" + (autocommit ? "1" : "0"));
+        }
+    }
+
+
+    /**
+     * Specific failover for MaxAllowedPacketException.
+     *
+     * That differ from other, since command cannot be relaunched.
+     *
+     * @param message exception message
+     * @param initialException initial MaxAllowedPacketException
+     * @return resulting exception to thrown.
+     */
+    private QueryException handleMaxAllowedFailover(String message, MaxAllowedPacketException initialException) {
+        QueryException returningException = new QueryException(message, -1, UNDEFINED_SQLSTATE, initialException);
+
+        if (initialException.isMustReconnect()) {
+            try {
+                connect();
+            } catch (QueryException queryException) {
+                return new QueryException(message, -1, CONNECTION_EXCEPTION, initialException);
+            }
+
+            try {
+                resetStateAfterFailover(getMaxRows(), getTransactionIsolationLevel(), getDatabase(), getAutocommit());
+            } catch (QueryException queryException) {
+                returningException.setNextException(
+                        new QueryException("reconnection succeed, but resetting previous state failed", -1,
+                        UNDEFINED_SQLSTATE, queryException));
+            }
+        }
+
+        return returningException;
     }
 
 }

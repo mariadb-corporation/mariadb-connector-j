@@ -362,20 +362,10 @@ public abstract class AbstractMastersListener implements Listener {
     public void syncConnection(Protocol from, Protocol to) throws QueryException {
 
         if (from != null) {
-            proxy.lock.lock();
 
+            proxy.lock.lock();
             try {
-                to.setMaxRows(from.getMaxRows());
-                to.setInternalMaxRows(from.getMaxRows());
-                if (from.getTransactionIsolationLevel() != 0) {
-                    to.setTransactionIsolation(from.getTransactionIsolationLevel());
-                }
-                if (from.getDatabase() != null && !"".equals(from.getDatabase()) && !from.getDatabase().equals(to.getDatabase())) {
-                    to.setCatalog(from.getDatabase());
-                }
-                if (from.getAutocommit() != to.getAutocommit()) {
-                    to.executeQuery("set autocommit=" + (from.getAutocommit() ? "1" : "0"));
-                }
+                to.resetStateAfterFailover(from.getMaxRows(), from.getTransactionIsolationLevel(), from.getDatabase(), from.getAutocommit());
             } finally {
                 proxy.lock.unlock();
             }

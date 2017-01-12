@@ -53,6 +53,8 @@ package org.mariadb.jdbc.internal.util.dao;
 import org.mariadb.jdbc.internal.util.ExceptionCode;
 import org.mariadb.jdbc.internal.util.SqlStates;
 
+import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+
 public class QueryException extends Exception {
     private static final long serialVersionUID = 974263994278018455L;
     /**
@@ -202,4 +204,37 @@ public class QueryException extends Exception {
     public void setSqlState(String sqlState) {
         this.sqlState = sqlState;
     }
+
+
+    /**
+     * Adds an <code>QueryException</code> object to the end of the chain.
+     *
+     * @param ex the new exception that will be added to the end of
+     *            the <code>QueryException</code> chain
+     */
+    public void setNextException(QueryException ex) {
+
+        QueryException current = this;
+        for (;;) {
+            QueryException next = current.next;
+            if (next != null) {
+                current = next;
+                continue;
+            }
+
+            if (nextUpdater.compareAndSet(current,null,ex)) {
+                return;
+            }
+            current = current.next;
+        }
+    }
+
+    public QueryException getNextException() {
+        return next;
+    }
+
+    private volatile QueryException next;
+
+    private static final AtomicReferenceFieldUpdater<QueryException,QueryException> nextUpdater =
+            AtomicReferenceFieldUpdater.newUpdater(QueryException.class,QueryException.class,"next");
 }
