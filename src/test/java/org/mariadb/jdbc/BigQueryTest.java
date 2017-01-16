@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -17,6 +18,7 @@ public class BigQueryTest extends BaseTest {
     public static void initClass() throws SQLException {
         createTable("bigblob", "id int not null primary key auto_increment, test longblob");
         createTable("bigblob2", "id int not null primary key auto_increment, test longblob, test2 longblob");
+        createTable("bigblob3", "id int not null primary key auto_increment, test longblob, test2 text");
     }
 
     @Test
@@ -99,4 +101,31 @@ public class BigQueryTest extends BaseTest {
     }
 
 
+    @Test
+    public void maxFieldSizeTest() throws SQLException {
+
+        byte aByte = (byte) 'a';
+        byte bByte = (byte) 'b';
+
+        byte[] arr = new byte[200];
+        Arrays.fill(arr, aByte);
+        byte[] arr2 = new byte[200];
+        Arrays.fill(arr2, bByte);
+
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into bigblob3 values(null, ?,?)");
+
+        ps.setBytes(1, arr);
+        ps.setBytes(2, arr2);
+        ps.executeUpdate();
+
+        Statement stmt = sharedConnection.createStatement();
+        stmt.setMaxFieldSize(2);
+        ResultSet rs = stmt.executeQuery("select * from bigblob3");
+        rs.next();
+        Assert.assertEquals(2, rs.getBytes(2).length);
+        Assert.assertEquals(2, rs.getString(3).length());
+        Assert.assertArrayEquals(new byte[] {aByte, aByte}, rs.getBytes(2));
+        Assert.assertEquals("bb", rs.getString(3));
+
+    }
 }

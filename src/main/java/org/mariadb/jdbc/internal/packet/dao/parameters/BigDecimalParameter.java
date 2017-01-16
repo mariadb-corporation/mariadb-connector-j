@@ -48,7 +48,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.math.BigDecimal;
@@ -76,8 +76,8 @@ public class BigDecimalParameter implements ParameterHolder, Cloneable {
         writeBuffer.writeStringLength(bigDecimal.toPlainString());
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.DECIMAL;
+    public ColumnType getMariaDbType() {
+        return ColumnType.DECIMAL;
     }
 
     public boolean isLongData() {

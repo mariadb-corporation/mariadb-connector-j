@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 */
 
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.Options;
 
@@ -128,8 +128,8 @@ public class DateParameter implements ParameterHolder, Cloneable {
         writeBuffer.writeDateLength(calendar);
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.DATE;
+    public ColumnType getMariaDbType() {
+        return ColumnType.DATE;
     }
 
     @Override

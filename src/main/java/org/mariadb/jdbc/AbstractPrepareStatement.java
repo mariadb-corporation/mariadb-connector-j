@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.dao.parameters.*;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 
@@ -99,7 +99,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setCharacterStream(final int parameterIndex, final Reader reader, final int length) throws SQLException {
         if (reader == null) {
-            setNull(parameterIndex, MariaDbType.BLOB);
+            setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
         setParameter(parameterIndex, new ReaderParameter(reader, length, isNoBackslashEscapes()));
@@ -125,7 +125,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setCharacterStream(final int parameterIndex, final Reader reader, final long length) throws SQLException {
         if (reader == null) {
-            setNull(parameterIndex, MariaDbType.BLOB);
+            setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
         setParameter(parameterIndex, new ReaderParameter(reader, length, isNoBackslashEscapes()));
@@ -152,7 +152,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setCharacterStream(final int parameterIndex, final Reader reader) throws SQLException {
         if (reader == null) {
-            setNull(parameterIndex, MariaDbType.BLOB);
+            setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
         setParameter(parameterIndex, new ReaderParameter(reader, isNoBackslashEscapes()));
@@ -214,7 +214,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setBlob(final int parameterIndex, final InputStream inputStream, final long length) throws SQLException {
         if (inputStream == null) {
-            setNull(parameterIndex, MariaDbType.BLOB);
+            setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
         setParameter(parameterIndex, new StreamParameter(inputStream, length, isNoBackslashEscapes()));
@@ -241,7 +241,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setBlob(final int parameterIndex, final InputStream inputStream) throws SQLException {
         if (inputStream == null) {
-            setNull(parameterIndex, MariaDbType.BLOB);
+            setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
 
@@ -263,7 +263,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setClob(final int parameterIndex, final Clob clob) throws SQLException {
         if (clob == null) {
-            setNull(parameterIndex, MariaDbType.BLOB);
+            setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
 
@@ -384,7 +384,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setTime(final int parameterIndex, final Time time, final Calendar cal) throws SQLException {
         if (time == null) {
-            setNull(parameterIndex, MariaDbType.TIME);
+            setNull(parameterIndex, ColumnType.TIME);
             return;
         }
         setParameter(parameterIndex, new TimeParameter(time, cal, useFractionalSeconds()));
@@ -412,7 +412,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setTimestamp(final int parameterIndex, final Timestamp timestamp, final Calendar cal) throws SQLException {
         if (timestamp == null) {
-            setNull(parameterIndex, MariaDbType.DATETIME);
+            setNull(parameterIndex, ColumnType.DATETIME);
             return;
         }
         setParameter(parameterIndex, new TimestampParameter(timestamp, cal, useFractionalSeconds(), protocol.getOptions()));
@@ -460,7 +460,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      * <P><B>Note:</B> You must specify the parameter's SQL type.
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
-     * @param mysqlType      the type code defined in <code> MariaDbType</code>
+     * @param mysqlType      the type code defined in <code> ColumnType</code>
      * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                         if a database access error occurs or this method is called on a closed
      *                                         <code>PreparedStatement</code>
@@ -471,7 +471,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      *                                         <code>SQLXML</code> or  <code>STRUCT</code> data type and the JDBC driver does not
      *                                         support this data type
      */
-    public void setNull(final int parameterIndex, final MariaDbType mysqlType) throws SQLException {
+    public void setNull(final int parameterIndex, final ColumnType mysqlType) throws SQLException {
         setParameter(parameterIndex, new NullParameter(mysqlType));
     }
 
@@ -523,7 +523,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
     @Override
     public void setURL(final int parameterIndex, final URL url) throws SQLException {
         if (url == null) {
-            setNull(parameterIndex, MariaDbType.STRING);
+            setNull(parameterIndex, ColumnType.STRING);
             return;
         }
         setParameter(parameterIndex, new StringParameter(url.toString(), isNoBackslashEscapes()));
@@ -1022,7 +1022,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setAsciiStream(final int parameterIndex, final InputStream stream, final long length) throws SQLException {
         if (stream == null) {
-            setNull(parameterIndex, MariaDbType.BLOB);
+            setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
         setParameter(parameterIndex, new StreamParameter(stream, length, isNoBackslashEscapes()));
@@ -1051,7 +1051,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setAsciiStream(final int parameterIndex, final InputStream stream) throws SQLException {
         if (stream == null) {
-            setNull(parameterIndex, MariaDbType.BLOB);
+            setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
         setParameter(parameterIndex, new StreamParameter(stream, isNoBackslashEscapes()));
@@ -1076,7 +1076,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setAsciiStream(final int parameterIndex, final InputStream stream, final int length) throws SQLException {
         if (stream == null) {
-            setNull(parameterIndex, MariaDbType.BLOB);
+            setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
         setParameter(parameterIndex, new StreamParameter(stream, length, isNoBackslashEscapes()));
@@ -1101,7 +1101,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setBinaryStream(final int parameterIndex, final InputStream stream, final long length) throws SQLException {
         if (stream == null) {
-            setNull(parameterIndex, MariaDbType.BLOB);
+            setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
         setParameter(parameterIndex, new StreamParameter(stream, length, isNoBackslashEscapes()));
@@ -1129,7 +1129,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setBinaryStream(final int parameterIndex, final InputStream stream) throws SQLException {
         if (stream == null) {
-            setNull(parameterIndex, MariaDbType.BLOB);
+            setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
         setParameter(parameterIndex, new StreamParameter(stream, isNoBackslashEscapes()));
@@ -1155,7 +1155,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setBinaryStream(final int parameterIndex, final InputStream stream, final int length) throws SQLException {
         if (stream == null) {
-            setNull(parameterIndex, MariaDbType.BLOB);
+            setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
         setParameter(parameterIndex, new StreamParameter(stream, length, isNoBackslashEscapes()));
@@ -1218,7 +1218,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setString(final int parameterIndex, final String str) throws SQLException {
         if (str == null) {
-            setNull(parameterIndex, MariaDbType.VARCHAR);
+            setNull(parameterIndex, ColumnType.VARCHAR);
             return;
         }
 
@@ -1238,7 +1238,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setBytes(final int parameterIndex, final byte[] bytes) throws SQLException {
         if (bytes == null) {
-            setNull(parameterIndex, MariaDbType.BLOB);
+            setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
 
@@ -1353,7 +1353,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      */
     public void setBigDecimal(final int parameterIndex, final BigDecimal bigDecimal) throws SQLException {
         if (bigDecimal == null) {
-            setNull(parameterIndex, MariaDbType.DECIMAL);
+            setNull(parameterIndex, ColumnType.DECIMAL);
             return;
         }
 

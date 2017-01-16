@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.packet.send.InterfaceSendPacket;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
@@ -61,7 +61,7 @@ public class ComStmtExecute implements InterfaceSendPacket {
     private final int parameterCount;
     private final ParameterHolder[] parameters;
     private final int statementId;
-    private MariaDbType[] parameterTypeHeader;
+    private ColumnType[] parameterTypeHeader;
 
     /**
      * Initialize parameters.
@@ -72,7 +72,7 @@ public class ComStmtExecute implements InterfaceSendPacket {
      * @param parameterTypeHeader parameters header
      */
     public ComStmtExecute(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
-                          MariaDbType[] parameterTypeHeader) {
+                          ColumnType[] parameterTypeHeader) {
         this.parameterCount = parameterCount;
         this.parameters = parameters;
         this.statementId = statementId;
@@ -90,7 +90,7 @@ public class ComStmtExecute implements InterfaceSendPacket {
      * @throws IOException if a connection error occur
      */
     public static void writeCmd(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
-                                MariaDbType[] parameterTypeHeader, final PacketOutputStream pos) throws IOException {
+                                ColumnType[] parameterTypeHeader, final PacketOutputStream pos) throws IOException {
         pos.buffer.put(Packet.COM_STMT_EXECUTE);
         pos.buffer.putInt(statementId);
         pos.buffer.put((byte) 0x00); //CURSOR TYPE NO CURSOR

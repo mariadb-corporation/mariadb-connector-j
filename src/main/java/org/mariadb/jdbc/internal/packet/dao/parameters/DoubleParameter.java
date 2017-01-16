@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 */
 
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 public class DoubleParameter implements ParameterHolder, Cloneable {
@@ -76,8 +76,8 @@ public class DoubleParameter implements ParameterHolder, Cloneable {
         writeBuffer.writeLong(Double.doubleToLongBits(value));
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.DOUBLE;
+    public ColumnType getMariaDbType() {
+        return ColumnType.DOUBLE;
     }
 
     @Override

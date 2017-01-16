@@ -71,6 +71,7 @@ public class Results {
     private MariaSelectResultSet callableResultSet;
     private boolean binaryFormat;
     private int resultSetScrollType;
+    private int maxFieldSize;
 
     /**
      * Single Text query.
@@ -79,6 +80,7 @@ public class Results {
     public Results() {
         this.statement = null;
         this.fetchSize = 0;
+        this.maxFieldSize = 0;
         this.batch = false;
         this.expectedSize = 1;
         this.cmdInformation = null;
@@ -93,6 +95,7 @@ public class Results {
     public Results(MariaDbStatement statement) {
         this.statement = statement;
         this.fetchSize = 0;
+        this.maxFieldSize = 0;
         this.batch = false;
         this.expectedSize = 1;
         this.cmdInformation = null;
@@ -115,6 +118,7 @@ public class Results {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.batch = batch;
+        this.maxFieldSize = statement.getMaxFieldSize();
         this.expectedSize = expectedSize;
         this.cmdInformation = null;
         this.binaryFormat = binaryFormat;
@@ -134,6 +138,7 @@ public class Results {
     public void reset(int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType) {
         this.fetchSize = fetchSize;
         this.batch = batch;
+        this.maxFieldSize = statement.getMaxFieldSize();
         this.expectedSize = expectedSize;
         this.cmdInformation = null;
         this.binaryFormat = binaryFormat;
@@ -348,5 +353,9 @@ public class Results {
     public void close() {
         statement = null;
         fetchSize = 0;
+    }
+
+    public int getMaxFieldSize() {
+        return maxFieldSize;
     }
 }

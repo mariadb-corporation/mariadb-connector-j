@@ -5,7 +5,6 @@ before_install:
     - chmod +x .travis/script.sh
     - echo "MAVEN_OPTS='-Xmx384m'" > ~/.mavenrc
 install: .travis/before_test.sh
-group: edge
 dist: trusty
 jdk:
     - oraclejdk9

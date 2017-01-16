@@ -52,7 +52,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.queryresults.resultset;
 
 import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.Packet;
@@ -89,6 +89,7 @@ import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 @SuppressWarnings("deprecation")
 public class MariaSelectResultSet implements ResultSet {
+
     public static final MariaSelectResultSet EMPTY = createEmptyResultSet();
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
@@ -160,9 +161,9 @@ public class MariaSelectResultSet implements ResultSet {
         this.isEof = false;
         this.isBinaryEncoded = results.isBinaryFormat();
         if (isBinaryEncoded) {
-            rowPacket = new BinaryRowPacket(columnsInformation, columnInformationLength);
+            rowPacket = new BinaryRowPacket(columnsInformation, columnInformationLength, results.getMaxFieldSize());
         } else {
-            rowPacket = new TextRowPacket(columnInformationLength);
+            rowPacket = new TextRowPacket(columnsInformation, columnInformationLength, results.getMaxFieldSize());
         }
         this.fetchSize = results.getFetchSize();
         this.resultSetScrollType = results.getResultSetScrollType();
@@ -237,7 +238,7 @@ public class MariaSelectResultSet implements ResultSet {
      */
     public static ResultSet createGeneratedData(long[] data, Protocol protocol, boolean findColumnReturnsOne) {
         ColumnInformation[] columns = new ColumnInformation[1];
-        columns[0] = ColumnInformation.create("insert_id", MariaDbType.BIGINT);
+        columns[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
 
         List<byte[][]> rows = new ArrayList<>();
         for (long rowData : data) {
@@ -270,7 +271,7 @@ public class MariaSelectResultSet implements ResultSet {
      * @param protocol    protocol
      * @return resultset
      */
-    public static ResultSet createResultSet(String[] columnNames, MariaDbType[] columnTypes, String[][] data,
+    public static ResultSet createResultSet(String[] columnNames, ColumnType[] columnTypes, String[][] data,
                                             Protocol protocol) {
         int columnNameLength = columnNames.length;
         ColumnInformation[] columns = new ColumnInformation[columnNameLength];
@@ -292,7 +293,7 @@ public class MariaSelectResultSet implements ResultSet {
                 byte[] bytes;
                 if (rowData[i] == null) {
                     bytes = null;
-                } else if (columnTypes[i] == MariaDbType.BIT) {
+                } else if (columnTypes[i] == ColumnType.BIT) {
                     bytes = rowData[i].equals("0") ? boolFalse : boolTrue;
                 } else {
                     try {
@@ -311,7 +312,7 @@ public class MariaSelectResultSet implements ResultSet {
 
     private static MariaSelectResultSet createEmptyResultSet() {
         ColumnInformation[] columns = new ColumnInformation[1];
-        columns[0] = ColumnInformation.create("insert_id", MariaDbType.BIGINT);
+        columns[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
 
         return new MariaSelectResultSet(columns, new ArrayList<byte[][]>(), null,
                 TYPE_SCROLL_SENSITIVE);
@@ -584,7 +585,7 @@ public class MariaSelectResultSet implements ResultSet {
         }
         byte[] vo = row[position - 1];
 
-        this.lastGetWasNull = isNull(vo, columnsInformation[position - 1].getType());
+        this.lastGetWasNull = isNull(vo, columnsInformation[position - 1].getColumnType());
         return vo;
     }
 
@@ -859,7 +860,7 @@ public class MariaSelectResultSet implements ResultSet {
             return null;
         }
 
-        switch (columnInfo.getType()) {
+        switch (columnInfo.getColumnType()) {
             case BIT:
                 if (options.tinyInt1isBit && columnInfo.getLength() == 1) {
                     return (rawBytes[0] == 0) ? "0" : "1";
@@ -992,7 +993,7 @@ public class MariaSelectResultSet implements ResultSet {
             return parseInt(rawBytes, columnInfo);
         } else {
             long value;
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return rawBytes[0];
                 case TINYINT:
@@ -1061,7 +1062,7 @@ public class MariaSelectResultSet implements ResultSet {
             return parseLong(rawBytes, columnInfo);
         } else {
             long value;
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return rawBytes[0];
                 case TINYINT:
@@ -1149,7 +1150,7 @@ public class MariaSelectResultSet implements ResultSet {
             return Float.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
         } else {
             long value;
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return rawBytes[0];
                 case TINYINT:
@@ -1224,7 +1225,7 @@ public class MariaSelectResultSet implements ResultSet {
         if (!this.isBinaryEncoded) {
             return Double.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
         } else {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return rawBytes[0];
                 case TINYINT:
@@ -1314,7 +1315,7 @@ public class MariaSelectResultSet implements ResultSet {
         if (!this.isBinaryEncoded) {
             return new BigDecimal(new String(rawBytes, StandardCharsets.UTF_8));
         } else {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return BigDecimal.valueOf((long) rawBytes[0]);
                 case TINYINT:
@@ -1429,7 +1430,7 @@ public class MariaSelectResultSet implements ResultSet {
             }
 
             SimpleDateFormat sdf;
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case TIMESTAMP:
                 case DATETIME:
                     Timestamp timestamp = getTimestamp(rawBytes, columnInfo, cal);
@@ -1527,10 +1528,10 @@ public class MariaSelectResultSet implements ResultSet {
         }
 
         if (!this.isBinaryEncoded) {
-            if (columnInfo.getType() == MariaDbType.TIMESTAMP || columnInfo.getType() == MariaDbType.DATETIME) {
+            if (columnInfo.getColumnType() == ColumnType.TIMESTAMP || columnInfo.getColumnType() == ColumnType.DATETIME) {
                 Timestamp timestamp = getTimestamp(rawBytes, columnInfo, cal);
                 return (timestamp == null) ? null : new Time(timestamp.getTime());
-            } else if (columnInfo.getType() == MariaDbType.DATE) {
+            } else if (columnInfo.getColumnType() == ColumnType.DATE) {
                 Calendar zeroCal = Calendar.getInstance();
                 zeroCal.set(1970, 0, 1, 0, 0, 0);
                 zeroCal.set(Calendar.MILLISECOND, 0);
@@ -1622,7 +1623,7 @@ public class MariaSelectResultSet implements ResultSet {
             String rawValue = new String(rawBytes, StandardCharsets.UTF_8);
             if (rawValue.startsWith("0000-00-00 00:00:00")) return null;
 
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case TIME:
                     //time does not go after millisecond
                     Timestamp tt = new Timestamp(getTime(rawBytes, columnInfo, cal).getTime());
@@ -1810,7 +1811,7 @@ public class MariaSelectResultSet implements ResultSet {
             return null;
         }
 
-        switch (columnInfo.getType()) {
+        switch (columnInfo.getColumnType()) {
             case BIT:
                 if (columnInfo.getLength() == 1) {
                     return rawBytes[0] != 0;
@@ -1887,7 +1888,7 @@ public class MariaSelectResultSet implements ResultSet {
             default:
                 break;
         }
-        throw new RuntimeException(columnInfo.getType().toString());
+        throw new RuntimeException(columnInfo.getColumnType().toString());
     }
 
     /**
@@ -2763,7 +2764,7 @@ public class MariaSelectResultSet implements ResultSet {
             final String rawVal = new String(rawBytes, StandardCharsets.UTF_8);
             return !("false".equals(rawVal) || "0".equals(rawVal));
         } else {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return rawBytes[0] != 0;
                 case TINYINT:
@@ -2814,13 +2815,13 @@ public class MariaSelectResultSet implements ResultSet {
             return 0;
         }
         if (!this.isBinaryEncoded) {
-            if (columnInfo.getType() == MariaDbType.BIT) {
+            if (columnInfo.getColumnType() == ColumnType.BIT) {
                 return rawBytes[0];
             }
             return parseByte(rawBytes, columnInfo);
         } else {
             long value;
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return rawBytes[0];
                 case TINYINT:
@@ -2882,7 +2883,7 @@ public class MariaSelectResultSet implements ResultSet {
             return parseShort(rawBytes, columnInfo);
         } else {
             long value;
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return rawBytes[0];
                 case TINYINT:
@@ -3041,7 +3042,7 @@ public class MariaSelectResultSet implements ResultSet {
 
     private byte parseByte(byte[] rawBytes, ColumnInformation columnInfo) throws SQLException {
         try {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case FLOAT:
                     Float floatValue = Float.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
                     if (floatValue.compareTo((float) Byte.MAX_VALUE) >= 1) {
@@ -3100,7 +3101,7 @@ public class MariaSelectResultSet implements ResultSet {
 
     private short parseShort(byte[] rawBytes, ColumnInformation columnInfo) throws SQLException {
         try {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case FLOAT:
                     Float floatValue = Float.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
                     if (floatValue.compareTo((float) Short.MAX_VALUE) >= 1) {
@@ -3159,7 +3160,7 @@ public class MariaSelectResultSet implements ResultSet {
 
     private int parseInt(byte[] rawBytes, ColumnInformation columnInfo) throws SQLException {
         try {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case FLOAT:
                     Float floatValue = Float.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
                     if (floatValue.compareTo((float) Integer.MAX_VALUE) >= 1) {
@@ -3225,7 +3226,7 @@ public class MariaSelectResultSet implements ResultSet {
 
     private long parseLong(byte[] rawBytes, ColumnInformation columnInfo) throws SQLException {
         try {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case FLOAT:
                     Float floatValue = Float.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
                     if (floatValue.compareTo((float) Long.MAX_VALUE) >= 1) {
@@ -3305,7 +3306,7 @@ public class MariaSelectResultSet implements ResultSet {
         if (!this.isBinaryEncoded) {
             return new BigInteger(new String(rawBytes, StandardCharsets.UTF_8));
         } else {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return BigInteger.valueOf((long) rawBytes[0]);
                 case TINYINT:
@@ -3351,7 +3352,7 @@ public class MariaSelectResultSet implements ResultSet {
     }
 
     private Date binaryDate(byte[] rawBytes, ColumnInformation columnInfo, Calendar cal) throws ParseException {
-        switch (columnInfo.getType()) {
+        switch (columnInfo.getColumnType()) {
             case TIMESTAMP:
             case DATETIME:
                 Timestamp timestamp = getTimestamp(rawBytes, columnInfo, cal);
@@ -3399,7 +3400,7 @@ public class MariaSelectResultSet implements ResultSet {
     }
 
     private Time binaryTime(byte[] rawBytes, ColumnInformation columnInfo, Calendar cal) throws ParseException {
-        switch (columnInfo.getType()) {
+        switch (columnInfo.getColumnType()) {
             case TIMESTAMP:
             case DATETIME:
                 Timestamp ts = binaryTimestamp(rawBytes, columnInfo, cal);
@@ -3460,7 +3461,7 @@ public class MariaSelectResultSet implements ResultSet {
         int seconds = 0;
         int microseconds = 0;
 
-        if (columnInfo.getType() == MariaDbType.TIME) {
+        if (columnInfo.getColumnType() == ColumnType.TIME) {
             Calendar calendar = Calendar.getInstance();
             calendar.clear();
 
@@ -3562,13 +3563,13 @@ public class MariaSelectResultSet implements ResultSet {
      * @param dataType field datatype
      * @return true if data is null
      */
-    private boolean isNull(byte[] rawBytes, MariaDbType dataType) {
+    private boolean isNull(byte[] rawBytes, ColumnType dataType) {
         return (rawBytes == null
-                || (isBinaryEncoded && ((dataType == MariaDbType.DATE || dataType == MariaDbType.TIMESTAMP || dataType == MariaDbType.DATETIME)
+                || (isBinaryEncoded && ((dataType == ColumnType.DATE || dataType == ColumnType.TIMESTAMP || dataType == ColumnType.DATETIME)
                 && rawBytes.length == 0))
-                || (!isBinaryEncoded && ((dataType == MariaDbType.TIMESTAMP || dataType == MariaDbType.DATETIME)
+                || (!isBinaryEncoded && ((dataType == ColumnType.TIMESTAMP || dataType == ColumnType.DATETIME)
                 && zeroTimestamp.equals(new String(rawBytes, StandardCharsets.UTF_8))))
-                || (!isBinaryEncoded && (dataType == MariaDbType.DATE && zeroDate.equals(new String(rawBytes, StandardCharsets.UTF_8)))));
+                || (!isBinaryEncoded && (dataType == ColumnType.DATE && zeroDate.equals(new String(rawBytes, StandardCharsets.UTF_8)))));
     }
 
 

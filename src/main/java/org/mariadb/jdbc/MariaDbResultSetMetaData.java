@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
@@ -272,7 +272,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      */
     public int getColumnType(final int column) throws SQLException {
         ColumnInformation ci = getColumnInformation(column);
-        switch (ci.getType()) {
+        switch (ci.getColumnType()) {
             case BIT:
                 if (ci.getLength() == 1) {
                     return Types.BIT;
@@ -310,7 +310,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
                 }
                 return Types.CHAR;
             default:
-                return ci.getType().getSqlType();
+                return ci.getColumnType().getSqlType();
         }
 
     }
@@ -325,7 +325,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      */
     public String getColumnTypeName(final int column) throws SQLException {
         ColumnInformation ci = getColumnInformation(column);
-        return MariaDbType.getColumnTypeName(ci.getType(), ci.getLength(), ci.isSigned(), ci.isBinary());
+        return ColumnType.getColumnTypeName(ci.getColumnType(), ci.getLength(), ci.isSigned(), ci.isBinary());
 
     }
 
@@ -377,8 +377,8 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
 
     public String getColumnClassName(int column) throws SQLException {
         ColumnInformation ci = getColumnInformation(column);
-        MariaDbType type = ci.getType();
-        return MariaDbType.getClassName(type, (int) ci.getLength(), ci.isSigned(), ci.isBinary(), datatypeMappingflags);
+        ColumnType type = ci.getColumnType();
+        return ColumnType.getClassName(type, (int) ci.getLength(), ci.isSigned(), ci.isBinary(), datatypeMappingflags);
     }
 
     private ColumnInformation getColumnInformation(int column) throws SQLException {

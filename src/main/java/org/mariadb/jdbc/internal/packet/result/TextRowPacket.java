@@ -49,6 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.result;
 
+import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
@@ -56,16 +57,17 @@ import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import java.io.IOException;
 
 
-public class TextRowPacket implements RowPacket {
-    private final int columnInformationLength;
+public class TextRowPacket extends RowPacket {
 
     /**
      * Constructor.
      *
-     * @param columnInformationLength number of column
+     * @param columnInformations      column information.
+     * @param columnInformationLength number of columns
+     * @param maxFieldSize            max field size
      */
-    public TextRowPacket(int columnInformationLength) {
-        this.columnInformationLength = columnInformationLength;
+    public TextRowPacket(ColumnInformation[] columnInformations, int columnInformationLength, int maxFieldSize) {
+            super(columnInformations, columnInformationLength, maxFieldSize);
     }
 
     /**
@@ -78,8 +80,8 @@ public class TextRowPacket implements RowPacket {
      */
     public byte[][] getRow(ReadPacketFetcher packetFetcher, Buffer buffer) throws IOException {
 
-        byte[][] valueObjects = new byte[columnInformationLength][];
-        for (int i = 0; i < columnInformationLength; i++) {
+        byte[][] valueObjects = new byte[getColumnInformationLength()][];
+        for (int i = 0; i < getColumnInformationLength(); i++) {
             while (buffer.remaining() == 0) {
                 buffer.appendPacket(packetFetcher.getPacket());
             }
@@ -90,7 +92,12 @@ public class TextRowPacket implements RowPacket {
                 while (buffer.remaining() < valueLen) {
                     buffer.appendPacket(packetFetcher.getPacket());
                 }
-                valueObjects[i] = buffer.readRawBytes((int) valueLen);
+                if (isColumnAffectedByMaxFieldSize(getColumnInformations()[i]) && valueLen > getMaxFieldSize()) {
+                    valueObjects[i] = buffer.readRawBytes(getMaxFieldSize());
+                    buffer.skipBytes((int)valueLen - getMaxFieldSize());
+                } else {
+                    valueObjects[i] = buffer.readRawBytes((int) valueLen);
+                }
             }
         }
         return valueObjects;
@@ -106,7 +113,7 @@ public class TextRowPacket implements RowPacket {
      */
     public byte[][] getRow(ReadPacketFetcher packetFetcher, MariaDbInputStream inputStream, int remaining, int read) throws IOException {
 
-        byte[][] valueObjects = new byte[columnInformationLength][];
+        byte[][] valueObjects = new byte[getColumnInformationLength()][];
         int position = 0;
         int toReadLen;
 
@@ -144,7 +151,12 @@ public class TextRowPacket implements RowPacket {
             } else if (toReadLen == 0) {
                 valueObjects[position++] = new byte[0];
             } else {
-                valueObjects[position++] = packetFetcher.readLength(toReadLen);
+                if (isColumnAffectedByMaxFieldSize(getColumnInformations()[position]) && toReadLen > getMaxFieldSize()) {
+                    valueObjects[position++] = packetFetcher.readLength(getMaxFieldSize());
+                    packetFetcher.skipLength(toReadLen - getMaxFieldSize());
+                } else {
+                    valueObjects[position++] = packetFetcher.readLength(toReadLen);
+                }
                 remaining -= toReadLen;
             }
             if (remaining <= 0) {

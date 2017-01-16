@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.dao;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 
@@ -100,11 +100,11 @@ public class ColumnInformation {
     Buffer buffer;
     private short charsetNumber;
     private long length;
-    private MariaDbType type;
+    private ColumnType type;
     private byte decimals;
     private short flags;
 
-    public ColumnInformation(MariaDbType type) {
+    public ColumnInformation(ColumnType type) {
         this.type = type;
     }
 
@@ -148,7 +148,7 @@ public class ColumnInformation {
 
         charsetNumber = buffer.readShort();
         length = buffer.readInt();
-        type = MariaDbType.fromServer(buffer.readByte() & 0xff);
+        type = ColumnType.fromServer(buffer.readByte() & 0xff);
         flags = buffer.readShort();
         decimals = buffer.readByte();
 
@@ -158,7 +158,7 @@ public class ColumnInformation {
         if ((sqlType == Types.BLOB || sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY)
                 && !isBinary()) {
            /* MySQL Text datatype */
-            type = MariaDbType.VARCHAR;
+            type = ColumnType.VARCHAR;
         }
     }
 
@@ -169,7 +169,7 @@ public class ColumnInformation {
      * @param type column type
      * @return ColumnInformation
      */
-    public static ColumnInformation create(String name, MariaDbType type) {
+    public static ColumnInformation create(String name, ColumnType type) {
         try {
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
             for (int i = 0; i < 4; i++) {
@@ -200,7 +200,7 @@ public class ColumnInformation {
                     break;
             }
             baos.write(new byte[]{(byte) len, 0, 0, 0});  /*  length */
-            baos.write(MariaDbType.toServer(type.getSqlType()).getType());
+            baos.write(ColumnType.toServer(type.getSqlType()).getType());
             baos.write(new byte[]{0, 0});   /* flags */
             baos.write(0); /* decimals */
             baos.write(new byte[]{0, 0});   /* filler */
@@ -300,7 +300,7 @@ public class ColumnInformation {
         return decimals;
     }
 
-    public MariaDbType getType() {
+    public ColumnType getColumnType() {
         return type;
     }
 

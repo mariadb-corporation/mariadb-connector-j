@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.ByteArrayOutputStream;
@@ -135,8 +135,8 @@ public class ReaderParameter implements ParameterHolder {
         }
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.STRING;
+    public ColumnType getMariaDbType() {
+        return ColumnType.STRING;
     }
 
 

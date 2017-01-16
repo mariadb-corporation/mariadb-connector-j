@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.util.dao;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 
@@ -59,7 +59,7 @@ public class ServerPrepareResult implements PrepareResult {
     private int statementId;
     private ColumnInformation[] columns;
     private ColumnInformation[] parameters;
-    private MariaDbType[] parameterTypeHeader;
+    private ColumnType[] parameterTypeHeader;
     private Protocol unProxiedProtocol;
     private String sql;
 
@@ -85,11 +85,11 @@ public class ServerPrepareResult implements PrepareResult {
         this.columns = columns;
         this.parameters = parameters;
         this.unProxiedProtocol = unProxiedProtocol;
-        this.parameterTypeHeader = new MariaDbType[parameters.length];
+        this.parameterTypeHeader = new ColumnType[parameters.length];
     }
 
     public void resetParameterTypeHeader() {
-        this.parameterTypeHeader = new MariaDbType[parameters.length];
+        this.parameterTypeHeader = new ColumnType[parameters.length];
     }
 
     /**
@@ -101,7 +101,7 @@ public class ServerPrepareResult implements PrepareResult {
     public void failover(int statementId, Protocol unProxiedProtocol) {
         this.statementId = statementId;
         this.unProxiedProtocol = unProxiedProtocol;
-        this.parameterTypeHeader = new MariaDbType[parameters.length];
+        this.parameterTypeHeader = new ColumnType[parameters.length];
         this.shareCounter = 1;
         this.isBeingDeallocate = false;
 
@@ -178,7 +178,7 @@ public class ServerPrepareResult implements PrepareResult {
         return sql;
     }
 
-    public MariaDbType[] getParameterTypeHeader() {
+    public ColumnType[] getParameterTypeHeader() {
         return parameterTypeHeader;
     }
 }

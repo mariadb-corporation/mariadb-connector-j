@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.Utils;
@@ -112,12 +112,12 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 "UPDATE_RULE", "DELETE_RULE", "FK_NAME",
                 "PK_NAME", "DEFERRABILITY"
         };
-        MariaDbType[] columnTypes = {
-                MariaDbType.VARCHAR, MariaDbType.NULL, MariaDbType.VARCHAR,
-                MariaDbType.VARCHAR, MariaDbType.VARCHAR, MariaDbType.NULL,
-                MariaDbType.VARCHAR, MariaDbType.VARCHAR, MariaDbType.SMALLINT,
-                MariaDbType.SMALLINT, MariaDbType.SMALLINT, MariaDbType.VARCHAR,
-                MariaDbType.NULL, MariaDbType.SMALLINT};
+        ColumnType[] columnTypes = {
+                ColumnType.VARCHAR, ColumnType.NULL, ColumnType.VARCHAR,
+                ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.NULL,
+                ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.SMALLINT,
+                ColumnType.SMALLINT, ColumnType.SMALLINT, ColumnType.VARCHAR,
+                ColumnType.NULL, ColumnType.SMALLINT};
 
         String[] parts = tableDef.split("\n");
 
@@ -2097,11 +2097,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 "FIXED_PREC_SCALE", "AUTO_INCREMENT", "LOCAL_TYPE_NAME", "MINIMUM_SCALE", "MAXIMUM_SCALE",
                 "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "NUM_PREC_RADIX"
         };
-        MariaDbType[] columnTypes = {
-                MariaDbType.VARCHAR, MariaDbType.INTEGER, MariaDbType.INTEGER, MariaDbType.VARCHAR, MariaDbType.VARCHAR,
-                MariaDbType.VARCHAR, MariaDbType.INTEGER, MariaDbType.BIT, MariaDbType.SMALLINT, MariaDbType.BIT,
-                MariaDbType.BIT, MariaDbType.BIT, MariaDbType.VARCHAR, MariaDbType.SMALLINT, MariaDbType.SMALLINT,
-                MariaDbType.INTEGER, MariaDbType.INTEGER, MariaDbType.INTEGER
+        ColumnType[] columnTypes = {
+                ColumnType.VARCHAR, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.VARCHAR, ColumnType.VARCHAR,
+                ColumnType.VARCHAR, ColumnType.INTEGER, ColumnType.BIT, ColumnType.SMALLINT, ColumnType.BIT,
+                ColumnType.BIT, ColumnType.BIT, ColumnType.VARCHAR, ColumnType.SMALLINT, ColumnType.SMALLINT,
+                ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER
         };
 
         String[][] data = {
@@ -2572,10 +2572,10 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      */
     public ResultSet getClientInfoProperties() throws SQLException {
         ColumnInformation[] columns = new ColumnInformation[4];
-        columns[0] = ColumnInformation.create("NAME", MariaDbType.STRING);
-        columns[1] = ColumnInformation.create("MAX_LEN", MariaDbType.INTEGER);
-        columns[2] = ColumnInformation.create("DEFAULT_VALUE", MariaDbType.STRING);
-        columns[3] = ColumnInformation.create("DESCRIPTION", MariaDbType.STRING);
+        columns[0] = ColumnInformation.create("NAME", ColumnType.STRING);
+        columns[1] = ColumnInformation.create("MAX_LEN", ColumnType.INTEGER);
+        columns[2] = ColumnInformation.create("DEFAULT_VALUE", ColumnType.STRING);
+        columns[3] = ColumnInformation.create("DESCRIPTION", ColumnType.STRING);
 
 
         List<byte[][]> rows = new ArrayList<>(3);

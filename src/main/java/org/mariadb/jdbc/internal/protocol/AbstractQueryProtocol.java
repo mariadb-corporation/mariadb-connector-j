@@ -54,7 +54,7 @@ import org.mariadb.jdbc.LocalInfileInterceptor;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.*;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
@@ -525,7 +525,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
         int statementId = -1;
         int parameterCount = parameters.length;
-        MariaDbType[] parameterTypeHeader = new MariaDbType[parameters.length];
+        ColumnType[] parameterTypeHeader = new ColumnType[parameters.length];
 
         if (getOptions().cachePrepStmts) {
 

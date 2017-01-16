@@ -249,4 +249,19 @@ public class ReadPacketFetcher {
         return valueBuffer;
     }
 
+    public void skipLength(long length) throws IOException {
+        long remainingToRead = length;
+        do {
+            long count = inputStream.skip(remainingToRead);
+            if (count <= 0) {
+                throw new EOFException("unexpected end of stream, read " + (length - remainingToRead) + " bytes from " + length);
+            }
+            remainingToRead -= count;
+        } while (remainingToRead > 0);
+
+        if (logger.isTraceEnabled()) {
+            logger.trace("skip " + length + " bytes packet");
+        }
+    }
+
 }

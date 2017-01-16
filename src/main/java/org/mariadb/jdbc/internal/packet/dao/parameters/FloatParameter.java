@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 */
 
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 public class FloatParameter implements ParameterHolder, Cloneable {
@@ -76,8 +76,8 @@ public class FloatParameter implements ParameterHolder, Cloneable {
         writeBuffer.writeInt(Float.floatToIntBits(value));
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.FLOAT;
+    public ColumnType getMariaDbType() {
+        return ColumnType.FLOAT;
     }
 
     @Override

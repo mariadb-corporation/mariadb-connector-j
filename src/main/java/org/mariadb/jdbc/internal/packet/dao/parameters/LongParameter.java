@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 public class LongParameter implements ParameterHolder, Cloneable {
@@ -76,8 +76,8 @@ public class LongParameter implements ParameterHolder, Cloneable {
         writeBuffer.writeLong(value);
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.BIGINT;
+    public ColumnType getMariaDbType() {
+        return ColumnType.BIGINT;
     }
 
     public String toString() {

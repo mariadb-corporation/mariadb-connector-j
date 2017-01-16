@@ -57,19 +57,17 @@ import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import java.io.IOException;
 
 
-public class BinaryRowPacket implements RowPacket {
-    private final ColumnInformation[] columnInformation;
-    private final int columnInformationLength;
+public class BinaryRowPacket extends RowPacket {
 
     /**
      * Constructor.
      *
-     * @param columnInformation       column information.
+     * @param columnInformations      column information.
      * @param columnInformationLength number of columns
+     * @param maxFieldSize            max field size
      */
-    public BinaryRowPacket(ColumnInformation[] columnInformation, int columnInformationLength) {
-        this.columnInformation = columnInformation;
-        this.columnInformationLength = columnInformationLength;
+    public BinaryRowPacket(ColumnInformation[] columnInformations, int columnInformationLength, int maxFieldSize) {
+        super(columnInformations, columnInformationLength, maxFieldSize);
     }
 
     /**
@@ -111,17 +109,17 @@ public class BinaryRowPacket implements RowPacket {
      * @throws IOException if any connection error occur
      */
     public byte[][] getRow(ReadPacketFetcher packetFetcher, Buffer buffer) throws IOException {
-        byte[][] valueObjects = new byte[columnInformationLength][];
+        byte[][] valueObjects = new byte[getColumnInformationLength()][];
         buffer.skipByte(); //stream header
-        int nullCount = (columnInformationLength + 9) / 8;
+        int nullCount = (getColumnInformationLength() + 9) / 8;
         byte[] nullBitsBuffer = buffer.readRawBytes(nullCount);
 
-        for (int i = 0; i < columnInformationLength; i++) {
+        for (int i = 0; i < getColumnInformationLength(); i++) {
             if ((nullBitsBuffer[(i + 2) / 8] & (1 << ((i + 2) % 8))) > 0) {
                 //field is null
                 valueObjects[i] = null;
             } else {
-                switch (columnInformation[i].getType()) {
+                switch (getColumnInformations()[i].getColumnType()) {
                     case VARCHAR:
                     case BIT:
                     case ENUM:
@@ -140,7 +138,13 @@ public class BinaryRowPacket implements RowPacket {
                     case DATETIME:
                     case TIMESTAMP:
                         long length = appendPacketIfNeeded(buffer, packetFetcher);
-                        valueObjects[i] = buffer.getLengthEncodedBytesWithLength(length);
+                        if (isColumnAffectedByMaxFieldSize(getColumnInformations()[i]) && length > getMaxFieldSize()) {
+                            //only part of data will be fetched, according to Statement.maxFieldSize
+                            valueObjects[i] = buffer.getLengthEncodedBytesWithLength(getMaxFieldSize());
+                            buffer.skipBytes((int) length - getMaxFieldSize());
+                        } else {
+                            valueObjects[i] = buffer.getLengthEncodedBytesWithLength(length);
+                        }
                         break;
 
                     case BIGINT:
@@ -193,17 +197,17 @@ public class BinaryRowPacket implements RowPacket {
      * @throws IOException if any connection error occur
      */
     public byte[][] getRow(ReadPacketFetcher packetFetcher, MariaDbInputStream inputStream, int remaining, int read) throws IOException {
-        byte[][] valueObjects = new byte[columnInformationLength][];
+        byte[][] valueObjects = new byte[getColumnInformationLength()][];
         int toReadLen;
-        int nullCount = (columnInformationLength + 9) / 8;
+        int nullCount = (getColumnInformationLength() + 9) / 8;
         byte[] nullBitsBuffer = packetFetcher.readLength(nullCount);
         remaining -= nullCount;
-        for (int i = 0; i < columnInformationLength; i++) {
+        for (int i = 0; i < getColumnInformationLength(); i++) {
             if ((nullBitsBuffer[(i + 2) / 8] & (1 << ((i + 2) % 8))) > 0) {
                 //field is null
                 valueObjects[i] = null;
             } else {
-                switch (columnInformation[i].getType()) {
+                switch (getColumnInformations()[i].getColumnType()) {
                     case VARCHAR:
                     case BIT:
                     case ENUM:
@@ -256,7 +260,13 @@ public class BinaryRowPacket implements RowPacket {
                         } else if (toReadLen == 0) {
                             valueObjects[i] = new byte[0];
                         } else {
-                            valueObjects[i] = packetFetcher.readLength(toReadLen);
+                            if (isColumnAffectedByMaxFieldSize(getColumnInformations()[i]) && toReadLen > getMaxFieldSize()) {
+                                //only part of data will be fetched, according to Statement.maxFieldSize
+                                valueObjects[i] = packetFetcher.readLength(getMaxFieldSize());
+                                packetFetcher.skipLength(toReadLen - getMaxFieldSize());
+                            } else {
+                                valueObjects[i] = packetFetcher.readLength(toReadLen);
+                            }
                             remaining -= toReadLen;
                         }
                         break;

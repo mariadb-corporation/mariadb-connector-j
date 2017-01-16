@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.sql.SQLException;
@@ -107,8 +107,8 @@ public class StringParameter implements ParameterHolder, Cloneable {
         escapedArray = null; //in case ServerPrepareStmt fallback to clientPrepareStmt (need escape)
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.VARCHAR;
+    public ColumnType getMariaDbType() {
+        return ColumnType.VARCHAR;
     }
 
     @Override

@@ -56,7 +56,7 @@ import java.math.BigInteger;
 import java.sql.Types;
 
 
-public enum MariaDbType {
+public enum ColumnType {
     OLDDECIMAL(0, Types.DECIMAL, BigDecimal.class.getName()),
     TINYINT(1, Types.SMALLINT, Integer.class.getName()),
     SMALLINT(2, Types.SMALLINT, Integer.class.getName()),
@@ -85,11 +85,11 @@ public enum MariaDbType {
     STRING(254, Types.VARCHAR, String.class.getName()),
     GEOMETRY(255, Types.VARBINARY, "[B");
 
-    static MariaDbType[] typeMap;
+    static ColumnType[] typeMap;
 
     static {
-        typeMap = new MariaDbType[256];
-        for (MariaDbType v : values()) {
+        typeMap = new ColumnType[256];
+        for (ColumnType v : values()) {
             typeMap[v.mysqlType] = v;
         }
     }
@@ -98,7 +98,7 @@ public enum MariaDbType {
     private final int mysqlType;
     private final String className;
 
-    MariaDbType(int mysqlType, int javaType, String className) {
+    ColumnType(int mysqlType, int javaType, String className) {
         this.javaType = javaType;
         this.mysqlType = mysqlType;
         this.className = className;
@@ -110,7 +110,7 @@ public enum MariaDbType {
      * @param type mariadb type
      * @return true if type is numeric
      */
-    public static boolean isNumeric(MariaDbType type) {
+    public static boolean isNumeric(ColumnType type) {
         switch (type) {
             case OLDDECIMAL:
             case TINYINT:
@@ -137,7 +137,7 @@ public enum MariaDbType {
      * @param binary binary
      * @return type
      */
-    public static String getColumnTypeName(MariaDbType type, long len, boolean signed, boolean binary) {
+    public static String getColumnTypeName(ColumnType type, long len, boolean signed, boolean binary) {
         switch (type) {
             case SMALLINT:
             case MEDIUMINT:
@@ -186,33 +186,33 @@ public enum MariaDbType {
      * @param typeValue type value
      * @return MariaDb type
      */
-    public static MariaDbType fromServer(int typeValue) {
+    public static ColumnType fromServer(int typeValue) {
 
-        MariaDbType mariaDbType = typeMap[typeValue];
+        ColumnType columnType = typeMap[typeValue];
 
-        if (mariaDbType == null) {
+        if (columnType == null) {
             /*
               Potential fallback for types that are not implemented.
               Should not be normally used.
              */
-            mariaDbType = BLOB;
+            columnType = BLOB;
         }
-        return mariaDbType;
+        return columnType;
     }
 
     /**
-     * Convert javatype to MariaDbType.
+     * Convert javatype to ColumnType.
      *
      * @param javaType javatype value
      * @return mariaDb type value
      */
-    public static MariaDbType toServer(int javaType) {
-        for (MariaDbType v : values()) {
+    public static ColumnType toServer(int javaType) {
+        for (ColumnType v : values()) {
             if (v.javaType == javaType) {
                 return v;
             }
         }
-        return MariaDbType.BLOB;
+        return ColumnType.BLOB;
     }
 
     public String getClassName() {
@@ -229,7 +229,7 @@ public enum MariaDbType {
      * @param flags  flags
      * @return class name
      */
-    public static String getClassName(MariaDbType type, int len, boolean signed, boolean binary, int flags) {
+    public static String getClassName(ColumnType type, int len, boolean signed, boolean binary, int flags) {
         switch (type) {
             case TINYINT:
                 if (len == 1 && ((flags & MariaSelectResultSet.TINYINT1_IS_BIT) != 0)) {

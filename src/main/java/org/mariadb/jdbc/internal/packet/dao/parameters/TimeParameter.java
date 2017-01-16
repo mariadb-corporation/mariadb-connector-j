@@ -51,7 +51,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
@@ -128,8 +128,8 @@ public class TimeParameter implements ParameterHolder, Cloneable {
         writeBuffer.writeTimeLength(calendar, fractionalSeconds);
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.TIME;
+    public ColumnType getMariaDbType() {
+        return ColumnType.TIME;
     }
 
     @Override

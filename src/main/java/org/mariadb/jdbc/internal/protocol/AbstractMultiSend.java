@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.protocol;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.Results;
@@ -77,7 +77,7 @@ public abstract class AbstractMultiSend {
 
     private static final ThreadPoolExecutor readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
     protected int statementId = -1;
-    protected MariaDbType[] parameterTypeHeader;
+    protected ColumnType[] parameterTypeHeader;
     private Protocol protocol;
     private PacketOutputStream writer;
     private Results results;
@@ -176,7 +176,7 @@ public abstract class AbstractMultiSend {
         int paramCount = getParamCount();
         if (binaryProtocol) {
             if (readPrepareStmtResult) {
-                parameterTypeHeader = new MariaDbType[paramCount];
+                parameterTypeHeader = new ColumnType[paramCount];
                 if (prepareResult == null && protocol.getOptions().cachePrepStmts) {
                     String key = new StringBuilder(protocol.getDatabase()).append("-").append(sql).toString();
                     prepareResult = protocol.prepareStatementCache().get(key);

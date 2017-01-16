@@ -49,19 +49,19 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 
 public class NullParameter implements ParameterHolder, Cloneable {
     private static final byte[] NULL = {'N', 'U', 'L', 'L'};
-    private MariaDbType type;
+    private ColumnType type;
 
     public NullParameter() {
-        type = MariaDbType.NULL;
+        type = ColumnType.NULL;
     }
 
-    public NullParameter(MariaDbType type) {
+    public NullParameter(ColumnType type) {
         this.type = type;
     }
 
@@ -86,7 +86,7 @@ public class NullParameter implements ParameterHolder, Cloneable {
         return false;
     }
 
-    public MariaDbType getMariaDbType() {
+    public ColumnType getMariaDbType() {
         return type;
     }
 

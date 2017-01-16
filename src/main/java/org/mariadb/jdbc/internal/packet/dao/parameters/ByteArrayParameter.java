@@ -48,7 +48,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
@@ -81,8 +81,8 @@ public class ByteArrayParameter implements ParameterHolder, Cloneable {
         writeBuffer.writeByteArrayLength(bytes);
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.VARSTRING;
+    public ColumnType getMariaDbType() {
+        return ColumnType.VARSTRING;
     }
 
     @Override

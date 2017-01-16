@@ -78,10 +78,12 @@ public class MariaDbStatement implements Statement, Cloneable {
     private static final ScheduledExecutorService timeoutScheduler = SchedulerServiceProviderHolder.getTimeoutScheduler();
     private static Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
     protected final ReentrantLock lock;
+
     /**
      * the protocol used to talk to the server.
      */
     protected Protocol protocol;
+
     /**
      * the  Connection object.
      */
@@ -101,6 +103,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     private boolean warningsCleared;
     private int fetchSize;
     private boolean canUseServerTimeout;
+    private int maxFieldSize;
 
     /**
      * Creates a new Statement.
@@ -571,16 +574,24 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     /**
      * Retrieves the maximum number of bytes that can be returned for character and binary column values in a <code>ResultSet</code> object produced
-     * by this <code>Statement</code> object. This limit applies only to <code>BINARY</code>, <code>VARBINARY</code>, <code>LONGVARBINARY</code>,
-     * <code>CHAR</code>, <code>VARCHAR</code>, <code>NCHAR</code>, <code>NVARCHAR</code>, <code>LONGNVARCHAR</code> and <code>LONGVARCHAR</code>
+     * by this <code>Statement</code> object.
+     * This limit applies only to
+     * <code>BINARY</code>,
+     * <code>VARBINARY</code>,
+     * <code>LONGVARBINARY</code>,
+     * <code>CHAR</code>,
+     * <code>VARCHAR</code>,
+     * <code>NCHAR</code>,
+     * <code>NVARCHAR</code>,
+     * <code>LONGNVARCHAR</code> and
+     * <code>LONGVARCHAR</code>
      * columns.  If the limit is exceeded, the excess data is silently discarded.
      *
      * @return the current column size limit for columns storing character and binary values; zero means there is no limit
-     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @see #setMaxFieldSize
      */
-    public int getMaxFieldSize() throws SQLException {
-        return 0;
+    public int getMaxFieldSize() {
+        return maxFieldSize;
     }
 
     /**
@@ -596,7 +607,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @see #getMaxFieldSize
      */
     public void setMaxFieldSize(final int max) throws SQLException {
-        //we dont support max field sizes
+        maxFieldSize = max;
     }
 
     /**

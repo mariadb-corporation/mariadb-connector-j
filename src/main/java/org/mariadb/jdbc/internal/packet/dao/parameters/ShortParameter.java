@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
@@ -77,8 +77,8 @@ public class ShortParameter implements ParameterHolder, Cloneable {
         writeBuffer.writeShort(value);
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.SMALLINT;
+    public ColumnType getMariaDbType() {
+        return ColumnType.SMALLINT;
     }
 
     @Override

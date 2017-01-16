@@ -50,15 +50,60 @@ OF SUCH DAMAGE.
 */
 
 
+import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 
 import java.io.IOException;
+import java.sql.Types;
 
-public interface RowPacket {
+public abstract class RowPacket {
 
-    byte[][] getRow(ReadPacketFetcher packetFetcher, Buffer buffer) throws IOException;
 
-    byte[][] getRow(ReadPacketFetcher packetFetcher, MariaDbInputStream inputStream, int remaining, int read) throws IOException;
+    private final int maxFieldSize;
+    private final ColumnInformation[] columnInformations;
+    private final int columnInformationLength;
+
+    public RowPacket(ColumnInformation[] columnInformations, int columnInformationLength, int maxFieldSize) {
+        this.columnInformations = columnInformations;
+        this.columnInformationLength = columnInformationLength;
+        this.maxFieldSize = maxFieldSize;
+    }
+
+    public abstract byte[][] getRow(ReadPacketFetcher packetFetcher, Buffer buffer) throws IOException;
+
+    public abstract byte[][] getRow(ReadPacketFetcher packetFetcher, MariaDbInputStream inputStream, int remaining, int read) throws IOException;
+
+
+    public boolean isColumnAffectedByMaxFieldSize(ColumnInformation columnInformation) {
+        if (maxFieldSize > 0) {
+            switch (columnInformation.getColumnType().getSqlType()) {
+                case Types.CHAR:
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.BINARY:
+                case Types.VARBINARY:
+                case Types.LONGVARBINARY:
+                case Types.NCHAR:
+                case Types.NVARCHAR:
+                case Types.LONGNVARCHAR:
+                    return true;
+            }
+        }
+        return false;
+    }
+
+
+    public int getMaxFieldSize() {
+        return maxFieldSize;
+    }
+
+    public ColumnInformation[] getColumnInformations() {
+        return columnInformations;
+    }
+
+    public int getColumnInformationLength() {
+        return columnInformationLength;
+    }
 }

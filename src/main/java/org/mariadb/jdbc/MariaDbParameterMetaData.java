@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 
 import java.sql.ParameterMetaData;
@@ -101,7 +101,7 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
 
     @Override
     public int getScale(int param) throws SQLException {
-        if (MariaDbType.isNumeric(getParameterInformation(param).getType())) {
+        if (ColumnType.isNumeric(getParameterInformation(param).getColumnType())) {
             return getParameterInformation(param).getDecimals();
         }
         return 0;
@@ -109,17 +109,17 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
 
     @Override
     public int getParameterType(int param) throws SQLException {
-        return getParameterInformation(param).getType().getSqlType();
+        return getParameterInformation(param).getColumnType().getSqlType();
     }
 
     @Override
     public String getParameterTypeName(int param) throws SQLException {
-        return getParameterInformation(param).getType().getTypeName();
+        return getParameterInformation(param).getColumnType().getTypeName();
     }
 
     @Override
     public String getParameterClassName(int param) throws SQLException {
-        return getParameterInformation(param).getType().getClassName();
+        return getParameterInformation(param).getColumnType().getClassName();
     }
 
     @Override
