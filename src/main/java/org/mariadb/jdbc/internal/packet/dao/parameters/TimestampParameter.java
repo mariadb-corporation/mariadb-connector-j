@@ -57,33 +57,31 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.TimeZone;
 
 
 public class TimestampParameter implements ParameterHolder, Cloneable {
     private Timestamp ts;
-    private Calendar calendar;
+    private TimeZone timeZone;
     private boolean fractionalSeconds;
-    private Options options;
 
     /**
      * Constructor.
      *
      * @param ts                timestamps
-     * @param cal               session calendar
+     * @param timeZone          timeZone
      * @param fractionalSeconds must fractional Seconds be send to database.
-     * @param options           session options
      */
-    public TimestampParameter(Timestamp ts, Calendar cal, boolean fractionalSeconds, Options options) {
+    public TimestampParameter(Timestamp ts, TimeZone timeZone, boolean fractionalSeconds) {
         this.ts = ts;
-        calendar = cal;
+        this.timeZone = timeZone;
         this.fractionalSeconds = fractionalSeconds;
-        this.options = options;
     }
 
     /**
      * Write timestamps to outputStream.
      *
-     * @param os the stream to write to
+     * @param os                the stream to write to
      */
     public void writeTo(final PacketOutputStream os) {
         os.write(ParameterWriter.QUOTE);
@@ -95,7 +93,7 @@ public class TimestampParameter implements ParameterHolder, Cloneable {
     /**
      * Write timestamps to outputStream without checking buffer size.
      *
-     * @param os the stream to write to
+     * @param os                the stream to write to
      */
     public void writeUnsafeTo(final PacketOutputStream os) {
         os.buffer.put(ParameterWriter.QUOTE);
@@ -106,12 +104,7 @@ public class TimestampParameter implements ParameterHolder, Cloneable {
 
     private byte[] dateToByte() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        if (options.useLegacyDatetimeCode) {
-            sdf.setCalendar(Calendar.getInstance());
-        } else if (calendar != null) {
-            sdf.setCalendar(calendar);
-        }
+        sdf.setTimeZone(timeZone);
         return sdf.format(ts).getBytes();
     }
 
@@ -122,12 +115,26 @@ public class TimestampParameter implements ParameterHolder, Cloneable {
     /**
      * Write timeStamp in binary format.
      *
-     * @param writeBuffer buffer to write
+     * @param pos              buffer to write
      */
-    public void writeBinary(final PacketOutputStream writeBuffer) {
-        if (options.useLegacyDatetimeCode) calendar = Calendar.getInstance();
+    public void writeBinary(final PacketOutputStream pos) {
+        Calendar calendar = Calendar.getInstance(timeZone);
         calendar.setTimeInMillis(ts.getTime());
-        writeBuffer.writeTimestampLength(calendar, ts, fractionalSeconds);
+
+        pos.assureBufferCapacity(fractionalSeconds ? 12 : 8);
+        pos.buffer.put((byte) (fractionalSeconds ? 11 : 7));//length
+
+        pos.buffer.putShort((short) calendar.get(Calendar.YEAR));
+        pos.buffer.put((byte) ((calendar.get(Calendar.MONTH) + 1) & 0xff));
+        pos.buffer.put((byte) (calendar.get(Calendar.DAY_OF_MONTH) & 0xff));
+        pos.buffer.put((byte) calendar.get(Calendar.HOUR_OF_DAY));
+        pos.buffer.put((byte) calendar.get(Calendar.MINUTE));
+        pos.buffer.put((byte) calendar.get(Calendar.SECOND));
+
+        if (fractionalSeconds) {
+            pos.buffer.putInt(ts.getNanos() / 1000);
+        }
+
     }
 
     public ColumnType getMariaDbType() {

@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 */
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 
 import java.sql.ResultSet;
 
@@ -91,9 +91,9 @@ public class CmdInformationSingle implements CmdInformation {
      */
     public ResultSet getGeneratedKeys(Protocol protocol) {
         if (insertId == 0) {
-            return MariaSelectResultSet.EMPTY;
+            return SelectResultSetCommon.EMPTY;
         }
-        return MariaSelectResultSet.createGeneratedData(new long[] {insertId}, protocol, true);
+        return SelectResultSetCommon.createGeneratedData(new long[] {insertId}, protocol, true);
     }
 
     public int getCurrentStatNumber() {

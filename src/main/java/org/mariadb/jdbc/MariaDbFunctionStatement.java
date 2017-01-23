@@ -51,7 +51,8 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.SelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 
 import java.sql.ResultSet;
@@ -59,7 +60,7 @@ import java.sql.SQLException;
 
 public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement implements CloneableCallableStatement {
 
-    private MariaSelectResultSet outputResultSet = null;
+    private SelectResultSet outputResultSet = null;
 
     /**
      * Specific implementation of CallableStatement to handle function call, represent by call like
@@ -78,7 +79,7 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
         super.initFunctionData(getParameterCount() + 1);
     }
 
-    protected MariaSelectResultSet getResult() throws SQLException {
+    protected SelectResultSet getResult() throws SQLException {
         if (outputResultSet == null) {
             throw new SQLException("No output result");
         }
@@ -143,7 +144,7 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
             if (results != null && results.getResultSet() == null) {
                 return results.getResultSet();
             }
-            return MariaSelectResultSet.EMPTY;
+            return SelectResultSetCommon.EMPTY;
         } finally {
             connection.lock.unlock();
         }

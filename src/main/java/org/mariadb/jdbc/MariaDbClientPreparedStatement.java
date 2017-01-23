@@ -53,7 +53,7 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.*;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 
@@ -61,7 +61,7 @@ import java.sql.*;
 import java.util.*;
 
 
-public class MariaDbClientPreparedStatement extends AbstractPrepareStatement implements Cloneable {
+public class MariaDbClientPreparedStatement extends BasePrepareStatement implements Cloneable {
     private static Logger logger = LoggerFactory.getLogger(MariaDbClientPreparedStatement.class);
     private String sqlQuery;
     private ClientPrepareResult prepareResult;
@@ -129,11 +129,6 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
         return useFractionalSeconds;
     }
 
-    @Override
-    protected Calendar cal() {
-        return protocol.getCalendar();
-    }
-
     /**
      * Executes the SQL statement in this <code>PreparedStatement</code> object,
      * which may be any kind of SQL statement.
@@ -177,7 +172,7 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
         if (executeInternal()) {
             return results.getResultSet();
         }
-        return MariaSelectResultSet.EMPTY;
+        return SelectResultSetCommon.EMPTY;
     }
 
 

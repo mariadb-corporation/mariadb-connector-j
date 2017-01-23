@@ -6,7 +6,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>1.6.0-SNAPSHOT</version>
+    <version>${driver.version}</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
@@ -18,7 +18,12 @@
         <checkstyleVersion>6.11.2</checkstyleVersion>
         <checkstyle.plugin.version>2.16</checkstyle.plugin.version>
         <sevntu.checkstyle.plugin.version>1.15.0</sevntu.checkstyle.plugin.version>
-
+        <driver.version.major>2</driver.version.major>
+        <driver.version.minor>0</driver.version.minor>
+        <driver.version.patch>0</driver.version.patch>
+        <driver.version.qualifier>SNAPSHOT</driver.version.qualifier>
+        <driver.version.jre></driver.version.jre>
+        <driver.version>${driver.version.major}.${driver.version.minor}.${driver.version.patch}${driver.version.jre}-${driver.version.qualifier}</driver.version>
     </properties>
 
     <licenses>
@@ -69,94 +74,134 @@
     </developers>
 
     <profiles>
+
         <profile>
-            <id>test</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
+            <id>jdbc41</id>
+            <properties>
+                <driver.version.jre>.jre7</driver.version.jre>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-surefire-plugin</artifactId>
-                        <version>2.18.1</version>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>1.12</version>
+                        <executions>
+                            <execution>
+                                <phase>generate-sources</phase>
+                                <goals><goal>add-source</goal></goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/jdbc41/main/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.6.0</version>
                         <configuration>
-                            <argLine>-Xmx1g</argLine>
-                            <systemProperties>
-                                <property>
-                                    <name>java.util.logging.config.file</name>
-                                    <value>src/test/resources/logging.properties</value>
-                                </property>
-                            </systemProperties>
+                            <source>1.7</source>
+                            <target>1.7</target>
+                            <compilerArgs>
+                                <arg>-Xlint:all,-options,-path</arg>
+                            </compilerArgs>
                         </configuration>
                     </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>2.10.4</version>
+                        <configuration>
+                            <sourceFileIncludes>src/jdbc41/main/java</sourceFileIncludes>
+                            <sourceFileExcludes>src/jdbc42/main/java</sourceFileExcludes>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <phase>prepare-package</phase>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
                 </plugins>
             </build>
         </profile>
 
         <profile>
-            <id>package-source</id>
+            <id>jdbc42</id>
             <activation>
-                <property>
-                    <name>package-source</name>
-                    <value>true</value>
-                </property>
+                <activeByDefault>true</activeByDefault>
             </activation>
+            <properties>
+                <driver.version.jre>.jre8</driver.version.jre>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.4.0</version>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <version>1.12</version>
                         <executions>
                             <execution>
-                                <phase>install</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
+                                <phase>generate-sources</phase>
+                                <goals><goal>add-source</goal></goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/jdbc42/main/java</source>
+                                    </sources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>add-test-source</id>
+                                <phase>generate-test-sources</phase>
+                                <goals><goal>add-test-source</goal></goals>
+                                <configuration>
+                                    <sources>
+                                        <source>src/jdbc42/main/test</source>
+                                    </sources>
+                                </configuration>
                             </execution>
                         </executions>
+                    </plugin>
+
+                    <plugin>
+                        <artifactId>maven-compiler-plugin</artifactId>
+                        <version>3.6.0</version>
                         <configuration>
-                            <executable>git</executable>
-                            <arguments>
-                                <argument>archive</argument>
-                                <argument>--format</argument>
-                                <argument>tar.gz</argument>
-                                <argument>--output</argument>
-                                <argument>${project.name}-${project.version}.tar.gz</argument>
-                                <argument>master</argument>
-                            </arguments>
+                            <source>1.8</source>
+                            <target>1.8</target>
+                            <compilerArgs>
+                                <arg>-Xlint:all,-options,-path</arg>
+                            </compilerArgs>
                         </configuration>
                     </plugin>
+
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.6</version>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>2.10.4</version>
+                        <configuration>
+                            <sourceFileIncludes>src/jdbc42/main/java</sourceFileIncludes>
+                            <sourceFileExcludes>src/jdbc41/main/java</sourceFileExcludes>
+                        </configuration>
                         <executions>
                             <execution>
-                                <phase>verify</phase>
+                                <id>attach-javadocs</id>
+                                <phase>prepare-package</phase>
                                 <goals>
-                                    <goal>sign</goal>
+                                    <goal>jar</goal>
                                 </goals>
                             </execution>
                         </executions>
                     </plugin>
-                    <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.6.6</version>
-                        <extensions>true</extensions>
-                        <executions>
-                            <execution>
-                                <phase>deploy</phase>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                            <autoReleaseAfterClose>false</autoReleaseAfterClose>
-                        </configuration>
-                    </plugin>
+
                 </plugins>
             </build>
         </profile>
@@ -194,71 +239,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.5.1</version>
-
-                <configuration>
-                    <compilerArgs>
-                        <arg>-Xlint:all,-options,-path</arg>
-                    </compilerArgs>
-                    <source>1.7</source>
-                    <target>1.7</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.0.2</version>
-                <!--phase package-->
-                <configuration>
-                    <excludes>
-                        <exclude>**/logging.properties</exclude>
-                    </excludes>
-                    <archive>
-                        <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
-                        <manifestEntries>
-                            <Bundle-Version>${project.version}.0</Bundle-Version>
-                            <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
-                            <Bundle-Name>MariaDB JDBC Client</Bundle-Name>
-                            <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
-                            <Export-Package>org.mariadb.jdbc</Export-Package>
-                            <Import-Package>
-                                javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql;resolution:=optional,javax.transaction.xa;resolution:=optional
-                            </Import-Package>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <version>3.0.1</version>
-                <executions>
-                    <execution>
-                        <!--package phase-->
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>build-helper-maven-plugin</artifactId>
-                <version>1.12</version>
-                <executions>
-                    <execution>
-                        <!--validate phase-->
-                        <id>parse-version</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>parse-version</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
 
             <plugin>
                 <groupId>com.google.code.maven-replacer-plugin</groupId>
@@ -282,41 +262,106 @@
                         </replacement>
                         <replacement>
                             <token>@version</token>
-                            <value>${project.version}</value>
+                            <value>${driver.version}</value>
                         </replacement>
                         <replacement>
                             <token>@majorVersion</token>
-                            <value>${parsedVersion.majorVersion}</value>
+                            <value>${driver.version.major}</value>
                         </replacement>
                         <replacement>
                             <token>@minorVersion</token>
-                            <value>${parsedVersion.minorVersion}</value>
+                            <value>${driver.version.minor}</value>
                         </replacement>
                         <replacement>
                             <token>@patchVersion</token>
-                            <value>${parsedVersion.incrementalVersion}</value>
+                            <value>${driver.version.patch}</value>
                         </replacement>
                         <replacement>
                             <token>@qualifier</token>
-                            <value>${parsedVersion.qualifier}</value>
+                            <value>${driver.version.jre}-${driver.version.qualifier}</value>
                         </replacement>
                     </replacements>
                 </configuration>
             </plugin>
+
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.10.4</version>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.4.0</version>
                 <executions>
                     <execution>
-                        <id>attach-javadocs</id>
-                        <phase>prepare-package</phase>
+                        <phase>install</phase>
                         <goals>
-                            <goal>jar</goal>
+                            <goal>exec</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <executable>git</executable>
+                    <arguments>
+                        <argument>archive</argument>
+                        <argument>--format</argument>
+                        <argument>tar.gz</argument>
+                        <argument>--output</argument>
+                        <argument>${project.name}-${project.version}.tar.gz</argument>
+                        <argument>master</argument>
+                    </arguments>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.0.2</version>
+                <configuration>
+                    <archive>
+                        <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
+                        <manifestEntries>
+                            <Bundle-Version>${project.version}</Bundle-Version>
+                            <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
+                            <Bundle-Name>MariaDB JDBC Client</Bundle-Name>
+                            <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
+                            <Export-Package>org.mariadb.jdbc</Export-Package>
+                            <Import-Package>
+                                javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql;resolution:=optional,javax.transaction.xa;resolution:=optional
+                            </Import-Package>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.sonatype.plugins</groupId>
+                <artifactId>nexus-staging-maven-plugin</artifactId>
+                <version>1.6.6</version>
+                <extensions>true</extensions>
+                <executions>
+                    <execution>
+                        <phase>deploy</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <serverId>ossrh</serverId>
+                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+                    <autoReleaseAfterClose>false</autoReleaseAfterClose>
+                </configuration>
+            </plugin>
+
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.6</version>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
                         </goals>
                     </execution>
                 </executions>
             </plugin>
+
         </plugins>
     </build>
 
@@ -377,10 +422,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-
-    <parent>
-        <groupId>org.sonatype.oss</groupId>
-        <artifactId>oss-parent</artifactId>
-        <version>9</version>
-    </parent>
 </project>

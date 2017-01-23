@@ -61,12 +61,13 @@ import java.math.BigInteger;
 import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
+import java.util.TimeZone;
 
-public abstract class AbstractPrepareStatement extends MariaDbStatement implements PreparedStatement, Cloneable {
+public abstract class PrepareStatementCommon extends MariaDbStatement implements PreparedStatement, Cloneable {
     protected boolean useFractionalSeconds;
     protected boolean hasLongData = false;
 
-    public AbstractPrepareStatement(MariaDbConnection connection, int resultSetScrollType) {
+    public PrepareStatementCommon(MariaDbConnection connection, int resultSetScrollType) {
         super(connection, resultSetScrollType);
     }
 
@@ -74,10 +75,8 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
 
     protected abstract boolean useFractionalSeconds();
 
-    protected abstract Calendar cal();
-
-    public AbstractPrepareStatement clone() throws CloneNotSupportedException {
-        return (AbstractPrepareStatement) super.clone();
+    public PrepareStatementCommon clone() throws CloneNotSupportedException {
+        return (PrepareStatementCommon) super.clone();
     }
 
     /**
@@ -350,7 +349,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
             setNull(parameterIndex, Types.DATE);
             return;
         }
-        setParameter(parameterIndex, new DateParameter(date, cal, protocol.getOptions()));
+        setParameter(parameterIndex, new DateParameter(date, cal != null ? cal.getTimeZone() : TimeZone.getDefault(), protocol.getOptions()));
     }
 
     /**
@@ -365,7 +364,11 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      *                      <code>PreparedStatement</code>
      */
     public void setDate(int parameterIndex, Date date) throws SQLException {
-        setDate(parameterIndex, date, cal());
+        if (date == null) {
+            setNull(parameterIndex, Types.DATE);
+            return;
+        }
+        setParameter(parameterIndex, new DateParameter(date, TimeZone.getDefault(), protocol.getOptions()));
     }
 
     /**
@@ -387,12 +390,26 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
             setNull(parameterIndex, ColumnType.TIME);
             return;
         }
-        setParameter(parameterIndex, new TimeParameter(time, cal, useFractionalSeconds()));
+        setParameter(parameterIndex, new TimeParameter(time, cal != null ? cal.getTimeZone() : TimeZone.getDefault(), useFractionalSeconds()));
     }
 
 
+    /**
+     * Sets the designated parameter to the given <code>java.sql.Time</code> value.
+     * the driver uses the default timezone, which is that of the virtual machine running the application.
+     *
+     * @param parameterIndex the first parameter is 1, the second is 2, ...
+     * @param time           the parameter value
+     * @throws SQLException if parameterIndex does not correspond to a parameter marker in the SQL statement;
+     *                      if a database access error occurs or this method is called on a closed
+     *                      <code>PreparedStatement</code>
+     */
     public void setTime(final int parameterIndex, final Time time) throws SQLException {
-        setTime(parameterIndex, time, cal());
+        if (time == null) {
+            setNull(parameterIndex, ColumnType.TIME);
+            return;
+        }
+        setParameter(parameterIndex, new TimeParameter(time, TimeZone.getDefault(), useFractionalSeconds()));
     }
 
     /**
@@ -415,7 +432,8 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
             setNull(parameterIndex, ColumnType.DATETIME);
             return;
         }
-        setParameter(parameterIndex, new TimestampParameter(timestamp, cal, useFractionalSeconds(), protocol.getOptions()));
+        TimeZone tz = cal != null ? cal.getTimeZone() : protocol.getTimeZone();
+        setParameter(parameterIndex, new TimestampParameter(timestamp, tz, useFractionalSeconds()));
     }
 
 
@@ -430,7 +448,12 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      *                      <code>PreparedStatement</code>
      */
     public void setTimestamp(final int parameterIndex, final Timestamp timestamp) throws SQLException {
-        setTimestamp(parameterIndex, timestamp, cal());
+        if (timestamp == null) {
+            setNull(parameterIndex, ColumnType.DATETIME);
+            return;
+        }
+        setParameter(parameterIndex, new TimestampParameter(timestamp, protocol.getTimeZone(), useFractionalSeconds()));
+
     }
 
     /**
@@ -766,22 +789,6 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
      * <br>
      * <p>The JDBC specification specifies a standard mapping from Java <code>Object</code> types to SQL types.  The
      * given argument will be converted to the corresponding SQL type before being sent to the database.
-     * <br>
-     * <p>Note that this method may be used to pass datatabase- specific abstract data types, by using a driver-specific
-     * Java type.
-     * <br>
-     * If the object is of a class implementing the interface <code>SQLData</code>, the JDBC driver should call the
-     * method <code>SQLData.writeSQL</code> to write it to the SQL data stream. If, on the other hand, the object is of
-     * a class implementing <code>Ref</code>, <code>Blob</code>, <code>Clob</code>,  <code>NClob</code>,
-     * <code>Struct</code>, <code>java.net.URL</code>, <code>RowId</code>, <code>SQLXML</code> or <code>Array</code>,
-     * the driver should pass it to the database as a value of the corresponding SQL type.
-     * <br>
-     * <b>Note:</b> Not all databases allow for a non-typed Null to be sent to the backend. For maximum portability, the
-     * <code>setNull</code> or the <code>setObject(int parameterIndex, Object x, int sqlType)</code> method should be
-     * used instead of <code>setObject(int parameterIndex, Object x)</code>.
-     * <br>
-     * <b>Note:</b> This method throws an exception if there is an ambiguity, for example, if the object is of a class
-     * implementing more than one of the interfaces named above.
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
      * @param obj            the object containing the input parameter value
@@ -831,17 +838,20 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
         } else if (obj instanceof Clob) {
             setClob(parameterIndex, (Clob) obj);
         } else {
-            try {
-                setParameter(parameterIndex, new SerializableParameter(obj, isNoBackslashEscapes()));
-                hasLongData = true;
-            } catch (IOException e) {
-                throw ExceptionMapper.getSqlException("Could not set serializable parameter in setObject: " + e.getMessage(), e);
+            if (!setAdditionalObject(parameterIndex, obj)) {
+                //fallback to sending serialized object
+                try {
+                    setParameter(parameterIndex, new SerializableParameter(obj, isNoBackslashEscapes()));
+                    hasLongData = true;
+                } catch (IOException e) {
+                    throw ExceptionMapper.getSqlException(
+                            "Could not set parameter in setObject, Object class is not handled (Class : " + obj.getClass() + ")");
+                }
             }
         }
-
     }
 
-    private void setInternalObject(final int parameterIndex, final Object obj, final int targetSqlType,
+    protected void setInternalObject(final int parameterIndex, final Object obj, final int targetSqlType,
                                    final long scaleOrLength) throws SQLException {
         switch (targetSqlType) {
             case Types.ARRAY:
@@ -903,17 +913,17 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
                         setString(parameterIndex, str);
                         break;
                     case Types.TIMESTAMP:
-                        if (obj != null && ((String) obj).startsWith("0000-00-00")) {
+                        if (str.startsWith("0000-00-00")) {
                             setTimestamp(parameterIndex, null);
                         } else {
-                            setTimestamp(parameterIndex, Timestamp.valueOf((String) obj));
+                            setTimestamp(parameterIndex, Timestamp.valueOf(str));
                         }
                         break;
                     case Types.TIME:
                         setTime(parameterIndex, Time.valueOf((String) obj));
                         break;
                     default:
-                        throw ExceptionMapper.getSqlException("Could not convert [" + str + "] to " + targetSqlType);
+                        setStringObject(parameterIndex, str, targetSqlType);
                 }
             } catch (IllegalArgumentException e) {
                 throw ExceptionMapper.getSqlException("Could not convert [" + str + "] to " + targetSqlType, e);
@@ -998,11 +1008,16 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
         } else if (obj instanceof Reader) {
             setCharacterStream(parameterIndex, (Reader) obj, scaleOrLength);
         } else {
-            throw ExceptionMapper.getSqlException("Could not set parameter in setObject, could not convert: " + obj.getClass() + " to "
-                    + targetSqlType);
+            if (!setAdditionalObject(parameterIndex, obj)) {
+                throw ExceptionMapper.getSqlException("Could not set parameter in setObject, could not convert: " + obj.getClass() + " to "
+                        + targetSqlType);
+            }
         }
     }
 
+    public abstract void setStringObject(final int parameterIndex, final String str, final int targetSqlType) throws SQLException;
+
+    public abstract boolean setAdditionalObject(final int parameterIndex, final Object obj) throws SQLException;
 
     /**
      * Sets the designated parameter to the given input stream, which will have the specified number of bytes. When a

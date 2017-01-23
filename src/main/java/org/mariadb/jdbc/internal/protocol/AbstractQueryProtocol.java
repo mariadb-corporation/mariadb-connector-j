@@ -62,7 +62,6 @@ import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
 import org.mariadb.jdbc.internal.packet.send.SendChangeDbPacket;
 import org.mariadb.jdbc.internal.packet.send.SendPingPacket;
 import org.mariadb.jdbc.internal.queryresults.*;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
@@ -1157,8 +1156,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
 
             //read resultSet
-            MariaSelectResultSet mariaSelectResultset = new MariaSelectResultSet(ci, results, this, packetFetcher, callableResult);
-            results.addResultSet(mariaSelectResultset, moreResults);
+            SelectResultSet selectResultSet = new SelectResultSet(ci, results, this, packetFetcher, callableResult);
+            results.addResultSet(selectResultSet, moreResults);
 
         } catch (IOException e) {
             throw new SQLException("Could not read result set: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);

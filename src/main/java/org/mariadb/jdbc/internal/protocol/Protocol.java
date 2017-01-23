@@ -69,6 +69,7 @@ import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 
 public interface Protocol {
@@ -215,7 +216,7 @@ public interface Protocol {
 
     String getServerData(String code);
 
-    Calendar getCalendar();
+    TimeZone getTimeZone();
 
     void prolog(int maxRows, boolean hasProxy, MariaDbConnection connection,
                 MariaDbStatement statement) throws SQLException;

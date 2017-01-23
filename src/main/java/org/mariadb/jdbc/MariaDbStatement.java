@@ -53,7 +53,7 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.*;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
@@ -441,7 +441,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             return results.getResultSet();
         }
         //throw new SQLException("executeQuery() with query '" + query +"' did not return a result set");
-        return MariaSelectResultSet.EMPTY;
+        return SelectResultSetCommon.EMPTY;
     }
 
 
@@ -780,7 +780,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         if (results.getCmdInformation() != null) {
             return results.getCmdInformation().getGeneratedKeys(protocol);
         }
-        return MariaSelectResultSet.EMPTY;
+        return SelectResultSetCommon.EMPTY;
     }
 
     /**

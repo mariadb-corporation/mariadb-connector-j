@@ -52,7 +52,7 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.packet.dao.parameters.NullParameter;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.SelectResultSet;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 
 import java.sql.ResultSet;
@@ -61,7 +61,7 @@ import java.util.ArrayList;
 
 public class MariaDbProcedureStatement extends AbstractCallableProcedureStatement implements CloneableCallableStatement {
 
-    private MariaSelectResultSet outputResultSet = null;
+    private SelectResultSet outputResultSet = null;
 
     /**
      * Specific implementation of CallableStatement to handle function call, represent by call like
@@ -99,7 +99,7 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
         }
     }
 
-    protected MariaSelectResultSet getResult() throws SQLException {
+    protected SelectResultSet getResult() throws SQLException {
         if (outputResultSet == null) {
             throw new SQLException("No output result.");
         }

@@ -50,10 +50,9 @@ OF SUCH DAMAGE.
 */
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
 
@@ -128,7 +127,7 @@ public class CmdInformationRewrite implements CmdInformation {
                 }
             }
         }
-        return MariaSelectResultSet.createGeneratedData(ret, protocol, true);
+        return SelectResultSetCommon.createGeneratedData(ret, protocol, true);
     }
 
     public int getCurrentStatNumber() {

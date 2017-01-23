@@ -62,6 +62,7 @@ import org.mariadb.jdbc.internal.packet.result.*;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.ColumnNameMap;
 import org.mariadb.jdbc.internal.queryresults.Results;
+import org.mariadb.jdbc.internal.queryresults.SelectResultSet;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
 import org.mariadb.jdbc.internal.util.ExceptionCode;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
@@ -76,37 +77,36 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.sql.Date;
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 @SuppressWarnings("deprecation")
-public class MariaSelectResultSet implements ResultSet {
+public abstract class SelectResultSetCommon implements ResultSet {
 
-    public static final MariaSelectResultSet EMPTY = createEmptyResultSet();
+    public static final SelectResultSetCommon EMPTY = createEmptyResultSet();
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
     private static final String zeroTimestamp = "0000-00-00 00:00:00";
     private static final String zeroDate = "0000-00-00";
     private static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.0+$");
-    private static Logger logger = LoggerFactory.getLogger(MariaSelectResultSet.class);
+    private static Logger logger = LoggerFactory.getLogger(SelectResultSetCommon.class);
     private boolean callableResult;
     private Protocol protocol;
     private ReadPacketFetcher packetFetcher;
     private MariaDbInputStream inputStream;
     private MariaDbStatement statement;
     private RowPacket rowPacket;
-    private ColumnInformation[] columnsInformation;
+    protected ColumnInformation[] columnsInformation;
     private byte[] lastReusableArray = null;
     private boolean isEof;
-    private boolean isBinaryEncoded;
+    protected boolean isBinaryEncoded;
     private int dataFetchTime;
     private boolean streaming;
     private int columnInformationLength;
@@ -116,10 +116,10 @@ public class MariaSelectResultSet implements ResultSet {
     private int resultSetScrollType;
     private int rowPointer;
     private ColumnNameMap columnNameMap;
-    private Calendar cal;
+    protected TimeZone timeZone;
     private boolean lastGetWasNull;
     private int dataTypeMappingFlags;
-    private Options options;
+    protected Options options;
     private boolean returnTableAlias;
     private boolean isClosed;
 
@@ -134,24 +134,17 @@ public class MariaSelectResultSet implements ResultSet {
      * @throws IOException if any connection error occur
      * @throws SQLException if any connection error occur
      */
-    public MariaSelectResultSet(ColumnInformation[] columnInformation, Results results, Protocol protocol,
-                                ReadPacketFetcher fetcher, boolean callableResult)
+    public SelectResultSetCommon(ColumnInformation[] columnInformation, Results results, Protocol protocol,
+                                 ReadPacketFetcher fetcher, boolean callableResult)
             throws IOException, SQLException {
 
         this.statement = results.getStatement();
         this.isClosed = false;
         this.protocol = protocol;
-        if (protocol != null) {
-            this.options = protocol.getOptions();
-            this.cal = protocol.getCalendar();
-            this.dataTypeMappingFlags = protocol.getDataTypeMappingFlags();
-            this.returnTableAlias = this.options.useOldAliasMetadataBehavior;
-        } else {
-            this.options = null;
-            this.cal = null;
-            this.dataTypeMappingFlags = 3;
-            this.returnTableAlias = false;
-        }
+        this.options = protocol.getOptions();
+        this.timeZone = protocol.getTimeZone();
+        this.dataTypeMappingFlags = protocol.getDataTypeMappingFlags();
+        this.returnTableAlias = this.options.useOldAliasMetadataBehavior;
         this.columnsInformation = columnInformation;
         this.columnNameMap = new ColumnNameMap(columnsInformation);
 
@@ -195,18 +188,18 @@ public class MariaSelectResultSet implements ResultSet {
      * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
      *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      */
-    public MariaSelectResultSet(ColumnInformation[] columnInformation, List<byte[][]> resultSet, Protocol protocol,
-                                int resultSetScrollType) {
+    public SelectResultSetCommon(ColumnInformation[] columnInformation, List<byte[][]> resultSet, Protocol protocol,
+                                 int resultSetScrollType) {
         this.statement = null;
         this.isClosed = false;
         if (protocol != null) {
             this.options = protocol.getOptions();
-            this.cal = protocol.getCalendar();
+            this.timeZone = protocol.getTimeZone();
             this.dataTypeMappingFlags = protocol.getDataTypeMappingFlags();
             this.returnTableAlias = this.options.useOldAliasMetadataBehavior;
         } else {
             this.options = null;
-            this.cal = null;
+            this.timeZone = TimeZone.getDefault();
             this.dataTypeMappingFlags = 3;
             this.returnTableAlias = false;
         }
@@ -249,14 +242,14 @@ public class MariaSelectResultSet implements ResultSet {
             }
         }
         if (findColumnReturnsOne) {
-            return new MariaSelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE) {
+            return new SelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE) {
                 @Override
                 public int findColumn(String name) {
                     return 1;
                 }
             };
         }
-        return new MariaSelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
+        return new SelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
     }
 
 
@@ -307,14 +300,14 @@ public class MariaSelectResultSet implements ResultSet {
             }
             rows.add(row);
         }
-        return new MariaSelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
+        return new SelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
     }
 
-    private static MariaSelectResultSet createEmptyResultSet() {
+    private static SelectResultSetCommon createEmptyResultSet() {
         ColumnInformation[] columns = new ColumnInformation[1];
         columns[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
 
-        return new MariaSelectResultSet(columns, new ArrayList<byte[][]>(), null,
+        return new SelectResultSet(columns, new ArrayList<byte[][]>(), null,
                 TYPE_SCROLL_SENSITIVE);
     }
 
@@ -841,7 +834,7 @@ public class MariaSelectResultSet implements ResultSet {
      */
     public String getString(int columnIndex) throws SQLException {
         byte[] rawByte = checkObjectRange(columnIndex);
-        return getString(rawByte, columnsInformation[columnIndex - 1], cal);
+        return getString(rawByte, columnsInformation[columnIndex - 1]);
     }
 
     /**
@@ -852,10 +845,6 @@ public class MariaSelectResultSet implements ResultSet {
     }
 
     private String getString(byte[] rawBytes, ColumnInformation columnInfo) throws SQLException {
-        return getString(rawBytes, columnInfo, null);
-    }
-
-    private String getString(byte[] rawBytes, ColumnInformation columnInfo, Calendar cal) throws SQLException {
         if (rawBytes == null) {
             return null;
         }
@@ -898,21 +887,14 @@ public class MariaSelectResultSet implements ResultSet {
                 return getTimeString(rawBytes, columnInfo);
             case DATE:
                 if (isBinaryEncoded) {
-                    try {
-                        Date date = getDate(rawBytes, columnInfo, cal);
-                        return (date == null) ? null : date.toString();
-                    } catch (ParseException e) {
-                    }
+                    Date date = getDate(rawBytes, columnInfo);
+                    return (date == null) ? null : date.toString();
                 }
                 break;
             case YEAR:
                 if (options.yearIsDateType) {
-                    try {
-                        Date date = getDate(rawBytes, columnInfo, cal);
-                        return (date == null) ? null : date.toString();
-                    } catch (ParseException e) {
-                        //eat exception
-                    }
+                    Date date = getDate(rawBytes, columnInfo);
+                    return (date == null) ? null : date.toString();
                 }
                 if (this.isBinaryEncoded) {
                     return String.valueOf(getSmallInt(rawBytes, columnInfo));
@@ -920,18 +902,14 @@ public class MariaSelectResultSet implements ResultSet {
                 break;
             case TIMESTAMP:
             case DATETIME:
-                try {
-                    Timestamp timestamp = getTimestamp(rawBytes, columnInfo, cal);
-                    if (timestamp == null) {
-                        if (rawBytes != null && !this.isBinaryEncoded) {
-                            return new String(rawBytes, StandardCharsets.UTF_8);
-                        }
-                        return null;
+                Timestamp timestamp = getTimestamp(rawBytes, columnInfo, null);
+                if (timestamp == null) {
+                    if (rawBytes != null && !this.isBinaryEncoded) {
+                        return new String(rawBytes, StandardCharsets.UTF_8);
                     }
-                    return timestamp.toString();
-                } catch (ParseException e) {
+                    return null;
                 }
-                break;
+                return timestamp.toString();
             case DECIMAL:
             case OLDDECIMAL:
                 BigDecimal bigDecimal = getBigDecimal(rawBytes, columnInfo);
@@ -1373,13 +1351,7 @@ public class MariaSelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public Date getDate(int columnIndex) throws SQLException {
-        try {
-            return getDate(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1], cal);
-        } catch (ParseException e) {
-            throw ExceptionMapper.getSqlException("Could not parse column as date, was: \""
-                    + getString(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1])
-                    + "\"", e);
-        }
+        return getDate(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1]);
     }
 
     /**
@@ -1393,11 +1365,7 @@ public class MariaSelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public Date getDate(int columnIndex, Calendar cal) throws SQLException {
-        try {
-            return getDate(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1], cal);
-        } catch (ParseException e) {
-            throw ExceptionMapper.getSqlException("Could not parse as date");
-        }
+        return getDate(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1]);
     }
 
     /**
@@ -1412,40 +1380,37 @@ public class MariaSelectResultSet implements ResultSet {
      *
      * @param rawBytes   bytes
      * @param columnInfo current column information
-     * @param cal        session calendar
      * @return date
-     * @throws ParseException if raw data cannot be parse
+     * @throws SQLException if raw data cannot be parse
      */
-    private Date getDate(byte[] rawBytes, ColumnInformation columnInfo, Calendar cal) throws ParseException {
-        if (rawBytes == null) {
-            return null;
-        }
+    public Date getDate(byte[] rawBytes, ColumnInformation columnInfo) throws SQLException {
+
+        if (rawBytes == null) return null;
+
 
         if (!this.isBinaryEncoded) {
             String rawValue = new String(rawBytes, StandardCharsets.UTF_8);
             String zeroDate = "0000-00-00";
 
-            if (rawValue.equals(zeroDate)) {
-                return null;
-            }
+            if (rawValue.equals(zeroDate)) return null;
 
-            SimpleDateFormat sdf;
             switch (columnInfo.getColumnType()) {
                 case TIMESTAMP:
                 case DATETIME:
-                    Timestamp timestamp = getTimestamp(rawBytes, columnInfo, cal);
+                    Timestamp timestamp = getTimestamp(rawBytes, columnInfo, null);
                     if (timestamp == null) return null;
                     return new Date(timestamp.getTime());
+
                 case TIME:
-                    Time time = getTime(rawBytes, columnInfo, cal);
-                    if (time == null) return null;
-                    return new Date(time.getTime());
+                    throw new SQLException("Cannot read DATE using a Types.TIME field");
+
                 case DATE:
                     return new Date(
                             Integer.parseInt(rawValue.substring(0, 4)) - 1900,
                             Integer.parseInt(rawValue.substring(5, 7)) - 1,
                             Integer.parseInt(rawValue.substring(8, 10))
                     );
+
                 case YEAR:
                     int year = Integer.parseInt(rawValue);
                     if (rawBytes.length == 2 && columnInfo.getLength() == 2) {
@@ -1457,16 +1422,23 @@ public class MariaSelectResultSet implements ResultSet {
                     }
 
                     return new Date(year - 1900, 0, 1);
+
                 default:
-                    sdf = new SimpleDateFormat("yyyy-MM-dd");
-                    if (cal != null) {
-                        sdf.setCalendar(cal);
+
+                    try {
+
+                        DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                        sdf.setTimeZone(timeZone);
+                        java.util.Date utilDate = sdf.parse(rawValue);
+                        return new Date(utilDate.getTime());
+
+                    } catch (ParseException e) {
+                        throw ExceptionMapper.getSqlException("Could not get object as Date : " + e.getMessage(), "S1009", e);
                     }
             }
-            java.util.Date utilDate = sdf.parse(rawValue);
-            return new Date(utilDate.getTime());
+
         } else {
-            return binaryDate(rawBytes, columnInfo, cal);
+            return binaryDate(rawBytes, columnInfo);
         }
     }
 
@@ -1474,13 +1446,7 @@ public class MariaSelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public Time getTime(int columnIndex) throws SQLException {
-        try {
-            return getTime(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1], cal);
-        } catch (ParseException e) {
-            throw ExceptionMapper.getSqlException("Could not parse column as time, was: \""
-                    + getString(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1])
-                    + "\"", e);
-        }
+        return getTime(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1]);
     }
 
     /**
@@ -1494,11 +1460,7 @@ public class MariaSelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public Time getTime(int columnIndex, Calendar cal) throws SQLException {
-        try {
-            return getTime(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1], cal);
-        } catch (ParseException e) {
-            throw ExceptionMapper.getSqlException("Could not parse time", e);
-        }
+        return getTime(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1]);
     }
 
     /**
@@ -1513,11 +1475,10 @@ public class MariaSelectResultSet implements ResultSet {
      *
      * @param rawBytes   bytes
      * @param columnInfo current column information
-     * @param cal        session calendar
      * @return time value
-     * @throws ParseException if raw data cannot be parse
+     * @throws SQLException if raw data cannot be parse
      */
-    private Time getTime(byte[] rawBytes, ColumnInformation columnInfo, Calendar cal) throws ParseException {
+    public Time getTime(byte[] rawBytes, ColumnInformation columnInfo) throws SQLException {
         if (rawBytes == null) {
             return null;
         }
@@ -1529,16 +1490,18 @@ public class MariaSelectResultSet implements ResultSet {
 
         if (!this.isBinaryEncoded) {
             if (columnInfo.getColumnType() == ColumnType.TIMESTAMP || columnInfo.getColumnType() == ColumnType.DATETIME) {
-                Timestamp timestamp = getTimestamp(rawBytes, columnInfo, cal);
+
+                Timestamp timestamp = getTimestamp(rawBytes, columnInfo, null);
                 return (timestamp == null) ? null : new Time(timestamp.getTime());
+
             } else if (columnInfo.getColumnType() == ColumnType.DATE) {
-                Calendar zeroCal = Calendar.getInstance();
-                zeroCal.set(1970, 0, 1, 0, 0, 0);
-                zeroCal.set(Calendar.MILLISECOND, 0);
-                return new Time(zeroCal.getTimeInMillis());
+
+                throw new SQLException("Cannot read Time using a Types.DATE field");
+
             } else {
+
                 if (!options.useLegacyDatetimeCode && (raw.startsWith("-") || raw.split(":").length != 3 || raw.indexOf(":") > 3)) {
-                    throw new ParseException("Time format \"" + raw + "\" incorrect, must be HH:mm:ss", 0);
+                    throw new SQLException("Time format \"" + raw + "\" incorrect, must be HH:mm:ss");
                 }
                 boolean negate = raw.startsWith("-");
                 if (negate) {
@@ -1560,11 +1523,11 @@ public class MariaSelectResultSet implements ResultSet {
 
                     return new Time(calendar.getTimeInMillis());
                 } else {
-                    throw new ParseException(raw + " cannot be parse as time. time must have \"99:99:99\" format", 0);
+                    throw new SQLException(raw + " cannot be parse as time. time must have \"99:99:99\" format");
                 }
             }
         } else {
-            return binaryTime(rawBytes, columnInfo, cal);
+            return binaryTime(rawBytes, columnInfo);
         }
     }
 
@@ -1579,11 +1542,7 @@ public class MariaSelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
-        try {
-            return getTimestamp(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1], cal);
-        } catch (ParseException e) {
-            throw ExceptionMapper.getSqlException("Could not parse timestamp", e);
-        }
+        return getTimestamp(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1], cal != null ? cal : Calendar.getInstance(timeZone));
     }
 
     /**
@@ -1597,25 +1556,19 @@ public class MariaSelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
-        try {
-            return getTimestamp(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1], cal);
-        } catch (ParseException e) {
-            throw ExceptionMapper.getSqlException("Could not parse column as timestamp, was: \""
-                    + getString(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1])
-                    + "\"", e);
-        }
+        return getTimestamp(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1], null);
     }
 
     /**
      * Get timeStamp from raw data.
      *
-     * @param rawBytes   bytes
-     * @param columnInfo current column information
-     * @param cal        session calendar.
+     * @param rawBytes       bytes
+     * @param columnInfo     current column information
+     * @param userCalendar   user specific calendar
      * @return timestamp.
-     * @throws ParseException if text value cannot be parse
+     * @throws SQLException if text value cannot be parse
      */
-    private Timestamp getTimestamp(byte[] rawBytes, ColumnInformation columnInfo, Calendar cal) throws ParseException {
+    public Timestamp getTimestamp(byte[] rawBytes, ColumnInformation columnInfo, Calendar userCalendar) throws SQLException {
         if (rawBytes == null) {
             return null;
         }
@@ -1626,7 +1579,7 @@ public class MariaSelectResultSet implements ResultSet {
             switch (columnInfo.getColumnType()) {
                 case TIME:
                     //time does not go after millisecond
-                    Timestamp tt = new Timestamp(getTime(rawBytes, columnInfo, cal).getTime());
+                    Timestamp tt = new Timestamp(getTime(rawBytes, columnInfo).getTime());
                     tt.setNanos(extractNanos(rawValue));
                     return tt;
                 default:
@@ -1646,7 +1599,14 @@ public class MariaSelectResultSet implements ResultSet {
                         int nanoseconds = extractNanos(rawValue);
                         Timestamp timestamp;
 
-                        Calendar calendar = options.useLegacyDatetimeCode ? Calendar.getInstance() : cal;
+                        Calendar calendar;
+                        if (userCalendar != null) {
+                            calendar = userCalendar;
+                        } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
+                            calendar = Calendar.getInstance(timeZone);
+                        } else {
+                            calendar = Calendar.getInstance();
+                        }
 
                         synchronized (calendar) {
                             calendar.clear();
@@ -1662,13 +1622,13 @@ public class MariaSelectResultSet implements ResultSet {
                         timestamp.setNanos(nanoseconds);
                         return timestamp;
                     } catch (NumberFormatException n) {
-                        throw new ParseException("Value \"" + rawValue + "\" cannot be parse as Timestamp", 0);
+                        throw new SQLException("Value \"" + rawValue + "\" cannot be parse as Timestamp");
                     } catch (StringIndexOutOfBoundsException s) {
-                        throw new ParseException("Value \"" + rawValue + "\" cannot be parse as Timestamp", 0);
+                        throw new SQLException("Value \"" + rawValue + "\" cannot be parse as Timestamp");
                     }
             }
         } else {
-            return binaryTimestamp(rawBytes, columnInfo, cal);
+            return binaryTimestamp(rawBytes, columnInfo, userCalendar);
         }
 
     }
@@ -1705,11 +1665,7 @@ public class MariaSelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public Object getObject(int columnIndex) throws SQLException {
-        try {
-            return getObject(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1], dataTypeMappingFlags, cal);
-        } catch (ParseException e) {
-            throw ExceptionMapper.getSqlException("Could not get object: " + e.getMessage(), "S1009", e);
-        }
+        return getObject(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1], dataTypeMappingFlags);
     }
 
     /**
@@ -1723,76 +1679,101 @@ public class MariaSelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
-        return getObject(columnIndex);
+        throw ExceptionMapper.getFeatureNotSupportedException(
+                "Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported");
     }
 
     /**
      * {inheritDoc}.
      */
     public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
-        return getObject(findColumn(columnLabel));
+        throw ExceptionMapper.getFeatureNotSupportedException(
+                "Method ResultSet.getObject(String columnLabel, Map<String, Class<?>> map) not supported");
     }
 
     /**
      * {inheritDoc}.
      */
     @SuppressWarnings("unchecked")
-    public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
+    public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
         if (type == null) throw new SQLException("Class type cannot be null");
-        if (type.equals(String.class)) {
-            return (T) getString(parameterIndex);
-        } else if (type.equals(Integer.class)) {
-            getInt(parameterIndex);
-        } else if (type.equals(Long.class)) {
-            return (T) (Long) getLong(parameterIndex);
-        } else if (type.equals(Short.class)) {
-            return (T) (Short) getShort(parameterIndex);
-        } else if (type.equals(Double.class)) {
-            return (T) (Double) getDouble(parameterIndex);
-        } else if (type.equals(Float.class)) {
-            return (T) (Float) getFloat(parameterIndex);
-        } else if (type.equals(Byte.class)) {
-            return (T) (Byte) getByte(parameterIndex);
-        } else if (type.equals(byte[].class)) {
-            return (T) getBytes(parameterIndex);
-        } else if (type.equals(Date.class)) {
-            return (T) getDate(parameterIndex);
-        } else if (type.equals(Time.class)) {
-            return (T) getTime(parameterIndex);
-        } else if (type.equals(Timestamp.class)) {
-            return (T) getTimestamp(parameterIndex);
-        } else if (type.equals(Boolean.class)) {
-            return (T) (Boolean) getBoolean(parameterIndex);
-        } else if (type.equals(Blob.class)) {
-            return (T) getBlob(parameterIndex);
-        } else if (type.equals(Clob.class)) {
-            return (T) getClob(parameterIndex);
-        } else if (type.equals(NClob.class)) {
-            return (T) getNClob(parameterIndex);
-        } else if (type.equals(InputStream.class)) {
-            return (T) getBinaryStream(parameterIndex);
-        } else if (type.equals(Reader.class)) {
-            return (T) getCharacterStream(parameterIndex);
-        } else if (type.equals(BigDecimal.class)) {
-            return (T) getBigDecimal(parameterIndex);
-        } else if (type.equals(BigInteger.class)) {
-            return (T) getBigInteger(checkObjectRange(parameterIndex), columnsInformation[parameterIndex - 1]);
-        } else if (type.equals(Clob.class)) {
-            return (T) getClob(parameterIndex);
+
+        switch (type.getName()) {
+
+            case "java.lang.String":
+                return type.cast(getString(columnIndex));
+
+            case "java.lang.Integer":
+                return type.cast(getInt(columnIndex));
+
+            case "java.lang.Long":
+                return type.cast(getLong(columnIndex));
+
+            case "java.lang.Short":
+                return type.cast(getShort(columnIndex));
+
+            case "java.lang.Double":
+                return type.cast(getDouble(columnIndex));
+
+            case "java.lang.Float":
+                return type.cast(getFloat(columnIndex));
+
+            case "java.lang.Byte":
+                return type.cast(getByte(columnIndex));
+
+            case "java.sql.Date":
+                return type.cast(getDate(columnIndex));
+
+            case "java.sql.Time":
+                return type.cast(getTime(columnIndex));
+
+            case "java.util.Date":
+            case "java.sql.Timestamp":
+                return type.cast(getTimestamp(columnIndex));
+
+            case "java.util.Calendar":
+                Calendar calendar = Calendar.getInstance(timeZone);
+                Timestamp timestamp = getTimestamp(columnIndex);
+                if (timestamp == null) return null;
+                calendar.setTimeInMillis(timestamp.getTime());
+                return type.cast(calendar);
+
+            case "java.lang.Boolean":
+                return type.cast(getBoolean(columnIndex));
+
+            case "java.sql.Blob":
+                return type.cast(getBlob(columnIndex));
+
+            case "java.sql.Clob":
+                return type.cast(getClob(columnIndex));
+
+            case "java.sql.NClob":
+                return type.cast(getNClob(columnIndex));
+
+            case "java.io.InputStream":
+                return type.cast(getBinaryStream(columnIndex));
+
+            case "java.io.Reader":
+                return type.cast(getCharacterStream(columnIndex));
+
+            case "java.math.BigDecimal":
+                return type.cast(getBigDecimal(columnIndex));
+
+            case "java.io.BigInteger":
+                return type.cast(getBigInteger(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1]));
+
+            default:
+
+                if (type.equals(byte[].class)) return type.cast(getBytes(columnIndex));
+                return getAdditionalObject(columnIndex, type);
+
         }
 
-        Object obj = getObject(parameterIndex);
-        if (obj == null) return null;
-        if (obj.getClass().isInstance(type)) {
-            return (T) obj;
-        } else {
-            throw new SQLException("result cannot be cast as  '" + type.getName() + "' (is '" + obj.getClass().getName() + "'");
-        }
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T getObject(String columnLabel, Class<T> arg1) throws SQLException {
-        return (T) getObject(findColumn(columnLabel));
+    public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
+        return type.cast(getObject(findColumn(columnLabel), type));
     }
 
     /**
@@ -1801,12 +1782,12 @@ public class MariaSelectResultSet implements ResultSet {
      * @param rawBytes             bytes
      * @param columnInfo           current column information
      * @param dataTypeMappingFlags dataTypeflag (year is date or int, bit boolean or int,  ...)
-     * @param cal                  session calendar
      * @return the object value.
      * @throws ParseException if data cannot be parse
      */
-    private Object getObject(byte[] rawBytes, ColumnInformation columnInfo, int dataTypeMappingFlags, Calendar cal)
-            throws SQLException, ParseException {
+    private Object getObject(byte[] rawBytes, ColumnInformation columnInfo, int dataTypeMappingFlags)
+            throws SQLException {
+
         if (rawBytes == null) {
             return null;
         }
@@ -1838,16 +1819,18 @@ public class MariaSelectResultSet implements ResultSet {
                 return getLong(rawBytes, columnInfo);
             case DOUBLE:
                 return getDouble(rawBytes, columnInfo);
-            case TIMESTAMP:
-            case DATETIME:
-                return getTimestamp(rawBytes, columnInfo, cal);
-            case DATE:
-                return getDate(rawBytes, columnInfo, cal);
             case VARCHAR:
                 if (columnInfo.isBinary()) {
                     return rawBytes;
                 }
                 return getString(rawBytes, columnInfo);
+            case TIMESTAMP:
+            case DATETIME:
+                return getTimestamp(rawBytes, columnInfo, null);
+            case DATE:
+                return getDate(rawBytes, columnInfo);
+            case TIME:
+                return getTime(rawBytes, columnInfo);
             case DECIMAL:
                 return getBigDecimal(rawBytes, columnInfo);
             case BLOB:
@@ -1859,7 +1842,7 @@ public class MariaSelectResultSet implements ResultSet {
                 return null;
             case YEAR:
                 if ((dataTypeMappingFlags & YEAR_IS_DATE_TYPE) != 0) {
-                    return getDate(rawBytes, columnInfo, cal);
+                    return getDate(rawBytes, columnInfo);
                 }
                 return getShort(rawBytes, columnInfo);
             case SMALLINT:
@@ -1867,8 +1850,6 @@ public class MariaSelectResultSet implements ResultSet {
                 return getInt(rawBytes, columnInfo);
             case FLOAT:
                 return getFloat(rawBytes, columnInfo);
-            case TIME:
-                return getTime(rawBytes, columnInfo, cal);
             case VARSTRING:
             case STRING:
                 if (columnInfo.isBinary()) {
@@ -1888,8 +1869,10 @@ public class MariaSelectResultSet implements ResultSet {
             default:
                 break;
         }
-        throw new RuntimeException(columnInfo.getColumnType().toString());
+        throw ExceptionMapper.getFeatureNotSupportedException("Type '" + columnInfo.getColumnType().getTypeName() + "' is not supported");
     }
+
+    protected abstract <T> T getAdditionalObject(int columnIndex, Class<T> type) throws SQLException ;
 
     /**
      * {inheritDoc}.
@@ -2422,7 +2405,7 @@ public class MariaSelectResultSet implements ResultSet {
     @Override
     public URL getURL(int columnIndex) throws SQLException {
         try {
-            return new URL(getString(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1], cal));
+            return new URL(getString(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1]));
         } catch (MalformedURLException e) {
             throw ExceptionMapper.getSqlException("Could not parse as URL");
         }
@@ -3351,12 +3334,14 @@ public class MariaSelectResultSet implements ResultSet {
 
     }
 
-    private Date binaryDate(byte[] rawBytes, ColumnInformation columnInfo, Calendar cal) throws ParseException {
+    private Date binaryDate(byte[] rawBytes, ColumnInformation columnInfo) throws SQLException {
         switch (columnInfo.getColumnType()) {
             case TIMESTAMP:
             case DATETIME:
-                Timestamp timestamp = getTimestamp(rawBytes, columnInfo, cal);
+                Timestamp timestamp = getTimestamp(rawBytes, columnInfo, null);
                 return (timestamp == null) ? null : new Date(timestamp.getTime());
+            case TIME:
+                throw new SQLException("Cannot read Date using a Types.TIME field");
             default:
                 if (rawBytes.length == 0) {
                     return null;
@@ -3399,18 +3384,14 @@ public class MariaSelectResultSet implements ResultSet {
         }
     }
 
-    private Time binaryTime(byte[] rawBytes, ColumnInformation columnInfo, Calendar cal) throws ParseException {
+    private Time binaryTime(byte[] rawBytes, ColumnInformation columnInfo) throws SQLException {
         switch (columnInfo.getColumnType()) {
             case TIMESTAMP:
             case DATETIME:
-                Timestamp ts = binaryTimestamp(rawBytes, columnInfo, cal);
+                Timestamp ts = binaryTimestamp(rawBytes, columnInfo, null);
                 return (ts == null) ? null : new Time(ts.getTime());
             case DATE:
-                Calendar tmpCalendar = Calendar.getInstance();
-                tmpCalendar.clear();
-                tmpCalendar.set(1970, 0, 1, 0, 0, 0);
-                tmpCalendar.set(Calendar.MILLISECOND, 0);
-                return new Time(tmpCalendar.getTimeInMillis());
+                throw new SQLException("Cannot read Time using a Types.DATE field");
             default:
                 Calendar calendar = Calendar.getInstance();
                 calendar.clear();
@@ -3449,7 +3430,7 @@ public class MariaSelectResultSet implements ResultSet {
         }
     }
 
-    private Timestamp binaryTimestamp(byte[] rawBytes, ColumnInformation columnInfo, Calendar cal) throws ParseException {
+    private Timestamp binaryTimestamp(byte[] rawBytes, ColumnInformation columnInfo, Calendar userCalendar) throws SQLException {
         if (rawBytes.length == 0) {
             return null;
         }
@@ -3462,9 +3443,7 @@ public class MariaSelectResultSet implements ResultSet {
         int microseconds = 0;
 
         if (columnInfo.getColumnType() == ColumnType.TIME) {
-            Calendar calendar = Calendar.getInstance();
-            calendar.clear();
-
+            Calendar calendar = userCalendar != null ? userCalendar : Calendar.getInstance();
             boolean negate = false;
             if (rawBytes.length > 0) {
                 negate = (rawBytes[0] & 0xff) == 0x01;
@@ -3488,8 +3467,12 @@ public class MariaSelectResultSet implements ResultSet {
                         + ((rawBytes[11] & 0xff) << 24));
             }
 
-            calendar.set(1970, 0, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
-            Timestamp tt = new Timestamp(calendar.getTimeInMillis());
+            Timestamp tt;
+            synchronized (calendar) {
+                calendar.clear();
+                calendar.set(1970, 0, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
+                tt = new Timestamp(calendar.getTimeInMillis());
+            }
             tt.setNanos(microseconds * 1000);
             return tt;
         } else {
@@ -3510,18 +3493,27 @@ public class MariaSelectResultSet implements ResultSet {
             }
         }
 
-        Calendar calendar = options.useLegacyDatetimeCode ? Calendar.getInstance() : cal;
-        Timestamp tt;
+        Calendar calendar;
+        if (userCalendar != null) {
+            calendar = userCalendar;
+        } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
+            calendar = Calendar.getInstance(timeZone);
+        } else {
+            calendar = Calendar.getInstance();
+        }
+
+        Timestamp  tt;
         synchronized (calendar) {
             calendar.clear();
             calendar.set(year, month - 1, day, hour, minutes, seconds);
             tt = new Timestamp(calendar.getTimeInMillis());
         }
+
         tt.setNanos(microseconds * 1000);
         return tt;
     }
 
-    private int extractNanos(String timestring) throws ParseException {
+    protected int extractNanos(String timestring) throws SQLException {
         int index = timestring.indexOf('.');
         if (index == -1) {
             return 0;
@@ -3534,7 +3526,7 @@ public class MariaSelectResultSet implements ResultSet {
             } else {
                 char value = timestring.charAt(i);
                 if (value < '0' || value > '9') {
-                    throw new ParseException("cannot parse subsecond part in timestamp string '" + timestring + "'", i);
+                    throw new SQLException("cannot parse sub-second part in timestamp string '" + timestring + "'");
                 }
                 digit = value - '0';
             }

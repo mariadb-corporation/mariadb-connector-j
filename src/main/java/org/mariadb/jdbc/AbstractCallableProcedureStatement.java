@@ -51,7 +51,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.SelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 
 import java.io.InputStream;
@@ -117,7 +117,7 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
         }
     }
 
-    protected abstract MariaSelectResultSet getResult() throws SQLException;
+    protected abstract SelectResultSet getResult() throws SQLException;
 
     public ParameterMetaData getParameterMetaData() throws SQLException {
         parameterMetadata.readMetadataFromDbIfRequired();

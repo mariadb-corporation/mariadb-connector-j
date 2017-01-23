@@ -51,7 +51,7 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 
@@ -279,13 +279,13 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
                 }
                 return Types.VARBINARY;
             case TINYINT:
-                if (ci.getLength() == 1 && (datatypeMappingflags & MariaSelectResultSet.TINYINT1_IS_BIT) != 0) {
+                if (ci.getLength() == 1 && (datatypeMappingflags & SelectResultSetCommon.TINYINT1_IS_BIT) != 0) {
                     return Types.BIT;
                 } else {
                     return Types.TINYINT;
                 }
             case YEAR:
-                if ((datatypeMappingflags & MariaSelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
+                if ((datatypeMappingflags & SelectResultSetCommon.YEAR_IS_DATE_TYPE) != 0) {
                     return Types.DATE;
                 } else {
                     return Types.SMALLINT;

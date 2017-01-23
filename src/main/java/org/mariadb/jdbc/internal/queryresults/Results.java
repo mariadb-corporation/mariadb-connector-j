@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 
 import java.sql.ResultSet;
@@ -66,9 +66,9 @@ public class Results {
     private boolean batch;
     private int expectedSize;
     private CmdInformation cmdInformation;
-    private Deque<MariaSelectResultSet> executionResults;
-    private MariaSelectResultSet resultSet;
-    private MariaSelectResultSet callableResultSet;
+    private Deque<SelectResultSet> executionResults;
+    private SelectResultSet resultSet;
+    private SelectResultSet callableResultSet;
     private boolean binaryFormat;
     private int resultSetScrollType;
     private int maxFieldSize;
@@ -190,7 +190,7 @@ public class Results {
      * @param resultSet new resultSet.
      * @param moreResultAvailable indicate if other results (ResultSet or updateCount) are available.
      */
-    public void addResultSet(MariaSelectResultSet resultSet, boolean moreResultAvailable) {
+    public void addResultSet(SelectResultSet resultSet, boolean moreResultAvailable) {
         if (resultSet.isCallableResult()) {
             callableResultSet = resultSet;
             return;
@@ -225,11 +225,11 @@ public class Results {
         return this;
     }
 
-    public MariaSelectResultSet getResultSet() {
+    public SelectResultSet getResultSet() {
         return resultSet;
     }
 
-    public MariaSelectResultSet getCallableResultSet() {
+    public SelectResultSet getCallableResultSet() {
         return callableResultSet;
     }
 
@@ -252,7 +252,7 @@ public class Results {
                     resultSet.fetchRemaining();
                 }
             } else {
-                MariaSelectResultSet firstResult = executionResults.peekFirst();
+                SelectResultSet firstResult = executionResults.peekFirst();
                 if (firstResult != null ) {
                     if (skip) {
                         firstResult.close();
