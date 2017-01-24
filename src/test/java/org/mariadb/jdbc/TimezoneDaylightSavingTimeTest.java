@@ -459,7 +459,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             //check data inserted in DB :
             String req = "SELECT"
                     + " t1 = STR_TO_DATE(" + (legacy ? "'2015-03-29 01:45:00.01234'" : "'2015-03-28 21:45:00.01234'") + ",'%Y-%m-%d %T.%f')"
-                    + ", t2 = STR_TO_DATE('01:45:00.00000','%T.%f')"
+                    + ", t2 = TIME_FORMAT('01:45:00.00000','%T.%f')"
                     + ", t3 = STR_TO_DATE(" + (legacy ? "'2015-03-29 01:45:00.01234'" : "'2015-03-28 21:45:00.01234'") + ",'%Y-%m-%d %T.%f')"
                     + ", t4 = STR_TO_DATE('2015-03-29','%Y-%m-%d')"
                     + " FROM daylight  WHERE id = 1";

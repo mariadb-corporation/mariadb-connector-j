@@ -5,7 +5,7 @@
     <groupId>org.mariadb.jdbc</groupId>
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
-    <name>mariadb-java-client</name>
+    <name>mariadb-java-client${driver.version.jre}</name>
     <version>${driver.version}</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
@@ -22,8 +22,8 @@
         <driver.version.minor>0</driver.version.minor>
         <driver.version.patch>0</driver.version.patch>
         <driver.version.qualifier>SNAPSHOT</driver.version.qualifier>
-        <driver.version.jre></driver.version.jre>
-        <driver.version>${driver.version.major}.${driver.version.minor}.${driver.version.patch}${driver.version.jre}-${driver.version.qualifier}</driver.version>
+        <name.jre></name.jre>
+        <driver.version>${driver.version.major}.${driver.version.minor}.${driver.version.patch}-${driver.version.qualifier}</driver.version>
     </properties>
 
     <licenses>
@@ -78,7 +78,7 @@
         <profile>
             <id>jdbc41</id>
             <properties>
-                <driver.version.jre>.jre7</driver.version.jre>
+                <name.jre>-jre7</name.jre>
             </properties>
             <build>
                 <plugins>
@@ -139,9 +139,6 @@
             <activation>
                 <activeByDefault>true</activeByDefault>
             </activation>
-            <properties>
-                <driver.version.jre>.jre8</driver.version.jre>
-            </properties>
             <build>
                 <plugins>
                     <plugin>
@@ -278,7 +275,7 @@
                         </replacement>
                         <replacement>
                             <token>@qualifier</token>
-                            <value>${driver.version.jre}-${driver.version.qualifier}</value>
+                            <value>-${driver.version.qualifier}</value>
                         </replacement>
                     </replacements>
                 </configuration>

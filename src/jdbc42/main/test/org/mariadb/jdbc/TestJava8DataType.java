@@ -84,7 +84,7 @@ public class TestJava8DataType extends TimezoneDaylightSavingTimeTest {
 
             String req = "SELECT"
                     + " tt = STR_TO_DATE(" + (legacy ? "'2015-03-28 22:15:30.123456'" : "'2015-03-29 03:15:30.123456'") + ",'%Y-%m-%d %T.%f')"
-                    + ", tt2 = STR_TO_DATE(" + (legacy ? "'22:15:30.123456'" : "'03:15:30.123456'") + ",'%T.%f')"
+                    + ", tt2 = TIME_FORMAT(" + (legacy ? "'22:15:30.123456'" : "'03:15:30.123456'") + ",'%T.%f')"
                     + " FROM checkLocalDateTime" + legacy + useBinaryFormat;
             ResultSet rs1 = connection.createStatement().executeQuery(req);
 
