@@ -2656,4 +2656,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         return false;
     }
 
+    @Override
+    public long getMaxLogicalLobSize() throws SQLException {
+        return 4294967295L;
+    }
+
+    @Override
+    public boolean supportsRefCursors() throws SQLException {
+        return false;
+    }
 }
