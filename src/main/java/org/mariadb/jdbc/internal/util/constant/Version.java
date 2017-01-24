@@ -56,5 +56,5 @@ public final class Version {
     public static final int minorVersion = 0;
     public static final int patchVersion = 0;
     public static final String qualifier = "-SNAPSHOT";
-    public static final String buildtime = "2017-01-24T11:27:33Z";
+    public static final String buildtime = "2017-01-24T12:28:09Z";
 }

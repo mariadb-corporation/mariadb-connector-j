@@ -3,9 +3,9 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.mariadb.jdbc</groupId>
-    <artifactId>mariadb-java-client</artifactId>
+    <artifactId>mariadb-java-client${name.jre}</artifactId>
     <packaging>jar</packaging>
-    <name>mariadb-java-client${driver.version.jre}</name>
+    <name>mariadb-java-client${name.jre}</name>
     <version>${driver.version}</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
