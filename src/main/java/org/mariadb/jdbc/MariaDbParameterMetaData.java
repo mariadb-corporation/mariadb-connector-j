@@ -128,12 +128,19 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
     }
 
     @Override
-    public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;
+    public <T> T unwrap(final Class<T> iface) throws SQLException {
+        try {
+            if (isWrapperFor(iface)) {
+                return iface.cast(this);
+            } else {
+                throw new SQLException("The receiver is not a wrapper for " + iface.getName());
+            }
+        } catch (Exception e) {
+            throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+        }
     }
 
-    @Override
-    public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;
+    public boolean isWrapperFor(final Class<?> iface) throws SQLException {
+        return iface.isInstance(this);
     }
 }

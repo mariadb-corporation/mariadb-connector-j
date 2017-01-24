@@ -1380,7 +1380,15 @@ public final class MariaDbConnection implements Connection {
      * @since 1.6
      */
     public <T> T unwrap(final Class<T> iface) throws SQLException {
-        return iface.cast(this);
+        try {
+            if (isWrapperFor(iface)) {
+                return iface.cast(this);
+            } else {
+                throw new SQLException("The receiver is not a wrapper for " + iface.getName());
+            }
+        } catch (Exception e) {
+            throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+        }
     }
 
     /**
