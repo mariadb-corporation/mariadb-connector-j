@@ -66,7 +66,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
-public final class MariaDbConnection implements Connection {
+public class MariaDbConnection implements Connection {
+
     /**
      * Pattern  to check the correctness of callable statement query string
      * Legal queries, as documented in JDK have the form:
@@ -236,7 +237,7 @@ public final class MariaDbConnection implements Connection {
         return createStatement();
     }
 
-    private void checkConnection() throws SQLException {
+    protected void checkConnection() throws SQLException {
         if (protocol.isExplicitClosed()) {
             throw new SQLException("createStatement() is called on closed connection");
         }
@@ -257,8 +258,8 @@ public final class MariaDbConnection implements Connection {
      * @return a prepared statement.
      * @throws SQLException if there is a problem preparing the statement.
      */
-    protected MariaDbClientPreparedStatement clientPrepareStatement(final String sql) throws SQLException {
-        return new MariaDbClientPreparedStatement(this, sql, ResultSet.TYPE_FORWARD_ONLY);
+    protected PreparedStatementClient clientPrepareStatement(final String sql) throws SQLException {
+        return new PreparedStatementClient(this, sql, ResultSet.TYPE_FORWARD_ONLY);
     }
 
     /**
@@ -444,7 +445,7 @@ public final class MariaDbConnection implements Connection {
                 //prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?
                 checkConnection();
                 try {
-                    return new MariaDbServerPreparedStatement(this, sqlQuery, resultSetScrollType, true);
+                    return new PreparedStatementServer(this, sqlQuery, resultSetScrollType, true);
                 } catch (SQLNonTransientConnectionException e) {
                     throw e;
                 } catch (SQLException e) {
@@ -452,7 +453,7 @@ public final class MariaDbConnection implements Connection {
                     //will use clientPreparedStatement
                 }
             }
-            return new MariaDbClientPreparedStatement(this, sqlQuery, resultSetScrollType);
+            return new PreparedStatementClient(this, sqlQuery, resultSetScrollType);
         } else {
             throw new SQLException("SQL value can not be NULL");
         }

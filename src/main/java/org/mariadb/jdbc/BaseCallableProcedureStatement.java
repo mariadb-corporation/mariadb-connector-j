@@ -60,14 +60,18 @@ import java.math.BigDecimal;
 import java.net.URL;
 import java.sql.*;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
 
-public abstract class AbstractCallableFunctionStatement extends MariaDbClientPreparedStatement implements CallableStatement, Cloneable {
+public abstract class BaseCallableProcedureStatement extends BasePreparedStatementServer implements CallableStatement, Cloneable {
+
     /**
      * Information about parameters, merely from registerOutputParameter() and setXXX() calls.
      */
-    protected CallParameter[] params;
+    protected List<CallParameter> params;
+    protected int[] outputParameterMapper = null;
     protected CallableParameterMetaData parameterMetadata;
+    protected boolean hasInOutParameters;
 
     /**
      * Constructor for getter/setter of callableStatement.
@@ -76,10 +80,11 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
      * @param sql                 query
      * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
      *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @throws SQLException if clientPrepareStatement creation throw an exception
+     * @throws SQLException is prepareStatement connection throw any error
      */
-    public AbstractCallableFunctionStatement(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
-        super(connection, sql, resultSetScrollType);
+    public BaseCallableProcedureStatement(MariaDbConnection connection, String sql, int resultSetScrollType)
+            throws SQLException {
+        super(connection, sql, resultSetScrollType, true);
     }
 
     /**
@@ -88,28 +93,28 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
      * @return Cloned .
      * @throws CloneNotSupportedException if any error occur.
      */
-    public AbstractCallableFunctionStatement clone() throws CloneNotSupportedException {
-        AbstractCallableFunctionStatement clone = (AbstractCallableFunctionStatement) super.clone();
+    public BaseCallableProcedureStatement clone() throws CloneNotSupportedException {
+        BaseCallableProcedureStatement clone = (BaseCallableProcedureStatement) super.clone();
         clone.params = params;
         clone.parameterMetadata = parameterMetadata;
         return clone;
     }
 
     /**
-     * Data initialisation when parameterCount is defined.
-     *
-     * @param parametersCount number of parameters
+     * Set in/out parameters value.
      */
-    public void initFunctionData(int parametersCount) {
-        params = new CallParameter[parametersCount];
-        for (int i = 0; i < parametersCount; i++) {
-            params[i] = new CallParameter();
-            if (i > 0) {
-                params[i].isInput = true;
+    public void setParametersVariables() {
+        hasInOutParameters = false;
+        for (CallParameter param : params) {
+            if (param != null) {
+                if (param.isOutput) {
+                    if (param.isInput) {
+                        hasInOutParameters = true;
+                        break;
+                    }
+                }
             }
         }
-        // the query was in the form {?=call function()}, so the first parameter is always output
-        params[0].isOutput = true;
     }
 
     protected abstract SelectResultSet getResult() throws SQLException;
@@ -126,11 +131,12 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
      * @return index
      * @throws SQLException exception
      */
-    private int nameToIndex(String parameterName) throws SQLException {
+    protected int nameToIndex(String parameterName) throws SQLException {
+        parameterMetadata.readMetadataFromDbIfRequired();
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
-            String name = parameterMetadata.getName(i + 1);
+            String name = parameterMetadata.getName(i);
             if (name != null && name.equalsIgnoreCase(parameterName)) {
-                return i + 1;
+                return i;
             }
         }
         throw new SQLException("there is no parameter with the name " + parameterName);
@@ -145,10 +151,16 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
      * @throws SQLException exception
      */
     private int nameToOutputIndex(String parameterName) throws SQLException {
+        parameterMetadata.readMetadataFromDbIfRequired();
         for (int i = 0; i < parameterMetadata.getParameterCount(); i++) {
-            String name = parameterMetadata.getName(i);
+            String name = parameterMetadata.getName(i + 1);
             if (name != null && name.equalsIgnoreCase(parameterName)) {
-                return i;
+                if (outputParameterMapper[i] == -1) {
+                    //this is not an outputParameter
+                    throw new SQLException("Parameter '" + parameterName
+                            + "' is not declared as output parameter with method registerOutParameter");
+                }
+                return outputParameterMapper[i];
             }
         }
         throw new SQLException("there is no parameter with the name " + parameterName);
@@ -162,7 +174,20 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
      * @throws SQLException exception
      */
     private int indexToOutputIndex(int parameterIndex) throws SQLException {
-        return parameterIndex;
+        try {
+            if (outputParameterMapper[parameterIndex - 1] == -1) {
+                //this is not an outputParameter
+                throw new SQLException("Parameter in index '" + parameterIndex
+                        + "' is not declared as output parameter with method registerOutParameter");
+            }
+            return outputParameterMapper[parameterIndex - 1];
+        } catch (ArrayIndexOutOfBoundsException arrayIndexOutOfBoundsException) {
+            if (parameterIndex < 1) {
+                throw new SQLException("Index " + parameterIndex + " must at minimum be 1");
+            }
+            throw new SQLException("Index value '" + parameterIndex
+                    + "' is incorrect. Maximum value is " + params.size());
+        }
     }
 
     @Override
@@ -257,13 +282,11 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public BigDecimal getBigDecimal(int parameterIndex) throws SQLException {
         return getResult().getBigDecimal(indexToOutputIndex(parameterIndex));
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public BigDecimal getBigDecimal(String parameterName) throws SQLException {
         return getResult().getBigDecimal(nameToOutputIndex(parameterName));
     }
@@ -453,22 +476,22 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
 
     @Override
     public String getNString(int parameterIndex) throws SQLException {
-        return getResult().getNString(indexToOutputIndex(parameterIndex));
+        return getResult().getString(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public String getNString(String parameterName) throws SQLException {
-        return getResult().getNString(nameToOutputIndex(parameterName));
+        return getResult().getString(nameToOutputIndex(parameterName));
     }
 
     @Override
     public Reader getNCharacterStream(int parameterIndex) throws SQLException {
-        return getResult().getNCharacterStream(indexToOutputIndex(parameterIndex));
+        return getResult().getCharacterStream(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public Reader getNCharacterStream(String parameterName) throws SQLException {
-        return getResult().getNCharacterStream(nameToOutputIndex(parameterName));
+        return getResult().getCharacterStream(nameToOutputIndex(parameterName));
     }
 
     @Override
@@ -586,10 +609,10 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
     }
 
     CallParameter getParameter(int index) throws SQLException {
-        if (index > params.length || index <= 0) {
-            throw new SQLException("No parameter with index " + (index));
+        if (index > params.size() || index <= 0) {
+            throw new SQLException("No parameter with index " + index);
         }
-        return params[index - 1];
+        return params.get(index - 1);
     }
 
     @Override
@@ -604,17 +627,17 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
 
     @Override
     public void setNString(String parameterName, String value) throws SQLException {
-        setNString(nameToIndex(parameterName), value);
+        setString(nameToIndex(parameterName), value);
     }
 
     @Override
-    public void setNCharacterStream(String parameterName, Reader reader, long length) throws SQLException {
-        setCharacterStream(nameToIndex(parameterName), reader, length);
+    public void setNCharacterStream(String parameterName, Reader value, long length) throws SQLException {
+        setCharacterStream(nameToIndex(parameterName), value, length);
     }
 
     @Override
-    public void setNCharacterStream(String parameterName, Reader reader) throws SQLException {
-        setCharacterStream(nameToIndex(parameterName), reader);
+    public void setNCharacterStream(String parameterName, Reader value) throws SQLException {
+        setCharacterStream(nameToIndex(parameterName), value);
     }
 
     @Override
@@ -818,17 +841,6 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
     @Override
     public void setObject(String parameterName, Object obj) throws SQLException {
         setObject(nameToIndex(parameterName), obj);
-    }
-
-
-    @Override
-    protected boolean isNoBackslashEscapes() {
-        return connection.noBackslashEscapes;
-    }
-
-    @Override
-    protected boolean useFractionalSeconds() {
-        return useFractionalSeconds;
     }
 
 }

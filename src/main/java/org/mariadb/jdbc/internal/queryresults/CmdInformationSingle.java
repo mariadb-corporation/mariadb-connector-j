@@ -56,30 +56,40 @@ import java.sql.ResultSet;
 
 public class CmdInformationSingle implements CmdInformation {
     private long insertId;
-    private int updateCount;
+    private long updateCount;
 
-    public CmdInformationSingle(long insertId, int updateCount) {
+    public CmdInformationSingle(long insertId, long updateCount) {
         this.insertId = insertId;
         this.updateCount = updateCount;
     }
 
     @Override
     public int[] getUpdateCounts() {
-        return new int[] {updateCount};
+        return new int[] {(int) updateCount};
     }
 
     @Override
-    public int getUpdateCount() {
+    public long getLargeUpdateCount() {
         return updateCount;
     }
 
     @Override
-    public void addStats(int updateCount, long insertId) {
+    public long[] getLargeUpdateCounts() {
+        return new long[] {updateCount};
+    }
+
+    @Override
+    public int getUpdateCount() {
+        return (int) updateCount;
+    }
+
+    @Override
+    public void addStats(long updateCount, long insertId) {
         //not expected
     }
 
     @Override
-    public void addStats(int updateCount) {
+    public void addStats(long updateCount) {
         //not expected
     }
 

@@ -60,7 +60,11 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 
 
-public abstract class BasePrepareStatement extends PrepareStatementCommon {
+public abstract class BasePrepareStatement extends CommonPrepareStatement implements PreparedStatement {
+
+    public BasePrepareStatement(MariaDbConnection connection, int resultSetScrollType) {
+        super(connection, resultSetScrollType);
+    }
 
     /**
      * The ISO-like date-time formatter that formats or parses a date-time with
@@ -88,10 +92,6 @@ public abstract class BasePrepareStatement extends PrepareStatementCommon {
             .appendLiteral(']')
             .toFormatter();
 
-    public BasePrepareStatement(MariaDbConnection connection, int resultSetScrollType) {
-        super(connection, resultSetScrollType);
-    }
-
     /**
      * Additional java8 String object.
      *
@@ -108,7 +108,7 @@ public abstract class BasePrepareStatement extends PrepareStatementCommon {
                             new OffsetTimeParameter(
                                     OffsetTime.parse(str),
                                     protocol.getTimeZone().toZoneId(),
-                                    useFractionalSeconds(),
+                                    useFractionalSeconds,
                                     options));
                     break;
                 case Types.TIMESTAMP_WITH_TIMEZONE:
@@ -117,8 +117,8 @@ public abstract class BasePrepareStatement extends PrepareStatementCommon {
                             new ZonedDateTimeParameter(
                                     ZonedDateTime.parse(str, SPEC_ISO_ZONED_DATE_TIME),
                                     protocol.getTimeZone().toZoneId(),
-                                    useFractionalSeconds(),
-                                    protocol.getOptions()));
+                                    useFractionalSeconds,
+                                    options));
                     break;
                 default:
                     throw ExceptionMapper.getSqlException("Could not convert [" + str + "] to " + targetSqlType);
@@ -148,22 +148,22 @@ public abstract class BasePrepareStatement extends PrepareStatementCommon {
                     new ZonedDateTimeParameter(
                             OffsetDateTime.class.cast(obj).toZonedDateTime(),
                             protocol.getTimeZone().toZoneId(),
-                            useFractionalSeconds(),
-                            protocol.getOptions()));
+                            useFractionalSeconds,
+                            options));
         } else if (OffsetTime.class.isInstance(obj)) {
             setParameter(parameterIndex,
                     new OffsetTimeParameter(
                             OffsetTime.class.cast(obj),
                             protocol.getTimeZone().toZoneId(),
-                            useFractionalSeconds(),
-                            protocol.getOptions()));
+                            useFractionalSeconds,
+                            options));
         } else if (ZonedDateTime.class.isInstance(obj)) {
             setParameter(parameterIndex,
                     new ZonedDateTimeParameter(
                             ZonedDateTime.class.cast(obj),
                             protocol.getTimeZone().toZoneId(),
-                            useFractionalSeconds(),
-                            protocol.getOptions()));
+                            useFractionalSeconds,
+                            options));
         } else if (LocalTime.class.isInstance(obj)) {
             setTime(parameterIndex, Time.valueOf(LocalTime.class.cast(obj)));
         } else {
@@ -172,4 +172,23 @@ public abstract class BasePrepareStatement extends PrepareStatementCommon {
         return true;
     }
 
+    @Override
+    public void setObject(int parameterIndex, Object obj, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+        setObject(parameterIndex, obj, targetSqlType.getVendorTypeNumber(), scaleOrLength);
+    }
+
+    @Override
+    public void setObject(int parameterIndex, Object obj, SQLType targetSqlType) throws SQLException {
+        setObject(parameterIndex, obj, targetSqlType.getVendorTypeNumber());
+    }
+
+    @Override
+    public long executeLargeUpdate() throws SQLException {
+        if (executeInternal(getFetchSize())) {
+            return 0;
+        }
+        return getLargeUpdateCount();
+    }
+
+    protected abstract boolean executeInternal(int fetchSize) throws SQLException;
 }

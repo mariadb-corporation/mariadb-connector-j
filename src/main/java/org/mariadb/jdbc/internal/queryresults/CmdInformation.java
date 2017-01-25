@@ -13,11 +13,15 @@ public interface CmdInformation {
 
     int[] getUpdateCounts();
 
+    long[] getLargeUpdateCounts();
+
     int getUpdateCount();
 
-    void addStats(int updateCount, long insertId);
+    long getLargeUpdateCount();
 
-    void addStats(int updateCount);
+    void addStats(long updateCount, long insertId);
+
+    void addStats(long updateCount);
 
     ResultSet getGeneratedKeys(Protocol protocol);
 

@@ -1,8 +1,7 @@
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
-Copyright (c) 2015-2016 MariaDB Ab.
+Copyright (c) 2012-2014 Monty Program Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -21,7 +20,7 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
-Copyright (c) 2009-2011, Marcus Eriksson
+Copyright (c) 2009-2011, Marcus Eriksson, Trond Norbye, Stephane Giron
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -48,13 +47,55 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.util.constant;
+package org.mariadb.jdbc;
 
-public final class Version {
-    public static final String version = "2.0.0-SNAPSHOT";
-    public static final int majorVersion = 2;
-    public static final int minorVersion = 0;
-    public static final int patchVersion = 0;
-    public static final String qualifier = "-SNAPSHOT";
-    public static final String buildtime = "2017-01-25T15:55:53Z";
+import java.sql.SQLException;
+import java.sql.SQLType;
+
+public abstract class CallableFunctionStatement extends BaseCallableFunctionStatement {
+
+    public CallableFunctionStatement(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
+        super(connection, sql, resultSetScrollType);
+    }
+
+    @Override
+    public void setObject(String parameterName, Object obj, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+        setObject(nameToIndex(parameterName), obj, targetSqlType.getVendorTypeNumber(), scaleOrLength);
+    }
+
+    @Override
+    public void setObject(String parameterName, Object obj, SQLType targetSqlType) throws SQLException {
+        setObject(nameToIndex(parameterName), obj, targetSqlType.getVendorTypeNumber());
+    }
+
+    @Override
+    public void registerOutParameter(int parameterIndex, SQLType sqlType) throws SQLException {
+        registerOutParameter(parameterIndex, sqlType.getVendorTypeNumber());
+    }
+
+    @Override
+    public void registerOutParameter(int parameterIndex, SQLType sqlType, int scale) throws SQLException {
+        registerOutParameter(parameterIndex, sqlType.getVendorTypeNumber(), scale);
+    }
+
+    @Override
+    public void registerOutParameter(int parameterIndex, SQLType sqlType, String typeName) throws SQLException {
+        registerOutParameter(parameterIndex, sqlType.getVendorTypeNumber(), typeName);
+    }
+
+    @Override
+    public void registerOutParameter(String parameterName, SQLType sqlType) throws SQLException {
+        registerOutParameter(parameterName, sqlType.getVendorTypeNumber());
+    }
+
+    @Override
+    public void registerOutParameter(String parameterName, SQLType sqlType, int scale) throws SQLException {
+        registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), scale);
+    }
+
+    @Override
+    public void registerOutParameter(String parameterName, SQLType sqlType, String typeName) throws SQLException {
+        registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), typeName);
+    }
+
 }

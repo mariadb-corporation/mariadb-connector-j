@@ -49,10 +49,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.MariaDbStatement;
-import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
@@ -67,7 +64,6 @@ import java.io.InputStream;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
-import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
@@ -171,11 +167,11 @@ public interface Protocol {
 
     int getDataTypeMappingFlags();
 
-    void setInternalMaxRows(int max);
+    void setInternalMaxRows(long max);
 
-    int getMaxRows();
+    long getMaxRows();
 
-    void setMaxRows(int max) throws SQLException;
+    void setMaxRows(long max) throws SQLException;
 
     int getMajorServerVersion();
 
@@ -218,11 +214,11 @@ public interface Protocol {
 
     TimeZone getTimeZone();
 
-    void prolog(int maxRows, boolean hasProxy, MariaDbConnection connection,
-                MariaDbStatement statement) throws SQLException;
+    void prolog(long maxRows, boolean hasProxy, MariaDbConnection connection,
+                BaseStatement statement) throws SQLException;
 
-    void prologProxy(ServerPrepareResult serverPrepareResult, int maxRows, boolean hasProxy,
-                     MariaDbConnection connection, MariaDbStatement statement) throws SQLException;
+    void prologProxy(ServerPrepareResult serverPrepareResult, long maxRows, boolean hasProxy,
+                     MariaDbConnection connection, BaseStatement statement) throws SQLException;
 
     Results getActiveStreamingResult();
 
@@ -252,7 +248,7 @@ public interface Protocol {
 
     void removeActiveStreamingResult();
 
-    void resetStateAfterFailover(int maxRows, int transactionIsolationLevel, String database, boolean autocommit)
+    void resetStateAfterFailover(long maxRows, int transactionIsolationLevel, String database, boolean autocommit)
             throws SQLException;
 
 }

@@ -53,7 +53,7 @@ import org.mariadb.jdbc.internal.util.ExceptionMapper;
 
 import java.sql.*;
 
-public abstract class BasePrepareStatement extends PrepareStatementCommon {
+public abstract class BasePrepareStatement extends CommonPrepareStatement implements PreparedStatement {
 
     public BasePrepareStatement(MariaDbConnection connection, int resultSetScrollType) {
         super(connection, resultSetScrollType);

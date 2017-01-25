@@ -59,7 +59,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
-public class MariaDbProcedureStatement extends AbstractCallableProcedureStatement implements CloneableCallableStatement {
+public class MariaDbProcedureStatement extends CallableProcedureStatement implements CloneableCallableStatement {
 
     private SelectResultSet outputResultSet = null;
 
@@ -116,27 +116,6 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
         MariaDbProcedureStatement clone = (MariaDbProcedureStatement) super.clone();
         clone.outputResultSet = null;
         return clone;
-    }
-
-    /**
-     * Executes the CALL statement.
-     *
-     * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements
-     * that return nothing
-     * @throws SQLException if a database access error occurs; this method is called on a closed
-     *                      <code>PreparedStatement</code> or the SQL statement returns a
-     *                      <code>ResultSet</code> object
-     */
-    public int executeUpdate() throws SQLException {
-        validAllParameters();
-        connection.lock.lock();
-        try {
-            super.executeInternal(0);
-            retrieveOutputResult();
-            return getUpdateCount();
-        } finally {
-            connection.lock.unlock();
-        }
     }
 
     private void retrieveOutputResult() throws SQLException {

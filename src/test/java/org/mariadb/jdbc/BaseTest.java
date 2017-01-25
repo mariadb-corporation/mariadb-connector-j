@@ -241,23 +241,23 @@ public class BaseTest {
             Statement stmt = sharedConnection.createStatement();
             stmt.execute("drop table if exists " + tableName);
             stmt.execute("create table " + tableName + " (" + tableColumns + ") " + ((engine != null) ? engine : ""));
-            tempTableList.add(tableName);
+            if (!tempFunctionList.contains(tableName)) tempTableList.add(tableName);
         }
     }
 
     /**
      * Create a view that will be detroyed a the end of tests.
      *
-     * @param tableName    table name
+     * @param viewName    table name
      * @param tableColumns table columns
      * @throws SQLException exception
      */
-    public static void createView(String tableName, String tableColumns) throws SQLException {
+    public static void createView(String viewName, String tableColumns) throws SQLException {
         if (testSingleHost) {
             Statement stmt = sharedConnection.createStatement();
-            stmt.execute("drop view if exists " + tableName);
-            stmt.execute("create view " + tableName + " AS (" + tableColumns + ") ");
-            tempViewList.add(tableName);
+            stmt.execute("drop view if exists " + viewName);
+            stmt.execute("create view " + viewName + " AS (" + tableColumns + ") ");
+            if (!tempViewList.contains(viewName)) tempViewList.add(viewName);
         }
     }
 
@@ -273,7 +273,7 @@ public class BaseTest {
             Statement stmt = sharedConnection.createStatement();
             stmt.execute("drop procedure IF EXISTS " + name);
             stmt.execute("create  procedure " + name + body);
-            tempProcedureList.add(name);
+            if (!tempProcedureList.contains(name)) tempProcedureList.add(name);
         }
     }
 
@@ -289,7 +289,7 @@ public class BaseTest {
             Statement stmt = sharedConnection.createStatement();
             stmt.execute("drop function IF EXISTS " + name);
             stmt.execute("create function " + name + body);
-            tempProcedureList.add(name);
+            if (!tempFunctionList.contains(name)) tempFunctionList.add(name);
         }
     }
 

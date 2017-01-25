@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 
 import java.sql.ResultSet;
@@ -152,7 +151,7 @@ public class Results {
      * @param insertId            primary key
      * @param moreResultAvailable is there additional packet
      */
-    public void addStats(int updateCount, long insertId, boolean moreResultAvailable) {
+    public void addStats(long updateCount, long insertId, boolean moreResultAvailable) {
         if (cmdInformation == null) {
             if (moreResultAvailable || batch) {
                 cmdInformation = new CmdInformationMultiple(insertId, updateCount, expectedSize);

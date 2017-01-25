@@ -135,10 +135,11 @@ public class LocalInfileInputStreamTest extends BaseTest {
     public void testPrepareLocalInfileWithoutInputStream() throws SQLException {
         try {
             PreparedStatement st = sharedConnection.prepareStatement("LOAD DATA LOCAL INFILE 'validateInfile.tsv' "
-                    + "INTO TABLE t (id, test)");
+                    + "INTO TABLE ldinfile");
             st.execute();
             Assert.fail();
         } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Could not send file"));
             //check that connection is alright
             try {
                 Assert.assertFalse(sharedConnection.isClosed());

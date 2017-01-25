@@ -58,7 +58,7 @@ import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement implements CloneableCallableStatement {
+public class MariaDbFunctionStatement extends CallableFunctionStatement implements CloneableCallableStatement {
 
     private SelectResultSet outputResultSet = null;
 

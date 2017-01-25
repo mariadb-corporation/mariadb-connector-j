@@ -78,7 +78,7 @@ public class ResultsRewrite extends Results {
      * @param moreResultAvailable is there additional packet
      */
     @Override
-    public void addStats(int updateCount, long insertId, boolean moreResultAvailable) {
+    public void addStats(long updateCount, long insertId, boolean moreResultAvailable) {
         getCmdInformation().addStats(updateCount, insertId);
     }
 

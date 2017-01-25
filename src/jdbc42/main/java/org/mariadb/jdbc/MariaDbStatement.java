@@ -1,8 +1,7 @@
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
-Copyright (c) 2015-2016 MariaDB Ab.
+Copyright (c) 2012-2014 Monty Program Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -21,7 +20,7 @@ This particular MariaDB Client for Java file is work
 derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
 the following copyright and notice provisions:
 
-Copyright (c) 2009-2011, Marcus Eriksson
+Copyright (c) 2009-2011, Marcus Eriksson, Trond Norbye, Stephane Giron
 
 Redistribution and use in source and binary forms, with or without modification,
 are permitted provided that the following conditions are met:
@@ -48,13 +47,67 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.util.constant;
+package org.mariadb.jdbc;
 
-public final class Version {
-    public static final String version = "2.0.0-SNAPSHOT";
-    public static final int majorVersion = 2;
-    public static final int minorVersion = 0;
-    public static final int patchVersion = 0;
-    public static final String qualifier = "-SNAPSHOT";
-    public static final String buildtime = "2017-01-25T15:55:53Z";
+import org.mariadb.jdbc.internal.queryresults.CmdInformation;
+
+import org.mariadb.jdbc.internal.queryresults.Results;
+import org.mariadb.jdbc.internal.util.ExceptionMapper;
+
+import java.sql.BatchUpdateException;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Arrays;
+
+/**
+ * Add JDBC42 addition that are not compatible with java 7 jre.
+ * (large Batch)
+ */
+public class MariaDbStatement extends BaseStatement implements Statement {
+
+    /**
+     * Constructor.
+     * @param connection current connection
+     * @param resultSetScrollType result set scroll type
+     */
+    public MariaDbStatement(MariaDbConnection connection, int resultSetScrollType) {
+        super(connection, resultSetScrollType);
+        this.results = new Results(this);
+
+    }
+
+    protected BatchUpdateException executeLargeBatchExceptionEpilogue(SQLException sqle, CmdInformation cmdInformation, int size) {
+        sqle = handleFailoverAndTimeout(sqle);
+        long[] ret;
+        if (cmdInformation == null) {
+            ret = new long[size];
+            Arrays.fill(ret, Statement.EXECUTE_FAILED);
+        } else ret = cmdInformation.getLargeUpdateCounts();
+
+        sqle = ExceptionMapper.getException(sqle, connection, this, getQueryTimeout() != 0);
+        logger.error("error executing query", sqle);
+
+        return new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), ret, sqle);
+    }
+
+
+    @Override
+    public long[] executeLargeBatch() throws SQLException {
+        checkClose();
+        int size;
+        if (batchQueries == null || (size = batchQueries.size()) == 0) return new long[0];
+
+        lock.lock();
+        try {
+            internalBatchExecution(size);
+            return results.getCmdInformation().getLargeUpdateCounts();
+
+        } catch (SQLException initialSqlEx) {
+            throw executeLargeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), size);
+        } finally {
+            executeBatchEpilogue();
+            lock.unlock();
+        }
+    }
+
 }

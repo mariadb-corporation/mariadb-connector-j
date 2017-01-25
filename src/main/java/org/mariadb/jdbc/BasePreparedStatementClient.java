@@ -61,12 +61,12 @@ import java.sql.*;
 import java.util.*;
 
 
-public class MariaDbClientPreparedStatement extends BasePrepareStatement implements Cloneable {
-    private static Logger logger = LoggerFactory.getLogger(MariaDbClientPreparedStatement.class);
+public abstract class BasePreparedStatementClient extends BasePrepareStatement implements Cloneable {
+    private static Logger logger = LoggerFactory.getLogger(BasePreparedStatementClient.class);
     private String sqlQuery;
-    private ClientPrepareResult prepareResult;
+    protected ClientPrepareResult prepareResult;
     private ParameterHolder[] parameters;
-    private List<ParameterHolder[]> parameterList = new ArrayList<>();
+    protected List<ParameterHolder[]> parameterList = new ArrayList<>();
     private ResultSetMetaData resultSetMetaData = null;
     private ParameterMetaData parameterMetaData = null;
 
@@ -79,10 +79,9 @@ public class MariaDbClientPreparedStatement extends BasePrepareStatement impleme
      *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @throws SQLException exception
      */
-    public MariaDbClientPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
+    public BasePreparedStatementClient(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
         super(connection, resultSetScrollType);
         this.sqlQuery = sql;
-        useFractionalSeconds = options.useFractionalSeconds;
 
         if (options.cachePrepStmts) {
             String key = new StringBuilder(this.protocol.getDatabase()).append("-").append(sqlQuery).toString();
@@ -109,24 +108,14 @@ public class MariaDbClientPreparedStatement extends BasePrepareStatement impleme
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public MariaDbClientPreparedStatement clone() throws CloneNotSupportedException {
-        MariaDbClientPreparedStatement clone = (MariaDbClientPreparedStatement) super.clone();
+    public BasePreparedStatementClient clone() throws CloneNotSupportedException {
+        BasePreparedStatementClient clone = (BasePreparedStatementClient) super.clone();
         clone.sqlQuery = sqlQuery;
         clone.prepareResult = prepareResult;
         clone.parameters = new ParameterHolder[prepareResult.getParamCount()];
         clone.resultSetMetaData = resultSetMetaData;
         clone.parameterMetaData = parameterMetaData;
         return clone;
-    }
-
-    @Override
-    protected boolean isNoBackslashEscapes() {
-        return connection.noBackslashEscapes;
-    }
-
-    @Override
-    protected boolean useFractionalSeconds() {
-        return useFractionalSeconds;
     }
 
     /**
@@ -155,7 +144,7 @@ public class MariaDbClientPreparedStatement extends BasePrepareStatement impleme
      * @see Statement#getMoreResults
      */
     public boolean execute() throws SQLException {
-        return executeInternal();
+        return executeInternal(getFetchSize());
     }
 
     /**
@@ -169,7 +158,7 @@ public class MariaDbClientPreparedStatement extends BasePrepareStatement impleme
      *                      statement does not return a <code>ResultSet</code> object
      */
     public ResultSet executeQuery() throws SQLException {
-        if (executeInternal()) {
+        if (execute()) {
             return results.getResultSet();
         }
         return SelectResultSetCommon.EMPTY;
@@ -188,14 +177,13 @@ public class MariaDbClientPreparedStatement extends BasePrepareStatement impleme
      *                      <code>ResultSet</code> object
      */
     public int executeUpdate() throws SQLException {
-        if (executeInternal()) {
+        if (execute()) {
             return 0;
         }
         return getUpdateCount();
     }
 
-
-    protected boolean executeInternal() throws SQLException {
+    protected boolean executeInternal(int fetchSize) throws SQLException {
 
         //valid parameters
         for (int i = 0; i < prepareResult.getParamCount(); i++) {
@@ -211,7 +199,7 @@ public class MariaDbClientPreparedStatement extends BasePrepareStatement impleme
         try {
 
             executeQueryPrologue();
-            results = new Results(this, getFetchSize(), false, 1, false, resultSetScrollType);
+            results = new Results(this, fetchSize, false, 1, false, resultSetScrollType);
             protocol.executeQuery(protocol.isMasterConnection(), results, prepareResult, parameters);
             results.commandEnd();
             return results.getResultSet() != null;
@@ -280,17 +268,8 @@ public class MariaDbClientPreparedStatement extends BasePrepareStatement impleme
         lock.lock();
         try {
 
-            executeQueryPrologue();
+            executeInternalBatch(size);
 
-            if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
-                results = new ResultsRewrite(this, 0, true, size, false, resultSetScrollType);
-            } else {
-                results = new Results(this, 0, true, size, false, resultSetScrollType);
-            }
-
-            executeInternalBatch(results, size);
-
-            results.commandEnd();
             return results.getCmdInformation().getUpdateCounts();
 
         } catch (SQLException sqle) {
@@ -308,11 +287,18 @@ public class MariaDbClientPreparedStatement extends BasePrepareStatement impleme
     /**
      * Choose better way to execute queries according to query and options.
      *
-     * @param results                 results
      * @param size                    parameters number
      * @throws SQLException if any error occur
      */
-    private void executeInternalBatch(Results results, int size) throws SQLException {
+    protected void executeInternalBatch(int size) throws SQLException {
+
+        executeQueryPrologue();
+
+        if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
+            results = new ResultsRewrite(this, 0, true, size, false, resultSetScrollType);
+        } else {
+            results = new Results(this, 0, true, size, false, resultSetScrollType);
+        }
 
         if (options.rewriteBatchedStatements) {
             if (prepareResult.isQueryMultiValuesRewritable()) {
@@ -351,6 +337,8 @@ public class MariaDbClientPreparedStatement extends BasePrepareStatement impleme
             }
             if (exception != null) throw exception;
         }
+
+        results.commandEnd();
     }
 
     /**
@@ -417,7 +405,7 @@ public class MariaDbClientPreparedStatement extends BasePrepareStatement impleme
     }
 
     private void setParametersData() throws SQLException {
-        MariaDbServerPreparedStatement ssps = new MariaDbServerPreparedStatement(connection, this.sqlQuery,
+        PreparedStatementServer ssps = new PreparedStatementServer(connection, this.sqlQuery,
                 ResultSet.TYPE_SCROLL_INSENSITIVE, true);
         resultSetMetaData = ssps.getMetaData();
         parameterMetaData = ssps.getParameterMetaData();
@@ -477,7 +465,7 @@ public class MariaDbClientPreparedStatement extends BasePrepareStatement impleme
         return prepareResult;
     }
 
-    protected void initializeFallbackClient(MariaDbServerPreparedStatement serverPreparedStatement) throws SQLException {
+    protected void initializeFallbackClient(BasePreparedStatementServer serverPreparedStatement) throws SQLException {
         if (serverPreparedStatement.currentParameterHolder.size() == prepareResult.getParamCount()) {
             this.parameters = serverPreparedStatement.currentParameterHolder.values().toArray(new ParameterHolder[0]);
         } else {
@@ -492,8 +480,10 @@ public class MariaDbClientPreparedStatement extends BasePrepareStatement impleme
         this.batchQueries = serverPreparedStatement.batchQueries;
         if (serverPreparedStatement.queryTimeout != 0) setQueryTimeout(serverPreparedStatement.queryTimeout);
         if (serverPreparedStatement.getFetchSize() != 0) setFetchSize(serverPreparedStatement.getFetchSize());
-        if (serverPreparedStatement.maxRows != 0) setMaxRows(serverPreparedStatement.maxRows);
+        if (serverPreparedStatement.maxRows != 0) setLargeMaxRows(serverPreparedStatement.maxRows);
         if (serverPreparedStatement.isCloseOnCompletion()) closeOnCompletion();
 
     }
+
+
 }

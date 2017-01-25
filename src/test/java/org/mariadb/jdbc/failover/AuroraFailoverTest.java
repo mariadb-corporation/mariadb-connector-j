@@ -1,7 +1,7 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
-import org.mariadb.jdbc.MariaDbServerPreparedStatement;
+import org.mariadb.jdbc.BasePreparedStatementServer;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
@@ -359,14 +359,14 @@ public class AuroraFailoverTest extends BaseReplication {
             int nbExceptionBeforeUp = 0;
             boolean failLaunched = false;
             PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
-            assertEquals(1L, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
+            assertEquals(1L, getPrepareResult((BasePreparedStatementServer) preparedStatement1).getStatementId());
             connection.prepareStatement(" select 1");
 
             while (nbExceptionBeforeUp < 1000) {
                 try {
                     PreparedStatement preparedStatement = connection.prepareStatement(" select 1");
                     preparedStatement.executeQuery();
-                    long currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
+                    long currentPrepareId = getPrepareResult((BasePreparedStatementServer) preparedStatement).getStatementId();
                     if (nbExceptionBeforeUp > 0) {
                         assertEquals(1L, currentPrepareId);
                         break;
@@ -408,13 +408,13 @@ public class AuroraFailoverTest extends BaseReplication {
             int nbExecutionBeforeRePrepared = 0;
             boolean failLaunched = false;
             PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
-            assertEquals(1L, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
+            assertEquals(1L, getPrepareResult((BasePreparedStatementServer) preparedStatement1).getStatementId());
             connection.prepareStatement("select @@innodb_read_only as is_read_only");
             long currentPrepareId = 0;
             while (nbExecutionBeforeRePrepared < 1000) {
                 PreparedStatement preparedStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");
                 preparedStatement.executeQuery();
-                currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
+                currentPrepareId = getPrepareResult((BasePreparedStatementServer) preparedStatement).getStatementId();
 
                 if (nbExecutionBeforeRePrepared == 0) {
                     assertEquals(2, currentPrepareId);

@@ -59,8 +59,9 @@ import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import java.sql.*;
 import java.util.*;
 
-public class MariaDbServerPreparedStatement extends BasePrepareStatement implements Cloneable {
-    private static Logger logger = LoggerFactory.getLogger(MariaDbServerPreparedStatement.class);
+public abstract class BasePreparedStatementServer extends BasePrepareStatement implements Cloneable {
+
+    private static Logger logger = LoggerFactory.getLogger(BasePreparedStatementServer.class);
 
     String sql;
     ServerPrepareResult serverPrepareResult = null;
@@ -82,11 +83,10 @@ public class MariaDbServerPreparedStatement extends BasePrepareStatement impleme
      * @param forcePrepare        force immediate prepare
      * @throws SQLException exception
      */
-    public MariaDbServerPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
+    public BasePreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
             throws SQLException {
         super(connection, resultSetScrollType);
         this.sql = sql;
-        useFractionalSeconds = options.useFractionalSeconds;
         returnTableAlias = options.useOldAliasMetadataBehavior;
         currentParameterHolder = Collections.synchronizedMap(new TreeMap<Integer, ParameterHolder>());
         mustExecuteOnMaster = protocol.isMasterConnection();
@@ -103,11 +103,10 @@ public class MariaDbServerPreparedStatement extends BasePrepareStatement impleme
      * @param serverPrepareResult prepare result from cache
      * @throws SQLException exception
      */
-    public MariaDbServerPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType, ServerPrepareResult serverPrepareResult)
+    public BasePreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, ServerPrepareResult serverPrepareResult)
             throws SQLException {
         super(connection, resultSetScrollType);
         this.sql = sql;
-        useFractionalSeconds = options.useFractionalSeconds;
         returnTableAlias = options.useOldAliasMetadataBehavior;
         currentParameterHolder = new TreeMap<>();
         mustExecuteOnMaster = protocol.isMasterConnection();
@@ -121,8 +120,8 @@ public class MariaDbServerPreparedStatement extends BasePrepareStatement impleme
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public MariaDbServerPreparedStatement clone() throws CloneNotSupportedException {
-        MariaDbServerPreparedStatement clone = (MariaDbServerPreparedStatement) super.clone();
+    public BasePreparedStatementServer clone() throws CloneNotSupportedException {
+        BasePreparedStatementServer clone = (BasePreparedStatementServer) super.clone();
         clone.metadata = metadata;
         clone.parameterMetaData = parameterMetaData;
         clone.queryParameters = new ArrayList<>();
@@ -156,16 +155,6 @@ public class MariaDbServerPreparedStatement extends BasePrepareStatement impleme
         metadata = new MariaDbResultSetMetaData(serverPrepareResult.getColumns(), protocol.getDataTypeMappingFlags(), returnTableAlias);
         parameterMetaData = new MariaDbParameterMetaData(serverPrepareResult.getParameters());
         sql = null;
-    }
-
-    @Override
-    protected boolean isNoBackslashEscapes() {
-        return connection.noBackslashEscapes;
-    }
-
-    @Override
-    protected boolean useFractionalSeconds() {
-        return useFractionalSeconds;
     }
 
     protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
@@ -249,12 +238,8 @@ public class MariaDbServerPreparedStatement extends BasePrepareStatement impleme
         lock.lock();
         try {
 
-            executeQueryPrologue(serverPrepareResult);
-
-            results.reset(0, true, queryParameterSize, true,resultSetScrollType);;
             executeBatchInternal(results, queryParameterSize);
 
-            results.commandEnd();
             return results.getCmdInformation().getUpdateCounts();
 
         } catch (SQLException initialSqlEx) {
@@ -273,8 +258,11 @@ public class MariaDbServerPreparedStatement extends BasePrepareStatement impleme
      * @param queryParameterSize      batch size
      * @throws SQLException if any error occur.
      */
-    private void executeBatchInternal(Results results, int queryParameterSize)
+    protected void executeBatchInternal(Results results, int queryParameterSize)
             throws SQLException {
+        executeQueryPrologue(serverPrepareResult);
+
+        results.reset(0, true, queryParameterSize, true,resultSetScrollType);;
 
         //if  multi send capacity
         if (options.useBatchMultiSend) {
@@ -300,6 +288,8 @@ public class MariaDbServerPreparedStatement extends BasePrepareStatement impleme
             }
         }
         if (exception != null) throw exception;
+
+        results.commandEnd();
     }
 
     // must have "lock" locked before invoking
@@ -322,7 +312,9 @@ public class MariaDbServerPreparedStatement extends BasePrepareStatement impleme
 
     @Override
     public int executeUpdate() throws SQLException {
-        execute();
+        if (execute()) {
+            return 0;
+        }
         return getUpdateCount();
     }
 
@@ -489,4 +481,5 @@ public class MariaDbServerPreparedStatement extends BasePrepareStatement impleme
         }
         return (protocol != null) ? protocol.getServerThreadId() : -1;
     }
+
 }
