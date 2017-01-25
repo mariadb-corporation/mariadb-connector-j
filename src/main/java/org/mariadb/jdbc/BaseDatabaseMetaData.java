@@ -51,7 +51,8 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.SelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.dao.Identifier;
@@ -63,7 +64,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-public class MariaDbDatabaseMetaData implements DatabaseMetaData {
+public class BaseDatabaseMetaData implements DatabaseMetaData {
     public static final String DRIVER_NAME = "MariaDB connector/J";
     private String url;
     private MariaDbConnection connection;
@@ -78,7 +79,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * @param user       userName
      * @param url        connection String url.
      */
-    public MariaDbDatabaseMetaData(Connection connection, String user, String url) {
+    public BaseDatabaseMetaData(Connection connection, String user, String url) {
         this.connection = (MariaDbConnection) connection;
         this.username = user;
         this.url = url;
@@ -201,7 +202,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 return result;
             }
         });
-        ResultSet ret = MariaSelectResultSet.createResultSet(columnNames, columnTypes, arr, connection.getProtocol());
+        ResultSet ret = SelectResultSetCommon.createResultSet(columnNames, columnTypes, arr, connection.getProtocol());
         return ret;
     }
 
@@ -424,17 +425,17 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + " WHEN 'time' THEN " + Types.TIME
                 + " WHEN 'timestamp' THEN " + Types.TIMESTAMP
                 + " WHEN 'tinyint' THEN "
-                + (((connection.getProtocol().getDataTypeMappingFlags() & MariaSelectResultSet.TINYINT1_IS_BIT) == 0)
+                + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSetCommon.TINYINT1_IS_BIT) == 0)
                 ? Types.TINYINT : "IF(" + fullTypeColumnName + "='tinyint(1)'," + Types.BIT + "," + Types.TINYINT + ") ")
                 + " WHEN 'year' THEN "
-                + (((connection.getProtocol().getDataTypeMappingFlags() & MariaSelectResultSet.YEAR_IS_DATE_TYPE) == 0)
+                + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSetCommon.YEAR_IS_DATE_TYPE) == 0)
                 ? Types.SMALLINT : Types.DATE)
                 + " ELSE " + Types.OTHER
                 + " END ";
     }
 
     private ResultSet executeQuery(String sql) throws SQLException {
-        MariaSelectResultSet rs = (MariaSelectResultSet) connection.createStatement().executeQuery(sql);
+        SelectResultSetCommon rs = (SelectResultSetCommon) connection.createStatement().executeQuery(sql);
         rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
         rs.setReturnTableAlias(true);
         return rs;
@@ -2178,7 +2179,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                         "0", "0", "10"}
         };
 
-        return MariaSelectResultSet.createResultSet(columnNames, columnTypes, data, connection.getProtocol());
+        return SelectResultSetCommon.createResultSet(columnNames, columnTypes, data, connection.getProtocol());
     }
 
     /**
@@ -2599,7 +2600,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 "The hostname of the computer the application using the connection is running on".getBytes()
         });
 
-        return new MariaSelectResultSet(columns, rows, connection.getProtocol(), ResultSet.TYPE_SCROLL_INSENSITIVE);
+        return new SelectResultSet(columns, rows, connection.getProtocol(), ResultSet.TYPE_SCROLL_INSENSITIVE);
     }
 
     /**

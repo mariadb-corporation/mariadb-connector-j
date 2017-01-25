@@ -51,7 +51,7 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 
@@ -279,13 +279,13 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
                 }
                 return Types.VARBINARY;
             case TINYINT:
-                if (ci.getLength() == 1 && (datatypeMappingflags & MariaSelectResultSet.TINYINT1_IS_BIT) != 0) {
+                if (ci.getLength() == 1 && (datatypeMappingflags & SelectResultSetCommon.TINYINT1_IS_BIT) != 0) {
                     return Types.BIT;
                 } else {
                     return Types.TINYINT;
                 }
             case YEAR:
-                if ((datatypeMappingflags & MariaSelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
+                if ((datatypeMappingflags & SelectResultSetCommon.YEAR_IS_DATE_TYPE) != 0) {
                     return Types.DATE;
                 } else {
                     return Types.SMALLINT;
@@ -404,25 +404,30 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      * @since 1.6
      */
     public <T> T unwrap(final Class<T> iface) throws SQLException {
-        return null;
+        try {
+            if (isWrapperFor(iface)) {
+                return iface.cast(this);
+            } else {
+                throw new SQLException("The receiver is not a wrapper for " + iface.getName());
+            }
+        } catch (Exception e) {
+            throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+        }
     }
 
     /**
-     * Returns true if this either implements the interface argument or is directly or indirectly a wrapper for an
-     * object that does. Returns false otherwise. If this implements the interface then return true, else if this is a
-     * wrapper then return the result of recursively calling <code>isWrapperFor</code> on the wrapped object. If this
-     * does not implement the interface and is not a wrapper, return false. This method should be implemented as a
-     * low-cost operation compared to <code>unwrap</code> so that callers can use this method to avoid expensive
-     * <code>unwrap</code> calls that may fail. If this method returns true then calling <code>unwrap</code> with the
-     * same argument should succeed.
+     * Returns true if this either implements the interface argument or is directly or indirectly a wrapper for an object that does. Returns false
+     * otherwise. If this implements the interface then return true, else if this is a wrapper then return the result of recursively calling
+     * <code>isWrapperFor</code> on the wrapped object. If this does not implement the interface and is not a wrapper, return false. This method
+     * should be implemented as a low-cost operation compared to <code>unwrap</code> so that callers can use this method to avoid expensive
+     * <code>unwrap</code> calls that may fail. If this method returns true then calling <code>unwrap</code> with the same argument should succeed.
      *
      * @param iface a Class defining an interface.
      * @return true if this implements the interface or directly or indirectly wraps an object that does.
-     * @throws SQLException if an error occurs while determining whether this is a wrapper for an object with
-     *                      the given interface.
+     * @throws SQLException if an error occurs while determining whether this is a wrapper for an object with the given interface.
      * @since 1.6
      */
     public boolean isWrapperFor(final Class<?> iface) throws SQLException {
-        return false;
+        return iface.isInstance(this);
     }
 }

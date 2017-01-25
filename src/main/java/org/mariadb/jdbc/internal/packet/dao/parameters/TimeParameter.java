@@ -58,23 +58,25 @@ import java.io.IOException;
 import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.TimeZone;
 
 
 public class TimeParameter implements ParameterHolder, Cloneable {
+
     private Time time;
-    private Calendar calendar;
+    private TimeZone timeZone;
     private boolean fractionalSeconds;
 
     /**
      * Constructor.
      *
      * @param time              time to write
-     * @param cal               session calendar
+     * @param timeZone          timezone
      * @param fractionalSeconds must fractional seconds be send.
      */
-    public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds) {
+    public TimeParameter(Time time, TimeZone timeZone, boolean fractionalSeconds) {
         this.time = time;
-        this.calendar = cal;
+        this.timeZone = timeZone;
         this.fractionalSeconds = fractionalSeconds;
     }
 
@@ -104,7 +106,7 @@ public class TimeParameter implements ParameterHolder, Cloneable {
 
     private byte[] dateToBytes() {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-        sdf.setCalendar(Calendar.getInstance());
+        sdf.setTimeZone(timeZone);
         String dateString = sdf.format(time);
         if (time.getTime() < 0) {
             dateString = "-" + dateString;
@@ -119,13 +121,32 @@ public class TimeParameter implements ParameterHolder, Cloneable {
     /**
      * Write time in binary format.
      *
-     * @param writeBuffer write buffer
+     * @param pos write buffer
      */
-    public void writeBinary(final PacketOutputStream writeBuffer) {
-        calendar = Calendar.getInstance();
+    public void writeBinary(final PacketOutputStream pos) {
+        Calendar calendar = Calendar.getInstance(timeZone);
         calendar.setTime(time);
         calendar.set(Calendar.DAY_OF_MONTH, 1);
-        writeBuffer.writeTimeLength(calendar, fractionalSeconds);
+
+        if (fractionalSeconds) {
+            pos.assureBufferCapacity(13);
+            pos.buffer.put((byte) 12);
+            pos.buffer.put((byte) 0);
+            pos.buffer.putInt(0);
+            pos.buffer.put((byte) calendar.get(Calendar.HOUR_OF_DAY));
+            pos.buffer.put((byte) calendar.get(Calendar.MINUTE));
+            pos.buffer.put((byte) calendar.get(Calendar.SECOND));
+            pos.buffer.putInt(calendar.get(Calendar.MILLISECOND) * 1000);
+        } else {
+            pos.assureBufferCapacity(9);
+            pos.buffer.put((byte) 8);//length
+            pos.buffer.put((byte) 0);
+            pos.buffer.putInt(0);
+            pos.buffer.put((byte) calendar.get(Calendar.HOUR_OF_DAY));
+            pos.buffer.put((byte) calendar.get(Calendar.MINUTE));
+            pos.buffer.put((byte) calendar.get(Calendar.SECOND));
+        }
+
     }
 
     public ColumnType getMariaDbType() {

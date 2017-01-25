@@ -50,10 +50,9 @@ OF SUCH DAMAGE.
 */
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
 
@@ -71,7 +70,7 @@ import java.util.*;
 public class CmdInformationMultiple implements CmdInformation {
 
     private Deque<Long> insertIds;
-    private Deque<Integer> updateCounts;
+    private Deque<Long> updateCounts;
     private int expectedSize;
 
     /**
@@ -81,7 +80,7 @@ public class CmdInformationMultiple implements CmdInformation {
      * @param updateCount update count
      * @param expectedSize expected batch size
      */
-    public CmdInformationMultiple(long insertId, int updateCount, int expectedSize) {
+    public CmdInformationMultiple(long insertId, long updateCount, int expectedSize) {
         this.expectedSize = expectedSize;
         this.insertIds = new ArrayDeque<>(expectedSize);
         this.updateCounts = new ArrayDeque<>(expectedSize);
@@ -95,7 +94,7 @@ public class CmdInformationMultiple implements CmdInformation {
      * @param updateCount update count
      * @param expectedSize expected batch size
      */
-    public CmdInformationMultiple(int updateCount, int expectedSize) {
+    public CmdInformationMultiple(long updateCount, int expectedSize) {
         this.expectedSize = expectedSize;
         this.insertIds = new ArrayDeque<>(expectedSize);
         this.updateCounts = new ArrayDeque<>(expectedSize);
@@ -111,16 +110,16 @@ public class CmdInformationMultiple implements CmdInformation {
         this.expectedSize = expectedSize;
         this.insertIds = new ArrayDeque<>(expectedSize);
         this.updateCounts = new ArrayDeque<>(expectedSize);
-        this.updateCounts.add(Statement.EXECUTE_FAILED);
+        this.updateCounts.add((long) Statement.EXECUTE_FAILED);
     }
 
     @Override
-    public void addStats(int updateCount) {
+    public void addStats(long updateCount) {
         this.updateCounts.add(updateCount);
     }
 
     @Override
-    public void addStats(int updateCount, long insertId) {
+    public void addStats(long updateCount, long insertId) {
         if (insertId != 0) this.insertIds.add(insertId);
         this.updateCounts.add(updateCount);
     }
@@ -129,7 +128,24 @@ public class CmdInformationMultiple implements CmdInformation {
     public int[] getUpdateCounts() {
         int[] ret = new int[Math.max(updateCounts.size(), expectedSize)];
         int pos = 0;
-        for (Integer updateCount : updateCounts) {
+        for (Long updateCount : updateCounts) {
+            ret[pos++] = updateCount.intValue();
+        }
+
+        //in case of Exception
+        while (pos < ret.length) {
+            ret[pos++] = Statement.EXECUTE_FAILED;
+        }
+
+        return ret;
+    }
+
+
+    @Override
+    public long[] getLargeUpdateCounts() {
+        long[] ret = new long[Math.max(updateCounts.size(), expectedSize)];
+        int pos = 0;
+        for (Long updateCount : updateCounts) {
             ret[pos++] = updateCount;
         }
 
@@ -141,10 +157,17 @@ public class CmdInformationMultiple implements CmdInformation {
         return ret;
     }
 
+
+    @Override
+    public long getLargeUpdateCount() {
+        Long updateCount = updateCounts.peekFirst();
+        return (updateCount == null) ? NO_UPDATE_COUNT : updateCount;
+    }
+
     @Override
     public int getUpdateCount() {
-        Integer updateCount = updateCounts.peekFirst();
-        return (updateCount == null) ? NO_UPDATE_COUNT : updateCount;
+        Long updateCount = updateCounts.peekFirst();
+        return (updateCount == null) ? NO_UPDATE_COUNT : updateCount.intValue();
     }
 
     /**
@@ -159,7 +182,7 @@ public class CmdInformationMultiple implements CmdInformation {
         for (int i = 0; i < ret.length; i++) {
             ret[i] = iterator.next().longValue();
         }
-        return MariaSelectResultSet.createGeneratedData(ret, protocol, true);
+        return SelectResultSetCommon.createGeneratedData(ret, protocol, true);
     }
 
     public int getCurrentStatNumber() {
@@ -174,7 +197,7 @@ public class CmdInformationMultiple implements CmdInformation {
 
     @Override
     public boolean isCurrentUpdateCount() {
-        Integer updateCount = updateCounts.peekFirst();
+        Long updateCount = updateCounts.peekFirst();
         return (updateCount == null) ? false : NO_UPDATE_COUNT != updateCount;
     }
 

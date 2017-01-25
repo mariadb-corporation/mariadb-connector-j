@@ -14,6 +14,10 @@ import static org.junit.Assert.assertEquals;
 
 public class BigQueryTest extends BaseTest {
 
+    /**
+     * Create Tests tables.
+     * @throws SQLException if connection error occur.
+     */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("bigblob", "id int not null primary key auto_increment, test longblob");
@@ -104,13 +108,13 @@ public class BigQueryTest extends BaseTest {
     @Test
     public void maxFieldSizeTest() throws SQLException {
 
-        byte aByte = (byte) 'a';
-        byte bByte = (byte) 'b';
+        byte abyte = (byte) 'a';
+        byte bbyte = (byte) 'b';
 
         byte[] arr = new byte[200];
-        Arrays.fill(arr, aByte);
+        Arrays.fill(arr, abyte);
         byte[] arr2 = new byte[200];
-        Arrays.fill(arr2, bByte);
+        Arrays.fill(arr2, bbyte);
 
         PreparedStatement ps = sharedConnection.prepareStatement("insert into bigblob3 values(null, ?,?)");
 
@@ -124,7 +128,7 @@ public class BigQueryTest extends BaseTest {
         rs.next();
         Assert.assertEquals(2, rs.getBytes(2).length);
         Assert.assertEquals(2, rs.getString(3).length());
-        Assert.assertArrayEquals(new byte[] {aByte, aByte}, rs.getBytes(2));
+        Assert.assertArrayEquals(new byte[] {abyte, abyte}, rs.getBytes(2));
         Assert.assertEquals("bb", rs.getString(3));
 
     }

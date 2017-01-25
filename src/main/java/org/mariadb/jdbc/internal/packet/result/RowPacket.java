@@ -65,6 +65,13 @@ public abstract class RowPacket {
     private final ColumnInformation[] columnInformations;
     private final int columnInformationLength;
 
+    /**
+     * Constructor.
+     *
+     * @param columnInformations columns
+     * @param columnInformationLength columns length
+     * @param maxFieldSize current max field size
+     */
     public RowPacket(ColumnInformation[] columnInformations, int columnInformationLength, int maxFieldSize) {
         this.columnInformations = columnInformations;
         this.columnInformationLength = columnInformationLength;
@@ -75,7 +82,12 @@ public abstract class RowPacket {
 
     public abstract byte[][] getRow(ReadPacketFetcher packetFetcher, MariaDbInputStream inputStream, int remaining, int read) throws IOException;
 
-
+    /**
+     * Indicate if maxFieldSize variable affect current column.
+     *
+     * @param columnInformation column information
+     * @return true if column size may be limited by max field size variable.
+     */
     public boolean isColumnAffectedByMaxFieldSize(ColumnInformation columnInformation) {
         if (maxFieldSize > 0) {
             switch (columnInformation.getColumnType().getSqlType()) {
@@ -89,6 +101,9 @@ public abstract class RowPacket {
                 case Types.NVARCHAR:
                 case Types.LONGNVARCHAR:
                     return true;
+
+                default:
+                    return false;
             }
         }
         return false;

@@ -249,6 +249,12 @@ public class ReadPacketFetcher {
         return valueBuffer;
     }
 
+    /**
+     * Skip reading length byte from buffer.
+     *
+     * @param length length to skip
+     * @throws IOException if socket read occur.
+     */
     public void skipLength(long length) throws IOException {
         long remainingToRead = length;
         do {

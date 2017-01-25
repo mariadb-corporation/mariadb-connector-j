@@ -3,7 +3,7 @@ package org.mariadb.jdbc;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 
 import java.sql.*;
 
@@ -61,7 +61,7 @@ public class BasicBatchTest extends BaseTest {
         final ResultSet rs = sharedConnection.createStatement().executeQuery("select * from test_batch");
         ps.executeQuery("SELECT 1");
         rs1 = ps.getGeneratedKeys();
-        assertEquals(MariaSelectResultSet.EMPTY, rs1);
+        assertEquals(SelectResultSetCommon.EMPTY, rs1);
         assertEquals(true, rs.next());
         assertEquals("aaa", rs.getString(2));
         assertEquals(true, rs.next());

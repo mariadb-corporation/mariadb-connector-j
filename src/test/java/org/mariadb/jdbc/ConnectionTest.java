@@ -54,7 +54,7 @@ public class ConnectionTest extends BaseTest {
                     break;
 
                 default:
-                    fail("Wrong error code : " + e.getErrorCode());
+                    e.printStackTrace();
             }
         }
     }

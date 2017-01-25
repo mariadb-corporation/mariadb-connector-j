@@ -50,17 +50,16 @@ OF SUCH DAMAGE.
 */
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
 
 public class CmdInformationRewrite implements CmdInformation {
 
     private Deque<Long> insertIds;
-    private Deque<Integer> updateCounts;
+    private Deque<Long> updateCounts;
     private int insertIdNumber = 0;
     private int expectedSize;
     private boolean hasException;
@@ -83,13 +82,13 @@ public class CmdInformationRewrite implements CmdInformation {
     }
 
     @Override
-    public void addStats(int updateCount) {
+    public void addStats(long updateCount) {
         hasException = true;
         this.updateCounts.add(updateCount);
     }
 
     @Override
-    public void addStats(int updateCount, long insertId) {
+    public void addStats(long updateCount, long insertId) {
         if (insertId != 0) {
             this.insertIds.add(insertId);
             insertIdNumber += updateCount;
@@ -102,6 +101,18 @@ public class CmdInformationRewrite implements CmdInformation {
         int[] ret = new int[expectedSize];
         Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
         return ret;
+    }
+
+    @Override
+    public long[] getLargeUpdateCounts() {
+        long[] ret = new long[expectedSize];
+        Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
+        return ret;
+    }
+
+    @Override
+    public long getLargeUpdateCount() {
+        return hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO;
     }
 
     @Override
@@ -120,7 +131,7 @@ public class CmdInformationRewrite implements CmdInformation {
         long[] ret = new long[insertIdNumber];
         int position = 0;
         Iterator<Long> iterator = insertIds.iterator();
-        for (int updateCount : updateCounts) {
+        for (long updateCount : updateCounts) {
             if (updateCount != Statement.EXECUTE_FAILED) {
                 long insertId = iterator.next().longValue();
                 for (int i = 0; i < updateCount; i++) {
@@ -128,7 +139,7 @@ public class CmdInformationRewrite implements CmdInformation {
                 }
             }
         }
-        return MariaSelectResultSet.createGeneratedData(ret, protocol, true);
+        return SelectResultSetCommon.createGeneratedData(ret, protocol, true);
     }
 
     public int getCurrentStatNumber() {
@@ -144,7 +155,7 @@ public class CmdInformationRewrite implements CmdInformation {
 
     @Override
     public boolean isCurrentUpdateCount() {
-        Integer updateCount = updateCounts.peekFirst();
+        Long updateCount = updateCounts.peekFirst();
         return (updateCount == null) ? false : NO_UPDATE_COUNT != updateCount;
     }
 

@@ -69,7 +69,7 @@ import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationPr
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509KeyManager;
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509TrustManager;
 import org.mariadb.jdbc.internal.queryresults.Results;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 import org.mariadb.jdbc.internal.stream.DecompressInputStream;
 import org.mariadb.jdbc.internal.stream.MariaDbBufferedInputStream;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
@@ -82,7 +82,6 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 
-import javax.net.SocketFactory;
 import javax.net.ssl.*;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -97,6 +96,7 @@ import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -134,7 +134,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private int minorVersion;
     private int patchVersion;
     private Map<String, String> serverData;
-    private Calendar cal;
+    private TimeZone timeZone;
 
     /**
      * Get a protocol instance.
@@ -453,10 +453,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 }
             }
         }
+
         if (options.sessionVariables != null) {
             sessionOption += "," + options.sessionVariables;
         }
+
         executeQuery("set session " + sessionOption);
+
+        if (options.sessionVariables != null && options.sessionVariables.contains("time_zone")) {
+            //reload session variables, since, time_zone may have change
+            loadServerData();
+        }
     }
 
     private void handleConnectionPhases() throws SQLException {
@@ -621,53 +628,58 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private void loadCalendar() throws SQLException {
-        String timeZone = null;
-        if (options.serverTimezone != null) {
-            timeZone = options.serverTimezone;
-        }
-
-        if (timeZone == null) {
-            timeZone = getServerData("time_zone");
-            if ("SYSTEM".equals(timeZone)) {
-                timeZone = getServerData("system_time_zone");
+        if (options.useLegacyDatetimeCode) {
+            //legacy use client timezone
+            timeZone = Calendar.getInstance().getTimeZone();
+        } else {
+            //use server time zone
+            String tz = null;
+            if (options.serverTimezone != null) {
+                tz = options.serverTimezone;
             }
-        }
-        //handle custom timezone id
-        if (timeZone != null && timeZone.length() >= 2
-                && (timeZone.startsWith("+") || timeZone.startsWith("-"))
-                && Character.isDigit(timeZone.charAt(1))) {
-            timeZone = "GMT" + timeZone;
-        }
-        try {
-            TimeZone tz = Utils.getTimeZone(timeZone);
-            cal = Calendar.getInstance(tz);
-        } catch (SQLException e) {
-            cal = null;
-            if (!options.useLegacyDatetimeCode) {
+
+            if (tz == null) {
+                tz = getServerData("time_zone");
+                if ("SYSTEM".equals(tz)) {
+                    tz = getServerData("system_time_zone");
+                }
+            }
+            //handle custom timezone id
+            if (tz != null && tz.length() >= 2
+                    && (tz.startsWith("+") || tz.startsWith("-"))
+                    && Character.isDigit(tz.charAt(1))) {
+                tz = "GMT" + tz;
+            }
+
+            try {
+                timeZone = Utils.getTimeZone(tz);
+            } catch (SQLException e) {
                 if (options.serverTimezone != null) {
-                    throw new SQLException("The server time_zone '" + timeZone + "' defined in the 'serverTimezone' parameter cannot be parsed "
+                    throw new SQLException("The server time_zone '" + tz + "' defined in the 'serverTimezone' parameter cannot be parsed "
                             + "by java TimeZone implementation. See java.util.TimeZone#getAvailableIDs() for available TimeZone, depending on your "
                             + "JRE implementation.", "01S00");
                 } else {
-                    throw new SQLException("The server time_zone '" + timeZone + "' cannot be parsed. The server time zone must defined in the "
-                            + "jdbc url string with the 'serverTimezone' parameter (or server time zone must be defined explicitly).  See "
+                    throw new SQLException("The server time_zone '" + tz + "' cannot be parsed. The server time zone must defined in the "
+                            + "jdbc url string with the 'serverTimezone' parameter (or server time zone must be defined explicitly with "
+                            + "sessionVariables=time_zone='Canada/Atlantic' for example).  See "
                             + "java.util.TimeZone#getAvailableIDs() for available TimeZone, depending on your JRE implementation.", "01S00");
                 }
             }
         }
 
+
     }
 
-    private void loadServerData() throws SQLException, IOException {
+    private void loadServerData() throws SQLException {
         serverData = new TreeMap<>();
         try {
             Results results = new Results();
             executeQuery(true, results, "SELECT @@max_allowed_packet , "
                             + "@@system_time_zone, "
-                            + "@@time_zone, "
-                            + "@@sql_mode");
+                            + "@@session.time_zone, "
+                            + "@@session.sql_mode");
             results.commandEnd();
-            MariaSelectResultSet resultSet = results.getResultSet();
+            ResultSet resultSet = results.getResultSet();
             resultSet.next();
 
             serverData.put("max_allowed_packet", resultSet.getString(1));
@@ -687,7 +699,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         + "'sql_mode'"
                         + ")");
                 results.commandEnd();
-                MariaSelectResultSet resultSet = results.getResultSet();
+                ResultSet resultSet = results.getResultSet();
                 while (resultSet.next()) {
                     logger.debug("server data " + resultSet.getString(1) + " : " + resultSet.getString(2));
                     serverData.put(resultSet.getString(1), resultSet.getString(2));
@@ -1032,10 +1044,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void setDataTypeMappingFlags() {
         dataTypeMappingFlags = 0;
         if (options.tinyInt1isBit) {
-            dataTypeMappingFlags |= MariaSelectResultSet.TINYINT1_IS_BIT;
+            dataTypeMappingFlags |= SelectResultSetCommon.TINYINT1_IS_BIT;
         }
         if (options.yearIsDateType) {
-            dataTypeMappingFlags |= MariaSelectResultSet.YEAR_IS_DATE_TYPE;
+            dataTypeMappingFlags |= SelectResultSetCommon.YEAR_IS_DATE_TYPE;
         }
     }
 
@@ -1051,8 +1063,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return explicitClosed;
     }
 
-    public Calendar getCalendar() {
-        return cal;
+    public TimeZone getTimeZone() {
+        return timeZone;
     }
 
     public Options getOptions() {

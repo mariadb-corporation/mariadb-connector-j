@@ -329,7 +329,12 @@ public class DateTest extends BaseTest {
             Assert.assertEquals(rs.getDate(3), dateWithoutTime);
             Assert.assertEquals(rs.getTime(1), new Time(currentTimeStamp.getTime()));
             Assert.assertEquals(rs.getTime(2), new Time(currentTimeStamp.getTime()));
-            Assert.assertEquals(rs.getTime(3), zeroTime);
+            try {
+                rs.getTime(3);
+                fail();
+            } catch (SQLException e) {
+                e.getMessage().contains("Cannot read Time using a Types.DATE field");
+            }
         } else {
             fail("Must have a result");
         }

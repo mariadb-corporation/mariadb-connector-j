@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.logging;
 
-import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.Options;
@@ -68,7 +67,7 @@ import java.util.List;
 
 public class ProtocolLoggingProxy implements InvocationHandler {
     private static final NumberFormat numberFormat = DecimalFormat.getInstance();
-    private static Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
+    private static Logger logger = LoggerFactory.getLogger(ProtocolLoggingProxy.class);
     protected boolean profileSql;
     protected Long slowQueryThresholdNanos;
     protected int maxQuerySizeToLog;

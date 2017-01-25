@@ -50,10 +50,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.protocol;
 
-import org.mariadb.jdbc.LocalInfileInterceptor;
-import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.MariaDbStatement;
-import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.*;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
@@ -62,7 +59,6 @@ import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
 import org.mariadb.jdbc.internal.packet.send.SendChangeDbPacket;
 import org.mariadb.jdbc.internal.packet.send.SendPingPacket;
 import org.mariadb.jdbc.internal.queryresults.*;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
@@ -93,7 +89,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     private InputStream localInfileInputStream;
 
-    private int maxRows;  /* max rows returned by a statement */
+    private long maxRows;  /* max rows returned by a statement */
 
     private volatile int statementIdToRelease = -1;
 
@@ -876,16 +872,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      *
      * @param max row number max value
      */
-    public void setInternalMaxRows(int max) {
+    public void setInternalMaxRows(long max) {
         if (maxRows != max) maxRows = max;
     }
 
-    public int getMaxRows() {
+    public long getMaxRows() {
         return maxRows;
     }
 
     @Override
-    public void setMaxRows(int max) throws SQLException {
+    public void setMaxRows(long max) throws SQLException {
         if (maxRows != max) {
             if (max == 0) {
                 executeQuery("set @@SQL_SELECT_LIMIT=DEFAULT");
@@ -1050,7 +1046,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      */
     public void readOkPacket(Buffer buffer, Results results) throws SQLException {
         buffer.skipByte(); //fieldCount
-        final int updateCount = (int) buffer.getLengthEncodedBinary();
+        final long updateCount = buffer.getLengthEncodedBinary();
         final long insertId = buffer.getLengthEncodedBinary();
         serverStatus = buffer.readShort();
         this.hasWarnings = (buffer.readShort() > 0);
@@ -1150,23 +1146,23 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             Buffer bufferEof = packetFetcher.getReusableBuffer();
             if (bufferEof.readByte() != Packet.EOF) {
                 throw new SQLException("Packets out of order when reading field packets, expected was EOF stream. "
-                        + "Packet contents (hex) = " + Utils.hexdump(bufferEof.buf, options.maxQuerySizeToLog, 0, buffer.position));
+                        + "Packet contents (hex) = " + Utils.hexdump(bufferEof.buf, options.maxQuerySizeToLog, 0, bufferEof.position));
             }
-            buffer.skipBytes(2); //Skip warningCount
-            boolean callableResult = (buffer.readShort() & ServerStatus.PS_OUT_PARAMETERS) != 0;
+            bufferEof.skipBytes(2); //Skip warningCount
+            boolean callableResult = (bufferEof.readShort() & ServerStatus.PS_OUT_PARAMETERS) != 0;
 
 
             //read resultSet
-            MariaSelectResultSet mariaSelectResultset = new MariaSelectResultSet(ci, results, this, packetFetcher, callableResult);
-            results.addResultSet(mariaSelectResultset, moreResults);
+            SelectResultSet selectResultSet = new SelectResultSet(ci, results, this, packetFetcher, callableResult);
+            results.addResultSet(selectResultSet, moreResults);
 
         } catch (IOException e) {
             throw new SQLException("Could not read result set: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
         }
     }
 
-    public void prologProxy(ServerPrepareResult serverPrepareResult, int maxRows, boolean hasProxy,
-                            MariaDbConnection connection, MariaDbStatement statement) throws SQLException {
+    public void prologProxy(ServerPrepareResult serverPrepareResult, long maxRows, boolean hasProxy,
+                            MariaDbConnection connection, BaseStatement statement) throws SQLException {
         prolog(maxRows, hasProxy, connection, statement);
     }
 
@@ -1179,7 +1175,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @param statement       current statement
      * @throws SQLException if any error occur.
      */
-    public void prolog(int maxRows, boolean hasProxy, MariaDbConnection connection, MariaDbStatement statement)
+    public void prolog(long maxRows, boolean hasProxy, MariaDbConnection connection, BaseStatement statement)
             throws SQLException {
         if (explicitClosed) {
             throw new SQLException("execute() is called on closed connection");
@@ -1233,7 +1229,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @throws SQLException if any error occur.
      */
     //TODO set all client affected variables when implementing CONJ-319
-    public void resetStateAfterFailover(int maxRows, int transactionIsolationLevel, String database, boolean autocommit) throws SQLException {
+    public void resetStateAfterFailover(long maxRows, int transactionIsolationLevel, String database, boolean autocommit) throws SQLException {
         setMaxRows(maxRows);
 
         if (transactionIsolationLevel != 0) {

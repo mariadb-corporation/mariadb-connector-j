@@ -17,7 +17,30 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
-== 1.6.0
+== 2.0.0
+
+Java 8 and Java 7 have now separate maven artifacts, mostly due od java 8 time implementation.
+
+java 8 maven repository artifact :
+
+<dependencies>
+    <dependency>
+        <groupId>org.mariadb.jdbc</groupId>
+        <artifactId>mariadb-java-client</artifactId>
+        <version>2.0.0</version>
+    </dependency>
+</dependencies>
+
+java 7 maven repository artifact :
+
+<dependencies>
+    <dependency>
+        <groupId>org.mariadb.jdbc</groupId>
+        <artifactId>mariadb-java-client-jre7</artifactId>
+        <version>2.0.0</version>
+    </dependency>
+</dependencies>
+
 === CONJ-393 : improve setQueryTimeout to use SET STATEMENT max_statement_time
 [CONJ-291]\\
 
@@ -34,6 +57,12 @@ tcpKeepAlive option now default to true.
 Usually pool will ensure that connection is still valid.
 Since the process doesn't start until a connection has been idle for two hours (this time is OS dependant),
 TCP keep alive after this time will ensure that socket is still OK..
+
+[CONJ-409]\\
+PrepareStatement.setObject(...) support for with java 8 temporal temporal object.
+(Support for LocalDateTime, DateTime, ZoneDateTime, OffsetDateTime, OffsetTime)
+
+
 
 == 1.5.7
 * CONJ-407 : handling failover when packet > max_allowed_packet reset the connection state.

@@ -361,7 +361,15 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @since 1.6
      */
     public <T> T unwrap(final Class<T> iface) throws SQLException {
-        return null;
+        try {
+            if (isWrapperFor(iface)) {
+                return iface.cast(this);
+            } else {
+                throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+            }
+        } catch (Exception e) {
+            throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+        }
     }
 
     /**
@@ -373,14 +381,14 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * <code>unwrap</code> calls that may fail. If this method returns true then calling <code>unwrap</code> with the
      * same argument should succeed.
      *
-     * @param iface a Class defining an interface.
+     * @param interfaceOrWrapper a Class defining an interface.
      * @return true if this implements the interface or directly or indirectly wraps an object that does.
      * @throws SQLException if an error occurs while determining whether this is a wrapper for an object with
      *                      the given interface.
      * @since 1.6
      */
-    public boolean isWrapperFor(final Class<?> iface) throws SQLException {
-        return false;
+    public boolean isWrapperFor(final Class<?> interfaceOrWrapper) throws SQLException {
+        return interfaceOrWrapper.isInstance(this);
     }
 
     /**
@@ -426,7 +434,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
     }
 
     public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        // TODO Auto-generated method stub
         return null;
     }
+
 }

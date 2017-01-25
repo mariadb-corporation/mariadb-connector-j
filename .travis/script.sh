@@ -34,8 +34,17 @@ else
     testSingleHost=true
 fi
 
-
-mvn clean test $urlString -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID  \
-    -DkeystorePath="/etc/mysql/client-keystore.jks" -DkeystorePassword="kspass"  \
-    -Dkeystore2Path="/etc/mysql/fullclient-keystore.jks" -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
-    -Dkeystore2PathP12="/etc/mysql/fullclient-keystore.p12"
+if [ "$TRAVIS_JDK_VERSION" == "oraclejdk7" ]
+then
+    echo "Running coveralls for JDK version: $TRAVIS_JDK_VERSION with profile jdbc41"
+    mvn -Pjdbc41 clean test $urlString -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID  \
+        -DkeystorePath="/etc/mysql/client-keystore.jks" -DkeystorePassword="kspass"  \
+        -Dkeystore2Path="/etc/mysql/fullclient-keystore.jks" -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
+        -Dkeystore2PathP12="/etc/mysql/fullclient-keystore.p12"
+else
+    echo "Running coveralls for JDK version: $TRAVIS_JDK_VERSION with profile jdbc42"
+    mvn -Pjdbc42 clean test $urlString -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID  \
+        -DkeystorePath="/etc/mysql/client-keystore.jks" -DkeystorePassword="kspass"  \
+        -Dkeystore2Path="/etc/mysql/fullclient-keystore.jks" -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
+        -Dkeystore2PathP12="/etc/mysql/fullclient-keystore.p12"
+fi

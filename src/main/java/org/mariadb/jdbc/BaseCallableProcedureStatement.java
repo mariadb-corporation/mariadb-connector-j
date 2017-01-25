@@ -51,7 +51,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.SelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 
 import java.io.InputStream;
@@ -63,7 +63,7 @@ import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
-public abstract class AbstractCallableProcedureStatement extends MariaDbServerPreparedStatement implements CallableStatement, Cloneable {
+public abstract class BaseCallableProcedureStatement extends BasePreparedStatementServer implements CallableStatement, Cloneable {
 
     /**
      * Information about parameters, merely from registerOutputParameter() and setXXX() calls.
@@ -82,7 +82,7 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
      *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @throws SQLException is prepareStatement connection throw any error
      */
-    public AbstractCallableProcedureStatement(MariaDbConnection connection, String sql, int resultSetScrollType)
+    public BaseCallableProcedureStatement(MariaDbConnection connection, String sql, int resultSetScrollType)
             throws SQLException {
         super(connection, sql, resultSetScrollType, true);
     }
@@ -93,8 +93,8 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
      * @return Cloned .
      * @throws CloneNotSupportedException if any error occur.
      */
-    public AbstractCallableProcedureStatement clone() throws CloneNotSupportedException {
-        AbstractCallableProcedureStatement clone = (AbstractCallableProcedureStatement) super.clone();
+    public BaseCallableProcedureStatement clone() throws CloneNotSupportedException {
+        BaseCallableProcedureStatement clone = (BaseCallableProcedureStatement) super.clone();
         clone.params = params;
         clone.parameterMetadata = parameterMetadata;
         return clone;
@@ -117,7 +117,7 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
         }
     }
 
-    protected abstract MariaSelectResultSet getResult() throws SQLException;
+    protected abstract SelectResultSet getResult() throws SQLException;
 
     public ParameterMetaData getParameterMetaData() throws SQLException {
         parameterMetadata.readMetadataFromDbIfRequired();
@@ -131,7 +131,7 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
      * @return index
      * @throws SQLException exception
      */
-    private int nameToIndex(String parameterName) throws SQLException {
+    protected int nameToIndex(String parameterName) throws SQLException {
         parameterMetadata.readMetadataFromDbIfRequired();
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i);
@@ -841,17 +841,6 @@ public abstract class AbstractCallableProcedureStatement extends MariaDbServerPr
     @Override
     public void setObject(String parameterName, Object obj) throws SQLException {
         setObject(nameToIndex(parameterName), obj);
-    }
-
-
-    @Override
-    protected boolean isNoBackslashEscapes() {
-        return connection.noBackslashEscapes;
-    }
-
-    @Override
-    protected boolean useFractionalSeconds() {
-        return useFractionalSeconds;
     }
 
 }

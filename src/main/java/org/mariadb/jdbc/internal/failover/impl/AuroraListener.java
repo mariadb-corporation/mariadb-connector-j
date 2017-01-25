@@ -55,9 +55,9 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.Results;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.logging.Level;
@@ -234,7 +234,7 @@ public class AuroraListener extends MastersSlavesListener {
                         "select server_id, session_id from information_schema.replica_host_status "
                                 + "where last_update_timestamp > UTC_TIMESTAMP - INTERVAL 3 MINUTE");
                 results.commandEnd();
-                MariaSelectResultSet resultSet = results.getResultSet();
+                ResultSet resultSet = results.getResultSet();
 
                 while (resultSet.next()) {
                     endpoints.add(resultSet.getString(1) + urlEndStr);
@@ -348,7 +348,7 @@ public class AuroraListener extends MastersSlavesListener {
                             + "and last_update_timestamp > UTC_TIMESTAMP - INTERVAL 3 MINUTE "
                             + "ORDER BY last_update_timestamp DESC LIMIT 1");
             results.commandEnd();
-            MariaSelectResultSet queryResult = results.getResultSet();
+            ResultSet queryResult = results.getResultSet();
 
             if (!queryResult.isBeforeFirst()) {
                 return null;

@@ -57,22 +57,23 @@ import org.mariadb.jdbc.internal.util.Options;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.TimeZone;
 
 public class DateParameter implements ParameterHolder, Cloneable {
     private Date date;
-    private Calendar calendar;
+    private TimeZone timeZone;
     private Options options;
 
     /**
      * Represents a date, constructed with time in millis since epoch.
      *
-     * @param date    the date
-     * @param cal     the calendar to use for timezone
-     * @param options jdbc options
+     * @param date     the date
+     * @param timeZone timezone to use
+     * @param options  jdbc options
      */
-    public DateParameter(Date date, Calendar cal, Options options) {
+    public DateParameter(Date date, TimeZone timeZone, Options options) {
         this.date = date;
-        this.calendar = cal;
+        this.timeZone = timeZone;
         this.options = options;
     }
 
@@ -101,15 +102,11 @@ public class DateParameter implements ParameterHolder, Cloneable {
 
     private byte[] dateByteFormat() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        return sdf.format(calendar().getTime()).getBytes();
-    }
-
-    private Calendar calendar() {
         if (options.useLegacyDatetimeCode || options.maximizeMysqlCompatibility) {
-            calendar = Calendar.getInstance();
+            timeZone = Calendar.getInstance().getTimeZone();
         }
-        calendar.setTimeInMillis(date.getTime());
-        return calendar;
+        sdf.setTimeZone(timeZone);
+        return sdf.format(date).getBytes();
     }
 
     public long getApproximateTextProtocolLength() {
@@ -120,12 +117,20 @@ public class DateParameter implements ParameterHolder, Cloneable {
     /**
      * Write to server OutputStream in binary protocol.
      *
-     * @param writeBuffer output buffer
+     * @param pos output buffer
      */
-    public void writeBinary(final PacketOutputStream writeBuffer) {
-        calendar = Calendar.getInstance();
+    public void writeBinary(final PacketOutputStream pos) {
+        Calendar calendar = Calendar.getInstance(timeZone);
         calendar.setTimeInMillis(date.getTime());
-        writeBuffer.writeDateLength(calendar);
+
+        pos.assureBufferCapacity(8);
+        pos.buffer.put((byte) 7);//length
+        pos.buffer.putShort((short) calendar.get(Calendar.YEAR));
+        pos.buffer.put((byte) ((calendar.get(Calendar.MONTH) + 1) & 0xff));
+        pos.buffer.put((byte) (calendar.get(Calendar.DAY_OF_MONTH) & 0xff));
+        pos.buffer.put((byte) 0);
+        pos.buffer.put((byte) 0);
+        pos.buffer.put((byte) 0);
     }
 
     public ColumnType getMariaDbType() {
