@@ -49,17 +49,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.queryresults.CmdInformation;
 import org.mariadb.jdbc.internal.queryresults.Results;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
-
-import java.sql.BatchUpdateException;
-import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class MariaDbStatement extends BaseStatement implements Statement {
 

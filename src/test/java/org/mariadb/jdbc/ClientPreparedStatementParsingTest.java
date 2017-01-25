@@ -15,7 +15,7 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
     private void checkParsing(String sql, int paramNumber, boolean rewritable, boolean allowMultiqueries, String[] partsRewrite,
                               String[] partsMulti) throws Exception {
 
-        PreparedStatementClient statement = new PreparedStatementClient((MariaDbConnection) sharedConnection, sql,
+        MariaDbPreparedStatementClient statement = new MariaDbPreparedStatementClient((MariaDbConnection) sharedConnection, sql,
                 ResultSet.FETCH_FORWARD);
         assertEquals(paramNumber, statement.getParameterCount());
 

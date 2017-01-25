@@ -18,6 +18,29 @@
 
 ---
 == 2.0.0
+
+Java 8 and Java 7 have now separate maven artifacts, mostly due od java 8 time implementation.
+
+java 8 maven repository artifact :
+
+<dependencies>
+    <dependency>
+        <groupId>org.mariadb.jdbc</groupId>
+        <artifactId>mariadb-java-client</artifactId>
+        <version>2.0.0</version>
+    </dependency>
+</dependencies>
+
+java 7 maven repository artifact :
+
+<dependencies>
+    <dependency>
+        <groupId>org.mariadb.jdbc</groupId>
+        <artifactId>mariadb-java-client-jre7</artifactId>
+        <version>2.0.0</version>
+    </dependency>
+</dependencies>
+
 === CONJ-393 : improve setQueryTimeout to use SET STATEMENT max_statement_time
 [CONJ-291]\\
 

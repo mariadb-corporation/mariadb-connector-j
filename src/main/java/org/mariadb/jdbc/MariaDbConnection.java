@@ -258,8 +258,8 @@ public class MariaDbConnection implements Connection {
      * @return a prepared statement.
      * @throws SQLException if there is a problem preparing the statement.
      */
-    protected PreparedStatementClient clientPrepareStatement(final String sql) throws SQLException {
-        return new PreparedStatementClient(this, sql, ResultSet.TYPE_FORWARD_ONLY);
+    protected MariaDbPreparedStatementClient clientPrepareStatement(final String sql) throws SQLException {
+        return new MariaDbPreparedStatementClient(this, sql, ResultSet.TYPE_FORWARD_ONLY);
     }
 
     /**
@@ -445,7 +445,7 @@ public class MariaDbConnection implements Connection {
                 //prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?
                 checkConnection();
                 try {
-                    return new PreparedStatementServer(this, sqlQuery, resultSetScrollType, true);
+                    return new MariaDbPreparedStatementServer(this, sqlQuery, resultSetScrollType, true);
                 } catch (SQLNonTransientConnectionException e) {
                     throw e;
                 } catch (SQLException e) {
@@ -453,7 +453,7 @@ public class MariaDbConnection implements Connection {
                     //will use clientPreparedStatement
                 }
             }
-            return new PreparedStatementClient(this, sqlQuery, resultSetScrollType);
+            return new MariaDbPreparedStatementClient(this, sqlQuery, resultSetScrollType);
         } else {
             throw new SQLException("SQL value can not be NULL");
         }

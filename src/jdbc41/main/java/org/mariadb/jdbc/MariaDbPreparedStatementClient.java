@@ -49,21 +49,13 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public class PreparedStatementServer extends BasePreparedStatementServer implements PreparedStatement {
+public class MariaDbPreparedStatementClient extends BasePreparedStatementClient implements PreparedStatement {
 
-    public PreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare) throws SQLException {
-        super(connection, sql, resultSetScrollType, forcePrepare);
-    }
-
-    public PreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, ServerPrepareResult serverPrepareResult)
-            throws SQLException {
-        super(connection, sql, resultSetScrollType, serverPrepareResult);
+    public MariaDbPreparedStatementClient(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
+        super(connection, sql, resultSetScrollType);
     }
 
 }

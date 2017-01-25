@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import java.sql.SQLException;
-import java.sql.SQLType;
 
 public abstract class CallableFunctionStatement extends BaseCallableFunctionStatement {
 

@@ -49,41 +49,12 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import java.sql.Connection;
 
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+public class MariaDbDatabaseMetaData extends BaseDatabaseMetaData {
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-
-public class PreparedStatementServer extends BasePreparedStatementServer implements PreparedStatement {
-
-    public PreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare) throws SQLException {
-        super(connection, sql, resultSetScrollType, forcePrepare);
+    public MariaDbDatabaseMetaData(Connection connection, String user, String url) {
+        super(connection, user, url);
     }
 
-    public PreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, ServerPrepareResult serverPrepareResult)
-            throws SQLException {
-        super(connection, sql, resultSetScrollType, serverPrepareResult);
-    }
-
-    @Override
-    public long[] executeLargeBatch() throws SQLException {
-        checkClose();
-        int queryParameterSize = queryParameters.size();
-        if (queryParameterSize == 0) return new long[0];
-
-        lock.lock();
-        try {
-
-            executeBatchInternal(results, queryParameterSize);
-
-            return results.getCmdInformation().getLargeUpdateCounts();
-
-        } catch (SQLException initialSqlEx) {
-            throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), queryParameterSize);
-        } finally {
-            executeBatchEpilogue();
-            lock.unlock();
-        }
-    }
 }

@@ -56,5 +56,4 @@ public final class Version {
     public static final int minorVersion = @minorVersion;
     public static final int patchVersion = @patchVersion;
     public static final String qualifier = "@qualifier";
-    public static final String buildtime = "@buildtime";
 }

@@ -49,13 +49,42 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public class PreparedStatementClient extends BasePreparedStatementClient implements PreparedStatement {
+public class MariaDbPreparedStatementServer extends BasePreparedStatementServer implements PreparedStatement {
 
-    public PreparedStatementClient(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
-        super(connection, sql, resultSetScrollType);
+    public MariaDbPreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
+            throws SQLException {
+        super(connection, sql, resultSetScrollType, forcePrepare);
     }
 
+    public MariaDbPreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType,
+                                   ServerPrepareResult serverPrepareResult) throws SQLException {
+        super(connection, sql, resultSetScrollType, serverPrepareResult);
+    }
+
+    @Override
+    public long[] executeLargeBatch() throws SQLException {
+        checkClose();
+        int queryParameterSize = queryParameters.size();
+        if (queryParameterSize == 0) return new long[0];
+
+        lock.lock();
+        try {
+
+            executeBatchInternal(results, queryParameterSize);
+
+            return results.getCmdInformation().getLargeUpdateCounts();
+
+        } catch (SQLException initialSqlEx) {
+            throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), queryParameterSize);
+        } finally {
+            executeBatchEpilogue();
+            lock.unlock();
+        }
+    }
 }

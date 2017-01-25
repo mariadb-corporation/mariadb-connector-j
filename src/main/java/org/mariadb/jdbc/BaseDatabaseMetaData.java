@@ -64,7 +64,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-public class MariaDbDatabaseMetaData implements DatabaseMetaData {
+public class BaseDatabaseMetaData implements DatabaseMetaData {
     public static final String DRIVER_NAME = "MariaDB connector/J";
     private String url;
     private MariaDbConnection connection;
@@ -79,7 +79,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * @param user       userName
      * @param url        connection String url.
      */
-    public MariaDbDatabaseMetaData(Connection connection, String user, String url) {
+    public BaseDatabaseMetaData(Connection connection, String user, String url) {
         this.connection = (MariaDbConnection) connection;
         this.username = user;
         this.url = url;
@@ -2656,13 +2656,4 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         return false;
     }
 
-    @Override
-    public long getMaxLogicalLobSize() throws SQLException {
-        return 4294967295L;
-    }
-
-    @Override
-    public boolean supportsRefCursors() throws SQLException {
-        return false;
-    }
 }

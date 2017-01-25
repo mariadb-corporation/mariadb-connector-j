@@ -50,38 +50,21 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 
-import org.mariadb.jdbc.internal.queryresults.ResultsRewrite;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
-public class PreparedStatementClient extends BasePreparedStatementClient implements PreparedStatement {
+public class MariaDbPreparedStatementServer extends BasePreparedStatementServer implements PreparedStatement {
 
-    public PreparedStatementClient(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
-        super(connection, sql, resultSetScrollType);
+    public MariaDbPreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
+            throws SQLException {
+        super(connection, sql, resultSetScrollType, forcePrepare);
     }
 
-    @Override
-    public long[] executeLargeBatch() throws SQLException {
-        checkClose();
-        int size = parameterList.size();
-        if (size == 0) return new long[0];
-
-        lock.lock();
-        try {
-
-            executeInternalBatch(size);
-
-            return results.getCmdInformation().getLargeUpdateCounts();
-
-        } catch (SQLException sqle) {
-            throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size);
-        } finally {
-            if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
-                ((ResultsRewrite) results).setAutoIncrement(connection.getAutoIncrementIncrement());
-            }
-            executeBatchEpilogue();
-            lock.unlock();
-        }
+    public MariaDbPreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType,
+                                          ServerPrepareResult serverPrepareResult) throws SQLException {
+        super(connection, sql, resultSetScrollType, serverPrepareResult);
     }
+
 }

@@ -405,7 +405,7 @@ public abstract class BasePreparedStatementClient extends BasePrepareStatement i
     }
 
     private void setParametersData() throws SQLException {
-        PreparedStatementServer ssps = new PreparedStatementServer(connection, this.sqlQuery,
+        MariaDbPreparedStatementServer ssps = new MariaDbPreparedStatementServer(connection, this.sqlQuery,
                 ResultSet.TYPE_SCROLL_INSENSITIVE, true);
         resultSetMetaData = ssps.getMetaData();
         parameterMetaData = ssps.getParameterMetaData();
@@ -463,26 +463,6 @@ public abstract class BasePreparedStatementClient extends BasePrepareStatement i
 
     protected ClientPrepareResult getPrepareResult() {
         return prepareResult;
-    }
-
-    protected void initializeFallbackClient(BasePreparedStatementServer serverPreparedStatement) throws SQLException {
-        if (serverPreparedStatement.currentParameterHolder.size() == prepareResult.getParamCount()) {
-            this.parameters = serverPreparedStatement.currentParameterHolder.values().toArray(new ParameterHolder[0]);
-        } else {
-            Iterator<ParameterHolder> paramsIterator = serverPreparedStatement.currentParameterHolder.values().iterator();
-            for (int i = 0; i < prepareResult.getParamCount() && paramsIterator.hasNext(); i++) {
-                this.parameters[i] = paramsIterator.next();
-            }
-        }
-        this.parameterList = serverPreparedStatement.queryParameters;
-        this.resultSetMetaData = serverPreparedStatement.metadata;
-        this.parameterMetaData = serverPreparedStatement.parameterMetaData;
-        this.batchQueries = serverPreparedStatement.batchQueries;
-        if (serverPreparedStatement.queryTimeout != 0) setQueryTimeout(serverPreparedStatement.queryTimeout);
-        if (serverPreparedStatement.getFetchSize() != 0) setFetchSize(serverPreparedStatement.getFetchSize());
-        if (serverPreparedStatement.maxRows != 0) setLargeMaxRows(serverPreparedStatement.maxRows);
-        if (serverPreparedStatement.isCloseOnCompletion()) closeOnCompletion();
-
     }
 
 
