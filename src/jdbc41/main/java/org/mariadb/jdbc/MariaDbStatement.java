@@ -54,6 +54,12 @@ import java.sql.Statement;
 
 public class MariaDbStatement extends BaseStatement implements Statement {
 
+    /**
+     * Constructor for Jdbc41 Statement compatible implementation.
+     *
+     * @param connection          current connection
+     * @param resultSetScrollType result set scroll type
+     */
     public MariaDbStatement(MariaDbConnection connection, int resultSetScrollType) {
         super(connection, resultSetScrollType);
         this.results = new Results(this);

@@ -54,6 +54,17 @@ import java.sql.SQLException;
 
 public class MariaDbPreparedStatementClient extends BasePreparedStatementClient implements PreparedStatement {
 
+    /**
+     * Constructor for Jdbc41 compatible PrepareStatement with client prepare (parsing).
+     *
+     * @param connection          connection
+     * @param sql                 sql query
+     * @param resultSetScrollType one of the following <code>ResultSet</code> constants:
+     *                            <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                            <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @throws SQLException exception
+     */
     public MariaDbPreparedStatementClient(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
         super(connection, sql, resultSetScrollType);
     }

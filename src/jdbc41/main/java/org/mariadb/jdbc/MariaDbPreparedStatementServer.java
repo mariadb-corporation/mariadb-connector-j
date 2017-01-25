@@ -57,14 +57,21 @@ import java.sql.SQLException;
 
 public class MariaDbPreparedStatementServer extends BasePreparedStatementServer implements PreparedStatement {
 
+    /**
+     * Constructor for Jdbc41 compatible PrepareStatement using server PREPARE.
+     *
+     * @param connection          current connection
+     * @param sql                 Sql String to prepare
+     * @param resultSetScrollType one of the following <code>ResultSet</code> constants:
+     *                            <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                            <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param forcePrepare        force immediate prepare
+     * @throws SQLException exception if prepare fail.
+     */
     public MariaDbPreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
             throws SQLException {
         super(connection, sql, resultSetScrollType, forcePrepare);
-    }
-
-    public MariaDbPreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType,
-                                          ServerPrepareResult serverPrepareResult) throws SQLException {
-        super(connection, sql, resultSetScrollType, serverPrepareResult);
     }
 
 }

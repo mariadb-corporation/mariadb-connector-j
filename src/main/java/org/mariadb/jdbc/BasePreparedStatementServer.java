@@ -94,27 +94,6 @@ public abstract class BasePreparedStatementServer extends BasePrepareStatement i
     }
 
     /**
-     * Constructor for creating Server prepared statement.
-     *
-     * @param connection          current connection
-     * @param sql                 Sql String to prepare
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param serverPrepareResult prepare result from cache
-     * @throws SQLException exception
-     */
-    public BasePreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, ServerPrepareResult serverPrepareResult)
-            throws SQLException {
-        super(connection, resultSetScrollType);
-        this.sql = sql;
-        returnTableAlias = options.useOldAliasMetadataBehavior;
-        currentParameterHolder = new TreeMap<>();
-        mustExecuteOnMaster = protocol.isMasterConnection();
-        this.serverPrepareResult = serverPrepareResult;
-        setMetaFromResult();
-    }
-
-    /**
      * Clone statement.
      *
      * @return Clone statement.

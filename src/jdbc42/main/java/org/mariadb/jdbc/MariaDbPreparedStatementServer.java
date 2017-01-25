@@ -50,25 +50,39 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 public class MariaDbPreparedStatementServer extends BasePreparedStatementServer implements PreparedStatement {
 
+    /**
+     * Constructor for Jdbc42 compatible PrepareStatement using server PREPARE.
+     *
+     * @param connection          current connection
+     * @param sql                 Sql String to prepare
+     * @param resultSetScrollType one of the following <code>ResultSet</code> constants:
+     *                            <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                            <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param forcePrepare        force immediate prepare
+     * @throws SQLException exception if prepare fail.
+     */
     public MariaDbPreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
             throws SQLException {
         super(connection, sql, resultSetScrollType, forcePrepare);
     }
 
-    public MariaDbPreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType,
-                                   ServerPrepareResult serverPrepareResult) throws SQLException {
-        super(connection, sql, resultSetScrollType, serverPrepareResult);
-    }
 
+    /**
+     * Execute batch, like executeBatch(), with returning results with long[].
+     * For when row count may exceed Integer.MAX_VALUE.
+     *
+     * @return an array of update counts (one element for each command in the batch)
+     * @throws SQLException if a database error occur.
+     */
     @Override
     public long[] executeLargeBatch() throws SQLException {
+
         checkClose();
         int queryParameterSize = queryParameters.size();
         if (queryParameterSize == 0) return new long[0];
@@ -87,4 +101,5 @@ public class MariaDbPreparedStatementServer extends BasePreparedStatementServer 
             lock.unlock();
         }
     }
+
 }
