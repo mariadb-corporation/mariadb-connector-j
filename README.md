@@ -24,7 +24,7 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>1.5.6</version>
+	<version>1.5.7</version>
 </dependency>
 ```
 

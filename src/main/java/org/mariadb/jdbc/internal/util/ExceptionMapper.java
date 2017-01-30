@@ -99,6 +99,11 @@ public class ExceptionMapper {
             message = "(conn:" + statement.getServerThreadId() + ") " + message;
         }
         SQLException sqlException = get(message, exception);
+        QueryException nextException = exception.getNextException();
+        if (nextException != null) {
+            sqlException.setNextException(get(nextException.getMessage(), nextException));
+        }
+
         String sqlState = exception.getSqlState();
         SqlStates state = SqlStates.fromString(sqlState);
         if (connection != null) {

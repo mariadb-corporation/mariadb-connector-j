@@ -25,7 +25,7 @@ public class TruncateExceptionTest extends BaseTest {
             queryTruncation(true);
             fail("Must have thrown SQLException");
         } catch (SQLException e) {
-            e.printStackTrace();
+            //normal error
         }
     }
 

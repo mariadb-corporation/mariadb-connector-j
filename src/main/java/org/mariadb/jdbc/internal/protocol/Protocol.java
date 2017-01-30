@@ -252,4 +252,8 @@ public interface Protocol {
     void changeSocketSoTimeout(int setSoTimeout) throws SocketException;
 
     void removeActiveStreamingResult();
+
+    void resetStateAfterFailover(int maxRows, int transactionIsolationLevel, String database, boolean autocommit)
+            throws QueryException;
+
 }
