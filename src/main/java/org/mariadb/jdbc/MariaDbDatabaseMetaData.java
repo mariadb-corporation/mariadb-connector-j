@@ -86,12 +86,16 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     /* Remove length from column type spec,convert to uppercase,  e.g  bigint(10) unsigned becomes BIGINT UNSIGNED */
-    static String columnTypeClause(String columnName) {
+    String columnTypeClause(String columnName) {
+        String parsedColumnName = parseColumnName(columnName);
+        return " UCASE(IF( " + parsedColumnName + " LIKE '%(%)%', CONCAT(SUBSTRING( " + parsedColumnName + ",1, LOCATE('(',"
+                + parsedColumnName + ") - 1 ), SUBSTRING(" + parsedColumnName + ",1+locate(')'," + parsedColumnName + "))), "
+                + parsedColumnName + "))";
+    }
 
-        return
-                " UCASE(IF( " + columnName + " LIKE '%(%)%', CONCAT(SUBSTRING( " + columnName + ",1, LOCATE('(',"
-                        + columnName + ") - 1 ), SUBSTRING(" + columnName + ",1+locate(')'," + columnName + "))), "
-                        + columnName + "))";
+    private String parseColumnName(String columnName) {
+        return (((connection.getProtocol().getDataTypeMappingFlags() & MariaSelectResultSet.TINYINT1_IS_BIT) == 0)
+                ? columnName : "IF(" + columnName + "='tinyint(1)','BIT'," + columnName + ") ");
     }
 
     /**
