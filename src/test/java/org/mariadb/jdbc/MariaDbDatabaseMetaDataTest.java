@@ -15,27 +15,32 @@ import static org.junit.Assert.*;
 
 public class MariaDbDatabaseMetaDataTest extends BaseTest {
 
-
+    /**
+     * CONJ-412: tinyInt1isBit and yearIsDateType is not applied in method columnTypeClause
+     * @throws Exception
+     */
     @Test
-    public void testColumnTypeClauseTinyInt1IsBitTrue() throws Exception {
-        MariaDbConnection connection = (MariaDbConnection)setConnection();
-        MariaDbDatabaseMetaData dbMetaData = new MariaDbDatabaseMetaData(connection, "", "");
-        String result = dbMetaData.columnTypeClause("column_name");
-        assertEquals(" UCASE(IF( IF(column_name='tinyint(1)','BIT',column_name)  LIKE '%(%)%', CONCAT(SUBSTRING( "
-                + "IF(column_name='tinyint(1)','BIT',column_name) ,1, LOCATE('(',IF(column_name='tinyint(1)','BIT',column_name) ) - 1 ), "
-                + "SUBSTRING(IF(column_name='tinyint(1)','BIT',column_name) ,1+locate(')',IF(column_name='tinyint(1)','BIT',column_name) ))), "
-                + "IF(column_name='tinyint(1)','BIT',column_name) ))", result);
+    public void testYearDataType() throws Exception {
+        createTable("yearTableMeta", "xx tinyint(1), yy year(2), zz bit, uu smallint");
+        try (Connection connection = setConnection()) {
+            checkResults(connection, true, true);
+        }
+
+        try (Connection connection = setConnection("&yearIsDateType=false&tinyInt1isBit=false")) {
+            checkResults(connection, false, false);
+        }
     }
 
-    @Test
-    public void testColumnTypeClauseTinyInt1IsBitFalse() throws Exception {
-        Properties props = new Properties();
-        props.setProperty("tinyInt1isBit", "false");
-        MariaDbConnection connection = (MariaDbConnection)openNewConnection(connUri, props);
-        MariaDbDatabaseMetaData dbMetaData = new MariaDbDatabaseMetaData(connection, "", "");
-        String result = dbMetaData.columnTypeClause("column_name");
-        assertEquals(" UCASE(IF( column_name LIKE '%(%)%', CONCAT(SUBSTRING( column_name,1, LOCATE('(',column_name) - 1 ), "
-                + "SUBSTRING(column_name,1+locate(')',column_name))), column_name))", result);
+    private void checkResults(Connection connection, boolean yearAsDate, boolean tinyAsBit) throws SQLException {
+        DatabaseMetaData meta = connection.getMetaData();
+        ResultSet rs = meta.getColumns(null, null, "yearTableMeta", null);
+        assertTrue(rs.next());
+        assertEquals(tinyAsBit ? "BIT" : "TINYINT", rs.getString(6));
+        assertTrue(rs.next());
+        assertEquals(yearAsDate ? "YEAR" : "SMALLINT" , rs.getString(6));
+        assertEquals(yearAsDate ? null : "5" , rs.getString(7)); // column size
+        assertEquals(yearAsDate ? null : "0", rs.getString(9)); // decimal digit
+
     }
 
 }
