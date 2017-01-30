@@ -616,7 +616,34 @@ public class MariaSelectResultSet implements ResultSet {
     @Override
     public boolean isAfterLast() throws SQLException {
         checkClose();
-        return dataFetchTime > 0 && rowPointer >= resultSetSize && resultSetSize > 0;
+        if (rowPointer >= resultSetSize) {
+            //has remaining results
+            return false;
+        } else {
+            if (!streaming || isEof) {
+                //has read all data and pointer is after last result
+                return true;
+            } else {
+                //has to read more result to know if it's finished or not
+                //(next packet may be new data or an EOF packet indicating that there is no more data)
+                ReentrantLock lock = protocol.getLock();
+                lock.lock();
+                try {
+                    nextStreamingValue();
+                } catch (IOException ioe) {
+                    throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
+                            + " read off the result set relatively fast. "
+                            + "In this case, please consider increasing net_wait_timeout session variable."
+                            + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
+                } catch (QueryException queryException) {
+                    throw new SQLException(queryException);
+                } finally {
+                    lock.unlock();
+                }
+                rowPointer = 0;
+                return resultSetSize == 0;
+            }
+        }
     }
 
     @Override
@@ -636,7 +663,10 @@ public class MariaSelectResultSet implements ResultSet {
             try {
                 nextStreamingValue();
             } catch (IOException ioe) {
-                throw new SQLException(ioe);
+                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
+                        + " read off the result set relatively fast. "
+                        + "In this case, please consider increasing net_wait_timeout session variable."
+                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
             } catch (QueryException queryException) {
                 throw new SQLException(queryException);
             } finally {
