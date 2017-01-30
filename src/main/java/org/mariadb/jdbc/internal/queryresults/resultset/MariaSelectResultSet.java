@@ -785,17 +785,56 @@ public class MariaSelectResultSet implements ResultSet {
     @Override
     public boolean absolute(int row) throws SQLException {
         checkClose();
+
         if (resultSetScrollType == TYPE_FORWARD_ONLY) {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
-        } else {
-            if (row >= 0 && row <= resultSetSize) {
-                rowPointer = row - 1;
-                return true;
-            } else if (row < 0) {
-                rowPointer = resultSetSize + row;
-            }
+        }
+
+        if (row >= 0 && row <= resultSetSize) {
+            rowPointer = row - 1;
             return true;
         }
+
+        //if streaming, must read additional results.
+        if (!isEof) {
+            ReentrantLock lock = protocol.getLock();
+            lock.lock();
+            try {
+                fetchRemaining();
+            } catch (SQLException ioe) {
+                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
+                        + " read off the result set relatively fast. "
+                        + "In this case, please consider increasing net_wait_timeout session variable."
+                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        if (row >= 0) {
+
+            if (row <= resultSetSize) {
+                rowPointer = row - 1;
+                return true;
+            }
+
+            rowPointer = resultSetSize; //go to afterLast() position
+            return false;
+
+        } else {
+
+            if (resultSetSize + row >= 0) {
+                //absolute position reverse from ending resultSet
+                rowPointer = resultSetSize + row;
+                return true;
+            }
+
+            rowPointer = -1; // go to before first position
+            return false;
+
+        }
+
+
     }
 
     @Override
