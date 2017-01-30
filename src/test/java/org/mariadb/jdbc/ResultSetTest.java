@@ -299,6 +299,36 @@ public class ResultSetTest extends BaseTest {
     }
 
     @Test
+    public void testResultSetAbsolute() throws Exception {
+        insertRows(50);
+        try (Statement statement = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+            statement.setFetchSize(10);
+            try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+                assertFalse(rs.absolute(52));
+                assertFalse(rs.absolute(-52));
+
+                assertTrue(rs.absolute(42));
+                assertEquals("row42", rs.getString(2));
+
+                assertTrue(rs.absolute(-11));
+                assertEquals("row40", rs.getString(2));
+
+                assertTrue(rs.absolute(0));
+                assertTrue(rs.isBeforeFirst());
+
+                assertFalse(rs.absolute(51));
+                assertTrue(rs.isAfterLast());
+
+                assertTrue(rs.absolute(-1));
+                assertEquals("row50", rs.getString(2));
+
+                assertTrue(rs.absolute(-50));
+                assertEquals("row1", rs.getString(2));
+            }
+        }
+    }
+
+    @Test
     public void testResultSetIsAfterLast() throws Exception {
         insertRows(2);
         try (Statement statement = sharedConnection.createStatement()) {
