@@ -515,8 +515,8 @@ public class DriverTest extends BaseTest {
     @Test
     public void testResultSetPositions() throws SQLException {
         sharedConnection.createStatement().execute("insert into ressetpos values (1),(2),(3),(4)");
-
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from ressetpos");
+        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs = stmt.executeQuery("select * from ressetpos");
         assertTrue(rs.isBeforeFirst());
         rs.next();
         assertTrue(!rs.isBeforeFirst());
