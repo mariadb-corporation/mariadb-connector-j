@@ -644,7 +644,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + " CONVERT (CASE DATA_TYPE"
                 + " WHEN 'year' THEN " + (((dataType & MariaSelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? "0":"NUMERIC_SCALE")
                 + " WHEN 'tinyint' THEN " + (((dataType & MariaSelectResultSet.TINYINT1_IS_BIT) > 0) ? "0":"NUMERIC_SCALE")
-                + " ELSE NUMERIC_SCALE END, INTEGER) DECIMAL_DIGITS,"
+                + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
 
                 + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
                 + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
