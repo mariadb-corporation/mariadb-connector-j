@@ -21,7 +21,7 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
      */
     @Test
     public void testYearDataType() throws Exception {
-        createTable("yearTableMeta", "xx tinyint(1), yy year(2), zz bit, uu smallint");
+        createTable("yearTableMeta", "xx tinyint(1), yy year(4), zz bit, uu smallint");
         try (Connection connection = setConnection()) {
             checkResults(connection, true, true);
         }
