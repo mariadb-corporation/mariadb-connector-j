@@ -13,7 +13,7 @@ import static org.junit.Assert.*;
 /**
  * Aurora test suite.
  * Some environment parameter must be set :
- * - defaultAuroraUrl : example -DdefaultAuroraUrl=jdbc:mysql:aurora://instance-1.xxxx,instance-2.xxxx/testj?user=userName&password=userPwd
+ * - defaultAuroraUrl : example -DdefaultAuroraUrl=jdbc:mariadb:aurora://instance-1.xxxx,instance-2.xxxx/testj?user=userName&password=userPwd
  * - AURORA_ACCESS_KEY = access key
  * - AURORA_SECRET_KEY = secret key
  * - AURORA_CLUSTER_IDENTIFIER = cluster identifier. example : -DAURORA_CLUSTER_IDENTIFIER=instance-1-cluster

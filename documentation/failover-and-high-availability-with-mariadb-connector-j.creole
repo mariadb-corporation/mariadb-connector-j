@@ -44,7 +44,7 @@ Switching the type of connection is done by using JDBC [[http://docs.oracle.com/
 
 Example in standard java:
 {{{
-connection = DriverManager.getConnection("jdbc:mysql:replication://master1,slave1/test");
+connection = DriverManager.getConnection("jdbc:mariadb:replication://master1,slave1/test");
 stmt = connection.createStatement();
 stmt.execute("SELECT 1"); // will execute query on the underlying master1 connection
 connection.setReadOnly(true);
@@ -237,7 +237,7 @@ If setting many endpoint, the replication role of each instance must not be defi
 
 Example of connection string
 {{{
-    jdbc:mysql:aurora://cluster.cluster-xxxx.us-east-1.rds.amazonaws.com/db
+    jdbc:mariadb:aurora://cluster.cluster-xxxx.us-east-1.rds.amazonaws.com/db
 }}}
 
 Another difference is the option "socketTimeout" that defaults to 10 seconds, meaning that - if not changed - queries exceeding 10 seconds will throw exceptions.  

@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * Base util class.
  * For testing
- * example mvn test -DdbUrl=jdbc:mysql://localhost:3306,localhost:3307/test?user=root -DlogLevel=FINEST
+ * example mvn test -DdbUrl=jdbc:mariadb://localhost:3306,localhost:3307/test?user=root -DlogLevel=FINEST
  * specific parameters :
  * defaultMultiHostUrl :
  * If testing Aurora, set the region. Default is US_EAST_1.
@@ -157,9 +157,9 @@ public class BaseMultiHostTest {
         }
         proxySet.put(proxyType, tcpProxies);
         if (tmpUrlParser.getHaMode().equals(HaMode.NONE)) {
-            return "jdbc:mysql://" + sockethosts.substring(1) + "/" + tmpUrl.split("/")[3];
+            return "jdbc:mariadb://" + sockethosts.substring(1) + "/" + tmpUrl.split("/")[3];
         } else {
-            return "jdbc:mysql:" + tmpUrlParser.getHaMode().toString().toLowerCase() + "://" + sockethosts.substring(1)
+            return "jdbc:mariadb:" + tmpUrlParser.getHaMode().toString().toLowerCase() + "://" + sockethosts.substring(1)
                     + "/" + tmpUrl.split("/")[3];
         }
 

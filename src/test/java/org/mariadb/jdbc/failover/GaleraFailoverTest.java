@@ -14,7 +14,7 @@ import java.util.Map;
  * node 1 : wsrep_node_name = "galera1"
  * ...
  * node x : wsrep_node_name = "galerax"
- * exemple mvn test  -DdbUrl=jdbc:mysql://localhost:3306,localhost:3307/test?user=root
+ * exemple mvn test  -DdbUrl=jdbc:mariadb://localhost:3306,localhost:3307/test?user=root
  */
 public class GaleraFailoverTest extends SequentialFailoverTest {
     /**

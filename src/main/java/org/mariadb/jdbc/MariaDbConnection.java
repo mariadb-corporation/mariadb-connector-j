@@ -720,7 +720,7 @@ public class MariaDbConnection implements Connection {
      */
     public DatabaseMetaData getMetaData() throws SQLException {
         return new MariaDbDatabaseMetaData(this, protocol.getUsername(),
-                "jdbc:mysql://" + protocol.getHost() + ":" + protocol.getPort() + "/" + protocol.getDatabase());
+                "jdbc:mariadb://" + protocol.getHost() + ":" + protocol.getPort() + "/" + protocol.getDatabase());
     }
 
     /**

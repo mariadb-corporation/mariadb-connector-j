@@ -35,7 +35,7 @@ public class ConnectionTest extends BaseTest {
     @Test
     public void testAccessDeniedErrorCode() throws SQLException {
         try {
-            DriverManager.getConnection("jdbc:mysql://" + ((hostname != null) ? hostname : "localhost") + ":" + port + "/" + database + "?user=foo");
+            DriverManager.getConnection("jdbc:mariadb://" + ((hostname != null) ? hostname : "localhost") + ":" + port + "/" + database + "?user=foo");
             Assert.fail();
         } catch (SQLException e) {
             switch (e.getErrorCode()) {

@@ -82,16 +82,17 @@ import java.util.regex.Pattern;
  * <p>
  * host can be dns name, ipv4 or ipv6.<br>
  * in case of ipv6 and simple host description, the ip must be written inside bracket.<br>
- * exemple : {@code jdbc:mysql://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
+ * exemple : {@code jdbc:mariadb://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
  * </p>
  * <p>
  * Some examples :<br>
- * {@code jdbc:mysql://localhost:3306/database?user=greg&password=pass}<br>
- * {@code jdbc:mysql://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}<br>
+ * {@code jdbc:mariadb://localhost:3306/database?user=greg&password=pass}<br>
+ * {@code jdbc:mariadb://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}<br>
  * </p>
  */
 public class UrlParser {
 
+    private static final String DISABLE_MYSQL_URL = "disableMariaDbDriver";
     private String database;
     private Options options = null;
     private List<HostAddress> addresses;
@@ -127,9 +128,7 @@ public class UrlParser {
      */
     public static boolean acceptsUrl(String url) {
         return (url != null) && (url.startsWith("jdbc:mariadb:")
-                || url.startsWith("jdbc:mysql:")
-                || url.startsWith("jdbc:mariadb_" + Version.version + ":"));
-
+                || (url.startsWith("jdbc:mysql:") && !url.contains(DISABLE_MYSQL_URL)));
     }
 
     public static UrlParser parse(final String url) throws SQLException {
@@ -146,26 +145,25 @@ public class UrlParser {
      */
     public static UrlParser parse(final String url, Properties prop) throws SQLException {
         if (url != null) {
-            if (prop == null) {
-                prop = new Properties();
-            }
-            if (url.startsWith("jdbc:mysql:")) {
+
+            if (prop == null) prop = new Properties();
+
+            if (url.startsWith("jdbc:mariadb:")) {
+
                 UrlParser urlParser = new UrlParser();
                 parseInternal(urlParser, url, prop);
                 return urlParser;
+
             } else {
-                if (url.startsWith("jdbc:mariadb:")) {
+
+                if (url.startsWith("jdbc:mysql:") && !url.contains(DISABLE_MYSQL_URL)) {
+
                     UrlParser urlParser = new UrlParser();
-                    parseInternal(urlParser, "jdbc:mysql:" + url.substring(13), prop);
+                    parseInternal(urlParser, "jdbc:mariadb:" + url.substring(11), prop);
                     return urlParser;
+
                 }
 
-                //to permit having multiple maria db version in classpath and permit performance test
-                if (url.startsWith("jdbc:mariadb_" + Version.version + ":")) {
-                    UrlParser urlParser = new UrlParser();
-                    parseInternal(urlParser, "jdbc:mysql:" + url.substring(("jdbc:mariadb_" + Version.version + ":").length()), prop);
-                    return urlParser;
-                }
             }
         }
         return null;
@@ -173,8 +171,8 @@ public class UrlParser {
 
     /*
         Parse ConnectorJ compatible urls
-        jdbc:mysql://host:port/database
-        Example: jdbc:mysql://localhost:3306/test?user=root&password=passwd
+        jdbc:[mariadb|mysql]://host:port/database
+        Example: jdbc:mariadb://localhost:3306/test?user=root&password=passwd
          */
 
     /**
@@ -294,15 +292,18 @@ public class UrlParser {
      * @throws SQLException if url format is incorrect
      */
     public void parseUrl(String url) throws SQLException {
-        if (url.startsWith("jdbc:mysql:")) {
+        if (url.startsWith("jdbc:mariadb:")) {
             parseInternal(this, url, new Properties());
             return;
         }
-        String[] arr = new String[]{"jdbc:mysql:thin:", "jdbc:mariadb:"};
-        for (String prefix : arr) {
-            if (url.startsWith(prefix)) {
-                parseInternal(this, "jdbc:mysql:" + url.substring(prefix.length()), new Properties());
-                break;
+
+        if (!url.contains(DISABLE_MYSQL_URL)) {
+            String[] arr = new String[]{"jdbc:mysql:thin:", "jdbc:mysql:"};
+            for (String prefix : arr) {
+                if (url.startsWith(prefix)) {
+                    parseInternal(this, "jdbc:mariadb:" + url.substring(prefix.length()), new Properties());
+                    break;
+                }
             }
         }
     }
@@ -353,9 +354,9 @@ public class UrlParser {
      * @return String value
      */
     public String toString() {
-        String str = "jdbc:mysql://";
+        String str = "jdbc:mariadb://";
         if (!haMode.equals(HaMode.NONE)) {
-            str = "jdbc:mysql:" + haMode.toString().toLowerCase() + "://";
+            str = "jdbc:mariadb:" + haMode.toString().toLowerCase() + "://";
         }
         if (addresses != null) {
             str += HostAddress.toString(addresses);
