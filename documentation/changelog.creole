@@ -1,4 +1,5 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.8]] not released
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.7]] Released on 12 Jan. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.6]] Released on 21 Dec. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.5]] Released on 07 Nov. 2016
@@ -16,6 +17,14 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+
+== 1.5.8
+* CONJ-424 : getGeneratedKeys() on table without generated key failed on second execution
+* CONJ-412 : Metadata take in account tinyInt1isBit in method columnTypeClause
+* CONJ-418 : ResultSet.last() isLast() afterLast() and isAfterLast() correction when streaming
+* CONJ-415 : ResultSet.absolute() should not always return true
+* CONJ-392 : Aurora cluster endpoint detection fails when time_zone doesn't match system_time_zone
+
 == 1.5.7
 * CONJ-407 : handling failover when packet > max_allowed_packet reset the connection state.
 * CONJ-403 : possible NPE on ResultSet.close() correction
