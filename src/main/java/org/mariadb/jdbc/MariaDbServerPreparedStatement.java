@@ -342,7 +342,7 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
         if (execute()) {
             return results.getResultSet();
         }
-        return MariaSelectResultSet.EMPTY;
+        return MariaSelectResultSet.createEmptyResultSet();
     }
 
     @Override

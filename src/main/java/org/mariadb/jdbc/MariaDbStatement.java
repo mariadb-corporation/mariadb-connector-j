@@ -367,7 +367,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             return results.getResultSet();
         }
         //throw new SQLException("executeQuery() with query '" + query +"' did not return a result set");
-        return MariaSelectResultSet.EMPTY;
+        return MariaSelectResultSet.createEmptyResultSet();
     }
 
 
@@ -686,7 +686,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         if (results != null && results.getCmdInformation() != null) {
             return results.getCmdInformation().getGeneratedKeys(protocol);
         }
-        return MariaSelectResultSet.EMPTY;
+        return MariaSelectResultSet.createEmptyResultSet();
     }
 
     /**

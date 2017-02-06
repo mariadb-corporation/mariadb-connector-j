@@ -142,7 +142,7 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
             if (results != null && results.getResultSet() == null) {
                 return results.getResultSet();
             }
-            return MariaSelectResultSet.EMPTY;
+            return MariaSelectResultSet.createEmptyResultSet();
         } finally {
             connection.lock.unlock();
         }

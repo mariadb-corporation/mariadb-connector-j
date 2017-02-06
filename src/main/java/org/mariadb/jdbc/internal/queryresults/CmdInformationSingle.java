@@ -91,7 +91,7 @@ public class CmdInformationSingle implements CmdInformation {
      */
     public ResultSet getGeneratedKeys(Protocol protocol) {
         if (insertId == 0) {
-            return MariaSelectResultSet.EMPTY;
+            return MariaSelectResultSet.createEmptyResultSet();
         }
         return MariaSelectResultSet.createGeneratedData(new long[] {insertId}, protocol, true);
     }

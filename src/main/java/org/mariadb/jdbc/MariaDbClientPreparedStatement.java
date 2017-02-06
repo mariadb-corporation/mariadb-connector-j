@@ -177,7 +177,7 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
         if (executeInternal()) {
             return results.getResultSet();
         }
-        return MariaSelectResultSet.EMPTY;
+        return MariaSelectResultSet.createEmptyResultSet();
     }
 
 

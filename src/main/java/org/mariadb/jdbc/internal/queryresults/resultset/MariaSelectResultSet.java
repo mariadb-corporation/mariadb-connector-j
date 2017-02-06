@@ -89,7 +89,12 @@ import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 @SuppressWarnings("deprecation")
 public class MariaSelectResultSet implements ResultSet {
     private static Logger logger = LoggerFactory.getLogger(MariaSelectResultSet.class);
-    public static final MariaSelectResultSet EMPTY = createEmptyResultSet();
+
+    private static final ColumnInformation[] INSERT_ID_COLUMNS;
+    static {
+        INSERT_ID_COLUMNS = new ColumnInformation[1];
+        INSERT_ID_COLUMNS[0] = ColumnInformation.create("insert_id", MariaDbType.BIGINT);
+    }
 
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
@@ -309,11 +314,8 @@ public class MariaSelectResultSet implements ResultSet {
         return new MariaSelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
     }
 
-    private static MariaSelectResultSet createEmptyResultSet() {
-        ColumnInformation[] columns = new ColumnInformation[1];
-        columns[0] = ColumnInformation.create("insert_id", MariaDbType.BIGINT);
-
-        return new MariaSelectResultSet(columns, new ArrayList<byte[][]>(), null,
+    public static MariaSelectResultSet createEmptyResultSet() {
+        return new MariaSelectResultSet(INSERT_ID_COLUMNS, new ArrayList<byte[][]>(), null,
                 TYPE_SCROLL_SENSITIVE);
     }
 
