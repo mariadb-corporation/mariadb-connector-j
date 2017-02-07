@@ -4,6 +4,9 @@ before_install:
     - chmod +x .travis/before_test.sh
     - chmod +x .travis/script.sh
 install: .travis/before_test.sh
+cache:
+  directories:
+  - $HOME/.m2
 jdk:
     - oraclejdk8
     - oraclejdk7

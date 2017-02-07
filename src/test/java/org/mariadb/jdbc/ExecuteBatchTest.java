@@ -45,7 +45,7 @@ public class ExecuteBatchTest extends BaseTest {
      */
     @Test
     public void interruptExecuteBatch() throws Exception {
-
+        Assume.assumeTrue(sharedOptions().useBatchMultiSend);
         ExecutorService service = Executors.newFixedThreadPool(1);
 
         final CyclicBarrier barrier = new CyclicBarrier(2);
