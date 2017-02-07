@@ -53,6 +53,9 @@ import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
 import java.sql.Types;
 
 
@@ -102,6 +105,86 @@ public enum MariaDbType {
         this.javaType = javaType;
         this.mysqlType = mysqlType;
         this.className = className;
+    }
+
+    /**
+     * Permit to know java result class according to java.sql.Types.
+     *
+     * @param type java.sql.Type value
+     * @return Class name.
+     */
+    public static Class classFromJavaType(int type) {
+        switch (type) {
+            case Types.BOOLEAN:
+            case Types.BIT:
+                return Boolean.class;
+
+            case Types.TINYINT:
+                return Byte.class;
+
+            case Types.SMALLINT:
+                return Short.class;
+
+            case Types.INTEGER:
+                return Integer.class;
+
+            case Types.BIGINT:
+                return Long.class;
+
+            case Types.DOUBLE:
+            case Types.FLOAT:
+                return Double.class;
+
+            case Types.REAL:
+                return Float.class;
+
+            case Types.TIMESTAMP:
+                return Timestamp.class;
+
+            case Types.DATE:
+                return Date.class;
+
+            case Types.VARCHAR:
+            case Types.NVARCHAR:
+            case Types.CHAR:
+            case Types.NCHAR:
+            case Types.LONGVARCHAR:
+            case Types.LONGNVARCHAR:
+            case Types.CLOB:
+            case Types.NCLOB:
+                return String.class;
+
+            case Types.DECIMAL:
+            case Types.NUMERIC:
+                return BigDecimal.class;
+
+            case Types.VARBINARY:
+            case Types.BINARY:
+            case Types.LONGVARBINARY:
+            case Types.BLOB:
+            case Types.JAVA_OBJECT:
+                return byte[].class;
+
+            case Types.NULL:
+                return null;
+
+            case Types.TIME:
+                return Time.class;
+
+            default:
+                //DISTINCT
+                //STRUCT
+                //ARRAY
+                //REF
+                //DATALINK
+                //ROWID
+                //SQLXML
+                //REF_CURSOR
+                //TIME_WITH_TIMEZONE
+                //TIMESTAMP_WITH_TIMEZONE
+                break;
+        }
+        return null;
     }
 
     /**
