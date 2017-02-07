@@ -61,20 +61,17 @@ import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.ThreadPoolExecutor;
 
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
 
 public abstract class AbstractMultiSend {
 
-    private static final ThreadPoolExecutor readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
 
     private Protocol protocol;
     private PacketOutputStream writer;
@@ -211,10 +208,10 @@ public abstract class AbstractMultiSend {
         int requestNumberByBulk;
         try {
             do {
+                status.sendEnded = false;
                 status.sendSubCmdCounter = 0;
                 requestNumberByBulk = Math.min(totalExecutionNumber - status.sendCmdCounter, protocol.getOptions().useBatchMultiSendNumber);
                 protocol.changeSocketTcpNoDelay(false); //enable NAGLE algorithm temporary.
-
 
                 //add prepare sub-command
                 if (readPrepareStmtResult && prepareResult == null) {
@@ -237,19 +234,18 @@ public abstract class AbstractMultiSend {
                     status.sendSubCmdCounter++;
                     status.sendCmdCounter++;
 
-
                     if (futureReadTask == null) {
-                        futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, requestNumberByBulk, (status.sendCmdCounter - 1),
+                        futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, status,
                                 protocol, false, this, paramCount,
                                 binaryProtocol, results, parametersList, queries, prepareResult));
-                        readScheduler.execute(futureReadTask);
+                        AbstractQueryProtocol.readScheduler.execute(futureReadTask);
                     }
                 }
+                status.sendEnded = true;
 
                 protocol.changeSocketTcpNoDelay(protocol.getOptions().tcpNoDelay);
                 try {
                     AsyncMultiReadResult asyncMultiReadResult = futureReadTask.get();
-
                     if (binaryProtocol && prepareResult == null && asyncMultiReadResult.getPrepareResult() != null) {
                         prepareResult = asyncMultiReadResult.getPrepareResult();
                         statementId = ((ServerPrepareResult) prepareResult).getStatementId();
@@ -269,10 +265,9 @@ public abstract class AbstractMultiSend {
                     }
                     throw new QueryException("Error reading results " + executionException.getCause().getMessage());
                 } catch (InterruptedException interruptedException) {
-                    futureReadTask.cancel(true);
-
+                    protocol.setActiveFutureTask(futureReadTask);
                     Thread.currentThread().interrupt();
-                    throw new QueryException("Interrupted awaiting response", -1, INTERRUPTED_EXCEPTION.getSqlState(), interruptedException);
+                    throw new QueryException("Interrupted awaiting response ", -1, INTERRUPTED_EXCEPTION.getSqlState(), interruptedException);
                 } finally {
                     //bulk can prepare, and so if prepare cache is enable, can replace an already cached prepareStatement
                     //this permit to release those old prepared statement without conflict.

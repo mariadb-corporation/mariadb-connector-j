@@ -45,6 +45,7 @@ public class ExecuteBatchTest extends BaseTest {
      */
     @Test
     public void interruptExecuteBatch() throws Exception {
+
         ExecutorService service = Executors.newFixedThreadPool(1);
 
         final CyclicBarrier barrier = new CyclicBarrier(2);
@@ -54,11 +55,12 @@ public class ExecuteBatchTest extends BaseTest {
         service.submit(new Runnable() {
             @Override
             public void run() {
-                try (Connection connection = setConnection()) {
-                    PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
+                try {
+                    PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                            "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
 
                     // Send a large enough batch that will take long enough to allow us to interrupt it
-                    for (int i = 0; i < 50_000; i++) {
+                    for (int i = 0; i < 1_000_000; i++) {
                         preparedStatement.setString(1, String.valueOf(System.nanoTime()));
                         preparedStatement.setInt(2, i);
                         preparedStatement.addBatch();
@@ -94,6 +96,11 @@ public class ExecuteBatchTest extends BaseTest {
         );
 
         Assert.assertNotNull(exceptionRef.get());
+
+        //ensure that even interrupted, connection status is when sending in bulk (all corresponding bulk send are read)
+        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT 123456");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(123456, rs.getInt(1));
 
         StringWriter writer = new StringWriter();
         exceptionRef.get().printStackTrace(new PrintWriter(writer));
@@ -210,7 +217,7 @@ public class ExecuteBatchTest extends BaseTest {
 
     private void addBatchData(PreparedStatement preparedStatement, int batchNumber, Connection connection, boolean additionnalParameter)
             throws SQLException {
-        for (int i = 0 ; i < batchNumber ; i++) {
+        for (int i = 0; i < batchNumber; i++) {
             preparedStatement.setString(1, oneHundredLengthString);
             preparedStatement.setInt(2, i);
             if (additionnalParameter) preparedStatement.setInt(3, i);
@@ -220,11 +227,13 @@ public class ExecuteBatchTest extends BaseTest {
 
         //test result Size
         Assert.assertEquals(batchNumber, resultInsert.length);
-        for (int i = 0 ; i < batchNumber ; i++) Assert.assertEquals(1, resultInsert[i]);
+        for (int i = 0; i < batchNumber; i++) {
+            Assert.assertEquals(1, resultInsert[i]);
+        }
 
         //check that connection is OK and results are well inserted
         ResultSet resultSet = connection.createStatement().executeQuery("SELECT * FROM ExecuteBatchTest");
-        for (int i = 0 ; i < batchNumber ; i++) {
+        for (int i = 0; i < batchNumber; i++) {
             Assert.assertTrue(resultSet.next());
             Assert.assertEquals(i + 1, resultSet.getInt(1));
             Assert.assertEquals(oneHundredLengthString, resultSet.getString(2));

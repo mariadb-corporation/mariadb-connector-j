@@ -74,6 +74,7 @@ import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.LocalInfileInterceptor;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.*;
 import java.net.SocketException;
@@ -85,6 +86,9 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.ServiceLoader;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.mariadb.jdbc.internal.util.SqlStates.*;
@@ -96,6 +100,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     private InputStream localInfileInputStream;
     private int maxRows;  /* max rows returned by a statement */
     private volatile int statementIdToRelease = -1;
+    private FutureTask activeFutureTask = null;
+    public static ThreadPoolExecutor readScheduler = null;
 
     /**
      * Get a protocol instance.
@@ -106,6 +112,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     public AbstractQueryProtocol(final UrlParser urlParser, final ReentrantLock lock) {
         super(urlParser, lock);
+        if (options.useBatchMultiSend && readScheduler == null) {
+            synchronized (AbstractQueryProtocol.class) {
+                if (readScheduler == null) {
+                    readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
+                }
+            }
+        }
     }
 
     public void executeQuery(final String sql) throws QueryException {
@@ -380,6 +393,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 currentIndex = ComExecute.sendRewriteCmd(writer, prepareResult.getQueryParts(), parameters, currentIndex,
                         prepareResult.getParamCount(), parameterList, rewriteValues);
                 getResult(results);
+
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new QueryException("Interrupted during batch", -1, INTERRUPTED_EXCEPTION.getSqlState());
+                }
 
             } while (currentIndex < totalParameterList);
 
@@ -1228,6 +1245,25 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throw new QueryException("There is an open result set on the current connection, which must be "
                     + "closed prior to executing a query");
         }
+
+        if (activeFutureTask != null) {
+            //wait for remaining batch result to be read, to ensure correct connection state
+            try {
+                activeFutureTask.get();
+            } catch (ExecutionException executionException) {
+                //last batch exception are to be discarded
+            } catch (InterruptedException interruptedException) {
+                Thread.currentThread().interrupt();
+                throw new QueryException("Interrupted reading remaining batch response ", -1,
+                        INTERRUPTED_EXCEPTION.getSqlState(), interruptedException);
+            } finally {
+                //bulk can prepare, and so if prepare cache is enable, can replace an already cached prepareStatement
+                //this permit to release those old prepared statement without conflict.
+                forceReleaseWaitingPrepareStatement();
+            }
+            activeFutureTask = null;
+        }
+
         this.moreResults = false;
         if (!this.connected) throw new QueryException("Connection is close", 1220, "08000");
     }
@@ -1288,6 +1324,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
 
         return returningException;
+    }
+
+    public void setActiveFutureTask(FutureTask activeFutureTask) {
+        this.activeFutureTask = activeFutureTask;
     }
 
 }
