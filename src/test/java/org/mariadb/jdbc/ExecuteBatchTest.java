@@ -5,7 +5,16 @@ import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.*;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ExecuteBatchTest extends BaseTest {
 
@@ -27,6 +36,75 @@ public class ExecuteBatchTest extends BaseTest {
         char[] chars = new char[100];
         for (int i = 27; i < 127; i++) chars[i - 27] = (char) i;
         oneHundredLengthString = new String(chars);
+    }
+
+    /**
+     * CONJ-426: Test that executeBatch can be properly interrupted.
+     *
+     * @throws Exception If the test fails
+     */
+    @Test
+    public void interruptExecuteBatch() throws Exception {
+        ExecutorService service = Executors.newFixedThreadPool(1);
+
+        final CyclicBarrier barrier = new CyclicBarrier(2);
+        final AtomicBoolean wasInterrupted = new AtomicBoolean(false);
+        final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
+
+        service.submit(new Runnable() {
+            @Override
+            public void run() {
+                try (Connection connection = setConnection()) {
+                    PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
+
+                    // Send a large enough batch that will take long enough to allow us to interrupt it
+                    for (int i = 0; i < 50_000; i++) {
+                        preparedStatement.setString(1, String.valueOf(System.nanoTime()));
+                        preparedStatement.setInt(2, i);
+                        preparedStatement.addBatch();
+                    }
+
+                    barrier.await();
+
+                    preparedStatement.executeBatch();
+                } catch (InterruptedException ex) {
+                    exceptionRef.set(ex);
+                    Thread.currentThread().interrupt();
+                } catch (BrokenBarrierException ex) {
+                    exceptionRef.set(ex);
+                } catch (SQLException ex) {
+                    exceptionRef.set(ex);
+                    wasInterrupted.set(Thread.currentThread().isInterrupted());
+                } catch (Exception ex) {
+                    exceptionRef.set(ex);
+                }
+            }
+        });
+
+        barrier.await();
+
+        // Allow the query time to send
+        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+
+        // Interrupt the thread
+        service.shutdownNow();
+
+        Assert.assertTrue(
+            service.awaitTermination(1, TimeUnit.MINUTES)
+        );
+
+        Assert.assertNotNull(exceptionRef.get());
+
+        StringWriter writer = new StringWriter();
+        exceptionRef.get().printStackTrace(new PrintWriter(writer));
+
+        Assert.assertTrue(
+            "Exception should be a SQLException: \n" + writer.toString(),
+            exceptionRef.get() instanceof SQLException
+        );
+
+        Assert.assertTrue(wasInterrupted.get());
+
     }
 
     @Test

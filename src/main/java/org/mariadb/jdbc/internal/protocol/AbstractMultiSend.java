@@ -269,6 +269,10 @@ public abstract class AbstractMultiSend {
                     }
                     throw new QueryException("Error reading results " + executionException.getCause().getMessage());
                 } catch (InterruptedException interruptedException) {
+                    futureReadTask.cancel(true);
+
+                    Thread.currentThread().interrupt();
+                    throw new QueryException("Interrupted awaiting response", -1, INTERRUPTED_EXCEPTION.getSqlState(), interruptedException);
                 } finally {
                     //bulk can prepare, and so if prepare cache is enable, can replace an already cached prepareStatement
                     //this permit to release those old prepared statement without conflict.
