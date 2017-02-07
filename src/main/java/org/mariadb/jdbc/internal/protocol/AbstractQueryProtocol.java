@@ -1000,6 +1000,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @throws QueryException if sub-result connection fail
      */
     public void readPacket(Results results) throws QueryException {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new QueryException("Interrupted while reading", -1, INTERRUPTED_EXCEPTION.getSqlState());
+        }
+
         Buffer buffer;
         try {
             buffer = packetFetcher.getReusableBuffer();

@@ -58,7 +58,7 @@ public class ExecuteBatchTest extends BaseTest {
                     PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
 
                     // Send a large enough batch that will take long enough to allow us to interrupt it
-                    for (int i = 0; i < 50_000; i++) {
+                    for (int i = 0; i < 1_000_000; i++) {
                         preparedStatement.setString(1, String.valueOf(System.nanoTime()));
                         preparedStatement.setInt(2, i);
                         preparedStatement.addBatch();
@@ -84,7 +84,7 @@ public class ExecuteBatchTest extends BaseTest {
         barrier.await();
 
         // Allow the query time to send
-        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+        Thread.sleep(500);
 
         // Interrupt the thread
         service.shutdownNow();
@@ -92,6 +92,8 @@ public class ExecuteBatchTest extends BaseTest {
         Assert.assertTrue(
             service.awaitTermination(1, TimeUnit.MINUTES)
         );
+
+        Assert.assertTrue(wasInterrupted.get());
 
         Assert.assertNotNull(exceptionRef.get());
 
@@ -102,9 +104,6 @@ public class ExecuteBatchTest extends BaseTest {
             "Exception should be a SQLException: \n" + writer.toString(),
             exceptionRef.get() instanceof SQLException
         );
-
-        Assert.assertTrue(wasInterrupted.get());
-
     }
 
     @Test

@@ -79,11 +79,6 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
 
         //read all corresponding results
         for (int counter = 0; counter < nbResult; counter++) {
-            if (Thread.currentThread().isInterrupted()) {
-                asyncMultiReadResult.setException(new QueryException("Interrupted reading responses", -1, INTERRUPTED_EXCEPTION.getSqlState()));
-                break;
-            }
-
             try {
                 protocol.getResult(results);
             } catch (QueryException qex) {
