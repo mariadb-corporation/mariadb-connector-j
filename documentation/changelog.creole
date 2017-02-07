@@ -24,6 +24,8 @@
 * CONJ-418 : ResultSet.last() isLast() afterLast() and isAfterLast() correction when streaming
 * CONJ-415 : ResultSet.absolute() should not always return true
 * CONJ-392 : Aurora cluster endpoint detection fails when time_zone doesn't match system_time_zone
+* CONJ-425 : CallableStatement getObject class according to java.sql.Types value
+
 
 == 1.5.7
 * CONJ-407 : handling failover when packet > max_allowed_packet reset the connection state.

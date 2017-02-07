@@ -1131,4 +1131,68 @@ public class StoredProcedureTest extends BaseTest {
         assertEquals("Hello, !", callableStatement.getString(1));
     }
 
+    /**
+     * CONJ-425 : take care of registerOutParameter type.
+     * @throws Exception if connection error occur
+     */
+    @Test
+    public void testOutputObjectType() throws Exception {
+        createProcedure("issue425", "(IN inValue TEXT, OUT testValue TEXT)\n"
+                + "BEGIN\n"
+                + " set testValue = CONCAT('o', inValue);\n"
+                + "END");
+
+        //registering with VARCHAR Type
+        CallableStatement cstmt = sharedConnection.prepareCall("{call issue425(?, ?)}");
+        cstmt.registerOutParameter(2, Types.VARCHAR);
+        cstmt.setString(1, "x");
+        cstmt.execute();
+
+        assertEquals("ox", cstmt.getString(2));
+        assertEquals("ox", cstmt.getObject(2, String.class)); //works
+        assertEquals("ox", cstmt.getObject(2));
+        assertEquals("ox", cstmt.getObject("testValue"));
+
+        //registering with Binary Type
+        CallableStatement cstmt2 = sharedConnection.prepareCall("{call issue425(?, ?)}");
+        cstmt2.registerOutParameter(2, Types.BINARY);
+        cstmt2.setString(1, "x");
+        cstmt2.execute();
+
+        assertEquals("ox", cstmt2.getString(2));
+        assertEquals("ox", cstmt2.getObject(2, String.class)); //works
+        assertTrue(cstmt2.getObject(2) instanceof byte[]);
+        assertArrayEquals("ox".getBytes(), ((byte[]) cstmt2.getObject(2)));
+        assertArrayEquals("ox".getBytes(), ((byte[]) cstmt2.getObject("testValue")));
+
+    }
+
+    @Test
+    public void testOutputObjectTypeFunction() throws Exception {
+        createFunction("issue425f", "(a TEXT, b TEXT) RETURNS TEXT NO SQL\nBEGIN\nRETURN CONCAT(a, b);\nEND");
+
+        //registering with VARCHAR Type
+        CallableStatement cstmt = sharedConnection.prepareCall("{? = call issue425f(?, ?)}");
+        cstmt.registerOutParameter(1, Types.VARCHAR);
+        cstmt.setString(2, "o");
+        cstmt.setString(3, "x");
+        cstmt.execute();
+
+        assertEquals("ox", cstmt.getString(1));
+        assertEquals("ox", cstmt.getObject(1, String.class)); //works
+        assertEquals("ox", cstmt.getObject(1));
+
+        //registering with Binary Type
+        CallableStatement cstmt2 = sharedConnection.prepareCall("{? = call issue425f(?, ?)}");
+        cstmt2.registerOutParameter(1, Types.BINARY);
+        cstmt2.setString(2, "o");
+        cstmt2.setString(3, "x");
+        cstmt2.execute();
+
+        assertEquals("ox", cstmt2.getString(1));
+        assertEquals("ox", cstmt2.getObject(1, String.class)); //works
+        assertTrue(cstmt2.getObject(1) instanceof byte[]);
+        assertArrayEquals("ox".getBytes(), ((byte[]) cstmt2.getObject(1)));
+
+    }
 }

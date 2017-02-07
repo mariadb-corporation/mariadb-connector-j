@@ -1872,46 +1872,96 @@ public class MariaSelectResultSet implements ResultSet {
     @SuppressWarnings("unchecked")
     public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
         if (type == null) throw new SQLException("Class type cannot be null");
+        byte[] rawBytes = checkObjectRange(parameterIndex);
+        ColumnInformation col = columnsInformation[parameterIndex - 1];
+
         if (type.equals(String.class)) {
-            return (T) getString(parameterIndex);
+            return (T) getString(rawBytes, col, cal);
+
         } else if (type.equals(Integer.class)) {
-            getInt(parameterIndex);
+            if (rawBytes == null) return null;
+            return (T) (Integer) getInt(rawBytes, col);
+
         } else if (type.equals(Long.class)) {
-            return (T) (Long) getLong(parameterIndex);
+            if (rawBytes == null) return null;
+            return (T) (Long) getLong(rawBytes, col);
+
         } else if (type.equals(Short.class)) {
-            return (T) (Short) getShort(parameterIndex);
+            if (rawBytes == null) return null;
+            return (T) (Short) getShort(rawBytes, col);
+
         } else if (type.equals(Double.class)) {
-            return (T) (Double) getDouble(parameterIndex);
+            if (rawBytes == null) return null;
+            return (T) (Double) getDouble(rawBytes, col);
+
         } else if (type.equals(Float.class)) {
-            return (T) (Float) getFloat(parameterIndex);
+            if (rawBytes == null) return null;
+            return (T) (Float) getFloat(rawBytes, col);
+
         } else if (type.equals(Byte.class)) {
-            return (T) (Byte) getByte(parameterIndex);
+            return (T) (Byte) getByte(rawBytes, col);
+
         } else if (type.equals(byte[].class)) {
-            return (T) getBytes(parameterIndex);
+            return (T) rawBytes;
+
         } else if (type.equals(Date.class)) {
-            return (T) getDate(parameterIndex);
+            try {
+                return (T) getDate(rawBytes, col, cal);
+            } catch (ParseException e) {
+                throw ExceptionMapper.getSqlException("Could not parse column as date, was: \""
+                        + getString(rawBytes, col)
+                        + "\"", e);
+            }
+
         } else if (type.equals(Time.class)) {
-            return (T) getTime(parameterIndex);
+            try {
+                return (T) getTime(rawBytes, col, cal);
+            } catch (ParseException e) {
+                throw ExceptionMapper.getSqlException("Could not parse column as time, was: \""
+                        + getString(rawBytes, col)
+                        + "\"", e);
+            }
         } else if (type.equals(Timestamp.class)) {
-            return (T) getTimestamp(parameterIndex);
+            try {
+                return (T) getTimestamp(rawBytes, col, cal);
+            } catch (ParseException e) {
+                throw ExceptionMapper.getSqlException("Could not parse column as timestamp, was: \""
+                        + getString(rawBytes, col)
+                        + "\"", e);
+            }
+
         } else if (type.equals(Boolean.class)) {
-            return (T) (Boolean) getBoolean(parameterIndex);
+            return (T) (Boolean) getBoolean(rawBytes, col);
         } else if (type.equals(Blob.class)) {
-            return (T) getBlob(parameterIndex);
+            if (rawBytes == null) return null;
+            return (T) new MariaDbBlob(rawBytes);
+
         } else if (type.equals(Clob.class)) {
-            return (T) getClob(parameterIndex);
+            if (rawBytes == null) return null;
+            return (T) new MariaDbClob(rawBytes);
+
         } else if (type.equals(NClob.class)) {
-            return (T) getNClob(parameterIndex);
+            if (rawBytes == null) return null;
+            return (T) new MariaDbClob(rawBytes);
+
         } else if (type.equals(InputStream.class)) {
-            return (T) getBinaryStream(parameterIndex);
+            if (rawBytes == null) return null;
+            return (T) new ByteArrayInputStream(rawBytes);
+
         } else if (type.equals(Reader.class)) {
-            return (T) getCharacterStream(parameterIndex);
+            String value = getString(rawBytes, col);
+            if (value == null) return null;
+            return (T) new StringReader(value);
+
         } else if (type.equals(BigDecimal.class)) {
-            return (T) getBigDecimal(parameterIndex);
+            return (T) getBigDecimal(rawBytes, col);
+
         } else if (type.equals(BigInteger.class)) {
-            return (T) getBigInteger(checkObjectRange(parameterIndex), columnsInformation[parameterIndex - 1]);
+            return (T) getBigInteger(rawBytes, col);
+
         } else if (type.equals(Clob.class)) {
-            return (T) getClob(parameterIndex);
+            if (rawBytes == null) return null;
+            return (T) new MariaDbClob(rawBytes);
         }
 
         Object obj = getObject(parameterIndex);
@@ -1919,7 +1969,7 @@ public class MariaSelectResultSet implements ResultSet {
         if (obj.getClass().isInstance(type)) {
             return (T) obj;
         } else {
-            throw new SQLException("result cannot be cast as  '" + type.getName() + "' (is '" + obj.getClass().getName() + "'");
+            throw new SQLException("result cannot be cast as  '" + type.getName() + "' (is '" + obj.getClass().getName() + "')");
         }
     }
 
