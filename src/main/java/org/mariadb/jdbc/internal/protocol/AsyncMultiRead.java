@@ -9,6 +9,8 @@ import org.mariadb.jdbc.internal.util.dao.QueryException;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
+
 public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
 
     private final ComStmtPrepare comStmtPrepare;
