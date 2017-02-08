@@ -259,4 +259,5 @@ public interface Protocol {
 
     void setActiveFutureTask(FutureTask activeFutureTask);
 
+    boolean isServerMariaDb();
 }

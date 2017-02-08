@@ -90,7 +90,6 @@ import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.*;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
@@ -102,8 +101,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private final String username;
     private final String password;
     private boolean hostFailed;
-    private String version;
-    protected boolean checkCallableResultSet;
+    private String serverVersion;
+    private boolean serverMariaDb;
     private int majorVersion;
     private int minorVersion;
     private int patchVersion;
@@ -463,8 +462,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher);
             this.serverThreadId = greetingPacket.getServerThreadId();
-            this.version = greetingPacket.getServerVersion();
-            this.checkCallableResultSet = this.version.indexOf("MariaDB") == -1;
+            this.serverVersion = greetingPacket.getServerVersion();
+            this.serverMariaDb = greetingPacket.isServerMariaDb();
 
             byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage());
             parseVersion();
@@ -838,7 +837,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     public String getServerVersion() {
-        return version;
+        return serverVersion;
     }
 
     public boolean getReadonly() {
@@ -887,7 +886,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private void parseVersion() {
-        String[] versionArray = version.split("[^0-9]");
+        String[] versionArray = serverVersion.split("[^0-9]");
         if (versionArray.length > 0) {
             majorVersion = Integer.parseInt(versionArray[0]);
         }
@@ -1108,4 +1107,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         socket.setSoTimeout(setSoTimeout);
     }
 
+    public boolean isServerMariaDb() {
+        return serverMariaDb;
+    }
 }
