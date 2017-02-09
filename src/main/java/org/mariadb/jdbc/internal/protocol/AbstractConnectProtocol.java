@@ -342,7 +342,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
             } else {
                 connect(null, 3306);
             }
-            return;
         } catch (IOException e) {
             throw new QueryException("Could not connect to " + currentHost + "." + e.getMessage(), -1, CONNECTION_EXCEPTION, e);
         }

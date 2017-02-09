@@ -245,7 +245,7 @@ public class HostAddress {
         return "HostAddress{"
                 + "host='" + host + '\''
                 + ", port=" + port
-                + ", type=" + ((type == null) ? null : "'" + type + "'")
+                + ((type != null) ? (", type='" + type + "'") : "")
                 + "}";
     }
 

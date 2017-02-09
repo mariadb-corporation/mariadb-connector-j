@@ -271,7 +271,7 @@ public enum DefaultOptions {
     PREPSTMTCACHESQLLIMIT("prepStmtCacheSqlLimit", new Integer(2048), new Integer(0), Integer.MAX_VALUE, "1.3.0"),
 
     /**
-     * when in high availalability, and switching to a read-only host, assure that this host is in read-only mode by
+     * when in high availability, and switching to a read-only host, assure that this host is in read-only mode by
      * setting session read-only.
      * default to false
      */

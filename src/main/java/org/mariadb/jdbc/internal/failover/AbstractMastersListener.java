@@ -216,6 +216,9 @@ public abstract class AbstractMastersListener implements Listener {
 
     protected void setSessionReadOnly(boolean readOnly, Protocol protocol) throws QueryException {
         if (protocol.versionGreaterOrEqual(5, 6, 5)) {
+            logger.info("SQL node [" + protocol.getHostAddress().toString()
+                    + ", conn " + protocol.getServerThreadId()
+                    + " ] is now in " + (readOnly ? "read-only" : "write") + " mode.");
             protocol.executeQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE"));
         }
     }

@@ -193,8 +193,20 @@ public class FailoverProxy implements InvocationHandler {
         } catch (InvocationTargetException e) {
             if (e.getTargetException() != null) {
                 if (e.getTargetException() instanceof QueryException) {
-                    if (hasToHandleFailover((QueryException) e.getTargetException())) {
-                        return handleFailOver((QueryException) e.getTargetException(), method, args, listener.getCurrentProtocol());
+                    QueryException queryException = (QueryException) e.getTargetException();
+                    addExceptionHost(queryException, listener.getCurrentProtocol());
+                    if (hasToHandleFailover(queryException)) {
+                        return handleFailOver(queryException, method, args, listener.getCurrentProtocol());
+                    }
+
+                    //error is "The MySQL server is running with the %s option so it cannot execute this statement"
+                    //checking that server was master has not been demote to slave without resetting connections
+                    if (queryException.getErrorCode() == 1290
+                            && listener.getCurrentProtocol() != null
+                            && listener.getCurrentProtocol().isMasterConnection()
+                            && !listener.getCurrentProtocol().checkIfMaster()) {
+                        //connection state has changed !
+                        return handleFailOver(queryException, method, args, listener.getCurrentProtocol());
                     }
                 }
                 throw e.getTargetException();
@@ -261,5 +273,9 @@ public class FailoverProxy implements InvocationHandler {
 
     public Listener getListener() {
         return listener;
+    }
+
+    private static void addExceptionHost(QueryException exception, Protocol protocol) {
+        exception.setMessage(exception.getMessage() + "\non " + protocol.getHostAddress().toString() + ",master=" + protocol.isMasterConnection() );
     }
 }
