@@ -194,7 +194,7 @@ public class FailoverProxy implements InvocationHandler {
     }
 
 
-    private Object executeInvocation(Method method, Object[] args, boolean isSecondExecution) throws Throwable{
+    private Object executeInvocation(Method method, Object[] args, boolean isSecondExecution) throws Throwable {
 
         try {
             return listener.invoke(method, args);
@@ -323,7 +323,9 @@ public class FailoverProxy implements InvocationHandler {
      */
     private static void addHostInformationToException(QueryException exception, Protocol protocol) {
         if (protocol != null) {
-            exception.setMessage(exception.getMessage() + "\non " + protocol.getHostAddress().toString() + ",master=" + protocol.isMasterConnection() );
+            exception.setMessage(exception.getMessage()
+                    + "\non " + protocol.getHostAddress().toString() + ",master="
+                    + protocol.isMasterConnection() );
         }
     }
 }
