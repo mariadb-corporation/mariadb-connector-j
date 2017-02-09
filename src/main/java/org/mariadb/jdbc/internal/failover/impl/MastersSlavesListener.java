@@ -224,30 +224,26 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      */
     public void checkWaitingConnection() throws QueryException {
         if (isSecondaryHostFail()) {
-            Protocol waitingProtocol = waitNewSecondaryProtocol.getAndSet(null);
-            if (waitingProtocol != null) {
-                proxy.lock.lock();
-                try {
-                    if (pingSecondaryProtocol(waitingProtocol)) {
-                        lockAndSwitchSecondary(waitingProtocol);
-                    }
-                } finally {
-                    proxy.lock.unlock();
+            proxy.lock.lock();
+            try {
+                Protocol waitingProtocol = waitNewSecondaryProtocol.getAndSet(null);
+                if (waitingProtocol != null && pingSecondaryProtocol(waitingProtocol)) {
+                    lockAndSwitchSecondary(waitingProtocol);
                 }
+            } finally {
+                proxy.lock.unlock();
             }
         }
 
         if (isMasterHostFail()) {
-            Protocol waitingProtocol = waitNewMasterProtocol.getAndSet(null);
-            if (waitingProtocol != null) {
-                proxy.lock.lock();
-                try {
-                    if (pingMasterProtocol(waitingProtocol)) {
-                        lockAndSwitchMaster(waitingProtocol);
-                    }
-                } finally {
-                    proxy.lock.unlock();
+            proxy.lock.lock();
+            try {
+                Protocol waitingProtocol = waitNewMasterProtocol.getAndSet(null);
+                if (waitingProtocol != null && pingMasterProtocol(waitingProtocol)) {
+                    lockAndSwitchMaster(waitingProtocol);
                 }
+            } finally {
+                proxy.lock.unlock();
             }
         }
     }
@@ -347,6 +343,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
     /**
      * Use the parameter newMasterProtocol as new current master connection.
+     *
+     * <i>Lock must be set</i>
      *
      * @param newMasterProtocol new master connection
      * @throws ReconnectDuringTransactionException if there was an active transaction.

@@ -188,25 +188,60 @@ public class FailoverProxy implements InvocationHandler {
 
             default:
         }
+
+        return executeInvocation(method, args, false);
+
+    }
+
+
+    private Object executeInvocation(Method method, Object[] args, boolean isSecondExecution) throws Throwable{
+
         try {
             return listener.invoke(method, args);
         } catch (InvocationTargetException e) {
             if (e.getTargetException() != null) {
                 if (e.getTargetException() instanceof QueryException) {
-                    QueryException queryException = (QueryException) e.getTargetException();
-                    addExceptionHost(queryException, listener.getCurrentProtocol());
-                    if (hasToHandleFailover(queryException)) {
-                        return handleFailOver(queryException, method, args, listener.getCurrentProtocol());
-                    }
 
+                    QueryException queryException = (QueryException) e.getTargetException();
+                    Protocol protocol = listener.getCurrentProtocol();
+
+                    addHostInformationToException(queryException, protocol);
+
+                    if (hasToHandleFailover(queryException)) {
+                        return handleFailOver(queryException, method, args, protocol);
+                    }
                     //error is "The MySQL server is running with the %s option so it cannot execute this statement"
                     //checking that server was master has not been demote to slave without resetting connections
                     if (queryException.getErrorCode() == 1290
-                            && listener.getCurrentProtocol() != null
-                            && listener.getCurrentProtocol().isMasterConnection()
-                            && !listener.getCurrentProtocol().checkIfMaster()) {
-                        //connection state has changed !
+                            && !isSecondExecution
+                            && protocol != null
+                            && protocol.isMasterConnection()
+                            && !protocol.checkIfMaster()) {
+
+                        boolean inTransaction = protocol.inTransaction();
+                        boolean isReconnected;
+
+                        //connection state has changed, master connection is now read-only
+                        //reconnect to master, to re-execute command if wasn't in a transaction since
+                        //we are sure has not been executed.
+
+                        //reconnection
+                        lock.lock();
+                        try {
+                            protocol.close();
+                            isReconnected = listener.primaryFail(null, null).isReconnected;
+                        } finally {
+                            lock.unlock();
+                        }
+
+                        //relaunch command
+                        if (isReconnected && !inTransaction) {
+                            return executeInvocation(method, args, true);
+                        }
+
+                        //throw exception if not reconnected, or was in a transaction
                         return handleFailOver(queryException, method, args, listener.getCurrentProtocol());
+
                     }
                 }
                 throw e.getTargetException();
@@ -214,7 +249,6 @@ public class FailoverProxy implements InvocationHandler {
             throw e;
         }
     }
-
 
     /**
      * After a connection exception, launch failover.
@@ -275,7 +309,21 @@ public class FailoverProxy implements InvocationHandler {
         return listener;
     }
 
-    private static void addExceptionHost(QueryException exception, Protocol protocol) {
-        exception.setMessage(exception.getMessage() + "\non " + protocol.getHostAddress().toString() + ",master=" + protocol.isMasterConnection() );
+    /**
+     * Add Host information ("on HostAddress...") to exception.
+     *
+     * example :
+     * <p>
+     * java.sql.SQLException: (conn:603) Cannot execute statement in a READ ONLY transaction.<br/>
+     * Query is : INSERT INTO TableX VALUES (21)<br/>
+     * on HostAddress{host='mydb.example.com', port=3306},master=true</p>
+     *
+     * @param exception     current exception
+     * @param protocol      protocol to have hostname
+     */
+    private static void addHostInformationToException(QueryException exception, Protocol protocol) {
+        if (protocol != null) {
+            exception.setMessage(exception.getMessage() + "\non " + protocol.getHostAddress().toString() + ",master=" + protocol.isMasterConnection() );
+        }
     }
 }
