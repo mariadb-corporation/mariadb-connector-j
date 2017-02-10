@@ -42,6 +42,29 @@ public class ResultSetTest extends BaseTest {
             Assert.assertTrue(e.getMessage().contains("closed"));
         }
     }
+    /**
+     * CONJ-424: Calling getGeneratedKeys() two times on the same connection, with different
+     * PreparedStatement on a table that does not have an auto increment.
+     */
+    @Test
+    public void testGeneratedKeysWithoutTableAutoIncrementCalledTwice() throws SQLException {
+        createTable("gen_key_test_resultset", "name VARCHAR(40) NOT NULL, xml MEDIUMTEXT");
+        String sql = "INSERT INTO gen_key_test_resultset (name, xml) VALUES (?, ?)";
+
+        for (int i = 0; i < 2; i++) {
+            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+                preparedStatement.setString(1, "John");
+                preparedStatement.setString(2, "<xml/>");
+                preparedStatement.executeUpdate();
+
+                try (ResultSet generatedKeysResultSet = preparedStatement.getGeneratedKeys()) {
+                    Assert.assertFalse(generatedKeysResultSet.next());
+                }
+
+            }
+        }
+    }
 
     @Test
     public void isBeforeFirstFetchZeroRowsTest() throws SQLException {

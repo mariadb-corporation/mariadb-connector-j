@@ -578,12 +578,7 @@ public class DatatypeTest extends BaseTest {
     @Test
     public void binTest2() throws SQLException, IOException {
 
-
-        if (sharedConnection.getMetaData().getDatabaseProductName().toLowerCase().equals("mysql")) {
-            createTable("bintest2", "bin1 longblob", "engine=innodb");
-        } else {
-            createTable("bintest2", "id int not null primary key auto_increment, bin1 blob");
-        }
+        createTable("bintest2", "bin1 longblob", "engine=innodb");
 
         byte[] buf = new byte[1000000];
         for (int i = 0; i < 1000000; i++) {

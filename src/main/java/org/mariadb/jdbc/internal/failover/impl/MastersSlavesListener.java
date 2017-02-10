@@ -77,8 +77,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class MastersSlavesListener extends AbstractMastersSlavesListener {
     private static Logger logger = LoggerFactory.getLogger(MastersSlavesListener.class);
-    private static final double POOL_SIZE_TO_LISTENER_RATIO = 0.3d;
-    private static final double FAIL_LOOP_TO_LISTENER_RATIO = 0.3d;
 
     protected Protocol masterProtocol;
     protected Protocol secondaryProtocol;
@@ -86,15 +84,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     private static final AtomicInteger listenerCount = new AtomicInteger();
 
     static {
-        dynamicSizedScheduler = SchedulerServiceProviderHolder.getScheduler(1);
-
-        // pool decreases happen async
-        dynamicSizedScheduler.scheduleWithFixedDelay(new Runnable() {
-            @Override
-            public void run() {
-                dynamicSizedScheduler.setPoolSize((int) Math.ceil(listenerCount.get() * POOL_SIZE_TO_LISTENER_RATIO));
-            }
-        }, 2, 2, TimeUnit.HOURS);
+        dynamicSizedScheduler = SchedulerServiceProviderHolder.getScheduler(1, "failover", 8);
 
         // fail loop scaling happens async and only from a single thread
         dynamicSizedScheduler.scheduleWithFixedDelay(new Runnable() {
@@ -102,30 +92,35 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
             @Override
             public void run() {
-                int desiredFailCount = (int) Math.ceil(listenerCount.get() * FAIL_LOOP_TO_LISTENER_RATIO);
-                int countChange = desiredFailCount - failoverLoops.size();
-                if (countChange > 0) {
-                    // start fail loops
-                    for (; countChange > 0; countChange--) {
-                        // loop is started in constructor
-                        failoverLoops.add(new FailoverLoop(dynamicSizedScheduler));
-                    }
-                } else if (countChange < 0) {
-                    // block on all removed loops after finished unscheduling to reduce blocking
-                    List<FailoverLoop> removedLoops = new ArrayList<>(-countChange);
-                    // terminate fail loops
-                    for (; countChange < 0; countChange++) {
-                        FailoverLoop failoverLoop = failoverLoops.remove();
-                        failoverLoop.unscheduleTask();
-                        removedLoops.add(failoverLoop);
-                    }
 
-                    for (FailoverLoop failoverLoop : removedLoops) {
-                        failoverLoop.blockTillTerminated();
+                int desiredFailCount = Math.min(8, listenerCount.get() / 5 + 1);
+                int countChange = desiredFailCount - failoverLoops.size();
+
+                if (countChange != 0) {
+                    dynamicSizedScheduler.setPoolSize(desiredFailCount);
+                    if (countChange > 0) {
+                        // start fail loops
+                        for (; countChange > 0; countChange--) {
+                            // loop is started in constructor
+                            failoverLoops.add(new FailoverLoop(dynamicSizedScheduler));
+                        }
+                    } else {
+                        // block on all removed loops after finished unscheduling to reduce blocking
+                        List<FailoverLoop> removedLoops = new ArrayList<>(-countChange);
+                        // terminate fail loops
+                        for (; countChange < 0; countChange++) {
+                            FailoverLoop failoverLoop = failoverLoops.remove();
+                            failoverLoop.unscheduleTask();
+                            removedLoops.add(failoverLoop);
+                        }
+
+                        for (FailoverLoop failoverLoop : removedLoops) {
+                            failoverLoop.blockTillTerminated();
+                        }
                     }
                 }
             }
-        }, 250, 250, TimeUnit.MILLISECONDS);
+        }, 1, 2, TimeUnit.MINUTES);
     }
 
     /**
@@ -135,7 +130,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      */
     public MastersSlavesListener(final UrlParser urlParser) {
         super(urlParser);
-        dynamicSizedScheduler.setPoolSize((int) Math.ceil(listenerCount.incrementAndGet() * POOL_SIZE_TO_LISTENER_RATIO));
+        listenerCount.incrementAndGet();
         masterProtocol = null;
         secondaryProtocol = null;
         setMasterHostFail();
@@ -224,30 +219,26 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      */
     public void checkWaitingConnection() throws QueryException {
         if (isSecondaryHostFail()) {
-            Protocol waitingProtocol = waitNewSecondaryProtocol.getAndSet(null);
-            if (waitingProtocol != null) {
-                proxy.lock.lock();
-                try {
-                    if (pingSecondaryProtocol(waitingProtocol)) {
-                        lockAndSwitchSecondary(waitingProtocol);
-                    }
-                } finally {
-                    proxy.lock.unlock();
+            proxy.lock.lock();
+            try {
+                Protocol waitingProtocol = waitNewSecondaryProtocol.getAndSet(null);
+                if (waitingProtocol != null && pingSecondaryProtocol(waitingProtocol)) {
+                    lockAndSwitchSecondary(waitingProtocol);
                 }
+            } finally {
+                proxy.lock.unlock();
             }
         }
 
         if (isMasterHostFail()) {
-            Protocol waitingProtocol = waitNewMasterProtocol.getAndSet(null);
-            if (waitingProtocol != null) {
-                proxy.lock.lock();
-                try {
-                    if (pingMasterProtocol(waitingProtocol)) {
-                        lockAndSwitchMaster(waitingProtocol);
-                    }
-                } finally {
-                    proxy.lock.unlock();
+            proxy.lock.lock();
+            try {
+                Protocol waitingProtocol = waitNewMasterProtocol.getAndSet(null);
+                if (waitingProtocol != null && pingMasterProtocol(waitingProtocol)) {
+                    lockAndSwitchMaster(waitingProtocol);
                 }
+            } finally {
+                proxy.lock.unlock();
             }
         }
     }
@@ -347,6 +338,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
     /**
      * Use the parameter newMasterProtocol as new current master connection.
+     *
+     * <i>Lock must be set</i>
      *
      * @param newMasterProtocol new master connection
      * @throws ReconnectDuringTransactionException if there was an active transaction.

@@ -30,8 +30,8 @@ public class SchedulerServiceProviderHolderTest {
 
     @Test
     public void defaultProviderGetSchedulerTest() {
-        testRunnable(SchedulerServiceProviderHolder.getScheduler(1));
-        testRunnable(SchedulerServiceProviderHolder.getFixedSizeScheduler(1));
+        testRunnable(SchedulerServiceProviderHolder.getScheduler(1, "testScheduler", 8));
+        testRunnable(SchedulerServiceProviderHolder.getFixedSizeScheduler(1, "testFixedScheduler"));
     }
 
     private void testRunnable(ScheduledExecutorService scheduler) {
@@ -48,8 +48,8 @@ public class SchedulerServiceProviderHolderTest {
 
     @Test
     public void defaultProviderSchedulerShutdownTest() {
-        testExecuteAfterShutdown(SchedulerServiceProviderHolder.getScheduler(1));
-        testExecuteAfterShutdown(SchedulerServiceProviderHolder.getFixedSizeScheduler(1));
+        testExecuteAfterShutdown(SchedulerServiceProviderHolder.getScheduler(1, "testScheduler", 8));
+        testExecuteAfterShutdown(SchedulerServiceProviderHolder.getFixedSizeScheduler(1, "testFixedScheduler"));
     }
 
     private void testExecuteAfterShutdown(ScheduledExecutorService scheduler) {
@@ -66,12 +66,12 @@ public class SchedulerServiceProviderHolderTest {
     public void setAndGetProviderTest() {
         SchedulerProvider emptyProvider = new SchedulerProvider() {
             @Override
-            public DynamicSizedSchedulerInterface getScheduler(int minimumThreads) {
+            public DynamicSizedSchedulerInterface getScheduler(int minimumThreads, String poolName, int maximumPoolSize) {
                 throw new UnsupportedOperationException();
             }
 
             @Override
-            public ScheduledThreadPoolExecutor getFixedSizeScheduler(int minimumThreads) {
+            public ScheduledThreadPoolExecutor getFixedSizeScheduler(int minimumThreads, String poolName) {
                 throw new UnsupportedOperationException();
             }
 

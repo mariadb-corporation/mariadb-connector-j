@@ -16,12 +16,12 @@ import static org.junit.Assert.*;
 public class MariaDbDatabaseMetaDataTest extends BaseTest {
 
     /**
-     * CONJ-412: tinyInt1isBit and yearIsDateType is not applied in method columnTypeClause
-     * @throws Exception
+     * CONJ-412: tinyInt1isBit and yearIsDateType is not applied in method columnTypeClause.
+     * @throws Exception if exception occur
      */
     @Test
     public void testYearDataType() throws Exception {
-        createTable("yearTableMeta", "xx tinyint(1), yy year(2), zz bit, uu smallint");
+        createTable("yearTableMeta", "xx tinyint(1), yy year(4), zz bit, uu smallint");
         try (Connection connection = setConnection()) {
             checkResults(connection, true, true);
         }

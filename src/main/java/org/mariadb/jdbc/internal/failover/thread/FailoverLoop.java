@@ -56,7 +56,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class FailoverLoop extends TerminatableRunnable {
+public class FailoverLoop extends TerminableRunnable {
 
     private static final ConcurrentLinkedQueue<Listener> queue = new ConcurrentLinkedQueue<>();
 
@@ -69,7 +69,7 @@ public class FailoverLoop extends TerminatableRunnable {
     }
 
     public FailoverLoop(ScheduledExecutorService scheduler) {
-        super(scheduler, 100, 100, TimeUnit.MILLISECONDS);
+        super(scheduler, 1, 1, TimeUnit.SECONDS);
     }
 
     @Override

@@ -635,16 +635,16 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                     + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                 + "  WHEN 'timestamp' THEN "
                     + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
-                + (((dataType & MariaSelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? " WHEN 'year' THEN 5":"")
+                + (((dataType & MariaSelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? " WHEN 'year' THEN 5" : "")
                 + "  ELSE "
                 + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
                 + " END"
                 + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
 
-                + " CASE DATA_TYPE"
-                + " WHEN 'year' THEN " + (((dataType & MariaSelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? "0":"NUMERIC_SCALE")
-                + " WHEN 'tinyint' THEN " + (((dataType & MariaSelectResultSet.TINYINT1_IS_BIT) > 0) ? "0":"NUMERIC_SCALE")
-                + " ELSE NUMERIC_SCALE END DECIMAL_DIGITS,"
+                + " CONVERT (CASE DATA_TYPE"
+                + " WHEN 'year' THEN " + (((dataType & MariaSelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? "0" : "NUMERIC_SCALE")
+                + " WHEN 'tinyint' THEN " + (((dataType & MariaSelectResultSet.TINYINT1_IS_BIT) > 0) ? "0" : "NUMERIC_SCALE")
+                + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
 
                 + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
                 + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "

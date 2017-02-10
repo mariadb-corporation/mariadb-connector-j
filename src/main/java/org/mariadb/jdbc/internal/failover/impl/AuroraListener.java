@@ -234,7 +234,7 @@ public class AuroraListener extends MastersSlavesListener {
                 Results results = new Results();
                 protocol.executeQuery(false, results,
                         "select server_id, session_id from information_schema.replica_host_status "
-                                + "where last_update_timestamp > UTC_TIMESTAMP - INTERVAL 3 MINUTE");
+                                + "where last_update_timestamp > now() - INTERVAL 3 MINUTE");
                 results.commandEnd();
                 MariaSelectResultSet resultSet = results.getResultSet();
 
@@ -348,7 +348,7 @@ public class AuroraListener extends MastersSlavesListener {
             protocol.executeQuery(false, results,
                     "select server_id from information_schema.replica_host_status "
                             + "where session_id = 'MASTER_SESSION_ID' "
-                            + "and last_update_timestamp > UTC_TIMESTAMP - INTERVAL 3 MINUTE "
+                            + "and last_update_timestamp > now() - INTERVAL 3 MINUTE "
                             + "ORDER BY last_update_timestamp DESC LIMIT 1");
             results.commandEnd();
             MariaSelectResultSet queryResult = results.getResultSet();

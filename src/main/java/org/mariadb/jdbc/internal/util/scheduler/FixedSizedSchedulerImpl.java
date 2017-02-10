@@ -50,18 +50,14 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.util.scheduler;
 
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class FixedSizedSchedulerImpl extends ScheduledThreadPoolExecutor {
     /**
      * Create scheduler with fixed size.
-     * @param corePoolSize core pool size
+     * @param corePoolSize  core pool size
+     * @param poolName      name of pool to identify threads
      */
-    public FixedSizedSchedulerImpl(int corePoolSize) {
-        super(corePoolSize, new MariaDbThreadFactory());
-
-        // set a rare thread timeout option to allow garbage collection
-        setKeepAliveTime(2, TimeUnit.HOURS);
-        allowCoreThreadTimeOut(true);
+    public FixedSizedSchedulerImpl(int corePoolSize, String poolName) {
+        super(corePoolSize, new MariaDbThreadFactory(poolName));
     }
 }
