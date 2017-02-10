@@ -53,26 +53,33 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
-public abstract class TerminatableRunnable implements Runnable {
-    private final AtomicInteger runState = new AtomicInteger(0); // -1 = removed, 0 = idle, 1 = active
+public abstract class TerminableRunnable implements Runnable {
+
+    private enum State {
+        REMOVED,
+        IDLE,
+        ACTIVE
+    }
+
+    private final AtomicReference<State> runState = new AtomicReference<>(State.IDLE);
     private final AtomicBoolean unschedule = new AtomicBoolean();
     private volatile ScheduledFuture<?> scheduledFuture = null;
 
     protected abstract void doRun();
 
-    public TerminatableRunnable(ScheduledExecutorService scheduler,
-                                long initialDelay,
-                                long delay,
-                                TimeUnit unit) {
+    public TerminableRunnable(ScheduledExecutorService scheduler,
+                              long initialDelay,
+                              long delay,
+                              TimeUnit unit) {
         this.scheduledFuture = scheduler.scheduleWithFixedDelay(this, initialDelay, delay, unit);
     }
 
     @Override
     public final void run() {
-        if (!runState.compareAndSet(0, 1)) {
+        if (!runState.compareAndSet(State.IDLE, State.ACTIVE)) {
             // task has somehow either started to run in parallel (should not be possible)
             // or more likely the task has now been set to terminate
             return;
@@ -80,7 +87,7 @@ public abstract class TerminatableRunnable implements Runnable {
         try {
             doRun();
         } finally {
-            runState.compareAndSet(1, 0);
+            runState.compareAndSet(State.ACTIVE, State.IDLE);
         }
     }
 
@@ -88,12 +95,11 @@ public abstract class TerminatableRunnable implements Runnable {
      * Unschedule next launched, and wait for the current task to complete before closing it.
      */
     public void blockTillTerminated() {
-        unscheduleTask();
-        while (!runState.compareAndSet(0, -1)) {
+        while (!runState.compareAndSet(State.IDLE, State.REMOVED)) {
             // wait and retry
             LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(10));
             if (Thread.currentThread().isInterrupted()) {
-                runState.set(-1);
+                runState.set(State.REMOVED);
                 return;
             }
         }
@@ -104,14 +110,14 @@ public abstract class TerminatableRunnable implements Runnable {
     }
 
     /**
-     * Unschedule task if active.
+     * Unschedule task if active, and cancel thread to inform it must be interrupted in a proper way.
      */
     public void unscheduleTask() {
         if (unschedule.compareAndSet(false, true)) {
             scheduledFuture.cancel(false);
             scheduledFuture = null;
-            return;
         }
+
     }
 
 }

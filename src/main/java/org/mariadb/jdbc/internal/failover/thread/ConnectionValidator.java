@@ -52,7 +52,6 @@ package org.mariadb.jdbc.internal.failover.thread;
 import org.mariadb.jdbc.internal.failover.Listener;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
-import java.math.BigInteger;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -60,7 +59,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class ConnectionValidator  {
-    private static final ScheduledExecutorService fixedSizedScheduler = SchedulerServiceProviderHolder.getFixedSizeScheduler(1);
+    private static final ScheduledExecutorService fixedSizedScheduler = SchedulerServiceProviderHolder.getFixedSizeScheduler(1, "validator");
     private static final int MINIMUM_CHECK_DELAY_MILLIS = 100;
 
     private final ConcurrentLinkedQueue<Listener> queue = new ConcurrentLinkedQueue<>();
@@ -74,32 +73,21 @@ public class ConnectionValidator  {
      */
     public void addListener(Listener listener, long listenerCheckMillis) {
         queue.add(listener);
-        
-        while (true) {
-            long casFrequency = currentScheduledFrequency.get();
-            if (casFrequency == listenerCheckMillis || (casFrequency != -1 && casFrequency <= MINIMUM_CHECK_DELAY_MILLIS)) {
-                // common path...only one listener check frequency configured
-                break;
-            } else if (casFrequency == -1) {
-                if (currentScheduledFrequency.compareAndSet(-1, listenerCheckMillis)) {
-                    fixedSizedScheduler.schedule(checker, listenerCheckMillis, TimeUnit.MILLISECONDS);
-                    break;
-                }
-            } else {
-                BigInteger bi1 = BigInteger.valueOf(casFrequency);
-                BigInteger bi2 = BigInteger.valueOf(listenerCheckMillis);
-                int gcd = Math.max(MINIMUM_CHECK_DELAY_MILLIS, bi1.gcd(bi2).intValue());
-                if (gcd < casFrequency) {
-                    if (currentScheduledFrequency.compareAndSet(casFrequency, gcd)) {
-                        fixedSizedScheduler.schedule(checker, gcd, TimeUnit.MILLISECONDS);
-                        break;
-                    }
-                } else {
-                    // already running at gcd frequency
-                    break;
-                }
+
+        long newFrequency = Math.min(MINIMUM_CHECK_DELAY_MILLIS, listenerCheckMillis);
+
+        //first listener
+        if (currentScheduledFrequency.get() == -1) {
+            if (currentScheduledFrequency.compareAndSet(-1, newFrequency)) {
+                fixedSizedScheduler.schedule(checker, listenerCheckMillis, TimeUnit.MILLISECONDS);
+            }
+        } else {
+            long frequency = currentScheduledFrequency.get();
+            if ( frequency > newFrequency) {
+                currentScheduledFrequency.compareAndSet(frequency, newFrequency);
             }
         }
+
     }
 
     /**
@@ -108,17 +96,19 @@ public class ConnectionValidator  {
      */
     public void removeListener(Listener listener) {
         queue.remove(listener);
-        
-        long casFrequency;
-        while ((casFrequency = currentScheduledFrequency.get()) > 0 
-                && queue.isEmpty()) {   // must check queue count after casFrequency
-            if (currentScheduledFrequency.compareAndSet(casFrequency, -1)) {
-                break;
+
+        if (queue.isEmpty()) {
+            synchronized (queue) {
+                if (currentScheduledFrequency.get() > 0 && queue.isEmpty()) {
+                    currentScheduledFrequency.set(-1);
+                }
             }
+
         }
     }
 
     private class ListenerChecker implements Runnable {
+
         @Override
         public void run() {
             try {

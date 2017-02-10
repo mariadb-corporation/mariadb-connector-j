@@ -243,8 +243,8 @@ public enum DefaultOptions {
 
 
     /**
-     * When in multiple hosts, after this time in second without used, verification that the connections havn't been lost.
-     * When 0, no verification will be done. Defaults to 120
+     * When in multiple hosts, after this time in second without used, verification that the connections haven't been lost.
+     * When 0, no verification will be done. Defaults to 0 (120 before 1.5.8 version)
      */
     VALID_CONNECTION_TIMEOUT("validConnectionTimeout", new Integer(120), new Integer(0), Integer.MAX_VALUE, "1.2.0"),
 
