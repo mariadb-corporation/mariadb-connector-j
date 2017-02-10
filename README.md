@@ -24,7 +24,7 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>1.5.7</version>
+	<version>1.5.8</version>
 </dependency>
 ```
 
@@ -42,7 +42,7 @@ Development snapshot are available on sonatype nexus repository
     <dependency>
         <groupId>org.mariadb.jdbc</groupId>
         <artifactId>mariadb-java-client</artifactId>
-        <version>1.6.0-SNAPSHOT</version>
+        <version>2.0.0-SNAPSHOT</version>
     </dependency>
 </dependencies>
 ```

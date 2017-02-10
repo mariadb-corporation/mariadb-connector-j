@@ -1,7 +1,7 @@
 = Changelog
-* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.8]] not released
-* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.7]] Released on 12 Jan. 2016
-* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.6]] Released on 21 Dec. 2016
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#158|1.5.8]] Released on 10 Fev  2017
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#157|1.5.7]] Released on 12 Jan. 2017
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#156|1.5.6]] Released on 21 Dec. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.5]] Released on 07 Nov. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#154|1.5.4]] Released on 10 Oct. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#153|1.5.3]] Released on 03 Oct. 2016
@@ -26,6 +26,7 @@
 * CONJ-392 : Aurora cluster endpoint detection fails when time_zone doesn't match system_time_zone
 * CONJ-425 : CallableStatement getObject class according to java.sql.Types value
 * CONJ-426 : Allow executeBatch to be interrupted
+* CONJ-420 : High CPU usage against Aurora after 2 hours inactivity
 
 == 1.5.7
 * CONJ-407 : handling failover when packet > max_allowed_packet reset the connection state.
