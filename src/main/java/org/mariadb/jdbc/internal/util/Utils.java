@@ -68,6 +68,7 @@ import javax.net.SocketFactory;
 import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
@@ -119,7 +120,7 @@ public class Utils {
         }
 
         final MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
-        final byte[] stage1 = messageDigest.digest(password.getBytes());
+        final byte[] stage1 = messageDigest.digest(password.getBytes(StandardCharsets.UTF_8));
         messageDigest.reset();
 
         final byte[] stage2 = messageDigest.digest(stage1);
