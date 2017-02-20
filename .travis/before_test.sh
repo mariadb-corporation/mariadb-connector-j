@@ -3,13 +3,6 @@
 set -x
 set -e
 
-remove_mysql(){
-    sudo service mysql stop
-    sudo apt-get -qq autoremove --purge mysql-server mysql-client mysql-common
-    sudo rm -Rf /etc/mysql||true
-    sudo rm -Rf /var/lib/mysql||true
-}
-
 if [ "$TYPE" == "MAXSCALE" ]
 then
     #install maxscale
@@ -22,8 +15,6 @@ then
     sudo sed -i 's|port=4008|port=4008\naddress=localhost|g' /etc/maxscale.cnf
     sudo sed -i 's|port=4006|port=4006\naddress=localhost|g' /etc/maxscale.cnf
 fi
-
-remove_mysql
 
 if [ -n "$AURORA" ]
 then
