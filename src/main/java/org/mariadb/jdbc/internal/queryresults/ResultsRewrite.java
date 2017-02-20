@@ -68,7 +68,7 @@ public class ResultsRewrite extends Results {
      */
     public ResultsRewrite(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType, int autoincrement) {
         super(statement, fetchSize, batch, expectedSize, binaryFormat, resultSetScrollType, autoincrement);
-        setCmdInformation(new CmdInformationRewrite(expectedSize));
+        setCmdInformation(new CmdInformationRewrite(expectedSize, autoincrement));
     }
 
     /**

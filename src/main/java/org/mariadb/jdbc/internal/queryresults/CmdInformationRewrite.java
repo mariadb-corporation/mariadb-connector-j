@@ -73,12 +73,14 @@ public class CmdInformationRewrite implements CmdInformation {
      * storing updateCounts permit to send getGeneratedId().
      *
      * @param expectedSize expected batch size.
+     * @param autoincrement connection auto increment value
      */
-    public CmdInformationRewrite(int expectedSize) {
+    public CmdInformationRewrite(int expectedSize, int autoincrement) {
         this.expectedSize = expectedSize;
         this.insertIds = new ArrayDeque<>(expectedSize);
         this.updateCounts = new ArrayDeque<>(expectedSize);
         this.hasException = false;
+        this.autoIncrement = autoincrement;
     }
 
     @Override
