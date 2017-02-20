@@ -62,7 +62,7 @@ public class MariaDbStatement extends BaseStatement implements Statement {
      */
     public MariaDbStatement(MariaDbConnection connection, int resultSetScrollType) {
         super(connection, resultSetScrollType);
-        this.results = new Results(this);
+        this.results = new Results(this, connection.getAutoIncrementIncrement());
     }
 
 }
