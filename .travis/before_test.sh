@@ -35,7 +35,7 @@ END
         sudo apt-get -qq install mysql-server --force-yes
 
         dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL/-dmr/}
-        if [ $MYSQL" == "5.7"]
+        if [ "$MYSQL" == "5.7"]
         then
             #compatibility for 5.7.8 that disable global status request
             sudo tee /etc/mysql/conf.d/compat.cnf << END
