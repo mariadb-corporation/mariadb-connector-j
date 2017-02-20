@@ -53,14 +53,17 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 
 import java.sql.ResultSet;
+import java.sql.Statement;
 
 public class CmdInformationSingle implements CmdInformation {
     private long insertId;
     private long updateCount;
+    private int autoIncrement;
 
-    public CmdInformationSingle(long insertId, long updateCount) {
+    public CmdInformationSingle(long insertId, long updateCount, int autoIncrement) {
         this.insertId = insertId;
         this.updateCount = updateCount;
+        this.autoIncrement = autoIncrement;
     }
 
     @Override
@@ -102,8 +105,19 @@ public class CmdInformationSingle implements CmdInformation {
     public ResultSet getGeneratedKeys(Protocol protocol) {
         if (insertId == 0) {
             return SelectResultSetCommon.createEmptyResultSet();
+        } else {
+            if (updateCount == 1) {
+                return SelectResultSetCommon.createGeneratedData(new long[]{insertId}, protocol, true);
+            } else if (updateCount == Statement.EXECUTE_FAILED) {
+                return SelectResultSetCommon.createEmptyResultSet();
+            } else {
+                long[] ret = new long[(int) updateCount];
+                for (int i = 0; i < updateCount; i++) {
+                    ret[i] = insertId + i * autoIncrement;
+                }
+                return SelectResultSetCommon.createGeneratedData(ret, protocol, true);
+            }
         }
-        return SelectResultSetCommon.createGeneratedData(new long[] {insertId}, protocol, true);
     }
 
     public int getCurrentStatNumber() {

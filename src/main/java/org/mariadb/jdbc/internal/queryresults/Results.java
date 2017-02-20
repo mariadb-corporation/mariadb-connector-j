@@ -71,10 +71,12 @@ public class Results {
     private boolean binaryFormat;
     private int resultSetScrollType;
     private int maxFieldSize;
+    private int autoincrement;
 
     /**
      * Single Text query.
      *
+     * /! use internally, because autoincrement value is not right for multi-queries !/
      */
     public Results() {
         this.statement = null;
@@ -85,13 +87,15 @@ public class Results {
         this.cmdInformation = null;
         this.binaryFormat = false;
         this.resultSetScrollType = ResultSet.TYPE_FORWARD_ONLY;
+        this.autoincrement = 1;
     }
 
     /**
      * Constructor for specific statement.
-     * @param statement current Statement.
+     * @param statement     current Statement.
+     * @param autoincrement connection auto-increment
      */
-    public Results(MariaDbStatement statement) {
+    public Results(MariaDbStatement statement, int autoincrement) {
         this.statement = statement;
         this.fetchSize = 0;
         this.maxFieldSize = 0;
@@ -100,20 +104,22 @@ public class Results {
         this.cmdInformation = null;
         this.binaryFormat = false;
         this.resultSetScrollType = ResultSet.TYPE_FORWARD_ONLY;
+        this.autoincrement = autoincrement;
     }
 
     /**
      * Default constructor.
      *
-     * @param statement current statement
-     * @param fetchSize fetch size
-     * @param batch select result possible
-     * @param expectedSize expected size
-     * @param binaryFormat use binary protocol
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param statement             current statement
+     * @param fetchSize             fetch size
+     * @param batch                 select result possible
+     * @param expectedSize          expected size
+     * @param binaryFormat          use binary protocol
+     * @param resultSetScrollType   one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param autoincrement         Connection auto-increment value
      */
-    public Results(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType) {
+    public Results(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType, int autoincrement) {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.batch = batch;
@@ -122,17 +128,18 @@ public class Results {
         this.cmdInformation = null;
         this.binaryFormat = binaryFormat;
         this.resultSetScrollType = resultSetScrollType;
+        this.autoincrement = autoincrement;
     }
 
     /**
      * Reset.
      *
-     * @param fetchSize fetch size
-     * @param batch select result possible
-     * @param expectedSize expected size
-     * @param binaryFormat use binary protocol
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param fetchSize             fetch size
+     * @param batch                 select result possible
+     * @param expectedSize          expected size
+     * @param binaryFormat          use binary protocol
+     * @param resultSetScrollType   one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      */
     public void reset(int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType) {
         this.fetchSize = fetchSize;
@@ -154,9 +161,9 @@ public class Results {
     public void addStats(long updateCount, long insertId, boolean moreResultAvailable) {
         if (cmdInformation == null) {
             if (moreResultAvailable || batch) {
-                cmdInformation = new CmdInformationMultiple(insertId, updateCount, expectedSize);
+                cmdInformation = new CmdInformationMultiple(insertId, updateCount, expectedSize, autoincrement);
             } else {
-                cmdInformation = new CmdInformationSingle(insertId, updateCount);
+                cmdInformation = new CmdInformationSingle(insertId, updateCount, autoincrement);
             }
         } else {
             cmdInformation.addStats(updateCount, insertId);
@@ -170,9 +177,9 @@ public class Results {
     public void addStatsError(boolean moreResultAvailable) {
         if (cmdInformation == null) {
             if (moreResultAvailable || batch) {
-                cmdInformation = new CmdInformationMultiple(expectedSize);
+                cmdInformation = new CmdInformationMultiple(expectedSize, autoincrement);
             } else {
-                cmdInformation = new CmdInformationSingle(0, Statement.EXECUTE_FAILED);
+                cmdInformation = new CmdInformationSingle(0, Statement.EXECUTE_FAILED, autoincrement);
             }
         } else {
             cmdInformation.addStats(Statement.EXECUTE_FAILED);
@@ -198,9 +205,9 @@ public class Results {
         executionResults.add(resultSet);
         if (cmdInformation == null) {
             if (moreResultAvailable || batch) {
-                cmdInformation = new CmdInformationMultiple(-1, expectedSize);
+                cmdInformation = new CmdInformationMultiple(-1, expectedSize, autoincrement);
             } else {
-                cmdInformation = new CmdInformationSingle(0, -1);
+                cmdInformation = new CmdInformationSingle(0, -1, autoincrement);
             }
         } else {
             cmdInformation.addStats(-1);
@@ -268,11 +275,11 @@ public class Results {
     /**
      * Position to next resultSet.
      *
-     * @param current one of the following <code>Statement</code> constants indicating what should happen to current
-     *                <code>ResultSet</code> objects obtained using the method <code>getResultSet</code>:
-     *                <code>Statement.CLOSE_CURRENT_RESULT</code>, <code>Statement.KEEP_CURRENT_RESULT</code>,
-     * or <code>Statement.CLOSE_ALL_RESULTS</code>
-     * @param protocol current protocol
+     * @param current   one of the following <code>Statement</code> constants indicating what should happen to current
+     *                  <code>ResultSet</code> objects obtained using the method <code>getResultSet</code>:
+     *                  <code>Statement.CLOSE_CURRENT_RESULT</code>, <code>Statement.KEEP_CURRENT_RESULT</code>,
+     *                  or <code>Statement.CLOSE_ALL_RESULTS</code>
+     * @param protocol  current protocol
      * @return true if other resultSet exists.
      * @throws SQLException if any connection error occur.
      */

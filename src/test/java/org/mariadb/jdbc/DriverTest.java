@@ -233,10 +233,10 @@ public class DriverTest extends BaseTest {
             stmt.execute("INSERT INTO Drivert3 (test) values ('bb'),('cc');INSERT INTO Drivert3 (test) values ('dd'),('ee')",
                     Statement.RETURN_GENERATED_KEYS);
             rs = stmt.getGeneratedKeys();
-            assertTrue(rs.next());
-            assertEquals(7, rs.getInt(1));
-            assertTrue(rs.next());
-            assertEquals(7 + 2 * autoIncrementIncrement, rs.getInt(1));
+            for (int i = 0; i < 4; i++) {
+                assertTrue(rs.next());
+                assertEquals(7 + autoIncrementIncrement * i, rs.getInt(1));
+            }
             assertFalse(rs.next());
         } finally {
             if (connection != null) {

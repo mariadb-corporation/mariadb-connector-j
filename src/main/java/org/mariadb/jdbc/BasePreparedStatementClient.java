@@ -199,7 +199,7 @@ public abstract class BasePreparedStatementClient extends BasePrepareStatement i
         try {
 
             executeQueryPrologue();
-            results = new Results(this, fetchSize, false, 1, false, resultSetScrollType);
+            results = new Results(this, fetchSize, false, 1, false, resultSetScrollType, connection.getAutoIncrementIncrement());
             protocol.executeQuery(protocol.isMasterConnection(), results, prepareResult, parameters);
             results.commandEnd();
             return results.getResultSet() != null;
@@ -275,9 +275,6 @@ public abstract class BasePreparedStatementClient extends BasePrepareStatement i
         } catch (SQLException sqle) {
             throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size);
         } finally {
-            if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
-                ((ResultsRewrite) results).setAutoIncrement(connection.getAutoIncrementIncrement());
-            }
             executeBatchEpilogue();
             lock.unlock();
         }
@@ -295,9 +292,9 @@ public abstract class BasePreparedStatementClient extends BasePrepareStatement i
         executeQueryPrologue();
 
         if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
-            results = new ResultsRewrite(this, 0, true, size, false, resultSetScrollType);
+            results = new ResultsRewrite(this, 0, true, size, false, resultSetScrollType, connection.getAutoIncrementIncrement());
         } else {
-            results = new Results(this, 0, true, size, false, resultSetScrollType);
+            results = new Results(this, 0, true, size, false, resultSetScrollType, connection.getAutoIncrementIncrement());
         }
 
         if (options.rewriteBatchedStatements) {

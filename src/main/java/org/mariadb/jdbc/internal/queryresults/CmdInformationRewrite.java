@@ -89,11 +89,9 @@ public class CmdInformationRewrite implements CmdInformation {
 
     @Override
     public void addStats(long updateCount, long insertId) {
-        if (insertId != 0) {
-            this.insertIds.add(insertId);
-            insertIdNumber += updateCount;
-            this.updateCounts.add(updateCount);
-        }
+        this.insertIds.add(insertId);
+        insertIdNumber += updateCount;
+        this.updateCounts.add(updateCount);
     }
 
     @Override
@@ -132,10 +130,12 @@ public class CmdInformationRewrite implements CmdInformation {
         int position = 0;
         Iterator<Long> iterator = insertIds.iterator();
         for (long updateCount : updateCounts) {
-            if (updateCount != Statement.EXECUTE_FAILED) {
+            if (updateCount > 0) { // > Statement.EXECUTE_FAILED && Statement.SUCCESS_NO_INFO
                 long insertId = iterator.next().longValue();
-                for (int i = 0; i < updateCount; i++) {
-                    ret[position++] = insertId + i * autoIncrement;
+                if (insertId > 0) {
+                    for (int i = 0; i < updateCount; i++) {
+                        ret[position++] = insertId + i * autoIncrement;
+                    }
                 }
             }
         }

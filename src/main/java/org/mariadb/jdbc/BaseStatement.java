@@ -141,7 +141,7 @@ public abstract class BaseStatement implements Statement, Cloneable {
         clone.protocol = protocol;
         clone.timerTaskFuture = null;
         clone.batchQueries = new ArrayList<>();
-        clone.results = new Results(clone);
+        clone.results = new Results(clone, connection.getAutoIncrementIncrement());
         clone.closed = false;
         clone.warningsCleared = true;
         clone.fetchSize = 0;

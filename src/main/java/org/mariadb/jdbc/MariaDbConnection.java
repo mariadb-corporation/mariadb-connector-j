@@ -51,6 +51,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.queryresults.Results;
 import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
@@ -160,7 +161,10 @@ public class MariaDbConnection implements Connection {
     int getAutoIncrementIncrement() {
         if (autoIncrementIncrement == 0) {
             try {
-                ResultSet rs = createStatement().executeQuery("select @@auto_increment_increment");
+                Results results = new Results();
+                protocol.executeQuery(true, results, "select @@auto_increment_increment");
+                results.commandEnd();
+                ResultSet rs = results.getResultSet();
                 rs.next();
                 autoIncrementIncrement = rs.getInt(1);
             } catch (SQLException e) {

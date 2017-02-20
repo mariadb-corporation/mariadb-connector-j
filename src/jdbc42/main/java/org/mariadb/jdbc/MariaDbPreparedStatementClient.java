@@ -95,9 +95,6 @@ public class MariaDbPreparedStatementClient extends BasePreparedStatementClient 
         } catch (SQLException sqle) {
             throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size);
         } finally {
-            if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
-                ((ResultsRewrite) results).setAutoIncrement(connection.getAutoIncrementIncrement());
-            }
             executeBatchEpilogue();
             lock.unlock();
         }

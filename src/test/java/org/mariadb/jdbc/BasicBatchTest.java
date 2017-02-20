@@ -222,6 +222,9 @@ public class BasicBatchTest extends BaseTest {
         stmt.addBatch("INSERT INTO test_batch3(test) value ('e')");
 
         int[] updateCount = stmt.executeBatch();
+
+        ResultSet resultSet = stmt.getGeneratedKeys();
+
         assertEquals(6, updateCount.length);
         assertEquals(1, updateCount[0]);
         assertEquals(1, updateCount[1]);
@@ -243,7 +246,6 @@ public class BasicBatchTest extends BaseTest {
         assertEquals(1, stmt.getUpdateCount());
         assertFalse(stmt.getMoreResults());
 
-        ResultSet resultSet = stmt.getGeneratedKeys();
         assertTrue(resultSet.next());
         assertEquals(1, resultSet.getInt(1));
         assertTrue(resultSet.next());

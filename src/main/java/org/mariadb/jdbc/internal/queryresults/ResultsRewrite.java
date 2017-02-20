@@ -57,16 +57,17 @@ public class ResultsRewrite extends Results {
     /**
      * Default constructor.
      *
-     * @param statement current statement
-     * @param fetchSize fetch size
-     * @param batch select result possible
-     * @param expectedSize expected size
-     * @param binaryFormat use binary protocol
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param statement             current statement
+     * @param fetchSize             fetch size
+     * @param batch                 select result possible
+     * @param expectedSize          expected size
+     * @param binaryFormat          use binary protocol
+     * @param resultSetScrollType   one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param autoincrement         connection autoincrement value
      */
-    public ResultsRewrite(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType) {
-        super(statement, fetchSize, batch, expectedSize, binaryFormat, resultSetScrollType);
+    public ResultsRewrite(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType, int autoincrement) {
+        super(statement, fetchSize, batch, expectedSize, binaryFormat, resultSetScrollType, autoincrement);
         setCmdInformation(new CmdInformationRewrite(expectedSize));
     }
 
@@ -97,7 +98,4 @@ public class ResultsRewrite extends Results {
         return true;
     }
 
-    public void setAutoIncrement(int autoIncrement) {
-        ((CmdInformationRewrite) getCmdInformation()).setAutoIncrement(autoIncrement);
-    }
 }

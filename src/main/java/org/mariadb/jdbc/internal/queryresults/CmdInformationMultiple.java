@@ -4,6 +4,7 @@ package org.mariadb.jdbc.internal.queryresults;
 MariaDB Client for Java
 
 Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (c) 2015-2017 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -73,45 +74,52 @@ public class CmdInformationMultiple implements CmdInformation {
     private Queue<Long> insertIds;
     private Queue<Long> updateCounts;
     private int expectedSize;
+    private int autoincrement;
 
     /**
      * Constructor, initialized with a standard result.
      *
-     * @param insertId generated insert id
-     * @param updateCount update count
-     * @param expectedSize expected batch size
+     * @param insertId      generated insert id
+     * @param updateCount   update count
+     * @param expectedSize  expected batch size
+     * @param autoincrement connection auto-increment
      */
-    public CmdInformationMultiple(long insertId, long updateCount, int expectedSize) {
+    public CmdInformationMultiple(long insertId, long updateCount, int expectedSize, int autoincrement) {
         this.expectedSize = expectedSize;
         this.insertIds = new ConcurrentLinkedQueue<>();
         this.updateCounts = new ConcurrentLinkedQueue<>();
         if (insertId != 0) this.insertIds.add(insertId);
         this.updateCounts.add(updateCount);
+        this.autoincrement = autoincrement;
     }
 
     /**
      * Constructor, initialized with a ResultSet result.
      *
-     * @param updateCount update count
-     * @param expectedSize expected batch size
+     * @param updateCount   update count
+     * @param expectedSize  expected batch size
+     * @param autoincrement connection auto-increment
      */
-    public CmdInformationMultiple(long updateCount, int expectedSize) {
+    public CmdInformationMultiple(long updateCount, int expectedSize, int autoincrement) {
         this.expectedSize = expectedSize;
         this.insertIds = new ConcurrentLinkedQueue<>();
         this.updateCounts = new ConcurrentLinkedQueue<>();
         this.updateCounts.add(updateCount);
+        this.autoincrement = autoincrement;
     }
 
     /**
      * Constructor, initialized with an error result.
      *
-     * @param expectedSize expected batch size.
+     * @param expectedSize  expected batch size.
+     * @param autoincrement connection auto-increment
      */
-    public CmdInformationMultiple(int expectedSize) {
+    public CmdInformationMultiple(int expectedSize, int autoincrement) {
         this.expectedSize = expectedSize;
         this.insertIds = new ConcurrentLinkedQueue<>();
         this.updateCounts = new ConcurrentLinkedQueue<>();
         this.updateCounts.add((long) Statement.EXECUTE_FAILED);
+        this.autoincrement = autoincrement;
     }
 
     @Override
@@ -121,7 +129,7 @@ public class CmdInformationMultiple implements CmdInformation {
 
     @Override
     public void addStats(long updateCount, long insertId) {
-        if (insertId != 0) this.insertIds.add(insertId);
+        this.insertIds.add(insertId);
         this.updateCounts.add(updateCount);
     }
 
@@ -178,12 +186,42 @@ public class CmdInformationMultiple implements CmdInformation {
      * @return a resultSet with insert ids.
      */
     public ResultSet getGeneratedKeys(Protocol protocol) {
-        long[] ret = new long[insertIds.size()];
-        Iterator<Long> iterator = insertIds.iterator();
-        for (int i = 0; i < ret.length; i++) {
-            ret[i] = iterator.next().longValue();
+        switch (updateCounts.size()) {
+            case 0:
+                return SelectResultSetCommon.createEmptyResultSet();
+
+            case 1:
+                long[] ret = new long[updateCounts.peek().intValue()];
+                for (int i = 0; i < updateCounts.peek(); i++) {
+                    ret[i] = insertIds.peek() + i * autoincrement;
+                }
+                return SelectResultSetCommon.createGeneratedData(ret, protocol, true);
+
+            default:
+
+                List<Long> generatedIds = new ArrayList<>();
+
+                Iterator<Long> updateCountIterator = updateCounts.iterator();
+                Iterator<Long> insertIdsIterator = insertIds.iterator();
+                while (updateCountIterator.hasNext()) {
+                    long updateCount = updateCountIterator.next();
+                    if (updateCount > 0) { //and then > Statement.EXECUTE_FAILED && Statement.SUCCESS_NO_INFO
+                        long insertId = insertIdsIterator.next();
+                        if (insertId > 0) {
+                            for (long i = 0; i < updateCount; i++) {
+                                generatedIds.add(insertId + i * autoincrement);
+                            }
+                        }
+                    }
+                }
+
+                long[] result = new long[generatedIds.size()];
+                int i = 0;
+                for (Long l : generatedIds) result[i++] = l;
+
+                return SelectResultSetCommon.createGeneratedData(result, protocol, true);
+
         }
-        return SelectResultSetCommon.createGeneratedData(ret, protocol, true);
     }
 
     public int getCurrentStatNumber() {
