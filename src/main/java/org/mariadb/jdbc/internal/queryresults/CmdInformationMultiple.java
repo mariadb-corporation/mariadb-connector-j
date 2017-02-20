@@ -111,7 +111,7 @@ public class CmdInformationMultiple implements CmdInformation {
         this.expectedSize = expectedSize;
         this.insertIds = new ConcurrentLinkedQueue<>();
         this.updateCounts = new ConcurrentLinkedQueue<>();
-        this.updateCounts.add(Statement.EXECUTE_FAILED);
+        this.updateCounts.add((long) Statement.EXECUTE_FAILED);
     }
 
     @Override

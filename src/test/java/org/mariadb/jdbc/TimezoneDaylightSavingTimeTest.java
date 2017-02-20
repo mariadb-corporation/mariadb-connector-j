@@ -515,13 +515,15 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
      */
     public ResultSet checkResult(boolean legacy, boolean binaryProtocol, Connection connection) throws SQLException {
         ResultSet rs;
+        PreparedStatement pst;
         if (binaryProtocol) {
-            PreparedStatement pst = connection.prepareStatement("SELECT * from daylight where 1 = ?");
-            pst.setInt(1, 1);
-            rs = pst.executeQuery();
+            pst = connection.prepareStatement("SELECT * from daylight where 1 = ?", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         } else {
-            rs = connection.createStatement().executeQuery("SELECT * from daylight");
+            MariaDbConnection mariaDbConnection = (MariaDbConnection) connection;
+            pst = new MariaDbPreparedStatementClient(mariaDbConnection, "SELECT * from daylight where 1 = ?", ResultSet.TYPE_SCROLL_INSENSITIVE);
         }
+        pst.setInt(1, 1);
+        rs = pst.executeQuery();
 
         rs.next();
 
@@ -817,7 +819,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
             Statement st = connection.createStatement();
             ResultSet rs = st.executeQuery("SELECT * from daylightMysql");
-            rs.next();
+            assertTrue(rs.next());
             Date t4 = rs.getDate(1);
 
             //2015-02-29 0h45 UTC -> 2015-02-28 21h45 Canada time

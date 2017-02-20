@@ -52,7 +52,6 @@ package org.mariadb.jdbc;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.queryresults.SelectResultSet;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
@@ -434,17 +433,17 @@ public class BaseDatabaseMetaData implements DatabaseMetaData {
                 + " WHEN 'time' THEN " + Types.TIME
                 + " WHEN 'timestamp' THEN " + Types.TIMESTAMP
                 + " WHEN 'tinyint' THEN "
-                + (((connection.getProtocol().getDataTypeMappingFlags() & MariaSelectResultSet.SelectResultSetCommon.TINYINT1_IS_BIT) == 0)
+                + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSetCommon.TINYINT1_IS_BIT) == 0)
                 ? Types.TINYINT : "IF(" + fullTypeColumnName + "='tinyint(1)'," + Types.BIT + "," + Types.TINYINT + ") ")
                 + " WHEN 'year' THEN "
-                + (((connection.getProtocol().getDataTypeMappingFlags() & MariaSelectResultSet.SelectResultSetCommon.YEAR_IS_DATE_TYPE) == 0)
+                + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSetCommon.YEAR_IS_DATE_TYPE) == 0)
                 ? Types.SMALLINT : Types.DATE)
                 + " ELSE " + Types.OTHER
                 + " END ";
     }
 
     private ResultSet executeQuery(String sql) throws SQLException {
-        MariaSelectResultSet rs = (MariaSelectResultSet) connection.createStatement().executeQuery(sql);
+        SelectResultSetCommon rs = (SelectResultSetCommon) connection.createStatement().executeQuery(sql);
         rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
         rs.setReturnTableAlias(true);
         return rs;
@@ -666,15 +665,15 @@ public class BaseDatabaseMetaData implements DatabaseMetaData {
                 +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                 + "  WHEN 'timestamp' THEN "
                     + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
-                + (((dataType & MariaSelectResultSet.SelectResultSetCommon.YEAR_IS_DATE_TYPE) == 0) ? " WHEN 'year' THEN 5" : "")
+                + (((dataType & SelectResultSetCommon.YEAR_IS_DATE_TYPE) == 0) ? " WHEN 'year' THEN 5" : "")
                 + "  ELSE "
                 + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
                 + " END"
                 + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
 
                 + " CONVERT (CASE DATA_TYPE"
-                + " WHEN 'year' THEN " + (((dataType & MariaSelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? "0" : "NUMERIC_SCALE")
-                + " WHEN 'tinyint' THEN " + (((dataType & MariaSelectResultSet.TINYINT1_IS_BIT) > 0) ? "0" : "NUMERIC_SCALE")
+                + " WHEN 'year' THEN " + (((dataType & SelectResultSetCommon.YEAR_IS_DATE_TYPE) == 0) ? "0" : "NUMERIC_SCALE")
+                + " WHEN 'tinyint' THEN " + (((dataType & SelectResultSetCommon.TINYINT1_IS_BIT) > 0) ? "0" : "NUMERIC_SCALE")
                 + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
 
                 + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"

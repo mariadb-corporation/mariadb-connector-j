@@ -28,6 +28,17 @@ public class ExecuteBatchTest extends BaseTest {
     }
 
     /**
+     * Create test tables.
+     *
+     * @throws SQLException if connection error occur
+     */
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("ExecuteBatchTest", "id int not null primary key auto_increment, test varchar(100) , test2 int");
+        createTable("ExecuteBatchUseBatchMultiSend", "test varchar(100)");
+    }
+
+    /**
      * CONJ-426: Test that executeBatch can be properly interrupted.
      *
      * @throws Exception If the test fails

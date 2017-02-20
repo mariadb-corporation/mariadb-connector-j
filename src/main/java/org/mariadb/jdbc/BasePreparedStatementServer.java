@@ -286,7 +286,7 @@ public abstract class BasePreparedStatementServer extends BasePrepareStatement i
         if (execute()) {
             return results.getResultSet();
         }
-        return MariaSelectResultSet.createEmptyResultSet();
+        return SelectResultSetCommon.createEmptyResultSet();
     }
 
     @Override

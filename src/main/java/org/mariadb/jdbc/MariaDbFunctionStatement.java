@@ -52,7 +52,6 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.SelectResultSet;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 
@@ -145,7 +144,7 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement implemen
             if (results != null && results.getResultSet() == null) {
                 return results.getResultSet();
             }
-            return MariaSelectResultSet.createEmptyResultSet();
+            return SelectResultSetCommon.createEmptyResultSet();
         } finally {
             connection.lock.unlock();
         }

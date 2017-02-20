@@ -183,7 +183,7 @@ public class TestJava8DataType extends TimezoneDaylightSavingTimeTest {
     @Override
     public ResultSet checkResult(boolean legacy, boolean binaryProtocol, Connection connection) throws SQLException {
         ResultSet rs = super.checkResult(legacy, binaryProtocol, connection);
-        rs.absolute(1);
+        rs.first();
 
         //additional tests for java 8 objects
         assertEquals("2015-03-29T01:45:00.012340", rs.getTimestamp(2).toLocalDateTime().toString());

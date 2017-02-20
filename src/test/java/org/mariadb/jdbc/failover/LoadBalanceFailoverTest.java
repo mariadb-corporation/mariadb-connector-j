@@ -81,9 +81,13 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
         try {
             connection = getNewConnection(false);
             connection.setReadOnly(true);
+
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists multinode");
             stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
+            Assert.fail("must not create table on a read-only connection");
+        } catch (SQLException sqle) {
+            //normal exception
         } finally {
             if (connection != null) {
                 connection.close();

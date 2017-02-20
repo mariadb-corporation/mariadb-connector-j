@@ -51,7 +51,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.queryresults.SelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 
@@ -343,7 +343,7 @@ public abstract class BaseCallableFunctionStatement extends BasePreparedStatemen
 
     @Override
     public Object getObject(int parameterIndex) throws SQLException {
-        Class<?> classType = MariaDbType.classFromJavaType(getParameter(parameterIndex).outputSqlType);
+        Class<?> classType = ColumnType.classFromJavaType(getParameter(parameterIndex).outputSqlType);
         if (classType != null) {
             return getResult().getObject(indexToOutputIndex(parameterIndex), classType);
         }
@@ -354,7 +354,7 @@ public abstract class BaseCallableFunctionStatement extends BasePreparedStatemen
     @Override
     public Object getObject(String parameterName) throws SQLException {
         int index = nameToIndex(parameterName);
-        Class<?> classType = MariaDbType.classFromJavaType(getParameter(index).outputSqlType);
+        Class<?> classType = ColumnType.classFromJavaType(getParameter(index).outputSqlType);
         if (classType != null) {
             return getResult().getObject(indexToOutputIndex(index), classType);
         }

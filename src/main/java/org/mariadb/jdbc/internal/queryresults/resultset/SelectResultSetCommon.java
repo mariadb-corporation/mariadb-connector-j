@@ -88,16 +88,13 @@ import java.util.regex.Pattern;
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 @SuppressWarnings("deprecation")
-public class MariaSelectResultSet implements ResultSet {
-    private static Logger logger = LoggerFactory.getLogger(MariaSelectResultSet.class);
+public abstract class SelectResultSetCommon implements ResultSet {
 
     private static final ColumnInformation[] INSERT_ID_COLUMNS;
-
     static {
         INSERT_ID_COLUMNS = new ColumnInformation[1];
-        INSERT_ID_COLUMNS[0] = ColumnInformation.create("insert_id", MariaDbType.BIGINT);
+        INSERT_ID_COLUMNS[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
     }
-public abstract class SelectResultSetCommon implements ResultSet {
 
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
@@ -1856,45 +1853,21 @@ public abstract class SelectResultSetCommon implements ResultSet {
                 return (T) (Byte) getByte(rawBytes, col);
 
             case "java.sql.Date":
-                try {
-                    return (T) getDate(rawBytes, col);
-                } catch (ParseException e) {
-                    throw ExceptionMapper.getSqlException("Could not parse column as date, was: \""
-                            + getString(rawBytes, col)
-                            + "\"", e);
-                }
+                return (T) getDate(rawBytes, col);
 
             case "java.sql.Time":
-                try {
-                    return (T) getTime(rawBytes, col, null);
-                } catch (ParseException e) {
-                    throw ExceptionMapper.getSqlException("Could not parse column as time, was: \""
-                            + getString(rawBytes, col)
-                            + "\"", e);
-                }
+                return (T) getTime(rawBytes, col);
 
             case "java.util.Date":
             case "java.sql.Timestamp":
-                try {
-                    return (T) getTimestamp(rawBytes, col, null);
-                } catch (ParseException e) {
-                    throw ExceptionMapper.getSqlException("Could not parse column as timestamp, was: \""
-                            + getString(rawBytes, col)
-                            + "\"", e);
-                }
+                return (T) getTimestamp(rawBytes, col, null);
 
             case "java.util.Calendar":
                 Calendar calendar = Calendar.getInstance(timeZone);
-                try {
-                    Timestamp timestamp = getTimestamp(rawBytes, col, null);
-                    if (timestamp == null) return null;
-                    calendar.setTimeInMillis(timestamp.getTime());
-                    return type.cast(calendar);
-                } catch (ParseException e) {
-                    throw ExceptionMapper.getSqlException("Could not parse column as timestamp, was: \""
-                            + getString(rawBytes, col)
-                            + "\"", e);
-                }
+                Timestamp timestamp = getTimestamp(rawBytes, col, null);
+                if (timestamp == null) return null;
+                calendar.setTimeInMillis(timestamp.getTime());
+                return type.cast(calendar);
 
             case "java.lang.Boolean":
                 return (T) (Boolean) getBoolean(rawBytes, col);

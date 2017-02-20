@@ -203,7 +203,7 @@ public class FailoverProxy implements InvocationHandler {
                     SQLException queryException = (SQLException) e.getTargetException();
                     Protocol protocol = listener.getCurrentProtocol();
 
-                    addHostInformationToException(queryException, protocol);
+                    queryException = addHostInformationToException(queryException, protocol);
 
                     if (hasToHandleFailover(queryException)) {
                         return handleFailOver(queryException, method, args, protocol);
@@ -320,11 +320,13 @@ public class FailoverProxy implements InvocationHandler {
      * @param exception     current exception
      * @param protocol      protocol to have hostname
      */
-    private static void addHostInformationToException(QueryException exception, Protocol protocol) {
+    private static SQLException addHostInformationToException(SQLException exception, Protocol protocol) {
         if (protocol != null) {
-            exception.setMessage(exception.getMessage()
+            return new SQLException(exception.getMessage()
                     + "\non " + protocol.getHostAddress().toString() + ",master="
-                    + protocol.isMasterConnection() );
+                    + protocol.isMasterConnection(), exception.getSQLState(), exception.getErrorCode(), exception.getCause());
+
         }
+        return exception;
     }
 }

@@ -127,12 +127,9 @@ public class SelectResultSet extends SelectResultSetCommon {
         super(columnInformation, resultSet, protocol, resultSetScrollType);
     }
 
-    protected <T> T getAdditionalObject(int columnIndex, Class<T> type) throws SQLException {
+    protected <T> T getAdditionalObject(byte[] rawBytes, ColumnInformation columnInfo, Class<T> type) throws SQLException {
 
-        byte[] rawBytes = checkObjectRange(columnIndex);
         if (rawBytes == null || rawBytes.length == 0) return null;
-
-        ColumnInformation columnInfo = columnsInformation[columnIndex - 1];
 
         switch (type.getName()) {
             case "java.time.LocalDateTime":

@@ -91,7 +91,7 @@ public class SelectResultSet extends SelectResultSetCommon {
         super(columnInformation, resultSet, protocol, resultSetScrollType);
     }
 
-    protected <T> T getAdditionalObject(int columnIndex, Class<T> type) throws SQLException {
+    protected <T> T getAdditionalObject(byte[] rawBytes, ColumnInformation columnInfo, Class<T> type) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("Type '" + type.getName() + "' is not supported");
     }
 

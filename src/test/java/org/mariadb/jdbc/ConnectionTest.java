@@ -94,7 +94,7 @@ public class ConnectionTest extends BaseTest {
                 stmt.executeQuery("SELECT 1");
                 assertTrue(false);
             } catch (SQLException sqle) {
-                assertTrue(true);
+                //normal end
             } finally {
                 stmt.close();
             }
