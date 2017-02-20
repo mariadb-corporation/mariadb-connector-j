@@ -344,4 +344,22 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
         }
         return false;
     }
+
+
+    /**
+     * CONJ-392 : aurora must discover active nodes without timezone issue.
+     *
+     * @throws Throwable if error occur
+     */
+    @Test
+    public void testTimeZoneDiscovery() throws Throwable {
+
+        try (Connection connection = getNewConnection("&sessionVariables=@@time_zone='US/Central'",false)) {
+            List<HostAddress> hostAddresses = getProtocolFromConnection(connection).getProxy().getListener().getUrlParser().getHostAddresses();
+            for (HostAddress hostAddress : hostAddresses) {
+                System.out.println("hostAddress:" + hostAddress);
+            }
+            assertTrue(hostAddresses.size() > 1);
+        }
+    }
 }

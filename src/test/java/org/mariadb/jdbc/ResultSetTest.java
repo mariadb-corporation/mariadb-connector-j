@@ -1,9 +1,11 @@
 package org.mariadb.jdbc;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -39,6 +41,29 @@ public class ResultSetTest extends BaseTest {
         } catch (SQLException e) {
             //Make sure an exception has been thrown informing us that the ResultSet was closed
             Assert.assertTrue(e.getMessage().contains("closed"));
+        }
+    }
+    /**
+     * CONJ-424: Calling getGeneratedKeys() two times on the same connection, with different
+     * PreparedStatement on a table that does not have an auto increment.
+     */
+    @Test
+    public void testGeneratedKeysWithoutTableAutoIncrementCalledTwice() throws SQLException {
+        createTable("gen_key_test_resultset", "name VARCHAR(40) NOT NULL, xml MEDIUMTEXT");
+        String sql = "INSERT INTO gen_key_test_resultset (name, xml) VALUES (?, ?)";
+
+        for (int i = 0; i < 2; i++) {
+            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+
+                preparedStatement.setString(1, "John");
+                preparedStatement.setString(2, "<xml/>");
+                preparedStatement.executeUpdate();
+
+                try (ResultSet generatedKeysResultSet = preparedStatement.getGeneratedKeys()) {
+                    Assert.assertFalse(generatedKeysResultSet.next());
+                }
+
+            }
         }
     }
 
@@ -97,7 +122,8 @@ public class ResultSetTest extends BaseTest {
     @Test
     public void isFirstZeroRowsTest() throws SQLException {
         insertRows(0);
-        ResultSet resultSet = sharedConnection.createStatement().executeQuery("SELECT * FROM result_set_test");
+        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        ResultSet resultSet = stmt.executeQuery("SELECT * FROM result_set_test");
         assertFalse(resultSet.isFirst());
         assertFalse(resultSet.next()); //No more rows after this
         assertFalse(resultSet.isFirst()); // connectorj compatibility
@@ -115,7 +141,8 @@ public class ResultSetTest extends BaseTest {
     @Test
     public void isFirstTwoRowsTest() throws SQLException {
         insertRows(2);
-        ResultSet resultSet = sharedConnection.createStatement().executeQuery("SELECT * FROM result_set_test");
+        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        ResultSet resultSet = stmt.executeQuery("SELECT * FROM result_set_test");
         assertFalse(resultSet.isFirst());
         resultSet.next();
         assertTrue(resultSet.isFirst());
@@ -220,7 +247,8 @@ public class ResultSetTest extends BaseTest {
     @Test
     public void previousTest() throws SQLException {
         insertRows(2);
-        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * FROM result_set_test");
+        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test");
         assertFalse(rs.previous());
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
@@ -239,7 +267,8 @@ public class ResultSetTest extends BaseTest {
     @Test
     public void firstTest() throws SQLException {
         insertRows(2);
-        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * FROM result_set_test");
+        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test");
         assertTrue(rs.next());
         assertTrue(rs.next());
         assertTrue(rs.first());
@@ -256,7 +285,8 @@ public class ResultSetTest extends BaseTest {
     @Test
     public void lastTest() throws SQLException {
         insertRows(2);
-        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * FROM result_set_test");
+        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test");
         assertTrue(rs.last());
         assertTrue(rs.isLast());
         assertFalse(rs.next());
@@ -290,5 +320,105 @@ public class ResultSetTest extends BaseTest {
         statement.execute("INSERT INTO generatedKeyNpe(val) values (0)");
         ResultSet rs = statement.getGeneratedKeys();
         rs.close();
+    }
+
+    @Test
+    public void testResultSetAbsolute() throws Exception {
+        insertRows(50);
+        try (Statement statement = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+            statement.setFetchSize(10);
+            try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+                assertFalse(rs.absolute(52));
+                assertFalse(rs.absolute(-52));
+
+                assertTrue(rs.absolute(42));
+                assertEquals("row42", rs.getString(2));
+
+                assertTrue(rs.absolute(-11));
+                assertEquals("row40", rs.getString(2));
+
+                assertTrue(rs.absolute(0));
+                assertTrue(rs.isBeforeFirst());
+
+                assertFalse(rs.absolute(51));
+                assertTrue(rs.isAfterLast());
+
+                assertTrue(rs.absolute(-1));
+                assertEquals("row50", rs.getString(2));
+
+                assertTrue(rs.absolute(-50));
+                assertEquals("row1", rs.getString(2));
+            }
+        }
+    }
+
+    @Test
+    public void testResultSetIsAfterLast() throws Exception {
+        insertRows(2);
+        try (Statement statement = sharedConnection.createStatement()) {
+            statement.setFetchSize(1);
+            try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+                assertFalse(rs.isLast());
+                assertFalse(rs.isAfterLast());
+                assertTrue(rs.next());
+                assertFalse(rs.isLast());
+                assertFalse(rs.isAfterLast());
+                assertTrue(rs.next());
+                assertTrue(rs.isLast());
+                assertFalse(rs.isAfterLast());
+                assertFalse(rs.next());
+                assertFalse(rs.isLast());
+                assertTrue(rs.isAfterLast());
+            }
+
+            insertRows(0);
+            try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+                assertFalse(rs.isAfterLast());
+                assertFalse(rs.isLast());
+                assertFalse(rs.next());
+                assertFalse(rs.isLast());
+                assertFalse(rs.isAfterLast()); //jdbc indicate that results with no rows return false.
+            }
+        }
+    }
+
+
+    @Test
+    public void testResultSetAfterLast() throws Exception {
+        try (Statement statement = sharedConnection.createStatement()) {
+            checkLastResultSet(statement);
+            statement.setFetchSize(1);
+            checkLastResultSet(statement);
+
+        }
+    }
+
+    private void checkLastResultSet(Statement statement) throws SQLException {
+
+        insertRows(10);
+        try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+
+            assertTrue(rs.last());
+            assertFalse(rs.isAfterLast());
+            assertTrue(rs.isLast());
+
+            rs.afterLast();
+            assertTrue(rs.isAfterLast());
+            assertFalse(rs.isLast());
+
+        }
+
+        insertRows(0);
+        try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+
+            assertFalse(rs.last());
+            assertFalse(rs.isAfterLast());
+            assertFalse(rs.isLast());
+
+            rs.afterLast();
+            assertFalse(rs.isAfterLast()); //jdbc indicate that results with no rows return false.
+            assertFalse(rs.isLast());
+        }
+
     }
 }

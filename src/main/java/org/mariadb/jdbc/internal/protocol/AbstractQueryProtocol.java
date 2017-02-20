@@ -70,6 +70,8 @@ import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.LocalInfileInterceptor;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.*;
 import java.net.SocketException;
@@ -78,6 +80,9 @@ import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.List;
 import java.util.ServiceLoader;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.mariadb.jdbc.internal.util.SqlStates.*;
@@ -92,6 +97,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     private long maxRows;  /* max rows returned by a statement */
 
     private volatile int statementIdToRelease = -1;
+    private FutureTask activeFutureTask = null;
+    public static ThreadPoolExecutor readScheduler = null;
 
     private LogQueryTool logQuery;
     /**
@@ -103,6 +110,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     public AbstractQueryProtocol(final UrlParser urlParser, final ReentrantLock lock) {
         super(urlParser, lock);
+        if (options.useBatchMultiSend && readScheduler == null) {
+            synchronized (AbstractQueryProtocol.class) {
+                if (readScheduler == null) {
+                    readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
+                }
+            }
+        }
         logQuery = new LogQueryTool(options);
     }
 
@@ -421,6 +435,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 currentIndex = ComExecute.sendRewriteCmd(writer, prepareResult.getQueryParts(), parameters, currentIndex,
                         prepareResult.getParamCount(), parameterList, rewriteValues);
                 getResult(results);
+
+                if (Thread.currentThread().isInterrupted()) {
+                    throw new SQLException("Interrupted during batch", INTERRUPTED_EXCEPTION.getSqlState(), -1);
+                }
 
             } while (currentIndex < totalParameterList);
 
@@ -1213,6 +1231,24 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             activeStreamingResult = null;
         }
 
+        if (activeFutureTask != null) {
+            //wait for remaining batch result to be read, to ensure correct connection state
+            try {
+                activeFutureTask.get();
+            } catch (ExecutionException executionException) {
+                //last batch exception are to be discarded
+            } catch (InterruptedException interruptedException) {
+                Thread.currentThread().interrupt();
+                throw new SQLException("Interrupted reading remaining batch response ",
+                        INTERRUPTED_EXCEPTION.getSqlState(), -1, interruptedException);
+            } finally {
+                //bulk can prepare, and so if prepare cache is enable, can replace an already cached prepareStatement
+                //this permit to release those old prepared statement without conflict.
+                forceReleaseWaitingPrepareStatement();
+            }
+            activeFutureTask = null;
+        }
+
         this.moreResults = false;
 
         if (!this.connected) throw new SQLException("Connection is close", "08000", 1220);
@@ -1275,6 +1311,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
 
         return returningException;
+    }
+
+    public void setActiveFutureTask(FutureTask activeFutureTask) {
+        this.activeFutureTask = activeFutureTask;
     }
 
 }

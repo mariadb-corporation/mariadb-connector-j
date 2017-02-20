@@ -66,6 +66,7 @@ import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.locks.ReentrantLock;
 
 public interface Protocol {
@@ -251,4 +252,7 @@ public interface Protocol {
     void resetStateAfterFailover(long maxRows, int transactionIsolationLevel, String database, boolean autocommit)
             throws SQLException;
 
+    void setActiveFutureTask(FutureTask activeFutureTask);
+
+    boolean isServerMariaDb();
 }

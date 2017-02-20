@@ -67,14 +67,13 @@ public class ReadInitialConnectPacket {
     static final String MARIADB_RPL_HACK_PREFIX = "5.5.5-";
     private final byte protocolVersion;
     private final long serverThreadId;
-    //private final byte[] seed1;
-    //private final byte[] seed2;
     private final long serverCapabilities;
     private final byte serverLanguage;
     private final short serverStatus;
     private final byte[] seed;
     private String serverVersion;
     private String pluginName;
+    private boolean serverMariaDb;
 
     /**
      * Read database initial stream.
@@ -122,22 +121,27 @@ public class ReadInitialConnectPacket {
         }
         buffer.skipByte();
 
+        if (serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
+            serverMariaDb = true;
+            serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());
+        } else {
+            serverMariaDb = this.serverVersion.indexOf("MariaDB") != -1;
+        }
+
+        //since MariaDB 10.2
+        if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.CLIENT_MYSQL) == 0) {
+            serverCapabilities = (serverCapabilities4FirstBytes & 0xffffffffL) + (mariaDbAdditionalCapacities << 32);
+            serverMariaDb = true;
+        } else {
+            serverCapabilities = serverCapabilities4FirstBytes & 0xffffffffL;
+        }
+
         /*
          * check for MariaDB 10.x replication hack , remove fake prefix if needed
          *  (see comments about MARIADB_RPL_HACK_PREFIX)
          */
         if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
             pluginName = buffer.readString(StandardCharsets.US_ASCII);
-            if (serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
-                serverCapabilities = (serverCapabilities4FirstBytes & 0xffffffffL) + (mariaDbAdditionalCapacities << 32);
-                serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());
-            } else {
-                serverCapabilities = serverCapabilities4FirstBytes & 0xffffffffL;
-            }
-
-        } else {
-            serverCapabilities = serverCapabilities4FirstBytes & 0xffffffffL;
-
         }
     }
 
@@ -186,5 +190,9 @@ public class ReadInitialConnectPacket {
 
     public String getPluginName() {
         return pluginName;
+    }
+
+    public boolean isServerMariaDb() {
+        return serverMariaDb;
     }
 }

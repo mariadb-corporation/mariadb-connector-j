@@ -62,18 +62,18 @@ public class SchedulerServiceProviderHolder {
      */
     public static SchedulerProvider DEFAULT_PROVIDER = new SchedulerProvider() {
         @Override
-        public DynamicSizedSchedulerInterface getScheduler(int minimumThreads) {
-            return new DynamicSizedSchedulerImpl(minimumThreads);
+        public DynamicSizedSchedulerInterface getScheduler(int minimumThreads, String poolName, int maximumPoolSize) {
+            return new DynamicSizedSchedulerImpl(minimumThreads, poolName, maximumPoolSize);
         }
 
         @Override
-        public ScheduledThreadPoolExecutor getFixedSizeScheduler(int minimumThreads) {
-            return new FixedSizedSchedulerImpl(minimumThreads);
+        public ScheduledThreadPoolExecutor getFixedSizeScheduler(int minimumThreads, String poolName) {
+            return new FixedSizedSchedulerImpl(minimumThreads, poolName);
         }
 
         @Override
         public ScheduledThreadPoolExecutor getTimeoutScheduler() {
-            ScheduledThreadPoolExecutor timeoutScheduler = new ScheduledThreadPoolExecutor(1, new MariaDbThreadFactory());
+            ScheduledThreadPoolExecutor timeoutScheduler = new ScheduledThreadPoolExecutor(1, new MariaDbThreadFactory("timeout"));
             timeoutScheduler.setRemoveOnCancelPolicy(true);
             return timeoutScheduler;
         }
@@ -81,7 +81,7 @@ public class SchedulerServiceProviderHolder {
         @Override
         @SuppressWarnings("unchecked")
         public ThreadPoolExecutor getBulkScheduler() {
-            return new ThreadPoolExecutor(5, 100, 1, TimeUnit.MINUTES, new SynchronousQueue(), new MariaDbThreadFactory());
+            return new ThreadPoolExecutor(5, 100, 1, TimeUnit.MINUTES, new SynchronousQueue(), new MariaDbThreadFactory("bulk"));
         }
 
     };
@@ -115,23 +115,26 @@ public class SchedulerServiceProviderHolder {
     }
 
     /**
-     * Get a Dinamic sized scheduler directly with the current set provider.
+     * Get a Dynamic sized scheduler directly with the current set provider.
      *
      * @param initialThreadCount Number of threads scheduler is allowed to grow to
+     * @param poolName           name of pool to identify threads
+     * @param maximumPoolSize    maximum pool size
      * @return Scheduler capable of providing the needed thread count
      */
-    public static DynamicSizedSchedulerInterface getScheduler(int initialThreadCount) {
-        return getSchedulerProvider().getScheduler(initialThreadCount);
+    public static DynamicSizedSchedulerInterface getScheduler(int initialThreadCount, String poolName, int maximumPoolSize) {
+        return getSchedulerProvider().getScheduler(initialThreadCount, poolName, maximumPoolSize);
     }
 
     /**
      * Get a fixed sized scheduler directly with the current set provider.
      *
      * @param initialThreadCount Number of threads scheduler is allowed to grow to
+     * @param poolName           name of pool to identify threads
      * @return Scheduler capable of providing the needed thread count
      */
-    public static ScheduledExecutorService getFixedSizeScheduler(int initialThreadCount) {
-        return getSchedulerProvider().getFixedSizeScheduler(initialThreadCount);
+    public static ScheduledExecutorService getFixedSizeScheduler(int initialThreadCount, String poolName) {
+        return getSchedulerProvider().getFixedSizeScheduler(initialThreadCount, poolName);
     }
 
     /**
@@ -155,12 +158,14 @@ public class SchedulerServiceProviderHolder {
         /**
          * Request to get a scheduler with a minimum number of AVAILABLE threads.
          *
-         * @param minimumThreads Minimum number of available threads for the returned scheduler
+         * @param minimumThreads    Minimum number of available threads for the returned scheduler
+         * @param poolName          name of pool to identify threads
+         * @param maximumPoolSize   maximum pool size
          * @return A new scheduler that is ready to accept tasks
          */
-        public DynamicSizedSchedulerInterface getScheduler(int minimumThreads);
+        public DynamicSizedSchedulerInterface getScheduler(int minimumThreads, String poolName, int maximumPoolSize);
 
-        public ScheduledExecutorService getFixedSizeScheduler(int minimumThreads);
+        public ScheduledExecutorService getFixedSizeScheduler(int minimumThreads, String poolName);
 
         /**
          * Default Timeout scheduler.

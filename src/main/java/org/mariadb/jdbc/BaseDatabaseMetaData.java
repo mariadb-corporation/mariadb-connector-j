@@ -52,6 +52,7 @@ package org.mariadb.jdbc;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.queryresults.SelectResultSet;
+import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
@@ -86,14 +87,22 @@ public class BaseDatabaseMetaData implements DatabaseMetaData {
         this.connection.getProtocol().getServerVersion();
     }
 
-    /* Remove length from column type spec,convert to uppercase,  e.g  bigint(10) unsigned becomes BIGINT UNSIGNED */
-    static String columnTypeClause(String columnName) {
+    static String columnTypeClause(int dataTypeMappingFlags) {
+        String upperCaseWithoutSize =  " UCASE(IF( COLUMN_TYPE LIKE '%(%)%', CONCAT(SUBSTRING( COLUMN_TYPE,1, LOCATE('(',"
+                + "COLUMN_TYPE) - 1 ), SUBSTRING(COLUMN_TYPE ,1+locate(')', COLUMN_TYPE))), "
+                + "COLUMN_TYPE))";
 
-        return
-                " UCASE(IF( " + columnName + " LIKE '%(%)%', CONCAT(SUBSTRING( " + columnName + ",1, LOCATE('(',"
-                        + columnName + ") - 1 ), SUBSTRING(" + columnName + ",1+locate(')'," + columnName + "))), "
-                        + columnName + "))";
+        if ((dataTypeMappingFlags & SelectResultSetCommon.TINYINT1_IS_BIT) > 0) {
+            upperCaseWithoutSize = " IF(COLUMN_TYPE = 'tinyint(1)', 'BIT', " + upperCaseWithoutSize + ")";
+        }
+
+        if ((dataTypeMappingFlags & SelectResultSetCommon.YEAR_IS_DATE_TYPE) == 0) {
+            return " IF(COLUMN_TYPE IN ('year(2)', 'year(4)'), 'SMALLINT', " + upperCaseWithoutSize + ")";
+        }
+
+        return upperCaseWithoutSize;
     }
+
 
     /**
      * Get imported keys.
@@ -425,17 +434,17 @@ public class BaseDatabaseMetaData implements DatabaseMetaData {
                 + " WHEN 'time' THEN " + Types.TIME
                 + " WHEN 'timestamp' THEN " + Types.TIMESTAMP
                 + " WHEN 'tinyint' THEN "
-                + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSetCommon.TINYINT1_IS_BIT) == 0)
+                + (((connection.getProtocol().getDataTypeMappingFlags() & MariaSelectResultSet.SelectResultSetCommon.TINYINT1_IS_BIT) == 0)
                 ? Types.TINYINT : "IF(" + fullTypeColumnName + "='tinyint(1)'," + Types.BIT + "," + Types.TINYINT + ") ")
                 + " WHEN 'year' THEN "
-                + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSetCommon.YEAR_IS_DATE_TYPE) == 0)
+                + (((connection.getProtocol().getDataTypeMappingFlags() & MariaSelectResultSet.SelectResultSetCommon.YEAR_IS_DATE_TYPE) == 0)
                 ? Types.SMALLINT : Types.DATE)
                 + " ELSE " + Types.OTHER
                 + " END ";
     }
 
     private ResultSet executeQuery(String sql) throws SQLException {
-        SelectResultSetCommon rs = (SelectResultSetCommon) connection.createStatement().executeQuery(sql);
+        MariaSelectResultSet rs = (MariaSelectResultSet) connection.createStatement().executeQuery(sql);
         rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
         rs.setReturnTableAlias(true);
         return rs;
@@ -645,9 +654,10 @@ public class BaseDatabaseMetaData implements DatabaseMetaData {
      */
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern)
             throws SQLException {
+        int dataType = connection.getProtocol().getDataTypeMappingFlags();
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
                 + dataTypeClause("COLUMN_TYPE") + " DATA_TYPE,"
-                + columnTypeClause("COLUMN_TYPE") + " TYPE_NAME, "
+                + columnTypeClause(dataType) + " TYPE_NAME, "
                 + " CASE DATA_TYPE"
                 + "  WHEN 'time' THEN "
                 +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
@@ -655,11 +665,18 @@ public class BaseDatabaseMetaData implements DatabaseMetaData {
                 + "  WHEN 'datetime' THEN "
                 +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                 + "  WHEN 'timestamp' THEN "
-                +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                + (((dataType & MariaSelectResultSet.SelectResultSetCommon.YEAR_IS_DATE_TYPE) == 0) ? " WHEN 'year' THEN 5" : "")
                 + "  ELSE "
                 + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
                 + " END"
-                + " COLUMN_SIZE, 65535 BUFFER_LENGTH, NUMERIC_SCALE DECIMAL_DIGITS,"
+                + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
+
+                + " CONVERT (CASE DATA_TYPE"
+                + " WHEN 'year' THEN " + (((dataType & MariaSelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? "0" : "NUMERIC_SCALE")
+                + " WHEN 'tinyint' THEN " + (((dataType & MariaSelectResultSet.TINYINT1_IS_BIT) > 0) ? "0" : "NUMERIC_SCALE")
+                + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
+
                 + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
                 + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
                 + " LEAST(CHARACTER_OCTET_LENGTH," + Integer.MAX_VALUE + ") CHAR_OCTET_LENGTH,"

@@ -94,7 +94,11 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
             throw new SQLException("Connection has been closed !");
         }
         if (protocol.mustBeMasterConnection()) {
-            if (setMasterHostFail()) {
+            if (!protocol.isMasterConnection()) {
+                logger.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString()
+                        + ", conn " + this.currentProtocol.getServerThreadId()
+                        + " ] is now in read-only mode. Exception : " + qe.getMessage());
+            } else if (setMasterHostFail()) {
                 logger.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString()
                         + ", conn " + this.currentProtocol.getServerThreadId()
                         + " ] connection fail. Reason : " + qe.getMessage());

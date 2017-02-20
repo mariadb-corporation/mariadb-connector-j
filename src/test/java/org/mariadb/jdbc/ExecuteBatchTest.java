@@ -5,7 +5,16 @@ import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.*;
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ExecuteBatchTest extends BaseTest {
 
@@ -19,14 +28,79 @@ public class ExecuteBatchTest extends BaseTest {
     }
 
     /**
-     * Create test tables.
+     * CONJ-426: Test that executeBatch can be properly interrupted.
      *
-     * @throws SQLException if connection error occur
+     * @throws Exception If the test fails
      */
-    @BeforeClass()
-    public static void initClass() throws SQLException {
-        createTable("ExecuteBatchTest", "id int not null primary key auto_increment, test varchar(100) , test2 int");
-        createTable("ExecuteBatchUseBatchMultiSend", "test varchar(100)");
+    @Test
+    public void interruptExecuteBatch() throws Exception {
+        Assume.assumeTrue(sharedOptions().useBatchMultiSend);
+        ExecutorService service = Executors.newFixedThreadPool(1);
+
+        final CyclicBarrier barrier = new CyclicBarrier(2);
+        final AtomicBoolean wasInterrupted = new AtomicBoolean(false);
+        final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
+
+        service.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                            "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
+
+                    // Send a large enough batch that will take long enough to allow us to interrupt it
+                    for (int i = 0; i < 1_000_000; i++) {
+                        preparedStatement.setString(1, String.valueOf(System.nanoTime()));
+                        preparedStatement.setInt(2, i);
+                        preparedStatement.addBatch();
+                    }
+
+                    barrier.await();
+
+                    preparedStatement.executeBatch();
+                } catch (InterruptedException ex) {
+                    exceptionRef.set(ex);
+                    Thread.currentThread().interrupt();
+                } catch (BrokenBarrierException ex) {
+                    exceptionRef.set(ex);
+                } catch (SQLException ex) {
+                    exceptionRef.set(ex);
+                    wasInterrupted.set(Thread.currentThread().isInterrupted());
+                } catch (Exception ex) {
+                    exceptionRef.set(ex);
+                }
+            }
+        });
+
+        barrier.await();
+
+        // Allow the query time to send
+        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+
+        // Interrupt the thread
+        service.shutdownNow();
+
+        Assert.assertTrue(
+            service.awaitTermination(1, TimeUnit.MINUTES)
+        );
+
+        Assert.assertNotNull(exceptionRef.get());
+
+        //ensure that even interrupted, connection status is when sending in bulk (all corresponding bulk send are read)
+        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT 123456");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(123456, rs.getInt(1));
+
+        StringWriter writer = new StringWriter();
+        exceptionRef.get().printStackTrace(new PrintWriter(writer));
+
+        Assert.assertTrue(
+            "Exception should be a SQLException: \n" + writer.toString(),
+            exceptionRef.get() instanceof SQLException
+        );
+
+        Assert.assertTrue(wasInterrupted.get());
+
     }
 
     @Test
@@ -142,7 +216,9 @@ public class ExecuteBatchTest extends BaseTest {
 
         //test result Size
         Assert.assertEquals(batchNumber, resultInsert.length);
-        for (int i = 0; i < batchNumber; i++) Assert.assertEquals(1, resultInsert[i]);
+        for (int i = 0; i < batchNumber; i++) {
+            Assert.assertEquals(1, resultInsert[i]);
+        }
 
         //check that connection is OK and results are well inserted
         ResultSet resultSet = connection.createStatement().executeQuery("SELECT * FROM ExecuteBatchTest");

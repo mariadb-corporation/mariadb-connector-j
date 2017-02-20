@@ -61,7 +61,7 @@ public class BasicBatchTest extends BaseTest {
         final ResultSet rs = sharedConnection.createStatement().executeQuery("select * from test_batch");
         ps.executeQuery("SELECT 1");
         rs1 = ps.getGeneratedKeys();
-        assertEquals(SelectResultSetCommon.EMPTY, rs1);
+        assertFalse(rs1.next());
         assertEquals(true, rs.next());
         assertEquals("aaa", rs.getString(2));
         assertEquals(true, rs.next());

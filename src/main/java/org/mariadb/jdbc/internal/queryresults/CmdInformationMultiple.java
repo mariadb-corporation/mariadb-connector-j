@@ -55,6 +55,7 @@ import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Permit to store multiple update count / insert ids.
@@ -69,8 +70,8 @@ import java.util.*;
  */
 public class CmdInformationMultiple implements CmdInformation {
 
-    private Deque<Long> insertIds;
-    private Deque<Long> updateCounts;
+    private Queue<Long> insertIds;
+    private Queue<Long> updateCounts;
     private int expectedSize;
 
     /**
@@ -82,8 +83,8 @@ public class CmdInformationMultiple implements CmdInformation {
      */
     public CmdInformationMultiple(long insertId, long updateCount, int expectedSize) {
         this.expectedSize = expectedSize;
-        this.insertIds = new ArrayDeque<>(expectedSize);
-        this.updateCounts = new ArrayDeque<>(expectedSize);
+        this.insertIds = new ConcurrentLinkedQueue<>();
+        this.updateCounts = new ConcurrentLinkedQueue<>();
         if (insertId != 0) this.insertIds.add(insertId);
         this.updateCounts.add(updateCount);
     }
@@ -96,8 +97,8 @@ public class CmdInformationMultiple implements CmdInformation {
      */
     public CmdInformationMultiple(long updateCount, int expectedSize) {
         this.expectedSize = expectedSize;
-        this.insertIds = new ArrayDeque<>(expectedSize);
-        this.updateCounts = new ArrayDeque<>(expectedSize);
+        this.insertIds = new ConcurrentLinkedQueue<>();
+        this.updateCounts = new ConcurrentLinkedQueue<>();
         this.updateCounts.add(updateCount);
     }
 
@@ -108,9 +109,9 @@ public class CmdInformationMultiple implements CmdInformation {
      */
     public CmdInformationMultiple(int expectedSize) {
         this.expectedSize = expectedSize;
-        this.insertIds = new ArrayDeque<>(expectedSize);
-        this.updateCounts = new ArrayDeque<>(expectedSize);
-        this.updateCounts.add((long) Statement.EXECUTE_FAILED);
+        this.insertIds = new ConcurrentLinkedQueue<>();
+        this.updateCounts = new ConcurrentLinkedQueue<>();
+        this.updateCounts.add(Statement.EXECUTE_FAILED);
     }
 
     @Override
@@ -160,13 +161,13 @@ public class CmdInformationMultiple implements CmdInformation {
 
     @Override
     public long getLargeUpdateCount() {
-        Long updateCount = updateCounts.peekFirst();
+        Long updateCount = updateCounts.peek();
         return (updateCount == null) ? NO_UPDATE_COUNT : updateCount;
     }
 
     @Override
     public int getUpdateCount() {
-        Long updateCount = updateCounts.peekFirst();
+        Long updateCount = updateCounts.peek();
         return (updateCount == null) ? NO_UPDATE_COUNT : updateCount.intValue();
     }
 
@@ -191,13 +192,13 @@ public class CmdInformationMultiple implements CmdInformation {
 
     @Override
     public boolean moreResults() {
-        if (updateCounts.pollFirst() != null) return isCurrentUpdateCount();
+        if (updateCounts.poll() != null) return isCurrentUpdateCount();
         return false;
     }
 
     @Override
     public boolean isCurrentUpdateCount() {
-        Long updateCount = updateCounts.peekFirst();
+        Long updateCount = updateCounts.peek();
         return (updateCount == null) ? false : NO_UPDATE_COUNT != updateCount;
     }
 

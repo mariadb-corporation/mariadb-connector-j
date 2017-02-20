@@ -445,7 +445,7 @@ public abstract class BaseStatement implements Statement, Cloneable {
             return results.getResultSet();
         }
         //throw new SQLException("executeQuery() with query '" + query +"' did not return a result set");
-        return SelectResultSetCommon.EMPTY;
+        return SelectResultSetCommon.createEmptyResultSet();
     }
 
 
@@ -781,7 +781,7 @@ public abstract class BaseStatement implements Statement, Cloneable {
         if (results.getCmdInformation() != null) {
             return results.getCmdInformation().getGeneratedKeys(protocol);
         }
-        return SelectResultSetCommon.EMPTY;
+        return SelectResultSetCommon.createEmptyResultSet();
     }
 
     /**

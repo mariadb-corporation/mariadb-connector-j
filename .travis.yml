@@ -6,6 +6,9 @@ before_install:
     - echo "MAVEN_OPTS='-Xmx384m'" > ~/.mavenrc
 install: .travis/before_test.sh
 dist: trusty
+cache:
+  directories:
+    - $HOME/.m2
 jdk:
     - oraclejdk9
     - oraclejdk8

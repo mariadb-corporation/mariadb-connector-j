@@ -53,6 +53,7 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.*;
+import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
@@ -161,7 +162,7 @@ public abstract class BasePreparedStatementClient extends BasePrepareStatement i
         if (execute()) {
             return results.getResultSet();
         }
-        return SelectResultSetCommon.EMPTY;
+        return MariaSelectResultSet.SelectResultSetCommon.createEmptyResultSet();
     }
 
 

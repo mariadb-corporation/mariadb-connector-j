@@ -51,6 +51,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.queryresults.SelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 
@@ -127,10 +128,11 @@ public abstract class BaseCallableFunctionStatement extends BasePreparedStatemen
      * @throws SQLException exception
      */
     protected int nameToIndex(String parameterName) throws SQLException {
+        parameterMetadata.readMetadataFromDbIfRequired();
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
-            String name = parameterMetadata.getName(i + 1);
+            String name = parameterMetadata.getName(i);
             if (name != null && name.equalsIgnoreCase(parameterName)) {
-                return i + 1;
+                return i;
             }
         }
         throw new SQLException("there is no parameter with the name " + parameterName);
@@ -339,20 +341,29 @@ public abstract class BaseCallableFunctionStatement extends BasePreparedStatemen
         return getResult().getTimestamp(nameToOutputIndex(parameterName), cal);
     }
 
-
     @Override
     public Object getObject(int parameterIndex) throws SQLException {
+        Class<?> classType = MariaDbType.classFromJavaType(getParameter(parameterIndex).outputSqlType);
+        if (classType != null) {
+            return getResult().getObject(indexToOutputIndex(parameterIndex), classType);
+        }
         return getResult().getObject(indexToOutputIndex(parameterIndex));
+
+    }
+
+    @Override
+    public Object getObject(String parameterName) throws SQLException {
+        int index = nameToIndex(parameterName);
+        Class<?> classType = MariaDbType.classFromJavaType(getParameter(index).outputSqlType);
+        if (classType != null) {
+            return getResult().getObject(indexToOutputIndex(index), classType);
+        }
+        return getResult().getObject(indexToOutputIndex(index));
     }
 
     @Override
     public Object getObject(int parameterIndex, Map<String, Class<?>> map) throws SQLException {
         return getResult().getObject(indexToOutputIndex(parameterIndex), map);
-    }
-
-    @Override
-    public Object getObject(String parameterName) throws SQLException {
-        return getResult().getObject(nameToOutputIndex(parameterName));
     }
 
     @Override
@@ -522,7 +533,7 @@ public abstract class BaseCallableFunctionStatement extends BasePreparedStatemen
      */
     public void registerOutParameter(int parameterIndex, int sqlType, String typeName) throws SQLException {
         CallParameter callParameter = getParameter(parameterIndex);
-        callParameter.sqlType = sqlType;
+        callParameter.outputSqlType = sqlType;
         callParameter.typeName = typeName;
         callParameter.isOutput = true;
     }

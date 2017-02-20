@@ -88,9 +88,17 @@ import java.util.regex.Pattern;
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 @SuppressWarnings("deprecation")
+public class MariaSelectResultSet implements ResultSet {
+    private static Logger logger = LoggerFactory.getLogger(MariaSelectResultSet.class);
+
+    private static final ColumnInformation[] INSERT_ID_COLUMNS;
+
+    static {
+        INSERT_ID_COLUMNS = new ColumnInformation[1];
+        INSERT_ID_COLUMNS[0] = ColumnInformation.create("insert_id", MariaDbType.BIGINT);
+    }
 public abstract class SelectResultSetCommon implements ResultSet {
 
-    public static final SelectResultSetCommon EMPTY = createEmptyResultSet();
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
     private static final String zeroTimestamp = "0000-00-00 00:00:00";
@@ -166,7 +174,7 @@ public abstract class SelectResultSetCommon implements ResultSet {
         this.rowPointer = -1;
         this.callableResult = callableResult;
 
-        if (fetchSize == 0 || resultSetScrollType != TYPE_FORWARD_ONLY || callableResult) {
+        if (fetchSize == 0 || callableResult) {
             fetchAllResults();
             streaming = false;
         } else {
@@ -303,11 +311,8 @@ public abstract class SelectResultSetCommon implements ResultSet {
         return new SelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
     }
 
-    private static SelectResultSetCommon createEmptyResultSet() {
-        ColumnInformation[] columns = new ColumnInformation[1];
-        columns[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
-
-        return new SelectResultSet(columns, new ArrayList<byte[][]>(), null,
+    public static SelectResultSetCommon createEmptyResultSet() {
+        return new SelectResultSet(INSERT_ID_COLUMNS, new ArrayList<byte[][]>(), null,
                 TYPE_SCROLL_SENSITIVE);
     }
 
@@ -352,12 +357,30 @@ public abstract class SelectResultSetCommon implements ResultSet {
         }
 
         dataFetchTime++;
-        streaming = false;
     }
 
+    /**
+     * This permit to replace current stream results by next ones.
+     *
+     * @throws IOException if socket exception occur
+     * @throws SQLException if server return an unexpected error
+     */
     private void nextStreamingValue() throws IOException, SQLException {
 
-        resultSet.clear();
+        //if resultSet can be back to some previous value
+        if (resultSetScrollType == TYPE_FORWARD_ONLY) resultSet.clear();
+
+        addStreamingValue();
+    }
+
+    /**
+     * This permit to add next streaming values to existing resultSet.
+     *
+     * @throws IOException if socket exception occur
+     * @throws SQLException if server return an unexpected error
+     */
+    private void addStreamingValue() throws IOException, SQLException {
+
         //fetch maximum fetchSize results
         int fetchSizeTmp = fetchSize;
         while (fetchSizeTmp > 0 && readNextValue(resultSet)) {
@@ -539,29 +562,26 @@ public abstract class SelectResultSetCommon implements ResultSet {
             rowPointer++;
             return true;
         } else {
-            if (streaming) {
-                if (isEof) {
-                    return false;
-                } else {
-                    ReentrantLock lock = protocol.getLock();
-                    lock.lock();
-                    try {
-                        nextStreamingValue();
-                    } catch (IOException ioe) {
-                        throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
-                                + " read off the result set relatively fast. "
-                                + "In this case, please consider increasing net_wait_timeout session variable."
-                                + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
-                    } finally {
-                        lock.unlock();
-                    }
-                    rowPointer = 0;
-                    return resultSetSize > 0;
+            if (streaming && !isEof) {
+                ReentrantLock lock = protocol.getLock();
+                lock.lock();
+                try {
+                    nextStreamingValue();
+                } catch (IOException ioe) {
+                    throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
+                            + " read off the result set relatively fast. "
+                            + "In this case, please consider increasing net_wait_timeout session variable."
+                            + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
+                } finally {
+                    lock.unlock();
                 }
-            } else {
-                rowPointer = resultSetSize;
-                return false;
+                rowPointer = 0;
+                return resultSetSize > 0;
             }
+
+            //all data are reads and pointer is after last
+            rowPointer = resultSetSize;
+            return false;
         }
     }
 
@@ -615,7 +635,38 @@ public abstract class SelectResultSetCommon implements ResultSet {
     @Override
     public boolean isAfterLast() throws SQLException {
         checkClose();
-        return dataFetchTime > 0 && rowPointer >= resultSetSize && resultSetSize > 0;
+        if (rowPointer < resultSetSize) {
+
+            //has remaining results
+            return false;
+
+        } else {
+
+            if (streaming && !isEof) {
+
+                //has to read more result to know if it's finished or not
+                //(next packet may be new data or an EOF packet indicating that there is no more data)
+                ReentrantLock lock = protocol.getLock();
+                lock.lock();
+                try {
+                    nextStreamingValue();
+                } catch (IOException ioe) {
+                    throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
+                            + " read off the result set relatively fast. "
+                            + "In this case, please consider increasing net_wait_timeout session variable."
+                            + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
+                } finally {
+                    lock.unlock();
+                }
+                rowPointer = 0;
+                return resultSetSize == 0;
+            }
+
+            //has read all data and pointer is after last result
+            //so result would have to always to be true,
+            //but when result contain no row at all jdbc say that must return false
+            return resultSetSize > 0  || dataFetchTime > 1;
+        }
     }
 
     @Override
@@ -627,27 +678,40 @@ public abstract class SelectResultSetCommon implements ResultSet {
     @Override
     public boolean isLast() throws SQLException {
         checkClose();
-        if (dataFetchTime > 0 && isEof) {
+        if (rowPointer < resultSetSize - 1) {
+            return false;
+        } else if (isEof) {
             return rowPointer == resultSetSize - 1 && resultSetSize > 0;
-        } else if (streaming) {
+        } else {
+            //when streaming and not having read all results,
+            //must read next packet to know if next packet is an EOF packet or some additional data
             ReentrantLock lock = protocol.getLock();
             lock.lock();
             try {
-                nextStreamingValue();
+                addStreamingValue();
             } catch (IOException ioe) {
-                throw new SQLException(ioe);
+                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
+                        + " read off the result set relatively fast. "
+                        + "In this case, please consider increasing net_wait_timeout session variable."
+                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
             } finally {
                 lock.unlock();
             }
-            return rowPointer == resultSetSize - 1 && resultSetSize > 0;
+
+            if (isEof) {
+                //now driver is sure when data ends.
+                return rowPointer == resultSetSize - 1 && resultSetSize > 0;
+            }
+
+            //There is data remaining
+            return false;
         }
-        return false;
     }
 
     @Override
     public void beforeFirst() throws SQLException {
         checkClose();
-        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         } else {
             rowPointer = -1;
@@ -657,17 +721,28 @@ public abstract class SelectResultSetCommon implements ResultSet {
     @Override
     public void afterLast() throws SQLException {
         checkClose();
-        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
-            throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
-        } else {
-            rowPointer = resultSetSize;
+        if (!isEof) {
+            //load remaining results
+            ReentrantLock lock = protocol.getLock();
+            lock.lock();
+            try {
+                fetchRemaining();
+            } catch (SQLException ioe) {
+                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
+                        + " read off the result set relatively fast. "
+                        + "In this case, please consider increasing net_wait_timeout session variable."
+                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
+            } finally {
+                lock.unlock();
+            }
         }
+        rowPointer = resultSetSize;
     }
 
     @Override
     public boolean first() throws SQLException {
         checkClose();
-        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         } else {
             rowPointer = 0;
@@ -678,12 +753,23 @@ public abstract class SelectResultSetCommon implements ResultSet {
     @Override
     public boolean last() throws SQLException {
         checkClose();
-        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
-            throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
-        } else {
-            rowPointer = resultSetSize - 1;
-            return rowPointer > 0;
+        if (!isEof) {
+            //load remaining results
+            ReentrantLock lock = protocol.getLock();
+            lock.lock();
+            try {
+                fetchRemaining();
+            } catch (SQLException ioe) {
+                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
+                        + " read off the result set relatively fast. "
+                        + "In this case, please consider increasing net_wait_timeout session variable."
+                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
+            } finally {
+                lock.unlock();
+            }
         }
+        rowPointer = resultSetSize - 1;
+        return rowPointer > 0;
     }
 
     @Override
@@ -698,23 +784,62 @@ public abstract class SelectResultSetCommon implements ResultSet {
     @Override
     public boolean absolute(int row) throws SQLException {
         checkClose();
-        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
+
+        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
-        } else {
-            if (row >= 0 && row <= resultSetSize) {
-                rowPointer = row - 1;
-                return true;
-            } else if (row < 0) {
-                rowPointer = resultSetSize + row;
-            }
+        }
+
+        if (row >= 0 && row <= resultSetSize) {
+            rowPointer = row - 1;
             return true;
         }
+
+        //if streaming, must read additional results.
+        if (!isEof) {
+            ReentrantLock lock = protocol.getLock();
+            lock.lock();
+            try {
+                fetchRemaining();
+            } catch (SQLException ioe) {
+                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
+                        + " read off the result set relatively fast. "
+                        + "In this case, please consider increasing net_wait_timeout session variable."
+                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        if (row >= 0) {
+
+            if (row <= resultSetSize) {
+                rowPointer = row - 1;
+                return true;
+            }
+
+            rowPointer = resultSetSize; //go to afterLast() position
+            return false;
+
+        } else {
+
+            if (resultSetSize + row >= 0) {
+                //absolute position reverse from ending resultSet
+                rowPointer = resultSetSize + row;
+                return true;
+            }
+
+            rowPointer = -1; // go to before first position
+            return false;
+
+        }
+
+
     }
 
     @Override
     public boolean relative(int rows) throws SQLException {
         checkClose();
-        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         } else {
             int newPos = rowPointer + rows;
@@ -729,7 +854,7 @@ public abstract class SelectResultSetCommon implements ResultSet {
     @Override
     public boolean previous() throws SQLException {
         checkClose();
-        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
+        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         } else {
             if (rowPointer > -1) {
@@ -760,6 +885,7 @@ public abstract class SelectResultSetCommon implements ResultSet {
     @Override
     public void setFetchSize(int fetchSize) throws SQLException {
         if (streaming && this.fetchSize == 0) {
+
             try {
                 while (readNextValue(resultSet)) {
                     //fetch all results
@@ -768,8 +894,8 @@ public abstract class SelectResultSetCommon implements ResultSet {
                 throw new SQLException(ioException);
             }
 
+            streaming = dataFetchTime == 1;
             dataFetchTime++;
-            streaming = false;
 
         }
         this.fetchSize = fetchSize;
@@ -787,7 +913,7 @@ public abstract class SelectResultSetCommon implements ResultSet {
 
     private void checkClose() throws SQLException {
         if (isClosed) {
-            throw new SQLException("Operation not permit on a closed resultset", "HY000");
+            throw new SQLException("Operation not permit on a closed resultSet", "HY000");
         }
     }
 
@@ -1697,75 +1823,112 @@ public abstract class SelectResultSetCommon implements ResultSet {
     @SuppressWarnings("unchecked")
     public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
         if (type == null) throw new SQLException("Class type cannot be null");
+        byte[] rawBytes = checkObjectRange(columnIndex);
+        ColumnInformation col = columnsInformation[columnIndex - 1];
 
         switch (type.getName()) {
 
             case "java.lang.String":
-                return type.cast(getString(columnIndex));
+                return (T) getString(rawBytes, col);
 
             case "java.lang.Integer":
-                return type.cast(getInt(columnIndex));
+                if (rawBytes == null) return null;
+                return (T) (Integer) getInt(rawBytes, col);
 
             case "java.lang.Long":
-                return type.cast(getLong(columnIndex));
+                if (rawBytes == null) return null;
+                return (T) (Long) getLong(rawBytes, col);
 
             case "java.lang.Short":
-                return type.cast(getShort(columnIndex));
+                if (rawBytes == null) return null;
+                return (T) (Short) getShort(rawBytes, col);
 
             case "java.lang.Double":
-                return type.cast(getDouble(columnIndex));
+                if (rawBytes == null) return null;
+                return (T) (Double) getDouble(rawBytes, col);
 
             case "java.lang.Float":
-                return type.cast(getFloat(columnIndex));
+                if (rawBytes == null) return null;
+                return (T) (Float) getFloat(rawBytes, col);
+
 
             case "java.lang.Byte":
-                return type.cast(getByte(columnIndex));
+                return (T) (Byte) getByte(rawBytes, col);
 
             case "java.sql.Date":
-                return type.cast(getDate(columnIndex));
+                try {
+                    return (T) getDate(rawBytes, col);
+                } catch (ParseException e) {
+                    throw ExceptionMapper.getSqlException("Could not parse column as date, was: \""
+                            + getString(rawBytes, col)
+                            + "\"", e);
+                }
 
             case "java.sql.Time":
-                return type.cast(getTime(columnIndex));
+                try {
+                    return (T) getTime(rawBytes, col, null);
+                } catch (ParseException e) {
+                    throw ExceptionMapper.getSqlException("Could not parse column as time, was: \""
+                            + getString(rawBytes, col)
+                            + "\"", e);
+                }
 
             case "java.util.Date":
             case "java.sql.Timestamp":
-                return type.cast(getTimestamp(columnIndex));
+                try {
+                    return (T) getTimestamp(rawBytes, col, null);
+                } catch (ParseException e) {
+                    throw ExceptionMapper.getSqlException("Could not parse column as timestamp, was: \""
+                            + getString(rawBytes, col)
+                            + "\"", e);
+                }
 
             case "java.util.Calendar":
                 Calendar calendar = Calendar.getInstance(timeZone);
-                Timestamp timestamp = getTimestamp(columnIndex);
-                if (timestamp == null) return null;
-                calendar.setTimeInMillis(timestamp.getTime());
-                return type.cast(calendar);
+                try {
+                    Timestamp timestamp = getTimestamp(rawBytes, col, null);
+                    if (timestamp == null) return null;
+                    calendar.setTimeInMillis(timestamp.getTime());
+                    return type.cast(calendar);
+                } catch (ParseException e) {
+                    throw ExceptionMapper.getSqlException("Could not parse column as timestamp, was: \""
+                            + getString(rawBytes, col)
+                            + "\"", e);
+                }
 
             case "java.lang.Boolean":
-                return type.cast(getBoolean(columnIndex));
+                return (T) (Boolean) getBoolean(rawBytes, col);
 
             case "java.sql.Blob":
-                return type.cast(getBlob(columnIndex));
+                if (rawBytes == null) return null;
+                return (T) new MariaDbBlob(rawBytes);
 
             case "java.sql.Clob":
-                return type.cast(getClob(columnIndex));
-
             case "java.sql.NClob":
-                return type.cast(getNClob(columnIndex));
+                if (rawBytes == null) return null;
+                return (T) new MariaDbClob(rawBytes);
 
             case "java.io.InputStream":
-                return type.cast(getBinaryStream(columnIndex));
+                if (rawBytes == null) return null;
+                return (T) new ByteArrayInputStream(rawBytes);
 
             case "java.io.Reader":
-                return type.cast(getCharacterStream(columnIndex));
+                String value = getString(rawBytes, col);
+                if (value == null) return null;
+                return (T) new StringReader(value);
 
             case "java.math.BigDecimal":
-                return type.cast(getBigDecimal(columnIndex));
+                return (T) getBigDecimal(rawBytes, col);
 
             case "java.io.BigInteger":
-                return type.cast(getBigInteger(checkObjectRange(columnIndex), columnsInformation[columnIndex - 1]));
+                return (T) getBigInteger(rawBytes, col);
 
             default:
 
-                if (type.equals(byte[].class)) return type.cast(getBytes(columnIndex));
-                return getAdditionalObject(columnIndex, type);
+                if (type.equals(byte[].class)) {
+                    return (T) rawBytes;
+                }
+                return getAdditionalObject(rawBytes, col, type);
 
         }
 
@@ -1872,7 +2035,7 @@ public abstract class SelectResultSetCommon implements ResultSet {
         throw ExceptionMapper.getFeatureNotSupportedException("Type '" + columnInfo.getColumnType().getTypeName() + "' is not supported");
     }
 
-    protected abstract <T> T getAdditionalObject(int columnIndex, Class<T> type) throws SQLException ;
+    protected abstract <T> T getAdditionalObject(byte[] rawBytes, ColumnInformation col, Class<T> type) throws SQLException ;
 
     /**
      * {inheritDoc}.
