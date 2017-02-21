@@ -3,7 +3,6 @@ package org.mariadb.jdbc;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.constant.Version;
 
 import java.sql.SQLException;
 import java.util.Properties;
@@ -16,9 +15,7 @@ public class JdbcParserTest {
     public void testMariaAlias() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
         UrlParser jdbc2 = UrlParser.parse("jdbc:mysql://localhost/test");
-        UrlParser jdbc3 = UrlParser.parse("jdbc:mariadb_" + Version.version + "://localhost/test");
         Assert.assertEquals(jdbc, jdbc2);
-        Assert.assertEquals(jdbc, jdbc3);
     }
 
     @Test
@@ -36,8 +33,7 @@ public class JdbcParserTest {
         Driver driver = new Driver();
         Assert.assertTrue(driver.acceptsURL("jdbc:mariadb://localhost/test"));
         Assert.assertTrue(driver.acceptsURL("jdbc:mysql://localhost/test"));
-        Assert.assertTrue(driver.acceptsURL("jdbc:mariadb_" + Version.version + "://localhost/test"));
-        Assert.assertFalse(driver.acceptsURL("jdbc:mariadb_1.3.6://localhost/test"));
+        Assert.assertFalse(driver.acceptsURL("jdbc:mysql://localhost/test?disableMariaDbDriver"));
     }
 
     @Test
@@ -60,7 +56,7 @@ public class JdbcParserTest {
 
     @Test
     public void testOptionTakeDefault() throws Throwable {
-        UrlParser jdbc = UrlParser.parse("jdbc:mysql://localhost/test");
+        UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
         Assert.assertNull(jdbc.getOptions().connectTimeout);
         Assert.assertTrue(jdbc.getOptions().validConnectionTimeout == 120);
         Assert.assertFalse(jdbc.getOptions().autoReconnect);
@@ -72,7 +68,7 @@ public class JdbcParserTest {
 
     @Test
     public void testOptionTakeDefaultAurora() throws Throwable {
-        UrlParser jdbc = UrlParser.parse("jdbc:mysql:aurora://cluster-identifier.cluster-customerID.region.rds.amazonaws.com/test");
+        UrlParser jdbc = UrlParser.parse("jdbc:mariadb:aurora://cluster-identifier.cluster-customerID.region.rds.amazonaws.com/test");
         Assert.assertNull(jdbc.getOptions().connectTimeout);
         Assert.assertTrue(jdbc.getOptions().validConnectionTimeout == 120);
         Assert.assertFalse(jdbc.getOptions().autoReconnect);
@@ -83,7 +79,7 @@ public class JdbcParserTest {
 
     @Test
     public void testOptionParse() throws Throwable {
-        UrlParser jdbc = UrlParser.parse("jdbc:mysql://localhost/test?user=root&password=toto&createDB=true"
+        UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/test?user=root&password=toto&createDB=true"
                 + "&autoReconnect=true&validConnectionTimeout=2&connectTimeout=5");
         Assert.assertTrue(jdbc.getOptions().connectTimeout == 5);
         Assert.assertTrue(jdbc.getOptions().validConnectionTimeout == 2);
@@ -99,7 +95,7 @@ public class JdbcParserTest {
 
     @Test
     public void testOptionParseSlash() throws Throwable {
-        UrlParser jdbc = UrlParser.parse("jdbc:mysql://127.0.0.1:3306/colleo?user=root&password=toto"
+        UrlParser jdbc = UrlParser.parse("jdbc:mariadb://127.0.0.1:3306/colleo?user=root&password=toto"
                 + "&localSocket=/var/run/mysqld/mysqld.sock");
         Assert.assertTrue("/var/run/mysqld/mysqld.sock".equals(jdbc.getOptions().localSocket));
 
@@ -112,7 +108,7 @@ public class JdbcParserTest {
 
     @Test
     public void testOptionParseIntegerMinimum() throws Throwable {
-        UrlParser jdbc = UrlParser.parse("jdbc:mysql://localhost/test?user=root&autoReconnect=true"
+        UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/test?user=root&autoReconnect=true"
                 + "&validConnectionTimeout=0&connectTimeout=5");
         Assert.assertTrue(jdbc.getOptions().connectTimeout == 5);
         Assert.assertTrue(jdbc.getOptions().validConnectionTimeout == 0);
@@ -122,14 +118,14 @@ public class JdbcParserTest {
 
     @Test(expected = SQLException.class)
     public void testOptionParseIntegerNotPossible() throws Throwable {
-        UrlParser.parse("jdbc:mysql://localhost/test?user=root&autoReconnect=true&validConnectionTimeout=-2"
+        UrlParser.parse("jdbc:mariadb://localhost/test?user=root&autoReconnect=true&validConnectionTimeout=-2"
                 + "&connectTimeout=5");
         fail();
     }
 
     @Test()
     public void testJdbcParserSimpleIpv4basic() throws SQLException {
-        String url = "jdbc:mysql://master:3306,slave1:3307,slave2:3308/database";
+        String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308/database";
         UrlParser.parse(url);
     }
 
@@ -141,7 +137,7 @@ public class JdbcParserTest {
 
     @Test
     public void testJdbcParserSimpleIpv4basicwithoutDatabase() throws SQLException {
-        String url = "jdbc:mysql://master:3306,slave1:3307,slave2:3308/";
+        String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308/";
         UrlParser urlParser = UrlParser.parse(url);
         Assert.assertNull(urlParser.getDatabase());
         Assert.assertNull(urlParser.getUsername());
@@ -154,7 +150,7 @@ public class JdbcParserTest {
 
     @Test
     public void testJdbcParserWithoutDatabaseWithProperties() throws SQLException {
-        String url = "jdbc:mysql://master:3306,slave1:3307,slave2:3308?autoReconnect=true";
+        String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308?autoReconnect=true";
         UrlParser urlParser = UrlParser.parse(url);
         Assert.assertNull(urlParser.getDatabase());
         Assert.assertNull(urlParser.getUsername());
@@ -168,7 +164,7 @@ public class JdbcParserTest {
 
     @Test
     public void testJdbcParserSimpleIpv4Properties() throws SQLException {
-        String url = "jdbc:mysql://master:3306,slave1:3307,slave2:3308/database?autoReconnect=true";
+        String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308/database?autoReconnect=true";
         Properties prop = new Properties();
         prop.setProperty("user", "greg");
         prop.setProperty("password", "pass");
@@ -186,7 +182,7 @@ public class JdbcParserTest {
 
     @Test
     public void testJdbcParserSimpleIpv4PropertiesReversedOrder() throws SQLException {
-        String url = "jdbc:mysql://master:3306,slave1:3307,slave2:3308?autoReconnect=true/database";
+        String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308?autoReconnect=true/database";
         Properties prop = new Properties();
         prop.setProperty("user", "greg");
         prop.setProperty("password", "pass");
@@ -204,7 +200,7 @@ public class JdbcParserTest {
 
     @Test
     public void testJdbcParserSimpleIpv4() throws SQLException {
-        String url = "jdbc:mysql://master:3306,slave1:3307,slave2:3308/database?user=greg&password=pass";
+        String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308/database?user=greg&password=pass";
         UrlParser urlParser = UrlParser.parse(url);
         Assert.assertTrue("database".equals(urlParser.getDatabase()));
         Assert.assertTrue("greg".equals(urlParser.getUsername()));
@@ -218,7 +214,7 @@ public class JdbcParserTest {
 
     @Test
     public void testJdbcParserSimpleIpv6() throws SQLException {
-        String url = "jdbc:mysql://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306,[2001:660:7401:200::edf:bdd7]:3307"
+        String url = "jdbc:mariadb://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306,[2001:660:7401:200::edf:bdd7]:3307"
                 + "/database?user=greg&password=pass";
         UrlParser urlParser = UrlParser.parse(url);
         Assert.assertTrue("database".equals(urlParser.getDatabase()));
@@ -234,7 +230,7 @@ public class JdbcParserTest {
 
     @Test
     public void testJdbcParserParameter() throws SQLException {
-        String url = "jdbc:mysql://address=(type=master)(port=3306)(host=master1),address=(port=3307)(type=master)"
+        String url = "jdbc:mariadb://address=(type=master)(port=3306)(host=master1),address=(port=3307)(type=master)"
                 + "(host=master2),address=(type=slave)(host=slave1)(port=3308)/database?user=greg&password=pass";
         UrlParser urlParser = UrlParser.parse(url);
         Assert.assertTrue("database".equals(urlParser.getDatabase()));
@@ -248,7 +244,7 @@ public class JdbcParserTest {
 
     @Test()
     public void testJdbcParserParameterErrorEqual() {
-        String url = "jdbc:mysql://address=(type=)(port=3306)(host=master1),address=(port=3307)(type=master)"
+        String url = "jdbc:mariadb://address=(type=)(port=3306)(host=master1),address=(port=3307)(type=master)"
                 + "(host=master2),address=(type=slave)(host=slave1)(port=3308)/database?user=greg&password=pass";
         try {
             UrlParser.parse(url);
@@ -260,21 +256,21 @@ public class JdbcParserTest {
 
     @Test
     public void testJdbcParserHaModeNone() throws SQLException {
-        String url = "jdbc:mysql://localhost/database";
+        String url = "jdbc:mariadb://localhost/database";
         UrlParser jdbc = UrlParser.parse(url);
         Assert.assertTrue(jdbc.getHaMode().equals(HaMode.NONE));
     }
 
     @Test
     public void testJdbcParserHaModeLoadReplication() throws SQLException {
-        String url = "jdbc:mysql:replication://localhost/database";
+        String url = "jdbc:mariadb:replication://localhost/database";
         UrlParser jdbc = UrlParser.parse(url);
         Assert.assertTrue(jdbc.getHaMode().equals(HaMode.REPLICATION));
     }
 
     @Test
     public void testJdbcParserReplicationParameter() throws SQLException {
-        String url = "jdbc:mysql:replication://address=(type=master)(port=3306)(host=master1),address=(port=3307)"
+        String url = "jdbc:mariadb:replication://address=(type=master)(port=3306)(host=master1),address=(port=3307)"
                 + "(type=master)(host=master2),address=(type=slave)(host=slave1)(port=3308)/database"
                 + "?user=greg&password=pass";
         UrlParser urlParser = UrlParser.parse(url);
@@ -289,7 +285,7 @@ public class JdbcParserTest {
 
     @Test
     public void testJdbcParserReplicationParameterWithoutType() throws SQLException {
-        String url = "jdbc:mysql:replication://master1,slave1,slave2/database";
+        String url = "jdbc:mariadb:replication://master1,slave1,slave2/database";
         UrlParser urlParser = UrlParser.parse(url);
         Assert.assertTrue("database".equals(urlParser.getDatabase()));
         Assert.assertTrue(urlParser.getHostAddresses().size() == 3);
@@ -300,18 +296,28 @@ public class JdbcParserTest {
 
     @Test
     public void testJdbcParserHaModeLoadAurora() throws SQLException {
-        String url = "jdbc:mysql:aurora://cluster-identifier.cluster-customerID.region.rds.amazonaws.com/database";
+        String url = "jdbc:mariadb:aurora://cluster-identifier.cluster-customerID.region.rds.amazonaws.com/database";
         UrlParser jdbc = UrlParser.parse(url);
         Assert.assertTrue(jdbc.getHaMode().equals(HaMode.AURORA));
     }
 
     /**
      * Conj-167 : Driver is throwing IllegalArgumentException instead of returning null.
+     * @throws SQLException if any exception occur
      */
     @Test
     public void checkOtherDriverCompatibility() throws SQLException {
-        String url = "jdbc:h2:mem:RZM;DB_CLOSE_DELAY=-1";
-        UrlParser jdbc = UrlParser.parse(url);
+        UrlParser jdbc = UrlParser.parse("jdbc:h2:mem:RZM;DB_CLOSE_DELAY=-1");
+        Assert.assertTrue(jdbc == null);
+    }
+
+    /**
+     * CONJ-423] driver doesn't accept connection string with "disableMariaDbDriver"
+     * @throws SQLException if any exception occur
+     */
+    @Test
+    public void checkDisable() throws SQLException {
+        UrlParser jdbc = UrlParser.parse("jdbc:mysql://localhost/test?disableMariaDbDriver");
         Assert.assertTrue(jdbc == null);
     }
 

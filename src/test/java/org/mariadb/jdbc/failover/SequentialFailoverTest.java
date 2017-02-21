@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Test for sequential connection
- * exemple mvn test  -DdefaultGaleraUrl=jdbc:mysql:sequential//localhost:3306,localhost:3307/test?user=root.
+ * exemple mvn test  -DdefaultGaleraUrl=jdbc:mariadb:sequential//localhost:3306,localhost:3307/test?user=root.
  */
 public class SequentialFailoverTest extends BaseMultiHostTest {
 

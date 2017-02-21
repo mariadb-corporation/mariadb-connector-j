@@ -100,11 +100,11 @@ There is another endpoint named "cluster endpoint" (format `xxx.cluster-yyy.zzz.
 
 In previous version, cluster endpoint use was discouraged, since when a failover occur, this cluster endpoint can point for a limited time to a host that isn't the current master anymore. Old recommandation was to list all specific end-points, like : \\
 {{{
-jdbc:mysql:aurora://a.yyy.zzz.rds.amazonaws.com.com,b.yyy.zzz.rds.amazonaws.com.com/db
+jdbc:mariadb:aurora://a.yyy.zzz.rds.amazonaws.com.com,b.yyy.zzz.rds.amazonaws.com.com/db
 }}}
 This kind of url string will still work, but now, recommended url string has to use only cluster endpoint :<br/>
 {{{
-jdbc:mysql:aurora://xxx.cluster-yyy.zzz.rds.amazonaws.com/db
+jdbc:mariadb:aurora://xxx.cluster-yyy.zzz.rds.amazonaws.com/db
 }}}
 
 Driver will automatically discover master and slaves of this cluster from current cluster end-point during connection time. This permit to add new replicas to the cluster instance will be discovered without changing driver configuration.
@@ -322,7 +322,7 @@ CONJ-217
 Driver information informations are now send to [[https://mariadb.com/kb/en/mariadb/performance-schema-session_connect_attrs-table/|connection attributes tables]] (performance_schema must be activated).
 A new option "connectionAttributes" permit to add client specifics data.
 
-For example when connecting with the following connection string {{{"jdbc:mysql://localhost:3306/testj?user=root&connectionAttributes=myOption:1,mySecondOption:'jj'"}}}, 
+For example when connecting with the following connection string {{{"jdbc:mariadb://localhost:3306/testj?user=root&connectionAttributes=myOption:1,mySecondOption:'jj'"}}},
 if performance_schema is activated, information about this connection will be available during the time this connection is active :
 {{{
 select * from performance_schema.session_connect_attrs where processList_id = 5

@@ -45,6 +45,17 @@ public class ParserTest extends BaseTest {
     }
 
     @Test
+    public void mysqlDatasourceVerification() throws Exception {
+        MariaDbDataSource datasource = new MariaDbDataSource();
+        datasource.setUser(username);
+        datasource.setPassword(password);
+        datasource.setUrl("jdbc:mysql://" + hostname + ":" + port + "/" + database);
+        try (Connection connection = datasource.getConnection()) {
+            //ok
+        }
+    }
+
+    @Test
     public void libreOfficeBase() {
         String sql;
         try {

@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Exemple mvn test  -DdefaultLoadbalanceUrl=jdbc:mysql:loadbalance//localhost:3306,localhost:3307/test?user=root.
+ * Exemple mvn test  -DdefaultLoadbalanceUrl=jdbc:mariadb:loadbalance//localhost:3306,localhost:3307/test?user=root.
  */
 public class LoadBalanceFailoverTest extends BaseMultiHostTest {
     /**

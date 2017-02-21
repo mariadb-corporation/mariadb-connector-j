@@ -73,6 +73,7 @@ public final class MariaDbConnection implements Connection {
      * the protocol to communicate with.
      */
     private final Protocol protocol;
+    private final String initialUrl;
     protected CallableStatementCache callableStatementCache;
     private final ClientPrepareStatementCache clientPrepareStatementCache;
 
@@ -112,10 +113,13 @@ public final class MariaDbConnection implements Connection {
     /**
      * Creates a new connection with a given protocol and query factory.
      *
-     * @param protocol the protocol to use.
+     * @param initialUrl    initial url
+     * @param protocol      the protocol to use.
+     * @param lock          lock
      */
-    private MariaDbConnection(Protocol protocol, ReentrantLock lock) throws SQLException {
+    private MariaDbConnection(String initialUrl, Protocol protocol, ReentrantLock lock) throws SQLException {
         this.protocol = protocol;
+        this.initialUrl = initialUrl;
         options = protocol.getOptions();
         noBackslashEscapes = protocol.noBackslashEscapes();
         nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
@@ -131,8 +135,8 @@ public final class MariaDbConnection implements Connection {
         }
     }
 
-    public static MariaDbConnection newConnection(Protocol protocol, ReentrantLock lock) throws SQLException {
-        return new MariaDbConnection(protocol, lock);
+    public static MariaDbConnection newConnection(String initialUrl, Protocol protocol, ReentrantLock lock) throws SQLException {
+        return new MariaDbConnection(initialUrl, protocol, lock);
     }
 
     public static String quoteIdentifier(String string) {
@@ -677,8 +681,7 @@ public final class MariaDbConnection implements Connection {
      * @throws SQLException if there is a problem creating the meta data.
      */
     public DatabaseMetaData getMetaData() throws SQLException {
-        return new MariaDbDatabaseMetaData(this, protocol.getUsername(),
-                "jdbc:mysql://" + protocol.getHost() + ":" + protocol.getPort() + "/" + protocol.getDatabase());
+        return new MariaDbDatabaseMetaData(this, protocol.getUsername(), initialUrl);
     }
 
     /**

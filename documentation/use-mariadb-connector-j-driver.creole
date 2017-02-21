@@ -49,6 +49,7 @@ The format of the JDBC connection string is
 jdbc:(mysql|mariadb):[replication:|failover:|sequential:|aurora:]//<hostDescription>[,<hostDescription>...]/[database][?<key1>=<value1>[&<key2>=<value2>]]
 }}}
 
+
  HostDescription:
 {{{
 <host>[:<portnumber>]  or address=(host=<host>)[(port=<portnumber>)][(type=(master|slave))]
@@ -65,11 +66,18 @@ Examples :
 * {{{somehost.com:3306}}}
 * {{{address=(host=localhost)(port=3306)(type=master)}}}
 
+=== Having MariaDB and MySQL driver in the same classpath
+Since MariaDB want ambition to be a droppin replacement for mysql, driver permit connection string  beginning with "jdbc:mariadb" or "jdbc:mysql".
+To permit having MySQL and MariaDB driver are on the same classpath, since version 1.5.9, MariaDB driver doesn't accept connection string beginning with "jdbc:mysql" if option "disableMariaDbDriver" is set.
+
+{{{jdbc:mysql://localhost:3306/db?user=someUser&disableMariaDbDriver}}} won't be accepted by MariaDB driver.
+
+
 == Failover parameters
 
 Failover was introduced in Connector/J 1.2.0.
 
-|=sequential |Failover support for master replication cluster (for example Galera) without High availability. The hosts will be connected in the order in which they were declared.\\\\Example when using the jdbc url string "jdbc:mysql:replication:host1,host2,host3/test" : \\When connecting, the driver will always first try host1, and if not available host2 and so on. After a host fail, the driver will reconnect according to this order. \\//since 1.3.0//|
+|=sequential |Failover support for master replication cluster (for example Galera) without High availability. The hosts will be connected in the order in which they were declared.\\\\Example when using the jdbc url string "jdbc:mariadb:replication:host1,host2,host3/test" : \\When connecting, the driver will always first try host1, and if not available host2 and so on. After a host fail, the driver will reconnect according to this order. \\//since 1.3.0//|
 |=failover | High availability (random picking connection initialisation) with failover support for master replication cluster (for example Galera). \\//since 1.2.0//|
 |=replication | High availability (random picking connection initialisation) with failover support for master/slave replication cluster (one or multiple masters) \\//since 1.2.0//|
 |=aurora | High availability (random picking connection initialisation) with failover support for Amazon Aurora replication cluster \\//since 1.2.0//|
@@ -270,7 +278,7 @@ MySQL server and create a table.
 
 === Creating a table on a MariaDB or MySQL server
 {{{
-try (Connection  connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/test", "username", "password")) {
+try (Connection  connection = DriverManager.getConnection("jdbc:mariadb://localhost:3306/test", "username", "password")) {
     try (Statement stmt = connection.createStatement()) {
         stmt.executeUpdate("CREATE TABLE a (id int not null primary key, value varchar(20))");
     }

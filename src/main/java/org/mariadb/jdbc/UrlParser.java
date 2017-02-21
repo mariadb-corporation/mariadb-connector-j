@@ -54,7 +54,6 @@ import org.mariadb.jdbc.internal.util.DefaultOptions;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
-import org.mariadb.jdbc.internal.util.constant.Version;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -82,20 +81,22 @@ import java.util.regex.Pattern;
  * <p>
  * host can be dns name, ipv4 or ipv6.<br>
  * in case of ipv6 and simple host description, the ip must be written inside bracket.<br>
- * exemple : {@code jdbc:mysql://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
+ * exemple : {@code jdbc:mariadb://[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}<br>
  * </p>
  * <p>
  * Some examples :<br>
- * {@code jdbc:mysql://localhost:3306/database?user=greg&password=pass}<br>
- * {@code jdbc:mysql://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}<br>
+ * {@code jdbc:mariadb://localhost:3306/database?user=greg&password=pass}<br>
+ * {@code jdbc:mariadb://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}<br>
  * </p>
  */
 public class UrlParser {
 
+    private static final String DISABLE_MYSQL_URL = "disableMariaDbDriver";
     private String database;
     private Options options = null;
     private List<HostAddress> addresses;
     private HaMode haMode;
+    private String initialUrl;
 
     private UrlParser() { }
 
@@ -120,14 +121,13 @@ public class UrlParser {
     /**
      * Tell if mariadb driver accept url string.
      * (Correspond to interface java.jdbc.Driver.acceptsURL() method)
+     *
      * @param url url String
      * @return true if url string correspond.
      */
     public static boolean acceptsUrl(String url) {
         return (url != null) && (url.startsWith("jdbc:mariadb:")
-                || url.startsWith("jdbc:mysql:")
-                || url.startsWith("jdbc:mariadb_" + Version.version + ":"));
-
+                || (url.startsWith("jdbc:mysql:") && !url.contains(DISABLE_MYSQL_URL)));
     }
 
     public static UrlParser parse(final String url) throws SQLException {
@@ -136,33 +136,21 @@ public class UrlParser {
 
     /**
      * Parse url connection string with additional properties.
-     * @param url connection string
+     *
+     * @param url  connection string
      * @param prop properties
      * @return UrlParser instance
      * @throws SQLException if parsing exception occur
      */
     public static UrlParser parse(final String url, Properties prop) throws SQLException {
         if (url != null) {
-            if (prop == null) {
-                prop = new Properties();
-            }
-            if (url.startsWith("jdbc:mysql:")) {
+
+            if (prop == null) prop = new Properties();
+
+            if (url.startsWith("jdbc:mariadb:") || url.startsWith("jdbc:mysql:") && !url.contains(DISABLE_MYSQL_URL)) {
                 UrlParser urlParser = new UrlParser();
                 parseInternal(urlParser, url, prop);
                 return urlParser;
-            } else {
-                if (url.startsWith("jdbc:mariadb:")) {
-                    UrlParser urlParser = new UrlParser();
-                    parseInternal(urlParser, "jdbc:mysql:" + url.substring(13), prop);
-                    return urlParser;
-                }
-
-                //to permit having multiple maria db version in classpath and permit performance test
-                if (url.startsWith("jdbc:mariadb_" + Version.version + ":")) {
-                    UrlParser urlParser = new UrlParser();
-                    parseInternal(urlParser, "jdbc:mysql:" + url.substring(("jdbc:mariadb_" + Version.version + ":").length()), prop);
-                    return urlParser;
-                }
             }
         }
         return null;
@@ -170,19 +158,21 @@ public class UrlParser {
 
     /*
         Parse ConnectorJ compatible urls
-        jdbc:mysql://host:port/database
-        Example: jdbc:mysql://localhost:3306/test?user=root&password=passwd
+        jdbc:[mariadb|mysql]://host:port/database
+        Example: jdbc:mariadb://localhost:3306/test?user=root&password=passwd
          */
+
     /**
      * Parses the connection URL in order to set the UrlParser instance with all the information provided through the URL.
      *
-     * @param urlParser     object instance in which all data from the connection url is stored
-     * @param url           connection URL
-     * @param properties    properties
+     * @param urlParser  object instance in which all data from the connection url is stored
+     * @param url        connection URL
+     * @param properties properties
      * @throws SQLException if format is incorrect
      */
     private static void parseInternal(UrlParser urlParser, String url, Properties properties) throws SQLException {
         try {
+            urlParser.initialUrl = url;
             int separator = url.indexOf("//");
             if (separator == -1) {
                 throw new IllegalArgumentException("url parsing error : '//' is not present in the url " + url);
@@ -219,13 +209,13 @@ public class UrlParser {
      * Sets the parameters of the UrlParser instance: addresses, database and options.
      * It parses through the additional parameters given in order to extract the database and the options for the connection.
      *
-     * @param urlParser             object instance in which all data from the connection URL is stored
-     * @param properties            properties
-     * @param hostAddressesString   string that holds all the host addresses
-     * @param additionalParameters  string that holds all parameters defined for the connection
+     * @param urlParser            object instance in which all data from the connection URL is stored
+     * @param properties           properties
+     * @param hostAddressesString  string that holds all the host addresses
+     * @param additionalParameters string that holds all parameters defined for the connection
      */
     private static void defineUrlParserParameters(UrlParser urlParser, Properties properties, String hostAddressesString,
-                                                       String additionalParameters) {
+                                                  String additionalParameters) {
 
         if (additionalParameters != null) {
             String regex = "(\\/[^\\?]*)(\\?.+)*|(\\?[^\\/]*)(\\/.+)*";
@@ -255,7 +245,7 @@ public class UrlParser {
         urlParser.addresses = HostAddress.parse(hostAddressesString, urlParser.haMode);
     }
 
-    private static void setHaMode(UrlParser urlParser,String url, int separator) {
+    private static void setHaMode(UrlParser urlParser, String url, int separator) {
         String[] baseTokens = url.substring(0, separator).split(":");
 
         //parse HA mode
@@ -285,20 +275,13 @@ public class UrlParser {
 
     /**
      * Parse url connection string.
+     *
      * @param url connection string
      * @throws SQLException if url format is incorrect
      */
     public void parseUrl(String url) throws SQLException {
-        if (url.startsWith("jdbc:mysql:")) {
+        if (acceptsUrl(url)) {
             parseInternal(this, url, new Properties());
-            return;
-        }
-        String[] arr = new String[]{"jdbc:mysql:thin:", "jdbc:mariadb:"};
-        for (String prefix : arr) {
-            if (url.startsWith(prefix)) {
-                parseInternal(this, "jdbc:mysql:" + url.substring(prefix.length()), new Properties());
-                break;
-            }
         }
     }
 
@@ -344,20 +327,15 @@ public class UrlParser {
 
     /**
      * ToString implementation.
+     *
      * @return String value
      */
     public String toString() {
-        String str = "jdbc:mysql://";
-        if (!haMode.equals(HaMode.NONE)) {
-            str = "jdbc:mysql:" + haMode.toString().toLowerCase() + "://";
-        }
-        if (addresses != null) {
-            str += HostAddress.toString(addresses);
-        }
-        if (database != null) {
-            str += "/" + database;
-        }
-        return str;
+        return initialUrl;
+    }
+
+    public String getInitialUrl() {
+        return initialUrl;
     }
 
     public HaMode getHaMode() {

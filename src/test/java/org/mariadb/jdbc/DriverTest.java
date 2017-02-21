@@ -329,12 +329,12 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testConnectorJurl() throws SQLException {
-        UrlParser url = UrlParser.parse("jdbc:mysql://localhost/test");
+        UrlParser url = UrlParser.parse("jdbc:mariadb://localhost/test");
         assertEquals("localhost", url.getHostAddresses().get(0).host);
         assertEquals("test", url.getDatabase());
         assertEquals(3306, url.getHostAddresses().get(0).port);
 
-        url = UrlParser.parse("jdbc:mysql://localhost:3307/test");
+        url = UrlParser.parse("jdbc:mariadb://localhost:3307/test");
         assertEquals("localhost", url.getHostAddresses().get(0).host);
         assertEquals("test", url.getDatabase());
         assertEquals(3307, url.getHostAddresses().get(0).port);
@@ -388,7 +388,7 @@ public class DriverTest extends BaseTest {
     public void connectFailover() throws SQLException {
         Assume.assumeTrue(hostname != null);
         String hosts = hostname + ":" + port + "," + hostname + ":" + (port + 1);
-        String url = "jdbc:mysql://" + hosts + "/" + database + "?user=" + username;
+        String url = "jdbc:mariadb://" + hosts + "/" + database + "?user=" + username;
         url += (password != null && !"".equals(password) ? "&password=" + password : "");
         try (Connection connection = openNewConnection(url)) {
             MariaDbConnection my = (MariaDbConnection) connection;
