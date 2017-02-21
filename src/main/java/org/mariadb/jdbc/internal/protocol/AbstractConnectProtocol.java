@@ -449,6 +449,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
             sessionOption += "," + options.sessionVariables;
         }
         executeQuery("set session " + sessionOption);
+
+
+        if (options.sessionVariables != null && options.sessionVariables.contains("time_zone")) {
+            //reload session variables, since, time_zone may have change
+            loadServerData();
+        }
     }
 
     private void handleConnectionPhases() throws QueryException {
@@ -651,7 +657,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     }
 
-    private void loadServerData() throws QueryException, IOException {
+    private void loadServerData() throws QueryException {
         serverData = new TreeMap<>();
         try {
             Results results = new Results();
