@@ -435,8 +435,8 @@ public class ResultSetTest extends BaseTest {
         //reading forward
         ResultSet rs = stmt.executeQuery("select * from testStreamInsensitive");
         for (int i = 0; i < 20; i++) {
-           assertTrue(rs.next());
-           assertEquals("V" + i, rs.getString(1));
+            assertTrue(rs.next());
+            assertEquals("V" + i, rs.getString(1));
         }
         assertFalse(rs.next());
 

@@ -312,7 +312,7 @@ public class JdbcParserTest {
     }
 
     /**
-     * CONJ-423] driver doesn't accept connection string with "disableMariaDbDriver"
+     * CONJ-423] driver doesn't accept connection string with "disableMariaDbDriver".
      * @throws SQLException if any exception occur
      */
     @Test
