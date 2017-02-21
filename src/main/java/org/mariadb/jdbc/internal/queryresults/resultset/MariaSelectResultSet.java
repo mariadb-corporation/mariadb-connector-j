@@ -574,8 +574,17 @@ public class MariaSelectResultSet implements ResultSet {
                 } finally {
                     lock.unlock();
                 }
-                rowPointer = 0;
-                return resultSetSize > 0;
+
+                if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+                    //resultSet has been cleared. next value is pointer 0.
+                    rowPointer = 0;
+                    return resultSetSize > 0;
+                } else {
+                    // cursor can move backward, so driver must keep the results.
+                    // results have been added to current resultSet
+                    rowPointer++;
+                    return resultSetSize > rowPointer;
+                }
             }
 
             //all data are reads and pointer is after last
@@ -649,7 +658,8 @@ public class MariaSelectResultSet implements ResultSet {
                 ReentrantLock lock = protocol.getLock();
                 lock.lock();
                 try {
-                    nextStreamingValue();
+                    //this time, fetch is added even for forward type to keep current pointer row.
+                    addStreamingValue();
                 } catch (IOException ioe) {
                     throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
                             + " read off the result set relatively fast. "
@@ -660,8 +670,8 @@ public class MariaSelectResultSet implements ResultSet {
                 } finally {
                     lock.unlock();
                 }
-                rowPointer = 0;
-                return resultSetSize == 0;
+
+                return resultSetSize == rowPointer;
             }
 
             //has read all data and pointer is after last result
