@@ -82,7 +82,9 @@ public class ConnectionPoolTest extends BaseTest {
             long poolExecutionTime = insert500WithPool(ds);
             System.out.println("mono connection execution time : " + monoConnectionExecutionTime);
             System.out.println("pool execution time : " + poolExecutionTime);
-            Assert.assertTrue(monoConnectionExecutionTime > poolExecutionTime);
+            if (!sharedIsRewrite() && !sharedOptions().allowMultiQueries) {
+                Assert.assertTrue(monoConnectionExecutionTime > poolExecutionTime);
+            }
         }
     }
 
