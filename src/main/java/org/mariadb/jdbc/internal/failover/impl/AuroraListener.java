@@ -229,7 +229,7 @@ public class AuroraListener extends MastersSlavesListener {
             try {
                 // Deleted instance may remain in db for 24 hours so ignoring instances that have had no change
                 // for 3 minutes
-                Results results = new Results();
+                Results results = new Results(1);
                 protocol.executeQuery(false, results,
                         "select server_id, session_id from information_schema.replica_host_status "
                                 + "where last_update_timestamp > now() - INTERVAL 3 MINUTE");
@@ -341,7 +341,7 @@ public class AuroraListener extends MastersSlavesListener {
         String masterHostName = null;
         proxy.lock.lock();
         try {
-            Results results = new Results();
+            Results results = new Results(1);
             protocol.executeQuery(false, results,
                     "select server_id from information_schema.replica_host_status "
                             + "where session_id = 'MASTER_SESSION_ID' "

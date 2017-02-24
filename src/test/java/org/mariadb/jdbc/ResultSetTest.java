@@ -421,4 +421,114 @@ public class ResultSetTest extends BaseTest {
         }
 
     }
+
+    @Test
+    public void testStreamInsensitive() throws Exception {
+        createTable("testStreamInsensitive", "s1 varchar(20)");
+
+        for (int r = 0; r < 20; r++) {
+            sharedConnection.createStatement().executeUpdate("insert into testStreamInsensitive values('V" + r + "')");
+        }
+        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY);
+        stmt.setFetchSize(10);
+
+        //reading forward
+        ResultSet rs = stmt.executeQuery("select * from testStreamInsensitive");
+        for (int i = 0; i < 20; i++) {
+            assertTrue(rs.next());
+            assertEquals("V" + i, rs.getString(1));
+        }
+        assertFalse(rs.next());
+
+        rs = stmt.executeQuery("select * from testStreamInsensitive");
+        for (int i = 0; i < 20; i++) {
+            assertFalse(rs.isAfterLast());
+            assertTrue(rs.next());
+            assertEquals("V" + i, rs.getString(1));
+            assertFalse(rs.isAfterLast());
+        }
+        assertFalse(rs.isAfterLast());
+        assertFalse(rs.next());
+        assertTrue(rs.isAfterLast());
+
+        rs = stmt.executeQuery("select * from testStreamInsensitive");
+        assertTrue(rs.absolute(20));
+        assertEquals("V19", rs.getString(1));
+        assertFalse(rs.isAfterLast());
+        assertFalse(rs.absolute(21));
+        assertTrue(rs.isAfterLast());
+
+        //reading backward
+        rs = stmt.executeQuery("select * from testStreamInsensitive");
+        rs.afterLast();
+        for (int i = 19; i >= 0; i--) {
+            assertTrue(rs.previous());
+            assertEquals("V" + i, rs.getString(1));
+        }
+        assertFalse(rs.previous());
+
+        rs = stmt.executeQuery("select * from testStreamInsensitive");
+        rs.last();
+        assertEquals("V19", rs.getString(1));
+
+        rs.first();
+        assertEquals("V0", rs.getString(1));
+
+    }
+
+    @Test
+    public void testStreamForward() throws Exception {
+        createTable("testStreamForward", "s1 varchar(20)");
+
+        for (int r = 0; r < 20; r++) {
+            sharedConnection.createStatement().executeUpdate("insert into testStreamForward values('V" + r + "')");
+        }
+        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY);
+        stmt.setFetchSize(10);
+
+        //reading forward
+        ResultSet rs = stmt.executeQuery("select * from testStreamForward");
+        for (int i = 0; i < 20; i++) {
+            assertTrue(rs.next());
+            assertEquals("V" + i, rs.getString(1));
+        }
+        assertFalse(rs.next());
+
+        //checking isAfterLast that may need to fetch next result
+        rs = stmt.executeQuery("select * from testStreamForward");
+        for (int i = 0; i < 20; i++) {
+            assertFalse(rs.isAfterLast());
+            assertTrue(rs.next());
+            assertEquals("V" + i, rs.getString(1));
+            assertFalse(rs.isAfterLast());
+        }
+        assertFalse(rs.isAfterLast());
+        assertFalse(rs.next());
+        assertTrue(rs.isAfterLast());
+
+        //reading backward
+        rs = stmt.executeQuery("select * from testStreamForward");
+        rs.afterLast();
+        try {
+            rs.previous();
+            fail("Must have thrown exception since previous is not possible when fetching");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+        }
+
+        rs = stmt.executeQuery("select * from testStreamForward");
+        rs.last();
+        assertEquals("V19", rs.getString(1));
+
+        try {
+            rs.first();
+            fail("Must have thrown exception since previous is not possible when fetching");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+        }
+
+    }
+
 }

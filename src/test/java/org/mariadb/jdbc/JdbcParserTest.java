@@ -303,13 +303,21 @@ public class JdbcParserTest {
 
     /**
      * Conj-167 : Driver is throwing IllegalArgumentException instead of returning null.
+     * @throws SQLException if any exception occur
      */
     @Test
     public void checkOtherDriverCompatibility() throws SQLException {
         UrlParser jdbc = UrlParser.parse("jdbc:h2:mem:RZM;DB_CLOSE_DELAY=-1");
         Assert.assertTrue(jdbc == null);
+    }
 
-        jdbc = UrlParser.parse("jdbc:mysql://localhost/test?disableMariaDbDriver");
+    /**
+     * CONJ-423] driver doesn't accept connection string with "disableMariaDbDriver".
+     * @throws SQLException if any exception occur
+     */
+    @Test
+    public void checkDisable() throws SQLException {
+        UrlParser jdbc = UrlParser.parse("jdbc:mysql://localhost/test?disableMariaDbDriver");
         Assert.assertTrue(jdbc == null);
     }
 

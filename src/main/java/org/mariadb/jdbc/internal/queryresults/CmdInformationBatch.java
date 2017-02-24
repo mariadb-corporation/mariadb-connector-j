@@ -4,7 +4,6 @@ package org.mariadb.jdbc.internal.queryresults;
 MariaDB Client for Java
 
 Copyright (c) 2012-2014 Monty Program Ab.
-Copyright (c) 2015-2017 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -55,30 +54,35 @@ import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class CmdInformationMultiple implements CmdInformation {
+public class CmdInformationBatch implements CmdInformation {
 
-
-
-    private ArrayList<Long> insertIds;
-    private ArrayList<Long> updateCounts;
+    private Queue<Long> insertIds;
+    private Queue<Long> updateCounts;
     private int insertIdNumber = 0;
     private int expectedSize;
     private int autoIncrement;
-    private int moreResults;
     private boolean hasException;
 
     /**
-     * Object containing update / insert ids, optimized for only multiple result.
+     * CmdInformationBatch is similar to CmdInformationMultiple, but knowing it's for batch,
+     * doesn't take take of moreResult.
+     * That permit to use ConcurrentLinkedQueue, and then when option "useBatchMultiSend" is set
+     * and batch is interrupted, will permit to reading thread to keep connection in a
+     * correct state without any ConcurrentModificationException.
+     *
      *
      * @param expectedSize  expected batch size.
      * @param autoIncrement connection auto increment value.
      */
-    public CmdInformationMultiple(int expectedSize, int autoIncrement) {
+    public CmdInformationBatch(int expectedSize, int autoIncrement) {
         this.expectedSize = expectedSize;
-        this.insertIds = new ArrayList<>(expectedSize);
-        this.updateCounts = new ArrayList<>(expectedSize);
+        this.insertIds = new ConcurrentLinkedQueue<>();
+        this.updateCounts = new ConcurrentLinkedQueue<>();
         this.autoIncrement = autoIncrement;
     }
 
@@ -93,7 +97,7 @@ public class CmdInformationMultiple implements CmdInformation {
     }
 
     @Override
-    public void addSuccessStat(int updateCount, long insertId) {
+    public void addSuccessStat(long updateCount, long insertId) {
         this.insertIds.add(insertId);
         insertIdNumber += updateCount;
         this.updateCounts.add(updateCount);
@@ -118,10 +122,8 @@ public class CmdInformationMultiple implements CmdInformation {
         return ret;
     }
 
-
     @Override
     public long[] getLargeUpdateCounts() {
-
         long[] ret = new long[Math.max(updateCounts.size(), expectedSize)];
 
         Iterator<Long> iterator = updateCounts.iterator();
@@ -144,29 +146,28 @@ public class CmdInformationMultiple implements CmdInformation {
      *
      * @return update count array.
      */
-    public long[] getLargeRewriteUpdateCounts() {
-        long[] ret = new long[expectedSize];
-        Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
-        return ret;
-    }
-
-
-    /**
-     * Will return an array filled with Statement.EXECUTE_FAILED if any error occur,
-     * or Statement.SUCCESS_NO_INFO, if execution succeed.
-     *
-     * @return update count array.
-     */
     public int[] getRewriteUpdateCounts() {
         int[] ret = new int[expectedSize];
         Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
         return ret;
     }
 
+    public long[] getRewriteLargeUpdateCounts() {
+        long[] ret = new long[expectedSize];
+        Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
+        return ret;
+    }
+
     @Override
     public int getUpdateCount() {
-        if (moreResults >= updateCounts.size()) return -1;
-        return updateCounts.get(moreResults);
+        Long updateCount = updateCounts.peek();
+        return (updateCount == null) ? - 1 : updateCount.intValue();
+    }
+
+    @Override
+    public long getLargeUpdateCount() {
+        Long updateCount = updateCounts.peek();
+        return (updateCount == null) ? - 1 : updateCount;
     }
 
     @Override
@@ -175,9 +176,9 @@ public class CmdInformationMultiple implements CmdInformation {
         int position = 0;
         long insertId;
         Iterator<Long> idIterator = insertIds.iterator();
-        Iterator<Integer> updateIterator = updateCounts.iterator();
+        Iterator<Long> updateIterator = updateCounts.iterator();
         while (updateIterator.hasNext()) {
-            int updateCount = updateIterator.next();
+            int updateCount = updateIterator.next().intValue();
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
                     && (insertId = idIterator.next().longValue()) > 0) {
@@ -203,15 +204,13 @@ public class CmdInformationMultiple implements CmdInformation {
         Iterator<Long> idIterator = insertIds.iterator();
         Iterator<Long> updateIterator = updateCounts.iterator();
 
-        for (int element = 0 ; element <= moreResults; element++) {
-            long updateCount = updateIterator.next();
+        while (updateIterator.hasNext()) {
+            int updateCount = updateIterator.next().intValue();
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
-                    && (insertId = idIterator.next()) > 0) {
-                if (element == moreResults) {
-                    for (int i = 0; i < updateCount; i++) {
-                        ret[position++] = insertId + i * autoIncrement;
-                    }
+                    && (insertId = idIterator.next().longValue()) > 0) {
+                for (int i = 0; i < updateCount; i++) {
+                    ret[position++] = insertId + i * autoIncrement;
                 }
             }
         }
@@ -225,17 +224,12 @@ public class CmdInformationMultiple implements CmdInformation {
 
     @Override
     public boolean moreResults() {
-
-        if (moreResults++ < updateCounts.size() - 1) {
-            return updateCounts.get(moreResults) != RESULT_SET_VALUE;
-        }
         return false;
     }
 
     @Override
     public boolean isCurrentUpdateCount() {
-        if (updateCounts.size() >= 0) return updateCounts.get(moreResults) != RESULT_SET_VALUE;
-        return true;
+        return false;
     }
 
 }

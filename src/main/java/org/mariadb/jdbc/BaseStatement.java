@@ -662,9 +662,8 @@ public abstract class BaseStatement implements Statement, Cloneable {
 
     /**
      * Sets the number of seconds the driver will wait for a <code>Statement</code> object to execute to the given number of seconds. If the limit is
-     * exceeded, an <code>SQLException</code> is thrown. A JDBC driver must apply this limit to the <code>execute</code>, <code>executeQuery</code>
-     * and <code>executeUpdate</code> methods. JDBC driver implementations may also apply this limit to <code>ResultSet</code> methods (consult your
-     * driver vendor documentation for details).
+     * exceeded, an <code>SQLException</code> is thrown. A JDBC driver must apply this limit to the <code>execute</code>,
+     * <code>executeQuery</code> and <code>executeUpdate</code> methods.
      *
      * @param seconds the new query timeout limit in seconds; zero means there is no limit
      * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the condition
@@ -778,8 +777,8 @@ public abstract class BaseStatement implements Statement, Cloneable {
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
-        if (results.getCmdInformation() != null) {
-            return results.getCmdInformation().getGeneratedKeys(protocol);
+        if (results != null) {
+            return results.getGeneratedKeys(protocol);
         }
         return SelectResultSetCommon.createEmptyResultSet();
     }
@@ -855,7 +854,7 @@ public abstract class BaseStatement implements Statement, Cloneable {
      * @throws SQLException if a database access error occurs or this method is called on a closed Statement
      */
     public int getUpdateCount() throws SQLException {
-        if (results.getCmdInformation() != null) {
+        if (results != null && results.getCmdInformation() != null && !results.isBatch()) {
             return results.getCmdInformation().getUpdateCount();
         }
         return -1;

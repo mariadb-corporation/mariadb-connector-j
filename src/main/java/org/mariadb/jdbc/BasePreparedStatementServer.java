@@ -215,6 +215,7 @@ public abstract class BasePreparedStatementServer extends BasePrepareStatement i
         if (queryParameterSize == 0) return new int[0];
 
         lock.lock();
+        executing = true;
         try {
 
             executeBatchInternal(results, queryParameterSize);

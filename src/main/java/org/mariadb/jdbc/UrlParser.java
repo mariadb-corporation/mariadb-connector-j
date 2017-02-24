@@ -54,7 +54,6 @@ import org.mariadb.jdbc.internal.util.DefaultOptions;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
-import org.mariadb.jdbc.internal.util.constant.Version;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -97,6 +96,7 @@ public class UrlParser {
     private Options options = null;
     private List<HostAddress> addresses;
     private HaMode haMode;
+    private String initialUrl;
 
     private UrlParser() {
     }
@@ -148,22 +148,10 @@ public class UrlParser {
 
             if (prop == null) prop = new Properties();
 
-            if (url.startsWith("jdbc:mariadb:")) {
-
+            if (url.startsWith("jdbc:mariadb:") || url.startsWith("jdbc:mysql:") && !url.contains(DISABLE_MYSQL_URL)) {
                 UrlParser urlParser = new UrlParser();
                 parseInternal(urlParser, url, prop);
                 return urlParser;
-
-            } else {
-
-                if (url.startsWith("jdbc:mysql:") && !url.contains(DISABLE_MYSQL_URL)) {
-
-                    UrlParser urlParser = new UrlParser();
-                    parseInternal(urlParser, "jdbc:mariadb:" + url.substring(11), prop);
-                    return urlParser;
-
-                }
-
             }
         }
         return null;
@@ -185,6 +173,7 @@ public class UrlParser {
      */
     private static void parseInternal(UrlParser urlParser, String url, Properties properties) throws SQLException {
         try {
+            urlParser.initialUrl = url;
             int separator = url.indexOf("//");
             if (separator == -1) {
                 throw new IllegalArgumentException("url parsing error : '//' is not present in the url " + url);
@@ -292,19 +281,8 @@ public class UrlParser {
      * @throws SQLException if url format is incorrect
      */
     public void parseUrl(String url) throws SQLException {
-        if (url.startsWith("jdbc:mariadb:")) {
+        if (acceptsUrl(url)) {
             parseInternal(this, url, new Properties());
-            return;
-        }
-
-        if (!url.contains(DISABLE_MYSQL_URL)) {
-            String[] arr = new String[]{"jdbc:mysql:thin:", "jdbc:mysql:"};
-            for (String prefix : arr) {
-                if (url.startsWith(prefix)) {
-                    parseInternal(this, "jdbc:mariadb:" + url.substring(prefix.length()), new Properties());
-                    break;
-                }
-            }
         }
     }
 
@@ -354,17 +332,11 @@ public class UrlParser {
      * @return String value
      */
     public String toString() {
-        String str = "jdbc:mariadb://";
-        if (!haMode.equals(HaMode.NONE)) {
-            str = "jdbc:mariadb:" + haMode.toString().toLowerCase() + "://";
-        }
-        if (addresses != null) {
-            str += HostAddress.toString(addresses);
-        }
-        if (database != null) {
-            str += "/" + database;
-        }
-        return str;
+        return initialUrl;
+    }
+
+    public String getInitialUrl() {
+        return initialUrl;
     }
 
     public HaMode getHaMode() {

@@ -49,6 +49,7 @@ The format of the JDBC connection string is
 jdbc:(mysql|mariadb):[replication:|failover:|sequential:|aurora:]//<hostDescription>[,<hostDescription>...]/[database][?<key1>=<value1>[&<key2>=<value2>]]
 }}}
 
+
  HostDescription:
 {{{
 <host>[:<portnumber>]  or address=(host=<host>)[(port=<portnumber>)][(type=(master|slave))]
@@ -64,6 +65,13 @@ Examples :
 * {{{[2001:0660:7401:0200:0000:0000:0edf:bdd7]:3306}}}
 * {{{somehost.com:3306}}}
 * {{{address=(host=localhost)(port=3306)(type=master)}}}
+
+=== Having MariaDB and MySQL driver in the same classpath
+Since MariaDB want ambition to be a droppin replacement for mysql, driver permit connection string  beginning with "jdbc:mariadb" or "jdbc:mysql".
+To permit having MySQL and MariaDB driver are on the same classpath, since version 1.5.9, MariaDB driver doesn't accept connection string beginning with "jdbc:mysql" if option "disableMariaDbDriver" is set.
+
+{{{jdbc:mysql://localhost:3306/db?user=someUser&disableMariaDbDriver}}} won't be accepted by MariaDB driver.
+
 
 == Failover parameters
 

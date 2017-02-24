@@ -225,23 +225,30 @@ public class DriverTest extends BaseTest {
 
         requireMinimumVersion(5, 0);
         /* non-standard autoIncrementIncrement */
-        int autoIncrementIncrement = 2;
-        Connection connection = null;
-        try {
-            connection = setConnection("&sessionVariables=auto_increment_increment=" + autoIncrementIncrement + "&allowMultiQueries=true");
+
+
+        try ( Connection connection = setConnection("&sessionVariables=auto_increment_increment=2&allowMultiQueries=true")) {
             stmt = connection.createStatement();
             stmt.execute("INSERT INTO Drivert3 (test) values ('bb'),('cc');INSERT INTO Drivert3 (test) values ('dd'),('ee')",
                     Statement.RETURN_GENERATED_KEYS);
+
             rs = stmt.getGeneratedKeys();
-            for (int i = 0; i < 4; i++) {
-                assertTrue(rs.next());
-                assertEquals(7 + autoIncrementIncrement * i, rs.getInt(1));
-            }
+
+            assertTrue(rs.next());
+            assertEquals(7, rs.getInt(1));
+            assertTrue(rs.next());
+            assertEquals(9, rs.getInt(1));
             assertFalse(rs.next());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+
+            stmt.getMoreResults();
+
+            rs = stmt.getGeneratedKeys();
+
+            assertTrue(rs.next());
+            assertEquals(11, rs.getInt(1));
+            assertTrue(rs.next());
+            assertEquals(13, rs.getInt(1));
+            assertFalse(rs.next());
         }
     }
 

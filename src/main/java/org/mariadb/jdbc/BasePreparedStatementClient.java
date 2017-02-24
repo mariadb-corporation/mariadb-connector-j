@@ -199,7 +199,8 @@ public abstract class BasePreparedStatementClient extends BasePrepareStatement i
         try {
 
             executeQueryPrologue();
-            results = new Results(this, fetchSize, false, 1, false, resultSetScrollType, connection.getAutoIncrementIncrement());
+            results = new Results(this, fetchSize, false, 1, false, resultSetScrollType,
+                    connection.getAutoIncrementIncrement());
             protocol.executeQuery(protocol.isMasterConnection(), results, prepareResult, parameters);
             results.commandEnd();
             return results.getResultSet() != null;
@@ -265,12 +266,18 @@ public abstract class BasePreparedStatementClient extends BasePrepareStatement i
         int size = parameterList.size();
         if (size == 0) return new int[0];
 
+        Results internalResults = new Results(this, 0, true, size, false, resultSetScrollType,
+                connection.getAutoIncrementIncrement());
+        boolean rewritten = options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable();
         lock.lock();
         try {
 
-            executeInternalBatch(size);
-
-            return results.getCmdInformation().getUpdateCounts();
+            executeInternalBatch(internalResults, size);
+            if (!rewritten) {
+                return results.getCmdInformation().getUpdateCounts();
+            } else {
+                return results.getCmdInformation().getRewriteUpdateCounts();
+            }
 
         } catch (SQLException sqle) {
             throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size);
@@ -278,7 +285,6 @@ public abstract class BasePreparedStatementClient extends BasePrepareStatement i
             executeBatchEpilogue();
             lock.unlock();
         }
-
     }
 
     /**
@@ -287,15 +293,9 @@ public abstract class BasePreparedStatementClient extends BasePrepareStatement i
      * @param size                    parameters number
      * @throws SQLException if any error occur
      */
-    protected void executeInternalBatch(int size) throws SQLException {
+    protected void executeInternalBatch(Results results, int size) throws SQLException {
 
         executeQueryPrologue();
-
-        if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
-            results = new ResultsRewrite(this, 0, true, size, false, resultSetScrollType, connection.getAutoIncrementIncrement());
-        } else {
-            results = new Results(this, 0, true, size, false, resultSetScrollType, connection.getAutoIncrementIncrement());
-        }
 
         if (options.rewriteBatchedStatements) {
             if (prepareResult.isQueryMultiValuesRewritable()) {

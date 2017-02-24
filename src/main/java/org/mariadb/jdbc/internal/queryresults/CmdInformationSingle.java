@@ -53,14 +53,21 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 
 import java.sql.ResultSet;
-import java.sql.Statement;
 
 public class CmdInformationSingle implements CmdInformation {
+
     private long insertId;
     private long updateCount;
     private int autoIncrement;
 
-    public CmdInformationSingle(long insertId, long updateCount, int autoIncrement) {
+    /**
+     * Object containing update / insert ids, optimized for only one result.
+     *
+     * @param insertId      auto generated id.
+     * @param updateCount   update count
+     * @param autoIncrement connection auto increment value.
+     */
+    public CmdInformationSingle(long insertId, int updateCount, int autoIncrement) {
         this.insertId = insertId;
         this.updateCount = updateCount;
         this.autoIncrement = autoIncrement;
@@ -68,7 +75,18 @@ public class CmdInformationSingle implements CmdInformation {
 
     @Override
     public int[] getUpdateCounts() {
-        return new int[] {(int) updateCount};
+        return new int[] { (int) updateCount};
+    }
+
+    @Override
+    public long[] getLargeUpdateCounts() {
+        return new long[] {updateCount};
+    }
+
+
+    @Override
+    public int getUpdateCount() {
+        return (int) updateCount;
     }
 
     @Override
@@ -77,24 +95,20 @@ public class CmdInformationSingle implements CmdInformation {
     }
 
     @Override
-    public long[] getLargeUpdateCounts() {
-        return new long[] {updateCount};
-    }
-
-    @Override
-    public int getUpdateCount() {
-        return (int) updateCount;
-    }
-
-    @Override
-    public void addStats(long updateCount, long insertId) {
+    public void addSuccessStat(int updateCount, long insertId) {
         //not expected
     }
 
     @Override
-    public void addStats(long updateCount) {
+    public void addErrorStat() {
         //not expected
     }
+
+    @Override
+    public void addResultSetStat() {
+        //not expected
+    }
+
 
     /**
      * Get generated Keys.
@@ -105,19 +119,22 @@ public class CmdInformationSingle implements CmdInformation {
     public ResultSet getGeneratedKeys(Protocol protocol) {
         if (insertId == 0) {
             return SelectResultSetCommon.createEmptyResultSet();
-        } else {
-            if (updateCount == 1) {
-                return SelectResultSetCommon.createGeneratedData(new long[]{insertId}, protocol, true);
-            } else if (updateCount == Statement.EXECUTE_FAILED) {
-                return SelectResultSetCommon.createEmptyResultSet();
-            } else {
-                long[] ret = new long[(int) updateCount];
-                for (int i = 0; i < updateCount; i++) {
-                    ret[i] = insertId + i * autoIncrement;
-                }
-                return SelectResultSetCommon.createGeneratedData(ret, protocol, true);
-            }
         }
+
+        if (updateCount > 1) {
+            long[] insertIds = new long[(int) updateCount];
+            for (int i = 0; i < updateCount; i++) {
+                insertIds[i] = insertId + i * autoIncrement;
+            }
+            return SelectResultSetCommon.createGeneratedData(insertIds, protocol, true);
+        }
+
+        return SelectResultSetCommon.createGeneratedData(new long[] {insertId}, protocol, true);
+    }
+
+    @Override
+    public ResultSet getBatchGeneratedKeys(Protocol protocol) {
+        return getGeneratedKeys(protocol);
     }
 
     public int getCurrentStatNumber() {
@@ -126,12 +143,16 @@ public class CmdInformationSingle implements CmdInformation {
 
     @Override
     public boolean moreResults() {
-        updateCount = NO_UPDATE_COUNT;
+        updateCount = RESULT_SET_VALUE;
         return false;
     }
 
     public boolean isCurrentUpdateCount() {
-        return updateCount != NO_UPDATE_COUNT;
+        return updateCount != RESULT_SET_VALUE;
+    }
+
+    public int[] getRewriteUpdateCounts() {
+        return null; //never occur
     }
 }
 

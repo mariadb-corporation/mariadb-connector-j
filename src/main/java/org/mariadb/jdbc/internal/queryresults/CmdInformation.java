@@ -55,25 +55,32 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import java.sql.ResultSet;
 
 public interface CmdInformation {
-    public static final int NO_UPDATE_COUNT = -1;
+    public static final int RESULT_SET_VALUE = -1;
 
     int[] getUpdateCounts();
 
     long[] getLargeUpdateCounts();
 
+    int[] getRewriteUpdateCounts();
+
     int getUpdateCount();
 
     long getLargeUpdateCount();
 
-    void addStats(long updateCount, long insertId);
+    void addSuccessStat(long updateCount, long insertId);
 
-    void addStats(long updateCount);
+    void addErrorStat();
+
+    void addResultSetStat();
 
     ResultSet getGeneratedKeys(Protocol protocol);
+
+    ResultSet getBatchGeneratedKeys(Protocol protocol);
 
     int getCurrentStatNumber();
 
     boolean moreResults();
 
     boolean isCurrentUpdateCount();
+
 }

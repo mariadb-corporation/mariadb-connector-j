@@ -460,6 +460,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         executeQuery("set session " + sessionOption);
 
+
         if (options.sessionVariables != null && options.sessionVariables.contains("time_zone")) {
             //reload session variables, since, time_zone may have change
             loadServerData();
@@ -673,7 +674,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void loadServerData() throws SQLException {
         serverData = new TreeMap<>();
         try {
-            Results results = new Results();
+            Results results = new Results(1);
             executeQuery(true, results, "SELECT @@max_allowed_packet , "
                             + "@@system_time_zone, "
                             + "@@session.time_zone, "
@@ -691,7 +692,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             //fallback in case of galera non primary nodes that permit only show / set command
             try {
-                Results results = new Results();
+                Results results = new Results(1);
                 executeQuery(true, results, "SHOW VARIABLES WHERE Variable_name in ("
                         + "'max_allowed_packet', "
                         + "'system_time_zone', "
