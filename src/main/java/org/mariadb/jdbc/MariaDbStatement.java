@@ -762,7 +762,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException if a database access error occurs or this method is called on a closed Statement
      */
     public int getUpdateCount() throws SQLException {
-        if (results != null && results.getCmdInformation() != null) {
+        if (results != null && results.getCmdInformation() != null && !results.isBatch()) {
             return results.getCmdInformation().getUpdateCount();
         }
         return -1;

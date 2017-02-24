@@ -42,6 +42,9 @@ public class MultiTest extends BaseTest {
 
         createTable("MultiTestprepsemi", "id int not null primary key auto_increment, text text");
         createTable("MultiTestA", "data varchar(10)");
+        createTable("testMultiGeneratedKey", "id int not null primary key auto_increment, text text");
+
+
         if (testSingleHost) {
             Statement st = sharedConnection.createStatement();
             st.execute("insert into MultiTestt1 values(1,'a'),(2,'a')");
@@ -1079,4 +1082,205 @@ public class MultiTest extends BaseTest {
         }
 
     }
+
+
+    @Test
+    public void testMultiGeneratedKeyRewrite() throws Throwable {
+
+        Properties props = new Properties();
+        props.setProperty("rewriteBatchedStatements", "true");
+        props.setProperty("allowMultiQueries", "true");
+        props.setProperty("useServerPrepStmts", "false");
+        props.setProperty("sessionVariables", "auto_increment_increment=3");
+
+        try (Connection tmpConnection = openNewConnection(connUri, props)) {
+            checkResults(tmpConnection);
+            checkResultsPrepare(tmpConnection);
+            checkResultsPrepareMulti(tmpConnection);
+            checkResultsPrepareBatch(tmpConnection, true);
+        }
+
+    }
+
+    @Test
+    public void testMultiGeneratedKey() throws Throwable {
+
+        Properties props = new Properties();
+        props.setProperty("rewriteBatchedStatements", "false");
+        props.setProperty("allowMultiQueries", "true");
+        props.setProperty("useServerPrepStmts", "true");
+        props.setProperty("sessionVariables", "auto_increment_increment=3");
+
+        try (Connection tmpConnection = openNewConnection(connUri, props)) {
+            checkResults(tmpConnection);
+            checkResultsPrepare(tmpConnection);
+            checkResultsPrepareMulti(tmpConnection);
+            checkResultsPrepareBatch(tmpConnection, false);
+        }
+
+    }
+
+
+    private void checkResultsPrepareBatch(Connection connection, boolean isRewrite) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeQuery("truncate table testMultiGeneratedKey");
+
+            //test single execution
+            PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO testMultiGeneratedKey (text) VALUES (?)",
+                    Statement.RETURN_GENERATED_KEYS);
+            preparedStatement.setString(1, "data1");
+            preparedStatement.addBatch();
+            preparedStatement.setString(1, "data2");
+            preparedStatement.addBatch();
+
+            int[] updates = preparedStatement.executeBatch();
+            assertEquals(2, updates.length);
+
+            ResultSet rs = preparedStatement.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertTrue(rs.next());
+            assertEquals(4, rs.getInt(1));
+            assertFalse(rs.next());
+            assertFalse(preparedStatement.getMoreResults());
+
+
+            if (!isRewrite) {
+                assertEquals(1, updates[0]);
+                assertEquals(1, updates[1]);
+            } else {
+                assertEquals(Statement.SUCCESS_NO_INFO, updates[0]);
+                assertEquals(Statement.SUCCESS_NO_INFO, updates[1]);
+            }
+        }
+    }
+
+    private void checkResultsPrepare(Connection connection) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeQuery("truncate table testMultiGeneratedKey");
+
+            //test single execution
+            PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO testMultiGeneratedKey (text) VALUES (?)",
+                    Statement.RETURN_GENERATED_KEYS);
+            preparedStatement.setString(1, "data1");
+            int update = preparedStatement.executeUpdate();
+            assertEquals(1, update);
+
+            ResultSet rs = preparedStatement.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertFalse(rs.next());
+        }
+    }
+
+    private void checkResultsPrepareMulti(Connection connection) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeQuery("truncate table testMultiGeneratedKey");
+
+            //test single execution
+            PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO testMultiGeneratedKey (text) VALUES (?);"
+                    + "INSERT INTO testMultiGeneratedKey (text) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+            preparedStatement.setString(1, "data1");
+            preparedStatement.setString(2, "data2");
+            int update = preparedStatement.executeUpdate();
+            assertEquals(1, update);
+
+            ResultSet rs = preparedStatement.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertFalse(rs.next());
+            assertTrue(preparedStatement.getMoreResults());
+
+            assertEquals(1, preparedStatement.getUpdateCount());
+            rs = preparedStatement.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(4, rs.getInt(1));
+            assertFalse(rs.next());
+            assertFalse(preparedStatement.getMoreResults());
+
+        }
+    }
+
+    private void checkResults(Connection connection) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeQuery("truncate table testMultiGeneratedKey");
+
+            //test single execution
+            int update = stmt.executeUpdate("INSERT INTO testMultiGeneratedKey (text) VALUES ('data1'), ('data2'), ('data3');"
+                    + "INSERT INTO testMultiGeneratedKey (text) VALUES ('data4'), ('data5')", Statement.RETURN_GENERATED_KEYS);
+            assertEquals(3, update);
+
+            ResultSet rs = stmt.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertTrue(rs.next());
+            assertEquals(4, rs.getInt(1));
+            assertTrue(rs.next());
+            assertEquals(7, rs.getInt(1));
+            assertFalse(rs.next());
+
+            assertTrue(stmt.getMoreResults());
+            assertEquals(2, stmt.getUpdateCount());
+
+            rs = stmt.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(10, rs.getInt(1));
+            assertTrue(rs.next());
+            assertEquals(13, rs.getInt(1));
+            assertFalse(rs.next());
+
+            assertFalse(stmt.getMoreResults());
+
+            update = stmt.executeUpdate("INSERT INTO testMultiGeneratedKey (text) VALUES ('data11')", Statement.RETURN_GENERATED_KEYS);
+            assertEquals(1, update);
+
+            rs = stmt.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(16, rs.getInt(1));
+            assertFalse(rs.next());
+            assertFalse(stmt.getMoreResults());
+
+            update = stmt.executeUpdate("SELECT * FROM testMultiGeneratedKey", Statement.RETURN_GENERATED_KEYS);
+            assertEquals(0, update);
+
+            rs = stmt.getGeneratedKeys();
+            assertFalse(rs.next());
+            assertFalse(stmt.getMoreResults());
+
+            //test batch
+            stmt.executeQuery("truncate table testMultiGeneratedKey");
+            stmt.addBatch("INSERT INTO testMultiGeneratedKey (text) VALUES ('data0');INSERT INTO testMultiGeneratedKey (text) VALUES ('data1')");
+            stmt.addBatch("INSERT INTO testMultiGeneratedKey (text) VALUES ('data2')");
+            stmt.addBatch("INSERT INTO testMultiGeneratedKey (text) VALUES ('data3')");
+            int[] updates = stmt.executeBatch();
+
+            assertEquals(4, updates.length);
+
+            assertEquals(1, updates[0]);
+            assertEquals(1, updates[1]);
+            assertEquals(1, updates[2]);
+            assertEquals(1, updates[3]);
+
+            rs = stmt.getGeneratedKeys();
+
+            for (int i = 0; i < 4; i++) {
+                assertTrue(rs.next());
+                assertEquals(1 + i * 3, rs.getInt(1));
+            }
+
+            assertFalse(rs.next());
+            assertFalse(stmt.getMoreResults());
+
+            stmt.addBatch("INSERT INTO testMultiGeneratedKey (text) VALUES ('data11')");
+            stmt.executeBatch();
+
+            rs = stmt.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(13, rs.getInt(1));
+            assertFalse(rs.next());
+
+        }
+
+    }
+
 }

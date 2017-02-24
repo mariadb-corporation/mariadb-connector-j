@@ -269,7 +269,7 @@ public class Results {
             }
         }
 
-        if (cmdInformation.moreResults()) {
+        if (cmdInformation.moreResults() && !batch) {
 
             if (current == Statement.CLOSE_CURRENT_RESULT && resultSet != null) resultSet.close();
             resultSet = null;

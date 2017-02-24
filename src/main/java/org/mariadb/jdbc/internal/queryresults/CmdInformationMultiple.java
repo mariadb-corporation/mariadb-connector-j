@@ -100,10 +100,13 @@ public class CmdInformationMultiple implements CmdInformation {
 
     @Override
     public int[] getUpdateCounts() {
+
         int[] ret = new int[Math.max(updateCounts.size(), expectedSize)];
+
+        Iterator<Integer> iterator = updateCounts.iterator();
         int pos = 0;
-        for (Integer updateCount : updateCounts) {
-            ret[pos++] = updateCount;
+        while (iterator.hasNext()) {
+            ret[pos++] = iterator.next();
         }
 
         //in case of Exception
@@ -137,11 +140,13 @@ public class CmdInformationMultiple implements CmdInformation {
         long[] ret = new long[insertIdNumber];
         int position = 0;
         long insertId;
-        Iterator<Long> iterator = insertIds.iterator();
-        for (int updateCount : updateCounts) {
+        Iterator<Long> idIterator = insertIds.iterator();
+        Iterator<Integer> updateIterator = updateCounts.iterator();
+        while (updateIterator.hasNext()) {
+            int updateCount = updateIterator.next();
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
-                    && (insertId = iterator.next().longValue()) > 0) {
+                    && (insertId = idIterator.next().longValue()) > 0) {
                 for (int i = 0; i < updateCount; i++) {
                     ret[position++] = insertId + i * autoIncrement;
                 }
@@ -161,12 +166,14 @@ public class CmdInformationMultiple implements CmdInformation {
         long[] ret = new long[insertIdNumber];
         int position = 0;
         long insertId;
-        Iterator<Long> iterator = insertIds.iterator();
+        Iterator<Long> idIterator = insertIds.iterator();
+        Iterator<Integer> updateIterator = updateCounts.iterator();
+
         for (int element = 0 ; element <= moreResults; element++) {
-            int updateCount = updateCounts.get(element);
+            int updateCount = updateIterator.next();
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
-                    && (insertId = iterator.next().longValue()) > 0) {
+                    && (insertId = idIterator.next().longValue()) > 0) {
                 if (element == moreResults) {
                     for (int i = 0; i < updateCount; i++) {
                         ret[position++] = insertId + i * autoIncrement;

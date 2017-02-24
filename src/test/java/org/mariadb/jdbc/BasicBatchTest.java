@@ -230,17 +230,7 @@ public class BasicBatchTest extends BaseTest {
             assertEquals(1, updateCount[4]);
             assertEquals(1, updateCount[5]);
 
-            assertEquals(1, stmt.getUpdateCount());
-            assertTrue(stmt.getMoreResults());
-            assertEquals(1, stmt.getUpdateCount());
-            assertTrue(stmt.getMoreResults());
-            assertEquals(2, stmt.getUpdateCount());
-            assertTrue(stmt.getMoreResults());
-            assertEquals(2, stmt.getUpdateCount());
-            assertTrue(stmt.getMoreResults());
-            assertEquals(1, stmt.getUpdateCount());
-            assertTrue(stmt.getMoreResults());
-            assertEquals(1, stmt.getUpdateCount());
+            assertEquals(-1, stmt.getUpdateCount());
             assertFalse(stmt.getMoreResults());
 
             ResultSet resultSet = stmt.getGeneratedKeys();
