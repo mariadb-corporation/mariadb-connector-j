@@ -219,7 +219,8 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
         try {
             executeQueryProlog();
             batchResultSet = null;
-            Results internalResult = new Results(this, getFetchSize(), false, 1, false, resultSetScrollType);
+            Results internalResult = new Results(this, getFetchSize(), false, 1, false, resultSetScrollType,
+                    connection.getAutoIncrementIncrement());
             protocol.executeQuery(protocol.isMasterConnection(), internalResult, prepareResult, parameters);
             internalResult.commandEnd();
             results = internalResult;
@@ -285,12 +286,9 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
         int size = parameterList.size();
         if (size == 0) return new int[0];
 
-        Results internalResults;
-        if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
-            internalResults = new ResultsRewrite(this, 0, true, size, false, resultSetScrollType);
-        } else {
-            internalResults = new Results(this, 0, true, size, false, resultSetScrollType);
-        }
+        Results internalResults = new Results(this, 0, true, size, false, resultSetScrollType,
+                connection.getAutoIncrementIncrement());
+        boolean rewritten = options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable();
         lock.lock();
         try {
             QueryException exception = null;
@@ -300,9 +298,6 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
             } catch (QueryException e) {
                 exception = e;
             } finally {
-                if (options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable()) {
-                    ((ResultsRewrite) internalResults).setAutoIncrement(connection.getAutoIncrementIncrement());
-                }
                 internalResults.commandEnd();
                 results = internalResults;
                 executing = false;
@@ -322,7 +317,11 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
             lock.unlock();
             clearBatch();
         }
-        return results.getCmdInformation().getUpdateCounts();
+        if (!rewritten) {
+            return results.getCmdInformation().getUpdateCounts();
+        } else {
+            return results.getCmdInformation().getRewriteUpdateCounts();
+        }
     }
 
     /**

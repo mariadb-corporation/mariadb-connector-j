@@ -270,7 +270,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     public boolean checkIfMaster() throws QueryException {
         proxy.lock.lock();
         try {
-            Results results = new Results();
+            Results results = new Results(1);
             executeQuery(this.isMasterConnection(), results, "show global variables like 'innodb_read_only'");
             results.commandEnd();
             MariaSelectResultSet queryResult = results.getResultSet();

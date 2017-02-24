@@ -54,75 +54,47 @@ import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.Iterator;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.*;
 
-/**
- * Permit to store multiple update count / insert ids.
- * There is 3 different kind of information :
- * <ol>
- *     <li>standard : real update count and real insert ids</li>
- *     <li>Error : update count is set to EXECUTE_FAILED</li>
- *     <li>ResultSet : update count is set to -1</li>
- * </ol>
- *
- * -
- */
 public class CmdInformationMultiple implements CmdInformation {
 
-    private Queue<Long> insertIds;
-    private Queue<Integer> updateCounts;
+
+
+    private ArrayList<Long> insertIds;
+    private ArrayList<Integer> updateCounts;
+    private int insertIdNumber = 0;
     private int expectedSize;
+    private int autoIncrement;
+    private int moreResults;
+    private boolean hasException;
 
     /**
-     * Constructor, initialized with a standard result.
+     * Object containing update / insert ids, optimized for only multiple result.
      *
-     * @param insertId generated insert id
-     * @param updateCount update count
-     * @param expectedSize expected batch size
+     * @param expectedSize  expected batch size.
+     * @param autoIncrement connection auto increment value.
      */
-    public CmdInformationMultiple(long insertId, int updateCount, int expectedSize) {
+    public CmdInformationMultiple(int expectedSize, int autoIncrement) {
         this.expectedSize = expectedSize;
-        this.insertIds = new ConcurrentLinkedQueue<>();
-        this.updateCounts = new ConcurrentLinkedQueue<>();
-        if (insertId != 0) this.insertIds.add(insertId);
-        this.updateCounts.add(updateCount);
+        this.insertIds = new ArrayList<>(expectedSize);
+        this.updateCounts = new ArrayList<>(expectedSize);
+        this.autoIncrement = autoIncrement;
     }
 
-    /**
-     * Constructor, initialized with a ResultSet result.
-     *
-     * @param updateCount update count
-     * @param expectedSize expected batch size
-     */
-    public CmdInformationMultiple(int updateCount, int expectedSize) {
-        this.expectedSize = expectedSize;
-        this.insertIds = new ConcurrentLinkedQueue<>();
-        this.updateCounts = new ConcurrentLinkedQueue<>();
-        this.updateCounts.add(updateCount);
-    }
-
-    /**
-     * Constructor, initialized with an error result.
-     *
-     * @param expectedSize expected batch size.
-     */
-    public CmdInformationMultiple(int expectedSize) {
-        this.expectedSize = expectedSize;
-        this.insertIds = new ConcurrentLinkedQueue<>();
-        this.updateCounts = new ConcurrentLinkedQueue<>();
+    @Override
+    public void addErrorStat() {
+        hasException = true;
         this.updateCounts.add(Statement.EXECUTE_FAILED);
     }
 
-    @Override
-    public void addStats(int updateCount) {
-        this.updateCounts.add(updateCount);
+    public void addResultSetStat() {
+        this.updateCounts.add(RESULT_SET_VALUE);
     }
 
     @Override
-    public void addStats(int updateCount, long insertId) {
-        if (insertId != 0) this.insertIds.add(insertId);
+    public void addSuccessStat(int updateCount, long insertId) {
+        this.insertIds.add(insertId);
+        insertIdNumber += updateCount;
         this.updateCounts.add(updateCount);
     }
 
@@ -142,23 +114,65 @@ public class CmdInformationMultiple implements CmdInformation {
         return ret;
     }
 
+    /**
+     * Will return an array filled with Statement.EXECUTE_FAILED if any error occur,
+     * or Statement.SUCCESS_NO_INFO, if execution succeed.
+     *
+     * @return update count array.
+     */
+    public int[] getRewriteUpdateCounts() {
+        int[] ret = new int[expectedSize];
+        Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
+        return ret;
+    }
+
     @Override
     public int getUpdateCount() {
-        Integer updateCount = updateCounts.peek();
-        return (updateCount == null) ? NO_UPDATE_COUNT : updateCount;
+        if (moreResults >= updateCounts.size()) return -1;
+        return updateCounts.get(moreResults);
+    }
+
+    @Override
+    public ResultSet getBatchGeneratedKeys(Protocol protocol) {
+        long[] ret = new long[insertIdNumber];
+        int position = 0;
+        long insertId;
+        Iterator<Long> iterator = insertIds.iterator();
+        for (int updateCount : updateCounts) {
+            if (updateCount != Statement.EXECUTE_FAILED
+                    && updateCount != RESULT_SET_VALUE
+                    && (insertId = iterator.next().longValue()) > 0) {
+                for (int i = 0; i < updateCount; i++) {
+                    ret[position++] = insertId + i * autoIncrement;
+                }
+            }
+        }
+        return MariaSelectResultSet.createGeneratedData(ret, protocol, true);
     }
 
     /**
      * Return GeneratedKeys containing insert ids.
+     * Insert ids are calculated using autoincrement value.
      *
      * @param protocol current protocol
      * @return a resultSet with insert ids.
      */
     public ResultSet getGeneratedKeys(Protocol protocol) {
-        long[] ret = new long[insertIds.size()];
+        long[] ret = new long[insertIdNumber];
+        int position = 0;
+        long insertId;
         Iterator<Long> iterator = insertIds.iterator();
-        for (int i = 0; i < ret.length; i++) {
-            ret[i] = iterator.next().longValue();
+        for (int element = 0 ; element <= moreResults; element++) {
+            int updateCount = updateCounts.get(element);
+            if (updateCount != Statement.EXECUTE_FAILED
+                    && updateCount != RESULT_SET_VALUE
+                    && (insertId = iterator.next().longValue()) > 0) {
+                if (element == moreResults) {
+                    for (int i = 0; i < updateCount; i++) {
+                        ret[position++] = insertId + i * autoIncrement;
+                    }
+                }
+            }
         }
         return MariaSelectResultSet.createGeneratedData(ret, protocol, true);
     }
@@ -167,16 +181,20 @@ public class CmdInformationMultiple implements CmdInformation {
         return updateCounts.size();
     }
 
+
     @Override
     public boolean moreResults() {
-        if (updateCounts.poll() != null) return isCurrentUpdateCount();
+
+        if (moreResults++ < updateCounts.size() - 1) {
+            return updateCounts.get(moreResults) != RESULT_SET_VALUE;
+        }
         return false;
     }
 
     @Override
     public boolean isCurrentUpdateCount() {
-        Integer updateCount = updateCounts.peek();
-        return (updateCount == null) ? false : NO_UPDATE_COUNT != updateCount;
+        if (updateCounts.size() >= 0) return updateCounts.get(moreResults) != RESULT_SET_VALUE;
+        return true;
     }
 
 }

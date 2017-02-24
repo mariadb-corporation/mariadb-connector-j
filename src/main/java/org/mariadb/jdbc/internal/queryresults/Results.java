@@ -72,12 +72,14 @@ public class Results {
     private MariaSelectResultSet callableResultSet;
     private boolean binaryFormat;
     private int resultSetScrollType;
+    private int autoIncrement;
 
     /**
      * Single Text query.
      *
+     * @param autoIncrement         connection auto increment
      */
-    public Results() {
+    public Results(int autoIncrement) {
         this.statement = null;
         this.fetchSize = 0;
         this.batch = false;
@@ -85,20 +87,23 @@ public class Results {
         this.cmdInformation = null;
         this.binaryFormat = false;
         this.resultSetScrollType = ResultSet.TYPE_FORWARD_ONLY;
+        this.autoIncrement = autoIncrement;
     }
 
     /**
      * Default constructor.
      *
-     * @param statement current statement
-     * @param fetchSize fetch size
-     * @param batch select result possible
-     * @param expectedSize expected size
-     * @param binaryFormat use binary protocol
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param statement             current statement
+     * @param fetchSize             fetch size
+     * @param batch                 select result possible
+     * @param expectedSize          expected size
+     * @param binaryFormat          use binary protocol
+     * @param resultSetScrollType   one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param autoIncrement         connection auto increment
      */
-    public Results(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType) {
+    public Results(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat,
+                   int resultSetScrollType, int autoIncrement) {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.batch = batch;
@@ -106,6 +111,7 @@ public class Results {
         this.cmdInformation = null;
         this.binaryFormat = binaryFormat;
         this.resultSetScrollType = resultSetScrollType;
+        this.autoIncrement = autoIncrement;
     }
 
     /**
@@ -118,13 +124,13 @@ public class Results {
     public void addStats(int updateCount, long insertId, boolean moreResultAvailable) {
         if (cmdInformation == null) {
             if (moreResultAvailable || batch) {
-                cmdInformation = new CmdInformationMultiple(insertId, updateCount, expectedSize);
+                cmdInformation = new CmdInformationMultiple(expectedSize, autoIncrement);
             } else {
-                cmdInformation = new CmdInformationSingle(insertId, updateCount);
+                cmdInformation = new CmdInformationSingle(insertId, updateCount, autoIncrement);
+                return;
             }
-        } else {
-            cmdInformation.addStats(updateCount, insertId);
         }
+        cmdInformation.addSuccessStat(updateCount, insertId);
     }
 
     /**
@@ -134,13 +140,13 @@ public class Results {
     public void addStatsError(boolean moreResultAvailable) {
         if (cmdInformation == null) {
             if (moreResultAvailable || batch) {
-                cmdInformation = new CmdInformationMultiple(expectedSize);
+                cmdInformation = new CmdInformationMultiple(expectedSize, autoIncrement);
             } else {
-                cmdInformation = new CmdInformationSingle(0, Statement.EXECUTE_FAILED);
+                cmdInformation = new CmdInformationSingle(0, Statement.EXECUTE_FAILED, autoIncrement);
+                return;
             }
-        } else {
-            cmdInformation.addStats(Statement.EXECUTE_FAILED);
         }
+        cmdInformation.addErrorStat();
     }
 
     public int getCurrentStatNumber() {
@@ -162,13 +168,13 @@ public class Results {
         executionResults.add(resultSet);
         if (cmdInformation == null) {
             if (moreResultAvailable || batch) {
-                cmdInformation = new CmdInformationMultiple(-1, expectedSize);
+                cmdInformation = new CmdInformationMultiple(expectedSize, autoIncrement);
             } else {
-                cmdInformation = new CmdInformationSingle(0, -1);
+                cmdInformation = new CmdInformationSingle(0, -1, autoIncrement);
+                return;
             }
-        } else {
-            cmdInformation.addStats(-1);
         }
+        cmdInformation.addResultSetStat();
     }
 
     public CmdInformation getCmdInformation() {
@@ -179,8 +185,10 @@ public class Results {
      * Indicate that command / batch is finished, so set current resultSet if needed.
      */
     public void commandEnd() {
-        if (executionResults != null && !cmdInformation.isCurrentUpdateCount()) {
-            resultSet = executionResults.poll();
+        if (cmdInformation != null) {
+            if (executionResults != null && !cmdInformation.isCurrentUpdateCount()) {
+                resultSet = executionResults.poll();
+            }
         }
     }
 
@@ -309,4 +317,26 @@ public class Results {
         return resultSetScrollType;
     }
 
+    /**
+     * Send a resultSet that contain auto generated keys.
+     * 2 differences :
+     * <ol>
+     *     <li>Batch will list all insert ids.</li>
+     *     <li>in case of multi-query is set, resultSet will be per query. </li>
+     * </ol>
+     *
+     * example "INSERT INTO myTable values ('a'),('b');INSERT INTO myTable values ('c'),('d'),('e')"
+     * will have a resultSet of 2 values, and when Statement.getMoreResults() will be called,
+     * a Statement.getGeneratedKeys will return a resultset with 3 ids.
+     *
+     * @param protocol current protocol
+     * @return a ResultSet containing generated ids.
+     */
+    public ResultSet getGeneratedKeys(Protocol protocol) {
+        if (cmdInformation != null) {
+            if (batch) return cmdInformation.getBatchGeneratedKeys(protocol);
+            return cmdInformation.getGeneratedKeys(protocol);
+        }
+        return MariaSelectResultSet.createEmptyResultSet();
+    }
 }

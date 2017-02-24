@@ -239,7 +239,8 @@ public class MariaDbStatement implements Statement, Cloneable {
         try {
             executeQueryProlog();
             batchResultSet = null;
-            Results internalResults = new Results(this, fetchSize, false, 1, false, resultSetScrollType);
+            Results internalResults = new Results(this, fetchSize, false, 1, false, resultSetScrollType,
+                    connection.getAutoIncrementIncrement());
             protocol.executeQuery(protocol.isMasterConnection(), internalResults,
                     Utils.nativeSql(sql, connection.noBackslashEscapes));
             internalResults.commandEnd();
@@ -570,9 +571,8 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     /**
      * Sets the number of seconds the driver will wait for a <code>Statement</code> object to execute to the given number of seconds. If the limit is
-     * exceeded, an <code>SQLException</code> is thrown. A JDBC driver must apply this limit to the <code>execute</code>, <code>executeQuery</code>
-     * and <code>executeUpdate</code> methods. JDBC driver implementations may also apply this limit to <code>ResultSet</code> methods (consult your
-     * driver vendor documentation for details).
+     * exceeded, an <code>SQLException</code> is thrown. A JDBC driver must apply this limit to the <code>execute</code>,
+     * <code>executeQuery</code> and <code>executeUpdate</code> methods.
      *
      * @param seconds the new query timeout limit in seconds; zero means there is no limit
      * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the condition
@@ -683,8 +683,8 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
-        if (results != null && results.getCmdInformation() != null) {
-            return results.getCmdInformation().getGeneratedKeys(protocol);
+        if (results != null) {
+            return results.getGeneratedKeys(protocol);
         }
         return MariaSelectResultSet.createEmptyResultSet();
     }
@@ -972,7 +972,8 @@ public class MariaDbStatement implements Statement, Cloneable {
             return new int[0];
         }
 
-        Results internalResults = new Results(this, 0, true, size, false, resultSetScrollType);
+        Results internalResults = new Results(this, 0, true, size, false, resultSetScrollType,
+                connection.getAutoIncrementIncrement());
         lock.lock();
         try {
             QueryException exception = null;

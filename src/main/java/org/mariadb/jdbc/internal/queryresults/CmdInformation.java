@@ -9,21 +9,28 @@ import java.sql.SQLException;
  * Created by kolzeq on 16/12/2016.
  */
 public interface CmdInformation {
-    public static final int NO_UPDATE_COUNT = -1;
+    public static final int RESULT_SET_VALUE = -1;
 
     int[] getUpdateCounts();
 
+    int[] getRewriteUpdateCounts();
+
     int getUpdateCount();
 
-    void addStats(int updateCount, long insertId);
+    void addSuccessStat(int updateCount, long insertId);
 
-    void addStats(int updateCount);
+    void addErrorStat();
+
+    void addResultSetStat();
 
     ResultSet getGeneratedKeys(Protocol protocol);
+
+    ResultSet getBatchGeneratedKeys(Protocol protocol);
 
     int getCurrentStatNumber();
 
     boolean moreResults();
 
     boolean isCurrentUpdateCount();
+
 }

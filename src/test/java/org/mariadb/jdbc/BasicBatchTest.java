@@ -212,47 +212,50 @@ public class BasicBatchTest extends BaseTest {
 
     @Test
     public void testMultipleStatementBatch() throws SQLException {
+        try (Connection connection = setConnection("&sessionVariables=auto_increment_increment=2&allowMultiQueries=true")) {
+            Statement stmt = connection.createStatement();
+            stmt.addBatch("INSERT INTO test_batch3(test) value ('a')");
+            stmt.addBatch("INSERT INTO test_batch3(test) value ('b')");
+            stmt.addBatch("INSERT INTO test_batch3(test) value ('a'), ('e')");
+            stmt.addBatch("UPDATE test_batch3 set test='c' WHERE test = 'a'");
+            stmt.addBatch("UPDATE test_batch3 set test='d' WHERE test = 'b'");
+            stmt.addBatch("INSERT INTO test_batch3(test) value ('e')");
 
-        Statement stmt = sharedConnection.createStatement();
-        stmt.addBatch("INSERT INTO test_batch3(test) value ('a')");
-        stmt.addBatch("INSERT INTO test_batch3(test) value ('b')");
-        stmt.addBatch("INSERT INTO test_batch3(test) value ('a')");
-        stmt.addBatch("UPDATE test_batch3 set test='c' WHERE test = 'a'");
-        stmt.addBatch("UPDATE test_batch3 set test='d' WHERE test = 'b'");
-        stmt.addBatch("INSERT INTO test_batch3(test) value ('e')");
+            int[] updateCount = stmt.executeBatch();
+            assertEquals(6, updateCount.length);
+            assertEquals(1, updateCount[0]);
+            assertEquals(1, updateCount[1]);
+            assertEquals(2, updateCount[2]);
+            assertEquals(2, updateCount[3]);
+            assertEquals(1, updateCount[4]);
+            assertEquals(1, updateCount[5]);
 
-        int[] updateCount = stmt.executeBatch();
-        assertEquals(6, updateCount.length);
-        assertEquals(1, updateCount[0]);
-        assertEquals(1, updateCount[1]);
-        assertEquals(1, updateCount[2]);
-        assertEquals(2, updateCount[3]);
-        assertEquals(1, updateCount[4]);
-        assertEquals(1, updateCount[5]);
+            assertEquals(1, stmt.getUpdateCount());
+            assertTrue(stmt.getMoreResults());
+            assertEquals(1, stmt.getUpdateCount());
+            assertTrue(stmt.getMoreResults());
+            assertEquals(2, stmt.getUpdateCount());
+            assertTrue(stmt.getMoreResults());
+            assertEquals(2, stmt.getUpdateCount());
+            assertTrue(stmt.getMoreResults());
+            assertEquals(1, stmt.getUpdateCount());
+            assertTrue(stmt.getMoreResults());
+            assertEquals(1, stmt.getUpdateCount());
+            assertFalse(stmt.getMoreResults());
 
-        assertEquals(1, stmt.getUpdateCount());
-        assertTrue(stmt.getMoreResults());
-        assertEquals(1, stmt.getUpdateCount());
-        assertTrue(stmt.getMoreResults());
-        assertEquals(1, stmt.getUpdateCount());
-        assertTrue(stmt.getMoreResults());
-        assertEquals(2, stmt.getUpdateCount());
-        assertTrue(stmt.getMoreResults());
-        assertEquals(1, stmt.getUpdateCount());
-        assertTrue(stmt.getMoreResults());
-        assertEquals(1, stmt.getUpdateCount());
-        assertFalse(stmt.getMoreResults());
-
-        ResultSet resultSet = stmt.getGeneratedKeys();
-        assertTrue(resultSet.next());
-        assertEquals(1, resultSet.getInt(1));
-        assertTrue(resultSet.next());
-        assertEquals(2, resultSet.getInt(1));
-        assertTrue(resultSet.next());
-        assertEquals(3, resultSet.getInt(1));
-        assertTrue(resultSet.next());
-        assertEquals(4, resultSet.getInt(1));
-        assertFalse(resultSet.next());
+            ResultSet resultSet = stmt.getGeneratedKeys();
+            assertTrue(resultSet.next());
+            assertEquals(1, resultSet.getInt(1));
+            assertTrue(resultSet.next());
+            assertEquals(3, resultSet.getInt(1));
+            assertTrue(resultSet.next());
+            assertEquals(5, resultSet.getInt(1));
+            assertTrue(resultSet.next());
+            assertEquals(7, resultSet.getInt(1));
+            assertTrue(resultSet.next());
+            assertEquals(9, resultSet.getInt(1));
+            assertFalse(resultSet.next());
+        }
     }
 
 }

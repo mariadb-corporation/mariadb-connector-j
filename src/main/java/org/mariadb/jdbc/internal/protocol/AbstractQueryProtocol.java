@@ -121,8 +121,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
+    /**
+     * Execute internal query.
+     *
+     * !! will not support multi values queries !!
+     *
+     * @param   sql sql
+     * @throws  QueryException in any exception occur
+     */
     public void executeQuery(final String sql) throws QueryException {
-        executeQuery(isMasterConnection(), new Results(), sql);
+        executeQuery(isMasterConnection(), new Results(1), sql);
     }
 
     /**
