@@ -123,7 +123,9 @@ public class Results {
      */
     public void addStats(int updateCount, long insertId, boolean moreResultAvailable) {
         if (cmdInformation == null) {
-            if (moreResultAvailable || batch) {
+            if (batch) {
+                cmdInformation = new CmdInformationBatch(expectedSize, autoIncrement);
+            } else if (moreResultAvailable) {
                 cmdInformation = new CmdInformationMultiple(expectedSize, autoIncrement);
             } else {
                 cmdInformation = new CmdInformationSingle(insertId, updateCount, autoIncrement);
@@ -139,7 +141,9 @@ public class Results {
      */
     public void addStatsError(boolean moreResultAvailable) {
         if (cmdInformation == null) {
-            if (moreResultAvailable || batch) {
+            if (batch) {
+                cmdInformation = new CmdInformationBatch(expectedSize, autoIncrement);
+            } else if (moreResultAvailable) {
                 cmdInformation = new CmdInformationMultiple(expectedSize, autoIncrement);
             } else {
                 cmdInformation = new CmdInformationSingle(0, Statement.EXECUTE_FAILED, autoIncrement);
@@ -167,7 +171,9 @@ public class Results {
         if (executionResults == null) executionResults = new ArrayDeque<>();
         executionResults.add(resultSet);
         if (cmdInformation == null) {
-            if (moreResultAvailable || batch) {
+            if (batch) {
+                cmdInformation = new CmdInformationBatch(expectedSize, autoIncrement);
+            } else if (moreResultAvailable) {
                 cmdInformation = new CmdInformationMultiple(expectedSize, autoIncrement);
             } else {
                 cmdInformation = new CmdInformationSingle(0, -1, autoIncrement);
