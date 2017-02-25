@@ -67,7 +67,7 @@ public class CmdInformationSingle implements CmdInformation {
      * @param updateCount   update count
      * @param autoIncrement connection auto increment value.
      */
-    public CmdInformationSingle(long insertId, int updateCount, int autoIncrement) {
+    public CmdInformationSingle(long insertId, long updateCount, int autoIncrement) {
         this.insertId = insertId;
         this.updateCount = updateCount;
         this.autoIncrement = autoIncrement;
@@ -92,11 +92,6 @@ public class CmdInformationSingle implements CmdInformation {
     @Override
     public long getLargeUpdateCount() {
         return updateCount;
-    }
-
-    @Override
-    public void addSuccessStat(int updateCount, long insertId) {
-        //not expected
     }
 
     @Override
@@ -152,7 +147,19 @@ public class CmdInformationSingle implements CmdInformation {
     }
 
     public int[] getRewriteUpdateCounts() {
-        return null; //never occur
+        //cannot occur
+        return null;
+    }
+
+    @Override
+    public long[] getRewriteLargeUpdateCounts() {
+        //cannot occur
+        return null;
+    }
+
+    @Override
+    public void addSuccessStat(long updateCount, long insertId) {
+        //cannot occur
     }
 }
 

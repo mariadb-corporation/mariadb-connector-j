@@ -89,11 +89,11 @@ public class CmdInformationBatch implements CmdInformation {
     @Override
     public void addErrorStat() {
         hasException = true;
-        this.updateCounts.add(Statement.EXECUTE_FAILED);
+        this.updateCounts.add((long) Statement.EXECUTE_FAILED);
     }
 
     public void addResultSetStat() {
-        this.updateCounts.add(RESULT_SET_VALUE);
+        this.updateCounts.add((long) RESULT_SET_VALUE);
     }
 
     @Override
@@ -152,6 +152,10 @@ public class CmdInformationBatch implements CmdInformation {
         return ret;
     }
 
+    /**
+     * Same than getRewriteUpdateCounts, returning long array.
+     * @return update count array.
+     */
     public long[] getRewriteLargeUpdateCounts() {
         long[] ret = new long[expectedSize];
         Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);

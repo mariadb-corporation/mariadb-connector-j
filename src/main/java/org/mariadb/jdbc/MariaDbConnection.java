@@ -165,7 +165,7 @@ public class MariaDbConnection implements Connection {
     int getAutoIncrementIncrement() {
         if (autoIncrementIncrement == 0) {
             try {
-                Results results = new Results(1);
+                Results results = new Results();
                 protocol.executeQuery(true, results, "select @@auto_increment_increment");
                 results.commandEnd();
                 ResultSet rs = results.getResultSet();

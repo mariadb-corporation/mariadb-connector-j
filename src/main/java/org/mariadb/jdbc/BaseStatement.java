@@ -262,13 +262,17 @@ public abstract class BaseStatement implements Statement, Cloneable {
         return sqle;
     }
 
-    protected BatchUpdateException executeBatchExceptionEpilogue(SQLException sqle, CmdInformation cmdInformation, int size) {
+    protected BatchUpdateException executeBatchExceptionEpilogue(SQLException sqle, CmdInformation cmdInformation, int size, boolean rewritten) {
         sqle = handleFailoverAndTimeout(sqle);
         int[] ret;
         if (cmdInformation == null) {
             ret = new int[size];
             Arrays.fill(ret, Statement.EXECUTE_FAILED);
-        } else ret = cmdInformation.getUpdateCounts();
+        } else if (rewritten) {
+            ret = cmdInformation.getRewriteUpdateCounts();
+        } else {
+            ret = cmdInformation.getUpdateCounts();
+        }
 
         sqle = ExceptionMapper.getException(sqle, connection, this, queryTimeout != 0);
         logger.error("error executing query", sqle);
@@ -1070,7 +1074,7 @@ public abstract class BaseStatement implements Statement, Cloneable {
             return results.getCmdInformation().getUpdateCounts();
 
         } catch (SQLException initialSqlEx) {
-            throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), size);
+            throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), size, false);
         } finally {
             executeBatchEpilogue();
             lock.unlock();

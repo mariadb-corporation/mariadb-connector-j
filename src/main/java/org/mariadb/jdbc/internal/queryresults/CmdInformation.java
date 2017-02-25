@@ -63,6 +63,8 @@ public interface CmdInformation {
 
     int[] getRewriteUpdateCounts();
 
+    long[] getRewriteLargeUpdateCounts();
+
     int getUpdateCount();
 
     long getLargeUpdateCount();

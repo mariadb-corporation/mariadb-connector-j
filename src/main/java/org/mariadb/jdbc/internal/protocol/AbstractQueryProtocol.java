@@ -129,7 +129,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @throws  SQLException in any exception occur
      */
     public void executeQuery(final String sql) throws SQLException {
-        executeQuery(isMasterConnection(), new Results(1), sql);
+        executeQuery(isMasterConnection(), new Results(), sql);
     }
 
     /**

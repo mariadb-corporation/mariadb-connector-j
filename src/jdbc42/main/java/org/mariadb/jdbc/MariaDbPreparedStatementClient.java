@@ -49,9 +49,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-
-import org.mariadb.jdbc.internal.queryresults.ResultsRewrite;
-
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
@@ -85,15 +82,21 @@ public class MariaDbPreparedStatementClient extends BasePreparedStatementClient 
         int size = parameterList.size();
         if (size == 0) return new long[0];
 
+        boolean rewritten = options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable();
+
+        executing = true;
         lock.lock();
         try {
 
             executeInternalBatch(size);
-
-            return results.getCmdInformation().getLargeUpdateCounts();
+            if (!rewritten) {
+                return results.getCmdInformation().getLargeUpdateCounts();
+            } else {
+                return results.getCmdInformation().getRewriteLargeUpdateCounts();
+            }
 
         } catch (SQLException sqle) {
-            throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size);
+            throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size, rewritten);
         } finally {
             executeBatchEpilogue();
             lock.unlock();

@@ -85,15 +85,15 @@ public class CmdInformationMultiple implements CmdInformation {
     @Override
     public void addErrorStat() {
         hasException = true;
-        this.updateCounts.add(Statement.EXECUTE_FAILED);
+        this.updateCounts.add((long) Statement.EXECUTE_FAILED);
     }
 
     public void addResultSetStat() {
-        this.updateCounts.add(RESULT_SET_VALUE);
+        this.updateCounts.add((long) RESULT_SET_VALUE);
     }
 
     @Override
-    public void addSuccessStat(int updateCount, long insertId) {
+    public void addSuccessStat(long updateCount, long insertId) {
         this.insertIds.add(insertId);
         insertIdNumber += updateCount;
         this.updateCounts.add(updateCount);
@@ -164,7 +164,20 @@ public class CmdInformationMultiple implements CmdInformation {
     }
 
     @Override
+    public long[] getRewriteLargeUpdateCounts() {
+        long[] ret = new long[expectedSize];
+        Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
+        return ret;
+    }
+
+    @Override
     public int getUpdateCount() {
+        if (moreResults >= updateCounts.size()) return -1;
+        return updateCounts.get(moreResults).intValue();
+    }
+
+    @Override
+    public long getLargeUpdateCount() {
         if (moreResults >= updateCounts.size()) return -1;
         return updateCounts.get(moreResults);
     }
@@ -175,9 +188,9 @@ public class CmdInformationMultiple implements CmdInformation {
         int position = 0;
         long insertId;
         Iterator<Long> idIterator = insertIds.iterator();
-        Iterator<Integer> updateIterator = updateCounts.iterator();
+        Iterator<Long> updateIterator = updateCounts.iterator();
         while (updateIterator.hasNext()) {
-            int updateCount = updateIterator.next();
+            long updateCount = updateIterator.next();
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
                     && (insertId = idIterator.next().longValue()) > 0) {

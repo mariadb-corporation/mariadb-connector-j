@@ -90,12 +90,12 @@ public class MariaDbPreparedStatementServer extends BasePreparedStatementServer 
         lock.lock();
         try {
 
-            executeBatchInternal(results, queryParameterSize);
+            executeBatchInternal(queryParameterSize);
 
             return results.getCmdInformation().getLargeUpdateCounts();
 
         } catch (SQLException initialSqlEx) {
-            throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), queryParameterSize);
+            throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), queryParameterSize, false);
         } finally {
             executeBatchEpilogue();
             lock.unlock();

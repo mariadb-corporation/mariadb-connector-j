@@ -78,9 +78,8 @@ public class Results {
      *
      * /! use internally, because autoincrement value is not right for multi-queries !/
      *
-     * @param autoIncrement         connection auto increment
      */
-    public Results(int autoIncrement) {
+    public Results() {
         this.statement = null;
         this.fetchSize = 0;
         this.maxFieldSize = 0;
@@ -89,7 +88,7 @@ public class Results {
         this.cmdInformation = null;
         this.binaryFormat = false;
         this.resultSetScrollType = ResultSet.TYPE_FORWARD_ONLY;
-        this.autoIncrement = autoIncrement;
+        this.autoIncrement = 1;
     }
 
     /**
@@ -235,7 +234,7 @@ public class Results {
         if (cmdInformation != null
                 && executionResults != null
                 && !cmdInformation.isCurrentUpdateCount()) {
-                resultSet = executionResults.poll();
+            resultSet = executionResults.poll();
         } else {
             resultSet = null;
         }

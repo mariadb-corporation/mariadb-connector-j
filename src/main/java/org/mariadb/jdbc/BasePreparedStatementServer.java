@@ -218,12 +218,12 @@ public abstract class BasePreparedStatementServer extends BasePrepareStatement i
         executing = true;
         try {
 
-            executeBatchInternal(results, queryParameterSize);
+            executeBatchInternal(queryParameterSize);
 
             return results.getCmdInformation().getUpdateCounts();
 
         } catch (SQLException initialSqlEx) {
-            throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), queryParameterSize);
+            throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), queryParameterSize, false);
         } finally {
             executeBatchEpilogue();
             lock.unlock();
@@ -234,11 +234,10 @@ public abstract class BasePreparedStatementServer extends BasePrepareStatement i
     /**
      * Send batch datas according to options.
      *
-     * @param results                 results.
      * @param queryParameterSize      batch size
      * @throws SQLException if any error occur.
      */
-    protected void executeBatchInternal(Results results, int queryParameterSize)
+    protected void executeBatchInternal(int queryParameterSize)
             throws SQLException {
         executeQueryPrologue(serverPrepareResult);
 

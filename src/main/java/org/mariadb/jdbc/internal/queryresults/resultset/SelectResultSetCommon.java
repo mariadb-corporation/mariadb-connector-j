@@ -91,6 +91,7 @@ import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 public abstract class SelectResultSetCommon implements ResultSet {
 
     private static final ColumnInformation[] INSERT_ID_COLUMNS;
+
     static {
         INSERT_ID_COLUMNS = new ColumnInformation[1];
         INSERT_ID_COLUMNS[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
