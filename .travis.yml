@@ -12,7 +12,6 @@ cache:
 jdk:
     - oraclejdk9
     - oraclejdk8
-    - oraclejdk7
 env:
     - AURORA=true
     - MARIA=5.5 PACKET=8M

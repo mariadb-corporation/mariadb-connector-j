@@ -69,7 +69,7 @@ import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationPr
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509KeyManager;
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509TrustManager;
 import org.mariadb.jdbc.internal.queryresults.Results;
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.stream.DecompressInputStream;
 import org.mariadb.jdbc.internal.stream.MariaDbBufferedInputStream;
 import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
@@ -1044,10 +1044,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void setDataTypeMappingFlags() {
         dataTypeMappingFlags = 0;
         if (options.tinyInt1isBit) {
-            dataTypeMappingFlags |= SelectResultSetCommon.TINYINT1_IS_BIT;
+            dataTypeMappingFlags |= SelectResultSet.TINYINT1_IS_BIT;
         }
         if (options.yearIsDateType) {
-            dataTypeMappingFlags |= SelectResultSetCommon.YEAR_IS_DATE_TYPE;
+            dataTypeMappingFlags |= SelectResultSet.YEAR_IS_DATE_TYPE;
         }
     }
 

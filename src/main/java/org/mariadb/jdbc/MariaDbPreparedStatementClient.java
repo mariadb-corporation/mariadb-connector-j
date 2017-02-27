@@ -53,7 +53,7 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.queryresults.*;
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 
@@ -61,8 +61,8 @@ import java.sql.*;
 import java.util.*;
 
 
-public abstract class BasePreparedStatementClient extends BasePrepareStatement implements Cloneable {
-    private static Logger logger = LoggerFactory.getLogger(BasePreparedStatementClient.class);
+public class MariaDbPreparedStatementClient extends BasePrepareStatement implements Cloneable {
+    private static Logger logger = LoggerFactory.getLogger(MariaDbPreparedStatementClient.class);
     private String sqlQuery;
     protected ClientPrepareResult prepareResult;
     private ParameterHolder[] parameters;
@@ -79,7 +79,7 @@ public abstract class BasePreparedStatementClient extends BasePrepareStatement i
      *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @throws SQLException exception
      */
-    public BasePreparedStatementClient(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
+    public MariaDbPreparedStatementClient(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
         super(connection, resultSetScrollType);
         this.sqlQuery = sql;
 
@@ -108,8 +108,8 @@ public abstract class BasePreparedStatementClient extends BasePrepareStatement i
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public BasePreparedStatementClient clone() throws CloneNotSupportedException {
-        BasePreparedStatementClient clone = (BasePreparedStatementClient) super.clone();
+    public MariaDbPreparedStatementClient clone() throws CloneNotSupportedException {
+        MariaDbPreparedStatementClient clone = (MariaDbPreparedStatementClient) super.clone();
         clone.sqlQuery = sqlQuery;
         clone.prepareResult = prepareResult;
         clone.parameters = new ParameterHolder[prepareResult.getParamCount()];
@@ -161,7 +161,7 @@ public abstract class BasePreparedStatementClient extends BasePrepareStatement i
         if (execute()) {
             return results.getResultSet();
         }
-        return SelectResultSetCommon.createEmptyResultSet();
+        return SelectResultSet.createEmptyResultSet();
     }
 
 
@@ -275,6 +275,30 @@ public abstract class BasePreparedStatementClient extends BasePrepareStatement i
                 return results.getCmdInformation().getUpdateCounts();
             } else {
                 return results.getCmdInformation().getRewriteUpdateCounts();
+            }
+
+        } catch (SQLException sqle) {
+            throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size, rewritten);
+        } finally {
+            executeBatchEpilogue();
+            lock.unlock();
+        }
+    }
+
+    public long[] executeLargeBatch() throws SQLException {
+        checkClose();
+        int size = parameterList.size();
+        if (size == 0) return new long[0];
+
+        boolean rewritten = options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable();
+        lock.lock();
+        try {
+
+            executeInternalBatch(size);
+            if (!rewritten) {
+                return results.getCmdInformation().getLargeUpdateCounts();
+            } else {
+                return results.getCmdInformation().getRewriteLargeUpdateCounts();
             }
 
         } catch (SQLException sqle) {

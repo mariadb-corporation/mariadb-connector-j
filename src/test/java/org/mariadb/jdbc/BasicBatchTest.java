@@ -3,7 +3,6 @@ package org.mariadb.jdbc;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
 
 import java.sql.*;
 

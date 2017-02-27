@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal;
 
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -317,7 +317,7 @@ public enum ColumnType {
     public static String getClassName(ColumnType type, int len, boolean signed, boolean binary, int flags) {
         switch (type) {
             case TINYINT:
-                if (len == 1 && ((flags & SelectResultSetCommon.TINYINT1_IS_BIT) != 0)) {
+                if (len == 1 && ((flags & SelectResultSet.TINYINT1_IS_BIT) != 0)) {
                     return Boolean.class.getName();
                 }
                 return Integer.class.getName();
@@ -326,7 +326,7 @@ public enum ColumnType {
             case BIGINT:
                 return (signed) ? Long.class.getName() : BigInteger.class.getName();
             case YEAR:
-                if ((flags & SelectResultSetCommon.YEAR_IS_DATE_TYPE) != 0) {
+                if ((flags & SelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
                     return java.sql.Date.class.getName();
                 }
                 return Short.class.getName();

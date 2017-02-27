@@ -11,18 +11,58 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URL;
 import java.sql.*;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-public abstract class CommonPrepareStatement extends MariaDbStatement implements PreparedStatement {
+public abstract class BasePrepareStatement extends MariaDbStatement implements PreparedStatement {
+
+    /**
+     * The ISO-like date-time formatter that formats or parses a date-time with
+     * offset and zone, such as '2011-12-03T10:15:30+01:00[Europe/Paris]'.
+     * and without the 'T' time delimiter
+     * <p>This returns an immutable formatter capable of formatting and parsing
+     * a format that extends the ISO-8601 extended offset date-time format
+     * to add the time-zone.</p>
+     **/
+    private static final DateTimeFormatter SPEC_ISO_ZONED_DATE_TIME = new DateTimeFormatterBuilder()
+            .parseCaseInsensitive()
+            .append(DateTimeFormatter.ISO_LOCAL_DATE)
+            .optionalStart()
+            .appendLiteral('T')
+            .optionalEnd()
+            .optionalStart()
+            .appendLiteral(' ')
+            .optionalEnd()
+            .append(DateTimeFormatter.ISO_LOCAL_TIME)
+            .appendOffsetId()
+            .optionalStart()
+            .appendLiteral('[')
+            .parseCaseSensitive()
+            .appendZoneRegionId()
+            .appendLiteral(']')
+            .toFormatter();
 
     protected boolean useFractionalSeconds;
     protected boolean hasLongData = false;
 
-    public CommonPrepareStatement(MariaDbConnection connection, int resultSetScrollType) {
+
+    public BasePrepareStatement(MariaDbConnection connection, int resultSetScrollType) {
         super(connection, resultSetScrollType);
         this.useFractionalSeconds = options.useFractionalSeconds;
     }
+
+    @Override
+    public long executeLargeUpdate() throws SQLException {
+        if (executeInternal(getFetchSize())) {
+            return 0;
+        }
+        return getLargeUpdateCount();
+    }
+
+    protected abstract boolean executeInternal(int fetchSize) throws SQLException;
 
     /**
      * Sets the designated parameter to the given <code>Reader</code> object, which is the given number of characters
@@ -782,18 +822,55 @@ public abstract class CommonPrepareStatement extends MariaDbStatement implements
             setString(parameterIndex, obj.toString());
         } else if (obj instanceof Clob) {
             setClob(parameterIndex, (Clob) obj);
+        } else if (LocalDateTime.class.isInstance(obj)) {
+            setTimestamp(parameterIndex, Timestamp.valueOf(LocalDateTime.class.cast(obj)));
+        } else if (Instant.class.isInstance(obj)) {
+            setTimestamp(parameterIndex, Timestamp.from(Instant.class.cast(obj)));
+        } else if (LocalDate.class.isInstance(obj)) {
+            setDate(parameterIndex, Date.valueOf(LocalDate.class.cast(obj)));
+        } else if (OffsetDateTime.class.isInstance(obj)) {
+            setParameter(parameterIndex,
+                    new ZonedDateTimeParameter(
+                            OffsetDateTime.class.cast(obj).toZonedDateTime(),
+                            protocol.getTimeZone().toZoneId(),
+                            useFractionalSeconds,
+                            options));
+        } else if (OffsetTime.class.isInstance(obj)) {
+            setParameter(parameterIndex,
+                    new OffsetTimeParameter(
+                            OffsetTime.class.cast(obj),
+                            protocol.getTimeZone().toZoneId(),
+                            useFractionalSeconds,
+                            options));
+        } else if (ZonedDateTime.class.isInstance(obj)) {
+            setParameter(parameterIndex,
+                    new ZonedDateTimeParameter(
+                            ZonedDateTime.class.cast(obj),
+                            protocol.getTimeZone().toZoneId(),
+                            useFractionalSeconds,
+                            options));
+        } else if (LocalTime.class.isInstance(obj)) {
+            setTime(parameterIndex, Time.valueOf(LocalTime.class.cast(obj)));
         } else {
-            if (!setAdditionalObject(parameterIndex, obj)) {
-                //fallback to sending serialized object
-                try {
-                    setParameter(parameterIndex, new SerializableParameter(obj, connection.noBackslashEscapes));
-                    hasLongData = true;
-                } catch (IOException e) {
-                    throw ExceptionMapper.getSqlException(
-                            "Could not set parameter in setObject, Object class is not handled (Class : " + obj.getClass() + ")");
-                }
+            //fallback to sending serialized object
+            try {
+                setParameter(parameterIndex, new SerializableParameter(obj, connection.noBackslashEscapes));
+                hasLongData = true;
+            } catch (IOException e) {
+                throw ExceptionMapper.getSqlException(
+                        "Could not set parameter in setObject, Object class is not handled (Class : " + obj.getClass() + ")");
             }
         }
+    }
+
+    @Override
+    public void setObject(int parameterIndex, Object obj, SQLType targetSqlType, int scaleOrLength) throws SQLException {
+        setObject(parameterIndex, obj, targetSqlType.getVendorTypeNumber(), scaleOrLength);
+    }
+
+    @Override
+    public void setObject(int parameterIndex, Object obj, SQLType targetSqlType) throws SQLException {
+        setObject(parameterIndex, obj, targetSqlType.getVendorTypeNumber());
     }
 
     protected void setInternalObject(final int parameterIndex, final Object obj, final int targetSqlType,
@@ -867,8 +944,25 @@ public abstract class CommonPrepareStatement extends MariaDbStatement implements
                     case Types.TIME:
                         setTime(parameterIndex, Time.valueOf((String) obj));
                         break;
+                    case Types.TIME_WITH_TIMEZONE:
+                        setParameter(parameterIndex,
+                                new OffsetTimeParameter(
+                                        OffsetTime.parse(str),
+                                        protocol.getTimeZone().toZoneId(),
+                                        useFractionalSeconds,
+                                        options));
+                        break;
+                    case Types.TIMESTAMP_WITH_TIMEZONE:
+
+                        setParameter(parameterIndex,
+                                new ZonedDateTimeParameter(
+                                        ZonedDateTime.parse(str, SPEC_ISO_ZONED_DATE_TIME),
+                                        protocol.getTimeZone().toZoneId(),
+                                        useFractionalSeconds,
+                                        options));
+                        break;
                     default:
-                        setStringObject(parameterIndex, str, targetSqlType);
+                        throw ExceptionMapper.getSqlException("Could not convert [" + str + "] to " + targetSqlType);
                 }
             } catch (IllegalArgumentException e) {
                 throw ExceptionMapper.getSqlException("Could not convert [" + str + "] to " + targetSqlType, e);
@@ -952,17 +1046,40 @@ public abstract class CommonPrepareStatement extends MariaDbStatement implements
             setBinaryStream(parameterIndex, (InputStream) obj, scaleOrLength);
         } else if (obj instanceof Reader) {
             setCharacterStream(parameterIndex, (Reader) obj, scaleOrLength);
+        } else if (LocalDateTime.class.isInstance(obj)) {
+            setTimestamp(parameterIndex, Timestamp.valueOf(LocalDateTime.class.cast(obj)));
+        } else if (Instant.class.isInstance(obj)) {
+            setTimestamp(parameterIndex, Timestamp.from(Instant.class.cast(obj)));
+        } else if (LocalDate.class.isInstance(obj)) {
+            setDate(parameterIndex, Date.valueOf(LocalDate.class.cast(obj)));
+        } else if (OffsetDateTime.class.isInstance(obj)) {
+            setParameter(parameterIndex,
+                    new ZonedDateTimeParameter(
+                            OffsetDateTime.class.cast(obj).toZonedDateTime(),
+                            protocol.getTimeZone().toZoneId(),
+                            useFractionalSeconds,
+                            options));
+        } else if (OffsetTime.class.isInstance(obj)) {
+            setParameter(parameterIndex,
+                    new OffsetTimeParameter(
+                            OffsetTime.class.cast(obj),
+                            protocol.getTimeZone().toZoneId(),
+                            useFractionalSeconds,
+                            options));
+        } else if (ZonedDateTime.class.isInstance(obj)) {
+            setParameter(parameterIndex,
+                    new ZonedDateTimeParameter(
+                            ZonedDateTime.class.cast(obj),
+                            protocol.getTimeZone().toZoneId(),
+                            useFractionalSeconds,
+                            options));
+        } else if (LocalTime.class.isInstance(obj)) {
+            setTime(parameterIndex, Time.valueOf(LocalTime.class.cast(obj)));
         } else {
-            if (!setAdditionalObject(parameterIndex, obj)) {
-                throw ExceptionMapper.getSqlException("Could not set parameter in setObject, could not convert: " + obj.getClass() + " to "
-                        + targetSqlType);
-            }
+            throw ExceptionMapper.getSqlException("Could not set parameter in setObject, could not convert: " + obj.getClass() + " to "
+                    + targetSqlType);
         }
     }
-
-    public abstract void setStringObject(final int parameterIndex, final String str, final int targetSqlType) throws SQLException;
-
-    public abstract boolean setAdditionalObject(final int parameterIndex, final Object obj) throws SQLException;
 
     /**
      * Sets the designated parameter to the given input stream, which will have the specified number of bytes. When a

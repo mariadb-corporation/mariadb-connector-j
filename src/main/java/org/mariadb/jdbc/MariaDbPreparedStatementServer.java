@@ -51,17 +51,16 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.queryresults.*;
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.sql.*;
 import java.util.*;
 
-public abstract class BasePreparedStatementServer extends BasePrepareStatement implements Cloneable {
+public class MariaDbPreparedStatementServer extends BasePrepareStatement implements Cloneable {
 
-    private static Logger logger = LoggerFactory.getLogger(BasePreparedStatementServer.class);
+    private static Logger logger = LoggerFactory.getLogger(MariaDbPreparedStatementServer.class);
 
     String sql;
     ServerPrepareResult serverPrepareResult = null;
@@ -83,7 +82,7 @@ public abstract class BasePreparedStatementServer extends BasePrepareStatement i
      * @param forcePrepare        force immediate prepare
      * @throws SQLException exception
      */
-    public BasePreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
+    public MariaDbPreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
             throws SQLException {
         super(connection, resultSetScrollType);
         this.sql = sql;
@@ -99,8 +98,8 @@ public abstract class BasePreparedStatementServer extends BasePrepareStatement i
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public BasePreparedStatementServer clone() throws CloneNotSupportedException {
-        BasePreparedStatementServer clone = (BasePreparedStatementServer) super.clone();
+    public MariaDbPreparedStatementServer clone() throws CloneNotSupportedException {
+        MariaDbPreparedStatementServer clone = (MariaDbPreparedStatementServer) super.clone();
         clone.metadata = metadata;
         clone.parameterMetaData = parameterMetaData;
         clone.queryParameters = new ArrayList<>();
@@ -213,62 +212,66 @@ public abstract class BasePreparedStatementServer extends BasePrepareStatement i
         checkClose();
         int queryParameterSize = queryParameters.size();
         if (queryParameterSize == 0) return new int[0];
+        executeBatchInternal(queryParameterSize);
+        return results.getCmdInformation().getUpdateCounts();
+    }
 
+    /**
+     * Execute batch, like executeBatch(), with returning results with long[].
+     * For when row count may exceed Integer.MAX_VALUE.
+     *
+     * @return an array of update counts (one element for each command in the batch)
+     * @throws SQLException if a database error occur.
+     */
+    @Override
+    public long[] executeLargeBatch() throws SQLException {
+        checkClose();
+        int queryParameterSize = queryParameters.size();
+        if (queryParameterSize == 0) return new long[0];
+        executeBatchInternal(queryParameterSize);
+        return results.getCmdInformation().getLargeUpdateCounts();
+    }
+
+    public void executeBatchInternal(int queryParameterSize) throws SQLException {
         lock.lock();
         executing = true;
         try {
+            executeQueryPrologue(serverPrepareResult);
 
-            executeBatchInternal(queryParameterSize);
+            results.reset(0, true, queryParameterSize, true,resultSetScrollType);;
 
-            return results.getCmdInformation().getUpdateCounts();
+            //if  multi send capacity
+            if (options.useBatchMultiSend) {
+                //send all sub-command in one packet (or more if > max_allowed_packet)
+                serverPrepareResult = protocol.prepareAndExecutes(mustExecuteOnMaster, serverPrepareResult, results, sql, queryParameters);
+                if (metadata == null) setMetaFromResult(); //first prepare
+                return;
+            }
 
+            //send query one by one, reading results for each query before sending another one
+            SQLException exception = null;
+            for (int counter = 0; counter < queryParameterSize; counter++) {
+                ParameterHolder[] parameterHolder = queryParameters.get(counter);
+                try {
+                    serverPrepareResult.resetParameterTypeHeader();
+                    protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
+                } catch (SQLException queryException) {
+                    if (options.continueBatchOnError) {
+                        if (exception == null) exception = queryException;
+                    } else {
+                        throw queryException;
+                    }
+                }
+            }
+            if (exception != null) throw exception;
+
+            results.commandEnd();
         } catch (SQLException initialSqlEx) {
             throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), queryParameterSize, false);
         } finally {
             executeBatchEpilogue();
             lock.unlock();
         }
-
-    }
-
-    /**
-     * Send batch datas according to options.
-     *
-     * @param queryParameterSize      batch size
-     * @throws SQLException if any error occur.
-     */
-    protected void executeBatchInternal(int queryParameterSize)
-            throws SQLException {
-        executeQueryPrologue(serverPrepareResult);
-
-        results.reset(0, true, queryParameterSize, true,resultSetScrollType);;
-
-        //if  multi send capacity
-        if (options.useBatchMultiSend) {
-            //send all sub-command in one packet (or more if > max_allowed_packet)
-            serverPrepareResult = protocol.prepareAndExecutes(mustExecuteOnMaster, serverPrepareResult, results, sql, queryParameters);
-            if (metadata == null) setMetaFromResult(); //first prepare
-            return;
-        }
-
-        //send query one by one, reading results for each query before sending another one
-        SQLException exception = null;
-        for (int counter = 0; counter < queryParameterSize; counter++) {
-            ParameterHolder[] parameterHolder = queryParameters.get(counter);
-            try {
-                serverPrepareResult.resetParameterTypeHeader();
-                protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
-            } catch (SQLException queryException) {
-                if (options.continueBatchOnError) {
-                    if (exception == null) exception = queryException;
-                } else {
-                    throw queryException;
-                }
-            }
-        }
-        if (exception != null) throw exception;
-
-        results.commandEnd();
     }
 
     // must have "lock" locked before invoking
@@ -286,7 +289,7 @@ public abstract class BasePreparedStatementServer extends BasePrepareStatement i
         if (execute()) {
             return results.getResultSet();
         }
-        return SelectResultSetCommon.createEmptyResultSet();
+        return SelectResultSet.createEmptyResultSet();
     }
 
     @Override

@@ -59,6 +59,7 @@ import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
 import org.mariadb.jdbc.internal.packet.send.SendChangeDbPacket;
 import org.mariadb.jdbc.internal.packet.send.SendPingPacket;
 import org.mariadb.jdbc.internal.queryresults.*;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
@@ -1188,7 +1189,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     public void prologProxy(ServerPrepareResult serverPrepareResult, long maxRows, boolean hasProxy,
-                            MariaDbConnection connection, BaseStatement statement) throws SQLException {
+                            MariaDbConnection connection, MariaDbStatement statement) throws SQLException {
         prolog(maxRows, hasProxy, connection, statement);
     }
 
@@ -1201,7 +1202,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @param statement       current statement
      * @throws SQLException if any error occur.
      */
-    public void prolog(long maxRows, boolean hasProxy, MariaDbConnection connection, BaseStatement statement)
+    public void prolog(long maxRows, boolean hasProxy, MariaDbConnection connection, MariaDbStatement statement)
             throws SQLException {
         if (explicitClosed) {
             throw new SQLException("execute() is called on closed connection");

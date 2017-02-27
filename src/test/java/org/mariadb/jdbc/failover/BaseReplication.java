@@ -4,7 +4,7 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.BasePreparedStatementServer;
+import org.mariadb.jdbc.MariaDbPreparedStatementServer;
 
 import java.sql.*;
 import java.util.HashMap;
@@ -34,7 +34,7 @@ public abstract class BaseReplication extends BaseMonoServer {
 
             //prepareStatement on slave connection
             PreparedStatement preparedStatement = connection.prepareStatement("SELECT test from replicationFailoverBinary" + jobId + " where id = ?");
-            final long currentPrepareId = getPrepareResult((BasePreparedStatementServer) preparedStatement).getStatementId();
+            final long currentPrepareId = getPrepareResult((MariaDbPreparedStatementServer) preparedStatement).getStatementId();
             int slaveServerId = getServerId(connection);
             Assert.assertFalse(masterServerId == slaveServerId);
             //stop slave for a few seconds
@@ -45,7 +45,7 @@ public abstract class BaseReplication extends BaseMonoServer {
             ResultSet rs = preparedStatement.executeQuery();
             rs.next();
             Assert.assertEquals("Harriba !", rs.getString(1));
-            Assert.assertNotEquals(currentPrepareId, getPrepareResult((BasePreparedStatementServer) preparedStatement).getStatementId());
+            Assert.assertNotEquals(currentPrepareId, getPrepareResult((MariaDbPreparedStatementServer) preparedStatement).getStatementId());
 
             int currentServerId = getServerId(connection);
 

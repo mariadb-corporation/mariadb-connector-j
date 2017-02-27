@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 */
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
 
 import java.sql.ResultSet;
 
@@ -113,7 +113,7 @@ public class CmdInformationSingle implements CmdInformation {
      */
     public ResultSet getGeneratedKeys(Protocol protocol) {
         if (insertId == 0) {
-            return SelectResultSetCommon.createEmptyResultSet();
+            return SelectResultSet.createEmptyResultSet();
         }
 
         if (updateCount > 1) {
@@ -121,10 +121,10 @@ public class CmdInformationSingle implements CmdInformation {
             for (int i = 0; i < updateCount; i++) {
                 insertIds[i] = insertId + i * autoIncrement;
             }
-            return SelectResultSetCommon.createGeneratedData(insertIds, protocol, true);
+            return SelectResultSet.createGeneratedData(insertIds, protocol, true);
         }
 
-        return SelectResultSetCommon.createGeneratedData(new long[] {insertId}, protocol, true);
+        return SelectResultSet.createGeneratedData(new long[] {insertId}, protocol, true);
     }
 
     @Override

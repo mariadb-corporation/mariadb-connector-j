@@ -51,8 +51,7 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
-import org.mariadb.jdbc.internal.queryresults.SelectResultSet;
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.dao.Identifier;
@@ -64,7 +63,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-public class BaseDatabaseMetaData implements DatabaseMetaData {
+public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     public static final String DRIVER_NAME = "MariaDB connector/J";
     private String url;
     private MariaDbConnection connection;
@@ -79,7 +78,7 @@ public class BaseDatabaseMetaData implements DatabaseMetaData {
      * @param user       userName
      * @param url        connection String url.
      */
-    public BaseDatabaseMetaData(Connection connection, String user, String url) {
+    public MariaDbDatabaseMetaData(Connection connection, String user, String url) {
         this.connection = (MariaDbConnection) connection;
         this.username = user;
         this.url = url;
@@ -91,11 +90,11 @@ public class BaseDatabaseMetaData implements DatabaseMetaData {
                 + "COLUMN_TYPE) - 1 ), SUBSTRING(COLUMN_TYPE ,1+locate(')', COLUMN_TYPE))), "
                 + "COLUMN_TYPE))";
 
-        if ((dataTypeMappingFlags & SelectResultSetCommon.TINYINT1_IS_BIT) > 0) {
+        if ((dataTypeMappingFlags & SelectResultSet.TINYINT1_IS_BIT) > 0) {
             upperCaseWithoutSize = " IF(COLUMN_TYPE = 'tinyint(1)', 'BIT', " + upperCaseWithoutSize + ")";
         }
 
-        if ((dataTypeMappingFlags & SelectResultSetCommon.YEAR_IS_DATE_TYPE) == 0) {
+        if ((dataTypeMappingFlags & SelectResultSet.YEAR_IS_DATE_TYPE) == 0) {
             return " IF(COLUMN_TYPE IN ('year(2)', 'year(4)'), 'SMALLINT', " + upperCaseWithoutSize + ")";
         }
 
@@ -210,7 +209,7 @@ public class BaseDatabaseMetaData implements DatabaseMetaData {
                 return result;
             }
         });
-        ResultSet ret = SelectResultSetCommon.createResultSet(columnNames, columnTypes, arr, connection.getProtocol());
+        ResultSet ret = SelectResultSet.createResultSet(columnNames, columnTypes, arr, connection.getProtocol());
         return ret;
     }
 
@@ -433,17 +432,17 @@ public class BaseDatabaseMetaData implements DatabaseMetaData {
                 + " WHEN 'time' THEN " + Types.TIME
                 + " WHEN 'timestamp' THEN " + Types.TIMESTAMP
                 + " WHEN 'tinyint' THEN "
-                + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSetCommon.TINYINT1_IS_BIT) == 0)
+                + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSet.TINYINT1_IS_BIT) == 0)
                 ? Types.TINYINT : "IF(" + fullTypeColumnName + "='tinyint(1)'," + Types.BIT + "," + Types.TINYINT + ") ")
                 + " WHEN 'year' THEN "
-                + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSetCommon.YEAR_IS_DATE_TYPE) == 0)
+                + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSet.YEAR_IS_DATE_TYPE) == 0)
                 ? Types.SMALLINT : Types.DATE)
                 + " ELSE " + Types.OTHER
                 + " END ";
     }
 
     private ResultSet executeQuery(String sql) throws SQLException {
-        SelectResultSetCommon rs = (SelectResultSetCommon) connection.createStatement().executeQuery(sql);
+        SelectResultSet rs = (SelectResultSet) connection.createStatement().executeQuery(sql);
         rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
         rs.setReturnTableAlias(true);
         return rs;
@@ -665,15 +664,15 @@ public class BaseDatabaseMetaData implements DatabaseMetaData {
                 +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                 + "  WHEN 'timestamp' THEN "
                     + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
-                + (((dataType & SelectResultSetCommon.YEAR_IS_DATE_TYPE) == 0) ? " WHEN 'year' THEN 5" : "")
+                + (((dataType & SelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? " WHEN 'year' THEN 5" : "")
                 + "  ELSE "
                 + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
                 + " END"
                 + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
 
                 + " CONVERT (CASE DATA_TYPE"
-                + " WHEN 'year' THEN " + (((dataType & SelectResultSetCommon.YEAR_IS_DATE_TYPE) == 0) ? "0" : "NUMERIC_SCALE")
-                + " WHEN 'tinyint' THEN " + (((dataType & SelectResultSetCommon.TINYINT1_IS_BIT) > 0) ? "0" : "NUMERIC_SCALE")
+                + " WHEN 'year' THEN " + (((dataType & SelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? "0" : "NUMERIC_SCALE")
+                + " WHEN 'tinyint' THEN " + (((dataType & SelectResultSet.TINYINT1_IS_BIT) > 0) ? "0" : "NUMERIC_SCALE")
                 + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
 
                 + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
@@ -2195,7 +2194,7 @@ public class BaseDatabaseMetaData implements DatabaseMetaData {
                         "0", "0", "10"}
         };
 
-        return SelectResultSetCommon.createResultSet(columnNames, columnTypes, data, connection.getProtocol());
+        return SelectResultSet.createResultSet(columnNames, columnTypes, data, connection.getProtocol());
     }
 
     /**
@@ -2669,6 +2668,16 @@ public class BaseDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean isWrapperFor(final Class<?> iface) throws SQLException {
+        return false;
+    }
+
+    @Override
+    public long getMaxLogicalLobSize() throws SQLException {
+        return 4294967295L;
+    }
+
+    @Override
+    public boolean supportsRefCursors() throws SQLException {
         return false;
     }
 

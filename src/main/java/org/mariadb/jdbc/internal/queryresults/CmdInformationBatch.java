@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 */
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSetCommon;
+import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -191,7 +191,7 @@ public class CmdInformationBatch implements CmdInformation {
                 }
             }
         }
-        return SelectResultSetCommon.createGeneratedData(ret, protocol, true);
+        return SelectResultSet.createGeneratedData(ret, protocol, true);
     }
 
     /**
@@ -218,7 +218,7 @@ public class CmdInformationBatch implements CmdInformation {
                 }
             }
         }
-        return SelectResultSetCommon.createGeneratedData(ret, protocol, true);
+        return SelectResultSet.createGeneratedData(ret, protocol, true);
     }
 
     public int getCurrentStatNumber() {

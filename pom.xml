@@ -3,9 +3,9 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.mariadb.jdbc</groupId>
-    <artifactId>mariadb-java-client${name.jre}</artifactId>
+    <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
-    <name>mariadb-java-client${name.jre}</name>
+    <name>mariadb-java-client</name>
     <version>${driver.version}</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
@@ -22,7 +22,6 @@
         <driver.version.minor>0</driver.version.minor>
         <driver.version.patch>0</driver.version.patch>
         <driver.version.qualifier>SNAPSHOT</driver.version.qualifier>
-        <name.jre></name.jre>
         <driver.version>${driver.version.major}.${driver.version.minor}.${driver.version.patch}-${driver.version.qualifier}</driver.version>
     </properties>
 
@@ -73,139 +72,35 @@
         </developer>
     </developers>
 
-    <profiles>
-
-        <profile>
-            <id>jdbc41</id>
-            <properties>
-                <name.jre>-jre7</name.jre>
-            </properties>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>build-helper-maven-plugin</artifactId>
-                        <version>1.12</version>
-                        <executions>
-                            <execution>
-                                <phase>generate-sources</phase>
-                                <goals><goal>add-source</goal></goals>
-                                <configuration>
-                                    <sources>
-                                        <source>src/jdbc41/main/java</source>
-                                    </sources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-
-                    <plugin>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.6.0</version>
-                        <configuration>
-                            <source>1.7</source>
-                            <target>1.7</target>
-                            <compilerArgs>
-                                <arg>-Xlint:all,-options,-path</arg>
-                            </compilerArgs>
-                        </configuration>
-                    </plugin>
-
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>2.10.4</version>
-                        <configuration>
-                            <sourceFileIncludes>src/jdbc41/main/java</sourceFileIncludes>
-                            <sourceFileExcludes>src/jdbc42/main/java</sourceFileExcludes>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>attach-javadocs</id>
-                                <phase>prepare-package</phase>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-
-                </plugins>
-            </build>
-        </profile>
-
-        <profile>
-            <id>jdbc42</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>build-helper-maven-plugin</artifactId>
-                        <version>1.12</version>
-                        <executions>
-                            <execution>
-                                <phase>generate-sources</phase>
-                                <goals><goal>add-source</goal></goals>
-                                <configuration>
-                                    <sources>
-                                        <source>src/jdbc42/main/java</source>
-                                    </sources>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>add-test-source</id>
-                                <phase>generate-test-sources</phase>
-                                <goals><goal>add-test-source</goal></goals>
-                                <configuration>
-                                    <sources>
-                                        <source>src/jdbc42/main/test</source>
-                                    </sources>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-
-                    <plugin>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.6.0</version>
-                        <configuration>
-                            <source>1.8</source>
-                            <target>1.8</target>
-                            <compilerArgs>
-                                <arg>-Xlint:all,-options,-path</arg>
-                            </compilerArgs>
-                        </configuration>
-                    </plugin>
-
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>2.10.4</version>
-                        <configuration>
-                            <sourceFileIncludes>src/jdbc42/main/java</sourceFileIncludes>
-                            <sourceFileExcludes>src/jdbc41/main/java</sourceFileExcludes>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>attach-javadocs</id>
-                                <phase>prepare-package</phase>
-                                <goals>
-                                    <goal>jar</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
     <build>
         <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.6.0</version>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                    <compilerArgs>
+                        <arg>-Xlint:all,-options,-path</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.10.4</version>
+                <executions>
+                    <execution>
+                        <id>attach-javadocs</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>

@@ -49,9 +49,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.util;
 
-import org.mariadb.jdbc.BaseStatement;
-import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.internal.logging.Logger;
 
 import java.sql.SQLException;
@@ -88,7 +87,7 @@ public class ExceptionMapper {
      * @param statement  current statement
      * @throws SQLException exception
      */
-    public static void throwException(SQLException exception, MariaDbConnection connection, BaseStatement statement) throws SQLException {
+    public static void throwException(SQLException exception, MariaDbConnection connection, MariaDbStatement statement) throws SQLException {
         throw getException(exception, connection, statement, false);
     }
 
@@ -102,7 +101,7 @@ public class ExceptionMapper {
      * @return SQLException exception
      */
     public static SQLException getException(SQLException exception, MariaDbConnection connection,
-                                            BaseStatement statement, boolean timeout) {
+                                            MariaDbStatement statement, boolean timeout) {
         String message = exception.getMessage();
         if (connection != null) {
             message = "(conn:" + connection.getServerThreadId() + ") " + message;

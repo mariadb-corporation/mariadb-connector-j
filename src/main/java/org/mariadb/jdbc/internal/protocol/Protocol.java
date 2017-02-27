@@ -216,10 +216,10 @@ public interface Protocol {
     TimeZone getTimeZone();
 
     void prolog(long maxRows, boolean hasProxy, MariaDbConnection connection,
-                BaseStatement statement) throws SQLException;
+                MariaDbStatement statement) throws SQLException;
 
     void prologProxy(ServerPrepareResult serverPrepareResult, long maxRows, boolean hasProxy,
-                     MariaDbConnection connection, BaseStatement statement) throws SQLException;
+                     MariaDbConnection connection, MariaDbStatement statement) throws SQLException;
 
     Results getActiveStreamingResult();
 
