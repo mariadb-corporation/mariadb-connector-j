@@ -73,6 +73,7 @@ public class OffsetTimeParameter implements ParameterHolder, Cloneable {
      * @param serverZoneId      server session zoneId
      * @param fractionalSeconds must fractional Seconds be send to database.
      * @param options           session options
+     * @throws SQLException if offset cannot be converted to server offset
      */
     public OffsetTimeParameter(OffsetTime offsetTime, ZoneId serverZoneId, boolean fractionalSeconds, Options options) throws SQLException {
         ZoneId zoneId = options.useLegacyDatetimeCode ? ZoneOffset.systemDefault() : serverZoneId;

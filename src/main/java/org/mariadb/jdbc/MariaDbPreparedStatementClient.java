@@ -285,6 +285,13 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement impleme
         }
     }
 
+    /**
+     * Execute batch, like executeBatch(), with returning results with long[].
+     * For when row count may exceed Integer.MAX_VALUE.
+     *
+     * @return an array of update counts (one element for each command in the batch)
+     * @throws SQLException if a database error occur.
+     */
     public long[] executeLargeBatch() throws SQLException {
         checkClose();
         int size = parameterList.size();

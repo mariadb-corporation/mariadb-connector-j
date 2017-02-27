@@ -232,7 +232,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
         return results.getCmdInformation().getLargeUpdateCounts();
     }
 
-    public void executeBatchInternal(int queryParameterSize) throws SQLException {
+    private void executeBatchInternal(int queryParameterSize) throws SQLException {
         lock.lock();
         executing = true;
         try {

@@ -728,7 +728,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * If the limit is exceeded, the excess rows are silently dropped.
      *
      * @param max the new max rows limit; zero means there is no limit
-     * @throws SQLException  if the condition max >= 0 is not satisfied
+     * @throws SQLException if the condition max &gt;= 0 is not satisfied
      */
     @Override
     public void setLargeMaxRows(long max) throws SQLException {
