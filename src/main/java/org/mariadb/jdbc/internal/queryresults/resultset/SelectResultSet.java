@@ -1935,23 +1935,29 @@ public class SelectResultSet implements ResultSet {
                 return (T) getBigInteger(rawBytes, col);
 
             case "java.time.LocalDateTime":
+                if (rawBytes == null && rawBytes.length == 0) return null;
                 ZonedDateTime zonedDateTime = getZonedDateTime(rawBytes, col, LocalDateTime.class);
                 return zonedDateTime == null ? null : type.cast(zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime());
 
             case "java.time.ZonedDateTime":
+                if (rawBytes == null && rawBytes.length == 0) return null;
                 return type.cast(getZonedDateTime(rawBytes, col, ZonedDateTime.class));
 
             case "java.time.OffsetDateTime":
+                if (rawBytes == null && rawBytes.length == 0) return null;
                 ZonedDateTime tmpZonedDateTime = getZonedDateTime(rawBytes, col, OffsetDateTime.class);
                 return tmpZonedDateTime == null ? null : type.cast(tmpZonedDateTime.toOffsetDateTime());
 
             case "java.time.LocalDate":
+                if (rawBytes == null && rawBytes.length == 0) return null;
                 return type.cast(getLocalDate(rawBytes, col));
 
             case "java.time.LocalTime":
+                if (rawBytes == null && rawBytes.length == 0) return null;
                 return type.cast(getLocalTime(rawBytes, col));
 
             case "java.time.OffsetTime":
+                if (rawBytes == null && rawBytes.length == 0) return null;
                 return type.cast(getOffsetTime(rawBytes, col));
 
             default:
