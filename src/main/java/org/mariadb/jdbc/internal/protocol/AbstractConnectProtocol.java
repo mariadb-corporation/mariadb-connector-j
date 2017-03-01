@@ -1113,8 +1113,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
         writer.releaseBuffer();
     }
 
-    public ByteBuffer getWriter() {
+    public ByteBuffer getWriterBuffer() {
         return writer.buffer;
+    }
+
+    public PacketOutputStream getWriter() {
+        return writer;
     }
 
     public ReadPacketFetcher getPacketFetcher() {

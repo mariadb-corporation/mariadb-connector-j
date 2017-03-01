@@ -55,6 +55,7 @@ import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.packet.ComStmtFetch;
 import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
@@ -67,7 +68,6 @@ import org.mariadb.jdbc.internal.util.ExceptionCode;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
-import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -89,6 +89,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
+import static org.mariadb.jdbc.internal.util.constant.ServerStatus.*;
 
 @SuppressWarnings("deprecation")
 public class SelectResultSet implements ResultSet {
@@ -155,6 +156,7 @@ public class SelectResultSet implements ResultSet {
     protected Options options;
     private boolean returnTableAlias;
     private boolean isClosed;
+    private ComStmtFetch cursorFetch;
 
     /**
      * Create Streaming resultSet.
@@ -203,6 +205,7 @@ public class SelectResultSet implements ResultSet {
             fetchAllResults();
             streaming = false;
         } else {
+            cursorFetch = results.getCursorFetch();
             protocol.setActiveStreamingResult(results);
             resultSet = new ArrayList<>(fetchSize);
             nextStreamingValue();
@@ -364,8 +367,8 @@ public class SelectResultSet implements ResultSet {
                     ReentrantLock lock = protocol.getLock();
                     lock.lock();
                     try {
-                        while (readNextValue(resultSet)) {
-                            //fetch all results
+                        while (!isEof) {
+                            addStreamingValue();
                         }
                         resultSetSize = resultSet.size();
                     } finally {
@@ -383,6 +386,25 @@ public class SelectResultSet implements ResultSet {
 
         dataFetchTime++;
     }
+
+    private void fetchRemainingLock() throws SQLException {
+        if (!isEof) {
+            //load remaining results
+            ReentrantLock lock = protocol.getLock();
+            lock.lock();
+            try {
+                fetchRemaining();
+            } catch (SQLException ioe) {
+                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
+                        + " read off the result set relatively fast. "
+                        + "In this case, please consider increasing net_wait_timeout session variable."
+                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
+            } finally {
+                lock.unlock();
+            }
+        }
+    }
+
 
     /**
      * This permit to replace current stream results by next ones.
@@ -405,14 +427,32 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException if server return an unexpected error
      */
     private void addStreamingValue() throws IOException, SQLException {
+        if (cursorFetch != null) {
+            ReentrantLock lock = protocol.getLock();
+            lock.lock();
+            try {
+                //use COM_STMT_FETCH to ask next resultSet with fetchSize rows
+                cursorFetch.send(protocol.getWriter(), fetchSize);
+                //fetch the whole next resultSet
+                while (readNextValue(resultSet)) {
+                    //read all
+                }
+            } finally {
+                lock.unlock();
+            }
 
-        //fetch maximum fetchSize results
-        int fetchSizeTmp = fetchSize;
-        while (fetchSizeTmp > 0 && readNextValue(resultSet)) {
-            fetchSizeTmp--;
+        } else {
+            //read only fetchSize values
+            int fetchSizeTmp = fetchSize;
+            while (fetchSizeTmp > 0 && readNextValue(resultSet)) {
+                fetchSizeTmp--;
+            }
+
         }
+
         dataFetchTime++;
         this.resultSetSize = resultSet.size();
+
     }
 
     /**
@@ -432,7 +472,7 @@ public class SelectResultSet implements ResultSet {
 
             int read = inputStream.read() & 0xff;
             if (logger.isTraceEnabled()) {
-                logger.trace("read packet data(part):0x" + Integer.valueOf(String.valueOf(read), 16));
+                logger.trace("read packet data(part):0x" + Integer.toHexString(read));
             }
             int remaining = length - 1;
 
@@ -441,11 +481,7 @@ public class SelectResultSet implements ResultSet {
                 protocol.setMoreResults(false);
                 Buffer buffer = packetFetcher.getReusableBuffer(remaining, lastReusableArray);
                 ErrorPacket errorPacket = new ErrorPacket(buffer, false);
-                lastReusableArray = null;
-                protocol = null;
-                isEof = true;
-                packetFetcher = null;
-                inputStream = null;
+                nullVariables();
                 if (statement != null) {
                     throw new SQLException("(conn:" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
                             errorPacket.getSqlState(), errorPacket.getErrorNumber());
@@ -463,14 +499,12 @@ public class SelectResultSet implements ResultSet {
                 //is sending a bad "more result" flag (without setting more packet to true)
                 //so force the value, since this will corrupt connection.
                 //corrected in MariaDB since MDEV-4604 (10.0.4, 5.5.32)
-                protocol.setMoreResults(callableResult
-                        || (((buffer.buf[2] & 0xff) + ((buffer.buf[3] & 0xff) << 8)) & ServerStatus.MORE_RESULTS_EXISTS) != 0);
-                isEof = true;
+                int serverStatus = ((buffer.buf[2] & 0xff) + ((buffer.buf[3] & 0xff) << 8));
+                protocol.setMoreResults(callableResult || (serverStatus & MORE_RESULTS_EXISTS) != 0);
                 if (!protocol.hasMoreResults()) protocol.removeActiveStreamingResult();
-                protocol = null;
-                packetFetcher = null;
-                inputStream = null;
-                lastReusableArray = null;
+                if ((serverStatus & CURSOR_EXISTS) == 0 || (serverStatus & LAST_ROW_SENT) != 0) {
+                    nullVariables();
+                }
                 return false;
             }
 
@@ -487,11 +521,7 @@ public class SelectResultSet implements ResultSet {
             protocol.removeActiveStreamingResult();
             protocol.setMoreResults(false);
             ErrorPacket errorPacket = new ErrorPacket(buffer);
-            lastReusableArray = null;
-            protocol = null;
-            isEof = true;
-            packetFetcher = null;
-            inputStream = null;
+            nullVariables();
             if (statement != null) {
                 throw new SQLException("(conn:" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
                         errorPacket.getSqlState(), errorPacket.getErrorNumber());
@@ -502,19 +532,25 @@ public class SelectResultSet implements ResultSet {
 
         //is EOF stream
         if ((buffer.getByteAt(0) == Packet.EOF && buffer.limit < 9)) {
-            isEof = true;
             protocol.setHasWarnings(((buffer.buf[1] & 0xff) + ((buffer.buf[2] & 0xff) << 8)) > 0);
-            protocol.setMoreResults(callableResult
-                    || (((buffer.buf[3] & 0xff) + ((buffer.buf[4] & 0xff) << 8)) & ServerStatus.MORE_RESULTS_EXISTS) != 0);
+            int serverStatus = ((buffer.buf[3] & 0xff) + ((buffer.buf[4] & 0xff) << 8));
+            protocol.setMoreResults(callableResult || (serverStatus & MORE_RESULTS_EXISTS) != 0);
             if (!protocol.hasMoreResults()) protocol.removeActiveStreamingResult();
-            protocol = null;
-            packetFetcher = null;
-            inputStream = null;
-            lastReusableArray = null;
+            if ((serverStatus & CURSOR_EXISTS) == 0 || (serverStatus & LAST_ROW_SENT) != 0) {
+                nullVariables();
+            }
             return false;
         }
         values.add(rowPacket.getRow(packetFetcher, buffer));
         return true;
+    }
+
+    private void nullVariables() {
+        isEof = true;
+        protocol = null;
+        packetFetcher = null;
+        inputStream = null;
+        lastReusableArray = null;
     }
 
     /**
@@ -522,7 +558,7 @@ public class SelectResultSet implements ResultSet {
      */
     public void close() throws SQLException {
         isClosed = true;
-        if (protocol != null) {
+        if (protocol != null && cursorFetch == null) {
             ReentrantLock lock = protocol.getLock();
             lock.lock();
             try {
@@ -543,7 +579,7 @@ public class SelectResultSet implements ResultSet {
                         final EndOfFilePacket endOfFilePacket = new EndOfFilePacket(buffer);
 
                         protocol.setHasWarnings(endOfFilePacket.getWarningCount() > 0);
-                        protocol.setMoreResults(callableResult || (endOfFilePacket.getStatusFlags() & ServerStatus.MORE_RESULTS_EXISTS) != 0);
+                        protocol.setMoreResults(callableResult || (endOfFilePacket.getStatusFlags() & MORE_RESULTS_EXISTS) != 0);
                         if (!protocol.hasMoreResults()) protocol.removeActiveStreamingResult();
 
                         lastReusableArray = null;
@@ -558,12 +594,11 @@ public class SelectResultSet implements ResultSet {
             } catch (SQLException queryException) {
                 ExceptionMapper.throwException(queryException, null, this.statement);
             } finally {
-                protocol = null;
-                isEof = true;
-                packetFetcher = null;
-                inputStream = null;
+                nullVariables();
                 lock.unlock();
             }
+        } else {
+            nullVariables();
         }
 
         //clean releasing memory
@@ -683,7 +718,7 @@ public class SelectResultSet implements ResultSet {
                 ReentrantLock lock = protocol.getLock();
                 lock.lock();
                 try {
-                    //this time, fetch is added even for forward type to keep current pointer row.
+                    //this time, fetch is added even for streaming forward type only to keep current pointer row.
                     addStreamingValue();
                 } catch (IOException ioe) {
                     throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
@@ -756,21 +791,7 @@ public class SelectResultSet implements ResultSet {
     @Override
     public void afterLast() throws SQLException {
         checkClose();
-        if (!isEof) {
-            //load remaining results
-            ReentrantLock lock = protocol.getLock();
-            lock.lock();
-            try {
-                fetchRemaining();
-            } catch (SQLException ioe) {
-                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
-                        + " read off the result set relatively fast. "
-                        + "In this case, please consider increasing net_wait_timeout session variable."
-                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
-            } finally {
-                lock.unlock();
-            }
-        }
+        fetchRemainingLock();
         rowPointer = resultSetSize;
     }
 
@@ -788,21 +809,7 @@ public class SelectResultSet implements ResultSet {
     @Override
     public boolean last() throws SQLException {
         checkClose();
-        if (!isEof) {
-            //load remaining results
-            ReentrantLock lock = protocol.getLock();
-            lock.lock();
-            try {
-                fetchRemaining();
-            } catch (SQLException ioe) {
-                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
-                        + " read off the result set relatively fast. "
-                        + "In this case, please consider increasing net_wait_timeout session variable."
-                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
-            } finally {
-                lock.unlock();
-            }
-        }
+        fetchRemainingLock();
         rowPointer = resultSetSize - 1;
         return rowPointer > 0;
     }
@@ -830,20 +837,7 @@ public class SelectResultSet implements ResultSet {
         }
 
         //if streaming, must read additional results.
-        if (!isEof) {
-            ReentrantLock lock = protocol.getLock();
-            lock.lock();
-            try {
-                fetchRemaining();
-            } catch (SQLException ioe) {
-                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
-                        + " read off the result set relatively fast. "
-                        + "In this case, please consider increasing net_wait_timeout session variable."
-                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
-            } finally {
-                lock.unlock();
-            }
-        }
+        fetchRemainingLock();
 
         if (row >= 0) {
 
@@ -867,7 +861,6 @@ public class SelectResultSet implements ResultSet {
             return false;
 
         }
-
 
     }
 
@@ -919,11 +912,13 @@ public class SelectResultSet implements ResultSet {
 
     @Override
     public void setFetchSize(int fetchSize) throws SQLException {
-        if (streaming && this.fetchSize == 0) {
+        if (streaming && fetchSize == 0) {
 
             try {
-                while (readNextValue(resultSet)) {
+
+                while (!isEof) {
                     //fetch all results
+                    addStreamingValue();
                 }
             } catch (IOException ioException) {
                 throw new SQLException(ioException);

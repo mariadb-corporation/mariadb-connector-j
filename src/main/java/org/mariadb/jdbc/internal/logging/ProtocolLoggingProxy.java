@@ -247,7 +247,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
     }
 
     private String getQueryFromWriterBuffer() {
-        ByteBuffer buffer = protocol.getWriter();
+        ByteBuffer buffer = protocol.getWriterBuffer();
         //log first 1024 utf-8 characters
         String queryString = new String(buffer.array(), 5, Math.min(buffer.limit(), (1024 * 3) + 5));
         if (queryString.length() > 1021) queryString = queryString.substring(0, 1021) + "...";

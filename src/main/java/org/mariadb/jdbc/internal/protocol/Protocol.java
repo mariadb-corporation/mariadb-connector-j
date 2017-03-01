@@ -54,6 +54,7 @@ import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.queryresults.Results;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
@@ -233,7 +234,9 @@ public interface Protocol {
 
     void releaseWriterBuffer();
 
-    ByteBuffer getWriter();
+    ByteBuffer getWriterBuffer();
+
+    PacketOutputStream getWriter();
 
     ServerPrepareResult addPrepareInCache(String key, ServerPrepareResult serverPrepareResult);
 

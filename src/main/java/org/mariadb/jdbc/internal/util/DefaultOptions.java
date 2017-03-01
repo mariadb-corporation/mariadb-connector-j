@@ -414,7 +414,18 @@ public enum DefaultOptions {
      * Will log query with execution time superior to this value (if defined )
      * default to null.
      */
-    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, 0L, Long.MAX_VALUE, "1.5.0");
+    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, 0L, Long.MAX_VALUE, "1.5.0"),
+
+    /**
+     * When Statement.setFetchSize is set and option useServerPrepStmts is set too,
+     * indicate driver to fetch data from server by bunch of fetchSize rows.
+     * This permit to avoid having to fetch all results from server.
+     * but if most data must be read, this is then slower than retrieve all datas.
+     * default to false.
+     */
+    USE_CURSOR_FETCH("useCursorFetch", Boolean.FALSE, "2.0.0");
+
+
 
 
     protected final String name;

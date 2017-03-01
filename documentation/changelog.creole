@@ -41,9 +41,16 @@ java 7 maven repository artifact :
         <version>2.0.0</version>
     </dependency>
 </dependencies>
+=== CONJ-315 : implement useCursorFetch option
+
+New Options :
+ |=useCursorFetch|* When Statement.setFetchSize is set and option useServerPrepStmts is set too, \\
+                       indicate driver to fetch data from server by bunch of fetchSize rows. \\
+                       This permit to avoid having to fetch all results from server. \\
+                       but if most data must be read, this is then slower than retrieve all datas. \\
+                       \\//Default: false. Since 1.5.0//|
 
 === CONJ-393 : improve setQueryTimeout to use SET STATEMENT max_statement_time
-[CONJ-291]\\
 
 Previous implementation of query timeout handling (using Statement.setQueryTimeout) will create an additional thread with a scheduler.
 When timeout is reached, a temporary connection will be created to permit executing "KILL QUERY <current connection id>", then closing the temporary connection.
@@ -51,7 +58,7 @@ When query ended before timeout, the scheduled task will be canceled.
 
 If server is > 10.1.2, query timeout will be handle server side using "SET MAX_STATEMENT_TIME FOR" command.
 
-[CONJ-402]\\
+=== [CONJ-402]
 
 tcpKeepAlive option now default to true.
 
@@ -59,7 +66,7 @@ Usually pool will ensure that connection is still valid.
 Since the process doesn't start until a connection has been idle for two hours (this time is OS dependant),
 TCP keep alive after this time will ensure that socket is still OK..
 
-[CONJ-409]\\
+=== [CONJ-409]
 PrepareStatement.setObject(...) support for with java 8 temporal temporal object.
 (Support for LocalDateTime, DateTime, ZoneDateTime, OffsetDateTime, OffsetTime)
 

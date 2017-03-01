@@ -280,6 +280,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
         if (closed) {
             throw new SQLException("execute() is called on closed statement");
         }
+        if (serverPrepareResult != null) serverPrepareResult.fetchAllOpenCursor();
         protocol.prologProxy(serverPrepareResult, maxRows, protocol.getProxy() != null, connection, this);
         if (queryTimeout != 0) setTimerTask();
     }

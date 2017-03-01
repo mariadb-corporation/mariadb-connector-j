@@ -62,38 +62,52 @@ public class ComStmtExecute implements InterfaceSendPacket {
     private final ParameterHolder[] parameters;
     private final int statementId;
     private ColumnType[] parameterTypeHeader;
+    private final byte cursorFlag;
 
     /**
      * Initialize parameters.
      *
-     * @param statementId         prepareResult object received after preparation.
-     * @param parameters          parameters
-     * @param parameterCount      parameters number
-     * @param parameterTypeHeader parameters header
-     */
+     * @param statementId           prepareResult object received after preparation.
+     * @param parameters            parameters
+     * @param parameterCount        parameters number
+     * @param parameterTypeHeader   parameters header
+     * @param cursorFlag            cursor flag. Possible values : <ol>
+     *                              <li>CURSOR_TYPE_NO_CURSOR = fetch all</li>
+     *                              <li>CURSOR_TYPE_READ_ONLY = fetch by bunch</li>
+     *                              <li>CURSOR_TYPE_FOR_UPDATE = fetch by bunch with lock ?</li>
+     *                              <li>CURSOR_TYPE_SCROLLABLE = //reserved, but not working</li>
+     *                              </ol>     */
     public ComStmtExecute(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
-                          ColumnType[] parameterTypeHeader) {
+                          ColumnType[] parameterTypeHeader, byte cursorFlag) {
         this.parameterCount = parameterCount;
         this.parameters = parameters;
         this.statementId = statementId;
         this.parameterTypeHeader = parameterTypeHeader;
+        this.cursorFlag = cursorFlag;
     }
 
     /**
      * Write COM_STMT_EXECUTE sub-command to output buffer.
      *
-     * @param statementId         prepareResult object received after preparation.
-     * @param parameters          parameters
-     * @param parameterCount      parameters number
-     * @param parameterTypeHeader parameters header1
-     * @param pos                 outputStream
+     * @param statementId           prepareResult object received after preparation.
+     * @param parameters            parameters
+     * @param parameterCount        parameters number
+     * @param parameterTypeHeader   parameters header1
+     * @param pos                   outputStream
+     * @param cursorFlag            cursor flag. Possible values : <ol>
+     *                              <li>CURSOR_TYPE_NO_CURSOR = fetch all</li>
+     *                              <li>CURSOR_TYPE_READ_ONLY = fetch by bunch</li>
+     *                              <li>CURSOR_TYPE_FOR_UPDATE = fetch by bunch with lock ?</li>
+     *                              <li>CURSOR_TYPE_SCROLLABLE = //reserved, but not working</li>
+     *                              </ol>
      * @throws IOException if a connection error occur
      */
     public static void writeCmd(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
-                                ColumnType[] parameterTypeHeader, final PacketOutputStream pos) throws IOException {
+                                ColumnType[] parameterTypeHeader, final PacketOutputStream pos,
+                                final byte cursorFlag) throws IOException {
         pos.buffer.put(Packet.COM_STMT_EXECUTE);
         pos.buffer.putInt(statementId);
-        pos.buffer.put((byte) 0x00); //CURSOR TYPE NO CURSOR
+        pos.buffer.put(cursorFlag);
         pos.buffer.putInt(1); //Iteration count
 
         //create null bitmap
@@ -149,7 +163,7 @@ public class ComStmtExecute implements InterfaceSendPacket {
     public void send(final OutputStream os) throws IOException {
         PacketOutputStream buffer = (PacketOutputStream) os;
         buffer.startPacket(0, true);
-        writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, buffer);
+        writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, buffer, cursorFlag);
         buffer.finishPacketWithoutRelease(true);
         buffer.releaseBuffer();
     }

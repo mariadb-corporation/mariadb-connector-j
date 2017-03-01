@@ -49,6 +49,7 @@ OF SUCH DAMAGE.
 */
 
 import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.internal.packet.ComStmtFetch;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.util.ExceptionMapper;
@@ -64,6 +65,7 @@ public class Results {
 
     private MariaDbStatement statement;
     private int fetchSize;
+    private ComStmtFetch cursorFetch;
     private boolean batch;
     private int expectedSize;
     private CmdInformation cmdInformation;
@@ -398,5 +400,13 @@ public class Results {
 
     public int getMaxFieldSize() {
         return maxFieldSize;
+    }
+
+    public ComStmtFetch getCursorFetch() {
+        return cursorFetch;
+    }
+
+    public void setUseCursorFetch(ComStmtFetch cursorFetch) {
+        this.cursorFetch = cursorFetch;
     }
 }

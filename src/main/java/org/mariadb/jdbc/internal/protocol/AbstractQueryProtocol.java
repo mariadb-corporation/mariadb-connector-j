@@ -87,6 +87,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.mariadb.jdbc.internal.util.SqlStates.*;
+import static org.mariadb.jdbc.internal.packet.Packet.*;
 
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
@@ -148,7 +149,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
         try {
 
-            writer.send(sql, Packet.COM_QUERY);
+            writer.send(sql, COM_QUERY);
             getResult(results);
 
         } catch (SQLException sqlException) {
@@ -286,7 +287,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     throws SQLException, IOException {
 
                 String sql = queries.get(status.sendCmdCounter);
-                writer.send(sql, Packet.COM_QUERY);
+                writer.send(sql, COM_QUERY);
 
             }
 
@@ -392,7 +393,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 firstSql = queries.get(currentIndex++);
 
                 if (totalQueries == 1) {
-                    writer.send(firstSql, Packet.COM_QUERY);
+                    writer.send(firstSql, COM_QUERY);
                 } else {
                     currentIndex = ComExecute.sendMultiple(writer, firstSql, queries, currentIndex);
                 }
@@ -502,7 +503,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
 
                 writer.startPacket(0);
-                ComStmtExecute.writeCmd(statementId, parameters, paramCount, parameterTypeHeader, writer);
+                ComStmtExecute.writeCmd(statementId, parameters, paramCount, parameterTypeHeader, writer, CURSOR_TYPE_NO_CURSOR);
                 writer.finishPacketWithoutRelease(true);
 
             }
@@ -591,7 +592,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             writer.startPacket(0);
-            ComStmtExecute.writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, writer);
+            ComStmtExecute.writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, writer, CURSOR_TYPE_NO_CURSOR);
             writer.finishPacketWithoutRelease(true);
 
             //read result
@@ -640,12 +641,26 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
             }
 
-            //send execute query
-            new ComStmtExecute(serverPrepareResult.getStatementId(), parameters,
-                    parameterCount, serverPrepareResult.getParameterTypeHeader())
-                    .send(writer);
+            if (results.getFetchSize() > 0
+                    && options.useCursorFetch
+                    && results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY) {
 
-            getResult(results);
+                //Real server stream
+                new ComStmtExecute(serverPrepareResult.getStatementId(), parameters,
+                        parameterCount, serverPrepareResult.getParameterTypeHeader(), CURSOR_TYPE_READ_ONLY)
+                        .send(writer);
+                serverPrepareResult.openCursor(results);
+                results.setUseCursorFetch(new ComStmtFetch(serverPrepareResult.getStatementId()));
+                getResult(results);
+
+            } else {
+
+                //send execute query
+                new ComStmtExecute(serverPrepareResult.getStatementId(), parameters,
+                        parameterCount, serverPrepareResult.getParameterTypeHeader(), CURSOR_TYPE_NO_CURSOR)
+                        .send(writer);
+                getResult(results);
+            }
 
         } catch (SQLException qex) {
             throw logQuery.exceptionWithQuery(parameters, qex, serverPrepareResult);
@@ -741,7 +756,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             final SendPingPacket pingPacket = new SendPingPacket();
             pingPacket.send(writer);
             Buffer buffer = packetFetcher.getReusableBuffer();
-            return buffer.getByteAt(0) == Packet.OK;
+            return buffer.getByteAt(0) == OK;
 
         } catch (IOException e) {
             throw new SQLException("Could not ping: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
@@ -763,7 +778,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             packet.send(writer);
             final Buffer buffer = packetFetcher.getReusableBuffer();
 
-            if (buffer.getByteAt(0) == Packet.ERROR) {
+            if (buffer.getByteAt(0) == ERROR) {
                 final ErrorPacket ep = new ErrorPacket(buffer);
                 throw new SQLException("Could not select database '" + database + "' : " + ep.getMessage(),
                         ep.getSqlState(), ep.getErrorNumber());
@@ -1034,20 +1049,20 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             //*********************************************************************************************************
             //* OK response
             //*********************************************************************************************************
-            case Packet.OK:
+            case OK:
                 readOkPacket(buffer, results);
                 break;
 
             //*********************************************************************************************************
             //* ERROR response
             //*********************************************************************************************************
-            case Packet.ERROR:
+            case ERROR:
                 throw readErrorPacket(buffer, results);
 
             //*********************************************************************************************************
             //* LOCAL INFILE response
             //*********************************************************************************************************
-            case Packet.LOCAL_INFILE:
+            case LOCAL_INFILE:
                 readLocalInfilePacket(buffer, results);
                 break;
 
@@ -1171,7 +1186,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             // - after a callable resultSet, a OK packet is send, but mysql does send the  a bad "more result flag",
             //so this flag is absolutely needed ! capability CLIENT_DEPRECATE_EOF must never be implemented.
             Buffer bufferEof = packetFetcher.getReusableBuffer();
-            if (bufferEof.readByte() != Packet.EOF) {
+            if (bufferEof.readByte() != EOF) {
                 throw new SQLException("Packets out of order when reading field packets, expected was EOF stream. "
                         + "Packet contents (hex) = " + Utils.hexdump(bufferEof.buf, options.maxQuerySizeToLog, 0, bufferEof.position));
             }

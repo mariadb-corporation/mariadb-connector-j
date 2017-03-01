@@ -82,6 +82,7 @@ public class Options {
     public boolean rewriteBatchedStatements;
     public boolean useCompression;
     public boolean interactiveClient;
+    public boolean useCursorFetch;
 
     public boolean useSsl;
     public String enabledSslCipherSuites;
@@ -184,6 +185,7 @@ public class Options {
                 + ", profileSql=" + profileSql
                 + ", maxQuerySizeToLog=" + maxQuerySizeToLog
                 + ", slowQueryThresholdNanos=" + slowQueryThresholdNanos
+                + ", useCursorFetch=" + useCursorFetch
                 + "}";
     }
 
@@ -286,6 +288,8 @@ public class Options {
         }
         if (useBatchMultiSend != options.useBatchMultiSend) return false;
         if (useBatchMultiSendNumber != options.useBatchMultiSendNumber) return false;
+        if (useCursorFetch != options.useCursorFetch) return false;
+
 
         return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)
                 : options.prepStmtCacheSqlLimit != null);
