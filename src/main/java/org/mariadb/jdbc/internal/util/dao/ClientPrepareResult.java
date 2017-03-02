@@ -495,7 +495,8 @@ public class ClientPrepareResult implements PrepareResult {
                                     && (query[i + 2] == 'l' || query[i + 2] == 'L')
                                     && (query[i + 3] == 'e' || query[i + 3] == 'E')
                                     && (query[i + 4] == 'c' || query[i + 4] == 'C')
-                                    && (query[i + 5] == 't' || query[i + 5] == 'T')) {
+                                    && (query[i + 5] == 't' || query[i + 5] == 'T')
+                                    && ((byte) query[i + 6] <= 40)) {
                                 //SELECT queries, INSERT FROM SELECT not rewritable
                                 reWritablePrepare = false;
                             }
