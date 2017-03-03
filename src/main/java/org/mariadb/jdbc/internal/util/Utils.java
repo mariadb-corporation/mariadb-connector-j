@@ -53,7 +53,6 @@ import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.logging.ProtocolLoggingProxy;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
@@ -66,6 +65,7 @@ import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import javax.net.SocketFactory;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Proxy;
 import java.net.Socket;
 import java.security.MessageDigest;
@@ -108,18 +108,28 @@ public class Utils {
      * the digest with the output from 3 6. an xor of the output of 5 and 2 is sent to server 7. server does the same
      * thing and verifies that the scrambled passwords match
      *
-     * @param password the password to encrypt
-     * @param seed     the seed to use
+     * @param password                  the password to encrypt
+     * @param seed                      the seed to use
+     * @param passwordCharacterEncoding password character encoding
      * @return a scrambled password
+     *
      * @throws NoSuchAlgorithmException if SHA1 is not available on the platform we are using
+     * @throws UnsupportedEncodingException if passwordCharacterEncoding is not a valid charset name
      */
-    public static byte[] encryptPassword(final String password, final byte[] seed) throws NoSuchAlgorithmException {
-        if (password == null || password.equals("")) {
-            return new byte[0];
-        }
+    public static byte[] encryptPassword(final String password, final byte[] seed, String passwordCharacterEncoding)
+            throws NoSuchAlgorithmException, UnsupportedEncodingException {
+
+        if (password == null || password.equals("")) return new byte[0];
 
         final MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
-        final byte[] stage1 = messageDigest.digest(password.getBytes());
+        byte[] bytePwd;
+        if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
+            bytePwd = password.getBytes(passwordCharacterEncoding);
+        } else {
+            bytePwd = password.getBytes();
+        }
+
+        final byte[] stage1 = messageDigest.digest(bytePwd);
         messageDigest.reset();
 
         final byte[] stage2 = messageDigest.digest(stage1);

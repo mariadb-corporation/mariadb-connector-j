@@ -414,8 +414,14 @@ public enum DefaultOptions {
      * Will log query with execution time superior to this value (if defined )
      * default to null.
      */
-    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, new Long(0), Long.MAX_VALUE, "1.5.0");
+    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, new Long(0), Long.MAX_VALUE, "1.5.0"),
 
+
+    /**
+     * Indicate password encoding charset. If not set, driver use platform's default charset.
+     * default to null.
+     */
+    PASSWORD_CHARACTER_ENCODING("passwordCharacterEncoding", "1.5.9");
 
     protected final String name;
     protected final Object objType;

@@ -1,4 +1,5 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#158|1.5.9]] not released
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#158|1.5.8]] Released on 10 Fev  2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#157|1.5.7]] Released on 12 Jan. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#156|1.5.6]] Released on 21 Dec. 2016
@@ -17,6 +18,11 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+== 1.5.9
+* CONJ-212 : Implement password encoding charset option
+* CONJ-423 : Permit to have MySQL driver and MariaDB driver in same classpath
+* CONJ-431 : multi-values queries return only one generated key
+* CONJ-434 : 1.5.8 regression : ResultSet returns duplicate entries when using fetchsize
 
 == 1.5.8
 * CONJ-424 : getGeneratedKeys() on table without generated key failed on second execution

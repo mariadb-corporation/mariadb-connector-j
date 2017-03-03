@@ -63,6 +63,7 @@ import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -243,6 +244,39 @@ public class MariaDbStatement implements Statement, Cloneable {
                     connection.getAutoIncrementIncrement());
             protocol.executeQuery(protocol.isMasterConnection(), internalResults,
                     Utils.nativeSql(sql, connection.noBackslashEscapes));
+            internalResults.commandEnd();
+            results = internalResults;
+            return results.getResultSet() != null;
+        } catch (QueryException e) {
+            exception = e;
+            return false;
+        } finally {
+            lock.unlock();
+            executeQueryEpilog(exception);
+            executing = false;
+        }
+    }
+
+    /**
+     * ! This method is for test only !
+     * This permit sending query using specific charset.
+     *
+     * @param sql     sql
+     * @param charset charset
+     * @return boolean if execution went well
+     * @throws SQLException if any exception occur
+     */
+    public boolean testExecute(String sql, Charset charset) throws SQLException {
+        executing = true;
+        QueryException exception = null;
+        lock.lock();
+        try {
+            executeQueryProlog();
+            batchResultSet = null;
+            Results internalResults = new Results(this, fetchSize, false, 1, false, resultSetScrollType,
+                    connection.getAutoIncrementIncrement());
+            protocol.executeQuery(protocol.isMasterConnection(), internalResults,
+                    Utils.nativeSql(sql, connection.noBackslashEscapes), charset);
             internalResults.commandEnd();
             results = internalResults;
             return results.getResultSet() != null;

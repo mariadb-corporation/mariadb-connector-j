@@ -53,10 +53,7 @@ package org.mariadb.jdbc.internal.protocol.authentication;
 
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.packet.send.*;
-import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-
-import javax.swing.*;
 
 public class DefaultAuthenticationProvider {
     public static final String MYSQL_NATIVE_PASSWORD = "mysql_native_password";
@@ -69,27 +66,29 @@ public class DefaultAuthenticationProvider {
 
     /**
      * Process AuthenticationSwitch.
-     * @param packetFetcher packet fetcher
-     * @param plugin plugin name
-     * @param password password
-     * @param authData auth data
-     * @param seqNo packet sequence number
+     * @param packetFetcher             packet fetcher
+     * @param plugin                    plugin name
+     * @param password                  password
+     * @param authData                  auth data
+     * @param seqNo                     packet sequence number
+     * @param passwordCharacterEncoding password character encoding
      * @return authentication response according to parameters
      * @throws QueryException if error occur.
      */
     public static InterfaceAuthSwitchSendResponsePacket processAuthPlugin(ReadPacketFetcher packetFetcher, String plugin, String password,
-                                                                          byte[] authData, int seqNo) throws QueryException {
+                                                                          byte[] authData, int seqNo, String passwordCharacterEncoding)
+            throws QueryException {
         switch (plugin) {
             case MYSQL_NATIVE_PASSWORD:
-                return new SendNativePasswordAuthPacket(password, authData, seqNo);
+                return new SendNativePasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
             case MYSQL_OLD_PASSWORD:
-                return new SendOldPasswordAuthPacket(password, authData, seqNo);
+                return new SendOldPasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
             case MYSQL_CLEAR_PASSWORD:
-                return new SendClearPasswordAuthPacket(password, authData, seqNo);
+                return new SendClearPasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
             case DIALOG:
-                return new SendPamAuthPacket(packetFetcher, password, authData, seqNo);
+                return new SendPamAuthPacket(packetFetcher, password, authData, seqNo, passwordCharacterEncoding);
             case GSSAPI_CLIENT:
-                return new SendGssApiAuthPacket(packetFetcher, password, authData, seqNo);
+                return new SendGssApiAuthPacket(packetFetcher, password, authData, seqNo, passwordCharacterEncoding);
             default:
                 throw new QueryException("Client does not support authentication protocol requested by server. "
                         + "Consider upgrading MariaDB client. plugin was = " + plugin, 1251, "08004");

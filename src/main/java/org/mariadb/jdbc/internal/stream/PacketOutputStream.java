@@ -59,6 +59,7 @@ import org.mariadb.jdbc.internal.util.dao.QueryException;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.Charset;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -1008,6 +1009,24 @@ public class PacketOutputStream extends OutputStream {
         } else {
             sendDirect(arr, 5, position - 5, commandType);
         }
+    }
+
+
+    /**
+     * Send SQL string to outputStream.
+     * SQL will be transform to UTF-8 byte buffer, and if possible this buffer will be send to stream directly.
+     *
+     * @param sql           sql
+     * @param commandType   command type
+     * @param charset       charset
+     * @throws IOException    if connection error occur.
+     * @throws QueryException if query size is to big according to server max_allowed_size
+     */
+    public void send(String sql, byte commandType, Charset charset) throws IOException, QueryException {
+
+        startPacket(0, true);
+        byte[] sqlBytes = sql.getBytes(charset);
+        sendDirect(sqlBytes, 0, sqlBytes.length, commandType);
     }
 
     /**

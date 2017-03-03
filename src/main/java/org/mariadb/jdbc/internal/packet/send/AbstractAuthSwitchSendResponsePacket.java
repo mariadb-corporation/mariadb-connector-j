@@ -62,17 +62,20 @@ public abstract class AbstractAuthSwitchSendResponsePacket implements InterfaceA
     protected int packSeq = 0;
     protected byte[] authData;
     protected String password;
+    protected String passwordCharacterEncoding;
 
     /**
      * Handle Authentication.
-     * @param packSeq packet sequence
-     * @param authData authentication data
-     * @param password password
+     * @param packSeq                   packet sequence
+     * @param authData                  authentication data
+     * @param password                  password
+     * @param passwordCharacterEncoding password character encoding
      */
-    public AbstractAuthSwitchSendResponsePacket(int packSeq, byte[] authData, String password) {
+    public AbstractAuthSwitchSendResponsePacket(int packSeq, byte[] authData, String password, String passwordCharacterEncoding) {
         this.packSeq = packSeq;
         this.authData = authData;
         this.password = password;
+        this.passwordCharacterEncoding = passwordCharacterEncoding;
     }
 
     /**

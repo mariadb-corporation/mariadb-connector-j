@@ -59,8 +59,8 @@ import java.util.Arrays;
 
 public class SendNativePasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
 
-    public SendNativePasswordAuthPacket(String password, byte[] authData, int packSeq) {
-        super(packSeq, authData, password);
+    public SendNativePasswordAuthPacket(String password, byte[] authData, int packSeq, String passwordCharacterEncoding) {
+        super(packSeq, authData, password, passwordCharacterEncoding);
     }
 
     /**
@@ -85,7 +85,7 @@ public class SendNativePasswordAuthPacket extends AbstractAuthSwitchSendResponse
             } else {
                 seed = new byte[0];
             }
-            writer.write(Utils.encryptPassword(password, seed));
+            writer.write(Utils.encryptPassword(password, seed, passwordCharacterEncoding));
             writer.finishPacketWithoutRelease(false);
             writer.releaseBuffer();
         } catch (NoSuchAlgorithmException e) {

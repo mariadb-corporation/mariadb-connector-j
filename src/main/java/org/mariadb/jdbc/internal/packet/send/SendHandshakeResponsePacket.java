@@ -99,19 +99,21 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
 
     private byte[] connectionAttributesArray;
     private int connectionAttributesPosition;
+    private String passwordCharacterEncoding;
 
     /**
      * Initialisation of parameters.
      *
-     * @param username             username
-     * @param password             user password
-     * @param database             initial database connection
-     * @param clientCapabilities   capabilities
-     * @param serverLanguage       serverlanguage
-     * @param seed                 seed
-     * @param packetSeq            stream sequence
-     * @param plugin               authentication plugin name
-     * @param connectionAttributes connection attributes option
+     * @param username                  username
+     * @param password                  user password
+     * @param database                  initial database connection
+     * @param clientCapabilities        capabilities
+     * @param serverLanguage            serverlanguage
+     * @param seed                      seed
+     * @param packetSeq                 stream sequence
+     * @param plugin                    authentication plugin name
+     * @param connectionAttributes      connection attributes option
+     * @param passwordCharacterEncoding password character encoding
      */
     public SendHandshakeResponsePacket(final String username,
                                        final String password,
@@ -121,7 +123,8 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
                                        final byte[] seed,
                                        byte packetSeq,
                                        String plugin,
-                                       String connectionAttributes) {
+                                       String connectionAttributes,
+                                       String passwordCharacterEncoding) {
         this.packetSeq = packetSeq;
         this.username = username;
         this.password = password;
@@ -131,6 +134,7 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
         this.database = database;
         this.plugin = plugin;
         this.connectionAttributes = connectionAttributes;
+        this.passwordCharacterEncoding = passwordCharacterEncoding;
     }
 
     /**
@@ -147,13 +151,17 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
             case "": //CONJ-274 : permit connection mysql 5.1 db
             case DefaultAuthenticationProvider.MYSQL_NATIVE_PASSWORD:
                 try {
-                    authData = Utils.encryptPassword(password, seed);
+                    authData = Utils.encryptPassword(password, seed, passwordCharacterEncoding);
                     break;
                 } catch (NoSuchAlgorithmException e) {
                     throw new RuntimeException("Could not use SHA-1, failing", e);
                 }
             case DefaultAuthenticationProvider.MYSQL_CLEAR_PASSWORD:
-                authData = password.getBytes();
+                if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
+                    authData = password.getBytes(passwordCharacterEncoding);
+                } else {
+                    authData = password.getBytes();
+                }
                 break;
             default:
                 authData = new byte[0];
