@@ -1003,32 +1003,32 @@ public class MariaSelectResultSet implements ResultSet {
                 break;
             case TINYINT:
                 if (this.isBinaryEncoded) {
-                    return String.valueOf(getTinyInt(rawBytes, columnInfo));
+                    return zeroFillingIfNeeded(String.valueOf(getTinyInt(rawBytes, columnInfo)), columnInfo);
                 }
                 break;
             case SMALLINT:
                 if (this.isBinaryEncoded) {
-                    return String.valueOf(getSmallInt(rawBytes, columnInfo));
+                    return zeroFillingIfNeeded(String.valueOf(getSmallInt(rawBytes, columnInfo)), columnInfo);
                 }
                 break;
             case INTEGER:
             case MEDIUMINT:
                 if (this.isBinaryEncoded) {
-                    return String.valueOf(getMediumInt(rawBytes, columnInfo));
+                    return zeroFillingIfNeeded(String.valueOf(getMediumInt(rawBytes, columnInfo)), columnInfo);
                 }
                 break;
             case BIGINT:
                 if (this.isBinaryEncoded) {
                     if (!columnInfo.isSigned()) {
-                        return String.valueOf(getBigInteger(rawBytes, columnInfo));
+                        return zeroFillingIfNeeded(String.valueOf(getBigInteger(rawBytes, columnInfo)), columnInfo);
                     }
-                    return String.valueOf(getLong(rawBytes, columnInfo));
+                    return zeroFillingIfNeeded(String.valueOf(getLong(rawBytes, columnInfo)), columnInfo);
                 }
                 break;
             case DOUBLE:
-                return String.valueOf(getDouble(rawBytes, columnInfo));
+                return zeroFillingIfNeeded(String.valueOf(getDouble(rawBytes, columnInfo)), columnInfo);
             case FLOAT:
-                return String.valueOf(getFloat(rawBytes, columnInfo));
+                return zeroFillingIfNeeded(String.valueOf(getFloat(rawBytes, columnInfo)), columnInfo);
             case TIME:
                 return getTimeString(rawBytes, columnInfo);
             case DATE:
@@ -1070,7 +1070,7 @@ public class MariaSelectResultSet implements ResultSet {
             case DECIMAL:
             case OLDDECIMAL:
                 BigDecimal bigDecimal = getBigDecimal(rawBytes, columnInfo);
-                return (bigDecimal == null ) ? null : bigDecimal.toString();
+                return (bigDecimal == null ) ? null : zeroFillingIfNeeded(bigDecimal.toString(), columnInfo);
             case GEOMETRY:
                 return new String(rawBytes);
             case NULL:
@@ -1079,6 +1079,16 @@ public class MariaSelectResultSet implements ResultSet {
                 return new String(rawBytes, StandardCharsets.UTF_8);
         }
         return new String(rawBytes, StandardCharsets.UTF_8);
+    }
+
+    private String zeroFillingIfNeeded(String value, ColumnInformation columnInformation) {
+        if (columnInformation.isZeroFill()) {
+            StringBuilder zeroAppendStr = new StringBuilder();
+            long zeroToAdd = columnInformation.getDisplaySize() - value.length();
+            while (zeroToAdd-- > 0) zeroAppendStr.append("0");
+            return zeroAppendStr.append(value).toString();
+        }
+        return value;
     }
 
     /**

@@ -23,6 +23,7 @@
 * CONJ-423 : Permit to have MySQL driver and MariaDB driver in same classpath
 * CONJ-431 : multi-values queries return only one generated key
 * CONJ-434 : 1.5.8 regression : ResultSet returns duplicate entries when using fetchsize
+* CONJ-437 : ResultSet.getString on field with ZEROFILL doesn't have the '0' leading chars when using binary protocol
 
 == 1.5.8
 * CONJ-424 : getGeneratedKeys() on table without generated key failed on second execution

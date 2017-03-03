@@ -530,4 +530,103 @@ public class ResultSetTest extends BaseTest {
 
     }
 
+    /**
+     * [CONJ-437] getString on field with ZEROFILL doesn't have the '0' leading chars when using binary protocol.
+     * @throws SQLException if any abnormal error occur
+     */
+    @Test
+    public void leadingZeroTest() throws SQLException {
+        createTable("leadingZero", "t1 TINYINT(3) unsigned zerofill"
+                        + ", t2 TINYINT(8) unsigned zerofill"
+                        + ", t3 TINYINT unsigned zerofill"
+                        + ", t4 smallint(3) unsigned zerofill"
+                        + ", t5 smallint(8) unsigned zerofill"
+                        + ", t6 smallint unsigned zerofill"
+                        + ", t7 MEDIUMINT(3) unsigned zerofill"
+                        + ", t8 MEDIUMINT(8) unsigned zerofill"
+                        + ", t9 MEDIUMINT unsigned zerofill"
+                        + ", t10 INT(3) unsigned zerofill"
+                        + ", t11 INT(8) unsigned zerofill"
+                        + ", t12 INT unsigned zerofill"
+                        + ", t13 BIGINT(3) unsigned zerofill"
+                        + ", t14 BIGINT(8) unsigned zerofill"
+                        + ", t15 BIGINT unsigned zerofill"
+                        + ", t16 DECIMAL(6,3) unsigned zerofill"
+                        + ", t17 DECIMAL(11,3) unsigned zerofill"
+                        + ", t18 DECIMAL unsigned zerofill"
+                        + ", t19 FLOAT(6,3) unsigned zerofill"
+                        + ", t20 FLOAT(11,3) unsigned zerofill"
+                        + ", t21 FLOAT unsigned zerofill"
+                        + ", t22 DOUBLE(6,3) unsigned zerofill"
+                        + ", t23 DOUBLE(11,3) unsigned zerofill"
+                        + ", t24 DOUBLE unsigned zerofill");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.executeUpdate("insert into leadingZero values (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1.1,1.1,1.1,1.1,1.1,1.1,1.1,1.1,1.1), "
+                + "(20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20.2,20.2,20.2,20.2,20.2,20.2,20.2,20.2,20.2)");
+
+        //test text resultSet
+        testLeadingZeroResult(stmt.executeQuery("select * from leadingZero"));
+
+        //test binary resultSet
+        PreparedStatement pst1 = sharedConnection.prepareStatement("select * from leadingZero");
+        ResultSet rs1 = pst1.executeQuery();
+        testLeadingZeroResult(rs1);
+
+    }
+
+    private void testLeadingZeroResult(ResultSet rs1) throws SQLException {
+        assertTrue(rs1.next());
+        assertEquals("001", rs1.getString(1));
+        assertEquals("00000001", rs1.getString(2));
+        assertEquals("001", rs1.getString(3));
+        assertEquals("001", rs1.getString(4));
+        assertEquals("00000001", rs1.getString(5));
+        assertEquals("00001", rs1.getString(6));
+        assertEquals("001", rs1.getString(7));
+        assertEquals("00000001", rs1.getString(8));
+        assertEquals("00000001", rs1.getString(9));
+        assertEquals("001", rs1.getString(10));
+        assertEquals("00000001", rs1.getString(11));
+        assertEquals("0000000001", rs1.getString(12));
+        assertEquals("001", rs1.getString(13));
+        assertEquals("00000001", rs1.getString(14));
+        assertEquals("00000000000000000001", rs1.getString(15));
+        assertEquals("001.100", rs1.getString(16));
+        assertEquals("00000001.100", rs1.getString(17));
+        assertEquals("0000000001", rs1.getString(18));
+        assertEquals("0001.1", rs1.getString(19));
+        assertEquals("000000001.1", rs1.getString(20));
+        assertEquals("0000000001.1", rs1.getString(21));
+        assertEquals("0001.1", rs1.getString(22));
+        assertEquals("000000001.1", rs1.getString(23));
+        assertEquals("00000000000000000001.1", rs1.getString(24));
+
+        assertTrue(rs1.next());
+        assertEquals("020", rs1.getString(1));
+        assertEquals("00000020", rs1.getString(2));
+        assertEquals("020", rs1.getString(3));
+        assertEquals("020", rs1.getString(4));
+        assertEquals("00000020", rs1.getString(5));
+        assertEquals("00020", rs1.getString(6));
+        assertEquals("020", rs1.getString(7));
+        assertEquals("00000020", rs1.getString(8));
+        assertEquals("00000020", rs1.getString(9));
+        assertEquals("020", rs1.getString(10));
+        assertEquals("00000020", rs1.getString(11));
+        assertEquals("0000000020", rs1.getString(12));
+        assertEquals("020", rs1.getString(13));
+        assertEquals("00000020", rs1.getString(14));
+        assertEquals("00000000000000000020", rs1.getString(15));
+        assertEquals("020.200", rs1.getString(16));
+        assertEquals("00000020.200", rs1.getString(17));
+        assertEquals("0000000020", rs1.getString(18));
+        assertEquals("0020.2", rs1.getString(19));
+        assertEquals("000000020.2", rs1.getString(20));
+        assertEquals("0000000020.2", rs1.getString(21));
+        assertEquals("0020.2", rs1.getString(22));
+        assertEquals("000000020.2", rs1.getString(23));
+        assertEquals("00000000000000000020.2", rs1.getString(24));
+        assertFalse(rs1.next());
+
+    }
 }

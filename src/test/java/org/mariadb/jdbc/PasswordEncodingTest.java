@@ -43,6 +43,10 @@ public class PasswordEncodingTest extends BaseTest {
 
         for (String charsetName : charsets) checkConnection(charsetName, charsets);
 
+        Statement stmt = sharedConnection.createStatement();
+        for (String charsetName : charsets) stmt.execute("DROP USER 'test" + charsetName + "'");
+
+
     }
 
     private void createUser(String charsetName, String serverCharset) throws Exception {
@@ -50,7 +54,6 @@ public class PasswordEncodingTest extends BaseTest {
 
             MariaDbStatement stmt = connection.createStatement().unwrap(MariaDbStatement.class);
             stmt.execute("set @@character_set_client='" + serverCharset + "'");
-            stmt.execute("DROP USER IF EXISTS 'test" + charsetName + "'");
             stmt.execute("CREATE USER 'test" + charsetName + "'");
 
             //non jdbc method that send query according to charset
