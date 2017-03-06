@@ -18,33 +18,41 @@ public class PasswordEncodingTest extends BaseTest {
         String[] charsetsMysql = new String[] {"utf8",
                 "latin1",
                 "big5"};
+        try {
+            for (int i = 0; i < charsets.length; i++) {
+                createUser(charsets[i], charsetsMysql[i]);
+            }
 
-        for (int i = 0; i < charsets.length; i++) {
-            createUser(charsets[i], charsetsMysql[i]);
-        }
-
-        for (String currentCharsetName : charsets) {
-            try (Connection connection = DriverManager.getConnection("jdbc:mariadb://" + ((hostname != null) ? hostname : "localhost")
-                    + ":" + port + "/" + database + "?user=test" + currentCharsetName + "&password=" + exoticPwd)) {
-                if (!currentCharsetName.equals(Charset.defaultCharset().name())) {
-                    if ("windows-1252".equals(currentCharsetName) && Charset.defaultCharset().name().startsWith("windows-125")) {
-                        //windows-1252 and windows-1250 will work have the same conversion for this password
-                    } else {
-                        Assert.fail("must have failed for currentCharsetName=" + currentCharsetName + " using java default charset "
-                                + Charset.defaultCharset().name());
+            for (String currentCharsetName : charsets) {
+                try (Connection connection = DriverManager.getConnection("jdbc:mariadb://" + ((hostname != null) ? hostname : "localhost")
+                        + ":" + port + "/" + database + "?user=test" + currentCharsetName + "&password=" + exoticPwd)) {
+                    if (!currentCharsetName.equals(Charset.defaultCharset().name())) {
+                        if ("windows-1252".equals(currentCharsetName) && Charset.defaultCharset().name().startsWith("windows-125")) {
+                            //windows-1252 and windows-1250 will work have the same conversion for this password
+                        } else {
+                            Assert.fail("must have failed for currentCharsetName=" + currentCharsetName + " using java default charset "
+                                    + Charset.defaultCharset().name());
+                        }
+                    }
+                } catch (SQLInvalidAuthorizationSpecException sqle) {
+                    if (currentCharsetName.equals(Charset.defaultCharset().name())) {
+                        Assert.fail("must have not have failed for charsetName=" + currentCharsetName + " which is java default");
                     }
                 }
-            } catch (SQLInvalidAuthorizationSpecException sqle) {
-                if (currentCharsetName.equals(Charset.defaultCharset().name())) {
-                    Assert.fail("must have not have failed for charsetName=" + currentCharsetName + " which is java default");
+            }
+
+            for (String charsetName : charsets)
+                checkConnection(charsetName, charsets);
+        } finally {
+            Statement stmt = sharedConnection.createStatement();
+            for (String charsetName : charsets) {
+                try {
+                    stmt.execute("DROP USER 'test" + charsetName + "'@'%'");
+                } catch (SQLException e) {
+                    //nothing
                 }
             }
         }
-
-        for (String charsetName : charsets) checkConnection(charsetName, charsets);
-
-        Statement stmt = sharedConnection.createStatement();
-        for (String charsetName : charsets) stmt.execute("DROP USER 'test" + charsetName + "'");
 
 
     }
@@ -54,7 +62,7 @@ public class PasswordEncodingTest extends BaseTest {
 
             MariaDbStatement stmt = connection.createStatement().unwrap(MariaDbStatement.class);
             stmt.execute("set @@character_set_client='" + serverCharset + "'");
-            stmt.execute("CREATE USER 'test" + charsetName + "'");
+            stmt.execute("CREATE USER 'test" + charsetName + "'@'%'");
 
             //non jdbc method that send query according to charset
             stmt.testExecute("GRANT ALL on *.* to 'test" + charsetName + "' identified by '" + exoticPwd + "'", Charset.forName(charsetName));
