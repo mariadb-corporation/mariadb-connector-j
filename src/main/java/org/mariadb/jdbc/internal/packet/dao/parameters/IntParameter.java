@@ -52,7 +52,7 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-public class IntParameter implements ParameterHolder, Cloneable {
+public class IntParameter extends NotLongDataParameter implements Cloneable {
     private int value;
 
     public IntParameter(int value) {
@@ -84,13 +84,4 @@ public class IntParameter implements ParameterHolder, Cloneable {
     public String toString() {
         return Integer.toString(value);
     }
-
-    public boolean isLongData() {
-        return false;
-    }
-
-    public boolean isNullData() {
-        return false;
-    }
-
 }

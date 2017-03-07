@@ -50,6 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
@@ -64,8 +65,6 @@ public interface ParameterHolder {
     void writeTo(final PacketOutputStream os) throws IOException;
 
     void writeUnsafeTo(final PacketOutputStream os) throws IOException;
-
-    void writeBinary(PacketOutputStream writeBuffer) throws IOException;
 
     long getApproximateTextProtocolLength() throws IOException;
 

@@ -51,14 +51,10 @@ package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.ReflectPermission;
-import java.security.Permission;
 import java.sql.SQLException;
 
 
-public class StringParameter implements ParameterHolder, Cloneable {
+public class StringParameter extends NotLongDataParameter implements Cloneable {
 
     private String stringValue;
     private boolean noBackslashEscapes;
@@ -288,14 +284,4 @@ public class StringParameter implements ParameterHolder, Cloneable {
         }
         binary = true;
     }
-
-    public boolean isLongData() {
-        return false;
-    }
-
-    public boolean isNullData() {
-        return false;
-    }
-
-
 }

@@ -50,14 +50,17 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 
 
-public class SerializableParameter implements ParameterHolder {
+public class SerializableParameter extends LongDataParameter {
+
     private Object object;
     private boolean noBackSlashEscapes;
     private byte[] loadedStream = null;
@@ -106,17 +109,27 @@ public class SerializableParameter implements ParameterHolder {
         return loadedStream.length;
     }
 
-
     /**
-     * Write data in binary format to buffer.
-     * @param os buffer
-     * @throws IOException exception
+     * Send data in one or many COM_STMT_LONG_DATA.
+     * (Data is read is using a big buffer to avoid having a lot of packet, because server will allocate/deallocate array each send)
+     *
+     * @param statementId statement id
+     * @param parameterId parameter number
+     * @param writer      writer
+     * @throws IOException if any connection exception occur
+     * @throws QueryException if query size is to big according to server max_allowed_size
      */
-    public void writeBinary(final PacketOutputStream os) throws IOException {
+    public void sendComLongData(int statementId, short parameterId, PacketOutputStream writer) throws IOException, QueryException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(object);
-        os.write(baos.toByteArray());
+
+        writer.startPacket(0);
+        writer.buffer.put(Packet.COM_STMT_SEND_LONG_DATA);
+        writer.writeInt(statementId);
+        writer.buffer.putShort(parameterId);
+        writer.write(baos.toByteArray());
+        writer.finishPacketWithoutRelease(true);
     }
 
     @Override
@@ -132,12 +145,5 @@ public class SerializableParameter implements ParameterHolder {
         return MariaDbType.BLOB;
     }
 
-    public boolean isLongData() {
-        return true;
-    }
-
-    public boolean isNullData() {
-        return false;
-    }
 
 }

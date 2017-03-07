@@ -2,7 +2,6 @@
 MariaDB Client for Java
 
 Copyright (c) 2012-2014 Monty Program Ab.
-Copyright (c) 2015-2016 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -48,36 +47,21 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.packet;
+package org.mariadb.jdbc.internal.packet.dao.parameters;
 
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.BulkStatus;
 
 import java.io.IOException;
 
+public abstract class NotLongDataParameter implements ParameterHolder {
 
-public class ComStmtLongData {
+    public abstract void writeBinary(PacketOutputStream writeBuffer) throws IOException;
 
-    public ComStmtLongData() { }
-
-    /**
-     * Send long data packet.
-     *
-     * @param writer output stream
-     * @param statementId statement id
-     * @param parameterId parameter id
-     * @param param parameter
-     * @throws IOException if socket orror occur
-     */
-    public void send(PacketOutputStream writer, int statementId, short parameterId, ParameterHolder param) throws IOException {
-        writer.startPacket(0);
-        writer.buffer.put(Packet.COM_STMT_SEND_LONG_DATA);
-        writer.writeInt(statementId);
-        writer.buffer.putShort(parameterId);
-        param.writeBinary(writer);
-        writer.finishPacketWithoutRelease(true);
+    public boolean isLongData() {
+        return false;
     }
 
-
+    public boolean isNullData() {
+        return false;
+    }
 }

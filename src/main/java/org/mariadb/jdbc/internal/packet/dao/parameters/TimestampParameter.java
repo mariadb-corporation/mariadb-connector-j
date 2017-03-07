@@ -59,7 +59,8 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 
-public class TimestampParameter implements ParameterHolder, Cloneable {
+public class TimestampParameter extends NotLongDataParameter implements Cloneable {
+
     private Timestamp ts;
     private Calendar calendar;
     private boolean fractionalSeconds;
@@ -135,13 +136,4 @@ public class TimestampParameter implements ParameterHolder, Cloneable {
     public String toString() {
         return "'" + ts.toString() + "'";
     }
-
-    public boolean isLongData() {
-        return false;
-    }
-
-    public boolean isNullData() {
-        return false;
-    }
-
 }

@@ -56,6 +56,7 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.*;
 
+import org.mariadb.jdbc.internal.packet.dao.parameters.LongDataParameter;
 import org.mariadb.jdbc.internal.packet.result.*;
 import org.mariadb.jdbc.internal.packet.send.*;
 import org.mariadb.jdbc.internal.queryresults.*;
@@ -471,7 +472,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 //send binary data in a separate stream
                 for (int i = 0; i < paramCount; i++) {
                     if (parameters[i].isLongData()) {
-                        new ComStmtLongData().send(writer, statementId, (short) i, parameters[i]);
+                        ((LongDataParameter) parameters[i]).sendComLongData(statementId, (short) i, writer);
                     }
                 }
                 writer.startPacket(0);
@@ -557,7 +558,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             //send binary data in a separate stream
             for (int i = 0; i < parameterCount; i++) {
                 if (parameters[i].isLongData()) {
-                    new ComStmtLongData().send(writer, statementId, (short) i, parameters[i]);
+                    ((LongDataParameter) parameters[i]).sendComLongData(statementId, (short) i, writer);
                 }
             }
 
@@ -606,7 +607,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             //send binary data in a separate stream
             for (int i = 0; i < parameterCount; i++) {
                 if (parameters[i].isLongData()) {
-                    new ComStmtLongData().send(writer, serverPrepareResult.getStatementId(), (short) i, parameters[i]);
+                    ((LongDataParameter) parameters[i]).sendComLongData(serverPrepareResult.getStatementId(), (short) i, writer);
                 }
             }
             //send execute query
