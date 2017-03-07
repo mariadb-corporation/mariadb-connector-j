@@ -96,9 +96,9 @@ public class BigQueryTest extends BaseTest {
             fail();
         }
 
-        byte[] arr = new byte[maxAllowedPacket + 1000];
+        byte[] arr = new byte[maxAllowedPacket - 1000];
         int pos = 0;
-        while (pos < maxAllowedPacket + 1000) {
+        while (pos < maxAllowedPacket - 1000) {
             arr[pos] = (byte) ((pos % 132) + 40);
             pos++;
         }
