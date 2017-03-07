@@ -725,11 +725,11 @@ public class MariaSelectResultSet implements ResultSet {
     @Override
     public void beforeFirst() throws SQLException {
         checkClose();
-        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+
+        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
-        } else {
-            rowPointer = -1;
         }
+        rowPointer = -1;
     }
 
     @Override
@@ -756,12 +756,13 @@ public class MariaSelectResultSet implements ResultSet {
     @Override
     public boolean first() throws SQLException {
         checkClose();
-        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+
+        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
-        } else {
-            rowPointer = 0;
-            return resultSetSize > 0;
         }
+
+        rowPointer = 0;
+        return resultSetSize > 0;
     }
 
     @Override
@@ -799,7 +800,7 @@ public class MariaSelectResultSet implements ResultSet {
     public boolean absolute(int row) throws SQLException {
         checkClose();
 
-        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         }
 
@@ -853,30 +854,28 @@ public class MariaSelectResultSet implements ResultSet {
     @Override
     public boolean relative(int rows) throws SQLException {
         checkClose();
-        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
-        } else {
-            int newPos = rowPointer + rows;
-            if (newPos > -1 && newPos <= resultSetSize) {
-                rowPointer = newPos;
-                return true;
-            }
-            return false;
         }
+        int newPos = rowPointer + rows;
+        if (newPos > -1 && newPos <= resultSetSize) {
+            rowPointer = newPos;
+            return true;
+        }
+        return false;
     }
 
     @Override
     public boolean previous() throws SQLException {
         checkClose();
-        if (resultSetScrollType == TYPE_FORWARD_ONLY) {
+        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
-        } else {
-            if (rowPointer > -1) {
-                rowPointer--;
-                return rowPointer != -1;
-            }
-            return false;
         }
+        if (rowPointer > -1) {
+            rowPointer--;
+            return rowPointer != -1;
+        }
+        return false;
     }
 
     @Override
@@ -898,7 +897,7 @@ public class MariaSelectResultSet implements ResultSet {
 
     @Override
     public void setFetchSize(int fetchSize) throws SQLException {
-        if (streaming && this.fetchSize == 0) {
+        if (streaming && fetchSize == 0) {
 
             try {
                 while (readNextValue(resultSet)) {

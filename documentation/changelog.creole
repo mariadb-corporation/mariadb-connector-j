@@ -25,6 +25,7 @@
 * CONJ-434 : 1.5.8 regression : ResultSet returns duplicate entries when using fetchsize
 * CONJ-437 : ResultSet.getString on field with ZEROFILL doesn't have the '0' leading chars when using binary protocol
 * CONJ-435 : avoid "All pipe instances are busy" exception on multiple connections to the same named pipe
+* CONJ-446 : ResultSet first() throw an exception for scroll type if TYPE_FORWARD_ONLY only when streaming
 
 == 1.5.8
 * CONJ-424 : getGeneratedKeys() on table without generated key failed on second execution

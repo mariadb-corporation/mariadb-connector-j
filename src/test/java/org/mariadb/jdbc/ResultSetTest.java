@@ -629,4 +629,44 @@ public class ResultSetTest extends BaseTest {
         assertFalse(rs1.next());
 
     }
+
+    @Test
+    public void firstForwardTest() throws SQLException {
+        //first must always work when not streaming
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT 1");
+        assertTrue(rs.first());
+        assertFalse(rs.previous());
+        assertTrue(rs.absolute(1));
+        assertFalse(rs.relative(-1));
+
+        //absolute operation must fail when streaming
+        stmt.setFetchSize(1);
+        rs = stmt.executeQuery("SELECT 1");
+        try {
+            rs.first();
+            fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+        }
+        try {
+            rs.previous();
+            fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+        }
+        try {
+            rs.absolute(1);
+            fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+        }
+        try {
+            rs.relative(-1);
+            fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+        }
+
+    }
 }
