@@ -27,6 +27,7 @@
 * CONJ-435 : avoid "All pipe instances are busy" exception on multiple connections to the same named pipe
 * CONJ-446 : ResultSet first() throw an exception for scroll type if TYPE_FORWARD_ONLY only when streaming
 * CONJ-440 : handle very big COM_STMT_SEND_LONG_DATA packet (1Gb)
+* CONJ-429 : ResultSet.getDouble/getFloat may throws a NumberFormatException
 
 == 1.5.8
 * CONJ-424 : getGeneratedKeys() on table without generated key failed on second execution

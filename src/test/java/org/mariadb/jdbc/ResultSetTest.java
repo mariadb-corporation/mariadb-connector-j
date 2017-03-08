@@ -42,6 +42,7 @@ public class ResultSetTest extends BaseTest {
             Assert.assertTrue(e.getMessage().contains("closed"));
         }
     }
+
     /**
      * CONJ-424: Calling getGeneratedKeys() two times on the same connection, with different
      * PreparedStatement on a table that does not have an auto increment.
@@ -668,5 +669,87 @@ public class ResultSetTest extends BaseTest {
             assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
         }
 
+    }
+
+    /**
+     * CONJ-429 : ResultSet.getDouble/getFloat may throws a NumberFormatException.
+     *
+     * @throws SQLException if any abnormal error occur
+     */
+    @Test
+    public void testNumericType() throws SQLException {
+        createTable("numericTypeTable",
+                "t1 tinyint, "
+                        + "t2 boolean, "
+                        + "t3 smallint,  "
+                        + "t4 mediumint, "
+                        + "t5 int, "
+                        + "t6 bigint, "
+                        + "t7 decimal, "
+                        + "t8 float, "
+                        + "t9 double, "
+                        + "t10 bit,"
+                        + "t11 char(10),"
+                        + "t12 varchar(10),"
+                        + "t13 binary(10),"
+                        + "t14 varbinary(10),"
+                        + "t15 text,"
+                        + "t16 blob,"
+                        + "t17 date");
+
+        try (Statement stmt = sharedConnection.createStatement()) {
+            stmt.execute("INSERT into numericTypeTable values (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 'a', 'a', 'a', 'a', 'a', 'a', now())");
+            try (ResultSet rs = stmt.executeQuery("select * from numericTypeTable")) {
+                rs.next();
+                floatDoubleCheckResult(rs);
+            }
+        }
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("select * from numericTypeTable")) {
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                rs.next();
+                floatDoubleCheckResult(rs);
+            }
+
+        }
+    }
+
+    private void floatDoubleCheckResult(ResultSet rs) throws SQLException {
+
+        //getDouble
+        //supported JDBC type :
+        //TINYINT, SMALLINT, INTEGER, BIGINT, REAL, FLOAT, DOUBLE, DECIMAL, NUMERIC, BIT, BOOLEAN, CHAR, VARCHAR, LONGVARCHAR
+        for (int i = 1; i < 11; i++) rs.getDouble(i);
+        for (int i = 11; i < 16; i++) {
+            try {
+                rs.getDouble(i);
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("Incorrect format "));
+            }
+        }
+        for (int i = 16; i < 18; i++) {
+            try {
+                rs.getDouble(i);
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("not available"));
+            }
+        }
+
+        //getFloat
+        //supported JDBC type :
+        //TINYINT, SMALLINT, INTEGER, BIGINT, REAL, FLOAT, DOUBLE, DECIMAL, NUMERIC, BIT, BOOLEAN, CHAR, VARCHAR, LONGVARCHAR
+        for (int i = 1; i < 11; i++) rs.getDouble(i);
+        for (int i = 11; i < 16; i++)
+            try {
+                rs.getFloat(i);
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("Incorrect format "));
+            }
+        for (int i = 16; i < 18; i++) {
+            try {
+                rs.getFloat(i);
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("not available"));
+            }
+        }
     }
 }

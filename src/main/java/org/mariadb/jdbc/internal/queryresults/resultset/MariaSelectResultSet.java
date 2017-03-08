@@ -1292,7 +1292,33 @@ public class MariaSelectResultSet implements ResultSet {
             return 0;
         }
         if (!this.isBinaryEncoded) {
-            return Float.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
+            switch (columnInfo.getType()) {
+                case BIT:
+                    return rawBytes[0];
+                case TINYINT:
+                case SMALLINT:
+                case YEAR:
+                case INTEGER:
+                case MEDIUMINT:
+                case FLOAT:
+                case DOUBLE:
+                case DECIMAL:
+                case VARSTRING:
+                case VARCHAR:
+                case STRING:
+                case OLDDECIMAL:
+                case BIGINT:
+                    try {
+                        return Float.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
+                    } catch (NumberFormatException nfe) {
+                        SQLException sqlException = new SQLException("Incorrect format \"" + new String(rawBytes, StandardCharsets.UTF_8)
+                                + "\" for getFloat for data field with type " + columnInfo.getType().getJavaTypeName(), "22003", 1264);
+                        sqlException.initCause(nfe);
+                        throw sqlException;
+                    }
+                default:
+                    throw new SQLException("getFloat not available for data field type " + columnInfo.getType().getJavaTypeName());
+            }
         } else {
             long value;
             switch (columnInfo.getType()) {
@@ -1334,10 +1360,30 @@ public class MariaSelectResultSet implements ResultSet {
                     return Float.intBitsToFloat(valueFloat);
                 case DOUBLE:
                     return (float) getDouble(rawBytes, columnInfo);
+                case DECIMAL:
+                case VARSTRING:
+                case VARCHAR:
+                case STRING:
+                case OLDDECIMAL:
+                    try {
+                        return Float.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
+                    } catch (NumberFormatException nfe) {
+                        SQLException sqlException = new SQLException("Incorrect format for getFloat for data field with type "
+                                + columnInfo.getType().getJavaTypeName(), "22003", 1264);
+                        sqlException.initCause(nfe);
+                        throw sqlException;
+                    }
                 default:
-                    return Float.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
+                    throw new SQLException("getFloat not available for data field type " + columnInfo.getType().getJavaTypeName());
             }
-            return Float.valueOf(String.valueOf(value));
+            try {
+                return Float.valueOf(String.valueOf(value));
+            } catch (NumberFormatException nfe) {
+                SQLException sqlException = new SQLException("Incorrect format for getFloat for data field with type "
+                        + columnInfo.getType().getJavaTypeName(), "22003", 1264);
+                sqlException.initCause(nfe);
+                throw sqlException;
+            }
         }
     }
 
@@ -1370,7 +1416,33 @@ public class MariaSelectResultSet implements ResultSet {
             return 0;
         }
         if (!this.isBinaryEncoded) {
-            return Double.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
+            switch (columnInfo.getType()) {
+                case BIT:
+                    return rawBytes[0];
+                case TINYINT:
+                case SMALLINT:
+                case YEAR:
+                case INTEGER:
+                case MEDIUMINT:
+                case FLOAT:
+                case DOUBLE:
+                case DECIMAL:
+                case VARSTRING:
+                case VARCHAR:
+                case STRING:
+                case OLDDECIMAL:
+                case BIGINT:
+                    try {
+                        return Double.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
+                    } catch (NumberFormatException nfe) {
+                        SQLException sqlException = new SQLException("Incorrect format \"" + new String(rawBytes, StandardCharsets.UTF_8)
+                                + "\" for getDouble for data field with type " + columnInfo.getType().getJavaTypeName(), "22003", 1264);
+                        sqlException.initCause(nfe);
+                        throw sqlException;
+                    }
+                default:
+                    throw new SQLException("getDouble not available for data field type " + columnInfo.getType().getJavaTypeName());
+            }
         } else {
             switch (columnInfo.getType()) {
                 case BIT:
@@ -1413,8 +1485,20 @@ public class MariaSelectResultSet implements ResultSet {
                             + ((long) (rawBytes[6] & 0xff) << 48)
                             + ((long) (rawBytes[7] & 0xff) << 56));
                     return Double.longBitsToDouble(valueDouble);
+                case DECIMAL:
+                case VARSTRING:
+                case VARCHAR:
+                case STRING:
+                case OLDDECIMAL:
+                    try {
+                        return Double.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
+                    } catch (NumberFormatException nfe) {
+                        SQLException sqlException = new SQLException("Incorrect format for getDouble for data field with type " + columnInfo.getType().getJavaTypeName(), "22003", 1264);
+                        sqlException.initCause(nfe);
+                        throw sqlException;
+                    }
                 default:
-                    return Double.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
+                    throw new SQLException("getDouble not available for data field type " + columnInfo.getType().getJavaTypeName());
             }
         }
     }
