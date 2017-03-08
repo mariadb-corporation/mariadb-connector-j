@@ -41,8 +41,7 @@ public class PasswordEncodingTest extends BaseTest {
                 }
             }
 
-            for (String charsetName : charsets)
-                checkConnection(charsetName, charsets);
+            for (String charsetName : charsets) checkConnection(charsetName, charsets);
         } finally {
             Statement stmt = sharedConnection.createStatement();
             for (String charsetName : charsets) {

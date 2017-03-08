@@ -1493,7 +1493,8 @@ public class MariaSelectResultSet implements ResultSet {
                     try {
                         return Double.valueOf(new String(rawBytes, StandardCharsets.UTF_8));
                     } catch (NumberFormatException nfe) {
-                        SQLException sqlException = new SQLException("Incorrect format for getDouble for data field with type " + columnInfo.getType().getJavaTypeName(), "22003", 1264);
+                        SQLException sqlException = new SQLException("Incorrect format for getDouble for data field with type "
+                                + columnInfo.getType().getJavaTypeName(), "22003", 1264);
                         sqlException.initCause(nfe);
                         throw sqlException;
                     }

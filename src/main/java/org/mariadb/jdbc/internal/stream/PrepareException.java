@@ -55,6 +55,7 @@ public class PrepareException extends QueryException {
     public PrepareException(String error) {
         super(error);
     }
+
     /**
      * Creates a Prepare exception with a message.
      *

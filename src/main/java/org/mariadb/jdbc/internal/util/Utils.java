@@ -490,6 +490,7 @@ public class Utils {
         }
         return protocol;
     }
+
     /**
      * Get timezone from Id.
      * This differ from java implementation : by default, if timezone Id is unknown, java return GMT timezone.

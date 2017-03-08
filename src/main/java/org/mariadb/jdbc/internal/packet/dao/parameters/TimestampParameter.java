@@ -118,6 +118,7 @@ public class TimestampParameter extends NotLongDataParameter implements Cloneabl
     public long getApproximateTextProtocolLength() throws IOException {
         return 27;
     }
+
     /**
      * Write timeStamp in binary format.
      * @param writeBuffer buffer to write

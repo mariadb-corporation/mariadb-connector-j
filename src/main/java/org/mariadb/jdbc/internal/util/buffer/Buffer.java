@@ -72,6 +72,7 @@ public class Buffer {
     public int remaining() {
         return limit - position;
     }
+
     /**
      * Reads a string from the buffer, looks for a 0 to end the string.
      *

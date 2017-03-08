@@ -101,6 +101,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     protected int resultSetScrollType;
     protected boolean mustCloseOnCompletion = false;
     protected Options options;
+
     /**
      * Creates a new Statement.
      *
