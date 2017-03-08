@@ -10,7 +10,8 @@ import java.sql.SQLException;
 import static org.junit.Assert.*;
 
 public class PooledConnectionTest extends BaseTest {
-    @Test
+
+    @Test(expected = SQLException.class)
     public void testPooledConnectionClosed() throws Exception {
         ConnectionPoolDataSource ds = new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);
         PooledConnection pc = ds.getPooledConnection(username, password);
@@ -20,44 +21,39 @@ public class PooledConnectionTest extends BaseTest {
         pc.addStatementEventListener(listener);
         connection.close();
         assertTrue(listener.closed);
-       /* Verify physical connection is still ok */
+        /* Verify physical connection is still ok */
         connection.createStatement().execute("select 1");
 
-       /* close physical connection */
+        /* close physical connection */
         pc.close();
-       /* Now verify physical connection is gone */
-        try {
-            connection.createStatement().execute("select 1");
-            assertFalse("should never get there", true);
-        } catch (Exception e) {
-            //eat exception
-        }
+        /* Now verify physical connection is gone */
+        connection.createStatement().execute("select 1");
+        fail("should never get there : previous must have thrown exception");
     }
 
-    @Test
+    @Test(expected = SQLException.class)
     public void testPooledConnectionException() throws Exception {
         ConnectionPoolDataSource ds = new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);
-        PooledConnection pc = ds.getPooledConnection(username, password);
-        MyEventListener listener = new MyEventListener();
-        pc.addConnectionEventListener(listener);
-        MariaDbConnection connection = (MariaDbConnection) pc.getConnection();
-
-       /* Ask server to abort the connection */
+        PooledConnection pc = null;
         try {
-            connection.createStatement().execute("KILL CONNECTION_ID()");
-        } catch (Exception e) {
-         /* exception is expected here, server sends query aborted */
-        }
+            pc = ds.getPooledConnection(username, password);
+            MyEventListener listener = new MyEventListener();
+            pc.addConnectionEventListener(listener);
+            MariaDbConnection connection = (MariaDbConnection) pc.getConnection();
 
-       /* Try to read  after server side closed the connection */
-        try {
+            /* Ask server to abort the connection */
+            try {
+                connection.createStatement().execute("KILL CONNECTION_ID()");
+            } catch (Exception e) {
+                /* exception is expected here, server sends query aborted */
+            }
+
+            /* Try to read  after server side closed the connection */
             connection.createStatement().execute("SELECT 1");
-            assertTrue("should never get there", false);
-        } catch (SQLException e) {
-            //eat Exception
+            fail("should never get there");
+        } finally {
+            if (pc != null) pc.close();
         }
-        pc.close();
-        //assertTrue(failover.closed);
     }
 
 

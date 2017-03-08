@@ -241,16 +241,12 @@ public class JdbcParserTest {
         assertTrue(new HostAddress("slave1", 3308, "slave").equals(urlParser.getHostAddresses().get(2)));
     }
 
-    @Test()
-    public void testJdbcParserParameterErrorEqual() {
+    @Test(expected = SQLException.class)
+    public void testJdbcParserParameterErrorEqual() throws SQLException {
         String url = "jdbc:mariadb://address=(type=)(port=3306)(host=master1),address=(port=3307)(type=master)"
                 + "(host=master2),address=(type=slave)(host=slave1)(port=3308)/database?user=greg&password=pass";
-        try {
-            UrlParser.parse(url);
-            fail();
-        } catch (SQLException e) {
-            assertTrue(true);
-        }
+        UrlParser.parse(url);
+        fail("Must have throw an SQLException");
     }
 
     @Test

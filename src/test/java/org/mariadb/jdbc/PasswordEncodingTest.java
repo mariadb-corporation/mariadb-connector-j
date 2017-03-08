@@ -27,12 +27,11 @@ public class PasswordEncodingTest extends BaseTest {
             for (String currentCharsetName : charsets) {
                 try (Connection connection = DriverManager.getConnection("jdbc:mariadb://" + ((hostname != null) ? hostname : "localhost")
                         + ":" + port + "/" + database + "?user=test" + currentCharsetName + "&password=" + exoticPwd)) {
-                    if (!currentCharsetName.equals(Charset.defaultCharset().name())) {
-                        //windows-1252 and windows-1250 will work have the same conversion for this password
-                        if (!"windows-1252".equals(currentCharsetName) || !Charset.defaultCharset().name().startsWith("windows-125")) {
-                            fail("must have failed for currentCharsetName=" + currentCharsetName + " using java default charset "
-                                    + Charset.defaultCharset().name());
-                        }
+                    //windows-1252 and windows-1250 will work have the same conversion for this password
+                    if (!currentCharsetName.equals(Charset.defaultCharset().name())
+                            && (!"windows-1252".equals(currentCharsetName) || !Charset.defaultCharset().name().startsWith("windows-125"))) {
+                        fail("must have failed for currentCharsetName=" + currentCharsetName + " using java default charset "
+                                + Charset.defaultCharset().name());
                     }
                 } catch (SQLInvalidAuthorizationSpecException sqle) {
                     if (currentCharsetName.equals(Charset.defaultCharset().name())) {

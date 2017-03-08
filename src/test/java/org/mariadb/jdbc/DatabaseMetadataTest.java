@@ -903,20 +903,19 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void yearIsShortType() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection("&yearIsDateType=false");
+        try (Connection connection = setConnection("&yearIsDateType=false")) {
             connection.createStatement().execute("insert into ytab values(72)");
-            ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null);
-            assertTrue(rs.next());
-            assertEquals(rs.getInt("DATA_TYPE"), Types.SMALLINT);
-            ResultSet rs1 = connection.createStatement().executeQuery("select * from ytab");
-            assertEquals(rs1.getMetaData().getColumnType(1), Types.SMALLINT);
-            assertTrue(rs1.next());
-            assertTrue(rs1.getObject(1) instanceof Short);
-            assertEquals(rs1.getShort(1), 1972);
-        } finally {
-            connection.close();
+            try (ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null)) {
+                assertTrue(rs.next());
+                assertEquals(rs.getInt("DATA_TYPE"), Types.SMALLINT);
+            }
+
+            try (ResultSet rs1 = connection.createStatement().executeQuery("select * from ytab")) {
+                assertEquals(rs1.getMetaData().getColumnType(1), Types.SMALLINT);
+                assertTrue(rs1.next());
+                assertTrue(rs1.getObject(1) instanceof Short);
+                assertEquals(rs1.getShort(1), 1972);
+            }
         }
     }
 

@@ -26,10 +26,10 @@ public class ConnectionPoolTest extends BaseTest {
         dataSource.setNumTestsPerEvictionRun(3);
 
         // dataSource.setValidationQuery("/* ping */ SELECT 1");
+        try (Connection connection = dataSource.getConnection()) {
+            //do nothing, just verify that connection works
+        }
 
-        Connection connection = dataSource.getConnection();
-
-        connection.close();
         dataSource.close();
     }
 
