@@ -14,6 +14,8 @@ public class ClientPrepareResultTest {
         //SELECT query cannot be rewritable
         assertFalse(ClientPrepareResult.rewritableParts("SELECT * FROM MyTable", true).isQueryMultiValuesRewritable());
         assertFalse(ClientPrepareResult.rewritableParts("SELECT\n * FROM MyTable", true).isQueryMultiValuesRewritable());
+        assertFalse(ClientPrepareResult.rewritableParts("SELECT(1)", true).isQueryMultiValuesRewritable());
+        assertFalse(ClientPrepareResult.rewritableParts("INSERT MyTable (a) VALUES (1);SELECT(1)", true).isQueryMultiValuesRewritable());
     }
 
     /**
@@ -22,6 +24,7 @@ public class ClientPrepareResultTest {
     @Test
     public void insertSelectQuery() {
         assertFalse(ClientPrepareResult.rewritableParts("INSERT INTO MyTable (a) SELECT * FROM seq_1_to_1000", true).isQueryMultiValuesRewritable());
+        assertFalse(ClientPrepareResult.rewritableParts("INSERT INTO MyTable (a);SELECT * FROM seq_1_to_1000", true).isQueryMultiValuesRewritable());
         assertFalse(ClientPrepareResult.rewritableParts("INSERT INTO MyTable (a)SELECT * FROM seq_1_to_1000", true).isQueryMultiValuesRewritable());
         assertFalse(ClientPrepareResult.rewritableParts("INSERT INTO MyTable (a) (SELECT * FROM seq_1_to_1000)", true).isQueryMultiValuesRewritable());
         assertFalse(ClientPrepareResult.rewritableParts("INSERT INTO MyTable (a) SELECT\n * FROM seq_1_to_1000", true).isQueryMultiValuesRewritable());

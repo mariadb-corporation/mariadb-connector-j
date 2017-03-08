@@ -54,6 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ClientPrepareResult implements PrepareResult {
+
     private String sql;
     private List<byte[]> queryParts;
     private boolean isQueryMultiValuesRewritable = true;
@@ -497,9 +498,9 @@ public class ClientPrepareResult implements PrepareResult {
                                     && (query[i + 4] == 'c' || query[i + 4] == 'C')
                                     && (query[i + 5] == 't' || query[i + 5] == 'T')) {
 
-                                // field/table name might contain 'select'
-                                if (i > 0 && (query[i - 1] > ' ' && query[i - 1] != '(' && query[i - 1] != ')')) break;
-                                if ((query[i + 6] > ' ' && query[i + 6] != '(' && query[i + 6] != ')')) break;
+                                //field/table name might contain 'select'
+                                if (i > 0 && (query[i - 1] > ' ' && "();><=-+,".indexOf(query[i - 1]) == -1)) break;
+                                if (query[i + 6] > ' ' && "();><=-+,".indexOf(query[i + 6]) == -1) break;
 
                                 //SELECT queries, INSERT FROM SELECT not rewritable
                                 reWritablePrepare = false;
