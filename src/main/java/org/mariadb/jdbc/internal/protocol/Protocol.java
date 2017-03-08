@@ -56,7 +56,6 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
 import org.mariadb.jdbc.internal.queryresults.Results;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
@@ -68,6 +67,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.List;
@@ -136,6 +136,8 @@ public interface Protocol {
     void executeQuery(String sql) throws QueryException;
 
     void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql) throws QueryException;
+
+    void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql, Charset charset) throws QueryException;
 
     void executeQuery(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
                       ParameterHolder[] parameters) throws QueryException;

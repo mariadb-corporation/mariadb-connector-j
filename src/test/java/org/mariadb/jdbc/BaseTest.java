@@ -19,14 +19,16 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.junit.Assert.*;
+
 /**
  * Base util class.
  * For testing
- * mvn test -DdbUrl=jdbc:mysql://localhost:3306/testj?user=root -DlogLevel=FINEST
+ * mvn test -DdbUrl=jdbc:mariadb://localhost:3306/testj?user=root -DlogLevel=FINEST
  */
 @Ignore
 public class BaseTest {
-    protected static final String mDefUrl = "jdbc:mysql://localhost:3306/testj?user=root";
+    protected static final String mDefUrl = "jdbc:mariadb://localhost:3306/testj?user=root";
     protected static String connU;
     protected static String connUri;
     protected static String hostname;
@@ -61,8 +63,8 @@ public class BaseTest {
                 int randInt = random.nextInt();
                 try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT " + randInt)) {
                     ResultSet rs = preparedStatement.executeQuery();
-                    Assert.assertTrue(rs.next());
-                    Assert.assertEquals(randInt, rs.getInt(1));
+                    assertTrue(rs.next());
+                    assertEquals(randInt, rs.getInt(1));
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -103,7 +105,7 @@ public class BaseTest {
             e.printStackTrace();
         }
 
-        return openConnection("jdbc:mysql://" + sockethosts + "/" + connUri.split("/")[3], info);
+        return openConnection("jdbc:mariadb://" + sockethosts + "/" + connUri.split("/")[3], info);
 
     }
 
@@ -201,7 +203,7 @@ public class BaseTest {
 
 
     private static void setUri() {
-        connU = "jdbc:mysql://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
+        connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
         connUri = connU + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
                 + (parameters != null ? "&" + parameters : "");
@@ -426,7 +428,7 @@ public class BaseTest {
 
 
     protected Connection setConnection(String additionnallParameters, String database) throws SQLException {
-        String connU = "jdbc:mysql://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
+        String connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
         String connUri = connU + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
                 + (parameters != null ? "&" + parameters : "");

@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -42,6 +41,9 @@ public class MultiTest extends BaseTest {
 
         createTable("MultiTestprepsemi", "id int not null primary key auto_increment, text text");
         createTable("MultiTestA", "data varchar(10)");
+        createTable("testMultiGeneratedKey", "id int not null primary key auto_increment, text text");
+
+
         if (testSingleHost) {
             Statement st = sharedConnection.createStatement();
             st.execute("insert into MultiTestt1 values(1,'a'),(2,'a')");
@@ -62,7 +64,7 @@ public class MultiTest extends BaseTest {
 
         ResultSet rs = st.executeQuery("SELECT * FROM MultiTesttselect1");
         rs.next();
-        Assert.assertEquals(rs.getInt(2), 1);
+        assertEquals(rs.getInt(2), 1);
     }
 
     @Test
@@ -76,7 +78,7 @@ public class MultiTest extends BaseTest {
 
         ResultSet rs = st.executeQuery("SELECT * FROM MultiTesttselect3");
         rs.next();
-        Assert.assertEquals(rs.getInt(2), 1);
+        assertEquals(rs.getInt(2), 1);
     }
 
     @Test
@@ -309,8 +311,8 @@ public class MultiTest extends BaseTest {
         statement.setInt(1, 1);
         statement.executeQuery();
         ResultSet rs = statement.executeQuery();
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue(rs.getBoolean(1));
+        assertTrue(rs.next());
+        assertTrue(rs.getBoolean(1));
     }
 
 
@@ -447,12 +449,12 @@ public class MultiTest extends BaseTest {
             int[] updateCounts = sqlInsert.executeBatch();
 
             // rewrite should be ok, so the above should be executed in 1 command updating 5 rows
-            Assert.assertEquals(5, updateCounts.length);
-            Assert.assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[0]);
-            Assert.assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[1]);
-            Assert.assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[2]);
-            Assert.assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[3]);
-            Assert.assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[4]);
+            assertEquals(5, updateCounts.length);
+            assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[0]);
+            assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[1]);
+            assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[2]);
+            assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[3]);
+            assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[4]);
             assertEquals(1, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - currentInsert);
 
             final int secondCurrentInsert = retrieveSessionVariableFromServer(tmpConnection, "Com_insert");
@@ -466,11 +468,11 @@ public class MultiTest extends BaseTest {
             sqlInsert.addBatch();
             updateCounts = sqlInsert.executeBatch();
 
-            Assert.assertEquals(4, updateCounts.length);
-            Assert.assertEquals(1, updateCounts[0]);
-            Assert.assertEquals(1, updateCounts[1]);
-            Assert.assertEquals(1, updateCounts[2]);
-            Assert.assertEquals(1, updateCounts[3]);
+            assertEquals(4, updateCounts.length);
+            assertEquals(1, updateCounts[0]);
+            assertEquals(1, updateCounts[1]);
+            assertEquals(1, updateCounts[2]);
+            assertEquals(1, updateCounts[3]);
 
             assertEquals(4, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - secondCurrentInsert);
 
@@ -669,11 +671,11 @@ public class MultiTest extends BaseTest {
             int[] insertCounts = sqlInsert.executeBatch();
 
             //Insert in prepare statement, cannot know the number og each one
-            Assert.assertEquals(4, insertCounts.length);
-            Assert.assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[0]);
-            Assert.assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[1]);
-            Assert.assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[2]);
-            Assert.assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[3]);
+            assertEquals(4, insertCounts.length);
+            assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[0]);
+            assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[1]);
+            assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[2]);
+            assertEquals(Statement.SUCCESS_NO_INFO, insertCounts[3]);
 
 
             PreparedStatement sqlUpdate = tmpConnection.prepareStatement(
@@ -689,10 +691,10 @@ public class MultiTest extends BaseTest {
             sqlUpdate.addBatch();
 
             int[] updateCounts = sqlUpdate.executeBatch();
-            Assert.assertEquals(3, updateCounts.length);
-            Assert.assertEquals(1, updateCounts[0]);
-            Assert.assertEquals(0, updateCounts[1]);
-            Assert.assertEquals(2, updateCounts[2]);
+            assertEquals(3, updateCounts.length);
+            assertEquals(1, updateCounts[0]);
+            assertEquals(0, updateCounts[1]);
+            assertEquals(2, updateCounts[2]);
         } finally {
             if (tmpConnection != null) {
                 tmpConnection.close();
@@ -869,43 +871,43 @@ public class MultiTest extends BaseTest {
 
 
                 int[] updateCount = e.getUpdateCounts();
-                Assert.assertEquals(10, updateCount.length);
+                assertEquals(10, updateCount.length);
                 if (rewrite) {
                     //rewrite exception is all or nothing
-                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[0]);
-                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[1]);
-                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[2]);
-                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[3]);
-                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[4]);
-                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[5]);
-                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[6]);
-                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[7]);
-                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[8]);
-                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[9]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCount[0]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCount[1]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCount[2]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCount[3]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCount[4]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCount[5]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCount[6]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCount[7]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCount[8]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCount[9]);
                 } else {
-                    Assert.assertEquals(1, updateCount[0]);
-                    Assert.assertEquals(1, updateCount[1]);
-                    Assert.assertEquals(1, updateCount[2]);
-                    Assert.assertEquals(1, updateCount[3]);
-                    Assert.assertEquals(1, updateCount[4]);
-                    Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[5]);
+                    assertEquals(1, updateCount[0]);
+                    assertEquals(1, updateCount[1]);
+                    assertEquals(1, updateCount[2]);
+                    assertEquals(1, updateCount[3]);
+                    assertEquals(1, updateCount[4]);
+                    assertEquals(Statement.EXECUTE_FAILED, updateCount[5]);
                     if (continueBatch) {
-                        Assert.assertEquals(1, updateCount[6]);
-                        Assert.assertEquals(1, updateCount[7]);
-                        Assert.assertEquals(1, updateCount[8]);
-                        Assert.assertEquals(1, updateCount[9]);
+                        assertEquals(1, updateCount[6]);
+                        assertEquals(1, updateCount[7]);
+                        assertEquals(1, updateCount[8]);
+                        assertEquals(1, updateCount[9]);
                     } else {
                         if (batchMulti) {
                             //send in batch, so continue will be handle, but send packet is executed.
-                            Assert.assertEquals(1, updateCount[6]);
-                            Assert.assertEquals(1, updateCount[7]);
-                            Assert.assertEquals(1, updateCount[8]);
-                            Assert.assertEquals(1, updateCount[9]);
+                            assertEquals(1, updateCount[6]);
+                            assertEquals(1, updateCount[7]);
+                            assertEquals(1, updateCount[8]);
+                            assertEquals(1, updateCount[9]);
                         } else {
-                            Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[6]);
-                            Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[7]);
-                            Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[8]);
-                            Assert.assertEquals(Statement.EXECUTE_FAILED, updateCount[9]);
+                            assertEquals(Statement.EXECUTE_FAILED, updateCount[6]);
+                            assertEquals(Statement.EXECUTE_FAILED, updateCount[7]);
+                            assertEquals(Statement.EXECUTE_FAILED, updateCount[8]);
+                            assertEquals(Statement.EXECUTE_FAILED, updateCount[9]);
                         }
                     }
                 }
@@ -926,15 +928,15 @@ public class MultiTest extends BaseTest {
                         checkNextData(9, rs);
                     }
                 }
-                Assert.assertFalse(rs.next());
+                assertFalse(rs.next());
             }
         }
     }
 
     private void checkNextData(int value, ResultSet rs) throws SQLException {
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(value, rs.getInt(1));
-        Assert.assertEquals(String.valueOf(value), rs.getString(2));
+        assertTrue(rs.next());
+        assertEquals(value, rs.getInt(1));
+        assertEquals(String.valueOf(value), rs.getString(2));
     }
 
     @Test
@@ -1079,4 +1081,205 @@ public class MultiTest extends BaseTest {
         }
 
     }
+
+
+    @Test
+    public void testMultiGeneratedKeyRewrite() throws Throwable {
+
+        Properties props = new Properties();
+        props.setProperty("rewriteBatchedStatements", "true");
+        props.setProperty("allowMultiQueries", "true");
+        props.setProperty("useServerPrepStmts", "false");
+        props.setProperty("sessionVariables", "auto_increment_increment=3");
+
+        try (Connection tmpConnection = openNewConnection(connUri, props)) {
+            checkResults(tmpConnection);
+            checkResultsPrepare(tmpConnection);
+            checkResultsPrepareMulti(tmpConnection);
+            checkResultsPrepareBatch(tmpConnection, true);
+        }
+
+    }
+
+    @Test
+    public void testMultiGeneratedKey() throws Throwable {
+
+        Properties props = new Properties();
+        props.setProperty("rewriteBatchedStatements", "false");
+        props.setProperty("allowMultiQueries", "true");
+        props.setProperty("useServerPrepStmts", "true");
+        props.setProperty("sessionVariables", "auto_increment_increment=3");
+
+        try (Connection tmpConnection = openNewConnection(connUri, props)) {
+            checkResults(tmpConnection);
+            checkResultsPrepare(tmpConnection);
+            checkResultsPrepareMulti(tmpConnection);
+            checkResultsPrepareBatch(tmpConnection, false);
+        }
+
+    }
+
+
+    private void checkResultsPrepareBatch(Connection connection, boolean isRewrite) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeQuery("truncate table testMultiGeneratedKey");
+
+            //test single execution
+            PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO testMultiGeneratedKey (text) VALUES (?)",
+                    Statement.RETURN_GENERATED_KEYS);
+            preparedStatement.setString(1, "data1");
+            preparedStatement.addBatch();
+            preparedStatement.setString(1, "data2");
+            preparedStatement.addBatch();
+
+            int[] updates = preparedStatement.executeBatch();
+            assertEquals(2, updates.length);
+
+            ResultSet rs = preparedStatement.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertTrue(rs.next());
+            assertEquals(4, rs.getInt(1));
+            assertFalse(rs.next());
+            assertFalse(preparedStatement.getMoreResults());
+
+
+            if (!isRewrite) {
+                assertEquals(1, updates[0]);
+                assertEquals(1, updates[1]);
+            } else {
+                assertEquals(Statement.SUCCESS_NO_INFO, updates[0]);
+                assertEquals(Statement.SUCCESS_NO_INFO, updates[1]);
+            }
+        }
+    }
+
+    private void checkResultsPrepare(Connection connection) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeQuery("truncate table testMultiGeneratedKey");
+
+            //test single execution
+            PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO testMultiGeneratedKey (text) VALUES (?)",
+                    Statement.RETURN_GENERATED_KEYS);
+            preparedStatement.setString(1, "data1");
+            int update = preparedStatement.executeUpdate();
+            assertEquals(1, update);
+
+            ResultSet rs = preparedStatement.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertFalse(rs.next());
+        }
+    }
+
+    private void checkResultsPrepareMulti(Connection connection) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeQuery("truncate table testMultiGeneratedKey");
+
+            //test single execution
+            PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO testMultiGeneratedKey (text) VALUES (?);"
+                    + "INSERT INTO testMultiGeneratedKey (text) VALUES (?)", Statement.RETURN_GENERATED_KEYS);
+            preparedStatement.setString(1, "data1");
+            preparedStatement.setString(2, "data2");
+            int update = preparedStatement.executeUpdate();
+            assertEquals(1, update);
+
+            ResultSet rs = preparedStatement.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertFalse(rs.next());
+            assertTrue(preparedStatement.getMoreResults());
+
+            assertEquals(1, preparedStatement.getUpdateCount());
+            rs = preparedStatement.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(4, rs.getInt(1));
+            assertFalse(rs.next());
+            assertFalse(preparedStatement.getMoreResults());
+
+        }
+    }
+
+    private void checkResults(Connection connection) throws SQLException {
+        try (Statement stmt = connection.createStatement()) {
+            stmt.executeQuery("truncate table testMultiGeneratedKey");
+
+            //test single execution
+            int update = stmt.executeUpdate("INSERT INTO testMultiGeneratedKey (text) VALUES ('data1'), ('data2'), ('data3');"
+                    + "INSERT INTO testMultiGeneratedKey (text) VALUES ('data4'), ('data5')", Statement.RETURN_GENERATED_KEYS);
+            assertEquals(3, update);
+
+            ResultSet rs = stmt.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertTrue(rs.next());
+            assertEquals(4, rs.getInt(1));
+            assertTrue(rs.next());
+            assertEquals(7, rs.getInt(1));
+            assertFalse(rs.next());
+
+            assertTrue(stmt.getMoreResults());
+            assertEquals(2, stmt.getUpdateCount());
+
+            rs = stmt.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(10, rs.getInt(1));
+            assertTrue(rs.next());
+            assertEquals(13, rs.getInt(1));
+            assertFalse(rs.next());
+
+            assertFalse(stmt.getMoreResults());
+
+            update = stmt.executeUpdate("INSERT INTO testMultiGeneratedKey (text) VALUES ('data11')", Statement.RETURN_GENERATED_KEYS);
+            assertEquals(1, update);
+
+            rs = stmt.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(16, rs.getInt(1));
+            assertFalse(rs.next());
+            assertFalse(stmt.getMoreResults());
+
+            update = stmt.executeUpdate("SELECT * FROM testMultiGeneratedKey", Statement.RETURN_GENERATED_KEYS);
+            assertEquals(0, update);
+
+            rs = stmt.getGeneratedKeys();
+            assertFalse(rs.next());
+            assertFalse(stmt.getMoreResults());
+
+            //test batch
+            stmt.executeQuery("truncate table testMultiGeneratedKey");
+            stmt.addBatch("INSERT INTO testMultiGeneratedKey (text) VALUES ('data0');INSERT INTO testMultiGeneratedKey (text) VALUES ('data1')");
+            stmt.addBatch("INSERT INTO testMultiGeneratedKey (text) VALUES ('data2')");
+            stmt.addBatch("INSERT INTO testMultiGeneratedKey (text) VALUES ('data3')");
+            int[] updates = stmt.executeBatch();
+
+            assertEquals(4, updates.length);
+
+            assertEquals(1, updates[0]);
+            assertEquals(1, updates[1]);
+            assertEquals(1, updates[2]);
+            assertEquals(1, updates[3]);
+
+            rs = stmt.getGeneratedKeys();
+
+            for (int i = 0; i < 4; i++) {
+                assertTrue(rs.next());
+                assertEquals(1 + i * 3, rs.getInt(1));
+            }
+
+            assertFalse(rs.next());
+            assertFalse(stmt.getMoreResults());
+
+            stmt.addBatch("INSERT INTO testMultiGeneratedKey (text) VALUES ('data11')");
+            stmt.executeBatch();
+
+            rs = stmt.getGeneratedKeys();
+            assertTrue(rs.next());
+            assertEquals(13, rs.getInt(1));
+            assertFalse(rs.next());
+
+        }
+
+    }
+
 }

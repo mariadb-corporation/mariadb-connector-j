@@ -53,52 +53,84 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
 
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class CmdInformationRewrite implements CmdInformation {
+public class CmdInformationBatch implements CmdInformation {
 
-    private Deque<Long> insertIds;
-    private Deque<Integer> updateCounts;
+
+
+    private Queue<Long> insertIds;
+    private Queue<Integer> updateCounts;
     private int insertIdNumber = 0;
     private int expectedSize;
-    private boolean hasException;
     private int autoIncrement;
+    private boolean hasException;
 
     /**
-     * Rewrite information objects.
-     * Driver cannot know each update count for each batch, since they are combined for faster results.
-     * getUpdateCount will always return Statement.SUCCESS_NO_INFO
-     * (or Statement.EXECUTE_FAILED if there was an exception)
-     * storing updateCounts permit to send getGeneratedId().
+     * CmdInformationBatch is similar to CmdInformationMultiple, but knowing it's for batch,
+     * doesn't take take of moreResult.
+     * That permit to use ConcurrentLinkedQueue, and then when option "useBatchMultiSend" is set
+     * and batch is interrupted, will permit to reading thread to keep connection in a
+     * correct state without any ConcurrentModificationException.
      *
-     * @param expectedSize expected batch size.
+     *
+     * @param expectedSize  expected batch size.
+     * @param autoIncrement connection auto increment value.
      */
-    public CmdInformationRewrite(int expectedSize) {
+    public CmdInformationBatch(int expectedSize, int autoIncrement) {
         this.expectedSize = expectedSize;
-        this.insertIds = new ArrayDeque<>(expectedSize);
-        this.updateCounts = new ArrayDeque<>(expectedSize);
-        this.hasException = false;
+        this.insertIds = new ConcurrentLinkedQueue<>();
+        this.updateCounts = new ConcurrentLinkedQueue<>();
+        this.autoIncrement = autoIncrement;
     }
 
     @Override
-    public void addStats(int updateCount) {
+    public void addErrorStat() {
         hasException = true;
+        this.updateCounts.add(Statement.EXECUTE_FAILED);
+    }
+
+    public void addResultSetStat() {
+        this.updateCounts.add(RESULT_SET_VALUE);
+    }
+
+    @Override
+    public void addSuccessStat(int updateCount, long insertId) {
+        this.insertIds.add(insertId);
+        insertIdNumber += updateCount;
         this.updateCounts.add(updateCount);
     }
 
     @Override
-    public void addStats(int updateCount, long insertId) {
-        if (insertId != 0) {
-            this.insertIds.add(insertId);
-            insertIdNumber += updateCount;
-            this.updateCounts.add(updateCount);
+    public int[] getUpdateCounts() {
+
+        int[] ret = new int[Math.max(updateCounts.size(), expectedSize)];
+
+        Iterator<Integer> iterator = updateCounts.iterator();
+        int pos = 0;
+        while (iterator.hasNext()) {
+            ret[pos++] = iterator.next();
         }
+
+        //in case of Exception
+        while (pos < ret.length) {
+            ret[pos++] = Statement.EXECUTE_FAILED;
+        }
+
+        return ret;
     }
 
-    @Override
-    public int[] getUpdateCounts() {
+    /**
+     * Will return an array filled with Statement.EXECUTE_FAILED if any error occur,
+     * or Statement.SUCCESS_NO_INFO, if execution succeed.
+     *
+     * @return update count array.
+     */
+    public int[] getRewriteUpdateCounts() {
         int[] ret = new int[expectedSize];
         Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
         return ret;
@@ -106,7 +138,28 @@ public class CmdInformationRewrite implements CmdInformation {
 
     @Override
     public int getUpdateCount() {
-        return hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO;
+        Integer updateCount = updateCounts.peek();
+        return (updateCount == null) ? - 1 : updateCount;
+    }
+
+    @Override
+    public ResultSet getBatchGeneratedKeys(Protocol protocol) {
+        long[] ret = new long[insertIdNumber];
+        int position = 0;
+        long insertId;
+        Iterator<Long> idIterator = insertIds.iterator();
+        Iterator<Integer> updateIterator = updateCounts.iterator();
+        while (updateIterator.hasNext()) {
+            int updateCount = updateIterator.next();
+            if (updateCount != Statement.EXECUTE_FAILED
+                    && updateCount != RESULT_SET_VALUE
+                    && (insertId = idIterator.next().longValue()) > 0) {
+                for (int i = 0; i < updateCount; i++) {
+                    ret[position++] = insertId + i * autoIncrement;
+                }
+            }
+        }
+        return MariaSelectResultSet.createGeneratedData(ret, protocol, true);
     }
 
     /**
@@ -119,10 +172,15 @@ public class CmdInformationRewrite implements CmdInformation {
     public ResultSet getGeneratedKeys(Protocol protocol) {
         long[] ret = new long[insertIdNumber];
         int position = 0;
-        Iterator<Long> iterator = insertIds.iterator();
-        for (int updateCount : updateCounts) {
-            if (updateCount != Statement.EXECUTE_FAILED) {
-                long insertId = iterator.next().longValue();
+        long insertId;
+        Iterator<Long> idIterator = insertIds.iterator();
+        Iterator<Integer> updateIterator = updateCounts.iterator();
+
+        while (updateIterator.hasNext()) {
+            int updateCount = updateIterator.next();
+            if (updateCount != Statement.EXECUTE_FAILED
+                    && updateCount != RESULT_SET_VALUE
+                    && (insertId = idIterator.next().longValue()) > 0) {
                 for (int i = 0; i < updateCount; i++) {
                     ret[position++] = insertId + i * autoIncrement;
                 }
@@ -138,18 +196,13 @@ public class CmdInformationRewrite implements CmdInformation {
 
     @Override
     public boolean moreResults() {
-        if (updateCounts.pollFirst() != null) return isCurrentUpdateCount();
         return false;
     }
 
     @Override
     public boolean isCurrentUpdateCount() {
-        Integer updateCount = updateCounts.peekFirst();
-        return (updateCount == null) ? false : NO_UPDATE_COUNT != updateCount;
+        return false;
     }
 
-    void setAutoIncrement(int autoIncrement) {
-        this.autoIncrement = autoIncrement;
-    }
 }
 

@@ -63,6 +63,7 @@ import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.*;
@@ -100,6 +101,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     protected int resultSetScrollType;
     protected boolean mustCloseOnCompletion = false;
     protected Options options;
+
     /**
      * Creates a new Statement.
      *
@@ -239,9 +241,43 @@ public class MariaDbStatement implements Statement, Cloneable {
         try {
             executeQueryProlog();
             batchResultSet = null;
-            Results internalResults = new Results(this, fetchSize, false, 1, false, resultSetScrollType);
+            Results internalResults = new Results(this, fetchSize, false, 1, false, resultSetScrollType,
+                    connection.getAutoIncrementIncrement());
             protocol.executeQuery(protocol.isMasterConnection(), internalResults,
                     Utils.nativeSql(sql, connection.noBackslashEscapes));
+            internalResults.commandEnd();
+            results = internalResults;
+            return results.getResultSet() != null;
+        } catch (QueryException e) {
+            exception = e;
+            return false;
+        } finally {
+            lock.unlock();
+            executeQueryEpilog(exception);
+            executing = false;
+        }
+    }
+
+    /**
+     * ! This method is for test only !
+     * This permit sending query using specific charset.
+     *
+     * @param sql     sql
+     * @param charset charset
+     * @return boolean if execution went well
+     * @throws SQLException if any exception occur
+     */
+    public boolean testExecute(String sql, Charset charset) throws SQLException {
+        executing = true;
+        QueryException exception = null;
+        lock.lock();
+        try {
+            executeQueryProlog();
+            batchResultSet = null;
+            Results internalResults = new Results(this, fetchSize, false, 1, false, resultSetScrollType,
+                    connection.getAutoIncrementIncrement());
+            protocol.executeQuery(protocol.isMasterConnection(), internalResults,
+                    Utils.nativeSql(sql, connection.noBackslashEscapes), charset);
             internalResults.commandEnd();
             results = internalResults;
             return results.getResultSet() != null;
@@ -570,9 +606,8 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     /**
      * Sets the number of seconds the driver will wait for a <code>Statement</code> object to execute to the given number of seconds. If the limit is
-     * exceeded, an <code>SQLException</code> is thrown. A JDBC driver must apply this limit to the <code>execute</code>, <code>executeQuery</code>
-     * and <code>executeUpdate</code> methods. JDBC driver implementations may also apply this limit to <code>ResultSet</code> methods (consult your
-     * driver vendor documentation for details).
+     * exceeded, an <code>SQLException</code> is thrown. A JDBC driver must apply this limit to the <code>execute</code>,
+     * <code>executeQuery</code> and <code>executeUpdate</code> methods.
      *
      * @param seconds the new query timeout limit in seconds; zero means there is no limit
      * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the condition
@@ -683,8 +718,8 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @since 1.4
      */
     public ResultSet getGeneratedKeys() throws SQLException {
-        if (results != null && results.getCmdInformation() != null) {
-            return results.getCmdInformation().getGeneratedKeys(protocol);
+        if (results != null) {
+            return results.getGeneratedKeys(protocol);
         }
         return MariaSelectResultSet.createEmptyResultSet();
     }
@@ -762,7 +797,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException if a database access error occurs or this method is called on a closed Statement
      */
     public int getUpdateCount() throws SQLException {
-        if (results != null && results.getCmdInformation() != null) {
+        if (results != null && results.getCmdInformation() != null && !results.isBatch()) {
             return results.getCmdInformation().getUpdateCount();
         }
         return -1;
@@ -972,7 +1007,8 @@ public class MariaDbStatement implements Statement, Cloneable {
             return new int[0];
         }
 
-        Results internalResults = new Results(this, 0, true, size, false, resultSetScrollType);
+        Results internalResults = new Results(this, 0, true, size, false, resultSetScrollType,
+                connection.getAutoIncrementIncrement());
         lock.lock();
         try {
             QueryException exception = null;

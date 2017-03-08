@@ -190,7 +190,7 @@ public abstract class AbstractPrepareStatement extends MariaDbStatement implemen
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(blob.getBinaryStream(), isNoBackslashEscapes()));
+        setParameter(parameterIndex, new StreamParameter(blob.getBinaryStream(), blob.length(), isNoBackslashEscapes()));
         hasLongData = true;
     }
 

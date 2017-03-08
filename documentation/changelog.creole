@@ -1,4 +1,5 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#158|1.5.9]] Released on 09 Mar. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#158|1.5.8]] Released on 10 Fev  2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#157|1.5.7]] Released on 12 Jan. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#156|1.5.6]] Released on 21 Dec. 2016
@@ -17,6 +18,16 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+== 1.5.9
+* CONJ-212 : Implement password encoding charset option
+* CONJ-423 : Permit to have MySQL driver and MariaDB driver in same classpath
+* CONJ-431 : multi-values queries return only one generated key
+* CONJ-434 : 1.5.8 regression : ResultSet returns duplicate entries when using fetchsize
+* CONJ-437 : ResultSet.getString on field with ZEROFILL doesn't have the '0' leading chars when using binary protocol
+* CONJ-435 : avoid "All pipe instances are busy" exception on multiple connections to the same named pipe
+* CONJ-446 : ResultSet first() throw an exception for scroll type if TYPE_FORWARD_ONLY only when streaming
+* CONJ-440 : handle very big COM_STMT_SEND_LONG_DATA packet (1Gb)
+* CONJ-429 : ResultSet.getDouble/getFloat may throws a NumberFormatException
 
 == 1.5.8
 * CONJ-424 : getGeneratedKeys() on table without generated key failed on second execution
@@ -100,11 +111,11 @@ There is another endpoint named "cluster endpoint" (format `xxx.cluster-yyy.zzz.
 
 In previous version, cluster endpoint use was discouraged, since when a failover occur, this cluster endpoint can point for a limited time to a host that isn't the current master anymore. Old recommandation was to list all specific end-points, like : \\
 {{{
-jdbc:mysql:aurora://a.yyy.zzz.rds.amazonaws.com.com,b.yyy.zzz.rds.amazonaws.com.com/db
+jdbc:mariadb:aurora://a.yyy.zzz.rds.amazonaws.com.com,b.yyy.zzz.rds.amazonaws.com.com/db
 }}}
 This kind of url string will still work, but now, recommended url string has to use only cluster endpoint :<br/>
 {{{
-jdbc:mysql:aurora://xxx.cluster-yyy.zzz.rds.amazonaws.com/db
+jdbc:mariadb:aurora://xxx.cluster-yyy.zzz.rds.amazonaws.com/db
 }}}
 
 Driver will automatically discover master and slaves of this cluster from current cluster end-point during connection time. This permit to add new replicas to the cluster instance will be discovered without changing driver configuration.
@@ -322,7 +333,7 @@ CONJ-217
 Driver information informations are now send to [[https://mariadb.com/kb/en/mariadb/performance-schema-session_connect_attrs-table/|connection attributes tables]] (performance_schema must be activated).
 A new option "connectionAttributes" permit to add client specifics data.
 
-For example when connecting with the following connection string {{{"jdbc:mysql://localhost:3306/testj?user=root&connectionAttributes=myOption:1,mySecondOption:'jj'"}}}, 
+For example when connecting with the following connection string {{{"jdbc:mariadb://localhost:3306/testj?user=root&connectionAttributes=myOption:1,mySecondOption:'jj'"}}},
 if performance_schema is activated, information about this connection will be available during the time this connection is active :
 {{{
 select * from performance_schema.session_connect_attrs where processList_id = 5

@@ -262,7 +262,8 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
         try {
             executeQueryProlog(serverPrepareResult);
             try {
-                internalResult = new Results(this, 0, true, queryParameterSize, true, resultSetScrollType);
+                internalResult = new Results(this, 0, true, queryParameterSize, true, resultSetScrollType,
+                        connection.getAutoIncrementIncrement());
                 executeBatchInternal(internalResult, queryParameterSize);
             } catch (QueryException queryException) {
                 exception = queryException;
@@ -392,7 +393,8 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
             executeQueryProlog(serverPrepareResult);
             try {
                 batchResultSet = null;
-                Results internalResults = new Results(this, fetchSize, false,1, true, resultSetScrollType);
+                Results internalResults = new Results(this, fetchSize, false,1, true, resultSetScrollType,
+                        connection.getAutoIncrementIncrement());
                 ParameterHolder[] parameterHolders = currentParameterHolder.values().toArray(new ParameterHolder[0]);
                 if (serverPrepareResult != null) {
                     serverPrepareResult.resetParameterTypeHeader();

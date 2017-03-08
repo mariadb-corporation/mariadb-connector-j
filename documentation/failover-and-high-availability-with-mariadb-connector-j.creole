@@ -44,7 +44,7 @@ Switching the type of connection is done by using JDBC [[http://docs.oracle.com/
 
 Example in standard java:
 {{{
-connection = DriverManager.getConnection("jdbc:mysql:replication://master1,slave1/test");
+connection = DriverManager.getConnection("jdbc:mariadb:replication://master1,slave1/test");
 stmt = connection.createStatement();
 stmt.execute("SELECT 1"); // will execute query on the underlying master1 connection
 connection.setReadOnly(true);
@@ -172,7 +172,7 @@ Each parameter corresponds to a specific use case:
 
 |=Failover option|=Description|
 | **failover** | High availability (random picking connection initialisation) with failover support for master replication cluster (exemple Galera). \\* Since 1.2.0*|
-| **sequential** |Failover support for master replication cluster (for example Galera) **without** High availability. \\the host will be connected in the order in which they were declared.\\\\Example when using the jdbc url string "jdbc:mysql:replication:host1,host2,host3/test" : \\When connecting, the driver will always try first host1, and if not available host2 and following. After a host fail, the driver will reconnect according to this order.\\*Since 1.3.0*|
+| **sequential** |Failover support for master replication cluster (for example Galera) **without** High availability. \\the host will be connected in the order in which they were declared.\\\\Example when using the jdbc url string "jdbc:mariadb:replication:host1,host2,host3/test" : \\When connecting, the driver will always try first host1, and if not available host2 and following. After a host fail, the driver will reconnect according to this order.\\*Since 1.3.0*|
 | **replication** | High availability (random picking connection initialisation) with failover support for master/slaves replication cluster (one or multiple master).\\* Since 1.2.0*|
 | **aurora** | High availability (random picking connection initialisation) with failover support for Amazon Aurora replication cluster.\\* Since 1.2.0*|
 
@@ -237,7 +237,7 @@ If setting many endpoint, the replication role of each instance must not be defi
 
 Example of connection string
 {{{
-    jdbc:mysql:aurora://cluster.cluster-xxxx.us-east-1.rds.amazonaws.com/db
+    jdbc:mariadb:aurora://cluster.cluster-xxxx.us-east-1.rds.amazonaws.com/db
 }}}
 
 Another difference is the option "socketTimeout" that defaults to 10 seconds, meaning that - if not changed - queries exceeding 10 seconds will throw exceptions.  

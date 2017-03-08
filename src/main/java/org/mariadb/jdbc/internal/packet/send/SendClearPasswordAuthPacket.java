@@ -56,8 +56,8 @@ import java.io.OutputStream;
 
 public class SendClearPasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
 
-    public SendClearPasswordAuthPacket(String password, byte[] authData, int packSeq) {
-        super(packSeq, authData, password);
+    public SendClearPasswordAuthPacket(String password, byte[] authData, int packSeq, String passwordCharacterEncoding) {
+        super(packSeq, authData, password, passwordCharacterEncoding);
     }
 
     /**
@@ -72,7 +72,13 @@ public class SendClearPasswordAuthPacket extends AbstractAuthSwitchSendResponseP
             return;
         }
         writer.startPacket(packSeq);
-        writer.write(password.getBytes());
+        byte[] bytePwd;
+        if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
+            bytePwd = password.getBytes(passwordCharacterEncoding);
+        } else {
+            bytePwd = password.getBytes();
+        }
+        writer.write(bytePwd);
         writer.write(0);
         writer.finishPacketWithoutRelease(false);
         writer.releaseBuffer();

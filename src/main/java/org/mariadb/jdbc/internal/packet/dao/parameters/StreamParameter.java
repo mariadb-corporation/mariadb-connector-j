@@ -50,18 +50,18 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
 
+public class StreamParameter extends LongDataParameter {
+    private static final int BUF_SIZE = 1024 * 1024 + 4; //big buffer (server reallocate array each send)
 
-public class StreamParameter implements ParameterHolder {
     private InputStream is;
     private long length;
     private boolean noBackslashEscapes;
@@ -118,17 +118,43 @@ public class StreamParameter implements ParameterHolder {
     }
 
     /**
-     * Write stream in binary format.
-     * @param os database outputStream
-     * @throws IOException if any error occur when reader stream
+     * Send stream in one or many COM_STMT_LONG_DATA.
+     * (stream read is using a big buffer to avoid having a lot of packet, because server will allocate/deallocate array each send)
+     *
+     * @param statementId statement id
+     * @param parameterId parameter number
+     * @param writer      writer
+     * @throws IOException if any connection exception occur
+     * @throws QueryException if query size is to big according to server max_allowed_size
      */
-    public void writeBinary(final PacketOutputStream os) throws IOException {
+    public void sendComLongData(int statementId, short parameterId, PacketOutputStream writer) throws IOException, QueryException {
+        byte[] array = new byte[BUF_SIZE];
+        int len;
         if (length == Long.MAX_VALUE) {
-            os.sendStream(is);
+            while ((len = is.read(array, 6, BUF_SIZE - 6)) > 0) {
+                sendComPacket(statementId, parameterId, writer, array, len);
+            }
         } else {
-            os.sendStream(is, length);
+            long remainingReadLength = length;
+            while (remainingReadLength > 0) {
+                len = is.read(array, 6, Math.min((int) remainingReadLength, BUF_SIZE - 6));
+                if (len == -1) return;
+                sendComPacket(statementId, parameterId, writer, array, len);
+                remainingReadLength -= len;
+            }
         }
+    }
 
+    private void sendComPacket(int statementId, short parameterId, PacketOutputStream writer, byte[] array, int len)
+            throws IOException, QueryException {
+        writer.startPacket(0);
+        array[0] = (byte) (statementId & 0xff);
+        array[1] = (byte) (statementId >>> 8);
+        array[2] = (byte) (statementId >>> 16);
+        array[3] = (byte) (statementId >>> 24);
+        array[4] = (byte) (parameterId & 0xff);
+        array[5] = (byte) (parameterId >>> 8);
+        writer.sendDirect(array, 0, len + 6, Packet.COM_STMT_SEND_LONG_DATA);
     }
 
 
@@ -162,9 +188,6 @@ public class StreamParameter implements ParameterHolder {
         return MariaDbType.BLOB;
     }
 
-    public boolean isLongData() {
-        return true;
-    }
 
     public boolean isNullData() {
         return false;

@@ -49,16 +49,17 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
+import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
 
-
-public class ReaderParameter implements ParameterHolder {
+public class ReaderParameter extends LongDataParameter {
+    private static final int BUF_SIZE = 1024 * 1024 + 4; //big buffer (server reallocate array each send)
+    private static final int CHAR_BUF_SIZE = 4096;
     private Reader reader;
     private long length;
     private boolean noBackslashEscapes;
@@ -118,17 +119,63 @@ public class ReaderParameter implements ParameterHolder {
         return -1;
     }
 
-
     /**
-     * Write reader to database in binary format.
-     * @param os database outputStream
-     * @throws IOException if any error occur when reading reader
+     * Send reader in one or many COM_STMT_LONG_DATA.
+     * (reading is using a big buffer to avoid having a lot of packet, because server will allocate/deallocate array each send)
+     *
+     * @param statementId statement id
+     * @param parameterId parameter number
+     * @param writer      writer
+     * @throws IOException if any connection exception occur
+     * @throws QueryException if query size is to big according to server max_allowed_size
      */
-    public void writeBinary(final PacketOutputStream os) throws IOException {
-        if (length == Long.MAX_VALUE) {
-            os.sendStream(reader);
-        } else {
-            os.sendStream(reader, length);
+    public void sendComLongData(int statementId, short parameterId, PacketOutputStream writer) throws IOException, QueryException {
+
+        byte[] arr = new byte[BUF_SIZE];
+        char[] charBuffer = new char[CHAR_BUF_SIZE];
+        int len;
+        int position;
+        long remainingReadLength = length;
+
+        while (remainingReadLength > 0) {
+            writer.startPacket(0);
+            //write statement id
+            arr[0] = (byte) (statementId & 0xff);
+            arr[1] = (byte) (statementId >>> 8);
+            arr[2] = (byte) (statementId >>> 16);
+            arr[3] = (byte) (statementId >>> 24);
+
+            //write parameter number
+            arr[4] = (byte) (parameterId & 0xff);
+            arr[5] = (byte) (parameterId >>> 8);
+
+            position = 6;
+
+            len = 0;
+            //write part of reader
+            //will read until stream is finished, or nearly complete the buffer
+            //(we cannot guess the exact size of characters in byte, but max size is * 3)
+            if (length == Long.MAX_VALUE) {
+                while (position + 3 * CHAR_BUF_SIZE < BUF_SIZE && (len = reader.read(charBuffer)) > 0) {
+                    byte[] bytes = new String(charBuffer, 0, len).getBytes("UTF-8");
+                    System.arraycopy(bytes, 0, arr, position, bytes.length);
+                    position += bytes.length;
+                }
+            } else {
+                while (position + 3 * CHAR_BUF_SIZE < BUF_SIZE
+                        && (len = reader.read(charBuffer, 0, Math.min((int) remainingReadLength, CHAR_BUF_SIZE))) > 0) {
+                    byte[] bytes = new String(charBuffer, 0, len).getBytes("UTF-8");
+                    System.arraycopy(bytes, 0, arr, position, bytes.length);
+                    position += bytes.length;
+                    remainingReadLength -= len;
+                }
+            }
+
+            if (position > 6) {
+                writer.sendDirect(arr, 0, position, Packet.COM_STMT_SEND_LONG_DATA);
+            } else {
+                if (len == -1) break;
+            }
         }
     }
 
@@ -157,18 +204,6 @@ public class ReaderParameter implements ParameterHolder {
         } catch (Exception e) {
             return "";
         }
-    }
-
-    public boolean isLongData() {
-        return true;
-    }
-
-    public boolean isStream() {
-        return true;
-    }
-
-    public boolean isNullData() {
-        return false;
     }
 
 }

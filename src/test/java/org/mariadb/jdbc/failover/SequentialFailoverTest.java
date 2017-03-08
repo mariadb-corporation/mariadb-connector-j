@@ -8,13 +8,14 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.threadly.test.concurrent.TestableScheduler;
 
 import java.sql.*;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.*;
+
 /**
  * Test for sequential connection
- * exemple mvn test  -DdefaultGaleraUrl=jdbc:mysql:sequential//localhost:3306,localhost:3307/test?user=root.
+ * exemple mvn test  -DdefaultGaleraUrl=jdbc:mariadb:sequential//localhost:3306,localhost:3307/test?user=root.
  */
 public class SequentialFailoverTest extends BaseMultiHostTest {
 
@@ -46,7 +47,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
         for (int i = 0; i < urlParser.getHostAddresses().size(); i++) {
             Connection connection = getNewConnection(true);
             int serverNb = getServerId(connection);
-            Assert.assertTrue(serverNb == i + 1);
+            assertTrue(serverNb == i + 1);
             connection.close();
             stopProxy(serverNb);
         }
@@ -65,7 +66,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
             try {
                 st.execute("SELECT 1");
-                Assert.fail();
+                fail();
             } catch (SQLException e) {
                 //normal exception that permit to blacklist the failing connection.
             }
@@ -73,14 +74,14 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             //check blacklist size
             try {
                 Protocol protocol = getProtocolFromConnection(connection);
-                Assert.assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 1);
+                assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 1);
 
                 //replace proxified HostAddress by normal one
                 UrlParser urlParser = UrlParser.parse(defaultUrl);
                 protocol.getProxy().getListener().addToBlacklist(urlParser.getHostAddresses().get(firstServerId - 1));
             } catch (Throwable e) {
                 e.printStackTrace();
-                Assert.fail();
+                fail();
             }
 
             //add first Host to blacklist
@@ -95,7 +96,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             scheduler.tick();
         } catch (Throwable e) {
             e.printStackTrace();
-            Assert.fail();
+            fail();
         } finally {
             if (connection != null) {
                 connection.close();
@@ -106,16 +107,12 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
     @Test
     public void testMultiHostWriteOnMaster() throws Throwable {
         Assume.assumeTrue(initialGaleraUrl != null);
-        Connection connection = null;
-        try {
-            connection = getNewConnection();
+        try (Connection connection = getNewConnection()) {
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists multinode");
             stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
+        } catch (SQLException sqle) {
+            fail("must have worked");
         }
     }
 
@@ -142,7 +139,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
                 }
                 long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - restartTime);
                 if (duration > 15 * 1000) {
-                    Assert.fail();
+                    fail();
                 }
                 Thread.sleep(250);
             }
@@ -154,8 +151,8 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
     }
 
     protected class CheckBlacklist implements Runnable {
-        int firstServerId;
-        Set<HostAddress> blacklistKeys;
+        private int firstServerId;
+        private Set<HostAddress> blacklistKeys;
 
         public CheckBlacklist(int firstServerId, Set<HostAddress> blacklistKeys) {
             this.firstServerId = firstServerId;
@@ -167,14 +164,14 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             try {
                 connection2 = getNewConnection();
                 int otherServerId = getServerId(connection2);
-                Assert.assertTrue(otherServerId != firstServerId);
+                assertTrue(otherServerId != firstServerId);
                 Protocol protocol = getProtocolFromConnection(connection2);
-                Assert.assertTrue(blacklistKeys.toArray()[0].equals(protocol.getProxy().getListener()
+                assertTrue(blacklistKeys.toArray()[0].equals(protocol.getProxy().getListener()
                         .getBlacklistKeys().toArray()[0]));
 
             } catch (Throwable e) {
                 e.printStackTrace();
-                Assert.fail();
+                fail();
             } finally {
                 if (connection2 != null) {
                     try {

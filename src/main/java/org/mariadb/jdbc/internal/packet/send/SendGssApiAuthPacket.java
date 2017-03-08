@@ -63,12 +63,13 @@ import org.mariadb.jdbc.internal.util.dao.QueryException;
 import java.io.*;
 import java.lang.reflect.Method;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
     private ReadPacketFetcher packetFetcher;
 
-    public SendGssApiAuthPacket(ReadPacketFetcher packetFetcher, String password, byte[] authData, int packSeq) {
-        super(packSeq, authData, password);
+    public SendGssApiAuthPacket(ReadPacketFetcher packetFetcher, String password, byte[] authData, int packSeq, String passwordCharacterEncoding) {
+        super(packSeq, authData, password, passwordCharacterEncoding);
         this.packetFetcher = packetFetcher;
     }
 
@@ -81,8 +82,8 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
     public void send(OutputStream os) throws IOException, QueryException {
         Buffer buffer = new Buffer(authData);
         final PacketOutputStream writer = (PacketOutputStream) os;
-        final String serverPrincipalName = buffer.readString(Charset.forName("UTF-8"));
-        String mechanisms = buffer.readString(Charset.forName("UTF-8"));
+        final String serverPrincipalName = buffer.readString(StandardCharsets.UTF_8);
+        String mechanisms = buffer.readString(StandardCharsets.UTF_8);
         if (mechanisms.equals("")) mechanisms = "Kerberos";
 
         GssapiAuth gssapiAuth = getAuthenticationMethod();

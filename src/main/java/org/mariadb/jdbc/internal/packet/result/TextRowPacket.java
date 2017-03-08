@@ -89,8 +89,11 @@ public class TextRowPacket implements RowPacket {
             if (valueLen == -1) {
                 valueObjects[i] = null;
             } else {
-                while (buffer.remaining() < valueLen) {
-                    buffer.appendPacket(packetFetcher.getPacket());
+                if (buffer.remaining() < valueLen) {
+                    buffer.grow((int) valueLen);
+                    while (buffer.remaining() < valueLen) {
+                        buffer.appendPacket(packetFetcher.getPacket());
+                    }
                 }
                 valueObjects[i] = buffer.readRawBytes((int) valueLen);
             }

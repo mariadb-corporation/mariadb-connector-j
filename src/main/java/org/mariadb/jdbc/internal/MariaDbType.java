@@ -60,33 +60,34 @@ import java.sql.Types;
 
 
 public enum MariaDbType {
-    OLDDECIMAL(0, Types.DECIMAL, BigDecimal.class.getName()),
-    TINYINT(1, Types.SMALLINT, Integer.class.getName()),
-    SMALLINT(2, Types.SMALLINT, Integer.class.getName()),
-    INTEGER(3, Types.INTEGER, Integer.class.getName()),
-    FLOAT(4, Types.REAL, Float.class.getName()),
-    DOUBLE(5, Types.DOUBLE, Double.class.getName()),
-    NULL(6, Types.NULL, String.class.getName()),
-    TIMESTAMP(7, Types.TIMESTAMP, java.sql.Timestamp.class.getName()),
-    BIGINT(8, Types.BIGINT, Long.class.getName()),
-    MEDIUMINT(9, Types.INTEGER, Integer.class.getName()),
-    DATE(10, Types.DATE, java.sql.Date.class.getName()),
-    TIME(11, Types.TIME, java.sql.Time.class.getName()),
-    DATETIME(12, Types.TIMESTAMP, java.sql.Timestamp.class.getName()),
-    YEAR(13, Types.SMALLINT, Short.class.getName()),
-    NEWDATE(14, Types.DATE, java.sql.Date.class.getName()),
-    VARCHAR(15, Types.VARCHAR, String.class.getName()),
-    BIT(16, Types.BIT, "[B"),
-    DECIMAL(246, Types.DECIMAL, BigDecimal.class.getName()),
-    ENUM(247, Types.VARCHAR, String.class.getName()),
-    SET(248, Types.VARCHAR, String.class.getName()),
-    TINYBLOB(249, Types.VARBINARY, "[B"),
-    MEDIUMBLOB(250, Types.VARBINARY, "[B"),
-    LONGBLOB(251, Types.LONGVARBINARY, "[B"),
-    BLOB(252, Types.LONGVARBINARY, "[B"),
-    VARSTRING(253, Types.VARCHAR, String.class.getName()),
-    STRING(254, Types.VARCHAR, String.class.getName()),
-    GEOMETRY(255, Types.VARBINARY, "[B");
+
+    OLDDECIMAL(0, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName()),
+    TINYINT(1, Types.SMALLINT, "Types.SMALLINT", Integer.class.getName()),
+    SMALLINT(2, Types.SMALLINT, "Types.SMALLINT", Integer.class.getName()),
+    INTEGER(3, Types.INTEGER, "Types.INTEGER", Integer.class.getName()),
+    FLOAT(4, Types.REAL, "Types.REAL", Float.class.getName()),
+    DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", Double.class.getName()),
+    NULL(6, Types.NULL, "Types.NULL", String.class.getName()),
+    TIMESTAMP(7, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName()),
+    BIGINT(8, Types.BIGINT, "Types.BIGINT", Long.class.getName()),
+    MEDIUMINT(9, Types.INTEGER, "Types.INTEGER", Integer.class.getName()),
+    DATE(10, Types.DATE, "Types.DATE", Date.class.getName()),
+    TIME(11, Types.TIME, "Types.TIME", Time.class.getName()),
+    DATETIME(12, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName()),
+    YEAR(13, Types.SMALLINT, "Types.SMALLINT", Short.class.getName()),
+    NEWDATE(14, Types.DATE, "Types.DATE", Date.class.getName()),
+    VARCHAR(15, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
+    BIT(16, Types.BIT, "Types.BIT", "[B"),
+    DECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName()),
+    ENUM(247, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
+    SET(248, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
+    TINYBLOB(249, Types.VARBINARY, "Types.VARBINARY", "[B"),
+    MEDIUMBLOB(250, Types.VARBINARY, "Types.VARBINARY", "[B"),
+    LONGBLOB(251, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B"),
+    BLOB(252, Types.LONGVARBINARY, "Types.LONGVARBINARY", "[B"),
+    VARSTRING(253, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
+    STRING(254, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
+    GEOMETRY(255, Types.VARBINARY, "Types.VARBINARY", "[B");
 
     static MariaDbType[] typeMap;
 
@@ -99,11 +100,13 @@ public enum MariaDbType {
 
     private final int javaType;
     private final int mysqlType;
+    private final String javaTypeName;
     private final String className;
 
-    MariaDbType(int mysqlType, int javaType, String className) {
+    MariaDbType(int mysqlType, int javaType, String javaTypeName, String className) {
         this.javaType = javaType;
         this.mysqlType = mysqlType;
+        this.javaTypeName = javaTypeName;
         this.className = className;
     }
 
@@ -236,7 +239,7 @@ public enum MariaDbType {
                 return (signed) ? Long.class.getName() : BigInteger.class.getName();
             case YEAR:
                 if ((flags & MariaSelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
-                    return java.sql.Date.class.getName();
+                    return Date.class.getName();
                 }
                 return Short.class.getName();
             case BIT:
@@ -347,4 +350,7 @@ public enum MariaDbType {
         return mysqlType;
     }
 
+    public String getJavaTypeName() {
+        return javaTypeName;
+    }
 }

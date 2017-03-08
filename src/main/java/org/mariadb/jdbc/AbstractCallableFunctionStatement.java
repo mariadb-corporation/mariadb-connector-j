@@ -154,6 +154,7 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
         }
         throw new SQLException("there is no parameter with the name " + parameterName);
     }
+
     /**
      * Convert parameter index to corresponding outputIndex.
      *

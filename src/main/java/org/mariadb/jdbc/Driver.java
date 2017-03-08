@@ -102,7 +102,7 @@ public final class Driver implements java.sql.Driver {
             } else {
                 ReentrantLock lock = new ReentrantLock();
                 Protocol protocol = Utils.retrieveProxy(urlParser, lock);
-                return MariaDbConnection.newConnection(protocol, lock);
+                return MariaDbConnection.newConnection(url, protocol, lock);
             }
 
         } catch (QueryException e) {

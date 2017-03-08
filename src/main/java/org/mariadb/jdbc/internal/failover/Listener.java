@@ -51,7 +51,6 @@ package org.mariadb.jdbc.internal.failover;
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.protocol.Protocol;

@@ -48,36 +48,22 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.packet;
+package org.mariadb.jdbc.internal.packet.dao.parameters;
 
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.BulkStatus;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.IOException;
 
+public abstract class LongDataParameter implements ParameterHolder {
 
-public class ComStmtLongData {
+    public abstract void sendComLongData(int statementId, short parameterId, PacketOutputStream writer) throws IOException, QueryException;
 
-    public ComStmtLongData() { }
-
-    /**
-     * Send long data packet.
-     *
-     * @param writer output stream
-     * @param statementId statement id
-     * @param parameterId parameter id
-     * @param param parameter
-     * @throws IOException if socket orror occur
-     */
-    public void send(PacketOutputStream writer, int statementId, short parameterId, ParameterHolder param) throws IOException {
-        writer.startPacket(0);
-        writer.buffer.put(Packet.COM_STMT_SEND_LONG_DATA);
-        writer.writeInt(statementId);
-        writer.buffer.putShort(parameterId);
-        param.writeBinary(writer);
-        writer.finishPacketWithoutRelease(true);
+    public boolean isLongData() {
+        return true;
     }
 
-
+    public boolean isNullData() {
+        return false;
+    }
 }

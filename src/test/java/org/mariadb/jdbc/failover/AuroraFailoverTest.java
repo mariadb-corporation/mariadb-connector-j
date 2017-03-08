@@ -13,7 +13,7 @@ import static org.junit.Assert.*;
 /**
  * Aurora test suite.
  * Some environment parameter must be set :
- * - defaultAuroraUrl : example -DdefaultAuroraUrl=jdbc:mysql:aurora://instance-1.xxxx,instance-2.xxxx/testj?user=userName&password=userPwd
+ * - defaultAuroraUrl : example -DdefaultAuroraUrl=jdbc:mariadb:aurora://instance-1.xxxx,instance-2.xxxx/testj?user=userName&password=userPwd
  * - AURORA_ACCESS_KEY = access key
  * - AURORA_SECRET_KEY = secret key
  * - AURORA_CLUSTER_IDENTIFIER = cluster identifier. example : -DAURORA_CLUSTER_IDENTIFIER=instance-1-cluster
@@ -54,11 +54,11 @@ public class AuroraFailoverTest extends BaseReplication {
             stmt.execute("drop table  if exists auroraDelete" + jobId);
             stmt.execute("create table auroraDelete" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
             connection.setReadOnly(true);
-            Assert.assertTrue(connection.isReadOnly());
+            assertTrue(connection.isReadOnly());
             try {
                 stmt.execute("drop table if exists auroraDelete" + jobId);
                 System.out.println("ERROR - > must not be able to write on slave. check if you database is start with --read-only");
-                Assert.fail();
+                fail();
             } catch (SQLException e) {
                 //normal exception
                 connection.setReadOnly(false);
@@ -85,7 +85,7 @@ public class AuroraFailoverTest extends BaseReplication {
 
             connection.setReadOnly(true);
             ResultSet rs = stmt.executeQuery("Select count(*) from auroraReadSlave" + jobId);
-            Assert.assertTrue(rs.next());
+            assertTrue(rs.next());
             connection.setReadOnly(false);
             stmt.execute("drop table  if exists auroraReadSlave" + jobId);
         } finally {
@@ -109,14 +109,14 @@ public class AuroraFailoverTest extends BaseReplication {
                 // Handles failover so may connect to another and is still able to execute
                 stmt.execute("SELECT 1");
                 if (getProtocolFromConnection(connection).getPort() == previousPort) {
-                    Assert.fail();
+                    fail();
                 }
             } catch (SQLException e) {
                 //normal error
             }
-            Assert.assertTrue(!connection.isReadOnly());
+            assertFalse(connection.isReadOnly());
             long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stopTime);
-            Assert.assertTrue(duration < 25 * 1000);
+            assertTrue(duration < 25 * 1000);
         } finally {
             if (connection != null) {
                 connection.close();
@@ -146,22 +146,22 @@ public class AuroraFailoverTest extends BaseReplication {
             // a timeout should occur here
             try {
                 rs = ps.executeQuery();
-                Assert.fail();
+                fail();
             } catch (SQLException e) {
                 // check that it's a timeout that occurs
-                Assert.assertTrue(e.getMessage().contains("timed out"));
+                assertTrue(e.getMessage().contains("timed out"));
             }
             try {
                 ps = connection.prepareStatement("SELECT 2");
                 ps.execute();
             } catch (Exception e) {
-                Assert.fail();
+                fail();
             }
 
             try {
                 rs = ps.executeQuery();
             } catch (SQLException e) {
-                Assert.fail();
+                fail();
             }
 
             // the connection should not be closed
@@ -183,12 +183,12 @@ public class AuroraFailoverTest extends BaseReplication {
     public void testAccessDeniedErrorCode() throws SQLException {
         try {
             DriverManager.getConnection(defaultUrl + "&retriesAllDown=6", "foouser", "foopwd");
-            Assert.fail();
+            fail();
         } catch (SQLException e) {
             System.out.println(e.getSQLState());
             System.out.println(e.getErrorCode());
-            Assert.assertTrue("28000".equals(e.getSQLState()));
-            Assert.assertEquals(1045, e.getErrorCode());
+            assertTrue("28000".equals(e.getSQLState()));
+            assertEquals(1045, e.getErrorCode());
         }
     }
 
@@ -209,9 +209,9 @@ public class AuroraFailoverTest extends BaseReplication {
             }
 
             Protocol protocol = getProtocolFromConnection(connection);
-            Assert.assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 1);
+            assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 1);
             assureBlackList();
-            Assert.assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
+            assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
         } finally {
             if (connection != null) {
                 connection.close();
@@ -226,12 +226,12 @@ public class AuroraFailoverTest extends BaseReplication {
         connection.setReadOnly(true);
         int current = getServerId(connection);
         Protocol protocol = getProtocolFromConnection(connection);
-        Assert.assertTrue("Blacklist would normally be zero, but was " + protocol.getProxy().getListener().getBlacklistKeys().size(),
+        assertTrue("Blacklist would normally be zero, but was " + protocol.getProxy().getListener().getBlacklistKeys().size(),
                 protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
         stopProxy(current);
         connection.close();
         //check that after error connection have not been put to blacklist
-        Assert.assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
+        assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
     }
 
     /**

@@ -449,6 +449,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
             sessionOption += "," + options.sessionVariables;
         }
         executeQuery("set session " + sessionOption);
+
+
+        if (options.sessionVariables != null && options.sessionVariables.contains("time_zone")) {
+            //reload session variables, since, time_zone may have change
+            loadServerData();
+        }
     }
 
     private void handleConnectionPhases() throws QueryException {
@@ -520,7 +526,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 seed,
                 packetSeq,
                 plugin,
-                options.connectionAttributes);
+                options.connectionAttributes,
+                options.passwordCharacterEncoding);
         cap.send(writer);
         Buffer buffer = packetFetcher.getPacket();
 
@@ -542,16 +549,25 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 //Authentication according to plugin.
                 //see AuthenticationProviderHolder for implement other plugin
                 interfaceSendPacket = AuthenticationProviderHolder.getAuthenticationProvider()
-                        .processAuthPlugin(packetFetcher, plugin, password, authData, packetFetcher.getLastPacketSeq() + 1);
+                        .processAuthPlugin(packetFetcher, plugin, password, authData, packetFetcher.getLastPacketSeq() + 1,
+                                options.passwordCharacterEncoding);
             } else {
                 interfaceSendPacket = new SendOldPasswordAuthPacket(this.password, Utils.copyWithLength(seed, 8),
-                        packetFetcher.getLastPacketSeq() + 1);
+                        packetFetcher.getLastPacketSeq() + 1, options.passwordCharacterEncoding);
             }
             interfaceSendPacket.send(writer);
             interfaceSendPacket.handleResultPacket(packetFetcher);
         } else {
             if (buffer.getByteAt(0) == Packet.ERROR) {
                 ErrorPacket errorPacket = new ErrorPacket(buffer);
+                if (password != null && !password.isEmpty() && errorPacket.getErrorNumber() == 1045 && "28000".equals(errorPacket.getSqlState())) {
+                    //Access denied
+                    throw new QueryException("Could not connect: " + errorPacket.getMessage()
+                            + "\nCurrent charset is " + Charset.defaultCharset().displayName()
+                            + ". If password has been set using other charset, consider "
+                            + "using option 'passwordCharacterEncoding'",
+                            errorPacket.getErrorNumber(), errorPacket.getSqlState());
+                }
                 throw new QueryException("Could not connect: " + errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
             }
             serverStatus = new OkPacket(buffer).getServerStatus();
@@ -651,10 +667,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     }
 
-    private void loadServerData() throws QueryException, IOException {
+    private void loadServerData() throws QueryException {
         serverData = new TreeMap<>();
         try {
-            Results results = new Results();
+            Results results = new Results(1);
             executeQuery(true, results, "SELECT @@max_allowed_packet , "
                             + "@@system_time_zone, "
                             + "@@time_zone, "
@@ -672,7 +688,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             //fallback in case of galera non primary nodes that permit only show / set command
             try {
-                Results results = new Results();
+                Results results = new Results(1);
                 executeQuery(true, results, "SHOW VARIABLES WHERE Variable_name in ("
                         + "'max_allowed_packet', "
                         + "'system_time_zone', "

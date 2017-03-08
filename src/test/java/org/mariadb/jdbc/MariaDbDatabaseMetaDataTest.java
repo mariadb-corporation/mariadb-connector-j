@@ -1,17 +1,9 @@
 package org.mariadb.jdbc;
 
-import com.fasterxml.jackson.databind.deser.Deserializers;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-
 import java.sql.*;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.Executor;
 
 import static org.junit.Assert.*;
-
-
 
 public class MariaDbDatabaseMetaDataTest extends BaseTest {
 

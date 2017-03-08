@@ -83,8 +83,11 @@ public class BinaryRowPacket implements RowPacket {
      */
     public long appendPacketIfNeeded(Buffer buffer, ReadPacketFetcher packetFetcher) throws IOException {
         long encLength = buffer.getLengthEncodedBinary();
-        while (encLength > buffer.remaining()) {
-            buffer.appendPacket(packetFetcher.getPacket());
+        if (encLength > buffer.remaining()) {
+            buffer.grow((int) encLength);
+            while (encLength > buffer.remaining()) {
+                buffer.appendPacket(packetFetcher.getPacket());
+            }
         }
         return encLength;
     }
@@ -98,8 +101,11 @@ public class BinaryRowPacket implements RowPacket {
      * @throws IOException if a connection error occur
      */
     public void appendPacketIfNeeded(Buffer buffer, ReadPacketFetcher packetFetcher, long encLength) throws IOException {
-        while (encLength > buffer.remaining()) {
-            buffer.appendPacket(packetFetcher.getPacket());
+        if (encLength > buffer.remaining()) {
+            buffer.grow((int) encLength);
+            while (encLength > buffer.remaining()) {
+                buffer.appendPacket(packetFetcher.getPacket());
+            }
         }
     }
 

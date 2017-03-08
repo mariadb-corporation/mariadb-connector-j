@@ -6,7 +6,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>1.5.8</version>
+    <version>1.5.9</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
@@ -17,8 +17,6 @@
         <version.file>src/main/java/org/mariadb/jdbc/internal/util/constant/Version.java</version.file>
         <checkstyleVersion>6.11.2</checkstyleVersion>
         <checkstyle.plugin.version>2.16</checkstyle.plugin.version>
-        <sevntu.checkstyle.plugin.version>1.15.0</sevntu.checkstyle.plugin.version>
-
     </properties>
 
     <licenses>

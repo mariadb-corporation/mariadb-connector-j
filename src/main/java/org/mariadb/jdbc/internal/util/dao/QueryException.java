@@ -111,6 +111,7 @@ public class QueryException extends Exception {
         this.errorCode = errorCode;
         this.sqlState = sqlState.getSqlState();
     }
+
     /**
      * Creates a query exception with a message.
      *

@@ -1,4 +1,3 @@
-package org.mariadb.jdbc.internal.queryresults;
 /*
 MariaDB Client for Java
 
@@ -48,56 +47,21 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.MariaDbStatement;
+package org.mariadb.jdbc.internal.packet.dao.parameters;
 
-import java.sql.Statement;
+import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-public class ResultsRewrite extends Results {
+import java.io.IOException;
 
-    /**
-     * Default constructor.
-     *
-     * @param statement current statement
-     * @param fetchSize fetch size
-     * @param batch select result possible
-     * @param expectedSize expected size
-     * @param binaryFormat use binary protocol
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     */
-    public ResultsRewrite(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType) {
-        super(statement, fetchSize, batch, expectedSize, binaryFormat, resultSetScrollType);
-        setCmdInformation(new CmdInformationRewrite(expectedSize));
+public abstract class NotLongDataParameter implements ParameterHolder {
+
+    public abstract void writeBinary(PacketOutputStream writeBuffer) throws IOException;
+
+    public boolean isLongData() {
+        return false;
     }
 
-    /**
-     * Add execution statistics.
-     *
-     * @param updateCount         number of updated rows
-     * @param insertId            primary key
-     * @param moreResultAvailable is there additional packet
-     */
-    @Override
-    public void addStats(int updateCount, long insertId, boolean moreResultAvailable) {
-        getCmdInformation().addStats(updateCount, insertId);
-    }
-
-    @Override
-    public void addStatsError(boolean moreResultAvailable) {
-        getCmdInformation().addStats(Statement.EXECUTE_FAILED);
-    }
-
-    @Override
-    public int getCurrentStatNumber() {
-        return getCmdInformation().getCurrentStatNumber();
-    }
-
-    @Override
-    public boolean isBatch() {
-        return true;
-    }
-
-    public void setAutoIncrement(int autoIncrement) {
-        ((CmdInformationRewrite) getCmdInformation()).setAutoIncrement(autoIncrement);
+    public boolean isNullData() {
+        return false;
     }
 }

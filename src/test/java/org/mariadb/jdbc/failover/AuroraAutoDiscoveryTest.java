@@ -6,7 +6,6 @@ import com.amazonaws.services.rds.model.InvalidDBInstanceStateException;
 import com.amazonaws.services.rds.model.ModifyDBInstanceRequest;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -26,8 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
@@ -161,7 +159,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             boolean newEndpointFound = foundHostInList(finalEndpoints, "test-discovery-on-creation");
 
             assertTrue("Discovered new endpoint on failover", newEndpointFound);
-            Assert.assertEquals(initialSize + 1, finalEndpoints.size());
+            assertEquals(initialSize + 1, finalEndpoints.size());
 
         } catch (SQLException se) {
             fail("Unable to execute query:" + se);
@@ -202,7 +200,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             boolean deletedInstanceGone = !foundHostInList(finalEndpoints, "test-instance-deleted-detection");
 
             assertTrue("Removed deleted endpoint from urlParser", deletedInstanceGone);
-            Assert.assertEquals(initialSize - 1, finalEndpoints.size());
+            assertEquals(initialSize - 1, finalEndpoints.size());
 
         } catch (SQLException se) {
             fail("Unable to execute query: " + se);
@@ -266,7 +264,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
             String newHost = getProtocolFromConnection(connection).getHost();
             assertTrue("Connected to new writer", !initialHost.equals(newHost));
-            Assert.assertEquals(System.getProperty("newlyCreatedInstance"), newHost.substring(0, newHost.indexOf(".")));
+            assertEquals(System.getProperty("newlyCreatedInstance"), newHost.substring(0, newHost.indexOf(".")));
 
         } catch (SQLException se) {
             fail("Unable to execute query: " + se);
