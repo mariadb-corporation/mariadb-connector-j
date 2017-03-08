@@ -86,7 +86,7 @@ public class BigQueryTest extends BaseTest {
     @Test
     public void sendBigBlobPreparedQuery() throws SQLException {
 
-        Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigPreparedQuery"));
+        Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigPreparedQuery") && sharedUsePrepare());
         int maxAllowedPacket = 0;
         Statement st = sharedConnection.createStatement();
         ResultSet rs1 = st.executeQuery("select @@max_allowed_packet");
