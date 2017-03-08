@@ -1,12 +1,11 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.*;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class ResultSetMetaDataTest extends BaseTest {
     /**
@@ -102,10 +101,10 @@ public class ResultSetMetaDataTest extends BaseTest {
 
         // this should return the original name of the table, not the alias
         logInfo(rsmd.getTableName(1));
-        Assert.assertEquals(rsmd.getTableName(1), "t3");
+        assertEquals(rsmd.getTableName(1), "t3");
 
-        Assert.assertEquals(rsmd.getColumnLabel(1), "id_alias");
-        Assert.assertEquals(rsmd.getColumnName(1), "id");
+        assertEquals(rsmd.getColumnLabel(1), "id_alias");
+        assertEquals(rsmd.getColumnName(1), "id");
 
         // add useOldAliasMetadataBehavior to get the alias instead of the real
         // table name
@@ -119,9 +118,9 @@ public class ResultSetMetaDataTest extends BaseTest {
 
             // this should return the alias name of the table, i.e. old behavior
             logInfo(rsmd.getTableName(1));
-            Assert.assertEquals(rsmd.getTableName(1), "t1_alias");
-            Assert.assertEquals(rsmd.getColumnLabel(1), "id_alias");
-            Assert.assertEquals(rsmd.getColumnName(1), "id_alias");
+            assertEquals(rsmd.getTableName(1), "t1_alias");
+            assertEquals(rsmd.getColumnLabel(1), "id_alias");
+            assertEquals(rsmd.getColumnName(1), "id_alias");
         } finally {
             connection.close();
         }

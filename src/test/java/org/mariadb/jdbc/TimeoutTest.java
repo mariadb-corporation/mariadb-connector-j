@@ -1,12 +1,10 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.sql.*;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class TimeoutTest extends BaseTest {
 
@@ -90,7 +88,7 @@ public class TimeoutTest extends BaseTest {
             // a timeout should occur here
             try {
                 ps.executeQuery();
-                Assert.fail();
+                fail();
             } catch (SQLException e) {
                 // check that it's a timeout that occurs
             }
@@ -98,7 +96,7 @@ public class TimeoutTest extends BaseTest {
             try {
                 ps = connection.prepareStatement("SELECT 2");
                 ps.execute();
-                Assert.fail("Connection must have thrown error");
+                fail("Connection must have thrown error");
             } catch (SQLException e) {
                 //normal exception
             }
@@ -127,7 +125,7 @@ public class TimeoutTest extends BaseTest {
             // "Could not read resultset: unexpected end of stream, ..."
             try {
                 statement.execute("SELECT 1");
-                Assert.fail("Connection must have thrown error");
+                fail("Connection must have thrown error");
             } catch (SQLException e) {
                 //normal exception
             }
@@ -156,7 +154,7 @@ public class TimeoutTest extends BaseTest {
             try {
                 rs = stmt.executeQuery("SELECT 2");
                 rs.next();
-                Assert.fail("Connection must have thrown error");
+                fail("Connection must have thrown error");
             } catch (SQLException e) {
                 //normal exception
             }

@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -8,6 +7,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import static org.junit.Assert.*;
 
 public class AllowMultiQueriesTest extends BaseTest {
     /**
@@ -36,11 +37,11 @@ public class AllowMultiQueriesTest extends BaseTest {
                 int counter = 1;
                 do {
                     ResultSet resultSet = statement.getResultSet();
-                    Assert.assertEquals(-1, statement.getUpdateCount());
-                    Assert.assertTrue(resultSet.next());
-                    Assert.assertEquals(counter++, resultSet.getInt(1));
+                    assertEquals(-1, statement.getUpdateCount());
+                    assertTrue(resultSet.next());
+                    assertEquals(counter++, resultSet.getInt(1));
                 } while (statement.getMoreResults());
-                Assert.assertEquals(4, counter);
+                assertEquals(4, counter);
             }
         }
     }
@@ -53,9 +54,9 @@ public class AllowMultiQueriesTest extends BaseTest {
                 statement.execute("SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;");
                 do {
                     ResultSet resultSet = statement.getResultSet();
-                    Assert.assertEquals(-1, statement.getUpdateCount());
-                    Assert.assertTrue(resultSet.next());
-                    Assert.assertEquals("a", resultSet.getString(2));
+                    assertEquals(-1, statement.getUpdateCount());
+                    assertTrue(resultSet.next());
+                    assertEquals("a", resultSet.getString(2));
                 } while (statement.getMoreResults());
             }
             try (Statement statement = connection.createStatement()) {
@@ -73,13 +74,13 @@ public class AllowMultiQueriesTest extends BaseTest {
                 statement.setFetchSize(1);
                 statement.execute("SELECT * from AllowMultiQueriesTest;SELECT 3;");
                 ResultSet rs1 = statement.getResultSet();
-                Assert.assertTrue(statement.getMoreResults(Statement.KEEP_CURRENT_RESULT));
-                Assert.assertTrue(rs1.next());
-                Assert.assertEquals("a", rs1.getString(2));
+                assertTrue(statement.getMoreResults(Statement.KEEP_CURRENT_RESULT));
+                assertTrue(rs1.next());
+                assertEquals("a", rs1.getString(2));
 
                 ResultSet rs = statement.getResultSet();
-                Assert.assertTrue(rs.next());
-                Assert.assertEquals(3, rs.getInt(1));
+                assertTrue(rs.next());
+                assertEquals(3, rs.getInt(1));
             }
         }
     }
@@ -91,22 +92,22 @@ public class AllowMultiQueriesTest extends BaseTest {
                 statement.setFetchSize(1);
                 statement.execute("SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;SELECT 3;");
                 ResultSet rs1 = statement.getResultSet();
-                Assert.assertTrue(statement.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
+                assertTrue(statement.getMoreResults(Statement.CLOSE_CURRENT_RESULT));
                 try {
                     rs1.next();
-                    Assert.fail("Must have thrown exception, since closed");
+                    fail("Must have thrown exception, since closed");
                 } catch (SQLException sqle) {
-                    Assert.assertTrue(sqle.getMessage().contains("Operation not permit on a closed resultSet"));
+                    assertTrue(sqle.getMessage().contains("Operation not permit on a closed resultSet"));
                 }
 
                 rs1 = statement.getResultSet();
-                Assert.assertTrue(statement.getMoreResults(Statement.KEEP_CURRENT_RESULT));
-                Assert.assertTrue(rs1.next());
-                Assert.assertEquals("a", rs1.getString(2));
+                assertTrue(statement.getMoreResults(Statement.KEEP_CURRENT_RESULT));
+                assertTrue(rs1.next());
+                assertEquals("a", rs1.getString(2));
 
                 ResultSet rs = statement.getResultSet();
-                Assert.assertTrue(rs.next());
-                Assert.assertEquals(3, rs.getInt(1));
+                assertTrue(rs.next());
+                assertEquals(3, rs.getInt(1));
             }
         }
     }

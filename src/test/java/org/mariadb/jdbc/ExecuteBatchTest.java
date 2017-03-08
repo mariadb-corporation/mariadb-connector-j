@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -15,6 +14,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static org.junit.Assert.*;
 
 public class ExecuteBatchTest extends BaseTest {
 
@@ -91,26 +92,26 @@ public class ExecuteBatchTest extends BaseTest {
         // Interrupt the thread
         service.shutdownNow();
 
-        Assert.assertTrue(
+        assertTrue(
             service.awaitTermination(1, TimeUnit.MINUTES)
         );
 
-        Assert.assertNotNull(exceptionRef.get());
+        assertNotNull(exceptionRef.get());
 
         //ensure that even interrupted, connection status is when sending in bulk (all corresponding bulk send are read)
         ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT 123456");
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(123456, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(123456, rs.getInt(1));
 
         StringWriter writer = new StringWriter();
         exceptionRef.get().printStackTrace(new PrintWriter(writer));
 
-        Assert.assertTrue(
+        assertTrue(
             "Exception should be a SQLException: \n" + writer.toString(),
             exceptionRef.get() instanceof SQLException
         );
 
-        Assert.assertTrue(wasInterrupted.get());
+        assertTrue(wasInterrupted.get());
 
     }
 
@@ -226,20 +227,20 @@ public class ExecuteBatchTest extends BaseTest {
         int[] resultInsert = preparedStatement.executeBatch();
 
         //test result Size
-        Assert.assertEquals(batchNumber, resultInsert.length);
+        assertEquals(batchNumber, resultInsert.length);
         for (int i = 0; i < batchNumber; i++) {
-            Assert.assertEquals(1, resultInsert[i]);
+            assertEquals(1, resultInsert[i]);
         }
 
         //check that connection is OK and results are well inserted
         ResultSet resultSet = connection.createStatement().executeQuery("SELECT * FROM ExecuteBatchTest");
         for (int i = 0; i < batchNumber; i++) {
-            Assert.assertTrue(resultSet.next());
-            Assert.assertEquals(i + 1, resultSet.getInt(1));
-            Assert.assertEquals(oneHundredLengthString, resultSet.getString(2));
-            Assert.assertEquals(i, resultSet.getInt(3));
+            assertTrue(resultSet.next());
+            assertEquals(i + 1, resultSet.getInt(1));
+            assertEquals(oneHundredLengthString, resultSet.getString(2));
+            assertEquals(i, resultSet.getInt(3));
         }
-        Assert.assertFalse(resultSet.next());
+        assertFalse(resultSet.next());
     }
 
     @Test
@@ -252,9 +253,9 @@ public class ExecuteBatchTest extends BaseTest {
                     pstmt.addBatch();
                 }
                 int[] updateCounts = pstmt.executeBatch();
-                Assert.assertEquals(10, updateCounts.length);
+                assertEquals(10, updateCounts.length);
                 for (int i = 0; i < updateCounts.length; i++) {
-                    Assert.assertEquals(sharedIsRewrite() ? Statement.SUCCESS_NO_INFO : 1, updateCounts[i]);
+                    assertEquals(sharedIsRewrite() ? Statement.SUCCESS_NO_INFO : 1, updateCounts[i]);
                 }
             }
         }

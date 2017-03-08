@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import javax.sql.*;
@@ -8,6 +7,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import static org.junit.Assert.*;
 
 public class PooledConnectionTest extends BaseTest {
     @Test
@@ -19,7 +19,7 @@ public class PooledConnectionTest extends BaseTest {
         pc.addConnectionEventListener(listener);
         pc.addStatementEventListener(listener);
         connection.close();
-        Assert.assertTrue(listener.closed);
+        assertTrue(listener.closed);
        /* Verify physical connection is still ok */
         connection.createStatement().execute("select 1");
 
@@ -28,7 +28,7 @@ public class PooledConnectionTest extends BaseTest {
        /* Now verify physical connection is gone */
         try {
             connection.createStatement().execute("select 1");
-            Assert.assertFalse("should never get there", true);
+            assertFalse("should never get there", true);
         } catch (Exception e) {
             //eat exception
         }
@@ -52,7 +52,7 @@ public class PooledConnectionTest extends BaseTest {
        /* Try to read  after server side closed the connection */
         try {
             connection.createStatement().execute("SELECT 1");
-            Assert.assertTrue("should never get there", false);
+            assertTrue("should never get there", false);
         } catch (SQLException e) {
             //eat Exception
         }
@@ -71,19 +71,19 @@ public class PooledConnectionTest extends BaseTest {
         PreparedStatement ps = connection.prepareStatement("SELECT ?");
         try {
             ps.execute();
-            Assert.assertTrue("should never get there", false);
+            assertTrue("should never get there", false);
         } catch (Exception e) {
-            Assert.assertTrue(listener.statementErrorOccured);
+            assertTrue(listener.statementErrorOccured);
             if (sharedBulkCapacity()) {
-                Assert.assertTrue(e.getMessage().contains("Parameter at position 1 is not set")
+                assertTrue(e.getMessage().contains("Parameter at position 1 is not set")
                         || e.getMessage().contains("Incorrect arguments to mysqld_stmt_execute"));
             } else {
                 //HY000 if server >= 10.2 ( send prepare and query in a row), 07004 otherwise
-                Assert.assertTrue("07004".equals(listener.sqlException.getSQLState()) || "HY000".equals(listener.sqlException.getSQLState()));
+                assertTrue("07004".equals(listener.sqlException.getSQLState()) || "HY000".equals(listener.sqlException.getSQLState()));
             }
         }
         ps.close();
-        Assert.assertTrue(listener.statementClosed);
+        assertTrue(listener.statementClosed);
         pc.close();
     }
 }

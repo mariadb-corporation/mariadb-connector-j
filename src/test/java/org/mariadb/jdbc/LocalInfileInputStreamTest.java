@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -40,10 +39,10 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
         ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM LocalInfileInputStreamTest");
         boolean next = rs.next();
-        Assert.assertTrue(next);
+        assertTrue(next);
 
         int count = rs.getInt(1);
-        Assert.assertEquals(2, count);
+        assertEquals(2, count);
 
         rs = st.executeQuery("SELECT * FROM LocalInfileInputStreamTest");
 
@@ -99,8 +98,8 @@ public class LocalInfileInputStreamTest extends BaseTest {
         ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM ttlocal");
         boolean next = rs.next();
 
-        Assert.assertTrue(next);
-        Assert.assertEquals(2, rs.getInt(1));
+        assertTrue(next);
+        assertEquals(2, rs.getInt(1));
 
         rs = st.executeQuery("SELECT * FROM ttlocal");
 
@@ -133,27 +132,27 @@ public class LocalInfileInputStreamTest extends BaseTest {
             PreparedStatement st = sharedConnection.prepareStatement("LOAD DATA LOCAL INFILE 'validateInfile.tsv' "
                     + "INTO TABLE t (id, test)");
             st.execute();
-            Assert.fail();
+            fail();
         } catch (SQLException e) {
             //check that connection is alright
             try {
-                Assert.assertFalse(sharedConnection.isClosed());
+                assertFalse(sharedConnection.isClosed());
                 Statement st = sharedConnection.createStatement();
                 st.execute("SELECT 1");
             } catch (SQLException eee) {
-                Assert.fail();
+                fail();
             }
         }
     }
 
     private void validateRecord(ResultSet rs, int expectedId, String expectedTest) throws SQLException {
         boolean next = rs.next();
-        Assert.assertTrue(next);
+        assertTrue(next);
 
         int id = rs.getInt(1);
         String test = rs.getString(2);
-        Assert.assertEquals(expectedId, id);
-        Assert.assertEquals(expectedTest, test);
+        assertEquals(expectedId, id);
+        assertEquals(expectedTest, test);
     }
 
     private File createTmpData(int recordNumber) throws Exception {
@@ -185,17 +184,17 @@ public class LocalInfileInputStreamTest extends BaseTest {
                             + "INTO TABLE `infile` "
                             + "COLUMNS TERMINATED BY ',' ENCLOSED BY '\\\"' ESCAPED BY '\\\\' "
                             + "LINES TERMINATED BY '\\n' (`a`, `b`)");
-                Assert.assertEquals(insertNumber, recordNumber);
+                assertEquals(insertNumber, recordNumber);
             }
 
             statement.setFetchSize(1000); //to avoid using too much memory for tests
             try (ResultSet rs = statement.executeQuery("SELECT * FROM `infile`")) {
                 for (int i = 0; i < recordNumber; i++) {
-                    Assert.assertTrue("record " + i + " doesn't exist",rs.next());
-                    Assert.assertEquals("a", rs.getString(1));
-                    Assert.assertEquals("b", rs.getString(2));
+                    assertTrue("record " + i + " doesn't exist",rs.next());
+                    assertEquals("a", rs.getString(1));
+                    assertEquals("b", rs.getString(2));
                 }
-                Assert.assertFalse(rs.next());
+                assertFalse(rs.next());
             }
 
         }

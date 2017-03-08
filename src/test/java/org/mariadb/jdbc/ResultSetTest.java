@@ -1,7 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -28,18 +26,18 @@ public class ResultSetTest extends BaseTest {
         Statement statement = sharedConnection.createStatement();
         statement.setFetchSize(1);
         ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test");
-        Assert.assertTrue(resultSet.isBeforeFirst());
+        assertTrue(resultSet.isBeforeFirst());
         while (resultSet.next()) {
-            Assert.assertFalse(resultSet.isBeforeFirst());
+            assertFalse(resultSet.isBeforeFirst());
         }
-        Assert.assertFalse(resultSet.isBeforeFirst());
+        assertFalse(resultSet.isBeforeFirst());
         resultSet.close();
         try {
             resultSet.isBeforeFirst();
-            Assert.fail("The above row should have thrown an SQLException");
+            fail("The above row should have thrown an SQLException");
         } catch (SQLException e) {
             //Make sure an exception has been thrown informing us that the ResultSet was closed
-            Assert.assertTrue(e.getMessage().contains("closed"));
+            assertTrue(e.getMessage().contains("closed"));
         }
     }
 
@@ -60,7 +58,7 @@ public class ResultSetTest extends BaseTest {
                 preparedStatement.executeUpdate();
 
                 try (ResultSet generatedKeysResultSet = preparedStatement.getGeneratedKeys()) {
-                    Assert.assertFalse(generatedKeysResultSet.next());
+                    assertFalse(generatedKeysResultSet.next());
                 }
 
             }
@@ -69,20 +67,21 @@ public class ResultSetTest extends BaseTest {
 
     @Test
     public void isBeforeFirstFetchZeroRowsTest() throws SQLException {
-        insertRows(0);
+        insertRows(2);
         Statement statement = sharedConnection.createStatement();
         statement.setFetchSize(1);
-        ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test");
-        Assert.assertFalse(resultSet.isBeforeFirst());
-        resultSet.next();
-        Assert.assertFalse(resultSet.isBeforeFirst());
-        resultSet.close();
-        try {
-            resultSet.isBeforeFirst();
-            Assert.fail("The above row should have thrown an SQLException");
-        } catch (SQLException e) {
-            //Make sure an exception has been thrown informing us that the ResultSet was closed
-            Assert.assertTrue(e.getMessage().contains("closed"));
+        try (ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test")) {
+            assertTrue(resultSet.isBeforeFirst());
+            assertTrue(resultSet.next());
+            assertFalse(resultSet.isBeforeFirst());
+            resultSet.close();
+            try {
+                resultSet.isBeforeFirst();
+                fail("The above row should have thrown an SQLException");
+            } catch (SQLException e) {
+                //Make sure an exception has been thrown informing us that the ResultSet was closed
+                assertTrue(e.getMessage().contains("closed"));
+            }
         }
     }
 
@@ -248,20 +247,20 @@ public class ResultSetTest extends BaseTest {
     public void previousTest() throws SQLException {
         insertRows(2);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test");
-        assertFalse(rs.previous());
-        assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
-        assertFalse(rs.previous());
-        assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
-        assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
-        assertTrue(rs.previous());
-        assertEquals(1, rs.getInt(1));
-        assertTrue(rs.last());
-        assertEquals(2, rs.getInt(1));
-        rs.close();
+        try (ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test")) {
+            assertFalse(rs.previous());
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertFalse(rs.previous());
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertTrue(rs.next());
+            assertEquals(2, rs.getInt(1));
+            assertTrue(rs.previous());
+            assertEquals(1, rs.getInt(1));
+            assertTrue(rs.last());
+            assertEquals(2, rs.getInt(1));
+        }
     }
 
     @Test

@@ -52,19 +52,19 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void wrapperTest() throws SQLException {
-        MariaDbStatement mysqlStatement = new MariaDbStatement((MariaDbConnection) sharedConnection, ResultSet.TYPE_FORWARD_ONLY);
-        assertTrue(mysqlStatement.isWrapperFor(Statement.class));
-        assertFalse(mysqlStatement.isWrapperFor(SQLException.class));
-        assertThat(mysqlStatement.unwrap(Statement.class), equalTo((Statement) mysqlStatement));
-        try {
-            mysqlStatement.unwrap(SQLException.class);
-            fail("MariaDbStatement class unwrapped as SQLException class");
-        } catch (SQLException sqle) {
-            assertTrue(true);
-        } catch (Exception e) {
-            assertTrue(false);
+        try (Statement statement = sharedConnection.createStatement()) {
+            assertTrue(statement.isWrapperFor(Statement.class));
+            assertFalse(statement.isWrapperFor(SQLException.class));
+            assertThat(statement.unwrap(Statement.class), equalTo(statement));
+            try {
+                statement.unwrap(SQLException.class);
+                fail("MariaDbStatement class unwrapped as SQLException class");
+            } catch (SQLException sqle) {
+                //normal exception
+            } catch (Exception e) {
+                fail();
+            }
         }
-        mysqlStatement.close();
     }
 
     /**
@@ -265,13 +265,13 @@ public class StatementTest extends BaseTest {
                 stopProxy();
                 otherStatement.execute("SELECT 1");
             } catch (SQLException e) {
-                Assert.assertTrue(otherStatement.isClosed());
-                Assert.assertTrue(connection.isClosed());
+                assertTrue(otherStatement.isClosed());
+                assertTrue(connection.isClosed());
                 try {
                     statement.execute("SELECT 1");
                 } catch (SQLException ee) {
-                    Assert.assertTrue(statement.isClosed());
-                    Assert.assertEquals("must be an SQLState 08000 exception", "08000", ee.getSQLState());
+                    assertTrue(statement.isClosed());
+                    assertEquals("must be an SQLState 08000 exception", "08000", ee.getSQLState());
                 }
             }
         }

@@ -1,6 +1,10 @@
 package org.mariadb.jdbc;
 
-import org.junit.*;
+
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.sql.*;
 
@@ -384,98 +388,98 @@ public class DatabaseMetadataTest extends BaseTest {
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
         ResultSet rs = dbmd.getColumns(null, null, "tablegetcolumns", null);
 
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals("testj",rs.getString(1)); //TABLE_CAT
-        Assert.assertEquals(null, rs.getString(2)); //TABLE_SCHEM
-        Assert.assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
-        Assert.assertEquals("a", rs.getString(4)); //COLUMN_NAME
-        Assert.assertEquals(Types.INTEGER, rs.getInt(5)); //DATA_TYPE
-        Assert.assertEquals("INT", rs.getString(6)); //"TYPE_NAME
-        Assert.assertEquals(10, rs.getInt(7)); //"COLUMN_SIZE
-        Assert.assertEquals(0, rs.getInt(9)); //DECIMAL_DIGITS
-        Assert.assertEquals(10, rs.getInt(10)); //NUM_PREC_RADIX
-        Assert.assertEquals(0, rs.getInt(11)); //NULLABLE
-        Assert.assertEquals("", rs.getString(12)); //REMARKS
-        Assert.assertEquals(null, rs.getString(13)); //COLUMN_DEF
-        Assert.assertEquals(0, rs.getInt(16)); //CHAR_OCTET_LENGTH
-        Assert.assertEquals(1, rs.getInt(17)); //ORDINAL_POSITION
-        Assert.assertEquals("NO", rs.getString(18)); //IS_NULLABLE
-        Assert.assertEquals(null, rs.getString(19)); //SCOPE_CATALOG
-        Assert.assertEquals(null, rs.getString(20)); //SCOPE_SCHEMA
-        Assert.assertEquals(null, rs.getString(21)); //SCOPE_TABLE
-        Assert.assertEquals(0, rs.getShort(22)); //SOURCE_DATA_TYPE
-        Assert.assertEquals("YES", rs.getString(23)); //IS_AUTOINCREMENT
-        Assert.assertEquals("NO", rs.getString(24)); //IS_GENERATEDCOLUMN
+        assertTrue(rs.next());
+        assertEquals("testj",rs.getString(1)); //TABLE_CAT
+        assertEquals(null, rs.getString(2)); //TABLE_SCHEM
+        assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
+        assertEquals("a", rs.getString(4)); //COLUMN_NAME
+        assertEquals(Types.INTEGER, rs.getInt(5)); //DATA_TYPE
+        assertEquals("INT", rs.getString(6)); //"TYPE_NAME
+        assertEquals(10, rs.getInt(7)); //"COLUMN_SIZE
+        assertEquals(0, rs.getInt(9)); //DECIMAL_DIGITS
+        assertEquals(10, rs.getInt(10)); //NUM_PREC_RADIX
+        assertEquals(0, rs.getInt(11)); //NULLABLE
+        assertEquals("", rs.getString(12)); //REMARKS
+        assertEquals(null, rs.getString(13)); //COLUMN_DEF
+        assertEquals(0, rs.getInt(16)); //CHAR_OCTET_LENGTH
+        assertEquals(1, rs.getInt(17)); //ORDINAL_POSITION
+        assertEquals("NO", rs.getString(18)); //IS_NULLABLE
+        assertEquals(null, rs.getString(19)); //SCOPE_CATALOG
+        assertEquals(null, rs.getString(20)); //SCOPE_SCHEMA
+        assertEquals(null, rs.getString(21)); //SCOPE_TABLE
+        assertEquals(0, rs.getShort(22)); //SOURCE_DATA_TYPE
+        assertEquals("YES", rs.getString(23)); //IS_AUTOINCREMENT
+        assertEquals("NO", rs.getString(24)); //IS_GENERATEDCOLUMN
 
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals("testj",rs.getString(1)); //TABLE_CAT
-        Assert.assertEquals(null, rs.getString(2)); //TABLE_SCHEM
-        Assert.assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
-        Assert.assertEquals("b", rs.getString(4)); //COLUMN_NAME
-        Assert.assertEquals(Types.VARCHAR, rs.getInt(5)); //DATA_TYPE
-        Assert.assertEquals("VARCHAR", rs.getString(6)); //"TYPE_NAME
-        Assert.assertEquals(32, rs.getInt(7)); //"COLUMN_SIZE
-        Assert.assertEquals(0, rs.getInt(9)); //DECIMAL_DIGITS
-        Assert.assertEquals(10, rs.getInt(10)); //NUM_PREC_RADIX
-        Assert.assertEquals(1, rs.getInt(11)); //NULLABLE
-        Assert.assertEquals("", rs.getString(12)); //REMARKS
-        Assert.assertEquals(null, rs.getString(13)); //COLUMN_DEF
-        Assert.assertEquals(32 * 4, rs.getInt(16)); //CHAR_OCTET_LENGTH
-        Assert.assertEquals(2, rs.getInt(17)); //ORDINAL_POSITION
-        Assert.assertEquals("YES", rs.getString(18)); //IS_NULLABLE
-        Assert.assertEquals(null, rs.getString(19)); //SCOPE_CATALOG
-        Assert.assertEquals(null, rs.getString(20)); //SCOPE_SCHEMA
-        Assert.assertEquals(null, rs.getString(21)); //SCOPE_TABLE
-        Assert.assertEquals(0, rs.getShort(22)); //SOURCE_DATA_TYPE
-        Assert.assertEquals("NO", rs.getString(23)); //IS_AUTOINCREMENT
-        Assert.assertEquals("NO", rs.getString(24)); //IS_GENERATEDCOLUMN
+        assertTrue(rs.next());
+        assertEquals("testj",rs.getString(1)); //TABLE_CAT
+        assertEquals(null, rs.getString(2)); //TABLE_SCHEM
+        assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
+        assertEquals("b", rs.getString(4)); //COLUMN_NAME
+        assertEquals(Types.VARCHAR, rs.getInt(5)); //DATA_TYPE
+        assertEquals("VARCHAR", rs.getString(6)); //"TYPE_NAME
+        assertEquals(32, rs.getInt(7)); //"COLUMN_SIZE
+        assertEquals(0, rs.getInt(9)); //DECIMAL_DIGITS
+        assertEquals(10, rs.getInt(10)); //NUM_PREC_RADIX
+        assertEquals(1, rs.getInt(11)); //NULLABLE
+        assertEquals("", rs.getString(12)); //REMARKS
+        assertEquals(null, rs.getString(13)); //COLUMN_DEF
+        assertEquals(32 * 4, rs.getInt(16)); //CHAR_OCTET_LENGTH
+        assertEquals(2, rs.getInt(17)); //ORDINAL_POSITION
+        assertEquals("YES", rs.getString(18)); //IS_NULLABLE
+        assertEquals(null, rs.getString(19)); //SCOPE_CATALOG
+        assertEquals(null, rs.getString(20)); //SCOPE_SCHEMA
+        assertEquals(null, rs.getString(21)); //SCOPE_TABLE
+        assertEquals(0, rs.getShort(22)); //SOURCE_DATA_TYPE
+        assertEquals("NO", rs.getString(23)); //IS_AUTOINCREMENT
+        assertEquals("NO", rs.getString(24)); //IS_GENERATEDCOLUMN
 
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals("testj",rs.getString(1)); //TABLE_CAT
-        Assert.assertEquals(null, rs.getString(2)); //TABLE_SCHEM
-        Assert.assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
-        Assert.assertEquals("c", rs.getString(4)); //COLUMN_NAME
-        Assert.assertEquals(Types.INTEGER, rs.getInt(5)); //DATA_TYPE
-        Assert.assertEquals("INT", rs.getString(6)); //"TYPE_NAME
-        Assert.assertEquals(10, rs.getInt(7)); //"COLUMN_SIZE
-        Assert.assertEquals(0, rs.getInt(9)); //DECIMAL_DIGITS
-        Assert.assertEquals(10, rs.getInt(10)); //NUM_PREC_RADIX
-        Assert.assertEquals(1, rs.getInt(11)); //NULLABLE
-        Assert.assertEquals("", rs.getString(12)); //REMARKS
-        Assert.assertEquals(null, rs.getString(13)); //COLUMN_DEF
-        Assert.assertEquals(0, rs.getInt(16)); //CHAR_OCTET_LENGTH
-        Assert.assertEquals(3, rs.getInt(17)); //ORDINAL_POSITION
-        Assert.assertEquals("YES", rs.getString(18)); //IS_NULLABLE
-        Assert.assertEquals(null, rs.getString(19)); //SCOPE_CATALOG
-        Assert.assertEquals(null, rs.getString(20)); //SCOPE_SCHEMA
-        Assert.assertEquals(null, rs.getString(21)); //SCOPE_TABLE
-        Assert.assertEquals(0, rs.getShort(22)); //SOURCE_DATA_TYPE
-        Assert.assertEquals("NO", rs.getString(23)); //IS_AUTOINCREMENT
-        Assert.assertEquals("YES", rs.getString(24)); //IS_GENERATEDCOLUMN
+        assertTrue(rs.next());
+        assertEquals("testj",rs.getString(1)); //TABLE_CAT
+        assertEquals(null, rs.getString(2)); //TABLE_SCHEM
+        assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
+        assertEquals("c", rs.getString(4)); //COLUMN_NAME
+        assertEquals(Types.INTEGER, rs.getInt(5)); //DATA_TYPE
+        assertEquals("INT", rs.getString(6)); //"TYPE_NAME
+        assertEquals(10, rs.getInt(7)); //"COLUMN_SIZE
+        assertEquals(0, rs.getInt(9)); //DECIMAL_DIGITS
+        assertEquals(10, rs.getInt(10)); //NUM_PREC_RADIX
+        assertEquals(1, rs.getInt(11)); //NULLABLE
+        assertEquals("", rs.getString(12)); //REMARKS
+        assertEquals(null, rs.getString(13)); //COLUMN_DEF
+        assertEquals(0, rs.getInt(16)); //CHAR_OCTET_LENGTH
+        assertEquals(3, rs.getInt(17)); //ORDINAL_POSITION
+        assertEquals("YES", rs.getString(18)); //IS_NULLABLE
+        assertEquals(null, rs.getString(19)); //SCOPE_CATALOG
+        assertEquals(null, rs.getString(20)); //SCOPE_SCHEMA
+        assertEquals(null, rs.getString(21)); //SCOPE_TABLE
+        assertEquals(0, rs.getShort(22)); //SOURCE_DATA_TYPE
+        assertEquals("NO", rs.getString(23)); //IS_AUTOINCREMENT
+        assertEquals("YES", rs.getString(24)); //IS_GENERATEDCOLUMN
 
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals("testj",rs.getString(1)); //TABLE_CAT
-        Assert.assertEquals(null, rs.getString(2)); //TABLE_SCHEM
-        Assert.assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
-        Assert.assertEquals("d", rs.getString(4)); //COLUMN_NAME
-        Assert.assertEquals(Types.VARCHAR, rs.getInt(5)); //DATA_TYPE
-        Assert.assertEquals("VARCHAR", rs.getString(6)); //"TYPE_NAME
-        Assert.assertEquals(5, rs.getInt(7)); //"COLUMN_SIZE
-        Assert.assertEquals(0, rs.getInt(9)); //DECIMAL_DIGITS
-        Assert.assertEquals(10, rs.getInt(10)); //NUM_PREC_RADIX
-        Assert.assertEquals(1, rs.getInt(11)); //NULLABLE
-        Assert.assertEquals("", rs.getString(12)); //REMARKS
-        Assert.assertEquals(null, rs.getString(13)); //COLUMN_DEF
-        Assert.assertEquals(5 * 4, rs.getInt(16)); //CHAR_OCTET_LENGTH
-        Assert.assertEquals(4, rs.getInt(17)); //ORDINAL_POSITION
-        Assert.assertEquals("YES", rs.getString(18)); //IS_NULLABLE
-        Assert.assertEquals(null, rs.getString(19)); //SCOPE_CATALOG
-        Assert.assertEquals(null, rs.getString(20)); //SCOPE_SCHEMA
-        Assert.assertEquals(null, rs.getString(21)); //SCOPE_TABLE
-        Assert.assertEquals(0, rs.getShort(22)); //SOURCE_DATA_TYPE
-        Assert.assertEquals("NO", rs.getString(23)); //IS_AUTOINCREMENT
-        Assert.assertEquals("YES", rs.getString(24)); //IS_GENERATEDCOLUMN
-        Assert.assertFalse(rs.next());
+        assertTrue(rs.next());
+        assertEquals("testj",rs.getString(1)); //TABLE_CAT
+        assertEquals(null, rs.getString(2)); //TABLE_SCHEM
+        assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
+        assertEquals("d", rs.getString(4)); //COLUMN_NAME
+        assertEquals(Types.VARCHAR, rs.getInt(5)); //DATA_TYPE
+        assertEquals("VARCHAR", rs.getString(6)); //"TYPE_NAME
+        assertEquals(5, rs.getInt(7)); //"COLUMN_SIZE
+        assertEquals(0, rs.getInt(9)); //DECIMAL_DIGITS
+        assertEquals(10, rs.getInt(10)); //NUM_PREC_RADIX
+        assertEquals(1, rs.getInt(11)); //NULLABLE
+        assertEquals("", rs.getString(12)); //REMARKS
+        assertEquals(null, rs.getString(13)); //COLUMN_DEF
+        assertEquals(5 * 4, rs.getInt(16)); //CHAR_OCTET_LENGTH
+        assertEquals(4, rs.getInt(17)); //ORDINAL_POSITION
+        assertEquals("YES", rs.getString(18)); //IS_NULLABLE
+        assertEquals(null, rs.getString(19)); //SCOPE_CATALOG
+        assertEquals(null, rs.getString(20)); //SCOPE_SCHEMA
+        assertEquals(null, rs.getString(21)); //SCOPE_TABLE
+        assertEquals(0, rs.getShort(22)); //SOURCE_DATA_TYPE
+        assertEquals("NO", rs.getString(23)); //IS_AUTOINCREMENT
+        assertEquals("YES", rs.getString(24)); //IS_GENERATEDCOLUMN
+        assertFalse(rs.next());
 
     }
 
@@ -625,23 +629,23 @@ public class DatabaseMetadataTest extends BaseTest {
                 "NAME String, MAX_LEN int, DEFAULT_VALUE String, DESCRIPTION String");
         ResultSet rs = sharedConnection.getMetaData().getClientInfoProperties();
         assertTrue(rs.next());
-        Assert.assertEquals("ApplicationName", rs.getString(1));
-        Assert.assertEquals(0x00ffffff, rs.getInt(2));
-        Assert.assertEquals("", rs.getString(3));
-        Assert.assertEquals("The name of the application currently utilizing the connection", rs.getString(4));
+        assertEquals("ApplicationName", rs.getString(1));
+        assertEquals(0x00ffffff, rs.getInt(2));
+        assertEquals("", rs.getString(3));
+        assertEquals("The name of the application currently utilizing the connection", rs.getString(4));
 
         assertTrue(rs.next());
-        Assert.assertEquals("ClientUser", rs.getString(1));
-        Assert.assertEquals(0x00ffffff, rs.getInt(2));
-        Assert.assertEquals("", rs.getString(3));
-        Assert.assertEquals("The name of the user that the application using the connection is performing work for. "
+        assertEquals("ClientUser", rs.getString(1));
+        assertEquals(0x00ffffff, rs.getInt(2));
+        assertEquals("", rs.getString(3));
+        assertEquals("The name of the user that the application using the connection is performing work for. "
                 + "This may not be the same as the user name that was used in establishing the connection.", rs.getString(4));
 
         assertTrue(rs.next());
-        Assert.assertEquals("ClientHostname", rs.getString(1));
-        Assert.assertEquals(0x00ffffff, rs.getInt(2));
-        Assert.assertEquals("", rs.getString(3));
-        Assert.assertEquals("The hostname of the computer the application using the connection is running on", rs.getString(4));
+        assertEquals("ClientHostname", rs.getString(1));
+        assertEquals(0x00ffffff, rs.getInt(2));
+        assertEquals("", rs.getString(3));
+        assertEquals("The hostname of the computer the application using the connection is running on", rs.getString(4));
 
         assertFalse(rs.next());
     }

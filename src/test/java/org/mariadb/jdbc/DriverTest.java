@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -737,7 +736,7 @@ public class DriverTest extends BaseTest {
                 MariaDbBlob blob = new MariaDbBlob(bytes);
                 preparedStatement.setBlob(1, blob);
                 int affectedRows = preparedStatement.executeUpdate();
-                Assert.assertEquals(affectedRows, 1);
+                assertEquals(affectedRows, 1);
             }
         } finally {
             st.execute("set @@global.sql_mode='" + originalSqlMode + "'");
@@ -764,7 +763,7 @@ public class DriverTest extends BaseTest {
                         connection.prepareStatement("insert into testString2(a) values(?)");
                 preparedStatement.setString(1, "'\\");
                 int affectedRows = preparedStatement.executeUpdate();
-                Assert.assertEquals(affectedRows, 1);
+                assertEquals(affectedRows, 1);
                 preparedStatement.close();
                 preparedStatement =
                         connection.prepareStatement("select * from testString2");
@@ -806,7 +805,7 @@ public class DriverTest extends BaseTest {
                 MariaDbBlob blob = new MariaDbBlob(bytes);
                 preparedStatement.setBlob(1, blob);
                 int affectedRows = preparedStatement.executeUpdate();
-                Assert.assertEquals(affectedRows, 1);
+                assertEquals(affectedRows, 1);
             }
         } finally {
             st.execute("set @@global.sql_mode='" + originalSqlMode + "'");

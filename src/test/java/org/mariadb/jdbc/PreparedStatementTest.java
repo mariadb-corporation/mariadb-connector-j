@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -232,6 +231,8 @@ public class PreparedStatementTest extends BaseTest {
                     "SELECT * FROM `testFallbackPrepare` WHERE `test` LIKE ? COLLATE utf8mb4_unicode_ci")) {
                 preparedStatement.setString(1, "jj");
                 preparedStatement.execute();
+            } catch (SQLException sqle) {
+                fail("Must not have issue, because must fallback on client prepare");
             }
         }
     }
@@ -247,9 +248,10 @@ public class PreparedStatementTest extends BaseTest {
         try {
             pstmt.execute();
             fail("Must have thrown error");
+        } catch (SQLSyntaxErrorException sqlSyntax) {
+            //normal exception
         } catch (SQLException sqle) {
-            //must have thrown error.
-            assertTrue(sqle instanceof SQLSyntaxErrorException);
+            fail("must have thrown an SQLSyntaxErrorException");
         }
     }
 
