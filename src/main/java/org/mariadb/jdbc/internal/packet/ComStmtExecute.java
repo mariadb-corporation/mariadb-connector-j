@@ -50,6 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet;
 
 import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.packet.dao.parameters.NotLongDataParameter;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.packet.send.InterfaceSendPacket;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
@@ -150,7 +151,10 @@ public class ComStmtExecute implements InterfaceSendPacket {
         }
 
         for (int i = 0; i < parameterCount; i++) {
-            if (!parameters[i].isLongData()) parameters[i].writeBinary(pos);
+            ParameterHolder holder = parameters[i];
+            if (!holder.isLongData() && !holder.isNullData()) {
+                ((NotLongDataParameter) holder).writeBinary(pos);
+            }
         }
     }
 

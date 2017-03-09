@@ -19,6 +19,8 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.junit.Assert.*;
+
 /**
  * Base util class.
  * For testing
@@ -61,8 +63,8 @@ public class BaseTest {
                 int randInt = random.nextInt();
                 try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT " + randInt)) {
                     ResultSet rs = preparedStatement.executeQuery();
-                    Assert.assertTrue(rs.next());
-                    Assert.assertEquals(randInt, rs.getInt(1));
+                    assertTrue(rs.next());
+                    assertEquals(randInt, rs.getInt(1));
                 } catch (Exception e) {
                     e.printStackTrace();
                     Assert.fail("Prepare after test fail for " + description.getClassName() + "." + description.getMethodName());

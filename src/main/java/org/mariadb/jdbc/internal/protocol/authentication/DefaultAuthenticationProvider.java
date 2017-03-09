@@ -64,28 +64,29 @@ public class DefaultAuthenticationProvider {
 
     /**
      * Process AuthenticationSwitch.
-     *
-     * @param packetFetcher packet fetcher
-     * @param plugin        plugin name
-     * @param password      password
-     * @param authData      auth data
-     * @param seqNo         packet sequence number
+     * @param packetFetcher             packet fetcher
+     * @param plugin                    plugin name
+     * @param password                  password
+     * @param authData                  auth data
+     * @param seqNo                     packet sequence number
+     * @param passwordCharacterEncoding password character encoding
      * @return authentication response according to parameters
      * @throws SQLException if error occur.
      */
     public static InterfaceAuthSwitchSendResponsePacket processAuthPlugin(ReadPacketFetcher packetFetcher, String plugin, String password,
-                                                                          byte[] authData, int seqNo) throws SQLException {
+                                                                          byte[] authData, int seqNo, String passwordCharacterEncoding)
+            throws SQLException {
         switch (plugin) {
             case MYSQL_NATIVE_PASSWORD:
-                return new SendNativePasswordAuthPacket(password, authData, seqNo);
+                return new SendNativePasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
             case MYSQL_OLD_PASSWORD:
-                return new SendOldPasswordAuthPacket(password, authData, seqNo);
+                return new SendOldPasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
             case MYSQL_CLEAR_PASSWORD:
-                return new SendClearPasswordAuthPacket(password, authData, seqNo);
+                return new SendClearPasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
             case DIALOG:
-                return new SendPamAuthPacket(packetFetcher, password, authData, seqNo);
+                return new SendPamAuthPacket(packetFetcher, password, authData, seqNo, passwordCharacterEncoding);
             case GSSAPI_CLIENT:
-                return new SendGssApiAuthPacket(packetFetcher, password, authData, seqNo);
+                return new SendGssApiAuthPacket(packetFetcher, password, authData, seqNo, passwordCharacterEncoding);
             default:
                 throw new SQLException("Client does not support authentication protocol requested by server. "
                         + "Consider upgrading MariaDB client. plugin was = " + plugin, "08004", 1251);

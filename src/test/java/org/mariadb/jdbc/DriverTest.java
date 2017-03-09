@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -13,6 +12,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
@@ -734,7 +736,7 @@ public class DriverTest extends BaseTest {
                 MariaDbBlob blob = new MariaDbBlob(bytes);
                 preparedStatement.setBlob(1, blob);
                 int affectedRows = preparedStatement.executeUpdate();
-                Assert.assertEquals(affectedRows, 1);
+                assertEquals(affectedRows, 1);
             }
         } finally {
             st.execute("set @@global.sql_mode='" + originalSqlMode + "'");
@@ -761,7 +763,7 @@ public class DriverTest extends BaseTest {
                         connection.prepareStatement("insert into testString2(a) values(?)");
                 preparedStatement.setString(1, "'\\");
                 int affectedRows = preparedStatement.executeUpdate();
-                Assert.assertEquals(affectedRows, 1);
+                assertEquals(affectedRows, 1);
                 preparedStatement.close();
                 preparedStatement =
                         connection.prepareStatement("select * from testString2");
@@ -803,7 +805,7 @@ public class DriverTest extends BaseTest {
                 MariaDbBlob blob = new MariaDbBlob(bytes);
                 preparedStatement.setBlob(1, blob);
                 int affectedRows = preparedStatement.executeUpdate();
-                Assert.assertEquals(affectedRows, 1);
+                assertEquals(affectedRows, 1);
             }
         } finally {
             st.execute("set @@global.sql_mode='" + originalSqlMode + "'");
@@ -993,6 +995,61 @@ public class DriverTest extends BaseTest {
             }
         } catch (SQLException e) {
             //not on windows
+        }
+    }
+
+    /**
+     * CONJ-435 : "All pipe instances are busy" exception on multiple connections to the same named pipe.
+     * @throws Exception if any error occur.
+     */
+    @Test
+    public void namedPipeBusyTest() throws Exception {
+        try {
+            ResultSet rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket");
+            rs.next();
+            if (rs.getBoolean(1)) {
+                String namedPipeName = rs.getString(2);
+                //skip test if no namedPipeName was obtained because then we do not use a socket connection
+                Assume.assumeTrue(namedPipeName != null);
+                ExecutorService exec = Executors.newFixedThreadPool(100);
+                //check blacklist shared
+                for (int i = 0; i < 100; i++) {
+                    exec.execute(new ConnectWithPipeThread("jdbc:mariadb:///testj?user="
+                            + username + "&pipe=" + namedPipeName + "&connectTimeout=500"));
+                }
+
+                //wait for thread endings
+                exec.shutdown();
+
+                exec.awaitTermination(30, TimeUnit.SECONDS);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private static class ConnectWithPipeThread implements Runnable {
+        private final String url;
+
+        public ConnectWithPipeThread(String url) {
+            this.url = url;
+        }
+
+        @Override
+        public void run() {
+            try {
+
+                try (Connection connection = DriverManager.getConnection(url)) {
+                    Thread.sleep(1000);
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 

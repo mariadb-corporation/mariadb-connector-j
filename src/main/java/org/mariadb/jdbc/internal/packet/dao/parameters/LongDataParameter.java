@@ -1,8 +1,8 @@
-package org.mariadb.jdbc.internal.packet.dao.parameters;
 /*
 MariaDB Client for Java
 
 Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (c) 2015-2016 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -48,40 +48,22 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
+package org.mariadb.jdbc.internal.packet.dao.parameters;
 
-import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.dao.QueryException;
 
-public class IntParameter extends NotLongDataParameter implements Cloneable {
-    private int value;
+import java.io.IOException;
 
-    public IntParameter(int value) {
-        this.value = value;
+public abstract class LongDataParameter implements ParameterHolder {
+
+    public abstract void sendComLongData(int statementId, short parameterId, PacketOutputStream writer) throws IOException, QueryException;
+
+    public boolean isLongData() {
+        return true;
     }
 
-    public void writeTo(final PacketOutputStream os) {
-        os.write(String.valueOf(value).getBytes());
-    }
-
-    public void writeUnsafeTo(final PacketOutputStream os) {
-        os.writeUnsafe(String.valueOf(value).getBytes());
-    }
-
-    public long getApproximateTextProtocolLength() {
-        return String.valueOf(value).getBytes().length;
-    }
-
-    public void writeBinary(final PacketOutputStream writeBuffer) {
-        writeBuffer.assureBufferCapacity(4);
-        writeBuffer.buffer.putInt(value);
-    }
-
-    public ColumnType getMariaDbType() {
-        return ColumnType.INTEGER;
-    }
-
-    @Override
-    public String toString() {
-        return Integer.toString(value);
+    public boolean isNullData() {
+        return false;
     }
 }

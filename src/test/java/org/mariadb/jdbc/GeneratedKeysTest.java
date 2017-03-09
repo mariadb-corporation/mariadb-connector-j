@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -78,7 +77,7 @@ public class GeneratedKeysTest extends BaseTest {
         preparedStatement.execute();
         ResultSet rs = preparedStatement.getGeneratedKeys();
         rs.next();
-        Assert.assertEquals(65500, rs.getInt(1));
+        assertEquals(65500, rs.getInt(1));
     }
 
 }

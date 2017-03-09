@@ -55,7 +55,7 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import java.sql.SQLException;
 
 
-public class StringParameter implements ParameterHolder, Cloneable {
+public class StringParameter extends NotLongDataParameter implements Cloneable {
 
     private String stringValue;
     private boolean noBackslashEscapes;
@@ -284,14 +284,4 @@ public class StringParameter implements ParameterHolder, Cloneable {
         }
         binary = true;
     }
-
-    public boolean isLongData() {
-        return false;
-    }
-
-    public boolean isNullData() {
-        return false;
-    }
-
-
 }

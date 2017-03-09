@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -177,13 +176,13 @@ public class DatatypeCompatibilityTest extends BaseTest {
         Assume.assumeTrue(doPrecisionTest);
         try (Statement statement = connection.createStatement()) {
             try (ResultSet resultSet = statement.executeQuery(sql)) {
-                Assert.assertTrue(resultSet.next());
-                Assert.assertEquals("00:00:00", "" + resultSet.getTime(2));
-                Assert.assertTrue(resultSet.next());
-                Assert.assertEquals("00:00:00", "" + resultSet.getTime(2));
-                Assert.assertTrue(resultSet.next());
-                Assert.assertNull(resultSet.getTime(2));
-                Assert.assertFalse(resultSet.next());
+                assertTrue(resultSet.next());
+                assertEquals("00:00:00", "" + resultSet.getTime(2));
+                assertTrue(resultSet.next());
+                assertEquals("00:00:00", "" + resultSet.getTime(2));
+                assertTrue(resultSet.next());
+                assertNull(resultSet.getTime(2));
+                assertFalse(resultSet.next());
             }
         }
     }
@@ -198,13 +197,13 @@ public class DatatypeCompatibilityTest extends BaseTest {
         Assume.assumeTrue(doPrecisionTest);
         try (Statement statement = connection.createStatement()) {
             try (ResultSet resultSet = statement.executeQuery(sql)) {
-                Assert.assertTrue(resultSet.next());
-                Assert.assertEquals("00:00:00.000000", resultSet.getString(2));
-                Assert.assertTrue(resultSet.next());
-                Assert.assertEquals("00:00:00.123000", resultSet.getString(2));
-                Assert.assertTrue(resultSet.next());
-                Assert.assertNull(resultSet.getString(2));
-                Assert.assertFalse(resultSet.next());
+                assertTrue(resultSet.next());
+                assertEquals("00:00:00.000000", resultSet.getString(2));
+                assertTrue(resultSet.next());
+                assertEquals("00:00:00.123000", resultSet.getString(2));
+                assertTrue(resultSet.next());
+                assertNull(resultSet.getString(2));
+                assertFalse(resultSet.next());
             }
         }
     }
@@ -219,13 +218,13 @@ public class DatatypeCompatibilityTest extends BaseTest {
         Assume.assumeTrue(doPrecisionTest);
         try (Statement statement = connection.createStatement()) {
             try (ResultSet resultSet = statement.executeQuery(sql)) {
-                Assert.assertTrue(resultSet.next());
-                Assert.assertEquals("00:00:00", "" + resultSet.getTime(2));
-                Assert.assertTrue(resultSet.next());
-                Assert.assertEquals("00:00:00", "" + resultSet.getTime(2));
-                Assert.assertTrue(resultSet.next());
-                Assert.assertNull(resultSet.getTime(2));
-                Assert.assertFalse(resultSet.next());
+                assertTrue(resultSet.next());
+                assertEquals("00:00:00", "" + resultSet.getTime(2));
+                assertTrue(resultSet.next());
+                assertEquals("00:00:00", "" + resultSet.getTime(2));
+                assertTrue(resultSet.next());
+                assertNull(resultSet.getTime(2));
+                assertFalse(resultSet.next());
             }
         }
     }
@@ -240,13 +239,13 @@ public class DatatypeCompatibilityTest extends BaseTest {
         Assume.assumeTrue(doPrecisionTest);
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                Assert.assertTrue(resultSet.next());
-                Assert.assertEquals("00:00:00.000000", resultSet.getString(2));
-                Assert.assertTrue(resultSet.next());
-                Assert.assertEquals("00:00:00.123000", resultSet.getString(2));
-                Assert.assertTrue(resultSet.next());
-                Assert.assertNull(resultSet.getString(2));
-                Assert.assertFalse(resultSet.next());
+                assertTrue(resultSet.next());
+                assertEquals("00:00:00.000000", resultSet.getString(2));
+                assertTrue(resultSet.next());
+                assertEquals("00:00:00.123000", resultSet.getString(2));
+                assertTrue(resultSet.next());
+                assertNull(resultSet.getString(2));
+                assertFalse(resultSet.next());
             }
         }
     }

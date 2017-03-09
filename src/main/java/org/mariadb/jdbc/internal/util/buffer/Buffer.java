@@ -255,17 +255,36 @@ public class Buffer {
     }
 
     /**
+     * Increase the buffer size.
+     * @param size add size to current buffer size.
+     */
+    public void grow(int size) {
+        if (remaining() < size) {
+            byte[] newBuffer = new byte[remaining() + size];
+            System.arraycopy(buf, position, newBuffer, 0, remaining());
+            buf = newBuffer;
+            limit -= position;
+            position = 0;
+        }
+    }
+
+    /**
      * Add stream to bytebuffer.
      *
      * @param otherBuffer stream to add if needed
      */
     public void appendPacket(Buffer otherBuffer) {
-        byte[] newBuffer = new byte[limit - position + otherBuffer.limit];
-        System.arraycopy(buf, position, newBuffer, 0, remaining());
-        System.arraycopy(otherBuffer.buf, 0, newBuffer, limit - position, otherBuffer.limit);
-        buf = newBuffer;
-        limit = limit - position + otherBuffer.limit;
-        position = 0;
+        if (buf.length - limit < otherBuffer.limit) {
+            byte[] newBuffer = new byte[limit - position + otherBuffer.limit];
+            System.arraycopy(buf, position, newBuffer, 0, remaining());
+            System.arraycopy(otherBuffer.buf, 0, newBuffer, remaining(), otherBuffer.limit);
+            buf = newBuffer;
+            limit = limit - position + otherBuffer.limit;
+            position = 0;
+        } else {
+            System.arraycopy(otherBuffer.buf, 0 , buf, limit, otherBuffer.limit);
+            limit += otherBuffer.limit;
+        }
     }
 
     /**

@@ -59,6 +59,8 @@ import org.mariadb.jdbc.internal.packet.result.ErrorPacket;
 import org.mariadb.jdbc.internal.packet.send.SendChangeDbPacket;
 import org.mariadb.jdbc.internal.packet.send.SendPingPacket;
 import org.mariadb.jdbc.internal.queryresults.*;
+import org.mariadb.jdbc.internal.packet.dao.parameters.LongDataParameter;
+
 import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
@@ -77,6 +79,7 @@ import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 import java.io.*;
 import java.net.SocketException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.List;
@@ -161,6 +164,25 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
 
     }
+
+    @Override
+    public void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql, Charset charset) throws SQLException {
+        cmdPrologue();
+        try {
+
+            writer.send(sql, Packet.COM_QUERY, charset);
+            getResult(results);
+
+        } catch (SQLException sqlException) {
+            throw logQuery.exceptionWithQuery(sql, sqlException);
+        } catch (MaxAllowedPacketException e) {
+            throw handleMaxAllowedFailover("Could not execute query: " + logQuery.subQuery(sql), e);
+        } catch (IOException e) {
+            throw new SQLNonTransientConnectionException("Could not execute query: " + logQuery.subQuery(sql), CONNECTION_EXCEPTION.getSqlState(), e);
+        }
+
+    }
+
 
     /**
      * Execute a unique clientPrepareQuery.
@@ -498,7 +520,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 //send binary data in a separate stream
                 for (int i = 0; i < paramCount; i++) {
                     if (parameters[i].isLongData()) {
-                        new ComStmtLongData().send(writer, statementId, (short) i, parameters[i]);
+                        ((LongDataParameter) parameters[i]).sendComLongData(statementId, (short) i, writer);
                     }
                 }
 
@@ -587,7 +609,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             //send binary data in a separate stream
             for (int i = 0; i < parameterCount; i++) {
                 if (parameters[i].isLongData()) {
-                    new ComStmtLongData().send(writer, statementId, (short) i, parameters[i]);
+                    ((LongDataParameter) parameters[i]).sendComLongData(statementId, (short) i, writer);
                 }
             }
 
@@ -637,7 +659,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             //send binary data in a separate stream
             for (int i = 0; i < parameterCount; i++) {
                 if (parameters[i].isLongData()) {
-                    new ComStmtLongData().send(writer, serverPrepareResult.getStatementId(), (short) i, parameters[i]);
+                    ((LongDataParameter) parameters[i]).sendComLongData(serverPrepareResult.getStatementId(), (short) i, writer);
                 }
             }
 

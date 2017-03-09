@@ -1,28 +1,30 @@
 package org.mariadb.jdbc;
 
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.*;
 import java.sql.*;
 import java.util.Arrays;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 
 public class BigQueryTest extends BaseTest {
 
     /**
-     * Create Tests tables.
-     * @throws SQLException if connection error occur.
+     * Initialize test data.
+     * @throws SQLException id connection error occur
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
         createTable("bigblob", "id int not null primary key auto_increment, test longblob");
         createTable("bigblob2", "id int not null primary key auto_increment, test longblob, test2 longblob");
-        createTable("bigblob3", "id int not null primary key auto_increment, test longblob, test2 text");
+        createTable("bigblob3", "id int not null primary key auto_increment, test longblob, test2 longblob, test3 varchar(20)");
+        createTable("bigblob4", "test longblob");
+        createTable("bigblob5", "id int not null primary key auto_increment, test longblob, test2 text");
     }
 
     @Test
@@ -83,6 +85,55 @@ public class BigQueryTest extends BaseTest {
 
 
     @Test
+    public void sendBigBlobPreparedQuery() throws SQLException {
+
+        Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigPreparedQuery") && sharedUsePrepare());
+        int maxAllowedPacket = 0;
+        Statement st = sharedConnection.createStatement();
+        ResultSet rs1 = st.executeQuery("select @@max_allowed_packet");
+        if (rs1.next()) {
+            maxAllowedPacket = rs1.getInt(1);
+        } else {
+            fail();
+        }
+
+        byte[] arr = new byte[maxAllowedPacket - 1000];
+        int pos = 0;
+        while (pos < maxAllowedPacket - 1000) {
+            arr[pos] = (byte) ((pos % 132) + 40);
+            pos++;
+        }
+        byte[] arr2 = new byte[maxAllowedPacket - 1000];
+        pos = 0;
+        while (pos < maxAllowedPacket - 1000) {
+            arr2[pos] = (byte) (((pos + 5 ) % 127) + 40);
+            pos++;
+        }
+
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into bigblob3 values(null, ?,?,?)");
+        ps.setBlob(1, new MariaDbBlob(arr));
+        ps.setBlob(2, new MariaDbBlob(arr2));
+        ps.setString(3, "bob");
+        ps.executeUpdate();
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("select * from bigblob3");
+        rs.next();
+        byte[] newBytes = rs.getBytes(2);
+        byte[] newBytes2 = rs.getBytes(3);
+        assertEquals(arr.length, newBytes.length);
+        assertEquals(arr2.length, newBytes2.length);
+        for (int i = 0; i < arr.length; i++) {
+            assertEquals(arr[i], newBytes[i]);
+        }
+        for (int i = 0; i < arr2.length; i++) {
+            assertEquals(arr2[i], newBytes2[i]);
+        }
+        assertEquals("bob", rs.getString(4));
+
+    }
+
+
+    @Test
     public void testError() throws SQLException {
         // check that maxAllowedPacket is big enough for the test
         Assume.assumeTrue(checkMaxAllowedPacketMore20m("testError"));
@@ -106,6 +157,94 @@ public class BigQueryTest extends BaseTest {
 
 
     @Test
+    public void sendStreamComData() throws Exception {
+        Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigPreparedQuery") && sharedUsePrepare());
+
+        File tmpFile = File.createTempFile("temp-file-name", ".tmp");
+        try (FileOutputStream fos = new FileOutputStream(tmpFile)) {
+            for (int i = 0; i < 20_000_000; i++) {
+                fos.write(i % 110 + 40);
+            }
+        }
+
+        try (FileInputStream fis = new FileInputStream(tmpFile)) {
+            try (FileInputStream fis2 = new FileInputStream(tmpFile)) {
+                try (FileInputStream fis3 = new FileInputStream(tmpFile)) {
+                    try (PreparedStatement ps = sharedConnection.prepareStatement("insert into bigblob4 values(?)")) {
+
+                        //testing char stream
+                        ps.setCharacterStream(1, new InputStreamReader(fis, "UTF-8"));
+                        ps.executeUpdate();
+
+                        //testing byte stream
+                        ps.setBlob(1, fis2);
+                        ps.executeUpdate();
+
+                        //testing char stream with length
+                        ps.setCharacterStream(1, new InputStreamReader(fis3, "UTF-8"), 10_000_000);
+                        ps.executeUpdate();
+                    }
+                }
+            }
+        }
+
+        //test using binary resultSet
+        PreparedStatement ps = sharedConnection.prepareStatement("select * from bigblob4");
+        checkResult(tmpFile, ps.executeQuery(), 10_000_000);
+
+        //test using text resultSet
+        Statement stmt = sharedConnection.createStatement();
+        checkResult(tmpFile, stmt.executeQuery("select * from bigblob4"), 10_000_000);
+
+    }
+
+    private void checkResult(File tmpFile, ResultSet rs, int length) throws Exception {
+        assertTrue(rs.next());
+        String res = rs.getString(1);
+        try (Reader initialReader = new InputStreamReader(new FileInputStream(tmpFile), "UTF-8")) {
+            char[] bb = new char[64 * 1024];
+            int len;
+            int pos = 0;
+            while ((len = initialReader.read(bb)) > 0) {
+                for (int i = 0; i < len; i++) {
+                    assertEquals(bb[i], res.charAt(pos++));
+                }
+            }
+        }
+
+        assertTrue(rs.next());
+        byte[] results = rs.getBytes(1);
+        try (FileInputStream fis2 = new FileInputStream(tmpFile)) {
+            byte[] byteBuffer = new byte[64 * 1024];
+            int len;
+            int pos = 0;
+            while ((len = fis2.read(byteBuffer)) > 0) {
+                for (int i = 0; i < len; i++) {
+                    assertEquals(byteBuffer[i], results[pos++]);
+                }
+            }
+        }
+
+        assertTrue(rs.next());
+        res = rs.getString(1);
+        assertEquals(length, res.length());
+        try (Reader initialReader = new InputStreamReader(new FileInputStream(tmpFile), "UTF-8")) {
+            char[] bb = new char[64 * 1024];
+            int len;
+            int pos = 0;
+            while ((len = initialReader.read(bb)) > 0) {
+                for (int i = 0; i < len; i++) {
+                    if (pos < length) assertEquals(bb[i], res.charAt(pos++));
+                }
+            }
+            assertEquals(length, pos);
+        }
+
+        assertFalse(rs.next());
+    }
+
+
+    @Test
     public void maxFieldSizeTest() throws SQLException {
 
         byte abyte = (byte) 'a';
@@ -116,7 +255,7 @@ public class BigQueryTest extends BaseTest {
         byte[] arr2 = new byte[200];
         Arrays.fill(arr2, bbyte);
 
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into bigblob3 values(null, ?,?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into bigblob5 values(null, ?,?)");
 
         ps.setBytes(1, arr);
         ps.setBytes(2, arr2);
@@ -124,12 +263,12 @@ public class BigQueryTest extends BaseTest {
 
         Statement stmt = sharedConnection.createStatement();
         stmt.setMaxFieldSize(2);
-        ResultSet rs = stmt.executeQuery("select * from bigblob3");
+        ResultSet rs = stmt.executeQuery("select * from bigblob5");
         rs.next();
-        Assert.assertEquals(2, rs.getBytes(2).length);
-        Assert.assertEquals(2, rs.getString(3).length());
-        Assert.assertArrayEquals(new byte[] {abyte, abyte}, rs.getBytes(2));
-        Assert.assertEquals("bb", rs.getString(3));
+        assertEquals(2, rs.getBytes(2).length);
+        assertEquals(2, rs.getString(3).length());
+        assertArrayEquals(new byte[] {abyte, abyte}, rs.getBytes(2));
+        assertEquals("bb", rs.getString(3));
 
     }
 }

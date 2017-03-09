@@ -1,7 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -29,20 +27,21 @@ public class ResultSetTest extends BaseTest {
         Statement statement = sharedConnection.createStatement();
         statement.setFetchSize(1);
         ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test");
-        Assert.assertTrue(resultSet.isBeforeFirst());
+        assertTrue(resultSet.isBeforeFirst());
         while (resultSet.next()) {
-            Assert.assertFalse(resultSet.isBeforeFirst());
+            assertFalse(resultSet.isBeforeFirst());
         }
-        Assert.assertFalse(resultSet.isBeforeFirst());
+        assertFalse(resultSet.isBeforeFirst());
         resultSet.close();
         try {
             resultSet.isBeforeFirst();
-            Assert.fail("The above row should have thrown an SQLException");
+            fail("The above row should have thrown an SQLException");
         } catch (SQLException e) {
             //Make sure an exception has been thrown informing us that the ResultSet was closed
-            Assert.assertTrue(e.getMessage().contains("closed"));
+            assertTrue(e.getMessage().contains("closed"));
         }
     }
+
     /**
      * CONJ-424: Calling getGeneratedKeys() two times on the same connection, with different
      * PreparedStatement on a table that does not have an auto increment.
@@ -60,7 +59,7 @@ public class ResultSetTest extends BaseTest {
                 preparedStatement.executeUpdate();
 
                 try (ResultSet generatedKeysResultSet = preparedStatement.getGeneratedKeys()) {
-                    Assert.assertFalse(generatedKeysResultSet.next());
+                    assertFalse(generatedKeysResultSet.next());
                 }
 
             }
@@ -69,20 +68,21 @@ public class ResultSetTest extends BaseTest {
 
     @Test
     public void isBeforeFirstFetchZeroRowsTest() throws SQLException {
-        insertRows(0);
+        insertRows(2);
         Statement statement = sharedConnection.createStatement();
         statement.setFetchSize(1);
-        ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test");
-        Assert.assertFalse(resultSet.isBeforeFirst());
-        resultSet.next();
-        Assert.assertFalse(resultSet.isBeforeFirst());
-        resultSet.close();
-        try {
-            resultSet.isBeforeFirst();
-            Assert.fail("The above row should have thrown an SQLException");
-        } catch (SQLException e) {
-            //Make sure an exception has been thrown informing us that the ResultSet was closed
-            Assert.assertTrue(e.getMessage().contains("closed"));
+        try (ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test")) {
+            assertTrue(resultSet.isBeforeFirst());
+            assertTrue(resultSet.next());
+            assertFalse(resultSet.isBeforeFirst());
+            resultSet.close();
+            try {
+                resultSet.isBeforeFirst();
+                fail("The above row should have thrown an SQLException");
+            } catch (SQLException e) {
+                //Make sure an exception has been thrown informing us that the ResultSet was closed
+                assertTrue(e.getMessage().contains("closed"));
+            }
         }
     }
 
@@ -248,20 +248,20 @@ public class ResultSetTest extends BaseTest {
     public void previousTest() throws SQLException {
         insertRows(2);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test");
-        assertFalse(rs.previous());
-        assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
-        assertFalse(rs.previous());
-        assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
-        assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
-        assertTrue(rs.previous());
-        assertEquals(1, rs.getInt(1));
-        assertTrue(rs.last());
-        assertEquals(2, rs.getInt(1));
-        rs.close();
+        try (ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test")) {
+            assertFalse(rs.previous());
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertFalse(rs.previous());
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertTrue(rs.next());
+            assertEquals(2, rs.getInt(1));
+            assertTrue(rs.previous());
+            assertEquals(1, rs.getInt(1));
+            assertTrue(rs.last());
+            assertEquals(2, rs.getInt(1));
+        }
     }
 
     @Test
@@ -531,4 +531,226 @@ public class ResultSetTest extends BaseTest {
 
     }
 
+    /**
+     * [CONJ-437] getString on field with ZEROFILL doesn't have the '0' leading chars when using binary protocol.
+     * @throws SQLException if any abnormal error occur
+     */
+    @Test
+    public void leadingZeroTest() throws SQLException {
+        createTable("leadingZero", "t1 TINYINT(3) unsigned zerofill"
+                        + ", t2 TINYINT(8) unsigned zerofill"
+                        + ", t3 TINYINT unsigned zerofill"
+                        + ", t4 smallint(3) unsigned zerofill"
+                        + ", t5 smallint(8) unsigned zerofill"
+                        + ", t6 smallint unsigned zerofill"
+                        + ", t7 MEDIUMINT(3) unsigned zerofill"
+                        + ", t8 MEDIUMINT(8) unsigned zerofill"
+                        + ", t9 MEDIUMINT unsigned zerofill"
+                        + ", t10 INT(3) unsigned zerofill"
+                        + ", t11 INT(8) unsigned zerofill"
+                        + ", t12 INT unsigned zerofill"
+                        + ", t13 BIGINT(3) unsigned zerofill"
+                        + ", t14 BIGINT(8) unsigned zerofill"
+                        + ", t15 BIGINT unsigned zerofill"
+                        + ", t16 DECIMAL(6,3) unsigned zerofill"
+                        + ", t17 DECIMAL(11,3) unsigned zerofill"
+                        + ", t18 DECIMAL unsigned zerofill"
+                        + ", t19 FLOAT(6,3) unsigned zerofill"
+                        + ", t20 FLOAT(11,3) unsigned zerofill"
+                        + ", t21 FLOAT unsigned zerofill"
+                        + ", t22 DOUBLE(6,3) unsigned zerofill"
+                        + ", t23 DOUBLE(11,3) unsigned zerofill"
+                        + ", t24 DOUBLE unsigned zerofill");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.executeUpdate("insert into leadingZero values (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1.1,1.1,1.1,1.1,1.1,1.1,1.1,1.1,1.1), "
+                + "(20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20.2,20.2,20.2,20.2,20.2,20.2,20.2,20.2,20.2)");
+
+        //test text resultSet
+        testLeadingZeroResult(stmt.executeQuery("select * from leadingZero"));
+
+        //test binary resultSet
+        PreparedStatement pst1 = sharedConnection.prepareStatement("select * from leadingZero");
+        ResultSet rs1 = pst1.executeQuery();
+        testLeadingZeroResult(rs1);
+
+    }
+
+    private void testLeadingZeroResult(ResultSet rs1) throws SQLException {
+        assertTrue(rs1.next());
+        assertEquals("001", rs1.getString(1));
+        assertEquals("00000001", rs1.getString(2));
+        assertEquals("001", rs1.getString(3));
+        assertEquals("001", rs1.getString(4));
+        assertEquals("00000001", rs1.getString(5));
+        assertEquals("00001", rs1.getString(6));
+        assertEquals("001", rs1.getString(7));
+        assertEquals("00000001", rs1.getString(8));
+        assertEquals("00000001", rs1.getString(9));
+        assertEquals("001", rs1.getString(10));
+        assertEquals("00000001", rs1.getString(11));
+        assertEquals("0000000001", rs1.getString(12));
+        assertEquals("001", rs1.getString(13));
+        assertEquals("00000001", rs1.getString(14));
+        assertEquals("00000000000000000001", rs1.getString(15));
+        assertEquals("001.100", rs1.getString(16));
+        assertEquals("00000001.100", rs1.getString(17));
+        assertEquals("0000000001", rs1.getString(18));
+        assertEquals("0001.1", rs1.getString(19));
+        assertEquals("000000001.1", rs1.getString(20));
+        assertEquals("0000000001.1", rs1.getString(21));
+        assertEquals("0001.1", rs1.getString(22));
+        assertEquals("000000001.1", rs1.getString(23));
+        assertEquals("00000000000000000001.1", rs1.getString(24));
+
+        assertTrue(rs1.next());
+        assertEquals("020", rs1.getString(1));
+        assertEquals("00000020", rs1.getString(2));
+        assertEquals("020", rs1.getString(3));
+        assertEquals("020", rs1.getString(4));
+        assertEquals("00000020", rs1.getString(5));
+        assertEquals("00020", rs1.getString(6));
+        assertEquals("020", rs1.getString(7));
+        assertEquals("00000020", rs1.getString(8));
+        assertEquals("00000020", rs1.getString(9));
+        assertEquals("020", rs1.getString(10));
+        assertEquals("00000020", rs1.getString(11));
+        assertEquals("0000000020", rs1.getString(12));
+        assertEquals("020", rs1.getString(13));
+        assertEquals("00000020", rs1.getString(14));
+        assertEquals("00000000000000000020", rs1.getString(15));
+        assertEquals("020.200", rs1.getString(16));
+        assertEquals("00000020.200", rs1.getString(17));
+        assertEquals("0000000020", rs1.getString(18));
+        assertEquals("0020.2", rs1.getString(19));
+        assertEquals("000000020.2", rs1.getString(20));
+        assertEquals("0000000020.2", rs1.getString(21));
+        assertEquals("0020.2", rs1.getString(22));
+        assertEquals("000000020.2", rs1.getString(23));
+        assertEquals("00000000000000000020.2", rs1.getString(24));
+        assertFalse(rs1.next());
+
+    }
+
+    @Test
+    public void firstForwardTest() throws SQLException {
+        //first must always work when not streaming
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT 1");
+        assertTrue(rs.first());
+        assertFalse(rs.previous());
+        assertTrue(rs.absolute(1));
+        assertFalse(rs.relative(-1));
+
+        //absolute operation must fail when streaming
+        stmt.setFetchSize(1);
+        rs = stmt.executeQuery("SELECT 1");
+        try {
+            rs.first();
+            fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+        }
+        try {
+            rs.previous();
+            fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+        }
+        try {
+            rs.absolute(1);
+            fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+        }
+        try {
+            rs.relative(-1);
+            fail("absolute operation must fail when TYPE_FORWARD_ONLY and streaming");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Invalid operation for result set type TYPE_FORWARD_ONLY"));
+        }
+
+    }
+
+    /**
+     * CONJ-429 : ResultSet.getDouble/getFloat may throws a NumberFormatException.
+     *
+     * @throws SQLException if any abnormal error occur
+     */
+    @Test
+    public void testNumericType() throws SQLException {
+        createTable("numericTypeTable",
+                "t1 tinyint, "
+                        + "t2 boolean, "
+                        + "t3 smallint,  "
+                        + "t4 mediumint, "
+                        + "t5 int, "
+                        + "t6 bigint, "
+                        + "t7 decimal, "
+                        + "t8 float, "
+                        + "t9 double, "
+                        + "t10 bit,"
+                        + "t11 char(10),"
+                        + "t12 varchar(10),"
+                        + "t13 binary(10),"
+                        + "t14 varbinary(10),"
+                        + "t15 text,"
+                        + "t16 blob,"
+                        + "t17 date");
+
+        try (Statement stmt = sharedConnection.createStatement()) {
+            stmt.execute("INSERT into numericTypeTable values (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 'a', 'a', 'a', 'a', 'a', 'a', now())");
+            try (ResultSet rs = stmt.executeQuery("select * from numericTypeTable")) {
+                rs.next();
+                floatDoubleCheckResult(rs);
+            }
+        }
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("select * from numericTypeTable")) {
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                rs.next();
+                floatDoubleCheckResult(rs);
+            }
+
+        }
+    }
+
+    private void floatDoubleCheckResult(ResultSet rs) throws SQLException {
+
+        //getDouble
+        //supported JDBC type :
+        //TINYINT, SMALLINT, INTEGER, BIGINT, REAL, FLOAT, DOUBLE, DECIMAL, NUMERIC, BIT, BOOLEAN, CHAR, VARCHAR, LONGVARCHAR
+        for (int i = 1; i < 11; i++) rs.getDouble(i);
+        for (int i = 11; i < 16; i++) {
+            try {
+                rs.getDouble(i);
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("Incorrect format "));
+            }
+        }
+        for (int i = 16; i < 18; i++) {
+            try {
+                rs.getDouble(i);
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("not available"));
+            }
+        }
+
+        //getFloat
+        //supported JDBC type :
+        //TINYINT, SMALLINT, INTEGER, BIGINT, REAL, FLOAT, DOUBLE, DECIMAL, NUMERIC, BIT, BOOLEAN, CHAR, VARCHAR, LONGVARCHAR
+        for (int i = 1; i < 11; i++) rs.getDouble(i);
+        for (int i = 11; i < 16; i++) {
+            try {
+                rs.getFloat(i);
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("Incorrect format "));
+            }
+        }
+        for (int i = 16; i < 18; i++) {
+            try {
+                rs.getFloat(i);
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("not available"));
+            }
+        }
+    }
 }

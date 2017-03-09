@@ -57,8 +57,8 @@ import java.io.OutputStream;
 
 public class SendOldPasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
 
-    public SendOldPasswordAuthPacket(String password, byte[] authData, int packSeq) {
-        super(packSeq, authData, password);
+    public SendOldPasswordAuthPacket(String password, byte[] authData, int packSeq, String passwordCharacterEncoding) {
+        super(packSeq, authData, password, passwordCharacterEncoding);
     }
 
     /**

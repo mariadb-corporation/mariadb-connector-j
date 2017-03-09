@@ -1,6 +1,5 @@
 package org.mariadb.jdbc.failover;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 import org.mariadb.jdbc.HostAddress;
@@ -10,8 +9,7 @@ import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public abstract class BaseReplication extends BaseMonoServer {
 
@@ -36,7 +34,7 @@ public abstract class BaseReplication extends BaseMonoServer {
             PreparedStatement preparedStatement = connection.prepareStatement("SELECT test from replicationFailoverBinary" + jobId + " where id = ?");
             final long currentPrepareId = getPrepareResult((MariaDbPreparedStatementServer) preparedStatement).getStatementId();
             int slaveServerId = getServerId(connection);
-            Assert.assertFalse(masterServerId == slaveServerId);
+            assertFalse(masterServerId == slaveServerId);
             //stop slave for a few seconds
             stopProxy(slaveServerId, 2000);
 
@@ -44,13 +42,13 @@ public abstract class BaseReplication extends BaseMonoServer {
             preparedStatement.setInt(1, 1);
             ResultSet rs = preparedStatement.executeQuery();
             rs.next();
-            Assert.assertEquals("Harriba !", rs.getString(1));
-            Assert.assertNotEquals(currentPrepareId, getPrepareResult((MariaDbPreparedStatementServer) preparedStatement).getStatementId());
+            assertEquals("Harriba !", rs.getString(1));
+            assertNotEquals(currentPrepareId, getPrepareResult((MariaDbPreparedStatementServer) preparedStatement).getStatementId());
 
             int currentServerId = getServerId(connection);
 
-            Assert.assertTrue(masterServerId == currentServerId);
-            Assert.assertFalse(connection.isReadOnly());
+            assertTrue(masterServerId == currentServerId);
+            assertFalse(connection.isReadOnly());
             Thread.sleep(2000);
             boolean hasReturnOnSlave = false;
 
@@ -59,16 +57,16 @@ public abstract class BaseReplication extends BaseMonoServer {
                 preparedStatement.setInt(1, 1);
                 rs = preparedStatement.executeQuery();
                 rs.next();
-                Assert.assertEquals("Harriba !", rs.getString(1));
+                assertEquals("Harriba !", rs.getString(1));
 
                 currentServerId = getServerId(connection);
                 if (currentServerId != masterServerId) {
                     hasReturnOnSlave = true;
-                    Assert.assertTrue(connection.isReadOnly());
+                    assertTrue(connection.isReadOnly());
                     break;
                 }
             }
-            Assert.assertTrue("Prepare statement has not return on Slave", hasReturnOnSlave);
+            assertTrue("Prepare statement has not return on Slave", hasReturnOnSlave);
 
         } finally {
             if (connection != null) {
@@ -100,7 +98,7 @@ public abstract class BaseReplication extends BaseMonoServer {
                 assertTrue(secondSlaveId != firstSlaveId && secondSlaveId != masterServerId);
             } catch (SQLException e) {
                 e.printStackTrace();
-                Assert.fail();
+                fail();
             }
         } finally {
             if (connection != null) {
@@ -117,13 +115,13 @@ public abstract class BaseReplication extends BaseMonoServer {
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int slaveServerId = getServerId(connection);
-            Assert.assertFalse(masterServerId == slaveServerId);
+            assertFalse(masterServerId == slaveServerId);
             stopProxy(slaveServerId);
             connection.createStatement().execute("SELECT 1");
             int currentServerId = getServerId(connection);
 
-            Assert.assertTrue(masterServerId == currentServerId);
-            Assert.assertFalse(connection.isReadOnly());
+            assertTrue(masterServerId == currentServerId);
+            assertFalse(connection.isReadOnly());
         } finally {
             if (connection != null) {
                 connection.close();
@@ -143,8 +141,8 @@ public abstract class BaseReplication extends BaseMonoServer {
             connection.setReadOnly(false);
             int masterServerId = getServerId(connection);
 
-            Assert.assertFalse(slaveServerId == masterServerId);
-            Assert.assertFalse(connection.isReadOnly());
+            assertFalse(slaveServerId == masterServerId);
+            assertFalse(connection.isReadOnly());
         } finally {
             Thread.sleep(2500); //for not interfering with other tests
             if (connection != null) {
@@ -170,7 +168,7 @@ public abstract class BaseReplication extends BaseMonoServer {
                 connection.createStatement().executeQuery("SELECT CONNECTION_ID()");
             } catch (SQLException e) {
                 e.printStackTrace();
-                Assert.fail();
+                fail();
             }
         } finally {
             if (connection != null) {
@@ -198,8 +196,8 @@ public abstract class BaseReplication extends BaseMonoServer {
             //must reconnect to the second slave without error
             connection.createStatement().execute("SELECT 1");
             int currentSlaveId = getServerId(connection);
-            Assert.assertTrue(currentSlaveId != firstSlaveId);
-            Assert.assertTrue(currentSlaveId != masterServerId);
+            assertTrue(currentSlaveId != firstSlaveId);
+            assertTrue(currentSlaveId != masterServerId);
         } finally {
             if (connection != null) {
                 connection.close();
@@ -219,8 +217,8 @@ public abstract class BaseReplication extends BaseMonoServer {
             //with autoreconnect, the connection must reconnect automatically
             int currentServerId = getServerId(connection);
 
-            Assert.assertTrue(currentServerId == masterServerId);
-            Assert.assertFalse(connection.isReadOnly());
+            assertTrue(currentServerId == masterServerId);
+            assertFalse(connection.isReadOnly());
         } finally {
             Thread.sleep(500); //for not interfering with other tests
             if (connection != null) {
@@ -246,7 +244,7 @@ public abstract class BaseReplication extends BaseMonoServer {
             stopProxy(masterServerId);
             try {
                 st.execute("insert into writeToSlave" + jobId + " (id, amount) VALUE (2 , 100)");
-                Assert.fail();
+                fail();
             } catch (SQLException e) {
                 //normal exception
                 restartProxy(masterServerId);
@@ -270,7 +268,7 @@ public abstract class BaseReplication extends BaseMonoServer {
                 connection = getNewConnection(false);
                 int serverId = getServerId(connection);
                 if (i > 0) {
-                    Assert.assertTrue(masterId == serverId);
+                    assertTrue(masterId == serverId);
                 }
                 masterId = serverId;
                 connection.setReadOnly(true);
@@ -288,10 +286,10 @@ public abstract class BaseReplication extends BaseMonoServer {
             }
         }
 
-        Assert.assertTrue(connectionMap.size() >= 2);
+        assertTrue(connectionMap.size() >= 2);
         for (HostAddress key : connectionMap.keySet()) {
             Integer connectionCount = connectionMap.get(key).get();
-            Assert.assertTrue(connectionCount > 1);
+            assertTrue(connectionCount > 1);
         }
 
     }
@@ -329,14 +327,14 @@ public abstract class BaseReplication extends BaseMonoServer {
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int slaveServerId = getServerId(connection);
-            Assert.assertTrue(slaveServerId != masterServerId);
+            assertTrue(slaveServerId != masterServerId);
 
             connection.setCatalog("mysql"); //to be sure there will be a query, and so an error when switching connection
             stopProxy(masterServerId);
             try {
                 //must throw error
                 connection.setReadOnly(false);
-                Assert.fail();
+                fail();
             } catch (SQLException e) {
                 //normal exception
             }
@@ -362,8 +360,8 @@ public abstract class BaseReplication extends BaseMonoServer {
 
             int slaveServerId = getServerId(connection);
 
-            Assert.assertFalse(slaveServerId == masterServerId);
-            Assert.assertTrue(connection.isReadOnly());
+            assertFalse(slaveServerId == masterServerId);
+            assertTrue(connection.isReadOnly());
             restartProxy(masterServerId);
         } finally {
             if (connection != null) {

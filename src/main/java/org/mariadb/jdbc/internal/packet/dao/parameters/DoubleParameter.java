@@ -52,7 +52,8 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-public class DoubleParameter implements ParameterHolder, Cloneable {
+public class DoubleParameter extends NotLongDataParameter implements Cloneable {
+
     private double value;
 
     public DoubleParameter(double value) {
@@ -83,14 +84,6 @@ public class DoubleParameter implements ParameterHolder, Cloneable {
     @Override
     public String toString() {
         return Double.toString(value);
-    }
-
-    public boolean isLongData() {
-        return false;
-    }
-
-    public boolean isNullData() {
-        return false;
     }
 
 }

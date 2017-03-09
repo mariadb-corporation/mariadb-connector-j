@@ -114,7 +114,7 @@ public class AuroraFailoverTest extends BaseReplication {
             } catch (SQLException e) {
                 //normal error
             }
-            assertTrue(!connection.isReadOnly());
+            assertFalse(connection.isReadOnly());
             long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stopTime);
             assertTrue(duration < 25 * 1000);
         } finally {

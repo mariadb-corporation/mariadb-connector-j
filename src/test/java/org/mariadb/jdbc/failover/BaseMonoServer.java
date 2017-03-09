@@ -1,12 +1,13 @@
 package org.mariadb.jdbc.failover;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
+
+import static org.junit.Assert.*;
 
 public abstract class BaseMonoServer extends BaseMultiHostTest {
 
@@ -38,10 +39,10 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
             try {
                 st.execute("SELECT 1");
                 if (System.currentTimeMillis() - startTime < 4 * 1000) {
-                    Assert.fail("Auto-reconnection must have been done after 4000ms but was " + (System.currentTimeMillis() - startTime));
+                    fail("Auto-reconnection must have been done after 4000ms but was " + (System.currentTimeMillis() - startTime));
                 }
             } catch (SQLException e) {
-                Assert.fail("must not have thrown error");
+                fail("must not have thrown error");
             }
         } finally {
             if (connection != null) {
@@ -67,9 +68,9 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
             stopProxy(masterServerId, 2000);
             try {
                 st.execute("SELECT 1");
-                Assert.fail("must have thrown error since in transaction that is lost");
+                fail("must have thrown error since in transaction that is lost");
             } catch (SQLException e) {
-                Assert.assertEquals("error type not normal after " + (System.currentTimeMillis() - startTime) + "ms", "25S03", e.getSQLState());
+                assertEquals("error type not normal after " + (System.currentTimeMillis() - startTime) + "ms", "25S03", e.getSQLState());
             }
             st.execute("drop table if exists baseReplicationTransaction" + jobId);
         } finally {
@@ -95,16 +96,16 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
                 st.execute("SELECT * from selectFailover" + jobId);
             } catch (SQLException e) {
                 e.printStackTrace();
-                Assert.fail("must not have thrown error");
+                fail("must not have thrown error");
             }
 
             stopProxy(masterServerId, 2);
             try {
                 st.execute("INSERT INTO selectFailover" + jobId + " VALUES (1,2)");
-                Assert.fail("not have thrown error !");
+                fail("not have thrown error !");
             } catch (SQLException e) {
                 restartProxy(masterServerId);
-                Assert.assertEquals("error type not normal", "25S03", e.getSQLState());
+                assertEquals("error type not normal", "25S03", e.getSQLState());
             }
         } finally {
             if (connection != null) {
@@ -131,19 +132,19 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
             stopProxy(masterServerId, 2);
             try {
                 st.execute("SELECT * from selectFailoverTrans" + jobId);
-                Assert.fail("not have thrown error !");
+                fail("not have thrown error !");
             } catch (SQLException e) {
-                Assert.assertEquals("error type not normal", "25S03", e.getSQLState());
+                assertEquals("error type not normal", "25S03", e.getSQLState());
             }
 
             stopProxy(masterServerId, 2);
             try {
                 st.execute("INSERT INTO selectFailoverTrans" + jobId + " VALUES (1,2)");
-                Assert.fail("not have thrown error !");
+                fail("not have thrown error !");
             } catch (SQLException e) {
                 restartProxy(masterServerId);
                 st.execute("drop table if exists selectFailoverTrans" + jobId);
-                Assert.assertEquals("error type not normal", "25S03", e.getSQLState());
+                assertEquals("error type not normal", "25S03", e.getSQLState());
             }
         } finally {
             if (connection != null) {
@@ -181,7 +182,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
                 }
                 long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - restartTime);
                 if (duration > 20 * 1000) {
-                    Assert.fail("Auto-reconnection not done after " + duration);
+                    fail("Auto-reconnection not done after " + duration);
                 }
                 Thread.sleep(250);
             }

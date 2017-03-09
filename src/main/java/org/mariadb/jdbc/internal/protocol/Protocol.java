@@ -64,6 +64,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.TimeZone;
@@ -132,6 +133,8 @@ public interface Protocol {
     void executeQuery(String sql) throws SQLException;
 
     void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql) throws SQLException;
+
+    void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql, Charset charset) throws SQLException;
 
     void executeQuery(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
                       ParameterHolder[] parameters) throws SQLException;

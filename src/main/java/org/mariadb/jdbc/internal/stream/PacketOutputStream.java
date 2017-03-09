@@ -59,6 +59,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.SQLException;
+import java.nio.charset.Charset;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -312,79 +313,6 @@ public class PacketOutputStream extends OutputStream {
 
         if (logger.isTraceEnabled()) {
             logger.trace("send compress empty packet seq:" + compressSeqNo);
-        }
-
-    }
-
-    /**
-     * Send stream to server.
-     *
-     * @param is inputStream to send
-     * @throws IOException if any error occur during data send to server
-     */
-    public void sendStream(InputStream is) throws IOException {
-        byte[] buffer = new byte[BUFFER_DEFAULT_SIZE];
-        int len;
-        while ((len = is.read(buffer)) > 0) {
-            write(buffer, 0, len);
-        }
-    }
-
-    /**
-     * Send stream to server.
-     *
-     * @param is         inputStream to send
-     * @param readLength max size to send
-     * @throws IOException if any error occur during data send to server
-     */
-    public void sendStream(InputStream is, long readLength) throws IOException {
-        byte[] buffer = new byte[BUFFER_DEFAULT_SIZE];
-        long remainingReadLength = readLength;
-        int read;
-        while (remainingReadLength > 0) {
-            read = is.read(buffer, 0, Math.min((int) remainingReadLength, BUFFER_DEFAULT_SIZE));
-            if (read == -1) {
-                return;
-            }
-            write(buffer, 0, read);
-            remainingReadLength -= read;
-        }
-    }
-
-    /**
-     * Send reader stream to server.
-     *
-     * @param reader reader to send
-     * @throws IOException if any error occur during data send to server
-     */
-    public void sendStream(Reader reader) throws IOException {
-        char[] buffer = new char[BUFFER_DEFAULT_SIZE];
-        int len;
-        while ((len = reader.read(buffer)) > 0) {
-            byte[] bytes = new String(buffer, 0, len).getBytes("UTF-8");
-            write(bytes, 0, bytes.length);
-        }
-    }
-
-    /**
-     * Send reader stream to server.
-     *
-     * @param reader     reader to send
-     * @param readLength max size to send
-     * @throws IOException if any error occur during data send to server
-     */
-    public void sendStream(Reader reader, long readLength) throws IOException {
-        char[] buffer = new char[BUFFER_DEFAULT_SIZE];
-        long remainingReadLength = readLength;
-        int read;
-        while (remainingReadLength > 0) {
-            read = reader.read(buffer, 0, Math.min((int) remainingReadLength, BUFFER_DEFAULT_SIZE));
-            if (read == -1) {
-                return;
-            }
-            byte[] bytes = new String(buffer, 0, read).getBytes("UTF-8");
-            write(bytes, 0, bytes.length);
-            remainingReadLength -= read;
         }
 
     }
@@ -939,6 +867,24 @@ public class PacketOutputStream extends OutputStream {
         }
     }
 
+
+    /**
+     * Send SQL string to outputStream.
+     * SQL will be transform to UTF-8 byte buffer, and if possible this buffer will be send to stream directly.
+     *
+     * @param sql           sql
+     * @param commandType   command type
+     * @param charset       charset
+     * @throws IOException    if connection error occur.
+     * @throws SQLException if query size is to big according to server max_allowed_size
+     */
+    public void send(String sql, byte commandType, Charset charset) throws IOException, SQLException {
+
+        startPacket(0, true);
+        byte[] sqlBytes = sql.getBytes(charset);
+        sendDirect(sqlBytes, 0, sqlBytes.length, commandType);
+    }
+
     /**
      * Send buffer to outputStream.
      *
@@ -961,19 +907,18 @@ public class PacketOutputStream extends OutputStream {
         if (!isUseCompression()) {
 
             if (sqlLength + 1 <= maxPacketSize) {
-                byte[] packetBuffer = new byte[sqlLength + 5];
+                byte[] packetBuffer = new byte[5];
                 packetBuffer[0] = (byte) ((sqlLength + 1) & 0xff);
                 packetBuffer[1] = (byte) ((sqlLength + 1) >>> 8);
                 packetBuffer[2] = (byte) ((sqlLength + 1) >>> 16);
                 packetBuffer[3] = (byte) seqNo++;
                 packetBuffer[4] = commandType;
-
-                System.arraycopy(sqlBytes, offset, packetBuffer, 5, sqlLength);
                 if (logger.isTraceEnabled()) {
-                    logger.trace("send packet seq:" + seqNo + " length:" + (sqlLength + 1)
-                            + " data:" + Utils.hexdump(packetBuffer, maxQuerySizeToLog, 4, sqlLength + 1));
+                    logger.trace("send packet seq:" + (seqNo - 1) + " length:" + (sqlLength + 1)
+                            + " data:" + "0x" + commandType + " " + Utils.hexdump(packetBuffer, maxQuerySizeToLog, offset, sqlLength));
                 }
                 outputStream.write(packetBuffer);
+                outputStream.write(sqlBytes, offset, sqlLength);
             } else {
                 //send first packet
                 byte[] packetBuffer = new byte[maxPacketSize + 4];

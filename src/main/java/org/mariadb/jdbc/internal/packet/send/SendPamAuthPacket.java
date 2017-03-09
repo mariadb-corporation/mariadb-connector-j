@@ -69,8 +69,8 @@ import java.util.Arrays;
 public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
     private ReadPacketFetcher packetFetcher;
 
-    public SendPamAuthPacket(ReadPacketFetcher packetFetcher, String password, byte[] authData, int packSeq) {
-        super(packSeq, authData, password);
+    public SendPamAuthPacket(ReadPacketFetcher packetFetcher, String password, byte[] authData, int packSeq, String passwordCharacterEncoding) {
+        super(packSeq, authData, password, passwordCharacterEncoding);
         this.packetFetcher = packetFetcher;
     }
 
@@ -93,7 +93,13 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
             if ("Password: ".equals(promptb) && password != null && !"".equals(password)) {
                 //ask for password
                 writer.startPacket(packSeq);
-                writer.write(password.getBytes());
+                byte[] bytePwd;
+                if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
+                    bytePwd = password.getBytes(passwordCharacterEncoding);
+                } else {
+                    bytePwd = password.getBytes();
+                }
+                writer.write(bytePwd);
                 writer.write(0);
             } else {
                 // 2 means "read the input with the echo enabled"
@@ -102,12 +108,17 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
                 boolean isPassword = type == 4;
                 //ask user to answer
                 String password = showInputDialog(promptb, isPassword);
-
                 if (password == null) {
                     throw new SQLException("Error during PAM authentication : dialog input cancelled");
                 }
                 writer.startPacket(packSeq);
-                writer.write(password.getBytes());
+                byte[] bytePwd;
+                if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
+                    bytePwd = password.getBytes(passwordCharacterEncoding);
+                } else {
+                    bytePwd = password.getBytes();
+                }
+                writer.write(bytePwd);
                 writer.write(0);
             }
 

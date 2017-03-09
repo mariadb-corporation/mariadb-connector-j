@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -774,9 +773,9 @@ public class ServerPrepareStatementTest extends BaseTest {
                 map[i].executeBatch();
 
                 if (i < 250) {
-                    Assert.assertEquals(i + 1, protocol.prepareStatementCache().size());
+                    assertEquals(i + 1, protocol.prepareStatementCache().size());
                 } else {
-                    Assert.assertEquals(250, protocol.prepareStatementCache().size());
+                    assertEquals(250, protocol.prepareStatementCache().size());
                 }
             }
         }

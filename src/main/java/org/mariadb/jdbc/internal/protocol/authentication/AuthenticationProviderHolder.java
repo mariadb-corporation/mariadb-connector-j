@@ -66,8 +66,9 @@ public class AuthenticationProviderHolder {
     public static AuthenticationProvider DEFAULT_PROVIDER = new AuthenticationProvider() {
         @Override
         public InterfaceAuthSwitchSendResponsePacket processAuthPlugin(ReadPacketFetcher packetFetcher, String plugin, String password,
-                                                                       byte[] authData, int seqNo) throws SQLException {
-            return DefaultAuthenticationProvider.processAuthPlugin(packetFetcher, plugin, password, authData, seqNo);
+                                                                       byte[] authData, int seqNo, String passwordCharacterEncoding)
+                throws SQLException {
+            return DefaultAuthenticationProvider.processAuthPlugin(packetFetcher, plugin, password, authData, seqNo, passwordCharacterEncoding);
         }
     };
 
@@ -104,7 +105,8 @@ public class AuthenticationProviderHolder {
      */
     public interface AuthenticationProvider {
         public InterfaceAuthSwitchSendResponsePacket processAuthPlugin(ReadPacketFetcher packetFetcher, String plugin, String password,
-                                                                       byte[] authData, int seqNo) throws SQLException;
+                                                                       byte[] authData, int seqNo, String passwordCharacterEncoding)
+                throws SQLException;
     }
 
 

@@ -62,6 +62,7 @@ import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.Charset;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -338,6 +339,34 @@ public class MariaDbStatement implements Statement, Cloneable {
             return "SET STATEMENT max_statement_time=" + queryTimeout + " FOR " + sql;
         }
         return sql;
+    }
+
+    /**
+     * ! This method is for test only !
+     * This permit sending query using specific charset.
+     *
+     * @param sql     sql
+     * @param charset charset
+     * @return boolean if execution went well
+     * @throws SQLException if any exception occur
+     */
+    public boolean testExecute(String sql, Charset charset) throws SQLException {
+        lock.lock();
+        try {
+
+            executeQueryPrologue();
+            results.reset(fetchSize, false, 1, false, resultSetScrollType);
+            protocol.executeQuery(protocol.isMasterConnection(), results,
+                    getTimeoutSql(Utils.nativeSql(sql, connection.noBackslashEscapes)),charset);
+            results.commandEnd();
+            return results.getResultSet() != null;
+
+        } catch (SQLException exception) {
+            throw executeExceptionEpilogue(exception);
+        } finally {
+            executeEpilogue();
+            lock.unlock();
+        }
     }
 
     /**

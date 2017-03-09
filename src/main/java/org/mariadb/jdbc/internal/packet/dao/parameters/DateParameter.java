@@ -59,7 +59,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.TimeZone;
 
-public class DateParameter implements ParameterHolder, Cloneable {
+public class DateParameter extends NotLongDataParameter implements Cloneable {
     private Date date;
     private TimeZone timeZone;
     private Options options;
@@ -140,14 +140,6 @@ public class DateParameter implements ParameterHolder, Cloneable {
     @Override
     public String toString() {
         return "'" + date.toString() + "'";
-    }
-
-    public boolean isLongData() {
-        return false;
-    }
-
-    public boolean isNullData() {
-        return false;
     }
 
 }

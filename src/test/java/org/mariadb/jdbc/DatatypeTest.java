@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -13,7 +12,6 @@ import java.nio.charset.Charset;
 import java.sql.*;
 
 import static org.junit.Assert.*;
-
 
 public class DatatypeTest extends BaseTest {
 
@@ -828,11 +826,11 @@ public class DatatypeTest extends BaseTest {
 
     private void testBitResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
-            Assert.assertTrue(rs.getBoolean("b"));
-            Assert.assertEquals(rs.getString("b"), "1");
+            assertTrue(rs.getBoolean("b"));
+            assertEquals(rs.getString("b"), "1");
             if (rs.next()) {
-                Assert.assertFalse(rs.getBoolean("b"));
-                Assert.assertEquals(rs.getString("b"), "0");
+                assertFalse(rs.getBoolean("b"));
+                assertEquals(rs.getString("b"), "0");
             } else {
                 fail("must have result");
             }
@@ -874,17 +872,17 @@ public class DatatypeTest extends BaseTest {
             try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
                     "SELECT * from longMinValueSpecificity")) {
                 ResultSet resultSet = preparedStatement.executeQuery();
-                Assert.assertTrue(resultSet.next());
-                Assert.assertEquals(Long.MAX_VALUE, resultSet.getLong(1));
-                Assert.assertTrue(resultSet.next());
-                Assert.assertEquals(Long.MIN_VALUE, resultSet.getLong(1));
+                assertTrue(resultSet.next());
+                assertEquals(Long.MAX_VALUE, resultSet.getLong(1));
+                assertTrue(resultSet.next());
+                assertEquals(Long.MIN_VALUE, resultSet.getLong(1));
             }
 
             ResultSet resultSet = statement.executeQuery("SELECT * from longMinValueSpecificity");
-            Assert.assertTrue(resultSet.next());
-            Assert.assertEquals(Long.MAX_VALUE, resultSet.getLong(1));
-            Assert.assertTrue(resultSet.next());
-            Assert.assertEquals(Long.MIN_VALUE, resultSet.getLong(1));
+            assertTrue(resultSet.next());
+            assertEquals(Long.MAX_VALUE, resultSet.getLong(1));
+            assertTrue(resultSet.next());
+            assertEquals(Long.MIN_VALUE, resultSet.getLong(1));
         }
     }
 

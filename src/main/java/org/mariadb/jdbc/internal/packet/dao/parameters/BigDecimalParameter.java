@@ -53,7 +53,7 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.math.BigDecimal;
 
-public class BigDecimalParameter implements ParameterHolder, Cloneable {
+public class BigDecimalParameter extends NotLongDataParameter implements Cloneable {
     private BigDecimal bigDecimal;
 
     public BigDecimalParameter(final BigDecimal bigDecimal) {
@@ -78,14 +78,6 @@ public class BigDecimalParameter implements ParameterHolder, Cloneable {
 
     public ColumnType getMariaDbType() {
         return ColumnType.DECIMAL;
-    }
-
-    public boolean isLongData() {
-        return false;
-    }
-
-    public boolean isNullData() {
-        return false;
     }
 
     @Override

@@ -1,12 +1,13 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import static org.junit.Assert.*;
 
 public class LocalInfileDisableTest extends BaseTest {
     /**
@@ -39,11 +40,11 @@ public class LocalInfileDisableTest extends BaseTest {
                 }
             }
 
-            Assert.assertNotNull("Expected an exception to be thrown", ex);
+            assertNotNull("Expected an exception to be thrown", ex);
             String message = ex.getMessage();
             String expectedMessage = "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true";
-            Assert.assertTrue(message.contains(expectedMessage));
-            Assert.assertTrue(ex.getCause().getMessage().contains("Query is : LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)"));
+            assertTrue(message.contains(expectedMessage));
+            assertTrue(ex.getCause().getMessage().contains("Query is : LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)"));
         } finally {
             connection.close();
         }

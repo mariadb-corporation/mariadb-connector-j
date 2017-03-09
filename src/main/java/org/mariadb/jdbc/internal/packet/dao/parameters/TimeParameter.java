@@ -61,7 +61,7 @@ import java.util.Calendar;
 import java.util.TimeZone;
 
 
-public class TimeParameter implements ParameterHolder, Cloneable {
+public class TimeParameter extends NotLongDataParameter implements Cloneable {
 
     private Time time;
     private TimeZone timeZone;
@@ -156,14 +156,6 @@ public class TimeParameter implements ParameterHolder, Cloneable {
     @Override
     public String toString() {
         return time.toString();
-    }
-
-    public boolean isLongData() {
-        return false;
-    }
-
-    public boolean isNullData() {
-        return false;
     }
 
 }

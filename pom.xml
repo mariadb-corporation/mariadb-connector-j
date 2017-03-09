@@ -17,7 +17,6 @@
         <version.file>src/main/java/org/mariadb/jdbc/internal/util/constant/Version.java</version.file>
         <checkstyleVersion>6.11.2</checkstyleVersion>
         <checkstyle.plugin.version>2.16</checkstyle.plugin.version>
-        <sevntu.checkstyle.plugin.version>1.15.0</sevntu.checkstyle.plugin.version>
         <driver.version.major>2</driver.version.major>
         <driver.version.minor>0</driver.version.minor>
         <driver.version.patch>0</driver.version.patch>

@@ -9,7 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.*;
 
 public class MonoServerFailoverTest extends BaseMonoServer {
 
@@ -46,17 +46,17 @@ public class MonoServerFailoverTest extends BaseMonoServer {
             stopProxy(masterServerId);
             try {
                 st.execute("SELECT 1");
-                Assert.fail();
+                fail();
             } catch (SQLException e) {
                 //normal exception
             }
-            Assert.assertTrue(st.isClosed());
+            assertTrue(st.isClosed());
             restartProxy(masterServerId);
             try {
                 st = connection.createStatement();
                 st.execute("SELECT 1");
             } catch (SQLException e) {
-                Assert.fail();
+                fail();
             }
         } finally {
             if (connection != null) {
@@ -77,7 +77,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
             stopProxy(masterServerId);
             try {
                 st.execute("SELECT 1");
-                Assert.fail();
+                fail();
             } catch (SQLException e) {
                 //normal exception
             }
@@ -85,11 +85,11 @@ public class MonoServerFailoverTest extends BaseMonoServer {
             restartProxy(masterServerId);
             try {
                 st.execute("SELECT 1");
-                Assert.fail();
+                fail();
             } catch (SQLException e) {
                 //statement must be closed -> error
             }
-            Assert.assertTrue(connection.isClosed());
+            assertTrue(connection.isClosed());
         } finally {
             if (connection != null) {
                 connection.close();
@@ -109,7 +109,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
             stopProxy(masterServerId);
             try {
                 st.execute("SELECT 1");
-                Assert.fail();
+                fail();
             } catch (SQLException e) {
                 //normal exception
             }
@@ -120,9 +120,9 @@ public class MonoServerFailoverTest extends BaseMonoServer {
                 st = connection.createStatement();
                 st.execute("SELECT 1");
             } catch (SQLException e) {
-                Assert.fail();
+                fail();
             }
-            Assert.assertFalse(connection.isClosed());
+            assertFalse(connection.isClosed());
         } finally {
             if (connection != null) {
                 connection.close();
@@ -180,7 +180,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
             preparedStatement.addBatch();
             try {
                 preparedStatement.executeBatch();
-                Assert.fail();
+                fail();
             } catch (SQLException e) {
                 //normal exception
             }

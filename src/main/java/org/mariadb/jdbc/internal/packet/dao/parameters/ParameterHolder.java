@@ -65,8 +65,6 @@ public interface ParameterHolder {
 
     void writeUnsafeTo(final PacketOutputStream os) throws IOException;
 
-    void writeBinary(PacketOutputStream writeBuffer) throws IOException;
-
     long getApproximateTextProtocolLength() throws IOException;
 
     String toString();

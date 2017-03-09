@@ -327,23 +327,24 @@ public class SslTest extends BaseTest {
      * @throws SQLException if exception occur
      */
     public void testConnect(Properties info, boolean sslExpected, String user, String pwd) throws SQLException {
-        Connection conn = null;
-        Statement stmt = null;
 
-        conn = createConnection(info, user, pwd);
-        // First do a basic select test:
-        stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT 1");
-        rs.next();
-        Assert.assertTrue(rs.getInt(1) == 1);
-        rs.close();
+        try (Connection conn = createConnection(info, user, pwd)) {
+            // First do a basic select test:
+            try (Statement stmt = conn.createStatement()) {
+                try (ResultSet rs = stmt.executeQuery("SELECT 1")) {
+                    assertTrue(rs.next());
+                    assertTrue(rs.getInt(1) == 1);
+                }
 
-        // Then check if SSL matches what is expected
-        rs = stmt.executeQuery("SHOW STATUS LIKE 'Ssl_cipher'");
-        rs.next();
-        String sslCipher = rs.getString(2);
-        boolean sslActual = sslCipher != null && sslCipher.length() > 0;
-        Assert.assertEquals("sslExpected does not match", sslExpected, sslActual);
+                // Then check if SSL matches what is expected
+                try (ResultSet rs = stmt.executeQuery("SHOW STATUS LIKE 'Ssl_cipher'")) {
+                    assertTrue(rs.next());
+                    String sslCipher = rs.getString(2);
+                    boolean sslActual = sslCipher != null && sslCipher.length() > 0;
+                    assertEquals("sslExpected does not match", sslExpected, sslActual);
+                }
+            }
+        }
 
     }
 

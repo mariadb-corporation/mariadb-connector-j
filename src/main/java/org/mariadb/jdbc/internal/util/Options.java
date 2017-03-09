@@ -82,6 +82,7 @@ public class Options {
     public boolean rewriteBatchedStatements;
     public boolean useCompression;
     public boolean interactiveClient;
+    public String passwordCharacterEncoding;
     public boolean useCursorFetch;
 
     public boolean useSsl;
@@ -185,6 +186,7 @@ public class Options {
                 + ", profileSql=" + profileSql
                 + ", maxQuerySizeToLog=" + maxQuerySizeToLog
                 + ", slowQueryThresholdNanos=" + slowQueryThresholdNanos
+                + ", passwordCharacterEncoding=" + passwordCharacterEncoding
                 + ", useCursorFetch=" + useCursorFetch
                 + "}";
     }
@@ -233,6 +235,11 @@ public class Options {
         if (loadBalanceBlacklistTimeout != options.loadBalanceBlacklistTimeout) return false;
         if (failoverLoopRetries != options.failoverLoopRetries) return false;
         if (user != null ? !user.equals(options.user) : options.user != null) return false;
+        if ((passwordCharacterEncoding != null && !passwordCharacterEncoding.equals(options.passwordCharacterEncoding))
+                || options.passwordCharacterEncoding != null) {
+            return false;
+        }
+
         if (password != null ? !password.equals(options.password) : options.password != null) return false;
         if (serverSslCert != null ? !serverSslCert.equals(options.serverSslCert) : options.serverSslCert != null) {
             return false;

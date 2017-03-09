@@ -1,7 +1,9 @@
 package org.mariadb.jdbc;
 
 
-import org.junit.*;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -10,7 +12,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.Properties;
-import java.util.Random;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -180,7 +181,7 @@ public class StoredProcedureTest extends BaseTest {
                 callableStatement.setString("x", "1");
                 fail("Set by named must not succeed");
             } catch (SQLException sqlException) {
-                Assert.assertTrue(sqlException.getMessage().startsWith("Access to metaData informations not granted for current user"));
+                assertTrue(sqlException.getMessage().startsWith("Access to metaData informations not granted for current user"));
             }
             callableStatement.setString(1, "1");
             callableStatement.execute();
@@ -188,9 +189,9 @@ public class StoredProcedureTest extends BaseTest {
                 callableStatement.getInt("y");
                 fail("Get by named must not succeed");
             } catch (SQLException sqlException) {
-                Assert.assertTrue(sqlException.getMessage().startsWith("Access to metaData informations not granted for current user"));
+                assertTrue(sqlException.getMessage().startsWith("Access to metaData informations not granted for current user"));
             }
-            Assert.assertEquals(2, callableStatement.getInt(2));
+            assertEquals(2, callableStatement.getInt(2));
 
             ResultSet resultSet = connection.getMetaData().getProcedures("yahoooo", null, "testMetaCatalog");
             assertFalse(resultSet.next());
@@ -416,7 +417,7 @@ public class StoredProcedureTest extends BaseTest {
         CallableStatement callableStatement = sharedConnection.prepareCall("{? = call callFunctionWithNoParameters()}");
         callableStatement.registerOutParameter(1, Types.VARCHAR);
         callableStatement.execute();
-        Assert.assertEquals("mike", callableStatement.getString(1));
+        assertEquals("mike", callableStatement.getString(1));
     }
 
     @Test
@@ -430,7 +431,7 @@ public class StoredProcedureTest extends BaseTest {
         callableStatement.setString(2, "mike");
         callableStatement.setString(3, "bart");
         callableStatement.execute();
-        Assert.assertEquals("mike and bart", callableStatement.getString(1));
+        assertEquals("mike and bart", callableStatement.getString(1));
     }
 
     @Test
@@ -443,7 +444,7 @@ public class StoredProcedureTest extends BaseTest {
         callableStatement.registerOutParameter(1, Types.VARCHAR);
         callableStatement.setString(2, "bart");
         callableStatement.execute();
-        Assert.assertEquals("mike and bart", callableStatement.getString(1));
+        assertEquals("mike and bart", callableStatement.getString(1));
     }
 
     @Test
@@ -494,7 +495,7 @@ public class StoredProcedureTest extends BaseTest {
             String result = callableStatement.getString(1);
             String result2 = callableStatement.getString(2);
             if (!"TOTO".equals(result) && !"Hello, TOTO and mike".equals(result2)) {
-                Assert.fail();
+                fail();
             }
             callableStatement.close();
         }
@@ -600,7 +601,7 @@ public class StoredProcedureTest extends BaseTest {
             callableStatement.setString(2, " a");
             ResultSet rs = callableStatement.executeQuery();
             if (rs.next()) {
-                Assert.assertEquals("1 a", rs.getString(1));
+                assertEquals("1 a", rs.getString(1));
             } else {
                 fail("must have a result !");
             }
