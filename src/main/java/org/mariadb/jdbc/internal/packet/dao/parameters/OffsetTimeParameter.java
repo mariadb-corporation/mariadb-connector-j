@@ -62,7 +62,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
 
-public class OffsetTimeParameter implements ParameterHolder, Cloneable {
+public class OffsetTimeParameter extends NotLongDataParameter implements Cloneable {
     private OffsetTime time;
     private boolean fractionalSeconds;
 
@@ -150,14 +150,6 @@ public class OffsetTimeParameter implements ParameterHolder, Cloneable {
     @Override
     public String toString() {
         return "'" + time.toString() + "'";
-    }
-
-    public boolean isLongData() {
-        return false;
-    }
-
-    public boolean isNullData() {
-        return false;
     }
 
 }

@@ -64,7 +64,7 @@ import java.util.Locale;
  * server doesn't support temporal with timezone (MDEV-10018) for the moment.
  * So driver parse String entry and send it to Server according to server timezone
  */
-public class ZonedDateTimeParameter implements ParameterHolder, Cloneable {
+public class ZonedDateTimeParameter extends NotLongDataParameter implements Cloneable {
 
     private ZonedDateTime tz;
     private boolean fractionalSeconds;
@@ -141,14 +141,6 @@ public class ZonedDateTimeParameter implements ParameterHolder, Cloneable {
     @Override
     public String toString() {
         return "'" + tz.toString() + "'";
-    }
-
-    public boolean isLongData() {
-        return false;
-    }
-
-    public boolean isNullData() {
-        return false;
     }
 
 }

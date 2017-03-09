@@ -51,13 +51,13 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 public abstract class LongDataParameter implements ParameterHolder {
 
-    public abstract void sendComLongData(int statementId, short parameterId, PacketOutputStream writer) throws IOException, QueryException;
+    public abstract void sendComLongData(int statementId, short parameterId, PacketOutputStream writer) throws IOException, SQLException;
 
     public boolean isLongData() {
         return true;

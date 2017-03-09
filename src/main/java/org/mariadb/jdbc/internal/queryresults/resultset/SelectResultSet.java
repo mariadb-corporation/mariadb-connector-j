@@ -1373,7 +1373,7 @@ public class SelectResultSet implements ResultSet {
                         throw sqlException;
                     }
                 default:
-                    throw new SQLException("getFloat not available for data field type " + columnInfo.getType().getJavaTypeName());
+                    throw new SQLException("getFloat not available for data field type " + columnInfo.getColumnType().getJavaTypeName());
             }
             try {
                 return Float.valueOf(String.valueOf(value));
