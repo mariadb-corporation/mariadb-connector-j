@@ -68,22 +68,16 @@ public class SendSslConnectionRequestPacket implements InterfaceSendPacket {
 
     /**
      * Send capabilities.
-     * @param os database stream.
+     * @param pos database stream.
      * @throws IOException if any connection error occur
      */
-    public void send(final OutputStream os) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream) os;
+    public void send(final PacketOutputStream pos) throws IOException {
         pos.startPacket(1);
-        pos.writeInt((int) clientCapabilities)
-                .writeInt(1024 * 1024 * 1024)
-                .writeByte(serverLanguage); //1
-
-        pos.writeBytes((byte) 0, 19)    //19
-                .writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
-
-
-        pos.finishPacketWithoutRelease(true);
-        pos.releaseBuffer();
-
+        pos.writeInt((int) clientCapabilities);
+        pos.writeInt(1024 * 1024 * 1024);
+        pos.write(serverLanguage); //1
+        pos.writeBytes((byte) 0, 19);    //19
+        pos.writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
+        pos.flush();
     }
 }

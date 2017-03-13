@@ -56,6 +56,9 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import java.io.IOException;
 
 public interface ParameterHolder {
+    public static final byte[] BINARY_INTRODUCER = {'_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\''};
+    public static final byte QUOTE = (byte)'\'';
+
     /**
      * Write parameter value.
      *
@@ -64,16 +67,15 @@ public interface ParameterHolder {
      */
     void writeTo(final PacketOutputStream os) throws IOException;
 
-    void writeUnsafeTo(final PacketOutputStream os) throws IOException;
+    void writeBinary(PacketOutputStream pos) throws IOException;
 
     long getApproximateTextProtocolLength() throws IOException;
 
     String toString();
 
-    boolean isLongData();
-
     boolean isNullData();
 
     MariaDbType getMariaDbType();
 
+    boolean isLongData();
 }

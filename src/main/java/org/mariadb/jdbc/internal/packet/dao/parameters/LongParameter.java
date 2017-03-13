@@ -53,27 +53,31 @@ package org.mariadb.jdbc.internal.packet.dao.parameters;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-public class LongParameter extends NotLongDataParameter implements Cloneable {
+import java.io.IOException;
+
+public class LongParameter implements Cloneable, ParameterHolder {
     private long value;
 
     public LongParameter(long value) {
         this.value = value;
     }
 
-    public void writeTo(final PacketOutputStream os) {
+    public void writeTo(final PacketOutputStream os) throws IOException {
         os.write(String.valueOf(value).getBytes());
-    }
-
-    public void writeUnsafeTo(final PacketOutputStream os) {
-        os.writeUnsafe(String.valueOf(value).getBytes());
     }
 
     public long getApproximateTextProtocolLength() {
         return String.valueOf(value).getBytes().length;
     }
 
-    public void writeBinary(final PacketOutputStream writeBuffer) {
-        writeBuffer.writeLong(value);
+    /**
+     * Write data to socket in binary format.
+     *
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
+     */
+    public void writeBinary(final PacketOutputStream pos) throws IOException {
+        pos.writeLong(value);
     }
 
     public MariaDbType getMariaDbType() {
@@ -83,4 +87,13 @@ public class LongParameter extends NotLongDataParameter implements Cloneable {
     public String toString() {
         return Long.toString(value);
     }
+
+    public boolean isNullData() {
+        return false;
+    }
+
+    public boolean isLongData() {
+        return false;
+    }
+
 }

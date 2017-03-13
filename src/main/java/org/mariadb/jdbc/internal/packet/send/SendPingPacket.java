@@ -60,14 +60,12 @@ public class SendPingPacket implements InterfaceSendPacket {
 
     /**
      * Send a Mysql protocol "ping" to check connection is alive.
-     * @param os database socket
+     * @param pos database socket
      * @throws IOException if any connection error occur
      */
-    public void send(final OutputStream os) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream) os;
+    public void send(final PacketOutputStream pos) throws IOException {
         pos.startPacket(0);
         pos.write(Packet.COM_PING);
-        pos.finishPacketWithoutRelease(true);
-        pos.releaseBuffer();
+        pos.flush();
     }
 }

@@ -54,27 +54,29 @@ import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
 
-public class ShortParameter extends NotLongDataParameter implements Cloneable {
+public class ShortParameter implements Cloneable, ParameterHolder {
     private short value;
 
     public ShortParameter(short value) {
         this.value = value;
     }
 
-    public void writeTo(final PacketOutputStream os) {
-        os.write(String.valueOf(value).getBytes());
-    }
-
-    public void writeUnsafeTo(final PacketOutputStream os) {
-        os.writeUnsafe(String.valueOf(value).getBytes());
+    public void writeTo(final PacketOutputStream pos) throws IOException {
+        pos.write(String.valueOf(value).getBytes());
     }
 
     public long getApproximateTextProtocolLength() throws IOException {
         return String.valueOf(value).getBytes().length;
     }
 
-    public void writeBinary(final PacketOutputStream writeBuffer) {
-        writeBuffer.writeShort(value);
+    /**
+     * Write data to socket in binary format.
+     *
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
+     */
+    public void writeBinary(final PacketOutputStream pos) throws IOException {
+        pos.writeShort(value);
     }
 
     public MariaDbType getMariaDbType() {
@@ -84,5 +86,13 @@ public class ShortParameter extends NotLongDataParameter implements Cloneable {
     @Override
     public String toString() {
         return Short.toString(value);
+    }
+
+    public boolean isNullData() {
+        return false;
+    }
+
+    public boolean isLongData() {
+        return false;
     }
 }

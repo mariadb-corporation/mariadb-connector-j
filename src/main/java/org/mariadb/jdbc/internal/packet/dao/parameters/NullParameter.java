@@ -68,25 +68,22 @@ public class NullParameter implements ParameterHolder, Cloneable {
         this.type = type;
     }
 
-    public void writeTo(final PacketOutputStream os) {
+    public void writeTo(final PacketOutputStream os) throws IOException {
         os.write(NULL);
     }
 
-    public void writeUnsafeTo(final PacketOutputStream os) {
-        os.buffer.put(NULL, 0, 4);
-    }
 
     public long getApproximateTextProtocolLength() {
         return 4;
     }
 
-    public void writeBinary(final PacketOutputStream writeBuffer) {
+    /**
+     * Write data to socket in binary format.
+     *
+     * @param pos socket output stream
+     */
+    public void writeBinary(final PacketOutputStream pos) {
         //null data are not send in binary format.
-    }
-
-    @Override
-    public boolean isLongData() {
-        return false;
     }
 
     public MariaDbType getMariaDbType() {
@@ -100,6 +97,10 @@ public class NullParameter implements ParameterHolder, Cloneable {
 
     public boolean isNullData() {
         return true;
+    }
+
+    public boolean isLongData() {
+        return false;
     }
 
 }

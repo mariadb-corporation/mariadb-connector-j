@@ -140,12 +140,12 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
     /**
      * Send authentication stream.
      *
-     * @param os database socket
+     * @param pos database socket
      * @throws IOException if any connection error occur
      */
-    public void send(final OutputStream os) throws IOException {
-        PacketOutputStream writeBuffer = (PacketOutputStream) os;
-        writeBuffer.startPacket(packetSeq);
+    public void send(final PacketOutputStream pos) throws IOException {
+
+        pos.startPacket(packetSeq);
         final byte[] authData;
         switch (plugin) {
             case "": //CONJ-274 : permit connection mysql 5.1 db
@@ -167,45 +167,47 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
                 authData = new byte[0];
         }
 
-        writeBuffer.writeInt((int) clientCapabilities)
-                .writeInt(1024 * 1024 * 1024)
-                .writeByte(serverLanguage); //1
+        pos.writeInt((int) clientCapabilities);
+        pos.writeInt(1024 * 1024 * 1024);
+        pos.write(serverLanguage); //1
 
-        writeBuffer.writeBytes((byte) 0, 19)    //19
-                .writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
+        pos.writeBytes((byte) 0, 19);    //19
+        pos.writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
 
         if (username == null || "".equals(username)) username = System.getProperty("user.name"); //permit SSO
 
-        writeBuffer.writeString(username)     //strlen username
-                .writeByte((byte) 0);        //1
+        pos.write(username.getBytes());     //strlen username
+        pos.write((byte) 0);        //1
 
         if ((clientCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
-            writeBuffer.writeFieldLength(authData.length)
-                    .writeByteArray(authData);
+            pos.writeFieldLength(authData.length);
+            pos.write(authData);
         } else if ((clientCapabilities & MariaDbServerCapabilities.SECURE_CONNECTION) != 0) {
-            writeBuffer.writeByte((byte) authData.length)
-                    .writeByteArray(authData);
+            pos.write((byte) authData.length);
+            pos.write(authData);
         } else {
-            writeBuffer.writeByteArray(authData).writeByte((byte) 0);
+            pos.write(authData);
+            pos.write((byte) 0);
         }
 
         if ((clientCapabilities & MariaDbServerCapabilities.CONNECT_WITH_DB) != 0) {
-            writeBuffer.writeString(database).writeByte((byte) 0);
+            pos.write(database);
+            pos.write((byte) 0);
         }
 
         if ((clientCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-            writeBuffer.writeString(plugin).writeByte((byte) 0);
+            pos.write(plugin);
+            pos.write((byte) 0);
         }
 
         if ((clientCapabilities & MariaDbServerCapabilities.CONNECT_ATTRS) != 0) {
-            writeConnectAttributes(writeBuffer);
+            writeConnectAttributes(pos);
         }
-        writeBuffer.finishPacketWithoutRelease(false);
-        writeBuffer.releaseBuffer();
+        pos.flush();
 
     }
 
-    private void writeConnectAttributes(PacketOutputStream writeBuffer) {
+    private void writeConnectAttributes(PacketOutputStream pos) throws IOException {
         connectionAttributesArray = new byte[200];
         connectionAttributesPosition = 0;
         writeStringLength("_client_name", MariaDbDatabaseMetaData.DRIVER_NAME);
@@ -231,8 +233,8 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
                 }
             }
         }
-        writeBuffer.writeFieldLength(connectionAttributesPosition);
-        writeBuffer.writeByteArray(Arrays.copyOfRange(connectionAttributesArray, 0, connectionAttributesPosition));
+        pos.writeFieldLength(connectionAttributesPosition);
+        pos.write(Arrays.copyOfRange(connectionAttributesArray, 0, connectionAttributesPosition));
     }
 
     private void writeStringLength(String strKey, String strValue) {

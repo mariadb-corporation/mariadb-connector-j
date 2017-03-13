@@ -57,7 +57,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 
-public class ByteArrayParameter extends NotLongDataParameter implements Cloneable {
+public class ByteArrayParameter implements Cloneable, ParameterHolder {
 
     private byte[] bytes;
     private boolean noBackslashEscapes;
@@ -67,20 +67,31 @@ public class ByteArrayParameter extends NotLongDataParameter implements Cloneabl
         this.noBackslashEscapes = noBackslashEscapes;
     }
 
-    public void writeTo(final PacketOutputStream os) throws IOException {
-        ParameterWriter.write(os, bytes, noBackslashEscapes);
-    }
-
-    public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
-        ParameterWriter.writeUnsafe(os, bytes, noBackslashEscapes);
+    /**
+     * Write data to socket in text format.
+     *
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
+     */
+    public void writeTo(final PacketOutputStream pos) throws IOException {
+        pos.write(BINARY_INTRODUCER);
+        pos.writeBytesEscaped(bytes, bytes.length, noBackslashEscapes);
+        pos.write(QUOTE);
     }
 
     public long getApproximateTextProtocolLength() {
         return bytes.length * 2;
     }
 
-    public void writeBinary(final PacketOutputStream writeBuffer) {
-        writeBuffer.writeByteArrayLength(bytes);
+    /**
+     * Write data to socket in binary format.
+     *
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
+     */
+    public void writeBinary(final PacketOutputStream pos) throws  IOException {
+        pos.writeFieldLength(bytes.length);
+        pos.write(bytes);
     }
 
     public MariaDbType getMariaDbType() {
@@ -95,4 +106,13 @@ public class ByteArrayParameter extends NotLongDataParameter implements Cloneabl
             return "<bytearray:" + new String(bytes) + ">";
         }
     }
+
+    public boolean isNullData() {
+        return false;
+    }
+
+    public boolean isLongData() {
+        return false;
+    }
+
 }

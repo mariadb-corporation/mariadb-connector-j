@@ -97,38 +97,38 @@ public class ComExecute {
     /**
      * Client side PreparedStatement.executeBatch values rewritten (concatenate value params according to max_allowed_packet)
      *
-     * @param writer outputStream
-     * @param queryParts query parts
-     * @param parameters parameters
-     * @param currentIndex currentIndex
-     * @param paramCount parameter count
+     * @param pos           outputStream
+     * @param queryParts    query parts
+     * @param parameters    parameters
+     * @param currentIndex  currentIndex
+     * @param paramCount    parameter pos
      * @param parameterList parameter list
      * @param rewriteValues is query rewritable by adding values
      * @return current index
      * @throws IOException if connection fail
      */
-    public static int sendRewriteCmd(final PacketOutputStream writer, final List<byte[]> queryParts, ParameterHolder[] parameters,
+    public static int sendRewriteCmd(final PacketOutputStream pos, final List<byte[]> queryParts, ParameterHolder[] parameters,
                                      int currentIndex, int paramCount, List<ParameterHolder[]> parameterList, boolean rewriteValues)
             throws IOException {
-        writer.startPacket(0);
-        writer.buffer.put(Packet.COM_QUERY);
+        pos.startPacket(0);
+        pos.write(Packet.COM_QUERY);
 
         byte[] firstPart = queryParts.get(0);
         byte[] secondPart = queryParts.get(1);
 
         if (!rewriteValues) {
             //write first
-            writer.write(firstPart, 0, firstPart.length);
-            writer.write(secondPart, 0, secondPart.length);
+            pos.write(firstPart, 0, firstPart.length);
+            pos.write(secondPart, 0, secondPart.length);
 
             int staticLength = 1;
             for (int i = 0; i < queryParts.size(); i++) staticLength += queryParts.get(i).length;
 
             for (int i = 0; i < paramCount; i++) {
-                parameters[i].writeTo(writer);
-                writer.write(queryParts.get(i + 2));
+                parameters[i].writeTo(pos);
+                pos.write(queryParts.get(i + 2));
             }
-            writer.write(queryParts.get(paramCount + 2));
+            pos.write(queryParts.get(paramCount + 2));
 
             // write other, separate by ";"
             while (currentIndex < parameterList.size()) {
@@ -150,43 +150,42 @@ public class ComExecute {
                     //We know the additional query part size. This permit :
                     // - to resize buffer size if needed (to avoid resize test every write)
                     // - if this query will be separated in a new packet.
-                    if (writer.checkRewritableLength(staticLength + parameterLength)) {
-                        writer.assureBufferCapacity(staticLength + parameterLength);
-                        writer.buffer.put((byte)';');
-                        writer.buffer.put(firstPart, 0, firstPart.length);
-                        writer.buffer.put(secondPart, 0, secondPart.length);
+                    if (pos.checkRemainingSize(staticLength + parameterLength)) {
+                        pos.write((byte)';');
+                        pos.write(firstPart, 0, firstPart.length);
+                        pos.write(secondPart, 0, secondPart.length);
                         for (int i = 0; i < paramCount; i++) {
-                            parameters[i].writeUnsafeTo(writer);
-                            writer.writeUnsafe(queryParts.get(i + 2));
+                            parameters[i].writeTo(pos);
+                            pos.write(queryParts.get(i + 2));
                         }
-                        writer.writeUnsafe(queryParts.get(paramCount + 2));
+                        pos.write(queryParts.get(paramCount + 2));
                         currentIndex++;
                     } else {
                         break;
                     }
                 } else {
                     //we cannot know the additional query part size.
-                    writer.write(';');
-                    writer.write(firstPart, 0, firstPart.length);
-                    writer.write(secondPart, 0, secondPart.length);
+                    pos.write(';');
+                    pos.write(firstPart, 0, firstPart.length);
+                    pos.write(secondPart, 0, secondPart.length);
                     for (int i = 0; i < paramCount; i++) {
-                        parameters[i].writeTo(writer);
-                        writer.write(queryParts.get(i + 2));
+                        parameters[i].writeTo(pos);
+                        pos.write(queryParts.get(i + 2));
                     }
-                    writer.write(queryParts.get(paramCount + 2));
+                    pos.write(queryParts.get(paramCount + 2));
                     currentIndex++;
                 }
             }
 
         } else {
-            writer.write(firstPart, 0, firstPart.length);
-            writer.write(secondPart, 0, secondPart.length);
+            pos.write(firstPart, 0, firstPart.length);
+            pos.write(secondPart, 0, secondPart.length);
             int lastPartLength = queryParts.get(paramCount + 2).length;
             int intermediatePartLength = queryParts.get(1).length;
 
             for (int i = 0; i < paramCount; i++) {
-                parameters[i].writeTo(writer);
-                writer.write(queryParts.get(i + 2));
+                parameters[i].writeTo(pos);
+                pos.write(queryParts.get(i + 2));
                 intermediatePartLength += queryParts.get(i + 2).length;
             }
 
@@ -209,35 +208,34 @@ public class ComExecute {
                     //We know the additional query part size. This permit :
                     // - to resize buffer size if needed (to avoid resize test every write)
                     // - if this query will be separated in a new packet.
-                    if (writer.checkRewritableLength(1 + parameterLength + intermediatePartLength + lastPartLength)) {
-                        writer.assureBufferCapacity(1 + parameterLength + intermediatePartLength + lastPartLength);
-                        writer.buffer.put((byte) ',');
-                        writer.buffer.put(secondPart, 0, secondPart.length);
+                    if (pos.checkRemainingSize(1 + parameterLength + intermediatePartLength + lastPartLength)) {
+                        pos.write((byte) ',');
+                        pos.write(secondPart, 0, secondPart.length);
 
                         for (int i = 0; i < paramCount; i++) {
-                            parameters[i].writeUnsafeTo(writer);
+                            parameters[i].writeTo(pos);
                             byte[] addPart = queryParts.get(i + 2);
-                            writer.buffer.put(addPart, 0, addPart.length);
+                            pos.write(addPart, 0, addPart.length);
                         }
                         currentIndex++;
                     } else {
                         break;
                     }
                 } else {
-                    writer.write((byte) ',');
-                    writer.write(secondPart, 0, secondPart.length);
+                    pos.write((byte) ',');
+                    pos.write(secondPart, 0, secondPart.length);
 
                     for (int i = 0; i < paramCount; i++) {
-                        parameters[i].writeTo(writer);
-                        writer.write(queryParts.get(i + 2));
+                        parameters[i].writeTo(pos);
+                        pos.write(queryParts.get(i + 2));
                     }
                     currentIndex++;
                 }
             }
-            writer.write(queryParts.get(paramCount + 2));
+            pos.write(queryParts.get(paramCount + 2));
         }
 
-        writer.finishPacketWithoutRelease(true);
+        pos.flush();
         return currentIndex;
     }
 
@@ -260,26 +258,29 @@ public class ComExecute {
         //add query with ";"
         while (currentIndex < queries.size()) {
             byte[] sqlByte = queries.get(currentIndex).getBytes("UTF-8");
-            if (!writer.checkRewritableLength(sqlByte.length + 1)) break;
+            if (!writer.checkRemainingSize(sqlByte.length + 1)) break;
             writer.write(';');
             writer.write(sqlByte);
             currentIndex++;
         }
 
-        writer.finishPacketWithoutRelease(true);
+        writer.flush();
         return currentIndex;
     }
 
     /**
      * Send directly to socket the sql data.
      *
-     * @param writer output stream
-     * @param sqlBytes the query in UTF-8 bytes
+     * @param pos       output stream
+     * @param sqlBytes  the query in UTF-8 bytes
      * @throws IOException    if connection error occur
      * @throws QueryException if packet max size is to big.
      */
-    public static void sendDirect(final PacketOutputStream writer, byte[] sqlBytes) throws IOException, QueryException {
-        writer.sendDirect(sqlBytes, 0, sqlBytes.length, Packet.COM_QUERY);
+    public static void sendDirect(final PacketOutputStream pos, byte[] sqlBytes) throws IOException, QueryException {
+        pos.startPacket(0);
+        pos.write(Packet.COM_QUERY);
+        pos.write(sqlBytes);
+        pos.flush();
     }
 
 }

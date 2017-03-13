@@ -50,13 +50,11 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet;
 
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.packet.dao.parameters.NotLongDataParameter;
 import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.packet.send.InterfaceSendPacket;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
-import java.io.OutputStream;
 
 public class ComStmtExecute implements InterfaceSendPacket {
     private final int parameterCount;
@@ -83,15 +81,13 @@ public class ComStmtExecute implements InterfaceSendPacket {
     /**
      * Send a prepare statement binary stream.
      *
-     * @param os database socket
+     * @param pos database socket
      * @throws IOException if a connection error occur
      */
-    public void send(final OutputStream os) throws IOException {
-        PacketOutputStream buffer = (PacketOutputStream) os;
-        buffer.startPacket(0, true);
-        writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, buffer);
-        buffer.finishPacketWithoutRelease(true);
-        buffer.releaseBuffer();
+    public void send(final PacketOutputStream pos) throws IOException {
+        pos.startPacket(0);
+        writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, pos);
+        pos.flush();
     }
 
     /**
@@ -106,15 +102,14 @@ public class ComStmtExecute implements InterfaceSendPacket {
      */
     public static void writeCmd(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
                                 MariaDbType[] parameterTypeHeader, final PacketOutputStream pos) throws IOException {
-        pos.buffer.put(Packet.COM_STMT_EXECUTE);
-        pos.buffer.putInt(statementId);
-        pos.buffer.put((byte) 0x00); //CURSOR TYPE NO CURSOR
-        pos.buffer.putInt(1); //Iteration count
+        pos.write(Packet.COM_STMT_EXECUTE);
+        pos.writeInt(statementId);
+        pos.write((byte) 0x00); //CURSOR TYPE NO CURSOR
+        pos.writeInt(1); //Iteration pos
 
         //create null bitmap
         if (parameterCount > 0) {
             int nullCount = (parameterCount + 7) / 8;
-            pos.assureBufferCapacity(nullCount + 1); //nullcount + header type
 
             byte[] nullBitsBuffer = new byte[nullCount];
             for (int i = 0; i < parameterCount; i++) {
@@ -122,7 +117,7 @@ public class ComStmtExecute implements InterfaceSendPacket {
                     nullBitsBuffer[i / 8] |= (1 << (i % 8));
                 }
             }
-            pos.buffer.put(nullBitsBuffer, 0, nullCount);
+            pos.write(nullBitsBuffer, 0, nullCount);
 
             //check if parameters type (using setXXX) have change since previous request, and resend new header type if so
             boolean mustSendHeaderType = false;
@@ -138,23 +133,20 @@ public class ComStmtExecute implements InterfaceSendPacket {
             }
 
             if (mustSendHeaderType) {
-                pos.assureBufferCapacity(1 + parameterCount * 2);
-                pos.buffer.put((byte) 0x01);
+                pos.write((byte) 0x01);
                 //Store types of parameters in first in first package that is sent to the server.
                 for (int i = 0; i < parameterCount; i++) {
                     parameterTypeHeader[i] = parameters[i].getMariaDbType();
-                    pos.buffer.putShort((short) parameterTypeHeader[i].getType());
+                    pos.writeShort((short) parameterTypeHeader[i].getType());
                 }
             } else {
-                pos.buffer.put((byte) 0x00);
+                pos.write((byte) 0x00);
             }
         }
 
         for (int i = 0; i < parameterCount; i++) {
             ParameterHolder holder = parameters[i];
-            if (!holder.isLongData() && !holder.isNullData()) {
-                ((NotLongDataParameter) holder).writeBinary(pos);
-            }
+            if (!holder.isNullData() && !holder.isLongData()) holder.writeBinary(pos);
         }
     }
 }

@@ -50,18 +50,12 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.packet.dao.parameters;
 
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 
-public class StreamParameter extends LongDataParameter {
-    private static final int BUF_SIZE = 1024 * 1024 + 4; //big buffer (server reallocate array each send)
-
+public class StreamParameter implements Cloneable, ParameterHolder {
     private InputStream is;
     private long length;
     private boolean noBackslashEscapes;
@@ -76,7 +70,6 @@ public class StreamParameter extends LongDataParameter {
         this.is = is;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
-        if (is.markSupported()) is.mark(1024);
     }
 
     public StreamParameter(InputStream is, boolean noBackSlashEscapes) {
@@ -86,25 +79,18 @@ public class StreamParameter extends LongDataParameter {
     /**
      * Write stream in text format.
      *
-     * @param os database outputStream
+     * @param pos database outputStream
      * @throws IOException if any error occur when reader stream
      */
-    public void writeTo(final PacketOutputStream os) throws IOException {
+    public void writeTo(final PacketOutputStream pos) throws IOException {
+        pos.write(QUOTE);
         if (length == Long.MAX_VALUE) {
-            ParameterWriter.write(os, is, noBackslashEscapes);
+            pos.write(is, true, noBackslashEscapes);
         } else {
-            ParameterWriter.write(os, is, length, noBackslashEscapes);
+            pos.write(is, length, true, noBackslashEscapes);
         }
-    }
+        pos.write(QUOTE);
 
-    /**
-     * Write stream in text format without checking buffer size.
-     *
-     * @param os database outputStream
-     * @throws IOException if any error occur when reader stream
-     */
-    public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
-        throw new IOException("Cannot use unsafe with Stream");
     }
 
     /**
@@ -118,70 +104,22 @@ public class StreamParameter extends LongDataParameter {
     }
 
     /**
-     * Send stream in one or many COM_STMT_LONG_DATA.
-     * (stream read is using a big buffer to avoid having a lot of packet, because server will allocate/deallocate array each send)
+     * Write data to socket in binary format.
      *
-     * @param statementId statement id
-     * @param parameterId parameter number
-     * @param writer      writer
-     * @throws IOException if any connection exception occur
-     * @throws QueryException if query size is to big according to server max_allowed_size
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
      */
-    public void sendComLongData(int statementId, short parameterId, PacketOutputStream writer) throws IOException, QueryException {
-        byte[] array = new byte[BUF_SIZE];
-        int len;
+    public void writeBinary(final PacketOutputStream pos) throws IOException {
         if (length == Long.MAX_VALUE) {
-            while ((len = is.read(array, 6, BUF_SIZE - 6)) > 0) {
-                sendComPacket(statementId, parameterId, writer, array, len);
-            }
+            pos.write(is, false, noBackslashEscapes);
         } else {
-            long remainingReadLength = length;
-            while (remainingReadLength > 0) {
-                len = is.read(array, 6, Math.min((int) remainingReadLength, BUF_SIZE - 6));
-                if (len == -1) return;
-                sendComPacket(statementId, parameterId, writer, array, len);
-                remainingReadLength -= len;
-            }
+            pos.write(is, length, false, noBackslashEscapes);
         }
     }
-
-    private void sendComPacket(int statementId, short parameterId, PacketOutputStream writer, byte[] array, int len)
-            throws IOException, QueryException {
-        writer.startPacket(0);
-        array[0] = (byte) (statementId & 0xff);
-        array[1] = (byte) (statementId >>> 8);
-        array[2] = (byte) (statementId >>> 16);
-        array[3] = (byte) (statementId >>> 24);
-        array[4] = (byte) (parameterId & 0xff);
-        array[5] = (byte) (parameterId >>> 8);
-        writer.sendDirect(array, 0, len + 6, Packet.COM_STMT_SEND_LONG_DATA);
-    }
-
 
     @Override
     public String toString() {
-        try {
-            if (is.markSupported()) {
-                is.reset();
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                if (length == Long.MAX_VALUE) {
-                    ParameterWriter.write(baos, is, noBackslashEscapes);
-                } else {
-                    ParameterWriter.write(baos, is, length, noBackslashEscapes);
-                }
-                byte[] bytes = baos.toByteArray();
-                if (bytes.length < 1024) {
-                    return "<Stream:" + new String(bytes, StandardCharsets.UTF_8) + ">";
-                } else {
-                    // cut overlong strings.
-                    return "<Stream:" + new String(bytes, 0, 1024, StandardCharsets.UTF_8) + "...>";
-                }
-            } else {
-                return "<Stream>";
-            }
-        } catch (Exception e) {
-            return "";
-        }
+        return "<Stream>";
     }
 
     public MariaDbType getMariaDbType() {
@@ -191,6 +129,10 @@ public class StreamParameter extends LongDataParameter {
 
     public boolean isNullData() {
         return false;
+    }
+
+    public boolean isLongData() {
+        return true;
     }
 
 }

@@ -63,20 +63,20 @@ public class SendOldPasswordAuthPacket extends AbstractAuthSwitchSendResponsePac
 
     /**
      * Send password stream.
-     * @param os database socket
+     * @param pos database socket
      * @throws IOException if a connection error occur
      */
-    public void send(OutputStream os) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream) os;
+    public void send(PacketOutputStream pos) throws IOException {
+
         if (password == null || password.equals("")) {
             pos.writeEmptyPacket(packSeq);
             return;
         }
         pos.startPacket(packSeq);
         byte[] seed = Utils.copyWithLength(authData, 8);
-        pos.writeByteArray(cryptOldFormatPassword(password, new String(seed))).writeByte((byte) 0x00);
-        pos.finishPacketWithoutRelease(false);
-        pos.releaseBuffer();
+        pos.write(cryptOldFormatPassword(password, new String(seed)));
+        pos.write((byte) 0x00);
+        pos.flush();
     }
 
 

@@ -77,11 +77,10 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
     /**
      * Send native password stream.
      *
-     * @param os database socket
+     * @param pos database socket
      * @throws IOException if a connection error occur
      */
-    public void send(OutputStream os) throws IOException, QueryException {
-        PacketOutputStream writer = (PacketOutputStream) os;
+    public void send(PacketOutputStream pos) throws IOException, QueryException {
         byte type = authData[0];
         String promptb;
         //conversation is :
@@ -92,15 +91,15 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
             promptb = new String(Arrays.copyOfRange(authData, 1, authData.length));
             if ("Password: ".equals(promptb) && password != null && !"".equals(password)) {
                 //ask for password
-                writer.startPacket(packSeq);
+                pos.startPacket(packSeq);
                 byte[] bytePwd;
                 if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
                     bytePwd = password.getBytes(passwordCharacterEncoding);
                 } else {
                     bytePwd = password.getBytes();
                 }
-                writer.write(bytePwd);
-                writer.write(0);
+                pos.write(bytePwd, 0, bytePwd.length);
+                pos.write(0);
             } else {
                 // 2 means "read the input with the echo enabled"
                 // 4 means "password-like input, echo disabled"
@@ -111,19 +110,18 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
                 if (password == null) {
                     throw new QueryException("Error during PAM authentication : dialog input cancelled");
                 }
-                writer.startPacket(packSeq);
+                pos.startPacket(packSeq);
                 byte[] bytePwd;
                 if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
                     bytePwd = password.getBytes(passwordCharacterEncoding);
                 } else {
                     bytePwd = password.getBytes();
                 }
-                writer.write(bytePwd);
-                writer.write(0);
+                pos.write(bytePwd, 0, bytePwd.length);
+                pos.write(0);
             }
 
-            writer.finishPacketWithoutRelease(false);
-            writer.releaseBuffer();
+            pos.flush();
             try {
                 Buffer buffer = packetFetcher.getReusableBuffer();
 

@@ -52,28 +52,32 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
-public class IntParameter extends NotLongDataParameter implements Cloneable {
+import java.io.IOException;
+
+public class IntParameter implements Cloneable, ParameterHolder {
+
     private int value;
 
     public IntParameter(int value) {
         this.value = value;
     }
 
-    public void writeTo(final PacketOutputStream os) {
-        os.write(String.valueOf(value).getBytes());
-    }
-
-    public void writeUnsafeTo(final PacketOutputStream os) {
-        os.writeUnsafe(String.valueOf(value).getBytes());
+    public void writeTo(final PacketOutputStream pos) throws IOException {
+        pos.write(String.valueOf(value).getBytes());
     }
 
     public long getApproximateTextProtocolLength() {
         return String.valueOf(value).getBytes().length;
     }
 
-    public void writeBinary(final PacketOutputStream writeBuffer) {
-        writeBuffer.assureBufferCapacity(4);
-        writeBuffer.buffer.putInt(value);
+    /**
+     * Write data to socket in binary format.
+     *
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
+     */
+    public void writeBinary(final PacketOutputStream pos) throws IOException {
+        pos.writeInt(value);
     }
 
     public MariaDbType getMariaDbType() {
@@ -84,4 +88,13 @@ public class IntParameter extends NotLongDataParameter implements Cloneable {
     public String toString() {
         return Integer.toString(value);
     }
+
+    public boolean isNullData() {
+        return false;
+    }
+
+    public boolean isLongData() {
+        return false;
+    }
+
 }

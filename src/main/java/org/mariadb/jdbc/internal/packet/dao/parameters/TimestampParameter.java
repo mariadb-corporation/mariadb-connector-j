@@ -59,7 +59,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 
-public class TimestampParameter extends NotLongDataParameter implements Cloneable {
+public class TimestampParameter implements Cloneable, ParameterHolder {
 
     private Timestamp ts;
     private Calendar calendar;
@@ -83,28 +83,9 @@ public class TimestampParameter extends NotLongDataParameter implements Cloneabl
     /**
      * Write timestamps to outputStream.
      *
-     * @param os the stream to write to
+     * @param pos the stream to write to
      */
-    public void writeTo(final PacketOutputStream os) {
-        os.write(ParameterWriter.QUOTE);
-        os.write(dateToByte());
-        ParameterWriter.formatMicroseconds(os, ts.getNanos() / 1000, fractionalSeconds);
-        os.write(ParameterWriter.QUOTE);
-    }
-
-    /**
-     * Write timestamps to outputStream without checking buffer size.
-     *
-     * @param os the stream to write to
-     */
-    public void writeUnsafeTo(final PacketOutputStream os) {
-        os.buffer.put(ParameterWriter.QUOTE);
-        os.writeUnsafe(dateToByte());
-        ParameterWriter.formatMicrosecondsUnsafe(os, ts.getNanos() / 1000, fractionalSeconds);
-        os.buffer.put(ParameterWriter.QUOTE);
-    }
-
-    private byte[] dateToByte() {
+    public void writeTo(final PacketOutputStream pos) throws IOException {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
         if (options.useLegacyDatetimeCode) {
@@ -112,7 +93,22 @@ public class TimestampParameter extends NotLongDataParameter implements Cloneabl
         } else if (calendar != null) {
             sdf.setCalendar(calendar);
         }
-        return sdf.format(ts).getBytes();
+
+        pos.write(QUOTE);
+        pos.write(sdf.format(ts).getBytes());
+        int microseconds = ts.getNanos() / 1000;
+        if (microseconds > 0 && fractionalSeconds) {
+            pos.write('.');
+            int factor = 100000;
+            while (microseconds > 0) {
+                int dig = microseconds / factor;
+                pos.write('0' + dig);
+                microseconds -= dig * factor;
+                factor /= 10;
+            }
+        }
+
+        pos.write(QUOTE);
     }
 
     public long getApproximateTextProtocolLength() throws IOException {
@@ -120,13 +116,26 @@ public class TimestampParameter extends NotLongDataParameter implements Cloneabl
     }
 
     /**
-     * Write timeStamp in binary format.
-     * @param writeBuffer buffer to write
+     * Write data to socket in binary format.
+     *
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
      */
-    public void writeBinary(final PacketOutputStream writeBuffer) {
+    public void writeBinary(final PacketOutputStream pos) throws IOException {
         if (options.useLegacyDatetimeCode) calendar = Calendar.getInstance();
         calendar.setTimeInMillis(ts.getTime());
-        writeBuffer.writeTimestampLength(calendar, ts, fractionalSeconds);
+
+        pos.write((byte) (fractionalSeconds ? 11 : 7));//length
+
+        pos.writeShort((short) calendar.get(Calendar.YEAR));
+        pos.write((byte) ((calendar.get(Calendar.MONTH) + 1) & 0xff));
+        pos.write((byte) (calendar.get(Calendar.DAY_OF_MONTH) & 0xff));
+        pos.write((byte) calendar.get(Calendar.HOUR_OF_DAY));
+        pos.write((byte) calendar.get(Calendar.MINUTE));
+        pos.write((byte) calendar.get(Calendar.SECOND));
+        if (fractionalSeconds) {
+            pos.writeInt(ts.getNanos() / 1000);
+        }
     }
 
     public MariaDbType getMariaDbType() {
@@ -136,5 +145,13 @@ public class TimestampParameter extends NotLongDataParameter implements Cloneabl
     @Override
     public String toString() {
         return "'" + ts.toString() + "'";
+    }
+
+    public boolean isNullData() {
+        return false;
+    }
+
+    public boolean isLongData() {
+        return false;
     }
 }

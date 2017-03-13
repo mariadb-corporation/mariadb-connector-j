@@ -53,28 +53,31 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 import org.mariadb.jdbc.internal.MariaDbType;
 
-public class FloatParameter extends NotLongDataParameter implements Cloneable {
+import java.io.IOException;
+
+public class FloatParameter implements Cloneable, ParameterHolder {
     private float value;
 
     public FloatParameter(float value) {
         this.value = value;
     }
 
-    public void writeTo(final PacketOutputStream os) {
+    public void writeTo(final PacketOutputStream os) throws IOException {
         os.write(String.valueOf(value).getBytes());
-    }
-
-    public void writeUnsafeTo(final PacketOutputStream os) {
-        os.writeUnsafe(String.valueOf(value).getBytes());
     }
 
     public long getApproximateTextProtocolLength() {
         return String.valueOf(value).getBytes().length;
     }
 
-
-    public void writeBinary(final PacketOutputStream writeBuffer) {
-        writeBuffer.writeInt(Float.floatToIntBits(value));
+    /**
+     * Write data to socket in binary format.
+     *
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
+     */
+    public void writeBinary(final PacketOutputStream pos) throws IOException {
+        pos.writeInt(Float.floatToIntBits(value));
     }
 
     public MariaDbType getMariaDbType() {
@@ -84,6 +87,14 @@ public class FloatParameter extends NotLongDataParameter implements Cloneable {
     @Override
     public String toString() {
         return Float.toString(value);
+    }
+
+    public boolean isNullData() {
+        return false;
+    }
+
+    public boolean isLongData() {
+        return false;
     }
 
 }

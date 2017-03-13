@@ -57,9 +57,8 @@ import org.mariadb.jdbc.internal.util.dao.QueryException;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 
-public class ReaderParameter extends LongDataParameter {
-    private static final int BUF_SIZE = 1024 * 1024 + 4; //big buffer (server reallocate array each send)
-    private static final int CHAR_BUF_SIZE = 4096;
+public class ReaderParameter implements Cloneable, ParameterHolder {
+
     private Reader reader;
     private long length;
     private boolean noBackslashEscapes;
@@ -74,11 +73,6 @@ public class ReaderParameter extends LongDataParameter {
         this.reader = reader;
         this.length = length;
         this.noBackslashEscapes = noBackslashEscapes;
-        if (reader.markSupported()) {
-            try {
-                reader.mark(1024);
-            } catch (IOException e) { }
-        }
     }
 
     public ReaderParameter(Reader reader, boolean noBackslashEscapes) {
@@ -88,25 +82,17 @@ public class ReaderParameter extends LongDataParameter {
     /**
      * Write reader to database in text format.
      *
-     * @param os database outputStream
+     * @param pos database outputStream
      * @throws IOException if any error occur when reading reader
      */
-    public void writeTo(final PacketOutputStream os) throws IOException {
+    public void writeTo(PacketOutputStream pos) throws IOException {
+        pos.write(QUOTE);
         if (length == Long.MAX_VALUE) {
-            ParameterWriter.write(os, reader, noBackslashEscapes);
+            pos.write(reader, true, noBackslashEscapes);
         } else {
-            ParameterWriter.write(os, reader, length, noBackslashEscapes);
+            pos.write(reader, length, true, noBackslashEscapes);
         }
-    }
-
-    /**
-     * Write reader to database in text format without checking buffer size.
-     *
-     * @param os database outputStream
-     * @throws IOException if any error occur when reading reader
-     */
-    public void writeUnsafeTo(final PacketOutputStream os) throws IOException {
-        throw new IOException("Cannot use unsafe with Reader");
+        pos.write(QUOTE);
     }
 
     /**
@@ -120,62 +106,16 @@ public class ReaderParameter extends LongDataParameter {
     }
 
     /**
-     * Send reader in one or many COM_STMT_LONG_DATA.
-     * (reading is using a big buffer to avoid having a lot of packet, because server will allocate/deallocate array each send)
+     * Write data to socket in binary format.
      *
-     * @param statementId statement id
-     * @param parameterId parameter number
-     * @param writer      writer
-     * @throws IOException if any connection exception occur
-     * @throws QueryException if query size is to big according to server max_allowed_size
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
      */
-    public void sendComLongData(int statementId, short parameterId, PacketOutputStream writer) throws IOException, QueryException {
-
-        byte[] arr = new byte[BUF_SIZE];
-        char[] charBuffer = new char[CHAR_BUF_SIZE];
-        int len;
-        int position;
-        long remainingReadLength = length;
-
-        while (remainingReadLength > 0) {
-            writer.startPacket(0);
-            //write statement id
-            arr[0] = (byte) (statementId & 0xff);
-            arr[1] = (byte) (statementId >>> 8);
-            arr[2] = (byte) (statementId >>> 16);
-            arr[3] = (byte) (statementId >>> 24);
-
-            //write parameter number
-            arr[4] = (byte) (parameterId & 0xff);
-            arr[5] = (byte) (parameterId >>> 8);
-
-            position = 6;
-
-            len = 0;
-            //write part of reader
-            //will read until stream is finished, or nearly complete the buffer
-            //(we cannot guess the exact size of characters in byte, but max size is * 3)
-            if (length == Long.MAX_VALUE) {
-                while (position + 3 * CHAR_BUF_SIZE < BUF_SIZE && (len = reader.read(charBuffer)) > 0) {
-                    byte[] bytes = new String(charBuffer, 0, len).getBytes("UTF-8");
-                    System.arraycopy(bytes, 0, arr, position, bytes.length);
-                    position += bytes.length;
-                }
-            } else {
-                while (position + 3 * CHAR_BUF_SIZE < BUF_SIZE
-                        && (len = reader.read(charBuffer, 0, Math.min((int) remainingReadLength, CHAR_BUF_SIZE))) > 0) {
-                    byte[] bytes = new String(charBuffer, 0, len).getBytes("UTF-8");
-                    System.arraycopy(bytes, 0, arr, position, bytes.length);
-                    position += bytes.length;
-                    remainingReadLength -= len;
-                }
-            }
-
-            if (position > 6) {
-                writer.sendDirect(arr, 0, position, Packet.COM_STMT_SEND_LONG_DATA);
-            } else {
-                if (len == -1) break;
-            }
+    public void writeBinary(final PacketOutputStream pos) throws IOException {
+        if (length == Long.MAX_VALUE) {
+            pos.write(reader, false, noBackslashEscapes);
+        } else {
+            pos.write(reader, length, false, noBackslashEscapes);
         }
     }
 
@@ -186,24 +126,15 @@ public class ReaderParameter extends LongDataParameter {
 
     @Override
     public String toString() {
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            if (reader.markSupported()) reader.reset();
-            if (length == Long.MAX_VALUE) {
-                ParameterWriter.write(baos, reader, noBackslashEscapes);
-            } else {
-                ParameterWriter.write(baos, reader, length, noBackslashEscapes);
-            }
-            byte[] bytes = baos.toByteArray();
-            if (bytes.length < 1024) {
-                return "<Buffer:" + new String(bytes, StandardCharsets.UTF_8) + ">";
-            } else {
-                // cut overlong strings.
-                return "<Buffer:" + new String(bytes, 0, 1024, StandardCharsets.UTF_8) + "...>";
-            }
-        } catch (Exception e) {
-            return "";
-        }
+        return "<Reader>";
+    }
+
+    public boolean isNullData() {
+        return false;
+    }
+
+    public boolean isLongData() {
+        return true;
     }
 
 }

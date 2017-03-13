@@ -66,7 +66,6 @@ import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.Calendar;
@@ -238,10 +237,6 @@ public interface Protocol {
 
     void setHasWarnings(boolean hasWarnings);
 
-    void releaseWriterBuffer();
-
-    ByteBuffer getWriter();
-
     ServerPrepareResult addPrepareInCache(String key, ServerPrepareResult serverPrepareResult);
 
     void readEofPacket() throws QueryException, IOException;
@@ -262,4 +257,6 @@ public interface Protocol {
     void setActiveFutureTask(FutureTask activeFutureTask);
 
     boolean isServerMariaDb();
+
+    QueryException handleIoException(IOException initialException);
 }

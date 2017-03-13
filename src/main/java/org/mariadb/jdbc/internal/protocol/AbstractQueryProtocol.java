@@ -56,7 +56,6 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.packet.*;
 
-import org.mariadb.jdbc.internal.packet.dao.parameters.LongDataParameter;
 import org.mariadb.jdbc.internal.packet.result.*;
 import org.mariadb.jdbc.internal.packet.send.*;
 import org.mariadb.jdbc.internal.queryresults.*;
@@ -81,7 +80,6 @@ import java.io.*;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
@@ -148,15 +146,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         cmdPrologue();
         try {
 
-            writer.send(sql, Packet.COM_QUERY);
+            writer.startPacket(0);
+            writer.write(Packet.COM_QUERY);
+            writer.write(sql);
+            writer.flush();
             getResult(results);
 
         } catch (QueryException queryException) {
             throw addQueryInfo(sql, queryException);
-        } catch (MaxAllowedPacketException e) {
-            throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
         } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
+            throw handleIoException(e);
         }
 
     }
@@ -166,15 +165,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         cmdPrologue();
         try {
 
-            writer.send(sql, Packet.COM_QUERY, charset);
+            writer.startPacket(0);
+            writer.write(Packet.COM_QUERY);
+            writer.write(sql.getBytes(charset));
+            writer.flush();
             getResult(results);
 
         } catch (QueryException queryException) {
             throw addQueryInfo(sql, queryException);
-        } catch (MaxAllowedPacketException e) {
-            throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
         } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
+            throw handleIoException(e);
         }
 
     }
@@ -198,18 +198,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             } else {
                 writer.startPacket(0);
                 ComExecute.sendSubCmd(writer, clientPrepareResult, parameters);
-                writer.finishPacketWithoutRelease(true);
+                writer.flush();
             }
             getResult(results);
 
         } catch (QueryException queryException) {
             throw throwErrorWithQuery(parameters, queryException, clientPrepareResult);
-        } catch (MaxAllowedPacketException e) {
-            throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
         } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
-        } finally {
-            writer.releaseBufferIfNotLogging();
+            throw handleIoException(e);
         }
     }
 
@@ -235,7 +231,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
                 writer.startPacket(0);
                 ComExecute.sendSubCmd(writer, clientPrepareResult, parameters);
-                writer.finishPacketWithoutRelease(true);
+                writer.flush();
             }
 
             @Override
@@ -280,12 +276,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         new AbstractMultiSend(this, writer, results, queries) {
 
             @Override
-            public void sendCmd(PacketOutputStream writer, Results results,
+            public void sendCmd(PacketOutputStream pos, Results results,
                                 List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
                                 PrepareResult prepareResult)
                     throws QueryException, IOException {
                 String sql = queries.get(status.sendCmdCounter);
-                writer.send(sql, Packet.COM_QUERY);
+                pos.startPacket(0);
+                pos.write(Packet.COM_QUERY);
+                pos.write(sql);
+                pos.flush();
             }
 
             @Override
@@ -338,16 +337,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     return pr;
                 }
             }
-            writer.startPacket(0, true);
+            writer.startPacket(0);
+            writer.write(Packet.COM_STMT_PREPARE);
+            writer.write(sql);
+            writer.flush();
+
             ComStmtPrepare comStmtPrepare = new ComStmtPrepare(this, sql);
-            comStmtPrepare.send(writer);
             ServerPrepareResult result = comStmtPrepare.read(packetFetcher);
+
             return result;
-        } catch (MaxAllowedPacketException e) {
-            throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
         } catch (IOException e) {
-            throw new QueryException(e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(),
-                    e);
+            throw handleIoException(e);
         } finally {
             lock.unlock();
         }
@@ -376,7 +376,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                 firstSql = queries.get(currentIndex++);
                 if (totalQueries == 1) {
-                    writer.send(firstSql, Packet.COM_QUERY);
+                    writer.startPacket(0);
+                    writer.write(Packet.COM_QUERY);
+                    writer.write(firstSql);
+                    writer.flush();
                 } else {
                     currentIndex = ComExecute.sendMultiple(writer, firstSql, queries, currentIndex);
                 }
@@ -385,12 +388,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 addQueryInfo(firstSql, queryException);
                 if (!getOptions().continueBatchOnError) throw queryException;
                 if (exception == null) exception = queryException;
-            } catch (MaxAllowedPacketException e) {
-                throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
             } catch (IOException e) {
-                throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
-            } finally {
-                writer.releaseBufferIfNotLogging();
+                throw handleIoException(e);
             }
 
         } while (currentIndex < totalQueries);
@@ -430,13 +429,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             } while (currentIndex < totalParameterList);
 
         } catch (QueryException queryException) {
-            throwErrorWithQuery(writer.buffer, queryException);
-        } catch (MaxAllowedPacketException e) {
-            throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
+            throwErrorWithQuery(prepareResult, queryException);
         } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
-        } finally {
-            writer.releaseBufferIfNotLogging();
+            throw handleIoException(e);
         }
     }
 
@@ -472,12 +467,18 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 //send binary data in a separate stream
                 for (int i = 0; i < paramCount; i++) {
                     if (parameters[i].isLongData()) {
-                        ((LongDataParameter) parameters[i]).sendComLongData(statementId, (short) i, writer);
+                        writer.startPacket(0);
+                        writer.write(Packet.COM_STMT_SEND_LONG_DATA);
+                        writer.writeInt(statementId);
+                        writer.writeShort((short) i);
+                        parameters[i].writeBinary(writer);
+                        writer.flush();
                     }
                 }
+
                 writer.startPacket(0);
                 ComStmtExecute.writeCmd(statementId, parameters, paramCount, parameterTypeHeader, writer);
-                writer.finishPacketWithoutRelease(true);
+                writer.flush();
             }
 
             @Override
@@ -555,16 +556,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 throw new QueryException("Parameter at position " + (parameterCount) + " is not set", -1, "07004");
             }
 
-            //send binary data in a separate stream
-            for (int i = 0; i < parameterCount; i++) {
-                if (parameters[i].isLongData()) {
-                    ((LongDataParameter) parameters[i]).sendComLongData(statementId, (short) i, writer);
-                }
-            }
-
             writer.startPacket(0);
             ComStmtExecute.writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, writer);
-            writer.finishPacketWithoutRelease(true);
+            writer.flush();
 
             //read result
             try {
@@ -578,12 +572,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             if (exception != null) throw exception;
             return serverPrepareResult;
 
-        } catch (MaxAllowedPacketException e) {
-            throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
         } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
-        } finally {
-            writer.releaseBufferIfNotLogging();
+            throw handleIoException(e);
         }
 
     }
@@ -604,12 +594,19 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         cmdPrologue();
         try {
             int parameterCount = serverPrepareResult.getParameters().length;
+
             //send binary data in a separate stream
             for (int i = 0; i < parameterCount; i++) {
                 if (parameters[i].isLongData()) {
-                    ((LongDataParameter) parameters[i]).sendComLongData(serverPrepareResult.getStatementId(), (short) i, writer);
+                    writer.startPacket(0);
+                    writer.write(Packet.COM_STMT_SEND_LONG_DATA);
+                    writer.writeInt(serverPrepareResult.getStatementId());
+                    writer.writeShort((short) i);
+                    parameters[i].writeBinary(writer);
+                    writer.flush();
                 }
             }
+
             //send execute query
             new ComStmtExecute(serverPrepareResult.getStatementId(), parameters,
                     parameterCount, serverPrepareResult.getParameterTypeHeader())
@@ -618,12 +615,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
         } catch (QueryException qex) {
             throw throwErrorWithQuery(parameters, qex, serverPrepareResult);
-        } catch (MaxAllowedPacketException e) {
-            throw handleMaxAllowedFailover("Could not send query: " + e.getMessage(), e);
         } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
-        } finally {
-            writer.releaseBufferIfNotLogging();
+            throw handleIoException(e);
         }
     }
 
@@ -658,7 +651,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             try {
                 checkClose();
                 try {
-                    writer.closePrepare(statementId);
+                    writer.startPacket(0);
+                    writer.write(Packet.COM_STMT_CLOSE);
+                    writer.writeInt(statementId & 0xff);
+                    writer.flush();
                     return true;
                 } catch (IOException e) {
                     throw new QueryException("Could not deallocate query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
@@ -720,7 +716,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
             this.database = database;
         } catch (IOException e) {
-            throw new QueryException("Could not select database '" + database + "' :" + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
+            throw handleIoException(e);
         } finally {
             lock.unlock();
         }
@@ -740,56 +736,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         //no lock, because there is already a query running that possessed the lock.
         copiedProtocol.executeQuery("KILL QUERY " + serverThreadId);
         copiedProtocol.close();
-    }
-
-    private void sendLocalFile(Results results, String fileName) throws IOException, QueryException {
-        // Server request the local file (LOCAL DATA LOCAL INFILE)
-        // We do accept general URLs, too. If the localInfileStream is
-        // set, use that.
-        int seq = 2;
-        InputStream is;
-        writer.setCompressSeqNo(2);
-        if (localInfileInputStream == null) {
-
-            if (!getUrlParser().getOptions().allowLocalInfile) {
-                writer.writeEmptyPacket(seq++);
-                packetFetcher.getReusableBuffer();
-                throw new QueryException(
-                        "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true",
-                        -1, FEATURE_NOT_SUPPORTED.getSqlState());
-            }
-
-            //validate all defined interceptors
-            ServiceLoader<LocalInfileInterceptor> loader = ServiceLoader.load(LocalInfileInterceptor.class);
-            for (LocalInfileInterceptor interceptor : loader) {
-                if (!interceptor.validate(fileName)) {
-                    writer.writeEmptyPacket(seq++);
-                    packetFetcher.getReusableBuffer();
-                    throw new QueryException("LOCAL DATA LOCAL INFILE request to send local file named \""
-                            + fileName + "\" not validated by interceptor \"" + interceptor.getClass().getName()
-                            + "\"");
-                }
-            }
-
-            try {
-                URL url = new URL(fileName);
-                is = url.openStream();
-            } catch (IOException ioe) {
-                try {
-                    is = new FileInputStream(fileName);
-                } catch (FileNotFoundException f) {
-                    writer.writeEmptyPacket(seq++);
-                    packetFetcher.getReusableBuffer();
-                    throw new QueryException("Could not send file : " + f.getMessage(), -1, "22000", f);
-                }
-            }
-        } else {
-            is = localInfileInputStream;
-            localInfileInputStream = null;
-        }
-        writer.sendFile(is, seq);
-        is.close();
-        getResult(results);
     }
 
     @Override
@@ -828,7 +774,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     @Override
     public void releasePrepareStatement(ServerPrepareResult serverPrepareResult) throws QueryException {
         //If prepared cache is enable, the ServerPrepareResult can be shared in many PrepStatement,
-        //so synchronised use count indicator will be decrement.
+        //so synchronised use pos indicator will be decrement.
         serverPrepareResult.decrementShareCounter();
 
         //deallocate from server if not cached
@@ -948,17 +894,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
 
-    private void throwErrorWithQuery(ByteBuffer buffer, QueryException queryException) throws QueryException {
+    private void throwErrorWithQuery(ClientPrepareResult prepareResult, QueryException queryException) throws QueryException {
         if (getOptions().dumpQueriesOnException || queryException.getErrorCode() == 1064) {
             //log first maxQuerySizeToLog utf-8 characters
             String queryString;
-            if (options.maxQuerySizeToLog == 0) {
-                queryString = new String(buffer.array(), 5, buffer.limit());
+            if (options.maxQuerySizeToLog == 0 || prepareResult.getSql().length() < options.maxQuerySizeToLog) {
+                queryString = prepareResult.getSql();
             } else {
-                queryString = new String(buffer.array(), 5, Math.min(buffer.limit() - 5, (options.maxQuerySizeToLog * 3)));
-                if (queryString.length() > options.maxQuerySizeToLog - 3) {
-                    queryString = queryString.substring(0, options.maxQuerySizeToLog - 3) + "...";
-                }
+                queryString = prepareResult.getSql().substring(0, options.maxQuerySizeToLog);
             }
             addQueryInfo(queryString, queryException);
         }
@@ -1050,13 +993,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         try {
             buffer = packetFetcher.getReusableBuffer();
         } catch (IOException e) {
-            try {
-                if (writer != null) {
-                    writer.writeEmptyPacket(packetFetcher.getLastPacketSeq() + 1);
-                    packetFetcher.getReusableBuffer();
-                }
-            } catch (IOException ee) {
-            }
             throw new QueryException("Could not read packet: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
         }
 
@@ -1155,21 +1091,66 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      */
     public void readLocalInfilePacket(Buffer buffer, Results results) throws QueryException {
 
-        buffer.getLengthEncodedBinary(); //field count
-
+        buffer.getLengthEncodedBinary(); //field pos
         String fileName = buffer.readString(StandardCharsets.UTF_8);
-
         try {
-            sendLocalFile(results, fileName);
-        } catch (IOException e) {
-            try {
-                if (writer != null) {
-                    writer.writeEmptyPacket(packetFetcher.getLastPacketSeq() + 1);
+            // Server request the local file (LOCAL DATA LOCAL INFILE)
+            // We do accept general URLs, too. If the localInfileStream is
+            // set, use that.
+            int seq = 2;
+            InputStream is;
+            writer.startPacket(2);
+            if (localInfileInputStream == null) {
+
+                if (!getUrlParser().getOptions().allowLocalInfile) {
+                    writer.writeEmptyPacket(seq++);
                     packetFetcher.getReusableBuffer();
+                    throw new QueryException(
+                            "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true",
+                            -1, FEATURE_NOT_SUPPORTED.getSqlState());
                 }
-            } catch (IOException ee) {
+
+                //validate all defined interceptors
+                ServiceLoader<LocalInfileInterceptor> loader = ServiceLoader.load(LocalInfileInterceptor.class);
+                for (LocalInfileInterceptor interceptor : loader) {
+                    if (!interceptor.validate(fileName)) {
+                        writer.writeEmptyPacket(seq++);
+                        packetFetcher.getReusableBuffer();
+                        throw new QueryException("LOCAL DATA LOCAL INFILE request to send local file named \""
+                                + fileName + "\" not validated by interceptor \"" + interceptor.getClass().getName()
+                                + "\"");
+                    }
+                }
+
+                try {
+                    URL url = new URL(fileName);
+                    is = url.openStream();
+                } catch (IOException ioe) {
+                    try {
+                        is = new FileInputStream(fileName);
+                    } catch (FileNotFoundException f) {
+                        writer.writeEmptyPacket(seq++);
+                        packetFetcher.getReusableBuffer();
+                        throw new QueryException("Could not send file : " + f.getMessage(), -1, "22000", f);
+                    }
+                }
+            } else {
+                is = localInfileInputStream;
+                localInfileInputStream = null;
             }
-            throw new QueryException("Could not read resultSet: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
+
+            try {
+                writer.startPacket(seq);
+                writer.write(is, false, false);
+                writer.flush();
+                writer.writeEmptyPacket();
+
+            } finally {
+                is.close();
+            }
+            getResult(results);
+        } catch (IOException e) {
+            throw handleIoException(e);
         }
     }
 
@@ -1215,7 +1196,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             results.addResultSet(mariaSelectResultset, moreResults);
 
         } catch (IOException e) {
-            throw new QueryException("Could not read result set: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
+            throw handleIoException(e);
         }
     }
 
@@ -1323,36 +1304,42 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
-
     /**
-     * Specific failover for MaxAllowedPacketException.
+     * Handle IoException (reconnect if Exception is due to having send too much data,
+     * making server close the connection.
      *
-     * That differ from other, since command cannot be relaunched.
-     *
-     * @param message exception message
-     * @param initialException initial MaxAllowedPacketException
-     * @return resulting exception to thrown.
+     * @param initialException initial Io error
+     * @return the resulting error to return to client.
      */
-    private QueryException handleMaxAllowedFailover(String message, MaxAllowedPacketException initialException) {
-        QueryException returningException = new QueryException(message, -1, UNDEFINED_SQLSTATE, initialException);
+    public QueryException handleIoException(IOException initialException) {
+        boolean mustReconnect;
+        if (MaxAllowedPacketException.class.isInstance(initialException)) {
+            mustReconnect = ((MaxAllowedPacketException) initialException).isMustReconnect();
+        } else {
+            mustReconnect = !writer.isAllowedCmdLength();
+        }
 
-        if (initialException.isMustReconnect()) {
+        if (mustReconnect) {
             try {
                 connect();
             } catch (QueryException queryException) {
-                return new QueryException(message, -1, CONNECTION_EXCEPTION, initialException);
+                return new QueryException("Could not send query: " + initialException.getMessage()
+                        + "\nError during reconnection", -1, CONNECTION_EXCEPTION, initialException);
             }
 
             try {
                 resetStateAfterFailover(getMaxRows(), getTransactionIsolationLevel(), getDatabase(), getAutocommit());
             } catch (QueryException queryException) {
-                returningException.setNextException(
-                        new QueryException("reconnection succeed, but resetting previous state failed", -1,
-                        UNDEFINED_SQLSTATE, queryException));
+                return new QueryException("Could not send query: " + initialException.getMessage()
+                        + "\nreconnection succeed, but resetting previous state failed", -1, UNDEFINED_SQLSTATE, initialException);
             }
+
+            return new QueryException("Could not send query: query size is >= to max_allowed_packet ("
+                    + writer.getMaxAllowedPacket() + ")", -1, UNDEFINED_SQLSTATE.getSqlState(), initialException);
         }
 
-        return returningException;
+        return new QueryException("Could not send query: " + initialException.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), initialException);
+
     }
 
     public void setActiveFutureTask(FutureTask activeFutureTask) {

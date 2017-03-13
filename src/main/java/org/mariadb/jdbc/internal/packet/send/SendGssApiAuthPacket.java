@@ -76,18 +76,17 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
     /**
      * Send native password stream.
      *
-     * @param os database socket
+     * @param pos database socket
      * @throws IOException if a connection error occur
      */
-    public void send(OutputStream os) throws IOException, QueryException {
+    public void send(PacketOutputStream pos) throws IOException, QueryException {
         Buffer buffer = new Buffer(authData);
-        final PacketOutputStream writer = (PacketOutputStream) os;
         final String serverPrincipalName = buffer.readString(StandardCharsets.UTF_8);
         String mechanisms = buffer.readString(StandardCharsets.UTF_8);
         if (mechanisms.equals("")) mechanisms = "Kerberos";
 
         GssapiAuth gssapiAuth = getAuthenticationMethod();
-        gssapiAuth.authenticate(writer, serverPrincipalName, mechanisms);
+        gssapiAuth.authenticate(pos, serverPrincipalName, mechanisms);
     }
 
 

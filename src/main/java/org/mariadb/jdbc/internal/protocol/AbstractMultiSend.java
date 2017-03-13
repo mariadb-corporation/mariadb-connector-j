@@ -67,7 +67,6 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
 
 public abstract class AbstractMultiSend {
@@ -281,16 +280,11 @@ public abstract class AbstractMultiSend {
             if (exception != null) throw exception;
 
             return prepareResult;
-        } catch (MaxAllowedPacketException e) {
-            if (e.isMustReconnect()) protocol.connect();
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, INTERRUPTED_EXCEPTION.getSqlState(), e);
+
         } catch (IOException e) {
-            throw new QueryException("Could not send query: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
-        } finally {
-            writer.releaseBufferIfNotLogging();
+            throw protocol.handleIoException(e);
         }
 
     }
-
 
 }

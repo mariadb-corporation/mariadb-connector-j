@@ -65,18 +65,17 @@ public class SendNativePasswordAuthPacket extends AbstractAuthSwitchSendResponse
 
     /**
      * Send native password stream.
-     * @param os database socket
+     * @param pos database socket
      * @throws IOException if a connection error occur
      */
-    public void send(OutputStream os) throws IOException {
-        PacketOutputStream writer = (PacketOutputStream) os;
+    public void send(PacketOutputStream pos) throws IOException {
         try {
             if (password == null || password.equals("")) {
-                writer.writeEmptyPacket(packSeq);
+                pos.writeEmptyPacket(packSeq);
                 return;
             }
 
-            writer.startPacket(packSeq);
+            pos.startPacket(packSeq);
 
             byte[] seed;
             if (authData.length > 0) {
@@ -85,9 +84,8 @@ public class SendNativePasswordAuthPacket extends AbstractAuthSwitchSendResponse
             } else {
                 seed = new byte[0];
             }
-            writer.write(Utils.encryptPassword(password, seed, passwordCharacterEncoding));
-            writer.finishPacketWithoutRelease(false);
-            writer.releaseBuffer();
+            pos.write(Utils.encryptPassword(password, seed, passwordCharacterEncoding));
+            pos.flush();
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Could not use SHA-1, failing", e);
         }

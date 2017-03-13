@@ -61,7 +61,7 @@ import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.List;
@@ -102,22 +102,14 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 case "executeBatchMultiple":
                 case "prepareAndExecutes":
                 case "prepareAndExecute":
-                    try {
-                        Object returnObj = method.invoke(protocol, args);
-                        if (logger.isInfoEnabled() && (profileSql
-                                || (slowQueryThresholdNanos != null && System.nanoTime() - startTime > slowQueryThresholdNanos.longValue()))) {
-                            logger.info("Query - conn:" + protocol.getServerThreadId() + "(" + (protocol.isMasterConnection() ? "M" : "S") + ")"
-                                    + " - " + numberFormat.format(((double) System.nanoTime() - startTime) / 1000000) + " ms"
-                                    + logQuery(method.getName(), args, returnObj));
-                        }
-                        return returnObj;
-                    } finally {
-                        try {
-                            protocol.releaseWriterBuffer();
-                        } catch (NullPointerException e) {
-                            //if method is "close"
-                        }
+                    Object returnObj = method.invoke(protocol, args);
+                    if (logger.isInfoEnabled() && (profileSql
+                            || (slowQueryThresholdNanos != null && System.nanoTime() - startTime > slowQueryThresholdNanos.longValue()))) {
+                        logger.info("Query - conn:" + protocol.getServerThreadId() + "(" + (protocol.isMasterConnection() ? "M" : "S") + ")"
+                                + " - " + numberFormat.format(((double) System.nanoTime() - startTime) / 1000000) + " ms"
+                                + logQuery(method.getName(), args, returnObj));
                     }
+                    return returnObj;
                 default:
                     return method.invoke(protocol, args);
             }
@@ -139,11 +131,15 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                         sql = (String) args[2];
                         break;
                     case 4:
+                        if (Charset.class.isInstance(args[3])) {
+                            sql = (String) args[2];
+                            break;
+                        }
                         ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
                         sql = getQueryFromPrepareParameters(clientPrepareResult, (ParameterHolder[]) args[3], clientPrepareResult.getParamCount());
                         break;
                     default:
-                        sql = getQueryFromWriterBuffer();
+                        //no default
                 }
                 break;
 
@@ -165,9 +161,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 List<String> multipleQueries = (List<String>) args[2];
                 if (multipleQueries.size() == 1) {
                     sql = multipleQueries.get(0);
-                    break;
                 }
-                sql = getQueryFromWriterBuffer();
                 break;
 
             case "prepareAndExecute":
@@ -199,8 +193,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 break;
 
             default:
-                sql = getQueryFromWriterBuffer();
-                break;
+                //no default
         }
         if (maxQuerySizeToLog > 0) {
             return " - \"" + ((sql.length() < maxQuerySizeToLog) ? sql : sql.substring(0, maxQuerySizeToLog) + "...") + "\"";
@@ -247,14 +240,6 @@ public class ProtocolLoggingProxy implements InvocationHandler {
             return sb.append("]").toString();
         }
         return serverPrepareResult.getSql();
-    }
-
-    private String getQueryFromWriterBuffer() {
-        ByteBuffer buffer = protocol.getWriter();
-        //log first 1024 utf-8 characters
-        String queryString = new String(buffer.array(), 5, Math.min(buffer.limit(), (1024 * 3) + 5));
-        if (queryString.length() > 1021 ) queryString = queryString.substring(0, 1021) + "...";
-        return queryString;
     }
 
 }

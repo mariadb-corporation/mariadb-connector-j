@@ -52,7 +52,6 @@ package org.mariadb.jdbc.internal.packet.send;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
-import java.io.OutputStream;
 
 public class SendClearPasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
 
@@ -62,25 +61,23 @@ public class SendClearPasswordAuthPacket extends AbstractAuthSwitchSendResponseP
 
     /**
      * Send native password stream.
-     * @param os database socket
+     * @param pos database socket
      * @throws IOException if a connection error occur
      */
-    public void send(OutputStream os) throws IOException {
-        PacketOutputStream writer = (PacketOutputStream) os;
+    public void send(PacketOutputStream pos) throws IOException {
         if (password == null || password.equals("")) {
-            writer.writeEmptyPacket(packSeq);
+            pos.writeEmptyPacket(packSeq);
             return;
         }
-        writer.startPacket(packSeq);
+        pos.startPacket(packSeq);
         byte[] bytePwd;
         if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
             bytePwd = password.getBytes(passwordCharacterEncoding);
         } else {
             bytePwd = password.getBytes();
         }
-        writer.write(bytePwd);
-        writer.write(0);
-        writer.finishPacketWithoutRelease(false);
-        writer.releaseBuffer();
+        pos.write(bytePwd);
+        pos.write(0);
+        pos.flush();
     }
 }

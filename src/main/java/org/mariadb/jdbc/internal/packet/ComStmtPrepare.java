@@ -76,27 +76,15 @@ public class ComStmtPrepare {
     /**
      * Send directly to socket the sql data.
      *
-     * @param writer the writer
+     * @param pos the writer
      * @throws IOException if connection error occur
      * @throws QueryException if packet max size is to big.
      */
-    public void send(PacketOutputStream writer) throws IOException, QueryException {
-        writer.send(this.sql, Packet.COM_STMT_PREPARE);
-    }
-
-    /**
-     * Send sub-command (COM_MULTI) to write socket.
-     *
-     * @param writer the writer
-     * @throws IOException if connection error occur
-     * @throws QueryException if packet max size is to big.
-     */
-    public void sendSubCmd(PacketOutputStream writer) throws IOException, QueryException {
-        byte[] sqlBytes = sql.getBytes(StandardCharsets.UTF_8);
-        writer.assureBufferCapacity(sqlBytes.length + 10);
-        writer.writeFieldLength(sqlBytes.length + 1);
-        writer.buffer.put(Packet.COM_STMT_PREPARE);
-        writer.buffer.put(sqlBytes);
+    public void send(PacketOutputStream pos) throws IOException, QueryException {
+        pos.startPacket(0);
+        pos.write(Packet.COM_STMT_PREPARE);
+        pos.write(this.sql);
+        pos.flush();
     }
 
     /**

@@ -65,8 +65,7 @@ import org.mariadb.jdbc.internal.packet.send.*;
 import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
 import org.mariadb.jdbc.internal.queryresults.Results;
 import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
-import org.mariadb.jdbc.internal.stream.MariaDbBufferedInputStream;
-import org.mariadb.jdbc.internal.stream.MariaDbInputStream;
+import org.mariadb.jdbc.internal.stream.*;
 import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.buffer.Buffer;
 import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
@@ -77,8 +76,6 @@ import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.packet.result.*;
-import org.mariadb.jdbc.internal.stream.DecompressInputStream;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import javax.net.ssl.*;
 
@@ -87,7 +84,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.*;
 import java.sql.SQLException;
@@ -382,12 +378,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
             handleConnectionPhases();
 
             if (options.useCompression) {
-                writer.setUseCompression(true);
+                writer = new CompressPacketOutputStream(writer.getOutputStream(), options.maxQuerySizeToLog);
                 packetFetcher = new ReadPacketFetcher(new DecompressInputStream(socket.getInputStream()), options.maxQuerySizeToLog);
             }
             connected = true;
-
-            writer.forceCleanupBuffer();
 
             loadServerData();
             setSessionOptions();
@@ -462,8 +456,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
             reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
             packetFetcher = new ReadPacketFetcher(reader, options.maxQuerySizeToLog);
-            writer = new PacketOutputStream(socket.getOutputStream(),
-                    options.profileSql || options.slowQueryThresholdNanos != null, options.maxQuerySizeToLog);
+            writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
 
             final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher);
             this.serverThreadId = greetingPacket.getServerThreadId();
@@ -490,8 +483,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
                 socket = sslSocket;
-                writer = new PacketOutputStream(socket.getOutputStream(),
-                        options.profileSql || options.slowQueryThresholdNanos != null , options.maxQuerySizeToLog);
+                writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
                 reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
                 packetFetcher = new ReadPacketFetcher(reader, options.maxQuerySizeToLog);
 
@@ -1101,14 +1093,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     public abstract void executeQuery(final String sql) throws QueryException;
-
-    public void releaseWriterBuffer() {
-        writer.releaseBuffer();
-    }
-
-    public ByteBuffer getWriter() {
-        return writer.buffer;
-    }
 
     public ReadPacketFetcher getPacketFetcher() {
         return packetFetcher;

@@ -53,7 +53,6 @@ import org.mariadb.jdbc.internal.packet.Packet;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
 import java.io.IOException;
-import java.io.OutputStream;
 
 
 public class SendChangeDbPacket implements InterfaceSendPacket {
@@ -66,16 +65,13 @@ public class SendChangeDbPacket implements InterfaceSendPacket {
 
     /**
      * Change Database.
-     * @param outputStream Write outputStream
+     * @param pos Write outputStream
      * @throws IOException if connection problem occur
      */
-    public void send(final OutputStream outputStream) throws IOException {
-        PacketOutputStream pos = (PacketOutputStream) outputStream;
+    public void send(final PacketOutputStream pos) throws IOException {
         pos.startPacket(0);
         pos.write(Packet.COM_INIT_DB);
         pos.write(database.getBytes("UTF-8"));
-        pos.finishPacketWithoutRelease(true);
-        pos.releaseBuffer();
-
+        pos.flush();
     }
 }

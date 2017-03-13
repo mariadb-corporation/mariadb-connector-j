@@ -54,11 +54,12 @@ import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
+import java.io.IOException;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-public class DateParameter extends NotLongDataParameter implements Cloneable {
+public class DateParameter implements Cloneable, ParameterHolder {
     private Date date;
     private Calendar calendar;
     private Options options;
@@ -82,26 +83,11 @@ public class DateParameter extends NotLongDataParameter implements Cloneable {
      *
      * @param os output buffer
      */
-    public void writeTo(final PacketOutputStream os) {
-        os.write(ParameterWriter.QUOTE);
-        os.write(dateByteFormat());
-        os.write(ParameterWriter.QUOTE);
-    }
-
-    /**
-     * Write to server OutputStream in text protocol without checking buffer size.
-     *
-     * @param os output buffer
-     */
-    public void writeUnsafeTo(final PacketOutputStream os) {
-        os.writeUnsafe(ParameterWriter.QUOTE);
-        os.writeUnsafe(dateByteFormat());
-        os.writeUnsafe(ParameterWriter.QUOTE);
-    }
-
-    private byte[] dateByteFormat() {
+    public void writeTo(final PacketOutputStream os) throws IOException {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        return sdf.format(calendar().getTime()).getBytes();
+        os.write(QUOTE);
+        os.write(sdf.format(calendar().getTime()).getBytes());
+        os.write(QUOTE);
     }
 
     private Calendar calendar() {
@@ -116,16 +102,23 @@ public class DateParameter extends NotLongDataParameter implements Cloneable {
         return 16;
     }
 
-
     /**
-     * Write to server OutputStream in binary protocol.
+     * Write data to socket in binary format.
      *
-     * @param writeBuffer output buffer
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
      */
-    public void writeBinary(final PacketOutputStream writeBuffer) {
+    public void writeBinary(final PacketOutputStream pos) throws IOException {
         calendar = Calendar.getInstance();
         calendar.setTimeInMillis(date.getTime());
-        writeBuffer.writeDateLength(calendar);
+
+        pos.write((byte) 7);//length
+        pos.writeShort((short) calendar.get(Calendar.YEAR));
+        pos.write((byte) ((calendar.get(Calendar.MONTH) + 1) & 0xff));
+        pos.write((byte) (calendar.get(Calendar.DAY_OF_MONTH) & 0xff));
+        pos.write((byte) 0);
+        pos.write((byte) 0);
+        pos.write((byte) 0);
     }
 
     public MariaDbType getMariaDbType() {
@@ -135,6 +128,14 @@ public class DateParameter extends NotLongDataParameter implements Cloneable {
     @Override
     public String toString() {
         return "'" + date.toString() + "'";
+    }
+
+    public boolean isNullData() {
+        return false;
+    }
+
+    public boolean isLongData() {
+        return false;
     }
 
 }

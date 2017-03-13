@@ -51,29 +51,34 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.stream.PacketOutputStream;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 
-public class BigDecimalParameter extends NotLongDataParameter implements Cloneable {
+public class BigDecimalParameter implements Cloneable, ParameterHolder {
     private BigDecimal bigDecimal;
 
     public BigDecimalParameter(final BigDecimal bigDecimal) {
         this.bigDecimal = bigDecimal;
     }
 
-    public void writeTo(final PacketOutputStream os) {
-        os.write(bigDecimal.toPlainString().getBytes());
-    }
-
-    public void writeUnsafeTo(final PacketOutputStream os) {
-        os.writeUnsafe(bigDecimal.toPlainString().getBytes());
+    public void writeTo(PacketOutputStream pos) throws IOException {
+        pos.write(bigDecimal.toPlainString().getBytes());
     }
 
     public long getApproximateTextProtocolLength() {
         return bigDecimal.toPlainString().getBytes().length;
     }
 
-    public void writeBinary(PacketOutputStream writeBuffer) {
-        writeBuffer.writeStringLength(bigDecimal.toPlainString());
+    /**
+     * Write data to socket in binary format.
+     *
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
+     */
+    public void writeBinary(PacketOutputStream pos) throws IOException {
+        String value = bigDecimal.toPlainString();
+        pos.writeFieldLength(value.length());
+        pos.write(value);
     }
 
     public MariaDbType getMariaDbType() {
@@ -83,5 +88,13 @@ public class BigDecimalParameter extends NotLongDataParameter implements Cloneab
     @Override
     public String toString() {
         return bigDecimal.toString();
+    }
+
+    public boolean isNullData() {
+        return false;
+    }
+
+    public boolean isLongData() {
+        return false;
     }
 }
