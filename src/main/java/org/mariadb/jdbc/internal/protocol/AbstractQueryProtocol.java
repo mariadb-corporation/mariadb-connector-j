@@ -1322,8 +1322,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * <li> MaxAllowedPacketException :
      *      without need of reconnect : thrown when driver don't send packet that would have been too big
      *      then error is not a CONNECTION_EXCEPTION</li>
-     * <li>packets size > max_allowed_packet (can be checked with writer.isAllowedCmdLength()). Need to reconnect</li>
-     * <li>unknown IO error -> throw a CONNECTION_EXCEPTION</li>
+     * <li>packets size is greater than max_allowed_packet (can be checked with writer.isAllowedCmdLength()). Need to reconnect</li>
+     * <li>unknown IO error throw a CONNECTION_EXCEPTION</li>
      * </ol>
      * @param initialException initial Io error
      * @return the resulting error to return to client.

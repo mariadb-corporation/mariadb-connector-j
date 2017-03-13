@@ -100,19 +100,25 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
      * Flush the internal buffer.
      *
      * Compression add a 7 header :
-     * <li>3 byte compression length</li>
-     * <li>1 byte compress sequence number</li>
-     * <li>3 bytes uncompress length</li>
+     * <ol>
+     *  <li>3 byte compression length</li>
+     *  <li>1 byte compress sequence number</li>
+     *  <li>3 bytes uncompress length</li>
+     * </ol>
      *
      * in case packet isn't compressed (last 3 bytes == 0):
-     * <li>3 byte uncompress length</li>
-     * <li>1 byte compress sequence number</li>
-     * <li>3 bytes with 0 value</li>
+     * <ol>
+     *  <li>3 byte uncompress length</li>
+     *  <li>1 byte compress sequence number</li>
+     *  <li>3 bytes with 0 value</li>
+     * </ol>
      *
      * Content correspond to standard content.
-     * <li>3 byte length</li>
-     * <li>1 byte sequence number (!= than compress sequence number)</li>
-     * <li>sub-content</li>
+     * <ol>
+     *  <li>3 byte length</li>
+     *  <li>1 byte sequence number (!= than compress sequence number)</li>
+     *  <li>sub-content</li>
+     * </ol>
      *
      * Problem is when standard content is bigger than 16mb :
      * content will not send 4byte standard header + 16mb content, since packet are limited to 16mb

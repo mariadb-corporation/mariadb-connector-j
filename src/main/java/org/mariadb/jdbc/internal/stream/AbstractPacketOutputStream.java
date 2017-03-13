@@ -57,6 +57,11 @@ import java.io.*;
 import java.util.Arrays;
 
 public abstract class AbstractPacketOutputStream extends FilterOutputStream implements PacketOutputStream {
+    private static final byte QUOTE = (byte)'\'';
+    private static final byte DBL_QUOTE = (byte)'"';
+    private static final byte ZERO_BYTE = (byte)'\0';
+    private static final byte SLASH = (byte)'\\';
+
     protected static Logger logger = LoggerFactory.getLogger(AbstractPacketOutputStream.class);
 
     protected byte[] buf;
@@ -120,14 +125,17 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     public void flush() throws IOException {
         flushBuffer(true);
         out.flush();
-        if (buf.length > DEFAULT_PACKET_LENGTH) buf = new byte[DEFAULT_PACKET_LENGTH];
+
+        // if buffer is big, and last query doesn't use at least half of it, resize buffer to default value
+        if (buf.length > DEFAULT_PACKET_LENGTH && cmdLength * 2 < buf.length) buf = new byte[DEFAULT_PACKET_LENGTH];
+
         if (cmdLength >= maxAllowedPacket) {
             throw new MaxAllowedPacketException("query size is >= to max_allowed_packet (" + maxAllowedPacket + ")", true);
         }
     }
 
     public boolean checkRemainingSize(int len) {
-        return buf.length - pos > len;
+        return getMaxPacketLength() - pos  > len;
     }
 
     /**
@@ -408,12 +416,11 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
 
         //not enough space remaining
         if (charsLength * 3 + 2 >= buf.length - pos) {
-
             byte[] arr = str.getBytes("UTF-8");
             if (escape) {
-                write('\'');
+                write(QUOTE);
                 writeBytesEscaped(arr, arr.length, noBackslashEscapes);
-                write('\'');
+                write(QUOTE);
             } else {
                 write(arr, 0, arr.length);
             }
@@ -429,18 +436,17 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         int charsOffset = 0;
         char currChar;
 
-
         //quick loop if only ASCII chars for faster escape
         if (escape) {
-            buf[pos++] = (byte) '\'';
+            buf[pos++] = QUOTE;
             if (noBackslashEscapes) {
                 for (; charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80; charsOffset++) {
-                    if (currChar == '\'') buf[pos++] = '\'';
+                    if (currChar == QUOTE) buf[pos++] = QUOTE;
                     buf[pos++] = (byte) currChar;
                 }
             } else {
                 for (; charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80; charsOffset++) {
-                    if (currChar == '\\' || currChar == '\\' || currChar == 0) buf[pos++] = '\\';
+                    if (currChar == SLASH || currChar == QUOTE || currChar == 0 || currChar == DBL_QUOTE) buf[pos++] = SLASH;
                     buf[pos++] = (byte) currChar;
                 }
             }
@@ -456,9 +462,9 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
             if (currChar < 0x80) {
                 if (escape) {
                     if (noBackslashEscapes) {
-                        if (currChar == '\'') buf[pos++] = '\'';
-                    } else if (currChar == '\\' || currChar == '\\' || currChar == 0) {
-                        buf[pos++] = '\\';
+                        if (currChar == QUOTE) buf[pos++] = QUOTE;
+                    } else if (currChar == SLASH || currChar == QUOTE || currChar == ZERO_BYTE || currChar == DBL_QUOTE) {
+                        buf[pos++] = SLASH;
                     }
                 }
                 buf[pos++] = (byte) currChar;
@@ -496,7 +502,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                 buf[pos++] = (byte) (0x80 | (currChar & 0x3f));
             }
         }
-        if (escape) buf[pos++] = (byte) '\'';
+        if (escape) buf[pos++] = QUOTE;
 
     }
 
@@ -607,8 +613,8 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
             if (len * 2 > buf.length - pos) {
                 if (noBackslashEscapes) {
                     for (int i = 0; i < len; i++) {
-                        if ('\'' == bytes[i]) {
-                            buf[pos++] = '\'';
+                        if (QUOTE == bytes[i]) {
+                            buf[pos++] = QUOTE;
                             if (buf.length <= pos) flushBuffer(false);
                         }
                         buf[pos++] = bytes[i];
@@ -616,10 +622,10 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                     }
                 } else {
                     for (int i = 0; i < len; i++) {
-                        if (bytes[i]  == '\''
-                                || bytes[i]  == '\\'
-                                || bytes[i]  == '"'
-                                || bytes[i]  == 0) {
+                        if (bytes[i]  == QUOTE
+                                || bytes[i]  == SLASH
+                                || bytes[i]  == DBL_QUOTE
+                                || bytes[i]  == ZERO_BYTE) {
                             len -= 1;
                             buf[pos++] = '\\';
                             if (buf.length <= pos) flushBuffer(false);
@@ -635,15 +641,15 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         //sure to have enough place
         if (noBackslashEscapes) {
             for (int i = 0; i < len; i++) {
-                if ('\'' == bytes[i]) buf[pos++] = '\'';
+                if (QUOTE == bytes[i]) buf[pos++] = QUOTE;
                 buf[pos++] = bytes[i];
             }
         } else {
             for (int i = 0; i < len; i++) {
-                if (bytes[i]  == '\''
-                        || bytes[i]  == '\\'
+                if (bytes[i]  == QUOTE
+                        || bytes[i]  == SLASH
                         || bytes[i]  == '"'
-                        || bytes[i]  == 0) buf[pos++] = '\\'; //add escape slash
+                        || bytes[i]  == ZERO_BYTE) buf[pos++] = SLASH; //add escape slash
                 buf[pos++] = bytes[i];
             }
         }

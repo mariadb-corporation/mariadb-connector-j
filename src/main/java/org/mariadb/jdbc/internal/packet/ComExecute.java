@@ -174,6 +174,7 @@ public class ComExecute {
                     }
                     pos.write(queryParts.get(paramCount + 2));
                     currentIndex++;
+                    break;
                 }
             }
 
@@ -230,6 +231,7 @@ public class ComExecute {
                         pos.write(queryParts.get(i + 2));
                     }
                     currentIndex++;
+                    break;
                 }
             }
             pos.write(queryParts.get(paramCount + 2));
