@@ -271,7 +271,7 @@ public class PreparedStatementTest extends BaseTest {
         ResultSet rs = statement.executeQuery("select @@max_allowed_packet");
         rs.next();
         int maxAllowedPacket = rs.getInt(1);
-        if (maxAllowedPacket < 21000000) { //to avoid OutOfMemory
+        if (maxAllowedPacket < 21_000_000) { //to avoid OutOfMemory
             String query = "INSERT INTO PreparedStatementTest1 VALUES (null, ?)"
                     + (notRewritable ? " ON DUPLICATE KEY UPDATE id=?" : "");
             //to have query exacting maxAllowedPacket size :

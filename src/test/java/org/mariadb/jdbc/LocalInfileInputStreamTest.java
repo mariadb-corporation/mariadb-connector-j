@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -212,6 +213,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
     @Test
     public void test2xBigLocalInfileInputStream() throws Exception {
+        Assume.assumeTrue(checkMaxAllowedPacketMore40m("test2xBigLocalInfileInputStream"));
         checkBigLocalInfile(16777216 * 2);
     }
 

@@ -1091,19 +1091,19 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      */
     public void readLocalInfilePacket(Buffer buffer, Results results) throws QueryException {
 
+        int seq = 2;
         buffer.getLengthEncodedBinary(); //field pos
         String fileName = buffer.readString(StandardCharsets.UTF_8);
         try {
             // Server request the local file (LOCAL DATA LOCAL INFILE)
             // We do accept general URLs, too. If the localInfileStream is
             // set, use that.
-            int seq = 2;
             InputStream is;
-            writer.startPacket(2);
+            writer.startPacket(seq);
             if (localInfileInputStream == null) {
 
                 if (!getUrlParser().getOptions().allowLocalInfile) {
-                    writer.writeEmptyPacket(seq++);
+                    writer.writeEmptyPacket();
                     packetFetcher.getReusableBuffer();
                     throw new QueryException(
                             "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true",
@@ -1114,7 +1114,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 ServiceLoader<LocalInfileInterceptor> loader = ServiceLoader.load(LocalInfileInterceptor.class);
                 for (LocalInfileInterceptor interceptor : loader) {
                     if (!interceptor.validate(fileName)) {
-                        writer.writeEmptyPacket(seq++);
+                        writer.writeEmptyPacket();
                         packetFetcher.getReusableBuffer();
                         throw new QueryException("LOCAL DATA LOCAL INFILE request to send local file named \""
                                 + fileName + "\" not validated by interceptor \"" + interceptor.getClass().getName()
@@ -1129,7 +1129,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     try {
                         is = new FileInputStream(fileName);
                     } catch (FileNotFoundException f) {
-                        writer.writeEmptyPacket(seq++);
+                        writer.writeEmptyPacket();
                         packetFetcher.getReusableBuffer();
                         throw new QueryException("Could not send file : " + f.getMessage(), -1, "22000", f);
                     }
@@ -1144,11 +1144,20 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 writer.write(is, false, false);
                 writer.flush();
                 writer.writeEmptyPacket();
+            } catch (MaxAllowedPacketException ioe) {
+                //particular case : error has been throw before sending packets.
+                //must finished exchanges before throwing error
+                writer.writeEmptyPacket(seq++);
+                packetFetcher.getReusableBuffer();
+                throw handleIoException(ioe);
 
+            } catch (IOException ioe) {
+                throw handleIoException(ioe);
             } finally {
                 is.close();
             }
             getResult(results);
+
         } catch (IOException e) {
             throw handleIoException(e);
         }
@@ -1308,13 +1317,25 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Handle IoException (reconnect if Exception is due to having send too much data,
      * making server close the connection.
      *
+     * There is 3 kind of IOException :
+     * <ol>
+     * <li> MaxAllowedPacketException :
+     *      without need of reconnect : thrown when driver don't send packet that would have been too big
+     *      then error is not a CONNECTION_EXCEPTION</li>
+     * <li>packets size > max_allowed_packet (can be checked with writer.isAllowedCmdLength()). Need to reconnect</li>
+     * <li>unknown IO error -> throw a CONNECTION_EXCEPTION</li>
+     * </ol>
      * @param initialException initial Io error
      * @return the resulting error to return to client.
      */
     public QueryException handleIoException(IOException initialException) {
         boolean mustReconnect;
+        boolean driverPreventError = false;
+
+
         if (MaxAllowedPacketException.class.isInstance(initialException)) {
             mustReconnect = ((MaxAllowedPacketException) initialException).isMustReconnect();
+            driverPreventError = !mustReconnect;
         } else {
             mustReconnect = !writer.isAllowedCmdLength();
         }
@@ -1338,7 +1359,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     + writer.getMaxAllowedPacket() + ")", -1, UNDEFINED_SQLSTATE.getSqlState(), initialException);
         }
 
-        return new QueryException("Could not send query: " + initialException.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), initialException);
+        return new QueryException("Could not send query: " + initialException.getMessage(), -1,
+                driverPreventError ? UNDEFINED_SQLSTATE : CONNECTION_EXCEPTION, initialException);
 
     }
 

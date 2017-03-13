@@ -121,7 +121,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         flushBuffer(true);
         out.flush();
         if (buf.length > DEFAULT_PACKET_LENGTH) buf = new byte[DEFAULT_PACKET_LENGTH];
-        if (cmdLength > maxAllowedPacket) {
+        if (cmdLength >= maxAllowedPacket) {
             throw new MaxAllowedPacketException("query size is >= to max_allowed_packet (" + maxAllowedPacket + ")", true);
         }
     }
@@ -139,14 +139,15 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
      * @throws MaxAllowedPacketException if query has not to be send.
      */
     public void checkMaxAllowedLength(int length) throws MaxAllowedPacketException {
-        if (cmdLength + length > maxAllowedPacket && cmdLength == 0) { //launch exception only if no packet has been send.
+        if (cmdLength + length >= maxAllowedPacket && cmdLength == 0) {
+            //launch exception only if no packet has been send.
             throw new MaxAllowedPacketException("query size is >= to max_allowed_packet (" + maxAllowedPacket + ")", false);
         }
         cmdLength += length;
     }
 
     public boolean isAllowedCmdLength() {
-        return cmdLength <= maxAllowedPacket;
+        return cmdLength < maxAllowedPacket;
     }
 
     public OutputStream getOutputStream() {

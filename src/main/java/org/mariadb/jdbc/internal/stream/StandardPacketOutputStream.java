@@ -93,7 +93,7 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
             buf[1] = (byte) ((pos - 4) >>> 8);
             buf[2] = (byte) ((pos - 4) >>> 16);
             buf[3] = (byte) this.seqNo++;
-            checkMaxAllowedLength(pos);
+            checkMaxAllowedLength(pos - 4);
             out.write(buf, 0, pos);
             if (logger.isTraceEnabled()) {
                 logger.trace("send packet : content length:" + (pos - 4)
