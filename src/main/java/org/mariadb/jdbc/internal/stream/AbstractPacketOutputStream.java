@@ -62,6 +62,10 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     private static final byte ZERO_BYTE = (byte)'\0';
     private static final byte SLASH = (byte)'\\';
 
+    private static final int SMALL_BUFFER_SIZE = 8192;
+    private static final int MEDIUM_BUFFER_SIZE = 128 * 1024;
+    private static final int LARGE_BUFFER_SIZE = 1024 * 1024;
+
     protected static Logger logger = LoggerFactory.getLogger(AbstractPacketOutputStream.class);
 
     protected byte[] buf;
@@ -70,7 +74,6 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     protected int maxQuerySizeToLog;
     protected long cmdLength;
 
-    private static final int DEFAULT_PACKET_LENGTH = 8192;
     protected int seqNo = 0;
 
     /**
@@ -81,7 +84,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
      */
     public AbstractPacketOutputStream(OutputStream out, int maxQuerySizeToLog) {
         super(out);
-        buf = new byte[DEFAULT_PACKET_LENGTH];
+        buf = new byte[SMALL_BUFFER_SIZE];
         this.maxQuerySizeToLog = maxQuerySizeToLog;
         cmdLength = 0;
     }
@@ -94,9 +97,33 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
 
     protected abstract void flushBuffer(boolean commandEnd) throws IOException;
 
+    /**
+     * Buffer growing use 4 size only to avoid creating/copying that are expensive operations.
+     * possible size
+     * <ol>
+     *     <li>SMALL_BUFFER_SIZE  = 8k (default)</li>
+     *     <li>MEDIUM_BUFFER_SIZE = 128k</li>
+     *     <li>LARGE_BUFFER_SIZE  = 1M</li>
+     *     <li>getMaxPacketLength = 16M (+ 4 is using no compression)</li>
+     * </ol>
+     *
+     * @param len
+     */
     private void growBuffer(int len) {
-        int newCapacity = Math.min( getMaxPacketLength(),
-                Math.max( buf.length + len, (int) ((buf.length > 4194304) ? buf.length * 1.5f : buf.length * 4)));
+        int bufferLength = buf.length;
+        int newCapacity;
+        if (bufferLength == SMALL_BUFFER_SIZE) {
+            if (len + pos < MEDIUM_BUFFER_SIZE) {
+                newCapacity = MEDIUM_BUFFER_SIZE;
+            } else if (len + pos < LARGE_BUFFER_SIZE) {
+                newCapacity = LARGE_BUFFER_SIZE;
+            } else newCapacity = getMaxPacketLength();
+        } else if (bufferLength == MEDIUM_BUFFER_SIZE) {
+            if (len + pos < LARGE_BUFFER_SIZE) {
+                newCapacity = LARGE_BUFFER_SIZE;
+            } else newCapacity = getMaxPacketLength();
+        } else newCapacity = getMaxPacketLength();
+
         byte[] newBuf = new byte[newCapacity];
         System.arraycopy(buf, 0, newBuf, 0, pos);
         buf = newBuf;
@@ -127,7 +154,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         out.flush();
 
         // if buffer is big, and last query doesn't use at least half of it, resize buffer to default value
-        if (buf.length > DEFAULT_PACKET_LENGTH && cmdLength * 2 < buf.length) buf = new byte[DEFAULT_PACKET_LENGTH];
+        if (buf.length > SMALL_BUFFER_SIZE && cmdLength * 2 < buf.length) buf = new byte[SMALL_BUFFER_SIZE];
 
         if (cmdLength >= maxAllowedPacket) {
             throw new MaxAllowedPacketException("query size is >= to max_allowed_packet (" + maxAllowedPacket + ")", true);
