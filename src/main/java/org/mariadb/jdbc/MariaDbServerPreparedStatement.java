@@ -120,11 +120,12 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
     /**
      * Clone statement.
      *
+     * @param connection connection
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public MariaDbServerPreparedStatement clone() throws CloneNotSupportedException {
-        MariaDbServerPreparedStatement clone = (MariaDbServerPreparedStatement) super.clone();
+    public MariaDbServerPreparedStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        MariaDbServerPreparedStatement clone = (MariaDbServerPreparedStatement) super.clone(connection);
         clone.metadata = metadata;
         clone.parameterMetaData = parameterMetaData;
         clone.queryParameters = new ArrayList<>();
@@ -159,7 +160,6 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
         parameterCount = serverPrepareResult.getParameters().length;
         metadata = new MariaDbResultSetMetaData(serverPrepareResult.getColumns(), protocol.getDataTypeMappingFlags(), returnTableAlias);
         parameterMetaData = new MariaDbParameterMetaData(serverPrepareResult.getParameters());
-        sql = null;
     }
 
     @Override

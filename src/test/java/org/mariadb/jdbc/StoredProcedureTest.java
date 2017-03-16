@@ -1196,4 +1196,61 @@ public class StoredProcedureTest extends BaseTest {
         assertArrayEquals("ox".getBytes(), ((byte[]) cstmt2.getObject(1)));
 
     }
+
+    @Test
+    public void procedureCaching() throws SQLException {
+        createProcedure("cacheCall", "(IN inValue int)\n"
+                + "BEGIN\n"
+                + " /*do nothing*/ \n"
+                + "END");
+
+        CallableStatement st = sharedConnection.prepareCall("{call testj.cacheCall(?)}");
+        st.setInt(1, 2);
+        st.execute();
+
+        try (CallableStatement st2 = sharedConnection.prepareCall("{call testj.cacheCall(?)}")) {
+            st2.setInt(1, 2);
+            st2.execute();
+            st.close();
+
+            try (CallableStatement st3 = sharedConnection.prepareCall("{call testj.cacheCall(?)}")) {
+                st3.setInt(1, 2);
+                st3.execute();
+                st3.execute();
+            }
+        }
+
+        try (CallableStatement st3 = sharedConnection.prepareCall("{?=call pow(?,?)}")) {
+            st3.setInt(2, 2);
+            st3.setInt(3, 2);
+            st3.execute();
+        }
+    }
+
+    @Test
+    public void functionCaching() throws SQLException {
+        createFunction("hello2", "()\n"
+                + "    RETURNS CHAR(50) DETERMINISTIC\n"
+                + "    RETURN CONCAT('Hello, !');");
+        CallableStatement st = sharedConnection.prepareCall("{? = call hello2()}");
+        st.registerOutParameter(1, Types.INTEGER);
+        assertFalse(st.execute());
+
+        try (CallableStatement st2 = sharedConnection.prepareCall("{? = call hello2()}")) {
+            st2.registerOutParameter(1, Types.INTEGER);
+            assertFalse(st2.execute());
+
+            st.close();
+
+            try (CallableStatement st3 = sharedConnection.prepareCall("{? = call hello2()}")) {
+                st3.registerOutParameter(1, Types.INTEGER);
+                assertFalse(st3.execute());
+            }
+        }
+
+        try (CallableStatement st3 = sharedConnection.prepareCall("{? = call hello2()}")) {
+            st3.registerOutParameter(1, Types.INTEGER);
+            assertFalse(st3.execute());
+        }
+    }
 }

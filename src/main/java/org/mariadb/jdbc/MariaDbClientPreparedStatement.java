@@ -62,7 +62,8 @@ import java.sql.*;
 import java.util.*;
 
 
-public class MariaDbClientPreparedStatement extends AbstractPrepareStatement implements Cloneable {
+public class MariaDbClientPreparedStatement extends AbstractPrepareStatement {
+
     private static Logger logger = LoggerFactory.getLogger(MariaDbClientPreparedStatement.class);
     private String sqlQuery;
     private ClientPrepareResult prepareResult;
@@ -105,12 +106,12 @@ public class MariaDbClientPreparedStatement extends AbstractPrepareStatement imp
 
     /**
      * Clone statement.
-     *
+     * @param connection connection
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public MariaDbClientPreparedStatement clone() throws CloneNotSupportedException {
-        MariaDbClientPreparedStatement clone = (MariaDbClientPreparedStatement) super.clone();
+    public MariaDbClientPreparedStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        MariaDbClientPreparedStatement clone = (MariaDbClientPreparedStatement) super.clone(connection);
         clone.sqlQuery = sqlQuery;
         clone.prepareResult = prepareResult;
         clone.parameters = new ParameterHolder[prepareResult.getParamCount()];

@@ -87,11 +87,12 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
     /**
      * Clone statement.
      *
+     * @param connection connection
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public MariaDbFunctionStatement clone() throws CloneNotSupportedException {
-        MariaDbFunctionStatement clone = (MariaDbFunctionStatement) super.clone();
+    public MariaDbFunctionStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        MariaDbFunctionStatement clone = (MariaDbFunctionStatement) super.clone(connection);
         clone.outputResultSet = null;
         return clone;
     }

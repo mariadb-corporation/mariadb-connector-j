@@ -481,11 +481,12 @@ public final class MariaDbConnection implements Connection {
 
         if (database != null && options.cacheCallableStmts) {
             if (callableStatementCache.containsKey(new CallableStatementCacheKey(database, query))) {
-                //Clone to avoid side effect like having some open resultset.
+
+                //Clone to avoid side effect like having some open resultSet.
                 try {
                     CallableStatement callableStatement = callableStatementCache.get(new CallableStatementCacheKey(getDatabase(), query));
                     if (callableStatement != null) {
-                        return ((CloneableCallableStatement) callableStatement).clone();
+                        return ((CloneableCallableStatement) callableStatement).clone(this);
                     }
                 } catch (CloneNotSupportedException cloneNotSupportedException) {
                     cloneNotSupportedException.printStackTrace();

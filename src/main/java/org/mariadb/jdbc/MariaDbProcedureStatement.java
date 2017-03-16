@@ -111,12 +111,12 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
 
     /**
      * Clone statement.
-     *
+     * @param connection connection
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public MariaDbProcedureStatement clone() throws CloneNotSupportedException {
-        MariaDbProcedureStatement clone = (MariaDbProcedureStatement) super.clone();
+    public MariaDbProcedureStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        MariaDbProcedureStatement clone = (MariaDbProcedureStatement) super.clone(connection);
         clone.outputResultSet = null;
         return clone;
     }

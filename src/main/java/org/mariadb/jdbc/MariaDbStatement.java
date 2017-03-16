@@ -119,14 +119,14 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     /**
      * Clone statement.
-     *
+     * @param connection connection
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public MariaDbStatement clone() throws CloneNotSupportedException {
+    public MariaDbStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
         MariaDbStatement clone = (MariaDbStatement) super.clone();
         clone.connection = connection;
-        clone.protocol = protocol;
+        clone.protocol = connection.getProtocol();
         clone.timerTaskFuture = null;
         clone.batchQueries = new ArrayList<>();
         clone.results = null;

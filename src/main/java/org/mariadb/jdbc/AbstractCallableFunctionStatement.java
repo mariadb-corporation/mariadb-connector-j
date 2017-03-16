@@ -64,7 +64,7 @@ import java.sql.*;
 import java.util.Calendar;
 import java.util.Map;
 
-public abstract class AbstractCallableFunctionStatement extends MariaDbClientPreparedStatement implements CallableStatement, Cloneable {
+public abstract class AbstractCallableFunctionStatement extends MariaDbClientPreparedStatement implements CallableStatement {
     /**
      * Information about parameters, merely from registerOutputParameter() and setXXX() calls.
      */
@@ -86,13 +86,16 @@ public abstract class AbstractCallableFunctionStatement extends MariaDbClientPre
     /**
      * Clone data.
      *
+     * @param connection  connection
      * @return Cloned .
      * @throws CloneNotSupportedException if any error occur.
      */
-    public AbstractCallableFunctionStatement clone() throws CloneNotSupportedException {
-        AbstractCallableFunctionStatement clone = (AbstractCallableFunctionStatement) super.clone();
+    public AbstractCallableFunctionStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        AbstractCallableFunctionStatement clone = (AbstractCallableFunctionStatement) super.clone(connection);
         clone.params = params;
         clone.parameterMetadata = parameterMetadata;
+        clone.connection = connection;
+
         return clone;
     }
 
