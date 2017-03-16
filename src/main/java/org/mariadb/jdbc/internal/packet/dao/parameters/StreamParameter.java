@@ -83,7 +83,7 @@ public class StreamParameter implements Cloneable, ParameterHolder {
      * @throws IOException if any error occur when reader stream
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
-        pos.write(QUOTE);
+        pos.write(BINARY_INTRODUCER);
         if (length == Long.MAX_VALUE) {
             pos.write(is, true, noBackslashEscapes);
         } else {

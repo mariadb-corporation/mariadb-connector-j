@@ -107,7 +107,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
      *     <li>getMaxPacketLength = 16M (+ 4 is using no compression)</li>
      * </ol>
      *
-     * @param len
+     * @param len length to add
      */
     private void growBuffer(int len) {
         int bufferLength = buf.length;
