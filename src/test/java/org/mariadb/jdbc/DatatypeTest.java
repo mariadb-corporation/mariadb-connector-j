@@ -186,34 +186,22 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void datatypes2() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection("&tinyInt1isBit=0&yearIsDateType=0");
+        try (Connection connection = setConnection("&tinyInt1isBit=0&yearIsDateType=0")) {
             datatypes(connection, false, false);
-        } finally {
-            connection.close();
         }
     }
 
     @Test
     public void datatypes3() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection("&tinyInt1isBit=1&yearIsDateType=0");
+        try (Connection connection = setConnection("&tinyInt1isBit=1&yearIsDateType=0")) {
             datatypes(connection, true, false);
-        } finally {
-            connection.close();
         }
     }
 
     @Test
     public void datatypes4() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection("&tinyInt1isBit=0&yearIsDateType=1");
+        try (Connection connection = setConnection("&tinyInt1isBit=0&yearIsDateType=1")) {
             datatypes(connection, false, true);
-        } finally {
-            connection.close();
         }
     }
 

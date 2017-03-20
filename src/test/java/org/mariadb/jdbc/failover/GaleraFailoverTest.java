@@ -44,15 +44,15 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
         Assume.assumeTrue(initialGaleraUrl.contains("failover"));
         Map<String, MutableInt> connectionMap = new HashMap<>();
         for (int i = 0; i < 20; i++) {
-            Connection connection = getNewConnection(false);
-            int serverId = getServerId(connection);
-            MutableInt count = connectionMap.get(String.valueOf(serverId));
-            if (count == null) {
-                connectionMap.put(String.valueOf(serverId), new MutableInt());
-            } else {
-                count.increment();
+            try (Connection connection = getNewConnection(false)) {
+                int serverId = getServerId(connection);
+                MutableInt count = connectionMap.get(String.valueOf(serverId));
+                if (count == null) {
+                    connectionMap.put(String.valueOf(serverId), new MutableInt());
+                } else {
+                    count.increment();
+                }
             }
-            connection.close();
         }
 
         Assert.assertTrue(connectionMap.size() >= 2);

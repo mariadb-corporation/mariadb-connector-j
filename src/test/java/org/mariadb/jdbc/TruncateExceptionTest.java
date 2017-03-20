@@ -52,9 +52,9 @@ public class TruncateExceptionTest extends BaseTest {
      */
     public void queryTruncation(boolean truncation) throws SQLException {
         try (Connection connection = setConnection("&jdbcCompliantTruncation=" + truncation)) {
-            Statement stmt = connection.createStatement();
-            stmt.execute("INSERT INTO TruncateExceptionTest (id) VALUES (999)");
-            stmt.close();
+            try (Statement stmt = connection.createStatement()) {
+                stmt.execute("INSERT INTO TruncateExceptionTest (id) VALUES (999)");
+            }
         }
     }
 

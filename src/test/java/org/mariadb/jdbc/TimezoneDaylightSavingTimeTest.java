@@ -33,9 +33,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     @BeforeClass()
     public static void initClass() throws SQLException {
         if (testSingleHost) {
-            Statement st = null;
-            try {
-                st = sharedConnection.createStatement();
+            try (Statement st = sharedConnection.createStatement()) {
                 ResultSet rs = st.executeQuery("SELECT count(*) from mysql.time_zone_name "
                         + "where Name in ('Europe/Paris','Canada/Atlantic')");
                 rs.next();
@@ -48,11 +46,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
                     ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
                     importSql(sharedConnection, classLoader.getResourceAsStream("timezoneTest.sql"));
                     st.execute("USE " + currentDatabase);
-                }
-
-            } finally {
-                if (st != null) {
-                    st.close();
                 }
             }
 
@@ -109,9 +102,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     public static void importSql(Connection conn, InputStream in) throws SQLException {
         Scanner scanner = new Scanner(in);
         scanner.useDelimiter("(;(\r)?\n)|(--\n)");
-        Statement st = null;
-        try {
-            st = conn.createStatement();
+        try (Statement st = conn.createStatement()) {
             while (scanner.hasNext()) {
                 String line = scanner.next();
                 if (line.startsWith("/*!") && line.endsWith("*/")) {
@@ -121,10 +112,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
                 if (line.trim().length() > 0) {
                     st.execute(line);
                 }
-            }
-        } finally {
-            if (st != null) {
-                st.close();
             }
         }
     }
@@ -164,9 +151,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     public void testTimeStampUtc() throws SQLException {
 
         TimeZone.setDefault(parisTimeZone);
-        Connection connection = null;
-        try {
-            connection = setConnection("&serverTimezone=UTC&useServerPrepStmts=true");
+        try (Connection connection = setConnection("&serverTimezone=UTC&useServerPrepStmts=true")) {
             setSessionTimeZone(connection, "+00:00");
             //timestamp timezone to parisTimeZone like server
             Timestamp currentTimeParis = new Timestamp(System.currentTimeMillis());
@@ -176,17 +161,13 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             rs.next();
             Timestamp t1 = rs.getTimestamp(1);
             assertEquals(t1, currentTimeParis);
-        } finally {
-            connection.close();
         }
     }
 
     @Test
     public void testTimeStampUtcNow() throws SQLException {
         TimeZone.setDefault(parisTimeZone);
-        Connection connection = null;
-        try {
-            connection = setConnection("&serverTimezone=UTC&useServerPrepStmts=true");
+        try (Connection connection = setConnection("&serverTimezone=UTC&useServerPrepStmts=true")) {
             TimeZone.setDefault(parisTimeZone);
             setSessionTimeZone(connection, "+00:00");
             //timestamp timezone to parisTimeZone like server
@@ -198,8 +179,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             long timeDifference = currentTimeParis.getTime() - offset - rs.getTimestamp(1).getTime();
 
             assertTrue(timeDifference < 1000); // must have less than one second difference
-        } finally {
-            connection.close();
         }
     }
 
@@ -208,10 +187,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     public void testDifferentTime() throws SQLException {
         Assume.assumeTrue(doPrecisionTest);
         TimeZone.setDefault(parisTimeZone);
-        Connection connection = null;
-        try {
-            connection = setConnection();
-
+        try (Connection connection = setConnection()) {
             PreparedStatement st = connection.prepareStatement("INSERT INTO timeZoneTime (tt) VALUES (?)");
             st.setString(1, "90:00:00.123456");
             st.addBatch();
@@ -265,8 +241,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             assertEquals(rs.getString(1), "00:00:01.000000");
             Time tt = rs.getTime(1);
             assertEquals(tt.getTime(), (long) 1000 - offset);
-        } finally {
-            connection.close();
         }
     }
 
@@ -276,9 +250,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         Assume.assumeTrue(doPrecisionTest);
 
         TimeZone.setDefault(parisTimeZone);
-        Connection connection = null;
-        try {
-            connection = setConnection("&serverTimezone=UTC");
+        try (Connection connection = setConnection("&serverTimezone=UTC")) {
             setSessionTimeZone(connection, "+00:00");
             Calendar initTime = Calendar.getInstance(TimeZone.getTimeZone("Europe/Paris"));
             initTime.clear();
@@ -301,9 +273,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             assertEquals(rs.getTime(1), timeParis);
             assertEquals(rs.getTime(2).getTime(), timeParis2.getTime());
             assertEquals(rs.getTime(2), timeParis2);
-
-        } finally {
-            connection.close();
         }
     }
 
@@ -311,9 +280,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     @Test
     public void testTimeUtcNow() throws SQLException {
         TimeZone.setDefault(parisTimeZone);
-        Connection connection = null;
-        try {
-            connection = setConnection("&serverTimezone=UTC");
+        try (Connection connection = setConnection("&serverTimezone=UTC")) {
             setSessionTimeZone(connection, "+00:00");
             //time timezone to parisTimeZone like server
             Time currentTimeParis = new Time(System.currentTimeMillis());
@@ -324,17 +291,12 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             long timeDifference = currentTimeParis.getTime() - offset - rs.getTimestamp(1).getTime();
 
             assertTrue(timeDifference < 1000); // must have less than one second difference
-        } finally {
-            connection.close();
         }
     }
 
     @Test
     public void testTimeOffsetNowUseServer() throws SQLException {
-
-        Connection connection = null;
-        try {
-            connection = setConnection("&useLegacyDatetimeCode=false&serverTimezone=+5:00");
+        try (Connection connection = setConnection("&useLegacyDatetimeCode=false&serverTimezone=+5:00")) {
             setSessionTimeZone(connection, "+5:00");
             //timestamp timezone to parisTimeZone like server
             Time currentTimeParis = new Time(System.currentTimeMillis());
@@ -344,18 +306,12 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             Timestamp nowServer = rs.getTimestamp(1);
             long timeDifference = currentTimeParis.getTime() - nowServer.getTime();
             assertTrue(timeDifference < 1000); // must have less than one second difference
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
     @Test
     public void testDifferentTimeZoneServer() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = setConnection("&serverTimezone=UTC");
+        try (Connection connection = setConnection("&serverTimezone=UTC")) {
             setSessionTimeZone(sharedConnection, "+00:00");
             //timestamp timezone to parisTimeZone like server
             Time currentTimeParis = new Time(System.currentTimeMillis());
@@ -365,10 +321,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             int offset = parisTimeZone.getOffset(System.currentTimeMillis());
             long timeDifference = currentTimeParis.getTime() - offset - rs.getTimestamp(1).getTime();
             assertTrue(timeDifference < 1000); // must have less than one second difference
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
@@ -402,9 +354,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         Assume.assumeTrue(doPrecisionTest);
         Assume.assumeTrue(hasSuperPrivilege("testDayLight") && !sharedIsRewrite());
         TimeZone.setDefault(parisTimeZone);
-        Connection connection = null;
-        try {
-            connection = setConnection("&useLegacyDatetimeCode=" + legacy + "&serverTimezone=Canada/Atlantic");
+        try (Connection connection = setConnection("&useLegacyDatetimeCode=" + legacy
+                + "&serverTimezone=Canada/Atlantic")) {
             setSessionTimeZone(connection, "Canada/Atlantic");
 
             createTable("daylight", "id int, t1 TIMESTAMP(6), t2 TIME(6), t3 DATETIME(6) , t4 DATE");
@@ -448,11 +399,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
             checkResult(true, connection);
             checkResult(false, connection);
-
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
@@ -513,9 +459,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     public void testDayLightNotUtC() throws SQLException {
         Assume.assumeTrue(doPrecisionTest && hasSuperPrivilege("testDayLight") && !sharedIsRewrite());
         TimeZone.setDefault(canadaTimeZone);
-        Connection connection = null;
-        try {
-            connection = setConnection("&serverTimezone=Europe/Paris");
+        try (Connection connection = setConnection("&serverTimezone=Europe/Paris")) {
             Statement st = connection.createStatement();
             String serverTimeZone = null;
             ResultSet rs = st.executeQuery("SHOW GLOBAL VARIABLES LIKE 'time_zone';");
@@ -573,8 +517,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
                     st.executeQuery("SET GLOBAL time_zone = '" + serverTimeZone + "'");
                 }
             }
-        } finally {
-            connection.close();
         }
     }
 
@@ -583,10 +525,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     public void testDayLightWithClientTimeZoneDifferent() throws SQLException {
         Assume.assumeTrue(doPrecisionTest && !sharedIsRewrite());
         TimeZone.setDefault(parisTimeZone);
-        Connection connection = null;
-        try {
-            connection = setConnection("&serverTimezone=UTC");
-
+        try (Connection connection = setConnection("&serverTimezone=UTC")) {
             Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
             quarterBeforeChangingHour.clear();
             quarterBeforeChangingHour.set(2015, 2, 29, 0, 45, 0);
@@ -639,8 +578,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             rs.next();
             timeAfter = dateFormatISO8601.format(rs.getTimestamp(2));
             assertEquals(timeAfter, "2015-03-29T03:15:00+0200");
-        } finally {
-            connection.close();
         }
     }
 
@@ -649,10 +586,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     public void testNoMysqlDayLightCompatibility() throws SQLException {
         Assume.assumeTrue(hasSuperPrivilege("testMysqlDayLightCompatibility"));
         TimeZone.setDefault(parisTimeZone);
-        Connection connection = null;
-        try {
-            connection = setConnection("&maximizeMysqlCompatibility=false&useLegacyDatetimeCode=false"
-                    + "&serverTimezone=Canada/Atlantic");
+        try (Connection connection = setConnection("&maximizeMysqlCompatibility=false&useLegacyDatetimeCode=false"
+                + "&serverTimezone=Canada/Atlantic")) {
             setSessionTimeZone(connection, "Canada/Atlantic");
             Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
             quarterBeforeChangingHour.clear();
@@ -677,10 +612,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             java.util.Date dt = new Date(2015 - 1900, 2, 29);
             assertEquals(t4, dt);
             assertEquals(rs.getString(1), "2015-03-29");
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
 
     }

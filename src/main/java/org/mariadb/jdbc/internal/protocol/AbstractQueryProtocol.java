@@ -730,12 +730,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      */
     @Override
     public void cancelCurrentQuery() throws QueryException, IOException {
-        MasterProtocol copiedProtocol = new MasterProtocol(urlParser, new ReentrantLock());
-        copiedProtocol.setHostAddress(getHostAddress());
-        copiedProtocol.connect();
-        //no lock, because there is already a query running that possessed the lock.
-        copiedProtocol.executeQuery("KILL QUERY " + serverThreadId);
-        copiedProtocol.close();
+        try (MasterProtocol copiedProtocol = new MasterProtocol(urlParser, new ReentrantLock())) {
+            copiedProtocol.setHostAddress(getHostAddress());
+            copiedProtocol.connect();
+            //no lock, because there is already a query running that possessed the lock.
+            copiedProtocol.executeQuery("KILL QUERY " + serverThreadId);
+        }
     }
 
     @Override

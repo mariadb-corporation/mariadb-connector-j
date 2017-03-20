@@ -25,32 +25,29 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
     @Test
     public void testLocalInfileInputStream() throws SQLException {
-        Statement st = sharedConnection.createStatement();
+        try (Statement st = sharedConnection.createStatement()) {
+            // Build a tab-separated record file
+            StringBuilder builder = new StringBuilder();
+            builder.append("1\thello\n");
+            builder.append("2\tworld\n");
 
+            InputStream inputStream = new ByteArrayInputStream(builder.toString().getBytes());
+            ((MariaDbStatement) st).setLocalInfileInputStream(inputStream);
 
-        // Build a tab-separated record file
-        StringBuilder builder = new StringBuilder();
-        builder.append("1\thello\n");
-        builder.append("2\tworld\n");
+            st.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest (id, test)");
 
-        InputStream inputStream = new ByteArrayInputStream(builder.toString().getBytes());
-        ((MariaDbStatement) st).setLocalInfileInputStream(inputStream);
+            ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM LocalInfileInputStreamTest");
+            boolean next = rs.next();
+            assertTrue(next);
 
-        st.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest (id, test)");
+            int count = rs.getInt(1);
+            assertEquals(2, count);
 
-        ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM LocalInfileInputStreamTest");
-        boolean next = rs.next();
-        assertTrue(next);
+            rs = st.executeQuery("SELECT * FROM LocalInfileInputStreamTest");
 
-        int count = rs.getInt(1);
-        assertEquals(2, count);
-
-        rs = st.executeQuery("SELECT * FROM LocalInfileInputStreamTest");
-
-        validateRecord(rs, 1, "hello");
-        validateRecord(rs, 2, "world");
-
-        st.close();
+            validateRecord(rs, 1, "hello");
+            validateRecord(rs, 2, "world");
+        }
     }
 
     @Test
@@ -59,9 +56,9 @@ public class LocalInfileInputStreamTest extends BaseTest {
         StringBuilder builder = new StringBuilder();
         builder.append("1,hello\n");
         builder.append("2,world\n");
-        BufferedWriter bw = new BufferedWriter(new FileWriter(temp));
-        bw.write(builder.toString());
-        bw.close();
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
+            bw.write(builder.toString());
+        }
         testLocalInfile(temp.getAbsolutePath().replace("\\", "/"));
     }
 
@@ -71,9 +68,9 @@ public class LocalInfileInputStreamTest extends BaseTest {
         StringBuilder builder = new StringBuilder();
         builder.append("1,hello\n");
         builder.append("2,world\n");
-        BufferedWriter bw = new BufferedWriter(new FileWriter(temp));
-        bw.write(builder.toString());
-        bw.close();
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
+            bw.write(builder.toString());
+        }
         try {
             testLocalInfile(temp.getAbsolutePath().replace("\\", "/"));
             fail("Must have been intercepted");
@@ -90,38 +87,36 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
 
     private void testLocalInfile(String file) throws SQLException {
-        Statement st = sharedConnection.createStatement();
-        st.executeUpdate("LOAD DATA LOCAL INFILE '" + file
-                + "' INTO TABLE ttlocal "
-                + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
-                + "  (id, test)");
+        try (Statement st = sharedConnection.createStatement()) {
+            st.executeUpdate("LOAD DATA LOCAL INFILE '" + file
+                    + "' INTO TABLE ttlocal "
+                    + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
+                    + "  (id, test)");
 
-        ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM ttlocal");
-        boolean next = rs.next();
+            ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM ttlocal");
+            boolean next = rs.next();
 
-        assertTrue(next);
-        assertEquals(2, rs.getInt(1));
+            assertTrue(next);
+            assertEquals(2, rs.getInt(1));
 
-        rs = st.executeQuery("SELECT * FROM ttlocal");
+            rs = st.executeQuery("SELECT * FROM ttlocal");
 
-        validateRecord(rs, 1, "hello");
-        validateRecord(rs, 2, "world");
-
-        st.close();
+            validateRecord(rs, 1, "hello");
+            validateRecord(rs, 2, "world");
+        }
     }
 
     @Test
     public void loadDataInfileEmpty() throws SQLException, IOException {
         // Create temp file.
         File temp = File.createTempFile("validateInfile", ".tmp");
-
         try {
             Statement st = sharedConnection.createStatement();
             st.execute("LOAD DATA LOCAL INFILE '" + temp.getAbsolutePath().replace('\\', '/')
                     + "' INTO TABLE ldinfile");
-            ResultSet rs = st.executeQuery("SELECT * FROM ldinfile");
-            assertFalse(rs.next());
-            rs.close();
+            try (ResultSet rs = st.executeQuery("SELECT * FROM ldinfile")) {
+                assertFalse(rs.next());
+            }
         } finally {
             temp.delete();
         }
@@ -156,7 +151,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
         assertEquals(expectedTest, test);
     }
 
-    private File createTmpData(int recordNumber) throws Exception {
+    private File createTmpData(long recordNumber) throws Exception {
         File file = File.createTempFile("./infile" + recordNumber, ".tmp");
 
         //write it
@@ -171,8 +166,8 @@ public class LocalInfileInputStreamTest extends BaseTest {
         return file;
     }
 
-    private void checkBigLocalInfile(int fileSize) throws Exception {
-        int recordNumber = fileSize / 8;
+    private void checkBigLocalInfile(long fileSize) throws Exception {
+        long recordNumber = fileSize / 8;
 
         try (Statement statement = sharedConnection.createStatement()) {
             statement.execute("truncate `infile`");
@@ -221,7 +216,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
     public void test2xMaxAllowedPacketLocalInfileInputStream() throws Exception {
         ResultSet rs = sharedConnection.createStatement().executeQuery("select @@max_allowed_packet");
         rs.next();
-        int maxAllowedPacket = rs.getInt(1);
+        long maxAllowedPacket = rs.getLong(1);
         try {
             checkBigLocalInfile(maxAllowedPacket * 2);
             fail("must have fail");

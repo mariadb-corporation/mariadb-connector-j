@@ -23,9 +23,8 @@ public class CancelTest extends BaseTest {
 
     @Test
     public void cancelTest() throws SQLException {
-        Connection tmpConnection = null;
-        try {
-            tmpConnection = openNewConnection(connUri, new Properties());
+        try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
+
             Statement stmt = tmpConnection.createStatement();
             ExecutorService exec = Executors.newFixedThreadPool(1);
             //check blacklist shared
@@ -37,22 +36,16 @@ public class CancelTest extends BaseTest {
             Assert.fail();
         } catch (SQLException e) {
             //normal exception
-        } finally {
-            tmpConnection.close();
         }
 
     }
 
     @Test(expected = SQLTimeoutException.class)
     public void timeoutSleep() throws Exception {
-        Connection tmpConnection = null;
-        try {
-            tmpConnection = openNewConnection(connUri, new Properties());
+        try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
             Statement stmt = tmpConnection.createStatement();
             stmt.setQueryTimeout(1);
             stmt.execute("select sleep(100)");
-        } finally {
-            tmpConnection.close();
         }
     }
 

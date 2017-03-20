@@ -147,40 +147,29 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
 
     private String[] queryMetaInfos(boolean isFunction) throws SQLException {
-        PreparedStatement preparedStatement;
-        if (database != null) {
-            preparedStatement = con.prepareStatement("select param_list, returns, db, type from mysql.proc where db=? and name=?");
-        } else {
-            preparedStatement = con.prepareStatement("select param_list, returns, db, type from mysql.proc where db=DATABASE() and name=?");
-        }
-
-        ResultSet rs = null;
         String paramList;
         String functionReturn;
-        try {
-            if (database == null) {
-                preparedStatement.setString(1, name);
-            } else {
-                preparedStatement.setString(1, database);
-                preparedStatement.setString(2, name);
+        try (PreparedStatement preparedStatement = con.prepareStatement(
+                "select param_list, returns, db, type from mysql.proc where name=? and db="
+                + (database != null ? "?" : "DATABASE()"))) {
+
+            preparedStatement.setString(1, name);
+            if (database != null) preparedStatement.setString(2, database);
+
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                if (!rs.next()) {
+                    throw new SQLException((isFunction ? "function" : "procedure") + " `" + name + "` does not exist");
+                }
+                paramList = rs.getString(1);
+                functionReturn = rs.getString(2);
+                database = rs.getString(3);
+                this.isFunction = "FUNCTION".equals(rs.getString(4));
+                return new String[]{paramList, functionReturn};
             }
-            rs = preparedStatement.executeQuery();
-            if (!rs.next()) {
-                throw new SQLException((isFunction ? "function" : "procedure") + " `" + name + "` does not exist");
-            }
-            paramList = rs.getString(1);
-            functionReturn = rs.getString(2);
-            database = rs.getString(3);
-            this.isFunction = "FUNCTION".equals(rs.getString(4));
-            return new String[]{paramList, functionReturn};
+
         } catch (SQLSyntaxErrorException sqlSyntaxErrorException) {
             throw new SQLException("Access to metaData informations not granted for current user. Consider grant select access to mysql.proc "
                     + " or avoid using parameter by name", sqlSyntaxErrorException);
-        } finally {
-            if (rs != null) {
-                rs.close();
-            }
-            preparedStatement.close();
         }
 
     }

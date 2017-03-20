@@ -107,17 +107,16 @@ public class PreparedStatementTest extends BaseTest {
     @Test
     public void reexecuteStatementTest() throws SQLException {
         // set the allowMultiQueries parameter
-        Connection connection = null;
-        try {
-            connection = setConnection("&allowMultiQueries=true");
-            PreparedStatement stmt = connection.prepareStatement("SELECT 1");
-            stmt.setFetchSize(Integer.MIN_VALUE);
-            ResultSet rs = stmt.executeQuery();
-            rs.next();
-            rs = stmt.executeQuery();
-            stmt.close();
-        } finally {
-            connection.close();
+        try (Connection connection = setConnection("&allowMultiQueries=true")) {
+            try (PreparedStatement stmt = connection.prepareStatement("SELECT 1")) {
+                stmt.setFetchSize(Integer.MIN_VALUE);
+                ResultSet rs = stmt.executeQuery();
+                rs.next();
+
+                try (ResultSet rs2 = stmt.executeQuery()) {
+                    assertTrue(rs2.next());
+                }
+            }
         }
     }
 

@@ -130,21 +130,22 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void callWithStrangeParameter() throws SQLException {
-        CallableStatement stmt = sharedConnection.prepareCall("{call withStrangeParameter(?)}");
-        double expected = 5.43;
-        stmt.setDouble("a", expected);
-        ResultSet rs = stmt.executeQuery();
-        assertTrue(rs.next());
-        double res = rs.getDouble(1);
-        assertEquals(expected, res, 0);
-        // now fail due to three decimals
-        double tooMuch = 34.987;
-        stmt.setDouble("a", tooMuch);
-        rs = stmt.executeQuery();
-        assertTrue(rs.next());
-        assertThat(rs.getDouble(1), is(not(tooMuch)));
-        rs.close();
-        stmt.close();
+        try (CallableStatement stmt = sharedConnection.prepareCall("{call withStrangeParameter(?)}")) {
+            double expected = 5.43;
+            stmt.setDouble("a", expected);
+            try (ResultSet rs = stmt.executeQuery()) {
+                assertTrue(rs.next());
+                double res = rs.getDouble(1);
+                assertEquals(expected, res, 0);
+                // now fail due to three decimals
+                double tooMuch = 34.987;
+                stmt.setDouble("a", tooMuch);
+                try (ResultSet rs2 = stmt.executeQuery()) {
+                    assertTrue(rs2.next());
+                    assertThat(rs2.getDouble(1), is(not(tooMuch)));
+                }
+            }
+        }
     }
 
     @Test
@@ -255,15 +256,9 @@ public class StoredProcedureTest extends BaseTest {
                 + "BEGIN\n"
                 + "   SELECT 1;\n"
                 + "END");
-        CallableStatement callableStatement = null;
-        try {
-            callableStatement = sharedConnection.prepareCall("Call testProcDecimalComa(?)");
+        try (CallableStatement callableStatement = sharedConnection.prepareCall("Call testProcDecimalComa(?)")) {
             callableStatement.setDouble(1, 18.0);
             callableStatement.execute();
-        } finally {
-            if (callableStatement != null) {
-                callableStatement.close();
-            }
         }
     }
 
@@ -972,9 +967,7 @@ public class StoredProcedureTest extends BaseTest {
         Properties props = new Properties();
         props.put("jdbcCompliantTruncation", "true");
         props.put("useInformationSchema", "true");
-        Connection conn1 = null;
-        conn1 = setConnection(props);
-        try {
+        try (Connection conn1 = setConnection(props)) {
             CallableStatement callSt = conn1.prepareCall("{ call testParameterNumber_1(?, ?, ?, ?) }");
             callSt.setString(2, "xxx");
             callSt.registerOutParameter(1, Types.VARCHAR);
@@ -1009,8 +1002,6 @@ public class StoredProcedureTest extends BaseTest {
             assertEquals("ncfact string", callSt3.getString(2));
             assertEquals("ffact string", callSt3.getString(3));
             assertEquals("fdoc string", callSt3.getString(4));
-        } finally {
-            conn1.close();
         }
     }
 

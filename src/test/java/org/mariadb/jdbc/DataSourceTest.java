@@ -28,22 +28,17 @@ public class DataSourceTest extends BaseTest {
     @Test
     public void testDataSource() throws SQLException {
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
-        Connection connection = ds.getConnection(username, password);
-        try {
+
+        try (Connection connection = ds.getConnection(username, password)) {
             assertEquals(connection.isValid(0), true);
-        } finally {
-            connection.close();
         }
     }
 
     @Test
     public void testDataSource2() throws SQLException {
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
-        Connection connection = ds.getConnection(username, password);
-        try {
+        try (Connection connection = ds.getConnection(username, password)) {
             assertEquals(connection.isValid(0), true);
-        } finally {
-            connection.close();
         }
     }
 
@@ -53,11 +48,8 @@ public class DataSourceTest extends BaseTest {
         ds.setDatabaseName(database);
         ds.setPort(port);
         ds.setServerName(hostname == null ? "localhost" : hostname);
-        Connection connection = ds.getConnection(username, password);
-        try {
+        try (Connection connection = ds.getConnection(username, password)) {
             assertEquals(connection.isValid(0), true);
-        } finally {
-            connection.close();
         }
     }
 
@@ -69,14 +61,16 @@ public class DataSourceTest extends BaseTest {
     @Test
     public void setDatabaseNameTest() throws SQLException {
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
-        Connection connection = ds.getConnection(username, password);
-        connection.createStatement().execute("CREATE DATABASE IF NOT EXISTS test2");
-        ds.setDatabaseName("test2");
-        connection = ds.getConnection(username, password);
-        assertEquals("test2", ds.getDatabaseName());
-        assertEquals(ds.getDatabaseName(), connection.getCatalog());
-        connection.createStatement().execute("DROP DATABASE IF EXISTS test2");
-        connection.close();
+        try (Connection connection = ds.getConnection(username, password)) {
+            connection.createStatement().execute("CREATE DATABASE IF NOT EXISTS test2");
+            ds.setDatabaseName("test2");
+
+            try (Connection connection2 = ds.getConnection(username, password)) {
+                assertEquals("test2", ds.getDatabaseName());
+                assertEquals(ds.getDatabaseName(), connection2.getCatalog());
+                connection2.createStatement().execute("DROP DATABASE IF EXISTS test2");
+            }
+        }
     }
 
     /**
@@ -88,10 +82,12 @@ public class DataSourceTest extends BaseTest {
     public void setServerNameTest() throws SQLException {
         Assume.assumeTrue(connectToIP != null);
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
-        Connection connection = ds.getConnection(username, password);
-        ds.setServerName(connectToIP);
-        connection = ds.getConnection(username, password);
-        connection.close();
+        try (Connection connection = ds.getConnection(username, password)) {
+            ds.setServerName(connectToIP);
+            try (Connection connection2 = ds.getConnection(username, password)) {
+                //do nothing
+            }
+        }
     }
 
     /**
@@ -102,12 +98,12 @@ public class DataSourceTest extends BaseTest {
     @Test // unless port 3307 can be used
     public void setPortTest() throws SQLException {
 
-
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
-        Connection connection2 = ds.getConnection(username, password);
-        //delete blacklist, because can failover on 3306 is filled
-        assureBlackList(connection2);
-        connection2.close();
+        try (Connection connection2 = ds.getConnection(username, password)) {
+            //delete blacklist, because can failover on 3306 is filled
+            assureBlackList(connection2);
+            connection2.close();
+        }
 
         ds.setPort(3407);
 

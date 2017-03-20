@@ -317,8 +317,9 @@ public class ResultSetTest extends BaseTest {
         createTable("generatedKeyNpe", "id int not null primary key auto_increment, val int");
         Statement statement = sharedConnection.createStatement();
         statement.execute("INSERT INTO generatedKeyNpe(val) values (0)");
-        ResultSet rs = statement.getGeneratedKeys();
-        rs.close();
+        try (ResultSet rs = statement.getGeneratedKeys()) {
+            assertTrue(rs.next());
+        }
     }
 
     @Test

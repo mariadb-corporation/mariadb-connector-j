@@ -54,14 +54,13 @@ public class ConnectionPoolTest extends BaseTest {
 
         //Create 1 first connection (This is typically done in the Connection validation step in a
         //connection pool)
-        Connection connection1 = factory.createConnection();
-
-        //Create another connection to make sure we can access the database. This is typically the
-        //Connection that is exposed to the user of the connection pool
-        Connection connection2 = factory.createConnection();
-
-        connection1.close();
-        connection2.close();
+        try (Connection connection1 = factory.createConnection()) {
+            //Create another connection to make sure we can access the database. This is typically the
+            //Connection that is exposed to the user of the connection pool
+            try (Connection connection2 = factory.createConnection()) {
+                //do nothing
+            }
+        }
     }
 
     /**
@@ -101,15 +100,12 @@ public class ConnectionPoolTest extends BaseTest {
         }
 
         public void run() {
-            Connection conn = null;
-            Statement stmt = null;
 
             for (int i = 1; i < insertTimes + 1; i++) {
-                try {
-                    conn = this.dataSource.getConnection();
-                    stmt = conn.createStatement();
-                    stmt.execute("insert into t3 values('hello" + Thread.currentThread().getId() + "-" + i + "')");
-                    conn.close();
+                try (Connection conn = this.dataSource.getConnection()) {
+                    try (Statement stmt = conn.createStatement()) {
+                        stmt.execute("insert into t3 values('hello" + Thread.currentThread().getId() + "-" + i + "')");
+                    }
                 } catch (SQLException e) {
                     //eat exception
                 }

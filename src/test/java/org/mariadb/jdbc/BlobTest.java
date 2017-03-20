@@ -321,11 +321,8 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void conj77() throws Exception {
-        final Statement sta1 = sharedConnection.createStatement();
-        try {
-
-            final PreparedStatement pre = sharedConnection.prepareStatement("INSERT INTO conj77_test (Name,Archive) VALUES (?,?)");
-            try {
+        try (Statement sta1 = sharedConnection.createStatement()) {
+            try (PreparedStatement pre = sharedConnection.prepareStatement("INSERT INTO conj77_test (Name,Archive) VALUES (?,?)")) {
                 pre.setString(1, "Empty String");
                 pre.setBytes(2, "".getBytes());
                 pre.addBatch();
@@ -339,51 +336,25 @@ public class BlobTest extends BaseTest {
                 pre.addBatch();
 
                 pre.executeBatch();
-            } finally {
-                if (pre != null) {
-                    pre.close();
-                }
-            }
-        } finally {
-            if (sta1 != null) {
-                sta1.close();
             }
         }
-        final Statement sta2 = sharedConnection.createStatement();
-        try {
-            final ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test");
-            try {
+
+        try (Statement sta2 = sharedConnection.createStatement()) {
+            try (ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test")) {
                 while (set.next()) {
                     final Blob blob = set.getBlob("text");
                     if (blob != null) {
-                        final ByteArrayOutputStream bout = new ByteArrayOutputStream((int) blob.length());
-                        try {
-                            final InputStream bin = blob.getBinaryStream();
-                            try {
+
+                        try (ByteArrayOutputStream bout = new ByteArrayOutputStream((int) blob.length())) {
+                            try (InputStream bin = blob.getBinaryStream()) {
                                 final byte[] buffer = new byte[1024 * 4];
                                 for (int read = bin.read(buffer); read != -1; read = bin.read(buffer)) {
                                     bout.write(buffer, 0, read);
                                 }
-                            } finally {
-                                if (bin != null) {
-                                    bin.close();
-                                }
-                            }
-                        } finally {
-                            if (bout != null) {
-                                bout.close();
                             }
                         }
                     }
                 }
-            } finally {
-                if (set != null) {
-                    set.close();
-                }
-            }
-        } finally {
-            if (sta2 != null) {
-                sta2.close();
             }
         }
     }

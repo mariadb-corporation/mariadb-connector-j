@@ -825,9 +825,7 @@ public class DatabaseMetadataTest extends BaseTest {
     /* Verify that "nullCatalogMeansCurrent=false" works (i.e information_schema columns are returned)*/
     @Test
     public void nullCatalogMeansCurrent2() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection("&nullCatalogMeansCurrent=false");
+        try (Connection connection = setConnection("&nullCatalogMeansCurrent=false")) {
             boolean haveInformationSchema = false;
             ResultSet rs = connection.getMetaData().getColumns(null, null, null, null);
             while (rs.next()) {
@@ -837,8 +835,6 @@ public class DatabaseMetadataTest extends BaseTest {
                 }
             }
             assertTrue(haveInformationSchema);
-        } finally {
-            connection.close();
         }
 
     }
@@ -930,17 +926,13 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void conj72() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection("&tinyInt1isBit=true");
+        try (Connection connection = setConnection("&tinyInt1isBit=true")) {
             connection.createStatement().execute("insert into conj72 values(1)");
             ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "conj72", null);
             assertTrue(rs.next());
             assertEquals(rs.getInt("DATA_TYPE"), Types.BIT);
             ResultSet rs1 = connection.createStatement().executeQuery("select * from conj72");
             assertEquals(rs1.getMetaData().getColumnType(1), Types.BIT);
-        } finally {
-            connection.close();
         }
     }
 

@@ -73,17 +73,13 @@ public class StatementTest extends BaseTest {
      */
     @Test
     public void reexecuteStatementTest() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = setConnection("&allowMultiQueries=true");
-            PreparedStatement stmt = connection.prepareStatement("SELECT 1");
-            stmt.setFetchSize(Integer.MIN_VALUE);
-            ResultSet rs = stmt.executeQuery();
-            rs.next();
-            rs = stmt.executeQuery();
-            stmt.close();
-        } finally {
-            connection.close();
+        try (Connection connection = setConnection("&allowMultiQueries=true")) {
+            try (PreparedStatement stmt = connection.prepareStatement("SELECT 1")) {
+                stmt.setFetchSize(Integer.MIN_VALUE);
+                ResultSet rs = stmt.executeQuery();
+                rs.next();
+                rs = stmt.executeQuery();
+            }
         }
     }
 
@@ -280,11 +276,11 @@ public class StatementTest extends BaseTest {
     public void closeOnCompletion() throws SQLException {
         Statement statement = sharedConnection.createStatement();
         assertFalse(statement.isCloseOnCompletion());
-        ResultSet rs = statement.executeQuery("SELECT 1");
-        statement.closeOnCompletion();
-        assertTrue(statement.isCloseOnCompletion());
-        assertFalse(statement.isClosed());
-        rs.close();
+        try (ResultSet rs = statement.executeQuery("SELECT 1")) {
+            statement.closeOnCompletion();
+            assertTrue(statement.isCloseOnCompletion());
+            assertFalse(statement.isClosed());
+        }
         assertTrue(statement.isClosed());
     }
 

@@ -57,12 +57,13 @@ import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.failover.Listener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
+import java.io.Closeable;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 
-public class MasterProtocol extends AbstractQueryProtocol {
+public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
 
     /**
      * Get a protocol instance.
