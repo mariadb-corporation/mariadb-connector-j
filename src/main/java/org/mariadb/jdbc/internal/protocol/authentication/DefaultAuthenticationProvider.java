@@ -51,8 +51,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.protocol.authentication;
 
-import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.packet.send.*;
+import org.mariadb.jdbc.internal.com.send.*;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 public class DefaultAuthenticationProvider {
@@ -66,7 +66,7 @@ public class DefaultAuthenticationProvider {
 
     /**
      * Process AuthenticationSwitch.
-     * @param packetFetcher             packet fetcher
+     * @param reader                    packet fetcher
      * @param plugin                    plugin name
      * @param password                  password
      * @param authData                  auth data
@@ -75,7 +75,7 @@ public class DefaultAuthenticationProvider {
      * @return authentication response according to parameters
      * @throws QueryException if error occur.
      */
-    public static InterfaceAuthSwitchSendResponsePacket processAuthPlugin(ReadPacketFetcher packetFetcher, String plugin, String password,
+    public static InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
                                                                           byte[] authData, int seqNo, String passwordCharacterEncoding)
             throws QueryException {
         switch (plugin) {
@@ -86,9 +86,9 @@ public class DefaultAuthenticationProvider {
             case MYSQL_CLEAR_PASSWORD:
                 return new SendClearPasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
             case DIALOG:
-                return new SendPamAuthPacket(packetFetcher, password, authData, seqNo, passwordCharacterEncoding);
+                return new SendPamAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
             case GSSAPI_CLIENT:
-                return new SendGssApiAuthPacket(packetFetcher, password, authData, seqNo, passwordCharacterEncoding);
+                return new SendGssApiAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
             default:
                 throw new QueryException("Client does not support authentication protocol requested by server. "
                         + "Consider upgrading MariaDB client. plugin was = " + plugin, 1251, "08004");

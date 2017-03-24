@@ -54,13 +54,13 @@ import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.queryresults.Results;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.IOException;
@@ -243,8 +243,6 @@ public interface Protocol {
 
     void skipEofPacket() throws QueryException, IOException;
 
-    ReadPacketFetcher getPacketFetcher();
-
     void changeSocketTcpNoDelay(boolean setTcpNoDelay) throws SocketException;
 
     void changeSocketSoTimeout(int setSoTimeout) throws SocketException;
@@ -259,4 +257,6 @@ public interface Protocol {
     boolean isServerMariaDb();
 
     QueryException handleIoException(IOException initialException);
+
+    PacketInputStream getReader();
 }

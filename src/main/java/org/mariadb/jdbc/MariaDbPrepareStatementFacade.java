@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.stream.PrepareSqlException;
+import org.mariadb.jdbc.internal.util.exceptions.PrepareSqlException;
 
 import java.io.InputStream;
 import java.io.Reader;

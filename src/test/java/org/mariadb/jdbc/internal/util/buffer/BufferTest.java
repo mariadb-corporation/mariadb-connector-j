@@ -2,6 +2,7 @@ package org.mariadb.jdbc.internal.util.buffer;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.mariadb.jdbc.internal.com.read.Buffer;
 
 public class BufferTest {
 

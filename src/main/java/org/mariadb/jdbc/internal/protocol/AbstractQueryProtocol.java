@@ -54,24 +54,24 @@ import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.packet.*;
+import org.mariadb.jdbc.internal.com.*;
 
-import org.mariadb.jdbc.internal.packet.result.*;
-import org.mariadb.jdbc.internal.packet.send.*;
-import org.mariadb.jdbc.internal.queryresults.*;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
-import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.com.read.ErrorPacket;
+import org.mariadb.jdbc.internal.com.send.*;
+import org.mariadb.jdbc.internal.com.read.dao.*;
+import org.mariadb.jdbc.internal.com.read.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
-import org.mariadb.jdbc.internal.util.buffer.Buffer;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.LocalInfileInterceptor;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
@@ -194,10 +194,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         cmdPrologue();
         try {
             if (clientPrepareResult.getParamCount() == 0 && !clientPrepareResult.isQueryMultiValuesRewritable()) {
-                ComExecute.sendDirect(writer, clientPrepareResult.getQueryParts().get(0));
+                ComQuery.sendDirect(writer, clientPrepareResult.getQueryParts().get(0));
             } else {
                 writer.startPacket(0);
-                ComExecute.sendSubCmd(writer, clientPrepareResult, parameters);
+                ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
                 writer.flush();
             }
             getResult(results);
@@ -230,7 +230,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     throws QueryException, IOException {
                 ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
                 writer.startPacket(0);
-                ComExecute.sendSubCmd(writer, clientPrepareResult, parameters);
+                ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
                 writer.flush();
             }
 
@@ -343,7 +343,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             writer.flush();
 
             ComStmtPrepare comStmtPrepare = new ComStmtPrepare(this, sql);
-            ServerPrepareResult result = comStmtPrepare.read(packetFetcher);
+            ServerPrepareResult result = comStmtPrepare.read(reader);
 
             return result;
         } catch (IOException e) {
@@ -381,7 +381,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     writer.write(firstSql);
                     writer.flush();
                 } else {
-                    currentIndex = ComExecute.sendMultiple(writer, firstSql, queries, currentIndex);
+                    currentIndex = ComQuery.sendMultiple(writer, firstSql, queries, currentIndex);
                 }
                 getResult(results);
             } catch (QueryException queryException) {
@@ -418,7 +418,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         try {
             do {
                 parameters = parameterList.get(currentIndex++);
-                currentIndex = ComExecute.sendRewriteCmd(writer, prepareResult.getQueryParts(), parameters, currentIndex,
+                currentIndex = ComQuery.sendRewriteCmd(writer, prepareResult.getQueryParts(), parameters, currentIndex,
                         prepareResult.getParamCount(), parameterList, rewriteValues);
                 getResult(results);
 
@@ -461,7 +461,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                 //validate parameter set
                 if (parameters.length < paramCount) {
-                    throw new QueryException("Parameter at position " + (paramCount - 1) + " is not set", -1, "07004");
+                    throw new QueryException("Parameter at pos " + (paramCount - 1) + " is not set", -1, "07004");
                 }
 
                 //send binary data in a separate stream
@@ -544,7 +544,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                 //read prepare result
                 try {
-                    serverPrepareResult = comStmtPrepare.read(getPacketFetcher());
+                    serverPrepareResult = comStmtPrepare.read(reader);
                     statementId = serverPrepareResult.getStatementId();
                     parameterCount = serverPrepareResult.getParameters().length;
                 } catch (QueryException queryException) {
@@ -553,7 +553,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             if (serverPrepareResult != null && parameters.length < parameterCount) {
-                throw new QueryException("Parameter at position " + (parameterCount) + " is not set", -1, "07004");
+                throw new QueryException("Parameter at pos " + (parameterCount) + " is not set", -1, "07004");
             }
 
             writer.startPacket(0);
@@ -690,7 +690,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             final SendPingPacket pingPacket = new SendPingPacket();
             try {
                 pingPacket.send(writer);
-                Buffer buffer = packetFetcher.getReusableBuffer();
+                Buffer buffer = reader.getPacket(true);
                 return buffer.getByteAt(0) == Packet.OK;
             } catch (IOException e) {
                 throw new QueryException("Could not ping: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
@@ -708,7 +708,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         try {
             final SendChangeDbPacket packet = new SendChangeDbPacket(database);
             packet.send(writer);
-            final Buffer buffer = packetFetcher.getReusableBuffer();
+            final Buffer buffer = reader.getPacket(true);
             if (buffer.getByteAt(0) == Packet.ERROR) {
                 final ErrorPacket ep = new ErrorPacket(buffer);
                 throw new QueryException("Could not select database '" + database + "' : " + ep.getMessage(),
@@ -991,7 +991,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     public void readPacket(Results results) throws QueryException {
         Buffer buffer;
         try {
-            buffer = packetFetcher.getReusableBuffer();
+            buffer = reader.getPacket(true);
         } catch (IOException e) {
             throw new QueryException("Could not read packet: " + e.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), e);
         }
@@ -1104,7 +1104,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                 if (!getUrlParser().getOptions().allowLocalInfile) {
                     writer.writeEmptyPacket();
-                    packetFetcher.getReusableBuffer();
+                    reader.getPacket(true);
                     throw new QueryException(
                             "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true",
                             -1, FEATURE_NOT_SUPPORTED.getSqlState());
@@ -1115,7 +1115,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 for (LocalInfileInterceptor interceptor : loader) {
                     if (!interceptor.validate(fileName)) {
                         writer.writeEmptyPacket();
-                        packetFetcher.getReusableBuffer();
+                        reader.getPacket(true);
                         throw new QueryException("LOCAL DATA LOCAL INFILE request to send local file named \""
                                 + fileName + "\" not validated by interceptor \"" + interceptor.getClass().getName()
                                 + "\"");
@@ -1130,7 +1130,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         is = new FileInputStream(fileName);
                     } catch (FileNotFoundException f) {
                         writer.writeEmptyPacket();
-                        packetFetcher.getReusableBuffer();
+                        reader.getPacket(true);
                         throw new QueryException("Could not send file : " + f.getMessage(), -1, "22000", f);
                     }
                 }
@@ -1148,7 +1148,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 //particular case : error has been throw before sending packets.
                 //must finished exchanges before throwing error
                 writer.writeEmptyPacket(seq++);
-                packetFetcher.getReusableBuffer();
+                reader.getPacket(true);
                 throw handleIoException(ioe);
 
             } catch (IOException ioe) {
@@ -1182,7 +1182,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             //read columns information's
             ColumnInformation[] ci = new ColumnInformation[(int) fieldCount];
             for (int i = 0; i < fieldCount; i++) {
-                ci[i] = new ColumnInformation(packetFetcher.getPacket());
+                ci[i] = new ColumnInformation(reader.getPacket(false));
             }
 
             //read EOF packet
@@ -1191,17 +1191,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             //   -> this resultSet must be identified and not listed in JDBC statement.getResultSet()
             // - after a callable resultSet, a OK packet is send, but mysql does send the  a bad "more result flag",
             //so this flag is absolutely needed ! capability CLIENT_DEPRECATE_EOF must never be implemented.
-            Buffer bufferEof = packetFetcher.getReusableBuffer();
+            Buffer bufferEof = reader.getPacket(true);
             if (bufferEof.readByte() != Packet.EOF) {
-                throw new QueryException("Packets out of order when reading field packets, expected was EOF stream. "
+                throw new QueryException("Packets out of order when reading field packets, expected was EOF exception. "
                         + "Packet contents (hex) = " + Utils.hexdump(bufferEof.buf, options.maxQuerySizeToLog, 0, buffer.position));
             }
-            buffer.skipBytes(2); //Skip warningCount
-            boolean callableResult = (buffer.readShort() & ServerStatus.PS_OUT_PARAMETERS) != 0;
+            bufferEof.skipBytes(2); //Skip warningCount
+            boolean callableResult = (bufferEof.readShort() & ServerStatus.PS_OUT_PARAMETERS) != 0;
 
 
             //read resultSet
-            MariaSelectResultSet mariaSelectResultset = new MariaSelectResultSet(ci, results, this, packetFetcher, callableResult);
+            MariaSelectResultSet mariaSelectResultset = new MariaSelectResultSet(ci, results, this, reader, callableResult);
             results.addResultSet(mariaSelectResultset, moreResults);
 
         } catch (IOException e) {

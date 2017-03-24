@@ -55,27 +55,32 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
+import org.mariadb.jdbc.internal.com.read.ErrorPacket;
+import org.mariadb.jdbc.internal.com.read.OkPacket;
+import org.mariadb.jdbc.internal.io.input.DecompressPacketInputStream;
+import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
+import org.mariadb.jdbc.internal.io.output.CompressPacketOutputStream;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.io.output.StandardPacketOutputStream;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509KeyManager;
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509TrustManager;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.packet.send.*;
+import org.mariadb.jdbc.internal.com.send.*;
 import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
-import org.mariadb.jdbc.internal.queryresults.Results;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
-import org.mariadb.jdbc.internal.stream.*;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.com.read.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.buffer.Buffer;
-import org.mariadb.jdbc.internal.packet.read.ReadInitialConnectPacket;
-import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.packet.Packet;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
+import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.packet.result.*;
 
 import javax.net.ssl.*;
 
@@ -111,7 +116,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected Socket socket;
     protected PacketOutputStream writer;
     protected boolean readOnly = false;
-    protected ReadPacketFetcher packetFetcher;
+    protected PacketInputStream reader;
     protected HostAddress currentHost;
     protected FailoverProxy proxy;
     protected volatile boolean connected = false;
@@ -184,7 +189,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             if (options.cachePrepStmts) {
                 serverPrepareStatementCache.clear();
             }
-            close(packetFetcher, writer, socket);
+            close(reader, writer, socket);
         } catch (Exception e) {
             // socket is closed, so it is ok to ignore exception
         } finally {
@@ -194,7 +199,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    protected static void close(ReadPacketFetcher fetcher, PacketOutputStream packetOutputStream, Socket socket) throws QueryException {
+    protected static void close(PacketInputStream packetInputStream, PacketOutputStream packetOutputStream, Socket socket) throws QueryException {
         SendClosePacket closePacket = new SendClosePacket();
         try {
             try {
@@ -208,7 +213,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 //eat exception
             }
             packetOutputStream.close();
-            fetcher.close();
+            packetInputStream.close();
         } catch (IOException e) {
             throw new QueryException("Could not close connection: " + e.getMessage(), -1, CONNECTION_EXCEPTION, e);
         } finally {
@@ -379,7 +384,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             if (options.useCompression) {
                 writer = new CompressPacketOutputStream(writer.getOutputStream(), options.maxQuerySizeToLog);
-                packetFetcher = new ReadPacketFetcher(new DecompressInputStream(socket.getInputStream()), options.maxQuerySizeToLog);
+                reader = new DecompressPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
             }
             connected = true;
 
@@ -452,13 +457,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private void handleConnectionPhases() throws QueryException {
-        MariaDbInputStream reader = null;
         try {
-            reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
-            packetFetcher = new ReadPacketFetcher(reader, options.maxQuerySizeToLog);
+            reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
             writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
 
-            final ReadInitialConnectPacket greetingPacket = new ReadInitialConnectPacket(packetFetcher);
+            final ReadInitialHandShakePacket greetingPacket = new ReadInitialHandShakePacket(reader);
             this.serverThreadId = greetingPacket.getServerThreadId();
             this.serverVersion = greetingPacket.getServerVersion();
             this.serverMariaDb = greetingPacket.isServerMariaDb();
@@ -484,8 +487,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 sslSocket.startHandshake();
                 socket = sslSocket;
                 writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
-                reader = new MariaDbBufferedInputStream(socket.getInputStream(), 16384);
-                packetFetcher = new ReadPacketFetcher(reader, options.maxQuerySizeToLog);
+                reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
 
                 packetSeq++;
             } else if (options.useSsl) {
@@ -521,7 +523,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 options.connectionAttributes,
                 options.passwordCharacterEncoding);
         cap.send(writer);
-        Buffer buffer = packetFetcher.getPacket();
+        Buffer buffer = reader.getPacket(false);
 
         if ((buffer.getByteAt(0) & 0xFF) == 0xFE) {
             InterfaceAuthSwitchSendResponsePacket interfaceSendPacket;
@@ -541,14 +543,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 //Authentication according to plugin.
                 //see AuthenticationProviderHolder for implement other plugin
                 interfaceSendPacket = AuthenticationProviderHolder.getAuthenticationProvider()
-                        .processAuthPlugin(packetFetcher, plugin, password, authData, packetFetcher.getLastPacketSeq() + 1,
+                        .processAuthPlugin(reader, plugin, password, authData, reader.getLastPacketSeq() + 1,
                                 options.passwordCharacterEncoding);
             } else {
                 interfaceSendPacket = new SendOldPasswordAuthPacket(this.password, Utils.copyWithLength(seed, 8),
-                        packetFetcher.getLastPacketSeq() + 1, options.passwordCharacterEncoding);
+                        reader.getLastPacketSeq() + 1, options.passwordCharacterEncoding);
             }
             interfaceSendPacket.send(writer);
-            interfaceSendPacket.handleResultPacket(packetFetcher);
+            interfaceSendPacket.handleResultPacket(reader);
         } else {
             if (buffer.getByteAt(0) == Packet.ERROR) {
                 ErrorPacket errorPacket = new ErrorPacket(buffer);
@@ -730,7 +732,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws IOException if connection error occur
      */
     public void readEofPacket() throws QueryException, IOException {
-        Buffer buffer = packetFetcher.getReusableBuffer();
+        Buffer buffer = reader.getPacket(true);
         switch (buffer.getByteAt(0)) {
             case (byte) 0xfe: //EOF
                 buffer.skipByte();
@@ -741,7 +743,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 ErrorPacket ep = new ErrorPacket(buffer);
                 throw new QueryException("Could not connect: " + ep.getMessage(), ep.getErrorNumber(), ep.getSqlState());
             default:
-                throw new QueryException("Unexpected stream type " + buffer.getByteAt(0)
+                throw new QueryException("Unexpected packet type " + buffer.getByteAt(0)
                         + " instead of EOF");
         }
     }
@@ -752,7 +754,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws IOException if connection error occur
      */
     public void skipEofPacket() throws QueryException, IOException {
-        Buffer buffer = packetFetcher.getReusableBuffer();
+        Buffer buffer = reader.getPacket(true);
         switch (buffer.getByteAt(0)) {
             case (byte) 0xfe: //EOF
                 break;
@@ -762,7 +764,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 throw new QueryException("Could not connect: " + ep.getMessage(), ep.getErrorNumber(), ep.getSqlState());
 
             default:
-                throw new QueryException("Unexpected stream type " + buffer.getByteAt(0)
+                throw new QueryException("Unexpected packet type " + buffer.getByteAt(0)
                         + " instead of EOF");
         }
     }
@@ -1069,7 +1071,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     /**
-     * Remove stream result and since totally fetched, set fetch size to 0.
+     * Remove exception result and since totally fetched, set fetch size to 0.
      */
     public void removeActiveStreamingResult() {
         if (this.activeStreamingResult != null) {
@@ -1094,10 +1096,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public abstract void executeQuery(final String sql) throws QueryException;
 
-    public ReadPacketFetcher getPacketFetcher() {
-        return packetFetcher;
-    }
-
     public void changeSocketTcpNoDelay(boolean setTcpNoDelay) throws SocketException {
         socket.setTcpNoDelay(setTcpNoDelay);
     }
@@ -1108,5 +1106,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public boolean isServerMariaDb() {
         return serverMariaDb;
+    }
+
+    public PacketInputStream getReader() {
+        return reader;
     }
 }

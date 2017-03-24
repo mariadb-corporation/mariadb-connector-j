@@ -7,9 +7,7 @@ import org.junit.Test;
 
 import java.sql.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 
 public class BufferTest extends BaseTest {
@@ -217,9 +215,8 @@ public class BufferTest extends BaseTest {
             String resString = rs.getString(1);
             char[] cc = resString.toCharArray();
             assertEquals("error in data : length not equal", cc.length, arr.length);
-            for (int i = 0 ; i < arr.length ; i++ ) {
-                assertEquals("error in data", cc[i], arr[i]);
-            }
+            assertEquals(String.valueOf(cc), resString);
+
         } else {
             fail("Error, must have result");
         }

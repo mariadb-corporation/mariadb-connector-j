@@ -51,11 +51,10 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.protocol;
 
 import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.queryresults.Results;
-import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
@@ -220,7 +219,7 @@ public abstract class AbstractMultiSend {
 
                     //read prepare result
                     try {
-                        prepareResult = comStmtPrepare.read(protocol.getPacketFetcher());
+                        prepareResult = comStmtPrepare.read(protocol.getReader());
                         statementId = ((ServerPrepareResult) prepareResult).getStatementId();
                         paramCount = getParamCount();
                     } catch (QueryException queryException) {

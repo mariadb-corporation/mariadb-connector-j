@@ -49,8 +49,9 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
+import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
+import org.mariadb.jdbc.internal.com.read.resultset.MariaSelectResultSet;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.dao.Identifier;
@@ -2435,27 +2436,24 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         columns[2] = ColumnInformation.create("DEFAULT_VALUE", MariaDbType.STRING);
         columns[3] = ColumnInformation.create("DESCRIPTION", MariaDbType.STRING);
 
+        byte[] sixteenMb = new byte[] {(byte) 49, (byte) 54, (byte) 55, (byte) 55, (byte) 55, (byte) 50, (byte) 49, (byte) 53};
+        byte[] empty = new byte[0];
 
-        List<byte[][]> rows = new ArrayList<>(3);
-        rows.add(new byte[][] {
-                "ApplicationName".getBytes(),
-                new byte[] {(byte) 49, (byte) 54, (byte) 55, (byte) 55, (byte) 55, (byte) 50, (byte) 49, (byte) 53},  //16Mb
-                new byte[]{},
-                "The name of the application currently utilizing the connection".getBytes()
-        });
-        rows.add(new byte[][] {
-                "ClientUser".getBytes(),
-                new byte[] {(byte) 49, (byte) 54, (byte) 55, (byte) 55, (byte) 55, (byte) 50, (byte) 49, (byte) 53},  //16Mb
-                new byte[]{},
+        MariaDbType[] types = new MariaDbType[] {MariaDbType.STRING, MariaDbType.INTEGER, MariaDbType.STRING, MariaDbType.STRING};
+        List<byte[]> rows = new ArrayList<>(3);
+
+        rows.add(StandardPacketInputStream.create(new byte[][] {
+                "ApplicationName".getBytes(), sixteenMb, empty,
+                "The name of the application currently utilizing the connection".getBytes()}, types));
+
+        rows.add(StandardPacketInputStream.create(new byte[][] {
+                "ClientUser".getBytes(), sixteenMb, empty,
                 ("The name of the user that the application using the connection is performing work for. "
-                        + "This may not be the same as the user name that was used in establishing the connection.").getBytes()
-        });
-        rows.add(new byte[][] {
-                "ClientHostname".getBytes(),
-                new byte[] {(byte) 49, (byte) 54, (byte) 55, (byte) 55, (byte) 55, (byte) 50, (byte) 49, (byte) 53},  //16Mb
-                new byte[]{},
-                "The hostname of the computer the application using the connection is running on".getBytes()
-        });
+                        + "This may not be the same as the user name that was used in establishing the connection.").getBytes()}, types));
+
+        rows.add(StandardPacketInputStream.create(new byte[][] {
+                "ClientHostname".getBytes(), sixteenMb, empty,
+                "The hostname of the computer the application using the connection is running on".getBytes()}, types));
 
         return new MariaSelectResultSet(columns, rows, connection.getProtocol(), ResultSet.TYPE_SCROLL_INSENSITIVE);
     }
