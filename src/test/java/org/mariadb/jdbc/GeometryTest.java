@@ -2,9 +2,7 @@ package org.mariadb.jdbc;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.util.Utils;
 
-import javax.xml.bind.DatatypeConverter;
 import java.math.BigInteger;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -31,7 +29,7 @@ public class GeometryTest extends BaseTest {
             if (tmpGeometryBinary == null) {
                 try (ResultSet rs = stmt.executeQuery("SELECT AsWKB(GeomFromText('" + geometryString + "'))")) {
                     rs.next();
-                    tmpGeometryBinary = DatatypeConverter.printHexBinary(rs.getBytes(1));
+                    tmpGeometryBinary = printHexBinary(rs.getBytes(1));
                 }
             }
             String sql = "INSERT INTO geom_test VALUES (GeomFromText('" + geometryString + "'))";
@@ -41,7 +39,7 @@ public class GeometryTest extends BaseTest {
                 // as text
                 assertEquals(geometryString, rs.getString(1));
                 // as binary
-                String returnWkb = DatatypeConverter.printHexBinary((byte[]) rs.getObject(2));
+                String returnWkb = printHexBinary((byte[]) rs.getObject(2));
                 assertEquals(tmpGeometryBinary, returnWkb);
                 // as object
                 Object geometry = null;
@@ -50,7 +48,7 @@ public class GeometryTest extends BaseTest {
                 } catch (Exception e) {
                     fail();
                 }
-                String returnGeometry = DatatypeConverter.printHexBinary((byte[]) geometry);
+                String returnGeometry = printHexBinary((byte[]) geometry);
                 BigInteger returnNumber = new BigInteger(returnGeometry, 16);
                 BigInteger geometryNumber = new BigInteger(tmpGeometryBinary, 16);
                 assertEquals(geometryNumber, returnNumber);
@@ -75,6 +73,17 @@ public class GeometryTest extends BaseTest {
     public void polygonTest() throws SQLException {
         String polygonString = "POLYGON((0 0,10 0,0 10,0 0))";
         geometryTest(polygonString, null);
+    }
+
+    private static final char[] hexCode = "0123456789ABCDEF".toCharArray();
+
+    public String printHexBinary(byte[] data) {
+        StringBuilder r = new StringBuilder(data.length * 2);
+        for (byte b : data) {
+            r.append(hexCode[(b >> 4) & 0xF]);
+            r.append(hexCode[(b & 0xF)]);
+        }
+        return r.toString();
     }
 
 }
