@@ -136,7 +136,7 @@ public class BufferTest extends BaseTest {
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
             assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
-                    sqlexception.getCause().getCause().getMessage().contains("is >= to max_allowed_packet"));
+                    sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -148,7 +148,7 @@ public class BufferTest extends BaseTest {
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
             assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
-                    sqlexception.getCause().getCause().getMessage().contains("is >= to max_allowed_packet"));
+                    sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -160,7 +160,7 @@ public class BufferTest extends BaseTest {
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
             assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
-                    sqlexception.getCause().getCause().getMessage().contains("is >= to max_allowed_packet"));
+                    sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -172,7 +172,7 @@ public class BufferTest extends BaseTest {
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
             assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
-                    sqlexception.getCause().getCause().getMessage().contains("is >= to max_allowed_packet"));
+                    sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
