@@ -126,13 +126,13 @@ public class DatatypeCompatibilityTest extends BaseTest {
                             Object expectedObjectValue) throws SQLException {
         assertNotNull(expectedObjectValue);
         assertSame("bad test spec: ", expectedClass, expectedObjectValue.getClass());
-        Statement statement = sharedConnection.createStatement();
-        try {
+
+        try (Statement statement = sharedConnection.createStatement()) {
             createTable("my_table", "my_col " + columnType);
             statement.execute("INSERT INTO my_table(my_col) VALUES (" + strValue + ")");
             statement.execute("SELECT * FROM my_table");
-            ResultSet resultSet = statement.getResultSet();
-            try {
+
+            try (ResultSet resultSet = statement.getResultSet()) {
                 ResultSetMetaData metaData = resultSet.getMetaData();
                 assertEquals("class name  for " + columnType, expectedClass.getName(), metaData.getColumnClassName(1));
                 assertEquals("java.sql.Types code for " + columnType, expectedJdbcType, metaData.getColumnType(1));
@@ -144,11 +144,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
                 } else {
                     assertEquals(expectedObjectValue, objectValue);
                 }
-            } finally {
-                resultSet.close();
             }
-        } finally {
-            statement.close();
         }
     }
 

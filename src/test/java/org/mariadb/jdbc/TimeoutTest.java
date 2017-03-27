@@ -74,9 +74,7 @@ public class TimeoutTest extends BaseTest {
     @Test
     public void socketTimeoutTest() throws SQLException {
         // set a short connection timeout
-        Connection connection = null;
-        try {
-            connection = setConnection("&connectTimeout=500&socketTimeout=500");
+        try (Connection connection = setConnection("&connectTimeout=500&socketTimeout=500")) {
             PreparedStatement ps = connection.prepareStatement("SELECT 1");
             ResultSet rs = ps.executeQuery();
             rs.next();
@@ -103,44 +101,33 @@ public class TimeoutTest extends BaseTest {
 
             // the connection should  be closed
             assertTrue(connection.isClosed());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
     @Test
     public void waitTimeoutStatementTest() throws SQLException, InterruptedException {
-        Connection connection = null;
-        try {
-            connection = setConnection();
-            Statement statement = connection.createStatement();
-            statement.execute("set session wait_timeout=1");
-            Thread.sleep(2000); // Wait for the server to kill the connection
+        try (Connection connection = setConnection()) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("set session wait_timeout=1");
+                Thread.sleep(2000); // Wait for the server to kill the connection
 
-            logInfo(connection.toString());
+                logInfo(connection.toString());
 
-            // here a SQLNonTransientConnectionException is expected
-            // "Could not read resultset: unexpected end of stream, ..."
-            try {
-                statement.execute("SELECT 1");
-                fail("Connection must have thrown error");
-            } catch (SQLException e) {
-                //normal exception
+                // here a SQLNonTransientConnectionException is expected
+                // "Could not read resultset: unexpected end of stream, ..."
+                try {
+                    statement.execute("SELECT 1");
+                    fail("Connection must have thrown error");
+                } catch (SQLException e) {
+                    //normal exception
+                }
             }
-
-            statement.close();
-        } finally {
-            connection.close();
         }
     }
 
     @Test
     public void waitTimeoutResultSetTest() throws SQLException, InterruptedException {
-        Connection connection = null;
-        try {
-            connection = setConnection();
+        try (Connection connection = setConnection()) {
             Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT 1");
 
@@ -158,8 +145,6 @@ public class TimeoutTest extends BaseTest {
             } catch (SQLException e) {
                 //normal exception
             }
-        } finally {
-            connection.close();
         }
     }
 

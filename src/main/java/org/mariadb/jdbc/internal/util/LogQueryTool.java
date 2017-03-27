@@ -49,7 +49,7 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
@@ -106,7 +106,7 @@ public class LogQueryTool {
      */
     public SQLException exceptionWithQuery(String sql, SQLException sqlException) {
         if (options.dumpQueriesOnException || sqlException.getErrorCode() == 1064) {
-            return new SQLException(sqlException.getMessage() + "\nQuery is : " + subQuery(sql), sqlException.getSQLState(),
+            return new SQLException(sqlException.getMessage() + "\nQuery is: " + subQuery(sql), sqlException.getSQLState(),
                     sqlException.getErrorCode(), sqlException.getCause());
         }
         return sqlException;
@@ -148,34 +148,13 @@ public class LogQueryTool {
     /**
      * Return exception with query information's.
      *
-     * @param parameterList  query parameters list
-     * @param sqlEx current exception
-     * @param serverPrepareResult prepare results
+     * @param sqlEx             current exception
+     * @param prepareResult     prepare results
      * @return exception with query information
      */
-    public SQLException exceptionWithQuery(List<ParameterHolder[]> parameterList, SQLException sqlEx, ServerPrepareResult serverPrepareResult) {
+    public SQLException exceptionWithQuery(SQLException sqlEx, PrepareResult prepareResult) {
         if (options.dumpQueriesOnException || sqlEx.getErrorCode() == 1064) {
-            String querySql = serverPrepareResult.getSql();
-
-            if (serverPrepareResult.getParameters().length > 0) {
-                querySql += ", parameters ";
-                for (int paramNo = 0; paramNo < parameterList.size(); paramNo++) {
-                    ParameterHolder[] parameters = parameterList.get(paramNo);
-                    querySql += "[";
-                    if (parameters.length > 0) {
-                        for (int i = 0; i < parameters.length; i++) {
-                            querySql += parameters[i].toString() + ",";
-                        }
-                        querySql = querySql.substring(0, querySql.length() - 1);
-                    }
-                    if (options.maxQuerySizeToLog > 0 && querySql.length() > options.maxQuerySizeToLog) {
-                        break;
-                    } else {
-                        querySql += "],";
-                    }
-                }
-                querySql = querySql.substring(0, querySql.length() - 1);
-            }
+            String querySql = prepareResult.getSql();
 
             String message = sqlEx.getMessage();
             if (options.maxQuerySizeToLog != 0 && querySql.length() > options.maxQuerySizeToLog - 3) {

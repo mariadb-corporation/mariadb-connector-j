@@ -49,9 +49,11 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.com.send.parameters.OffsetTimeParameter;
+import org.mariadb.jdbc.internal.com.send.parameters.ZonedDateTimeParameter;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.packet.dao.parameters.*;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -103,6 +105,12 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
         this.useFractionalSeconds = options.useFractionalSeconds;
     }
 
+    public BasePrepareStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        BasePrepareStatement base = (BasePrepareStatement) super.clone(connection);
+        base.useFractionalSeconds = options.useFractionalSeconds;
+        return base;
+    }
+
     @Override
     public long executeLargeUpdate() throws SQLException {
         if (executeInternal(getFetchSize())) {
@@ -110,6 +118,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
         }
         return getLargeUpdateCount();
     }
+
 
     protected abstract boolean executeInternal(int fetchSize) throws SQLException;
 

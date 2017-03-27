@@ -219,34 +219,22 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void datatypes2() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection("&tinyInt1isBit=0&yearIsDateType=0");
+        try (Connection connection = setConnection("&tinyInt1isBit=0&yearIsDateType=0")) {
             datatypes(connection, false, false);
-        } finally {
-            connection.close();
         }
     }
 
     @Test
     public void datatypes3() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection("&tinyInt1isBit=1&yearIsDateType=0");
+        try (Connection connection = setConnection("&tinyInt1isBit=1&yearIsDateType=0")) {
             datatypes(connection, true, false);
-        } finally {
-            connection.close();
         }
     }
 
     @Test
     public void datatypes4() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection("&tinyInt1isBit=0&yearIsDateType=1");
+        try (Connection connection = setConnection("&tinyInt1isBit=0&yearIsDateType=1")) {
             datatypes(connection, false, true);
-        } finally {
-            connection.close();
         }
     }
 
@@ -886,4 +874,48 @@ public class DatatypeTest extends BaseTest {
         }
     }
 
+
+
+    @Test
+    public void testBinarySetter() throws Throwable {
+        createTable("LatinTable", "t1 varchar(30)","DEFAULT CHARSET=latin1");
+
+        try (Connection connection = DriverManager.getConnection(connU + "?user=" + username
+                + (password != null && !"".equals(password) ? "&password=" + password : "") + "&useServerPrepStmts=true")) {
+            checkCharactersInsert(connection);
+        }
+
+        sharedConnection.createStatement().execute("truncate LatinTable");
+
+        try (Connection connection = DriverManager.getConnection(connU + "?user=" + username
+                + (password != null && !"".equals(password) ? "&password=" + password : "") + "&useServerPrepStmts=false")) {
+            checkCharactersInsert(connection);
+        }
+    }
+
+    private String str = "\u4f60\u597d(hello in Chinese)";
+
+    private void checkCharactersInsert(Connection connection) throws Throwable {
+        try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO LatinTable(t1)  values (?)")) {
+            try {
+                preparedStatement.setString(1, str);
+                preparedStatement.execute();
+                fail("must have fail");
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("Incorrect string value"));
+            }
+
+            try {
+                preparedStatement.setBytes(1, str.getBytes("UTF-8"));
+                preparedStatement.execute();
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("Incorrect string value"));
+            }
+
+            ByteArrayInputStream bais = new ByteArrayInputStream(str.getBytes("UTF-8"));
+            preparedStatement.setBinaryStream(1, bais);
+            preparedStatement.execute();
+        }
+
+    }
 }

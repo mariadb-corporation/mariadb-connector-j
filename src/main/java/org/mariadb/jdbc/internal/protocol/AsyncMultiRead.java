@@ -1,8 +1,8 @@
 package org.mariadb.jdbc.internal.protocol;
 
-import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.queryresults.Results;
+import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 
@@ -71,7 +71,7 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
 
         if (readPrepareStmtResult) {
             try {
-                asyncMultiReadResult.setPrepareResult(comStmtPrepare.read(protocol.getPacketFetcher()));
+                asyncMultiReadResult.setPrepareResult(comStmtPrepare.read(protocol.getReader()));
             } catch (SQLException queryException) {
                 asyncMultiReadResult.setException(queryException);
             }

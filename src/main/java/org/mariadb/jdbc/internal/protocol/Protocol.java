@@ -49,21 +49,23 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.queryresults.Results;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.util.List;
@@ -235,21 +237,13 @@ public interface Protocol {
 
     void setHasWarnings(boolean hasWarnings);
 
-    void releaseWriterBuffer();
-
-    ByteBuffer getWriterBuffer();
-
-    PacketOutputStream getWriter();
-
     ServerPrepareResult addPrepareInCache(String key, ServerPrepareResult serverPrepareResult);
 
     void readEofPacket() throws SQLException, IOException;
 
     void skipEofPacket() throws SQLException, IOException;
 
-    ReadPacketFetcher getPacketFetcher();
-
-    void changeSocketTcpNoDelay(boolean setTcpNoDelay);
+    void changeSocketTcpNoDelay(boolean setTcpNoDelay) throws SocketException;
 
     void changeSocketSoTimeout(int setSoTimeout) throws SocketException;
 
@@ -261,4 +255,10 @@ public interface Protocol {
     void setActiveFutureTask(FutureTask activeFutureTask);
 
     boolean isServerMariaDb();
+
+    SQLException handleIoException(IOException initialException);
+
+    PacketInputStream getReader();
+
+    PacketOutputStream getWriter();
 }

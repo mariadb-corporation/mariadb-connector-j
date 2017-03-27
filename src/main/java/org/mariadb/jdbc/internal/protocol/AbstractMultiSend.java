@@ -51,11 +51,10 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.protocol;
 
 import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.packet.ComStmtPrepare;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.queryresults.Results;
-import org.mariadb.jdbc.internal.stream.MaxAllowedPacketException;
-import org.mariadb.jdbc.internal.stream.PacketOutputStream;
+import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
@@ -220,7 +219,7 @@ public abstract class AbstractMultiSend {
                     comStmtPrepare.send(writer);
 
                     //read prepare result
-                    prepareResult = comStmtPrepare.read(protocol.getPacketFetcher());
+                    prepareResult = comStmtPrepare.read(protocol.getReader());
                     statementId = ((ServerPrepareResult) prepareResult).getStatementId();
                     paramCount = getParamCount();
                 }
@@ -278,16 +277,11 @@ public abstract class AbstractMultiSend {
             if (exception != null) throw exception;
 
             return prepareResult;
-        } catch (MaxAllowedPacketException e) {
-            if (e.isMustReconnect()) protocol.connect();
-            throw new SQLTransientConnectionException("Could not send query: " + e.getMessage(), INTERRUPTED_EXCEPTION.getSqlState(), e);
+
         } catch (IOException e) {
-            throw new SQLException("Could not send query: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
-        } finally {
-            writer.releaseBufferIfNotLogging();
+            throw protocol.handleIoException(e);
         }
 
     }
-
 
 }

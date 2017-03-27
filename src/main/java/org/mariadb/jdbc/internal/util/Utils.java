@@ -59,9 +59,9 @@ import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
 import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.socket.NamedPipeSocket;
-import org.mariadb.jdbc.internal.socket.SharedMemorySocket;
-import org.mariadb.jdbc.internal.socket.UnixDomainSocket;
+import org.mariadb.jdbc.internal.io.socket.NamedPipeSocket;
+import org.mariadb.jdbc.internal.io.socket.SharedMemorySocket;
+import org.mariadb.jdbc.internal.io.socket.UnixDomainSocket;
 
 import javax.net.SocketFactory;
 import java.io.IOException;

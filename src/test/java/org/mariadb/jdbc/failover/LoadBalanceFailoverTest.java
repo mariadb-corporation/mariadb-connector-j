@@ -37,16 +37,10 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
 
     @Test(expected = SQLException.class)
     public void failover() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&autoReconnect=true&retriesAllDown=6", true);
+        try (Connection connection = getNewConnection("&autoReconnect=true&retriesAllDown=6", true)) {
             int master1ServerId = getServerId(connection);
             stopProxy(master1ServerId);
             connection.createStatement().execute("SELECT 1");
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
@@ -56,15 +50,15 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
         Assume.assumeTrue(initialLoadbalanceUrl.contains("loadbalance"));
         Map<String, MutableInt> connectionMap = new HashMap<>();
         for (int i = 0; i < 20; i++) {
-            Connection connection = getNewConnection(false);
-            int serverId = getServerId(connection);
-            MutableInt count = connectionMap.get(String.valueOf(serverId));
-            if (count == null) {
-                connectionMap.put(String.valueOf(serverId), new MutableInt());
-            } else {
-                count.increment();
+            try (Connection connection = getNewConnection(false)) {
+                int serverId = getServerId(connection);
+                MutableInt count = connectionMap.get(String.valueOf(serverId));
+                if (count == null) {
+                    connectionMap.put(String.valueOf(serverId), new MutableInt());
+                } else {
+                    count.increment();
+                }
             }
-            connection.close();
         }
 
         Assert.assertTrue(connectionMap.size() >= 2);
@@ -77,21 +71,14 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
 
     @Test
     public void testReadonly() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = getNewConnection(false);
+        try (Connection connection = getNewConnection(false)) {
             connection.setReadOnly(true);
 
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists multinode");
             stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
-            Assert.fail("must not create table on a read-only connection");
         } catch (SQLException sqle) {
             //normal exception
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 

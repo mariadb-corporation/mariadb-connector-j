@@ -49,14 +49,14 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.*;
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.com.read.dao.*;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
@@ -133,14 +133,14 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     /**
      * Clone statement.
-     *
+     * @param connection connection
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public MariaDbStatement clone() throws CloneNotSupportedException {
+    public MariaDbStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
         MariaDbStatement clone = (MariaDbStatement) super.clone();
         clone.connection = connection;
-        clone.protocol = protocol;
+        clone.protocol = connection.getProtocol();
         clone.timerTaskFuture = null;
         clone.batchQueries = new ArrayList<>();
         clone.results = new Results(clone, connection.getAutoIncrementIncrement());

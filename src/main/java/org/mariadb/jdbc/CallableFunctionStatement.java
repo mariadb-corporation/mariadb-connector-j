@@ -52,8 +52,8 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -63,7 +63,7 @@ import java.sql.*;
 import java.util.Calendar;
 import java.util.Map;
 
-public abstract class CallableFunctionStatement extends MariaDbPreparedStatementClient implements CallableStatement, Cloneable {
+public abstract class CallableFunctionStatement extends MariaDbPreparedStatementClient implements CallableStatement {
     /**
      * Information about parameters, merely from registerOutputParameter() and setXXX() calls.
      */
@@ -86,13 +86,16 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
     /**
      * Clone data.
      *
+     * @param connection  connection
      * @return Cloned .
      * @throws CloneNotSupportedException if any error occur.
      */
-    public CallableFunctionStatement clone() throws CloneNotSupportedException {
-        CallableFunctionStatement clone = (CallableFunctionStatement) super.clone();
+    public CallableFunctionStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        CallableFunctionStatement clone = (CallableFunctionStatement) super.clone(connection);
         clone.params = params;
         clone.parameterMetadata = parameterMetadata;
+        clone.connection = connection;
+
         return clone;
     }
 

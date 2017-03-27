@@ -50,9 +50,10 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.com.read.dao.*;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.sql.*;
@@ -95,11 +96,12 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
     /**
      * Clone statement.
      *
+     * @param connection connection
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public MariaDbPreparedStatementServer clone() throws CloneNotSupportedException {
-        MariaDbPreparedStatementServer clone = (MariaDbPreparedStatementServer) super.clone();
+    public MariaDbPreparedStatementServer clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        MariaDbPreparedStatementServer clone = (MariaDbPreparedStatementServer) super.clone(connection);
         clone.metadata = metadata;
         clone.parameterMetaData = parameterMetaData;
         clone.queryParameters = new ArrayList<>();
@@ -132,7 +134,6 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
         parameterCount = serverPrepareResult.getParameters().length;
         metadata = new MariaDbResultSetMetaData(serverPrepareResult.getColumns(), protocol.getDataTypeMappingFlags(), returnTableAlias);
         parameterMetaData = new MariaDbParameterMetaData(serverPrepareResult.getParameters());
-        sql = null;
     }
 
     protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {

@@ -51,10 +51,11 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.Results;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.net.SocketException;
 import java.sql.*;
@@ -506,11 +507,12 @@ public class MariaDbConnection implements Connection {
 
         if (database != null && options.cacheCallableStmts) {
             if (callableStatementCache.containsKey(new CallableStatementCacheKey(database, query))) {
-                //Clone to avoid side effect like having some open resultset.
+
+                //Clone to avoid side effect like having some open resultSet.
                 try {
                     CallableStatement callableStatement = callableStatementCache.get(new CallableStatementCacheKey(getDatabase(), query));
                     if (callableStatement != null) {
-                        return ((CloneableCallableStatement) callableStatement).clone();
+                        return ((CloneableCallableStatement) callableStatement).clone(this);
                     }
                 } catch (CloneNotSupportedException cloneNotSupportedException) {
                     cloneNotSupportedException.printStackTrace();
@@ -621,14 +623,10 @@ public class MariaDbConnection implements Connection {
      * @throws SQLException if something goes wrong talking to the server.
      */
     public void setAutoCommit(boolean autoCommit) throws SQLException {
-        if (autoCommit == getAutoCommit()) {
-            return;
-        }
-        Statement stmt = createStatement();
-        try {
+        if (autoCommit == getAutoCommit()) return;
+
+        try (Statement stmt = createStatement()) {
             stmt.executeUpdate("set autocommit=" + ((autoCommit) ? "1" : "0"));
-        } finally {
-            stmt.close();
         }
     }
 
@@ -638,18 +636,17 @@ public class MariaDbConnection implements Connection {
      * @throws SQLException if there is an error commiting.
      */
     public void commit() throws SQLException {
-        lock.lock();
-        try {
-            if (!getAutoCommit()) {
-                Statement st = createStatement();
-                try {
-                    st.execute("COMMIT");
-                } finally {
-                    st.close();
+        if (!getAutoCommit()) {
+            lock.lock();
+            try {
+                if (!getAutoCommit()) {
+                    try (Statement st = createStatement()) {
+                        st.execute("COMMIT");
+                    }
                 }
+            } finally {
+                lock.unlock();
             }
-        } finally {
-            lock.unlock();
         }
     }
 
@@ -659,11 +656,8 @@ public class MariaDbConnection implements Connection {
      * @throws SQLException if there is an error rolling back.
      */
     public void rollback() throws SQLException {
-        Statement st = createStatement();
-        try {
+        try (Statement st = createStatement()) {
             st.execute("ROLLBACK");
-        } finally {
-            st.close();
         }
     }
 
@@ -683,9 +677,9 @@ public class MariaDbConnection implements Connection {
      * @since 1.4
      */
     public void rollback(final Savepoint savepoint) throws SQLException {
-        Statement st = createStatement();
-        st.execute("ROLLBACK TO SAVEPOINT " + savepoint.toString());
-        st.close();
+        try (Statement st = createStatement()) {
+            st.execute("ROLLBACK TO SAVEPOINT " + savepoint.toString());
+        }
     }
 
     /**
@@ -762,19 +756,12 @@ public class MariaDbConnection implements Connection {
      * @see #setCatalog
      */
     public String getCatalog() throws SQLException {
-        String catalog = null;
-        Statement st = null;
-        try {
-            st = createStatement();
-            ResultSet rs = st.executeQuery("select database()");
-            rs.next();
-            catalog = rs.getString(1);
-        } finally {
-            if (st != null) {
-                st.close();
+        try (Statement st = createStatement()) {
+            try (ResultSet rs = st.executeQuery("select database()")) {
+                rs.next();
+                return rs.getString(1);
             }
         }
-        return catalog;
     }
 
     /**
@@ -808,25 +795,23 @@ public class MariaDbConnection implements Connection {
      * @see #setTransactionIsolation
      */
     public int getTransactionIsolation() throws SQLException {
-        final Statement stmt = createStatement();
-        try {
-            final ResultSet rs = stmt.executeQuery("SELECT @@tx_isolation");
-            rs.next();
-            final String response = rs.getString(1);
-            if (response.equals("REPEATABLE-READ")) {
-                return Connection.TRANSACTION_REPEATABLE_READ;
+        try (Statement stmt = createStatement()) {
+            try (ResultSet rs = stmt.executeQuery("SELECT @@tx_isolation")) {
+                rs.next();
+                final String response = rs.getString(1);
+                if (response.equals("REPEATABLE-READ")) {
+                    return Connection.TRANSACTION_REPEATABLE_READ;
+                }
+                if (response.equals("READ-UNCOMMITTED")) {
+                    return Connection.TRANSACTION_READ_UNCOMMITTED;
+                }
+                if (response.equals("READ-COMMITTED")) {
+                    return Connection.TRANSACTION_READ_COMMITTED;
+                }
+                if (response.equals("SERIALIZABLE")) {
+                    return Connection.TRANSACTION_SERIALIZABLE;
+                }
             }
-            if (response.equals("READ-UNCOMMITTED")) {
-                return Connection.TRANSACTION_READ_UNCOMMITTED;
-            }
-            if (response.equals("READ-COMMITTED")) {
-                return Connection.TRANSACTION_READ_COMMITTED;
-            }
-            if (response.equals("SERIALIZABLE")) {
-                return Connection.TRANSACTION_SERIALIZABLE;
-            }
-        } finally {
-            stmt.close();
         }
         throw ExceptionMapper.getSqlException("Could not get transaction isolation level");
     }
@@ -869,35 +854,26 @@ public class MariaDbConnection implements Connection {
      * @see SQLWarning
      */
     public SQLWarning getWarnings() throws SQLException {
-        if (warningsCleared || isClosed() || !protocol.hasWarnings()) {
-            return null;
-        }
-        Statement st = null;
-        ResultSet rs = null;
+        if (warningsCleared || isClosed() || !protocol.hasWarnings()) return null;
+
         SQLWarning last = null;
         SQLWarning first = null;
-        try {
-            st = this.createStatement();
-            rs = st.executeQuery("show warnings");
-            // returned result set has 'level', 'code' and 'message' columns, in this order.
-            while (rs.next()) {
-                int code = rs.getInt(2);
-                String message = rs.getString(3);
-                SQLWarning warning = new SQLWarning(message, ExceptionMapper.mapCodeToSqlState(code), code);
-                if (first == null) {
-                    first = warning;
-                    last = warning;
-                } else {
-                    last.setNextWarning(warning);
-                    last = warning;
+
+        try (Statement st = this.createStatement()) {
+            try (ResultSet rs = st.executeQuery("show warnings")) {
+                // returned result set has 'level', 'code' and 'message' columns, in this order.
+                while (rs.next()) {
+                    int code = rs.getInt(2);
+                    String message = rs.getString(3);
+                    SQLWarning warning = new SQLWarning(message, ExceptionMapper.mapCodeToSqlState(code), code);
+                    if (first == null) {
+                        first = warning;
+                        last = warning;
+                    } else {
+                        last.setNextWarning(warning);
+                        last = warning;
+                    }
                 }
-            }
-        } finally {
-            if (rs != null) {
-                rs.close();
-            }
-            if (st != null) {
-                st.close();
             }
         }
         return first;
@@ -1028,8 +1004,9 @@ public class MariaDbConnection implements Connection {
      */
     public Savepoint setSavepoint(final String name) throws SQLException {
         Savepoint savepoint = new MariaDbSavepoint(name, savepointCount++);
-        Statement st = createStatement();
-        st.execute("SAVEPOINT " + savepoint.toString());
+        try (Statement st = createStatement()) {
+            st.execute("SAVEPOINT " + savepoint.toString());
+        }
         return savepoint;
 
     }
@@ -1048,9 +1025,9 @@ public class MariaDbConnection implements Connection {
      * @since 1.4
      */
     public void releaseSavepoint(final Savepoint savepoint) throws SQLException {
-        Statement st = createStatement();
-        st.execute("RELEASE SAVEPOINT " + savepoint.toString());
-        st.close();
+        try (Statement st = createStatement()) {
+            st.execute("RELEASE SAVEPOINT " + savepoint.toString());
+        }
     }
 
     /**
@@ -1484,10 +1461,12 @@ public class MariaDbConnection implements Connection {
      */
     public int getLowercaseTableNames() throws SQLException {
         if (lowercaseTableNames == -1) {
-            Statement st = createStatement();
-            ResultSet rs = st.executeQuery("select @@lower_case_table_names");
-            rs.next();
-            lowercaseTableNames = rs.getInt(1);
+            try (Statement st = createStatement()) {
+                try (ResultSet rs = st.executeQuery("select @@lower_case_table_names")) {
+                    rs.next();
+                    lowercaseTableNames = rs.getInt(1);
+                }
+            }
         }
         return lowercaseTableNames;
     }
@@ -1499,9 +1478,8 @@ public class MariaDbConnection implements Connection {
      * @throws SQLException if security manager doesn't permit it.
      */
     public void abort(Executor executor) throws SQLException {
-        if (this.isClosed()) {
-            return;
-        }
+        if (this.isClosed()) return;
+
         SQLPermission sqlPermission = new SQLPermission("callAbort");
         SecurityManager securityManager = System.getSecurityManager();
         if (securityManager != null && sqlPermission != null) {
@@ -1510,6 +1488,7 @@ public class MariaDbConnection implements Connection {
         if (executor == null) {
             throw ExceptionMapper.getSqlException("Cannot abort the connection: null executor passed");
         }
+
         executor.execute(new Runnable() {
             @Override
             public void run() {

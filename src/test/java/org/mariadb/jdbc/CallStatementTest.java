@@ -152,7 +152,7 @@ public class CallStatementTest extends BaseTest {
         } catch (SQLSyntaxErrorException e) {
             assertTrue(e.getMessage().contains("OUT or INOUT argument 1 for routine testj.inOutParam is not a variable "
                     + "or NEW pseudo-variable in BEFORE trigger")
-                    && e.getCause().getMessage().contains("Query is : call inOutParam(1)"));
+                    && e.getCause().getMessage().contains("Query is: call inOutParam(1)"));
         }
     }
 

@@ -54,9 +54,7 @@ public class ReplicationFailoverTest extends BaseReplication {
      * @throws SQLException if any exception
      */
     public void assureReadOnly(boolean useAlias) throws SQLException {
-        Connection connection = null;
-        try {
-            connection = getNewConnection(useAlias ? "&readOnlyPropagatesToServer=true" : "&assureReadOnly=true", false);
+        try (Connection connection = getNewConnection(useAlias ? "&readOnlyPropagatesToServer=true" : "&assureReadOnly=true", false)) {
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists replicationDelete" + jobId);
             stmt.execute("create table replicationDelete" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
@@ -72,19 +70,13 @@ public class ReplicationFailoverTest extends BaseReplication {
             } catch (SQLException e) {
                 //normal exception
             }
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
 
     @Test
     public void pingReconnectAfterFailover() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
+        try (Connection connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
             Statement st = connection.createStatement();
             final int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -103,37 +95,24 @@ public class ReplicationFailoverTest extends BaseReplication {
             } catch (SQLException e) {
                 fail();
             }
-
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
     @Test
     public void failoverDuringMasterSetReadOnly() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
+        try (Connection connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
             connection.setReadOnly(true);
             int slaveServerId = getServerId(connection);
             assertFalse(slaveServerId == masterServerId);
             assertTrue(connection.isReadOnly());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
     @Test()
     public void masterWithoutFailover() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
+        try (Connection connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int firstSlaveId = getServerId(connection);
@@ -148,18 +127,13 @@ public class ReplicationFailoverTest extends BaseReplication {
             } catch (SQLException e) {
                 assertTrue(true);
             }
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
     @Test
     public void checkBackOnMasterOnSlaveFail() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&retriesAllDown=6&failOnReadOnly=true&connectTimeout=1000&socketTimeout=1000", true);
+        try (Connection connection = getNewConnection(
+                "&retriesAllDown=6&failOnReadOnly=true&connectTimeout=1000&socketTimeout=1000", true)) {
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -187,19 +161,13 @@ public class ReplicationFailoverTest extends BaseReplication {
                     fail();
                 }
             }
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
 
     @Test
     public void testFailNotOnSlave() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
+        try (Connection connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
             Statement stmt = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -210,10 +178,6 @@ public class ReplicationFailoverTest extends BaseReplication {
                 //normal error
             }
             assertTrue(!connection.isReadOnly());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 

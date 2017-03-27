@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal;
 
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

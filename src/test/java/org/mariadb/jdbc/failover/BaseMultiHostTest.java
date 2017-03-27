@@ -325,19 +325,19 @@ public class BaseMultiHostTest {
         Statement st = connection.createStatement();
 
         // first test for specific user and host combination
-        ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '"
-                + hostname + "'");
-        if (rs.next()) {
-            superPrivilege = (rs.getString(1).equals("Y"));
-        } else {
-            // then check for user on whatever (%) host
-            rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'");
+        try (ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '"
+                + hostname + "'")) {
             if (rs.next()) {
                 superPrivilege = (rs.getString(1).equals("Y"));
+            } else {
+                // then check for user on whatever (%) host
+                try (ResultSet rs2 = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'")) {
+                    if (rs2.next()) {
+                        superPrivilege = (rs2.getString(1).equals("Y"));
+                    }
+                }
             }
         }
-
-        rs.close();
 
         if (superPrivilege) {
             System.out.println("test '" + testName + "' skipped because user '" + username + "' has SUPER privileges");

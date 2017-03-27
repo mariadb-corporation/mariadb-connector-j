@@ -55,9 +55,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void serverExecutionTest() throws SQLException {
         Assume.assumeTrue(sharedOptions().useServerPrepStmts);
-        Connection connection = null;
-        try {
-            connection = setConnection();
+        try (Connection connection = setConnection()) {
             Statement statement = connection.createStatement();
             ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             assertTrue(rs.next());
@@ -72,25 +70,18 @@ public class ServerPrepareStatementTest extends BaseTest {
             rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             assertTrue(rs.next());
             assertTrue(rs.getInt(2) == nbStatementCount + 1);
-        } finally {
-            connection.close();
         }
     }
 
     @Test
     public void serverCacheStatementTest() throws Throwable {
         Assume.assumeTrue(sharedUsePrepare());
-        Connection connection = null;
-        try {
-            connection = setConnection();
+        try (Connection connection = setConnection()) {
             PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)  ");
             ps.setBoolean(1, true);
             ps.addBatch();
             ps.executeBatch();
-        } finally {
-            connection.close();
         }
-
 
         Protocol protocol = getProtocolFromConnection(sharedConnection);
         int cacheSize = protocol.prepareStatementCache().size();
@@ -108,9 +99,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void prepStmtCacheSize() throws Throwable {
         Assume.assumeTrue(sharedOptions().useServerPrepStmts);
-        Connection connection = null;
-        try {
-            connection = setConnection("&prepStmtCacheSize=10");
+        try (Connection connection = setConnection("&prepStmtCacheSize=10")) {
             List<PreparedStatement> activePrepareStatement = new ArrayList<>(20);
             for (int i = 0; i < 20; i++) {
                 PreparedStatement preparedStatement = connection.prepareStatement("SELECT " + i);
@@ -231,10 +220,6 @@ public class ServerPrepareStatementTest extends BaseTest {
                     + "testj-SELECT 27-0\n"
                     + "testj-SELECT 28-0\n"
                     + "testj-SELECT 29-0]", protocol.prepareStatementCache().toString());
-
-
-        } finally {
-            connection.close();
         }
     }
 
@@ -247,9 +232,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     public void timeFractionnalSecondTest() throws SQLException {
         Assume.assumeTrue(doPrecisionTest);
 
-        Connection connection = null;
-        try {
-            connection = setConnection("&useFractionalSeconds=false");
+        try (Connection connection = setConnection("&useFractionalSeconds=false")) {
             Time time0 = new Time(55549392);
             Time time1 = new Time(55549000);
 
@@ -281,8 +264,6 @@ public class ServerPrepareStatementTest extends BaseTest {
             } else {
                 fail("Error in query");
             }
-        } finally {
-            connection.close();
         }
 
     }
@@ -489,10 +470,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void blobTest() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = setConnection("&prepStmtCacheSize=10");
-
+        try (Connection connection = setConnection("&prepStmtCacheSize=10")) {
             PreparedStatement ps = connection.prepareStatement(
                     "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
             ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -501,16 +479,12 @@ public class ServerPrepareStatementTest extends BaseTest {
             ps.setBlob(1, input);
             ps.addBatch();
             ps.executeBatch();
-        } finally {
-            connection.close();
         }
     }
 
     @Test
     public void readerTest() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = setConnection("&prepStmtCacheSize=10");
+        try (Connection connection = setConnection("&prepStmtCacheSize=10")) {
             PreparedStatement ps = connection.prepareStatement(
                     "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
             Reader reader = new BufferedReader(new InputStreamReader(
@@ -519,8 +493,6 @@ public class ServerPrepareStatementTest extends BaseTest {
             ps.setCharacterStream(1, reader);
             ps.addBatch();
             ps.executeBatch();
-        } finally {
-            connection.close();
         }
     }
 
@@ -592,12 +564,12 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void executeBatchNumber() throws Throwable {
-        PreparedStatement ps = prepareInsert();
-        ps.executeBatch();
-        ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
-        rs.next();
-        assertEquals(rs.getInt(1), 3);
-        ps.close();
+        try (PreparedStatement ps = prepareInsert()) {
+            ps.executeBatch();
+            ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
+            rs.next();
+            assertEquals(rs.getInt(1), 3);
+        }
     }
 
     private PreparedStatement prepareInsert() throws Throwable {

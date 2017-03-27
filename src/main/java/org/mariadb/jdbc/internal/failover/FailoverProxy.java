@@ -53,7 +53,7 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.lang.reflect.InvocationHandler;
@@ -314,7 +314,7 @@ public class FailoverProxy implements InvocationHandler {
      * example :
      * <p>
      * java.sql.SQLException: (conn:603) Cannot execute statement in a READ ONLY transaction.<br/>
-     * Query is : INSERT INTO TableX VALUES (21)<br/>
+     * Query is: INSERT INTO TableX VALUES (21)<br/>
      * on HostAddress{host='mydb.example.com', port=3306},master=true</p>
      *
      * @param exception     current exception

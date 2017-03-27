@@ -50,8 +50,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.protocol.authentication;
 
-import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.packet.send.*;
+import org.mariadb.jdbc.internal.com.send.*;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 
 import java.sql.SQLException;
 
@@ -64,7 +64,7 @@ public class DefaultAuthenticationProvider {
 
     /**
      * Process AuthenticationSwitch.
-     * @param packetFetcher             packet fetcher
+     * @param reader                    packet fetcher
      * @param plugin                    plugin name
      * @param password                  password
      * @param authData                  auth data
@@ -73,7 +73,7 @@ public class DefaultAuthenticationProvider {
      * @return authentication response according to parameters
      * @throws SQLException if error occur.
      */
-    public static InterfaceAuthSwitchSendResponsePacket processAuthPlugin(ReadPacketFetcher packetFetcher, String plugin, String password,
+    public static InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
                                                                           byte[] authData, int seqNo, String passwordCharacterEncoding)
             throws SQLException {
         switch (plugin) {
@@ -84,9 +84,9 @@ public class DefaultAuthenticationProvider {
             case MYSQL_CLEAR_PASSWORD:
                 return new SendClearPasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
             case DIALOG:
-                return new SendPamAuthPacket(packetFetcher, password, authData, seqNo, passwordCharacterEncoding);
+                return new SendPamAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
             case GSSAPI_CLIENT:
-                return new SendGssApiAuthPacket(packetFetcher, password, authData, seqNo, passwordCharacterEncoding);
+                return new SendGssApiAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
             default:
                 throw new SQLException("Client does not support authentication protocol requested by server. "
                         + "Consider upgrading MariaDB client. plugin was = " + plugin, "08004", 1251);

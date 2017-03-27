@@ -51,17 +51,17 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.queryresults.*;
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.com.read.dao.*;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 
 import java.sql.*;
 import java.util.*;
 
 
-public class MariaDbPreparedStatementClient extends BasePrepareStatement implements Cloneable {
+public class MariaDbPreparedStatementClient extends BasePrepareStatement {
     private static Logger logger = LoggerFactory.getLogger(MariaDbPreparedStatementClient.class);
     private String sqlQuery;
     protected ClientPrepareResult prepareResult;
@@ -104,12 +104,12 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement impleme
 
     /**
      * Clone statement.
-     *
+     * @param connection connection
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public MariaDbPreparedStatementClient clone() throws CloneNotSupportedException {
-        MariaDbPreparedStatementClient clone = (MariaDbPreparedStatementClient) super.clone();
+    public MariaDbPreparedStatementClient clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        MariaDbPreparedStatementClient clone = (MariaDbPreparedStatementClient) super.clone(connection);
         clone.sqlQuery = sqlQuery;
         clone.prepareResult = prepareResult;
         clone.parameters = new ParameterHolder[prepareResult.getParamCount()];

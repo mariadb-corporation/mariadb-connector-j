@@ -50,9 +50,9 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.util.dao;
 
 import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.Results;
 
 import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicBoolean;

@@ -52,8 +52,8 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.io.InputStream;
 import java.io.Reader;
@@ -91,11 +91,12 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
     /**
      * Clone data.
      *
+     * @param connection connection
      * @return Cloned .
      * @throws CloneNotSupportedException if any error occur.
      */
-    public CallableProcedureStatement clone() throws CloneNotSupportedException {
-        CallableProcedureStatement clone = (CallableProcedureStatement) super.clone();
+    public CallableProcedureStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        CallableProcedureStatement clone = (CallableProcedureStatement) super.clone(connection);
         clone.params = params;
         clone.parameterMetadata = parameterMetadata;
         return clone;

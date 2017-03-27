@@ -34,9 +34,7 @@ public class CollationTest extends BaseTest {
      */
     @Test
     public void emoji() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = setConnection();
+        try (Connection connection = setConnection()) {
             String sqlForCharset = "select @@character_set_server";
             ResultSet rs = connection.createStatement().executeQuery(sqlForCharset);
             assertTrue(rs.next());
@@ -60,8 +58,6 @@ public class CollationTest extends BaseTest {
             assertTrue(rs.next());
             // compare to the Java representation of UTF32
             assertEquals("\uD83D\uDE04", rs.getString(1));
-        } finally {
-            connection.close();
         }
     }
 

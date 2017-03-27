@@ -21,18 +21,20 @@ public class MariaDbCompatibilityTest extends BaseTest {
      */
     @Test
     public void datatypesTest() throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
-        PreparedStatement preparedStmt = sharedConnection.prepareStatement(
-                "INSERT INTO `datatypesTest` (`type_longvarchar`) VALUES ( ? )");
-        preparedStmt.setObject(1, "longvarcharTest", Types.LONGVARCHAR);
-        preparedStmt.executeUpdate();
-        preparedStmt.close();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM datatypesTest");
-        stmt.close();
-        if (rs.next()) {
-            assertEquals("longvarcharTest", rs.getString(1));
-        } else {
-            fail();
+        try (Statement stmt = sharedConnection.createStatement()) {
+            try (PreparedStatement preparedStmt = sharedConnection.prepareStatement(
+                    "INSERT INTO `datatypesTest` (`type_longvarchar`) VALUES ( ? )")) {
+                preparedStmt.setObject(1, "longvarcharTest", Types.LONGVARCHAR);
+                preparedStmt.executeUpdate();
+            }
+
+            ResultSet rs = stmt.executeQuery("SELECT * FROM datatypesTest");
+            stmt.close();
+            if (rs.next()) {
+                assertEquals("longvarcharTest", rs.getString(1));
+            } else {
+                fail();
+            }
         }
     }
 

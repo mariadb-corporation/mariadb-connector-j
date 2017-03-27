@@ -473,18 +473,18 @@ public class BaseTest {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         rs.next();
-        int maxAllowedPacket = rs.getInt(1);
+        long maxAllowedPacket = rs.getLong(1);
 
         rs = st.executeQuery("select @@innodb_log_file_size");
         rs.next();
-        int innodbLogFileSize = rs.getInt(1);
+        long innodbLogFileSize = rs.getLong(1);
 
-        if (maxAllowedPacket < 8 * 1024 * 1024) {
+        if (maxAllowedPacket < 8 * 1024 * 1024L) {
 
             System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 8M");
             return false;
         }
-        if (innodbLogFileSize < 80 * 1024 * 1024) {
+        if (innodbLogFileSize < 80 * 1024 * 1024L) {
             System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 80M");
             return false;
         }
@@ -499,20 +499,20 @@ public class BaseTest {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         rs.next();
-        int maxAllowedPacket = rs.getInt(1);
+        long maxAllowedPacket = rs.getLong(1);
 
         rs = st.executeQuery("select @@innodb_log_file_size");
         rs.next();
-        int innodbLogFileSize = rs.getInt(1);
+        long innodbLogFileSize = rs.getLong(1);
 
-        if (maxAllowedPacket < 20 * 1024 * 1024) {
+        if (maxAllowedPacket < 20 * 1024 * 1024L) {
 
             if (displayMessage) {
                 System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 20M");
             }
             return false;
         }
-        if (innodbLogFileSize < 200 * 1024 * 1024) {
+        if (innodbLogFileSize < 200 * 1024 * 1024L) {
             if (displayMessage) {
                 System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 200M");
             }
@@ -529,20 +529,20 @@ public class BaseTest {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         rs.next();
-        int maxAllowedPacket = rs.getInt(1);
+        long maxAllowedPacket = rs.getLong(1);
 
         rs = st.executeQuery("select @@innodb_log_file_size");
         rs.next();
-        int innodbLogFileSize = rs.getInt(1);
+        long innodbLogFileSize = rs.getLong(1);
 
 
-        if (maxAllowedPacket < 40 * 1024 * 1024) {
+        if (maxAllowedPacket < 40 * 1024 * 1024L) {
             if (displayMsg) {
                 System.out.println("test '" + testName + "' skipped  due to server variable max_allowed_packet < 40M");
             }
             return false;
         }
-        if (innodbLogFileSize < 400 * 1024 * 1024) {
+        if (innodbLogFileSize < 400 * 1024 * 1024L) {
             if (displayMsg) {
                 System.out.println("test '" + testName + "' skipped  due to server variable innodb_log_file_size < 400M");
             }
@@ -555,21 +555,19 @@ public class BaseTest {
     //does the user have super privileges or not?
     boolean hasSuperPrivilege(String testName) throws SQLException {
         boolean superPrivilege = false;
-        Statement st = sharedConnection.createStatement();
-
-        // first test for specific user and host combination
-        ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '" + hostname + "'");
-        if (rs.next()) {
-            superPrivilege = (rs.getString(1).equals("Y"));
-        } else {
-            // then check for user on whatever (%) host
-            rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'");
-            if (rs.next()) {
-                superPrivilege = (rs.getString(1).equals("Y"));
+        try (Statement st = sharedConnection.createStatement()) {
+            // first test for specific user and host combination
+            try (ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '" + hostname + "'")) {
+                if (rs.next()) {
+                    superPrivilege = (rs.getString(1).equals("Y"));
+                } else {
+                    // then check for user on whatever (%) host
+                    try (ResultSet rs2 = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'")) {
+                        if (rs2.next()) superPrivilege = (rs2.getString(1).equals("Y"));
+                    }
+                }
             }
         }
-
-        rs.close();
 
         if (!superPrivilege) {
             System.out.println("test '" + testName + "' skipped because user '" + username + "' doesn't have SUPER privileges");
@@ -692,9 +690,9 @@ public class BaseTest {
      * @throws SQLException exception
      */
     public void setSessionTimeZone(Connection connection, String timeZone) throws SQLException {
-        Statement statement = connection.createStatement();
-        statement.execute("set @@session.time_zone = '" + timeZone + "'");
-        statement.close();
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("set @@session.time_zone = '" + timeZone + "'");
+        }
     }
 
     /**

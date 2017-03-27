@@ -50,8 +50,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.queryresults.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 
 import java.sql.ResultSet;
@@ -88,11 +88,12 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement implemen
     /**
      * Clone statement.
      *
+     * @param connection connection
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public MariaDbFunctionStatement clone() throws CloneNotSupportedException {
-        MariaDbFunctionStatement clone = (MariaDbFunctionStatement) super.clone();
+    public MariaDbFunctionStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        MariaDbFunctionStatement clone = (MariaDbFunctionStatement) super.clone(connection);
         clone.outputResultSet = null;
         return clone;
     }

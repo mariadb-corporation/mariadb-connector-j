@@ -86,24 +86,24 @@ public class BigQueryTest extends BaseTest {
 
     @Test
     public void sendBigBlobPreparedQuery() throws SQLException {
-
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigPreparedQuery") && sharedUsePrepare());
-        int maxAllowedPacket = 0;
+        long maxAllowedPacket = 0;
         Statement st = sharedConnection.createStatement();
         ResultSet rs1 = st.executeQuery("select @@max_allowed_packet");
         if (rs1.next()) {
             maxAllowedPacket = rs1.getInt(1);
+            Assume.assumeTrue(maxAllowedPacket < 512 * 1024 * 1024L);
         } else {
             fail();
         }
 
-        byte[] arr = new byte[maxAllowedPacket - 1000];
+        byte[] arr = new byte[(int) maxAllowedPacket - 1000];
         int pos = 0;
         while (pos < maxAllowedPacket - 1000) {
             arr[pos] = (byte) ((pos % 132) + 40);
             pos++;
         }
-        byte[] arr2 = new byte[maxAllowedPacket - 1000];
+        byte[] arr2 = new byte[(int) maxAllowedPacket - 1000];
         pos = 0;
         while (pos < maxAllowedPacket - 1000) {
             arr2[pos] = (byte) (((pos + 5 ) % 127) + 40);
@@ -138,9 +138,7 @@ public class BigQueryTest extends BaseTest {
         // check that maxAllowedPacket is big enough for the test
         Assume.assumeTrue(checkMaxAllowedPacketMore20m("testError"));
 
-        Connection connection = null;
-        try {
-            connection = setConnection();
+        try (Connection connection = setConnection()) {
             int selectSize = 9;
             char[] arr = new char[16 * 1024 * 1024 - selectSize];
             Arrays.fill(arr, 'a');
@@ -148,10 +146,6 @@ public class BigQueryTest extends BaseTest {
             ResultSet rs = connection.createStatement().executeQuery(request);
             rs.next();
             assertEquals(arr.length, rs.getString(1).length());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 

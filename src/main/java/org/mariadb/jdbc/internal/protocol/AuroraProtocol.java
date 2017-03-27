@@ -54,7 +54,7 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-import org.mariadb.jdbc.internal.queryresults.Results;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

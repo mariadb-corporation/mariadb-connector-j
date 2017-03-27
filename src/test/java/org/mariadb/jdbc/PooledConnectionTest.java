@@ -65,8 +65,7 @@ public class PooledConnectionTest extends BaseTest {
         MyEventListener listener = new MyEventListener();
         pc.addStatementEventListener(listener);
         MariaDbConnection connection = (MariaDbConnection) pc.getConnection();
-        PreparedStatement ps = connection.prepareStatement("SELECT ?");
-        try {
+        try (PreparedStatement ps = connection.prepareStatement("SELECT ?")) {
             ps.execute();
             assertTrue("should never get there", false);
         } catch (Exception e) {
@@ -79,7 +78,6 @@ public class PooledConnectionTest extends BaseTest {
                 assertTrue("07004".equals(listener.sqlException.getSQLState()) || "HY000".equals(listener.sqlException.getSQLState()));
             }
         }
-        ps.close();
         assertTrue(listener.statementClosed);
         pc.close();
     }

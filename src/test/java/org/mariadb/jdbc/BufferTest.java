@@ -217,9 +217,8 @@ public class BufferTest extends BaseTest {
             String resString = rs.getString(1);
             char[] cc = resString.toCharArray();
             assertEquals("error in data : length not equal", cc.length, arr.length);
-            for (int i = 0; i < arr.length; i++) {
-                assertEquals("error in data", cc[i], arr[i]);
-            }
+            assertEquals(String.valueOf(cc), resString);
+
         } else {
             fail("Error, must have result");
         }
