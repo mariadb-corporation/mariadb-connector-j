@@ -12,6 +12,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -36,6 +41,138 @@ public class StoredProcedureTest extends BaseTest {
                 + "SIGNAL SQLSTATE '70100'\n"
                 + "SET MESSAGE_TEXT = 'Test error from SP'; \n"
                 + "END");
+
+        //sequence table are not in MySQL and MariaDB < 10.1, so create some basic table
+        createTable("table_10", "val int");
+        createTable("table_5", "val int");
+        if (testSingleHost) {
+            try (Statement stmt = sharedConnection.createStatement()) {
+                stmt.execute("INSERT INTO table_10 VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
+                stmt.execute("INSERT INTO table_5 VALUES (1),(2),(3),(4),(5)");
+            }
+        }
+    }
+
+
+    @Test
+    public void testStoreProcedureStreaming() throws Exception {
+        createProcedure("StoredWithOutput", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
+                + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5;end");
+
+        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StoredWithOutput(?,?,?)}")) {
+            //indicate to stream results
+            callableStatement.setFetchSize(1);
+
+            callableStatement.registerOutParameter(1, Types.BIT);
+            callableStatement.registerOutParameter(2, Types.BIT);
+            callableStatement.registerOutParameter(3, Types.BIT);
+            callableStatement.execute();
+
+
+            ResultSet rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 10; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+
+            //force reading of all result-set since output parameter are in the end.
+            assertEquals(true, callableStatement.getBoolean(1));
+            assertEquals(false, callableStatement.getBoolean(2));
+            assertEquals(false, callableStatement.getBoolean(3));
+
+            assertTrue(callableStatement.getMoreResults());
+
+            rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 5; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+        }
+
+    }
+
+    @Test
+    public void testStoreProcedureStreamingWithAnotherQuery() throws Exception {
+        createProcedure("StreamInterrupted", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
+                + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5;end");
+
+        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StreamInterrupted(?,?,?)}")) {
+            //indicate to stream results
+            callableStatement.setFetchSize(1);
+
+            callableStatement.registerOutParameter(1, Types.BIT);
+            callableStatement.registerOutParameter(2, Types.BIT);
+            callableStatement.registerOutParameter(3, Types.BIT);
+
+            callableStatement.execute();
+
+
+            ResultSet rs = callableStatement.getResultSet();
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+
+
+            //execute another query on same connection must force loading of
+            //existing streaming result-set
+            try (Statement stmt = sharedConnection.createStatement()) {
+                ResultSet otherRs = stmt.executeQuery("SELECT 'test'");
+                assertTrue(otherRs.next());
+                assertEquals("test", otherRs.getString(1));
+            }
+
+            for (int i = 2; i <= 10; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+
+            assertEquals(true, callableStatement.getBoolean(1));
+            assertEquals(false, callableStatement.getBoolean(2));
+            assertEquals(false, callableStatement.getBoolean(3));
+
+            //force reading of all result-set since output parameter are in the end.
+            assertTrue(callableStatement.getMoreResults());
+
+            rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 5; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+        }
+
+    }
+
+    @Test
+    public void testStoreProcedureStreamingWithoutOutput() throws Exception {
+        createProcedure("StreamWithoutOutput", "(IN MAX_PARAM TINYINT)"
+                + "begin SELECT * from table_10; SELECT * from table_5;end");
+
+        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StreamWithoutOutput(?)}")) {
+            //indicate to stream results
+            callableStatement.setFetchSize(1);
+            callableStatement.setInt(1, 100);
+            callableStatement.execute();
+
+            ResultSet rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 10; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+
+            assertTrue(callableStatement.getMoreResults());
+
+            rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 5; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+        }
+
     }
 
     @Before
@@ -880,128 +1017,6 @@ public class StoredProcedureTest extends BaseTest {
             }
         }
     }
-
-    @Test
-    public void testStoreProcedureStreaming() throws Exception {
-        createProcedure("StoredWithOutput", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
-                + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from seq_1_to_10; SELECT * from seq_1_to_5;end");
-
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StoredWithOutput(?,?,?)}")) {
-            //indicate to stream results
-            callableStatement.setFetchSize(1);
-
-            callableStatement.registerOutParameter(1, Types.BIT);
-            callableStatement.registerOutParameter(2, Types.BIT);
-            callableStatement.registerOutParameter(3, Types.BIT);
-            callableStatement.execute();
-
-
-            ResultSet rs = callableStatement.getResultSet();
-            for (int i = 1; i <= 10; i++) {
-                assertTrue(rs.next());
-                assertEquals(i, rs.getInt(1));
-            }
-            assertFalse(rs.next());
-
-            //force reading of all result-set since output parameter are in the end.
-            assertEquals(true, callableStatement.getBoolean(1));
-            assertEquals(false, callableStatement.getBoolean(2));
-            assertEquals(false, callableStatement.getBoolean(3));
-
-            assertTrue(callableStatement.getMoreResults());
-
-            rs = callableStatement.getResultSet();
-            for (int i = 1; i <= 5; i++) {
-                assertTrue(rs.next());
-                assertEquals(i, rs.getInt(1));
-            }
-            assertFalse(rs.next());
-        }
-
-    }
-
-    @Test
-    public void testStoreProcedureStreamingWithAnotherQuery() throws Exception {
-        createProcedure("StreamInterrupted", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
-                + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from seq_1_to_10; SELECT * from seq_1_to_5;end");
-
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StreamInterrupted(?,?,?)}")) {
-            //indicate to stream results
-            callableStatement.setFetchSize(1);
-
-            callableStatement.registerOutParameter(1, Types.BIT);
-            callableStatement.registerOutParameter(2, Types.BIT);
-            callableStatement.registerOutParameter(3, Types.BIT);
-
-            callableStatement.execute();
-
-
-            ResultSet rs = callableStatement.getResultSet();
-            assertTrue(rs.next());
-            assertEquals(1, rs.getInt(1));
-
-
-            //execute another query on same connection must force loading of
-            //existing streaming result-set
-            try (Statement stmt = sharedConnection.createStatement()) {
-                ResultSet otherRs = stmt.executeQuery("SELECT 'test'");
-                assertTrue(otherRs.next());
-                assertEquals("test", otherRs.getString(1));
-            }
-
-            for (int i = 2; i <= 10; i++) {
-                assertTrue(rs.next());
-                assertEquals(i, rs.getInt(1));
-            }
-            assertFalse(rs.next());
-
-            assertEquals(true, callableStatement.getBoolean(1));
-            assertEquals(false, callableStatement.getBoolean(2));
-            assertEquals(false, callableStatement.getBoolean(3));
-
-            //force reading of all result-set since output parameter are in the end.
-            assertTrue(callableStatement.getMoreResults());
-
-            rs = callableStatement.getResultSet();
-            for (int i = 1; i <= 5; i++) {
-                assertTrue(rs.next());
-                assertEquals(i, rs.getInt(1));
-            }
-            assertFalse(rs.next());
-        }
-
-    }
-
-    @Test
-    public void testStoreProcedureStreamingWithoutOutput() throws Exception {
-        createProcedure("StreamWithoutOutput", "(IN MAX_PARAM TINYINT)"
-                + "begin SELECT * from seq_1_to_10; SELECT * from seq_1_to_5;end");
-
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StreamWithoutOutput(?)}")) {
-            //indicate to stream results
-            callableStatement.setFetchSize(1);
-            callableStatement.setInt(1, 100);
-            callableStatement.execute();
-
-            ResultSet rs = callableStatement.getResultSet();
-            for (int i = 1; i <= 10; i++) {
-                assertTrue(rs.next());
-                assertEquals(i, rs.getInt(1));
-            }
-            assertFalse(rs.next());
-
-            assertTrue(callableStatement.getMoreResults());
-
-            rs = callableStatement.getResultSet();
-            for (int i = 1; i <= 5; i++) {
-                assertTrue(rs.next());
-                assertEquals(i, rs.getInt(1));
-            }
-            assertFalse(rs.next());
-        }
-
-    }
-
 
     @Test
     public void testCallableStatementFormat() throws Exception {
