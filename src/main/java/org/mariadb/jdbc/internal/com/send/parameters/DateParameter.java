@@ -109,7 +109,6 @@ public class DateParameter implements Cloneable, ParameterHolder {
      *
      * @param pos socket output stream
      * @throws IOException if socket error occur
-     * @param pos output buffer
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
         Calendar calendar = Calendar.getInstance(timeZone);

@@ -105,6 +105,13 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
         this.useFractionalSeconds = options.useFractionalSeconds;
     }
 
+    /**
+     * Clone cached object.
+     *
+     * @param connection connection
+     * @return BasePrepareStatement
+     * @throws CloneNotSupportedException if cloning exception
+     */
     public BasePrepareStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
         BasePrepareStatement base = (BasePrepareStatement) super.clone(connection);
         base.useFractionalSeconds = options.useFractionalSeconds;

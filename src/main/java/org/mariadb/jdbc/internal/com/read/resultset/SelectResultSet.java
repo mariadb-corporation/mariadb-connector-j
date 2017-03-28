@@ -1954,12 +1954,12 @@ public class SelectResultSet implements ResultSet {
             return (T) (Boolean) getInternalBoolean(col);
 
         } else if (type.equals(java.util.Calendar.class)) {
+            Calendar calendar = Calendar.getInstance(timeZone);
+            Timestamp timestamp = getInternalTimestamp(col, null);
+            if (timestamp == null) return null;
+            calendar.setTimeInMillis(timestamp.getTime());
+            return type.cast(calendar);
 
-                Calendar calendar = Calendar.getInstance(timeZone);
-                Timestamp timestamp = getInternalTimestamp(col, null);
-                if (timestamp == null) return null;
-                calendar.setTimeInMillis(timestamp.getTime());
-                return type.cast(calendar);
         } else if (type.equals(Clob.class) || type.equals(NClob.class)) {
             if (lastValueNull) return null;
             //TODO rewrite Blob to use buffer directly (using offset + length)

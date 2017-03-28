@@ -1342,7 +1342,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             try {
                 resetStateAfterFailover(getMaxRows(), getTransactionIsolationLevel(), getDatabase(), getAutocommit());
             } catch (SQLException queryException) {
-                return new SQLException("reconnection succeed, but resetting previous state failed", UNDEFINED_SQLSTATE.getSqlState(), initialException);
+                return new SQLException("reconnection succeed, but resetting previous state failed",
+                        UNDEFINED_SQLSTATE.getSqlState(), initialException);
             }
 
             return new SQLException("Could not send query: query size is >= to max_allowed_packet ("

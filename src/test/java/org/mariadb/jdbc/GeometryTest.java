@@ -77,13 +77,13 @@ public class GeometryTest extends BaseTest {
 
     private static final char[] hexCode = "0123456789ABCDEF".toCharArray();
 
-    public String printHexBinary(byte[] data) {
-        StringBuilder r = new StringBuilder(data.length * 2);
+    private String printHexBinary(byte[] data) {
+        StringBuilder builder = new StringBuilder(data.length * 2);
         for (byte b : data) {
-            r.append(hexCode[(b >> 4) & 0xF]);
-            r.append(hexCode[(b & 0xF)]);
+            builder.append(hexCode[(b >> 4) & 0xF]);
+            builder.append(hexCode[(b & 0xF)]);
         }
-        return r.toString();
+        return builder.toString();
     }
 
 }
