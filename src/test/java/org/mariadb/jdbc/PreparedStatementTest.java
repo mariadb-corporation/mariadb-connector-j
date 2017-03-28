@@ -297,7 +297,7 @@ public class PreparedStatementTest extends BaseTest {
                 }
                 int[] results = pstmt.executeBatch();
                 assertEquals(2, results.length);
-                if (notRewritable || sharedIsRewrite()) {
+                if (notRewritable && !sharedIsRewrite()) {
                     for (int result : results) assertEquals(1, result);
                 } else {
                     for (int result : results) assertEquals(Statement.SUCCESS_NO_INFO, result);
@@ -321,6 +321,7 @@ public class PreparedStatementTest extends BaseTest {
 
     @Test
     public void testRewriteValuesMaxSize2Param() throws SQLException {
+        Assume.assumeTrue(!sharedIsRewrite());
         testRewriteMultiPacket2param(false);
     }
 

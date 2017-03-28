@@ -119,7 +119,7 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
         }
     }
 
-    protected abstract SelectResultSet getResult() throws SQLException;
+    protected abstract SelectResultSet getOutputResult() throws SQLException;
 
     public ParameterMetaData getParameterMetaData() throws SQLException {
         parameterMetadata.readMetadataFromDbIfRequired();
@@ -194,188 +194,188 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
 
     @Override
     public boolean wasNull() throws SQLException {
-        return getResult().wasNull();
+        return getOutputResult().wasNull();
     }
 
     @Override
     public String getString(int parameterIndex) throws SQLException {
-        return getResult().getString(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getString(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public String getString(String parameterName) throws SQLException {
-        return getResult().getString(nameToOutputIndex(parameterName));
+        return getOutputResult().getString(nameToOutputIndex(parameterName));
     }
 
     @Override
     public boolean getBoolean(int parameterIndex) throws SQLException {
-        return getResult().getBoolean(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getBoolean(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public boolean getBoolean(String parameterName) throws SQLException {
-        return getResult().getBoolean(nameToOutputIndex(parameterName));
+        return getOutputResult().getBoolean(nameToOutputIndex(parameterName));
     }
 
     @Override
     public byte getByte(int parameterIndex) throws SQLException {
-        return getResult().getByte(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getByte(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public byte getByte(String parameterName) throws SQLException {
-        return getResult().getByte(nameToOutputIndex(parameterName));
+        return getOutputResult().getByte(nameToOutputIndex(parameterName));
     }
 
     @Override
     public short getShort(int parameterIndex) throws SQLException {
-        return getResult().getShort(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getShort(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public short getShort(String parameterName) throws SQLException {
-        return getResult().getShort(nameToOutputIndex(parameterName));
+        return getOutputResult().getShort(nameToOutputIndex(parameterName));
     }
 
     @Override
     public int getInt(String parameterName) throws SQLException {
-        return getResult().getInt(nameToOutputIndex(parameterName));
+        return getOutputResult().getInt(nameToOutputIndex(parameterName));
     }
 
     @Override
     public int getInt(int parameterIndex) throws SQLException {
-        return getResult().getInt(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getInt(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public long getLong(String parameterName) throws SQLException {
-        return getResult().getLong(nameToOutputIndex(parameterName));
+        return getOutputResult().getLong(nameToOutputIndex(parameterName));
     }
 
     @Override
     public long getLong(int parameterIndex) throws SQLException {
-        return getResult().getLong(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getLong(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public float getFloat(String parameterName) throws SQLException {
-        return getResult().getFloat(nameToOutputIndex(parameterName));
+        return getOutputResult().getFloat(nameToOutputIndex(parameterName));
     }
 
     @Override
     public float getFloat(int parameterIndex) throws SQLException {
-        return getResult().getFloat(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getFloat(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public double getDouble(int parameterIndex) throws SQLException {
-        return getResult().getDouble(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getDouble(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public double getDouble(String parameterName) throws SQLException {
-        return getResult().getDouble(nameToOutputIndex(parameterName));
+        return getOutputResult().getDouble(nameToOutputIndex(parameterName));
     }
 
     @Override
     @SuppressWarnings("deprecation")
     public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
-        return getResult().getBigDecimal(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getBigDecimal(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public BigDecimal getBigDecimal(int parameterIndex) throws SQLException {
-        return getResult().getBigDecimal(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getBigDecimal(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public BigDecimal getBigDecimal(String parameterName) throws SQLException {
-        return getResult().getBigDecimal(nameToOutputIndex(parameterName));
+        return getOutputResult().getBigDecimal(nameToOutputIndex(parameterName));
     }
 
     @Override
     public byte[] getBytes(String parameterName) throws SQLException {
-        return getResult().getBytes(nameToOutputIndex(parameterName));
+        return getOutputResult().getBytes(nameToOutputIndex(parameterName));
     }
 
     @Override
     public byte[] getBytes(int parameterIndex) throws SQLException {
-        return getResult().getBytes(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getBytes(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public Date getDate(int parameterIndex) throws SQLException {
-        return getResult().getDate(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getDate(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public Date getDate(String parameterName) throws SQLException {
-        return getResult().getDate(nameToOutputIndex(parameterName));
+        return getOutputResult().getDate(nameToOutputIndex(parameterName));
     }
 
     @Override
     public Date getDate(String parameterName, Calendar cal) throws SQLException {
-        return getResult().getDate(nameToOutputIndex(parameterName), cal);
+        return getOutputResult().getDate(nameToOutputIndex(parameterName), cal);
     }
 
     @Override
     public Date getDate(int parameterIndex, Calendar cal) throws SQLException {
-        return getResult().getDate(parameterIndex, cal);
+        return getOutputResult().getDate(parameterIndex, cal);
     }
 
     @Override
     public Time getTime(int parameterIndex, Calendar cal) throws SQLException {
-        return getResult().getTime(indexToOutputIndex(parameterIndex), cal);
+        return getOutputResult().getTime(indexToOutputIndex(parameterIndex), cal);
     }
 
     @Override
     public Time getTime(String parameterName) throws SQLException {
-        return getResult().getTime(nameToOutputIndex(parameterName));
+        return getOutputResult().getTime(nameToOutputIndex(parameterName));
     }
 
     @Override
     public Time getTime(String parameterName, Calendar cal) throws SQLException {
-        return getResult().getTime(nameToOutputIndex(parameterName), cal);
+        return getOutputResult().getTime(nameToOutputIndex(parameterName), cal);
     }
 
     @Override
     public Time getTime(int parameterIndex) throws SQLException {
-        return getResult().getTime(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getTime(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public Timestamp getTimestamp(int parameterIndex) throws SQLException {
-        return getResult().getTimestamp(parameterIndex);
+        return getOutputResult().getTimestamp(parameterIndex);
     }
 
     @Override
     public Timestamp getTimestamp(int parameterIndex, Calendar cal) throws SQLException {
-        return getResult().getTimestamp(indexToOutputIndex(parameterIndex), cal);
+        return getOutputResult().getTimestamp(indexToOutputIndex(parameterIndex), cal);
     }
 
     @Override
     public Timestamp getTimestamp(String parameterName) throws SQLException {
-        return getResult().getTimestamp(nameToOutputIndex(parameterName));
+        return getOutputResult().getTimestamp(nameToOutputIndex(parameterName));
     }
 
 
     @Override
     public Timestamp getTimestamp(String parameterName, Calendar cal) throws SQLException {
-        return getResult().getTimestamp(nameToOutputIndex(parameterName), cal);
+        return getOutputResult().getTimestamp(nameToOutputIndex(parameterName), cal);
     }
 
     @Override
     public Object getObject(int parameterIndex, Map<String, Class<?>> map) throws SQLException {
-        return getResult().getObject(indexToOutputIndex(parameterIndex), map);
+        return getOutputResult().getObject(indexToOutputIndex(parameterIndex), map);
     }
 
     @Override
     public Object getObject(int parameterIndex) throws SQLException {
         Class<?> classType = ColumnType.classFromJavaType(getParameter(parameterIndex).outputSqlType);
         if (classType != null) {
-            return getResult().getObject(indexToOutputIndex(parameterIndex), classType);
+            return getOutputResult().getObject(indexToOutputIndex(parameterIndex), classType);
         }
-        return getResult().getObject(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getObject(indexToOutputIndex(parameterIndex));
     }
 
     @Override
@@ -383,75 +383,75 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
         int index = nameToIndex(parameterName);
         Class<?> classType = ColumnType.classFromJavaType(getParameter(index).outputSqlType);
         if (classType != null) {
-            return getResult().getObject(indexToOutputIndex(index), classType);
+            return getOutputResult().getObject(indexToOutputIndex(index), classType);
         }
-        return getResult().getObject(indexToOutputIndex(index));
+        return getOutputResult().getObject(indexToOutputIndex(index));
     }
 
 
     @Override
     public Object getObject(String parameterName, Map<String, Class<?>> map) throws SQLException {
-        return getResult().getObject(nameToOutputIndex(parameterName), map);
+        return getOutputResult().getObject(nameToOutputIndex(parameterName), map);
     }
 
     @Override
     public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
-        return getResult().getObject(indexToOutputIndex(parameterIndex), type);
+        return getOutputResult().getObject(indexToOutputIndex(parameterIndex), type);
     }
 
     @Override
     public <T> T getObject(String parameterName, Class<T> type) throws SQLException {
-        return getResult().getObject(nameToOutputIndex(parameterName), type);
+        return getOutputResult().getObject(nameToOutputIndex(parameterName), type);
     }
 
     @Override
     public Ref getRef(int parameterIndex) throws SQLException {
-        return getResult().getRef(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getRef(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public Ref getRef(String parameterName) throws SQLException {
-        return getResult().getRef(nameToOutputIndex(parameterName));
+        return getOutputResult().getRef(nameToOutputIndex(parameterName));
     }
 
     @Override
     public Blob getBlob(int parameterIndex) throws SQLException {
-        return getResult().getBlob(parameterIndex);
+        return getOutputResult().getBlob(parameterIndex);
     }
 
     @Override
     public Blob getBlob(String parameterName) throws SQLException {
-        return getResult().getBlob(nameToOutputIndex(parameterName));
+        return getOutputResult().getBlob(nameToOutputIndex(parameterName));
     }
 
     @Override
     public Clob getClob(String parameterName) throws SQLException {
-        return getResult().getClob(nameToOutputIndex(parameterName));
+        return getOutputResult().getClob(nameToOutputIndex(parameterName));
     }
 
     @Override
     public Clob getClob(int parameterIndex) throws SQLException {
-        return getResult().getClob(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getClob(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public Array getArray(String parameterName) throws SQLException {
-        return getResult().getArray(nameToOutputIndex(parameterName));
+        return getOutputResult().getArray(nameToOutputIndex(parameterName));
     }
 
     @Override
     public Array getArray(int parameterIndex) throws SQLException {
-        return getResult().getArray(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getArray(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public URL getURL(int parameterIndex) throws SQLException {
-        return getResult().getURL(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getURL(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public URL getURL(String parameterName) throws SQLException {
-        return getResult().getURL(nameToOutputIndex(parameterName));
+        return getOutputResult().getURL(nameToOutputIndex(parameterName));
     }
 
 
@@ -467,12 +467,12 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
 
     @Override
     public NClob getNClob(int parameterIndex) throws SQLException {
-        return getResult().getNClob(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getNClob(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public NClob getNClob(String parameterName) throws SQLException {
-        return getResult().getNClob(nameToOutputIndex(parameterName));
+        return getOutputResult().getNClob(nameToOutputIndex(parameterName));
     }
 
     @Override
@@ -487,32 +487,32 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
 
     @Override
     public String getNString(int parameterIndex) throws SQLException {
-        return getResult().getString(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getString(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public String getNString(String parameterName) throws SQLException {
-        return getResult().getString(nameToOutputIndex(parameterName));
+        return getOutputResult().getString(nameToOutputIndex(parameterName));
     }
 
     @Override
     public Reader getNCharacterStream(int parameterIndex) throws SQLException {
-        return getResult().getCharacterStream(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getCharacterStream(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public Reader getNCharacterStream(String parameterName) throws SQLException {
-        return getResult().getCharacterStream(nameToOutputIndex(parameterName));
+        return getOutputResult().getCharacterStream(nameToOutputIndex(parameterName));
     }
 
     @Override
     public Reader getCharacterStream(int parameterIndex) throws SQLException {
-        return getResult().getCharacterStream(indexToOutputIndex(parameterIndex));
+        return getOutputResult().getCharacterStream(indexToOutputIndex(parameterIndex));
     }
 
     @Override
     public Reader getCharacterStream(String parameterName) throws SQLException {
-        return getResult().getCharacterStream(nameToOutputIndex(parameterName));
+        return getOutputResult().getCharacterStream(nameToOutputIndex(parameterName));
     }
 
     /**

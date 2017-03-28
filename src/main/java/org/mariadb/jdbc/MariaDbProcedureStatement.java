@@ -99,8 +99,16 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
         }
     }
 
-    protected SelectResultSet getResult() throws SQLException {
+    protected SelectResultSet getOutputResult() throws SQLException {
         if (outputResultSet == null) {
+            if (fetchSize != 0) {
+                results.loadFully(false, protocol);
+                outputResultSet = results.getCallableResultSet();
+                if (outputResultSet != null) {
+                    outputResultSet.next();
+                    return outputResultSet;
+                }
+            }
             throw new SQLException("No output result.");
         }
         return outputResultSet;
@@ -136,7 +144,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
         connection.lock.lock();
         try {
             validAllParameters();
-            super.executeInternal(0);
+            super.executeInternal(fetchSize);
             retrieveOutputResult();
             return results != null && results.getResultSet() != null;
         } finally {

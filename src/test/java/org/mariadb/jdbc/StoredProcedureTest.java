@@ -882,24 +882,126 @@ public class StoredProcedureTest extends BaseTest {
     }
 
     @Test
-    public void testBitSp() throws Exception {
-        createTable("`Bit_Tab`", "`MAX_VAL` tinyint(1) default NULL, `MIN_VAL` tinyint(1) default NULL, `NULL_VAL` tinyint(1) default NULL");
-        createProcedure("Bit_Proc", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
-                + "begin select MAX_VAL, MIN_VAL, NULL_VAL  into MAX_PARAM, MIN_PARAM, NULL_PARAM from Bit_Tab; end");
+    public void testStoreProcedureStreaming() throws Exception {
+        createProcedure("StoredWithOutput", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
+                + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from seq_1_to_10; SELECT * from seq_1_to_5;end");
 
-        sharedConnection.createStatement().executeUpdate("delete from Bit_Tab");
-        sharedConnection.createStatement().executeUpdate("insert into Bit_Tab values(1,0,null)");
-        CallableStatement callableStatement = sharedConnection.prepareCall("{call Bit_Proc(?,?,?)}");
+        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StoredWithOutput(?,?,?)}")) {
+            //indicate to stream results
+            callableStatement.setFetchSize(1);
 
-        callableStatement.registerOutParameter(1, Types.BIT);
-        callableStatement.registerOutParameter(2, Types.BIT);
-        callableStatement.registerOutParameter(3, Types.BIT);
+            callableStatement.registerOutParameter(1, Types.BIT);
+            callableStatement.registerOutParameter(2, Types.BIT);
+            callableStatement.registerOutParameter(3, Types.BIT);
+            callableStatement.execute();
 
-        callableStatement.executeUpdate();
-        assertEquals(Boolean.TRUE, callableStatement.getBoolean(1));
-        assertEquals(Boolean.FALSE, callableStatement.getBoolean(2));
-        assertEquals(Boolean.FALSE, callableStatement.getBoolean(3));
+
+            ResultSet rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 10; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+
+            //force reading of all result-set since output parameter are in the end.
+            assertEquals(true, callableStatement.getBoolean(1));
+            assertEquals(false, callableStatement.getBoolean(2));
+            assertEquals(false, callableStatement.getBoolean(3));
+
+            assertTrue(callableStatement.getMoreResults());
+
+            rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 5; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+        }
+
     }
+
+    @Test
+    public void testStoreProcedureStreamingWithAnotherQuery() throws Exception {
+        createProcedure("StreamInterrupted", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
+                + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from seq_1_to_10; SELECT * from seq_1_to_5;end");
+
+        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StreamInterrupted(?,?,?)}")) {
+            //indicate to stream results
+            callableStatement.setFetchSize(1);
+
+            callableStatement.registerOutParameter(1, Types.BIT);
+            callableStatement.registerOutParameter(2, Types.BIT);
+            callableStatement.registerOutParameter(3, Types.BIT);
+
+            callableStatement.execute();
+
+
+            ResultSet rs = callableStatement.getResultSet();
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+
+
+            //execute another query on same connection must force loading of
+            //existing streaming result-set
+            try (Statement stmt = sharedConnection.createStatement()) {
+                ResultSet otherRs = stmt.executeQuery("SELECT 'test'");
+                assertTrue(otherRs.next());
+                assertEquals("test", otherRs.getString(1));
+            }
+
+            for (int i = 2; i <= 10; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+
+            assertEquals(true, callableStatement.getBoolean(1));
+            assertEquals(false, callableStatement.getBoolean(2));
+            assertEquals(false, callableStatement.getBoolean(3));
+
+            //force reading of all result-set since output parameter are in the end.
+            assertTrue(callableStatement.getMoreResults());
+
+            rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 5; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+        }
+
+    }
+
+    @Test
+    public void testStoreProcedureStreamingWithoutOutput() throws Exception {
+        createProcedure("StreamWithoutOutput", "(IN MAX_PARAM TINYINT)"
+                + "begin SELECT * from seq_1_to_10; SELECT * from seq_1_to_5;end");
+
+        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StreamWithoutOutput(?)}")) {
+            //indicate to stream results
+            callableStatement.setFetchSize(1);
+            callableStatement.setInt(1, 100);
+            callableStatement.execute();
+
+            ResultSet rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 10; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+
+            assertTrue(callableStatement.getMoreResults());
+
+            rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 5; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+        }
+
+    }
+
 
     @Test
     public void testCallableStatementFormat() throws Exception {
