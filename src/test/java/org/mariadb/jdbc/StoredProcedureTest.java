@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -56,6 +57,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testStoreProcedureStreaming() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createProcedure("StoredWithOutput", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
                 + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5;end");
 
@@ -95,6 +101,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testStoreProcedureStreamingWithAnotherQuery() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createProcedure("StreamInterrupted", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
                 + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5;end");
 
@@ -192,6 +203,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void callWithOutParameter() throws SQLException {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createProcedure("prepareStmtWithOutParameter", "(x int, INOUT y int)\n"
                 + "BEGIN\n"
                 + "SELECT 1;end\n");
@@ -258,6 +274,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void callInoutParam() throws SQLException {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         CallableStatement storedProc = sharedConnection.prepareCall("{call inOutParam(?)}");
         storedProc.registerOutParameter(1, Types.INTEGER);
         storedProc.setInt(1, 1);
@@ -298,6 +319,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testMetaCatalogNoAccessToProcedureBodies() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         Statement statement = sharedConnection.createStatement();
         try {
             statement.execute("DROP USER 'test_jdbc'@'%'");
@@ -510,6 +536,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testMultiResultset() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createProcedure("testInOutParam", "(IN p1 VARCHAR(255), INOUT p2 INT)\n"
                 + "begin\n"
                 + " DECLARE z INT;\n"
@@ -581,6 +612,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testResultsetWithInoutParameter() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createTable("testResultsetWithInoutParameterTb", "test VARCHAR(10)");
         createProcedure("testResultsetWithInoutParameter", "(INOUT testValue VARCHAR(10))\n"
                 + "BEGIN\n"
@@ -611,6 +647,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testSettingFixedParameter() throws SQLException {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         try (Connection connection = setConnection()) {
             createProcedure("simpleproc", "(IN inParam CHAR(20), INOUT inOutParam CHAR(20), OUT outParam CHAR(50))"
                     + "     BEGIN\n"
@@ -681,6 +722,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testStreamInOutWithName() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createProcedure("testStreamInOutWithName", "(INOUT mblob MEDIUMBLOB) BEGIN SELECT 1 FROM DUAL WHERE 1=0;\nEND");
         try (CallableStatement cstmt = sharedConnection.prepareCall("{call testStreamInOutWithName(?)}")) {
             byte[] buffer = new byte[65];
@@ -839,6 +885,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testCallableNullSetters() throws Throwable {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createTable("testCallableNullSettersTable", "value_1 BIGINT PRIMARY KEY,value_2 VARCHAR(20)");
         createFunction("testCallableNullSetters", "(value_1_v BIGINT, value_2_v VARCHAR(20)) RETURNS BIGINT "
                 + "DETERMINISTIC MODIFIES SQL DATA BEGIN "
@@ -1043,6 +1094,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testParameterNumber() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createTable("TMIX91P", "F01SMALLINT         SMALLINT NOT NULL, F02INTEGER          INTEGER,F03REAL             REAL,"
                 + "F04FLOAT            FLOAT,F05NUMERIC31X4      NUMERIC(31,4), F06NUMERIC16X16     NUMERIC(16,16), F07CHAR_10          CHAR(10),"
                 + " F08VARCHAR_10       VARCHAR(10), F09CHAR_20          CHAR(20), F10VARCHAR_20       VARCHAR(20), F11DATE         DATE,"
@@ -1124,6 +1180,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testProcMultiDb() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         String originalCatalog = sharedConnection.getCatalog();
 
         sharedConnection.createStatement().executeUpdate("CREATE DATABASE IF NOT EXISTS testProcMultiDb");
@@ -1169,6 +1230,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void callProcSendNullInOut() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createProcedure("testProcSendNullInOut_1", "(INOUT x INTEGER)\nBEGIN\nSET x = x + 1;\nEND");
         createProcedure("testProcSendNullInOut_2", "(x INTEGER, OUT y INTEGER)\nBEGIN\nSET y = x + 1;\nEND");
         createProcedure("testProcSendNullInOut_3", "(INOUT x INTEGER)\nBEGIN\nSET x = 10;\nEND");
@@ -1246,6 +1312,11 @@ public class StoredProcedureTest extends BaseTest {
      */
     @Test
     public void testOutputObjectType() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createProcedure("issue425", "(IN inValue TEXT, OUT testValue TEXT)\n"
                 + "BEGIN\n"
                 + " set testValue = CONCAT('o', inValue);\n"
