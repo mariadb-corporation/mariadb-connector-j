@@ -2,6 +2,7 @@ package org.mariadb.jdbc;
 
 import static org.junit.Assert.*;
 
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -15,6 +16,7 @@ public class PrepareFetchTest extends BaseTest {
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
+        Assume.assumeTrue(testSingleHost);
         createTable("prepareFetchSmallTest", "i int");
         String insertQuery = "INSERT INTO prepareFetchSmallTest values ";
         for (int i = 0; i < 20; i++) {
@@ -29,7 +31,6 @@ public class PrepareFetchTest extends BaseTest {
 
     @Test
     public void fetchWithEmptyResultPacket() throws SQLException {
-        assertTrue(testSingleHost);
         try (Connection connection = setConnection("&useCursorFetch=true&profileSql=true")) {
             try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM prepareFetchSmallTest where i < ?")) {
 
@@ -48,7 +49,6 @@ public class PrepareFetchTest extends BaseTest {
 
     @Test
     public void fetchWithPartialResultPacket() throws SQLException {
-        assertTrue(testSingleHost);
         try (Connection connection = setConnection("&useCursorFetch=true&profileSql=true")) {
             try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM prepareFetchSmallTest where i < ?")) {
 
@@ -67,7 +67,6 @@ public class PrepareFetchTest extends BaseTest {
 
     @Test
     public void fetchConcurrency() throws SQLException {
-        assertTrue(testSingleHost);
         try (Connection connection = setConnection("&useCursorFetch=true&profileSql=true")) {
             try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM prepareFetchSmallTest where i < ?")) {
 
@@ -90,7 +89,7 @@ public class PrepareFetchTest extends BaseTest {
 
     @Test
     public void fetchConcurrencySamePrepare() throws SQLException {
-        assertTrue(testSingleHost);
+        Assume.assumeTrue(testSingleHost && isMariadbServer());
         try (Connection connection = setConnection("&useCursorFetch=true&profileSql=true")) {
             try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM prepareFetchSmallTest where i < ?")) {
 
@@ -120,7 +119,7 @@ public class PrepareFetchTest extends BaseTest {
 
     @Test
     public void fetchConcurrencyWithCache() throws SQLException {
-        assertTrue(testSingleHost);
+        Assume.assumeTrue(testSingleHost && isMariadbServer());
         try (Connection connection = setConnection("&useCursorFetch=true&profileSql=true")) {
             try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM prepareFetchSmallTest where i < ?")) {
 

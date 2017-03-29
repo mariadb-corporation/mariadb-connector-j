@@ -261,4 +261,6 @@ public interface Protocol {
     PacketInputStream getReader();
 
     PacketOutputStream getWriter();
+
+    boolean isEofDeprecated();
 }

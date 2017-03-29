@@ -219,7 +219,7 @@ public abstract class AbstractMultiSend {
                     comStmtPrepare.send(writer);
 
                     //read prepare result
-                    prepareResult = comStmtPrepare.read(protocol.getReader());
+                    prepareResult = comStmtPrepare.read(protocol.getReader(), protocol.isEofDeprecated());
                     statementId = ((ServerPrepareResult) prepareResult).getStatementId();
                     paramCount = getParamCount();
                 }

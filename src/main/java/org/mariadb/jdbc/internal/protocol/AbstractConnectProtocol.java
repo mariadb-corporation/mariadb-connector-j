@@ -123,6 +123,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected long serverThreadId;
     protected ServerPrepareStatementCache serverPrepareStatementCache;
     protected boolean moreResults = false;
+    protected boolean eofDeprecated = false;
     private boolean hostFailed;
     private String serverVersion;
     private boolean serverMariaDb;
@@ -588,6 +589,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         if (options.allowMultiQueries || (options.rewriteBatchedStatements)) {
             capabilities |= MariaDbServerCapabilities.MULTI_STATEMENTS;
+        }
+
+        if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_DEPRECATE_EOF) != 0) {
+            capabilities |= MariaDbServerCapabilities.CLIENT_DEPRECATE_EOF;
+            eofDeprecated = true;
         }
 
         if (options.useCompression) {
@@ -1132,5 +1138,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public PacketOutputStream getWriter() {
         return writer;
+    }
+
+    public boolean isEofDeprecated() {
+        return eofDeprecated;
     }
 }

@@ -368,7 +368,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             writer.flush();
 
             ComStmtPrepare comStmtPrepare = new ComStmtPrepare(this, sql);
-            ServerPrepareResult result = comStmtPrepare.read(reader);
+            ServerPrepareResult result = comStmtPrepare.read(reader, eofDeprecated);
 
             return result;
         } catch (IOException e) {
@@ -582,7 +582,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 comStmtPrepare.send(writer);
 
                 //read prepare result
-                serverPrepareResult = comStmtPrepare.read(reader);
+                serverPrepareResult = comStmtPrepare.read(reader, eofDeprecated);
                 statementId = serverPrepareResult.getStatementId();
                 parameterCount = serverPrepareResult.getParameters().length;
             }
@@ -660,16 +660,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         .send(writer);
                 serverPrepareResult.openCursor(results);
                 results.setUseCursorFetch(new ComStmtFetch(serverPrepareResult.getStatementId()));
-                getResult(results);
 
             } else {
-
                 //send execute query
                 new ComStmtExecute(serverPrepareResult.getStatementId(), parameters,
                         parameterCount, serverPrepareResult.getParameterTypeHeader(), CURSOR_TYPE_NO_CURSOR)
                         .send(writer);
-                getResult(results);
             }
+            getResult(results);
 
         } catch (SQLException qex) {
             throw logQuery.exceptionWithQuery(parameters, qex, serverPrepareResult);
@@ -1178,23 +1176,24 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 ci[i] = new ColumnInformation(reader.getPacket(false));
             }
 
-            //read EOF packet
-            //EOF status is mandatory because :
-            // - Call query will have an callable resultSet for OUT parameters
-            //   -> this resultSet must be identified and not listed in JDBC statement.getResultSet()
-            // - after a callable resultSet, a OK packet is send, but mysql does send the  a bad "more result flag",
-            //so this flag is absolutely needed ! capability CLIENT_DEPRECATE_EOF must never be implemented.
-            Buffer bufferEof = reader.getPacket(true);
-            if (bufferEof.readByte() != EOF) {
-                throw new SQLException("Packets out of order when reading field packets, expected was EOF stream. "
-                        + "Packet contents (hex) = " + Utils.hexdump(bufferEof.buf, options.maxQuerySizeToLog, 0, bufferEof.position));
+            boolean callableResult = false;
+            if (!eofDeprecated) {
+                //read EOF packet
+                //EOF status is mandatory because :
+                // - Call query will have an callable resultSet for OUT parameters
+                //   -> this resultSet must be identified and not listed in JDBC statement.getResultSet()
+                // - after a callable resultSet, a OK packet is send, but mysql does send the  a bad "more result flag"
+                Buffer bufferEof = reader.getPacket(true);
+                if (bufferEof.readByte() != EOF) {
+                    throw new SQLException("Packets out of order when reading field packets, expected was EOF stream. "
+                            + "Packet contents (hex) = " + Utils.hexdump(bufferEof.buf, options.maxQuerySizeToLog, 0, bufferEof.position));
+                }
+                bufferEof.skipBytes(2); //Skip warningCount
+                callableResult = (bufferEof.readShort() & ServerStatus.PS_OUT_PARAMETERS) != 0;
             }
-            bufferEof.skipBytes(2); //Skip warningCount
-            boolean callableResult = (bufferEof.readShort() & ServerStatus.PS_OUT_PARAMETERS) != 0;
-
 
             //read resultSet
-            SelectResultSet selectResultSet = new SelectResultSet(ci, results, this, reader, callableResult);
+            SelectResultSet selectResultSet = new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated);
             results.addResultSet(selectResultSet, moreResults);
 
         } catch (IOException e) {
