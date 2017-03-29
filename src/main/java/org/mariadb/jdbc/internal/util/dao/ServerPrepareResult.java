@@ -197,13 +197,13 @@ public class ServerPrepareResult implements PrepareResult {
      * then fetch all results in resultSet (Cursor will be closed after executing a query).
      */
     public void fetchAllOpenCursor() {
-        try {
-            if (activeCursorResult != null && activeCursorResult.getResultSet() != null) {
-                //will then fetch all remaining results
+        if (activeCursorResult != null && activeCursorResult.getResultSet() != null) {
+            //will then fetch all remaining results
+            try {
                 activeCursorResult.getResultSet().setFetchSize(0);
+            } catch (SQLException sqle) {
+                //error will be thrown by query that cause this closing.
             }
-        } catch (SQLException sqle) {
-            //error will be thrown by query that cause this closing.
         }
         activeCursorResult = null;
     }

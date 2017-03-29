@@ -156,6 +156,8 @@ public class Results {
         this.cmdInformation = null;
         this.binaryFormat = binaryFormat;
         this.resultSetScrollType = resultSetScrollType;
+        this.cursorFetch = null;
+
     }
 
     /**

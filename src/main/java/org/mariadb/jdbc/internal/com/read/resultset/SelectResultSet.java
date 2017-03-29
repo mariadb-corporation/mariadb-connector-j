@@ -160,6 +160,7 @@ public class SelectResultSet implements ResultSet {
     protected Options options;
     private boolean returnTableAlias;
     private boolean isClosed;
+    private boolean eofDeprecated;
     private ComStmtFetch cursorFetch;
 
     /**
@@ -170,13 +171,13 @@ public class SelectResultSet implements ResultSet {
      * @param protocol            current protocol
      * @param reader              stream fetcher
      * @param callableResult      is it from a callableStatement ?
+     * @param eofDeprecated       is EOF deprecated
      * @throws IOException if any connection error occur
      * @throws SQLException if any connection error occur
      */
     public SelectResultSet(ColumnInformation[] columnInformation, Results results, Protocol protocol,
-                                PacketInputStream reader, boolean callableResult)
+                                PacketInputStream reader, boolean callableResult, boolean eofDeprecated)
             throws IOException, SQLException {
-
         this.statement = results.getStatement();
         this.isClosed = false;
         this.protocol = protocol;
@@ -202,6 +203,7 @@ public class SelectResultSet implements ResultSet {
         this.dataFetchTime = 0;
         this.rowPointer = -1;
         this.callableResult = callableResult;
+        this.eofDeprecated = eofDeprecated;
 
         if (fetchSize == 0 || callableResult) {
             this.data = new byte[10][];
@@ -467,12 +469,42 @@ public class SelectResultSet implements ResultSet {
             }
         }
 
-        //is EOF stream
-        if ((buf[0] == Packet.EOF && reader.getLastPacketLength() < 9)) {
-            protocol.setHasWarnings(((buf[1] & 0xff) + ((buf[2] & 0xff) << 8)) > 0);
-            int serverStatus = ((buf[3] & 0xff) + ((buf[4] & 0xff) << 8));
-            protocol.setMoreResults(callableResult || (serverStatus & MORE_RESULTS_EXISTS) != 0);
-            if (!protocol.hasMoreResults()) protocol.removeActiveStreamingResult();
+        //is end of stream
+        if (buf[0] == Packet.EOF && ((eofDeprecated && reader.getLastPacketLength() < 0xffffff)
+                || (!eofDeprecated && reader.getLastPacketLength() < 8))) {
+            int serverStatus;
+            int warnings;
+
+            if (!eofDeprecated) {
+                //EOF_Packet
+                warnings = (buf[1] & 0xff) + ((buf[2] & 0xff) << 8);
+                serverStatus = ((buf[3] & 0xff) + ((buf[4] & 0xff) << 8));
+
+                //CallableResult has been read from intermediate EOF server_status
+                //and is mandatory because :
+                //
+                // - Call query will have an callable resultSet for OUT parameters
+                //   this resultSet must be identified and not listed in JDBC statement.getResultSet()
+                //
+                // - after a callable resultSet, a OK packet is send,
+                //   but mysql before 5.7.4 doesn't send MORE_RESULTS_EXISTS flag
+                if (callableResult) serverStatus |= MORE_RESULTS_EXISTS;
+
+            } else {
+
+                //OK_Packet with a 0xFE header
+                int pos = skipLengthEncodedValue(buf, 1); //skip update count
+                pos = skipLengthEncodedValue(buf, pos); //skip insert id
+                serverStatus = ((buf[pos++] & 0xff) + ((buf[pos++] & 0xff) << 8));
+                warnings = (buf[pos++] & 0xff) + ((buf[pos++] & 0xff) << 8);
+                callableResult = (serverStatus & PS_OUT_PARAMETERS) != 0;
+            }
+
+            if ((serverStatus & MORE_RESULTS_EXISTS) != 0) {
+                protocol.setMoreResults(true);
+            } else protocol.removeActiveStreamingResult();
+
+            protocol.setHasWarnings(warnings > 0);
 
             if ((serverStatus & CURSOR_EXISTS) == 0 || (serverStatus & LAST_ROW_SENT) != 0) {
                 isEof = true;
@@ -482,9 +514,39 @@ public class SelectResultSet implements ResultSet {
             return false;
         }
 
+        //this is a result-set row, save it
         if (dataSize + 1 >= data.length) growDataArray();
         data[dataSize++] = buf;
         return true;
+    }
+
+    private int skipLengthEncodedValue(byte[] buf, int pos) {
+        int type = buf[pos++] & 0xff;
+        switch (type) {
+            case 251:
+                break;
+            case 252:
+                pos += 2 + (0xffff & (((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8))));
+                break;
+            case 253:
+                pos += 3 + (0xffffff & ((buf[pos] & 0xff)
+                        + ((buf[pos + 1] & 0xff) << 8)
+                        + ((buf[pos + 2] & 0xff) << 16)));
+                break;
+            case 254:
+                pos += 8 + ((buf[pos] & 0xff)
+                        + ((long) (buf[pos + 1] & 0xff) << 8)
+                        + ((long) (buf[pos + 2] & 0xff) << 16)
+                        + ((long) (buf[pos + 3] & 0xff) << 24)
+                        + ((long) (buf[pos + 4] & 0xff) << 32)
+                        + ((long) (buf[pos + 5] & 0xff) << 40)
+                        + ((long) (buf[pos + 6] & 0xff) << 48)
+                        + ((long) (buf[pos + 7] & 0xff) << 56));
+                break;
+            default:
+                pos += type;
+        }
+        return pos;
     }
 
     private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
@@ -861,8 +923,6 @@ public class SelectResultSet implements ResultSet {
             }
 
             streaming = dataFetchTime == 1;
-            dataFetchTime++;
-
         }
         this.fetchSize = fetchSize;
     }
