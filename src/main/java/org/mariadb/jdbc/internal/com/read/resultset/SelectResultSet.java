@@ -67,7 +67,6 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.com.read.dao.ColumnNameMap;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.util.ExceptionCode;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.com.read.Buffer;
@@ -147,8 +146,8 @@ public class SelectResultSet implements ResultSet {
     private int dataFetchTime;
     private boolean streaming;
     private int columnInformationLength;
-    private List<byte[]> resultSet;
-    private int resultSetSize;
+    private byte[][] data;
+    private int dataSize;
     private int fetchSize;
     private int resultSetScrollType;
     private int rowPointer;
@@ -199,19 +198,19 @@ public class SelectResultSet implements ResultSet {
         }
         this.fetchSize = results.getFetchSize();
         this.resultSetScrollType = results.getResultSetScrollType();
-        this.resultSet = new ArrayList<>();
-        this.resultSetSize = 0;
+        this.dataSize = 0;
         this.dataFetchTime = 0;
         this.rowPointer = -1;
         this.callableResult = callableResult;
 
         if (fetchSize == 0 || callableResult) {
+            this.data = new byte[10][];
             fetchAllResults();
             streaming = false;
         } else {
             cursorFetch = results.getCursorFetch();
             protocol.setActiveStreamingResult(results);
-            resultSet = new ArrayList<>(fetchSize);
+            data = new byte[Math.max(10, fetchSize)][];
             nextStreamingValue();
             streaming = true;
         }
@@ -252,8 +251,8 @@ public class SelectResultSet implements ResultSet {
         this.isBinaryEncoded = false;
         this.fetchSize = 1;
         this.resultSetScrollType = resultSetScrollType;
-        this.resultSet = resultSet;
-        this.resultSetSize = this.resultSet.size();
+        this.data = resultSet.toArray(new byte[10][]);
+        this.dataSize = resultSet.size();
         this.dataFetchTime = 0;
         this.rowPointer = -1;
         this.callableResult = false;
@@ -334,13 +333,11 @@ public class SelectResultSet implements ResultSet {
 
     private void fetchAllResults() throws IOException, SQLException {
 
-        final List<byte[]> valueObjects = new ArrayList<>();
-        while (readNextValue(valueObjects)) {
+        dataSize = 0;
+        while (readNextValue()) {
             //fetch all results
         }
         dataFetchTime++;
-        resultSet = valueObjects;
-        this.resultSetSize = resultSet.size();
     }
 
     /**
@@ -359,7 +356,6 @@ public class SelectResultSet implements ResultSet {
                         while (!isEof) {
                             addStreamingValue();
                         }
-                        resultSetSize = resultSet.size();
                     } finally {
                         lock.unlock();
                     }
@@ -405,7 +401,7 @@ public class SelectResultSet implements ResultSet {
         lastRowPointer = -1;
 
         //if resultSet can be back to some previous value
-        if (resultSetScrollType == TYPE_FORWARD_ONLY) resultSet.clear();
+        if (resultSetScrollType == TYPE_FORWARD_ONLY) dataSize = 0;
 
         addStreamingValue();
 
@@ -424,8 +420,9 @@ public class SelectResultSet implements ResultSet {
             try {
                 //use COM_STMT_FETCH to ask next resultSet with fetchSize rows
                 cursorFetch.send(protocol.getWriter(), fetchSize);
+
                 //fetch the whole next resultSet
-                while (readNextValue(resultSet)) {
+                while (readNextValue()) {
                     //read all
                 }
             } finally {
@@ -435,26 +432,23 @@ public class SelectResultSet implements ResultSet {
         } else {
             //read only fetchSize values
             int fetchSizeTmp = fetchSize;
-            while (fetchSizeTmp > 0 && readNextValue(resultSet)) {
+            while (fetchSizeTmp > 0 && readNextValue()) {
                 fetchSizeTmp--;
             }
 
         }
-
         dataFetchTime++;
-        this.resultSetSize = resultSet.size();
 
     }
 
     /**
      * Read next value.
      *
-     * @param values values
      * @return true if have a new value
      * @throws IOException    exception
      * @throws SQLException exception
      */
-    public boolean readNextValue(List<byte[]> values) throws IOException, SQLException {
+    public boolean readNextValue() throws IOException, SQLException {
         byte[] buf = reader.getPacketArray(false);
 
         //is error Packet
@@ -488,8 +482,20 @@ public class SelectResultSet implements ResultSet {
             return false;
         }
 
-        values.add(buf);
+        if (dataSize + 1 >= data.length) growDataArray();
+        data[dataSize++] = buf;
         return true;
+    }
+
+    private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+
+    /**
+     * Grow data array.
+     */
+    private void growDataArray() {
+        int newCapacity = data.length + (data.length >> 1);
+        if (newCapacity - MAX_ARRAY_SIZE > 0) newCapacity = MAX_ARRAY_SIZE;
+        data = Arrays.copyOf(data, newCapacity);
     }
 
     /**
@@ -543,10 +549,11 @@ public class SelectResultSet implements ResultSet {
             isEof = true;
         }
 
-        resultSet.clear();
+        //keep garbage easy
+        for (int i = 0; i < data.length; i++) data[i] = null;
 
         if (statement != null) {
-            ((MariaDbStatement) statement).checkCloseOnCompletion(this);
+            statement.checkCloseOnCompletion(this);
             statement = null;
         }
     }
@@ -554,7 +561,7 @@ public class SelectResultSet implements ResultSet {
     @Override
     public boolean next() throws SQLException {
         if (isClosed) throw new SQLException("Operation not permit on a closed resultSet", "HY000");
-        if (rowPointer < resultSetSize - 1) {
+        if (rowPointer < dataSize - 1) {
             rowPointer++;
             return true;
         } else {
@@ -575,46 +582,39 @@ public class SelectResultSet implements ResultSet {
                 if (resultSetScrollType == TYPE_FORWARD_ONLY) {
                     //resultSet has been cleared. next value is pointer 0.
                     rowPointer = 0;
-                    return resultSetSize > 0;
+                    return dataSize > 0;
                 } else {
                     // cursor can move backward, so driver must keep the results.
                     // results have been added to current resultSet
                     rowPointer++;
-                    return resultSetSize > rowPointer;
+                    return dataSize > rowPointer;
                 }
             }
 
             //all data are reads and pointer is after last
-            rowPointer = resultSetSize;
+            rowPointer = dataSize;
             return false;
         }
     }
 
-    protected void checkObjectRange(int position) throws SQLException {
-        if (this.rowPointer < 0) {
-            throwError("Current position is before the first row", ExceptionCode.INVALID_PARAMETER_VALUE);
-        }
-        if (this.rowPointer >= resultSetSize) {
-            throwError("Current position is after the last row", ExceptionCode.INVALID_PARAMETER_VALUE);
+    private void checkObjectRange(int position) throws SQLException {
+        if (rowPointer < 0) {
+            throw new SQLDataException("Current position is before the first row", "22023");
         }
 
-        if (position <= 0 || position > columnsInformation.length) {
-            throwError("No such column: " + position, ExceptionCode.INVALID_PARAMETER_VALUE);
+        if (rowPointer >= dataSize) {
+            throw new SQLDataException("Current position is after the last row", "22023");
         }
+
+        if (position <= 0 || position > columnInformationLength) {
+            throw new SQLDataException("No such column: " + position, "22023");
+        }
+
         if (lastRowPointer != rowPointer) {
-            row.resetRow(resultSet.get(this.rowPointer));
+            row.resetRow(data[rowPointer]);
             lastRowPointer = rowPointer;
         }
         this.lastValueNull = row.setPosition(position - 1);
-    }
-
-    private void throwError(String message, ExceptionCode exceptionCode) throws SQLException {
-        if (statement != null) {
-            ExceptionMapper.throwException(new SQLException(message, ExceptionCode.INVALID_PARAMETER_VALUE.sqlState),
-                    (MariaDbConnection) this.statement.getConnection(), this.statement);
-        } else {
-            throw new SQLException(message, exceptionCode.sqlState);
-        }
     }
 
     @Override
@@ -635,13 +635,13 @@ public class SelectResultSet implements ResultSet {
     @Override
     public boolean isBeforeFirst() throws SQLException {
         checkClose();
-        return (dataFetchTime > 0) ? rowPointer == -1 && resultSetSize > 0 : rowPointer == -1;
+        return (dataFetchTime > 0) ? rowPointer == -1 && dataSize > 0 : rowPointer == -1;
     }
 
     @Override
     public boolean isAfterLast() throws SQLException {
         checkClose();
-        if (rowPointer < resultSetSize) {
+        if (rowPointer < dataSize) {
 
             //has remaining results
             return false;
@@ -666,29 +666,29 @@ public class SelectResultSet implements ResultSet {
                     lock.unlock();
                 }
 
-                return resultSetSize == rowPointer;
+                return dataSize == rowPointer;
             }
 
             //has read all data and pointer is after last result
             //so result would have to always to be true,
             //but when result contain no row at all jdbc say that must return false
-            return resultSetSize > 0  || dataFetchTime > 1;
+            return dataSize > 0  || dataFetchTime > 1;
         }
     }
 
     @Override
     public boolean isFirst() throws SQLException {
         checkClose();
-        return dataFetchTime == 1 && rowPointer == 0 && resultSetSize > 0;
+        return dataFetchTime == 1 && rowPointer == 0 && dataSize > 0;
     }
 
     @Override
     public boolean isLast() throws SQLException {
         checkClose();
-        if (rowPointer < resultSetSize - 1) {
+        if (rowPointer < dataSize - 1) {
             return false;
         } else if (isEof) {
-            return rowPointer == resultSetSize - 1 && resultSetSize > 0;
+            return rowPointer == dataSize - 1 && dataSize > 0;
         } else {
             //when streaming and not having read all results,
             //must read next packet to know if next packet is an EOF packet or some additional data
@@ -707,7 +707,7 @@ public class SelectResultSet implements ResultSet {
 
             if (isEof) {
                 //now driver is sure when data ends.
-                return rowPointer == resultSetSize - 1 && resultSetSize > 0;
+                return rowPointer == dataSize - 1 && dataSize > 0;
             }
 
             //There is data remaining
@@ -729,7 +729,7 @@ public class SelectResultSet implements ResultSet {
     public void afterLast() throws SQLException {
         checkClose();
         fetchRemainingLock();
-        rowPointer = resultSetSize;
+        rowPointer = dataSize;
     }
 
     @Override
@@ -741,14 +741,14 @@ public class SelectResultSet implements ResultSet {
         }
 
         rowPointer = 0;
-        return resultSetSize > 0;
+        return dataSize > 0;
     }
 
     @Override
     public boolean last() throws SQLException {
         checkClose();
         fetchRemainingLock();
-        rowPointer = resultSetSize - 1;
+        rowPointer = dataSize - 1;
         return rowPointer > 0;
     }
 
@@ -769,7 +769,7 @@ public class SelectResultSet implements ResultSet {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         }
 
-        if (row >= 0 && row <= resultSetSize) {
+        if (row >= 0 && row <= dataSize) {
             rowPointer = row - 1;
             return true;
         }
@@ -779,19 +779,19 @@ public class SelectResultSet implements ResultSet {
 
         if (row >= 0) {
 
-            if (row <= resultSetSize) {
+            if (row <= dataSize) {
                 rowPointer = row - 1;
                 return true;
             }
 
-            rowPointer = resultSetSize; //go to afterLast() position
+            rowPointer = dataSize; //go to afterLast() position
             return false;
 
         } else {
 
-            if (resultSetSize + row >= 0) {
+            if (dataSize + row >= 0) {
                 //absolute position reverse from ending resultSet
-                rowPointer = resultSetSize + row;
+                rowPointer = dataSize + row;
                 return true;
             }
 
@@ -809,7 +809,7 @@ public class SelectResultSet implements ResultSet {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         }
         int newPos = rowPointer + rows;
-        if (newPos > -1 && newPos <= resultSetSize) {
+        if (newPos > -1 && newPos <= dataSize) {
             rowPointer = newPos;
             return true;
         }
@@ -946,6 +946,13 @@ public class SelectResultSet implements ResultSet {
         if (lastValueNull) return null;
 
         switch (columnInfo.getColumnType()) {
+            case STRING:
+                if (row.getMaxFieldSize() > 0) {
+                    return new String(row.buf, row.pos, Math.max(row.getMaxFieldSize() * 3, row.length), StandardCharsets.UTF_8)
+                            .substring(0, row.getMaxFieldSize());
+                }
+                return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+
             case BIT:
                 if (options.tinyInt1isBit && columnInfo.getLength() == 1) {
                     return (row.buf[row.pos] == 0) ? "0" : "1";

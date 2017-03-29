@@ -63,17 +63,16 @@ public class TextRowProtocol extends RowProtocol {
      */
     public boolean setPosition(int newIndex) {
         if (index != newIndex) {
-            int counter;
             if (index == -1 || index > newIndex) {
                 pos = 0;
-                counter = 0;
+                index = 0;
             } else {
-                counter = index + 1;
+                index ++;
                 if (length != NULL_LENGTH) pos += length;
             }
 
-            for (; counter <= newIndex; counter++) {
-                if (counter != newIndex) {
+            for (; index <= newIndex; index++) {
+                if (index != newIndex) {
                     int type = this.buf[this.pos++] & 0xff;
                     switch (type) {
                         case 251:
@@ -104,7 +103,6 @@ public class TextRowProtocol extends RowProtocol {
                     switch (type) {
                         case 251:
                             length = NULL_LENGTH;
-                            this.index = newIndex;
                             return true;
                         case 252:
                             length = 0xffff & ((buf[pos++] & 0xff)
@@ -128,7 +126,6 @@ public class TextRowProtocol extends RowProtocol {
                         default:
                             length = type;
                     }
-                    this.index = newIndex;
                     return false;
                 }
             }

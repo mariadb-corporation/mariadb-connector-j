@@ -357,4 +357,5 @@ public enum ColumnType {
     public String getJavaTypeName() {
         return javaTypeName;
     }
+
 }

@@ -906,7 +906,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @return the connection
      * @throws SQLException if connection is invalid
      */
-    public Connection getConnection() throws SQLException {
+    public MariaDbConnection getConnection() throws SQLException {
         return this.connection;
     }
 

@@ -77,12 +77,11 @@ public class BinaryRowProtocol extends RowProtocol {
     public boolean setPosition(int newIndex) {
 
         if (index != newIndex) {
-            int counter;
             if (index == -1 || index > newIndex) {
-                counter = 0;
+                index = 0;
                 pos = 1 + (columnInformationLength + 9) / 8;
             } else {
-                counter = index + 1;
+                index++;
                 if (length != NULL_LENGTH) pos += length;
             }
 
@@ -92,11 +91,11 @@ public class BinaryRowProtocol extends RowProtocol {
                 return true;
             }
 
-            for (; counter <= newIndex; counter++) {
-                if ((buf[1 + (counter + 2) / 8] & (1 << ((counter + 2) % 8))) == 0) {
-                    if (counter != newIndex) {
+            for (; index <= newIndex; index++) {
+                if ((buf[1 + (index + 2) / 8] & (1 << ((index + 2) % 8))) == 0) {
+                    if (index != newIndex) {
                         //skip bytes
-                        switch (columnInformation[counter].getColumnType()) {
+                        switch (columnInformation[index].getColumnType()) {
                             case BIGINT:
                             case DOUBLE:
                                 pos += 8;
@@ -147,29 +146,25 @@ public class BinaryRowProtocol extends RowProtocol {
                         }
                     } else {
                         //read real pos
-                        switch (columnInformation[counter].getColumnType()) {
+                        switch (columnInformation[index].getColumnType()) {
                             case BIGINT:
                             case DOUBLE:
                                 length = 8;
-                                this.index = newIndex;
                                 break;
 
                             case INTEGER:
                             case MEDIUMINT:
                             case FLOAT:
                                 length = 4;
-                                this.index = newIndex;
                                 break;
 
                             case SMALLINT:
                             case YEAR:
                                 length = 2;
-                                this.index = newIndex;
                                 break;
 
                             case TINYINT:
                                 length = 1;
-                                this.index = newIndex;
                                 break;
 
                             default:
@@ -200,9 +195,9 @@ public class BinaryRowProtocol extends RowProtocol {
                                     default:
                                         length = type;
                                 }
-                                this.index = newIndex;
-                                return false;
                         }
+                        return false;
+
                     }
                 }
             }
