@@ -1037,32 +1037,34 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         buf.skipLengthEncodedBytes(); //info
         while (buf.remaining() > 0) {
             Buffer stateInfo = buf.getLengthEncodedBuffer();
-            switch (stateInfo.readByte()) {
+            if (stateInfo.remaining() > 0) {
+                switch (stateInfo.readByte()) {
 
-                case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
-                    Buffer sessionVariableBuf = stateInfo.getLengthEncodedBuffer();
-                    String variable = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
-                    String value = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
-                    logger.debug("System variable change : " + variable + "=" + value);
+                    case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
+                        Buffer sessionVariableBuf = stateInfo.getLengthEncodedBuffer();
+                        String variable = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
+                        String value = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
+                        logger.debug("System variable change : " + variable + "=" + value);
 
-                    //only variable use by
-                    switch (variable) {
-                        case "auto_increment_increment":
-                            autoIncrementIncrement = Integer.parseInt(value);
-                            results.setAutoIncrement(autoIncrementIncrement);
-                        default:
-                            //variable not used by driver
-                    }
-                    break;
+                        //only variable use by
+                        switch (variable) {
+                            case "auto_increment_increment":
+                                autoIncrementIncrement = Integer.parseInt(value);
+                                results.setAutoIncrement(autoIncrementIncrement);
+                            default:
+                                //variable not used by driver
+                        }
+                        break;
 
-                case StateChange.SESSION_TRACK_SCHEMA:
-                    Buffer sessionSchemaBuf = stateInfo.getLengthEncodedBuffer();
-                    database = sessionSchemaBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
-                    logger.debug("default database change. is now '" + database + "'");
-                    break;
+                    case StateChange.SESSION_TRACK_SCHEMA:
+                        Buffer sessionSchemaBuf = stateInfo.getLengthEncodedBuffer();
+                        database = sessionSchemaBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
+                        logger.debug("default database change. is now '" + database + "'");
+                        break;
 
-                default:
-                    stateInfo.skipLengthEncodedBytes();
+                    default:
+                        stateInfo.skipLengthEncodedBytes();
+                }
             }
         }
 
