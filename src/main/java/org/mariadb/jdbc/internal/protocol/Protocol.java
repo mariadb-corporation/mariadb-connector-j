@@ -265,4 +265,6 @@ public interface Protocol {
     boolean isEofDeprecated();
 
     int getAutoIncrementIncrement();
+
+    boolean sessionStateAware();
 }

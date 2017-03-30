@@ -1150,4 +1150,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public boolean isEofDeprecated() {
         return eofDeprecated;
     }
+
+    public boolean sessionStateAware() {
+        return (serverCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) != 0;
+    }
 }

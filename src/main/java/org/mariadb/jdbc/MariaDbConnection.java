@@ -98,6 +98,7 @@ public class MariaDbConnection implements Connection {
     protected boolean nullCatalogMeansCurrent = true;
     private volatile int lowercaseTableNames = -1;
     private boolean canUseServerTimeout = false;
+    private boolean sessionStateAware = true;
 
     /**
      * save point count - to generate good names for the savepoints.
@@ -122,6 +123,7 @@ public class MariaDbConnection implements Connection {
         options = protocol.getOptions();
         canUseServerTimeout = protocol.versionGreaterOrEqual(10, 1, 2);
         noBackslashEscapes = protocol.noBackslashEscapes();
+        sessionStateAware = protocol.sessionStateAware();
         nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
         if (options.cacheCallableStmts) {
             callableStatementCache = CallableStatementCache.newInstance(options.callableStmtCacheSize);
@@ -487,14 +489,15 @@ public class MariaDbConnection implements Connection {
         String database = matcher.group(8);
         String procedureName = matcher.group(11);
         String arguments = matcher.group(14);
+        if (database == null && sessionStateAware) database = getDatabase();
 
         if (database != null && options.cacheCallableStmts) {
-            if (callableStatementCache.containsKey(new CallableStatementCacheKey(database, query))) {
 
-                //Clone to avoid side effect like having some open resultSet.
+            if (callableStatementCache.containsKey(new CallableStatementCacheKey(database, query))) {
                 try {
-                    CallableStatement callableStatement = callableStatementCache.get(new CallableStatementCacheKey(getDatabase(), query));
+                    CallableStatement callableStatement = callableStatementCache.get(new CallableStatementCacheKey(database, query));
                     if (callableStatement != null) {
+                        //Clone to avoid side effect like having some open resultSet.
                         return ((CloneableCallableStatement) callableStatement).clone(this);
                     }
                 } catch (CloneNotSupportedException cloneNotSupportedException) {

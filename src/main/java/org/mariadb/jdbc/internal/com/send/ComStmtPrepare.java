@@ -113,7 +113,8 @@ public class ComStmtPrepare {
         }
 
         if (firstByte == Packet.OK) {
-                /* Prepared Statement OK */
+
+            /* Prepared Statement OK */
             buffer.readByte(); /* skip field count */
             final int statementId = buffer.readInt();
             final int numColumns = buffer.readShort() & 0xffff;
