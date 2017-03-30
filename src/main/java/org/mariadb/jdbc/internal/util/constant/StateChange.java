@@ -47,51 +47,15 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.com.read;
+package org.mariadb.jdbc.internal.util.constant;
 
-import java.nio.charset.StandardCharsets;
+public class StateChange {
 
+    public static final short SESSION_TRACK_SYSTEM_VARIABLES = 0;
+    public static final short SESSION_TRACK_SCHEMA = 1;
+    public static final short SESSION_TRACK_STATE_CHANGE = 2;
+    public static final short SESSION_TRACK_GTIDS = 3;
+    public static final short SESSION_TRACK_TRANSACTION_CHARACTERISTICS = 4;
+    public static final short SESSION_TRACK_TRANSACTION_STATE = 5;
 
-public class ErrorPacket {
-    private final short errorNumber;
-    private final byte sqlStateMarker;
-    private final byte[] sqlState;
-    private final String message;
-
-    /**
-     * Reading error stream.
-     *
-     * @param buffer current stream rawBytes
-     */
-    public ErrorPacket(Buffer buffer) {
-        buffer.skipByte();
-        this.errorNumber = buffer.readShort();
-        this.sqlStateMarker = buffer.readByte();
-        if (sqlStateMarker == '#') {
-            this.sqlState = buffer.readRawBytes(5);
-            this.message = buffer.readStringNullEnd(StandardCharsets.UTF_8);
-        } else {
-            // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
-            buffer.position -= 1;
-            this.message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position, StandardCharsets.UTF_8);
-            this.sqlState = "HY000".getBytes();
-        }
-    }
-
-
-    public String getMessage() {
-        return message;
-    }
-
-    public short getErrorNumber() {
-        return errorNumber;
-    }
-
-    public String getSqlState() {
-        return new String(sqlState);
-    }
-
-    public byte getSqlStateMarker() {
-        return sqlStateMarker;
-    }
 }

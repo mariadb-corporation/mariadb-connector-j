@@ -96,7 +96,6 @@ public class MariaDbConnection implements Connection {
     protected CallableStatementCache callableStatementCache;
     protected boolean noBackslashEscapes;
     protected boolean nullCatalogMeansCurrent = true;
-    private int autoIncrementIncrement;
     private volatile int lowercaseTableNames = -1;
     private boolean canUseServerTimeout = false;
 
@@ -161,22 +160,6 @@ public class MariaDbConnection implements Connection {
 
     Protocol getProtocol() {
         return protocol;
-    }
-
-    int getAutoIncrementIncrement() {
-        if (autoIncrementIncrement == 0) {
-            try {
-                Results results = new Results();
-                protocol.executeQuery(true, results, "select @@auto_increment_increment");
-                results.commandEnd();
-                ResultSet rs = results.getResultSet();
-                rs.next();
-                autoIncrementIncrement = rs.getInt(1);
-            } catch (Exception e) {
-                autoIncrementIncrement = 1;
-            }
-        }
-        return autoIncrementIncrement;
     }
 
     /**

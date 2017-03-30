@@ -63,8 +63,8 @@ public class OkPacket {
      */
     public OkPacket(Buffer buffer) {
         buffer.skipByte(); //fieldCount
-        affectedRows = buffer.getLengthEncodedBinary();
-        insertId = buffer.getLengthEncodedBinary();
+        affectedRows = buffer.getLengthEncodedNumeric();
+        insertId = buffer.getLengthEncodedNumeric();
         serverStatus = buffer.readShort();
         warnings = buffer.readShort();
     }

@@ -46,6 +46,11 @@ java 7 maven repository artifact :
 === CONJ-318 : Handle CLIENT_DEPRECATE_EOF flag
 Implement some protocol changes that permit to save some bytes.(part of https://jira.mariadb.org/browse/MDEV-8931).
 
+=== CONJ-341 : handle SERVER_SESSION_STATE_CHANGE status flag
+With server with version MariaDB 10.2, MySQL 5.7, ensure driver state :
+- driver does now always get current database, even database is changed by query.
+- when using rewriteBatchedStatements does return correct autoincrement ids even when session variable @auto_increment_increment has change during session.
+
 
 === CONJ-393 : improve setQueryTimeout to use SET STATEMENT max_statement_time
 

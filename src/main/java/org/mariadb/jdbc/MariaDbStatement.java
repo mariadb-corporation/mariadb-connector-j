@@ -121,7 +121,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         this.resultSetScrollType = resultSetScrollType;
         this.lock = this.connection.lock;
         this.options = this.protocol.getOptions();
-        this.results = new Results(this, connection.getAutoIncrementIncrement());
+        this.results = new Results(this, protocol.getAutoIncrementIncrement());
     }
 
     /**
@@ -143,7 +143,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         clone.protocol = connection.getProtocol();
         clone.timerTaskFuture = null;
         clone.batchQueries = new ArrayList<>();
-        clone.results = new Results(clone, connection.getAutoIncrementIncrement());
+        clone.results = new Results(clone, clone.protocol.getAutoIncrementIncrement());
         clone.closed = false;
         clone.warningsCleared = true;
         clone.fetchSize = 0;

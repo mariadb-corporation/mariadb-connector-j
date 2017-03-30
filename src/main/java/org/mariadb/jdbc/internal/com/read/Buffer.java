@@ -51,6 +51,8 @@ package org.mariadb.jdbc.internal.com.read;
 
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public class Buffer {
 
@@ -82,16 +84,28 @@ public class Buffer {
      * @param charset the charset to use, for example ASCII
      * @return the read string
      */
-    public String readString(final Charset charset) {
-        byte ch;
+    public String readStringNullEnd(final Charset charset) {
+        int initialPosition = position;
         int cnt = 0;
-        final byte[] byteArrBuff = new byte[remaining()];
-        while (remaining() > 0 && ((ch = buf[position++]) != 0)) {
-            byteArrBuff[cnt++] = ch;
+        while (remaining() > 0 && (buf[position++] != 0)) {
+            cnt++;
         }
-        return new String(byteArrBuff, 0, cnt, charset);
+        return new String(buf, initialPosition, cnt, charset);
     }
 
+    /**
+     * Reads length-encoded string.
+     *
+     * @param charset the charset to use, for example ASCII
+     * @return the read string
+     */
+    public String readStringLengthEncoded(final Charset charset) {
+        int length = (int) getLengthEncodedNumeric();
+        String string = new String(buf, position, length, charset);
+        position += length;
+        return string;
+    }
+    
     /**
      * Read a short (2 bytes) from the buffer.
      *
@@ -207,7 +221,7 @@ public class Buffer {
      *
      * @return length of next binary data
      */
-    public long getLengthEncodedBinary() {
+    public long getLengthEncodedNumeric() {
         int type = this.buf[this.position++] & 0xff;
         switch (type) {
             case 251:
@@ -224,7 +238,16 @@ public class Buffer {
     }
 
     /**
-     * Get next data bytes with unknown length.
+     * Get next data bytes from length encoded prefix.
+     *
+     * @return buffer
+     */
+    public Buffer getLengthEncodedBuffer() {
+        return new Buffer(getLengthEncodedBytes());
+    }
+
+    /**
+     * Get next data bytes with length encoded prefix.
      *
      * @return the raw binary data
      */
@@ -260,22 +283,54 @@ public class Buffer {
         return tmpBuf;
     }
 
-    /**
-     * Get next data bytes with known length.
-     *
-     * @param length binary data length
-     * @return the raw binary data
-     */
-    public byte[] getLengthEncodedBytesWithLength(long length) {
-        if (length < 0) return null;
-        final byte[] tmpBuf = new byte[(int) length];
-        System.arraycopy(buf, position, tmpBuf, 0, (int) length);
-        position += length;
-        return tmpBuf;
-    }
-
     public byte getByteAt(final int position) {
         return buf[position];
+    }
+
+    /**
+     * Write value with length encoded prefix.
+     *
+     * @param value value to write
+     */
+    public void writeStringLength(String value) {
+        byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+        int length = bytes.length;
+
+        if (length < 251) {
+            buf[position++] = (byte) length;
+        } else if (length < 65536) {
+            buf[position++] = (byte) 0xfc;
+            buf[position++] = (byte) (length >>> 0);
+            buf[position++] = (byte) (length >>> 8);
+        } else if (length < 16777216) {
+            buf[position++] = (byte) 0xfd;
+            buf[position++] = (byte) (length >>> 0);
+            buf[position++] = (byte) (length >>> 8);
+            buf[position++] = (byte) (length >>> 16);
+        } else {
+            buf[position++] = (byte) 0xfe;
+            buf[position++] = (byte) (length >>> 0);
+            buf[position++] = (byte) (length >>> 8);
+            buf[position++] = (byte) (length >>> 16);
+            buf[position++] = (byte) (length >>> 24);
+            buf[position++] = (byte) (length >>> 32);
+            buf[position++] = (byte) (length >>> 40);
+            buf[position++] = (byte) (length >>> 48);
+            buf[position++] = (byte) (length >>> 54);
+        }
+
+        System.arraycopy(buf, position, bytes, 0, length);
+        position += length;
+
+    }
+
+    /**
+     * Grow data array.
+     */
+    private void grow() {
+        int newCapacity = buf.length + (buf.length >> 1);
+        if (newCapacity - (Integer.MAX_VALUE - 8) > 0) newCapacity = Integer.MAX_VALUE - 8;
+        buf = Arrays.copyOf(buf, newCapacity);
     }
 
 }

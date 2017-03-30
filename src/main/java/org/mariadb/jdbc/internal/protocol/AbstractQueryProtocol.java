@@ -60,7 +60,10 @@ import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.com.send.*;
 import org.mariadb.jdbc.internal.com.read.dao.*;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.LogQueryTool;
+import org.mariadb.jdbc.internal.util.constant.StateChange;
 import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
@@ -94,11 +97,12 @@ import static org.mariadb.jdbc.internal.com.Packet.*;
 
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
+    private static Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
 
     private int transactionIsolationLevel = 0;
 
     private InputStream localInfileInputStream;
-
+    private int autoIncrementIncrement;
     private long maxRows;  /* max rows returned by a statement */
 
     private volatile int statementIdToRelease = -1;
@@ -1017,13 +1021,72 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      */
     public void readOkPacket(Buffer buffer, Results results) throws SQLException {
         buffer.skipByte(); //fieldCount
-        final long updateCount = buffer.getLengthEncodedBinary();
-        final long insertId = buffer.getLengthEncodedBinary();
+        final long updateCount = buffer.getLengthEncodedNumeric();
+        final long insertId = buffer.getLengthEncodedNumeric();
         serverStatus = buffer.readShort();
         this.hasWarnings = (buffer.readShort() > 0);
         this.moreResults = ((serverStatus & ServerStatus.MORE_RESULTS_EXISTS) != 0);
+        if ((serverStatus & ServerStatus.SERVER_SESSION_STATE_CHANGED) != 0) {
+            handleStateChange(buffer, results);
+        }
 
         results.addStats(updateCount, insertId, moreResults);
+    }
+
+    private void handleStateChange(Buffer buf, Results results) throws SQLException {
+        buf.skipLengthEncodedBytes(); //info
+        while (buf.remaining() > 0) {
+            Buffer stateInfo = buf.getLengthEncodedBuffer();
+            switch (stateInfo.readByte()) {
+
+                case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
+                    Buffer sessionVariableBuf = stateInfo.getLengthEncodedBuffer();
+                    String variable = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
+                    String value = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
+                    logger.debug("System variable change : " + variable + "=" + value);
+
+                    //only variable use by
+                    switch (variable) {
+                        case "auto_increment_increment":
+                            autoIncrementIncrement = Integer.parseInt(value);
+                            results.setAutoIncrement(autoIncrementIncrement);
+                        default:
+                            //variable not used by driver
+                    }
+                    break;
+
+                case StateChange.SESSION_TRACK_SCHEMA:
+                    Buffer sessionSchemaBuf = stateInfo.getLengthEncodedBuffer();
+                    database = sessionSchemaBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
+                    logger.debug("default database change. is now '" + database + "'");
+                    break;
+
+                default:
+                    stateInfo.skipLengthEncodedBytes();
+            }
+        }
+
+    }
+
+    /**
+     * Get current auto increment increment.
+     *
+     * @return auto increment increment.
+     */
+    public int getAutoIncrementIncrement() {
+        if (autoIncrementIncrement == 0) {
+            try {
+                Results results = new Results();
+                executeQuery(true, results, "select @@auto_increment_increment");
+                results.commandEnd();
+                ResultSet rs = results.getResultSet();
+                rs.next();
+                autoIncrementIncrement = rs.getInt(1);
+            } catch (Exception e) {
+                autoIncrementIncrement = 1;
+            }
+        }
+        return autoIncrementIncrement;
     }
 
 
@@ -1045,7 +1108,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         String sqlState;
         if (buffer.readByte() == '#') {
             sqlState = new String(buffer.readRawBytes(5));
-            message = buffer.readString(StandardCharsets.UTF_8);
+            message = buffer.readStringNullEnd(StandardCharsets.UTF_8);
         } else {
             // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
             buffer.position -= 1;
@@ -1069,8 +1132,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     public void readLocalInfilePacket(Buffer buffer, Results results) throws SQLException {
 
         int seq = 2;
-        buffer.getLengthEncodedBinary(); //field pos
-        String fileName = buffer.readString(StandardCharsets.UTF_8);
+        buffer.getLengthEncodedNumeric(); //field pos
+        String fileName = buffer.readStringNullEnd(StandardCharsets.UTF_8);
         try {
             // Server request the local file (LOCAL DATA LOCAL INFILE)
             // We do accept general URLs, too. If the localInfileStream is
@@ -1152,7 +1215,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     public void readResultSet(Buffer buffer, Results results) throws SQLException {
         this.hasWarnings = false;
         this.moreResults = false;
-        long fieldCount = buffer.getLengthEncodedBinary();
+        long fieldCount = buffer.getLengthEncodedNumeric();
 
         try {
 

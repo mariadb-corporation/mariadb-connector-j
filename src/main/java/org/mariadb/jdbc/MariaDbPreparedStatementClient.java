@@ -200,7 +200,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
 
             executeQueryPrologue();
             results = new Results(this, fetchSize, false, 1, false, resultSetScrollType,
-                    connection.getAutoIncrementIncrement());
+                    protocol.getAutoIncrementIncrement());
             protocol.executeQuery(protocol.isMasterConnection(), results, prepareResult, parameters);
             results.commandEnd();
             return results.getResultSet() != null;

@@ -61,7 +61,6 @@ import org.mariadb.jdbc.internal.com.read.Buffer;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
@@ -82,8 +81,8 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
      */
     public void send(PacketOutputStream pos) throws IOException, SQLException {
         Buffer buffer = new Buffer(authData);
-        final String serverPrincipalName = buffer.readString(StandardCharsets.UTF_8);
-        String mechanisms = buffer.readString(StandardCharsets.UTF_8);
+        final String serverPrincipalName = buffer.readStringNullEnd(StandardCharsets.UTF_8);
+        String mechanisms = buffer.readStringNullEnd(StandardCharsets.UTF_8);
         if (mechanisms.equals("")) mechanisms = "Kerberos";
 
         GssapiAuth gssapiAuth = getAuthenticationMethod();

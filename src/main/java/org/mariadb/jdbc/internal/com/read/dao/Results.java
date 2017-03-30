@@ -401,4 +401,7 @@ public class Results {
         return maxFieldSize;
     }
 
+    public void setAutoIncrement(int autoIncrement) {
+        this.autoIncrement = autoIncrement;
+    }
 }

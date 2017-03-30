@@ -263,4 +263,6 @@ public interface Protocol {
     PacketOutputStream getWriter();
 
     boolean isEofDeprecated();
+
+    int getAutoIncrementIncrement();
 }

@@ -1,7 +1,9 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.Test;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -52,4 +54,5 @@ public class CatalogTest extends BaseTest {
             sharedConnection.setCatalog(database);
         }
     }
+
 }

@@ -88,7 +88,7 @@ public class ReadInitialHandShakePacket {
         }
 
         protocolVersion = buffer.readByte();
-        serverVersion = buffer.readString(StandardCharsets.US_ASCII);
+        serverVersion = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
         serverThreadId = buffer.readInt();
         final byte[] seed1 = buffer.readRawBytes(8);
         buffer.skipByte();
@@ -119,6 +119,10 @@ public class ReadInitialHandShakePacket {
         }
         buffer.skipByte();
 
+        /*
+         * check for MariaDB 10.x replication hack , remove fake prefix if needed
+         *  (see comments about MARIADB_RPL_HACK_PREFIX)
+         */
         if (serverVersion.startsWith(MARIADB_RPL_HACK_PREFIX)) {
             serverMariaDb = true;
             serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());
@@ -134,12 +138,8 @@ public class ReadInitialHandShakePacket {
             serverCapabilities = serverCapabilities4FirstBytes & 0xffffffffL;
         }
 
-        /*
-         * check for MariaDB 10.x replication hack , remove fake prefix if needed
-         *  (see comments about MARIADB_RPL_HACK_PREFIX)
-         */
         if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-            pluginName = buffer.readString(StandardCharsets.US_ASCII);
+            pluginName = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
         }
     }
 

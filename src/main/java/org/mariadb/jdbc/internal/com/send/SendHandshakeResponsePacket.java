@@ -51,6 +51,7 @@ package org.mariadb.jdbc.internal.com.send;
 
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
+import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.PidFactory;
@@ -85,64 +86,38 @@ import java.util.StringTokenizer;
  * <p>
  * databasename:            name of schema to use initially
  */
-public class SendHandshakeResponsePacket implements InterfaceSendPacket {
-    private final byte serverLanguage;
-    private byte packetSeq;
-    private String username;
-    private String password;
-    private byte[] seed;
-    private long clientCapabilities;
-    private String database;
-    private String plugin;
-    private String connectionAttributes;
-
-    private byte[] connectionAttributesArray;
-    private int connectionAttributesPosition;
-    private String passwordCharacterEncoding;
+public class SendHandshakeResponsePacket {
 
     /**
-     * Initialisation of parameters.
+     * Send handshake response packet.
      *
-     * @param username                  username
-     * @param password                  user password
-     * @param database                  initial database connection
-     * @param clientCapabilities        capabilities
-     * @param serverLanguage            serverlanguage
+     * @see <a href="https://mariadb.com/kb/en/mariadb/1-connecting-connecting/#handshake-response-packet">protocol documentation</a>
+     * @param pos                       output stream
+     * @param username                  user name
+     * @param password                  password
+     * @param database                  database name
+     * @param clientCapabilities        client capabilities
+     * @param serverCapabilities        server capabilities
+     * @param serverLanguage            server language (utf8 / utf8mb4 collation)
      * @param seed                      seed
-     * @param packetSeq                 stream sequence
-     * @param plugin                    authentication plugin name
-     * @param connectionAttributes      connection attributes option
+     * @param packetSeq                 packet sequence
+     * @param plugin                    plugin name
+     * @param connectionAttributes      connection attributes for information schema
      * @param passwordCharacterEncoding password character encoding
+     * @throws IOException if socket exception occur
      */
-    public SendHandshakeResponsePacket(final String username,
-                                       final String password,
-                                       final String database,
-                                       final long clientCapabilities,
-                                       final byte serverLanguage,
-                                       final byte[] seed,
-                                       byte packetSeq,
-                                       String plugin,
-                                       String connectionAttributes,
-                                       String passwordCharacterEncoding) {
-        this.packetSeq = packetSeq;
-        this.username = username;
-        this.password = password;
-        this.seed = seed;
-        this.clientCapabilities = clientCapabilities;
-        this.serverLanguage = serverLanguage;
-        this.database = database;
-        this.plugin = plugin;
-        this.connectionAttributes = connectionAttributes;
-        this.passwordCharacterEncoding = passwordCharacterEncoding;
-    }
-
-    /**
-     * Send authentication stream.
-     *
-     * @param pos database socket
-     * @throws IOException if any connection error occur
-     */
-    public void send(final PacketOutputStream pos) throws IOException {
+    public static void send(final PacketOutputStream pos,
+                            String username,
+                            final String password,
+                            final String database,
+                            final long clientCapabilities,
+                            final long serverCapabilities,
+                            final byte serverLanguage,
+                            final byte[] seed,
+                            final byte packetSeq,
+                            final String plugin,
+                            final String connectionAttributes,
+                            final String passwordCharacterEncoding) throws IOException {
 
         pos.startPacket(packetSeq);
         final byte[] authData;
@@ -178,10 +153,10 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
         pos.write(username.getBytes());     //strlen username
         pos.write((byte) 0);        //1
 
-        if ((clientCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
+        if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
             pos.writeFieldLength(authData.length);
             pos.write(authData);
-        } else if ((clientCapabilities & MariaDbServerCapabilities.SECURE_CONNECTION) != 0) {
+        } else if ((serverCapabilities & MariaDbServerCapabilities.SECURE_CONNECTION) != 0) {
             pos.write((byte) authData.length);
             pos.write(authData);
         } else {
@@ -189,36 +164,49 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
             pos.write((byte) 0);
         }
 
-        if ((clientCapabilities & MariaDbServerCapabilities.CONNECT_WITH_DB) != 0) {
+        if ((serverCapabilities & MariaDbServerCapabilities.CONNECT_WITH_DB) != 0) {
             pos.write(database);
             pos.write((byte) 0);
         }
 
-        if ((clientCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
+        if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
             pos.write(plugin);
             pos.write((byte) 0);
         }
 
-        if ((clientCapabilities & MariaDbServerCapabilities.CONNECT_ATTRS) != 0) {
-            writeConnectAttributes(pos);
+        if ((serverCapabilities & MariaDbServerCapabilities.CONNECT_ATTRS) != 0) {
+            writeConnectAttributes(pos, connectionAttributes);
         }
         pos.flush();
 
     }
 
-    private void writeConnectAttributes(PacketOutputStream pos) throws IOException {
-        connectionAttributesArray = new byte[200];
-        connectionAttributesPosition = 0;
-        writeStringLength("_client_name", MariaDbDatabaseMetaData.DRIVER_NAME);
-        writeStringLength("_client_version", Version.version);
-        writeStringLength("_os", System.getProperty("os.name"));
+    private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes) throws IOException {
+        Buffer buffer = new Buffer(new byte[200]);
+
+        buffer.writeStringLength("_client_name");
+        buffer.writeStringLength(MariaDbDatabaseMetaData.DRIVER_NAME);
+
+        buffer.writeStringLength("_client_version");
+        buffer.writeStringLength(Version.version);
+
+        buffer.writeStringLength("_os");
+        buffer.writeStringLength(System.getProperty("os.name"));
 
         String pid = PidFactory.getInstance().getPid();
-        if (pid != null) writeStringLength("_pid", pid);
+        if (pid != null) {
+            buffer.writeStringLength("_pid");
+            buffer.writeStringLength(pid);
+        }
 
-        writeStringLength("_thread", Long.toString(Thread.currentThread().getId()));
-        writeStringLength("_java_vendor", System.getProperty("java.vendor"));
-        writeStringLength("_java_version", System.getProperty("java.version"));
+        buffer.writeStringLength("_thread");
+        buffer.writeStringLength(Long.toString(Thread.currentThread().getId()));
+
+        buffer.writeStringLength("_java_vendor");
+        buffer.writeStringLength(System.getProperty("java.vendor"));
+
+        buffer.writeStringLength("_java_version");
+        buffer.writeStringLength(System.getProperty("java.version"));
 
         if (connectionAttributes != null) {
             StringTokenizer tokenizer = new StringTokenizer(connectionAttributes, ",");
@@ -226,55 +214,16 @@ public class SendHandshakeResponsePacket implements InterfaceSendPacket {
                 String token = tokenizer.nextToken();
                 int separator = token.indexOf(":");
                 if (separator != -1) {
-                    writeStringLength(token.substring(0, separator), token.substring(separator + 1));
+                    buffer.writeStringLength(token.substring(0, separator));
+                    buffer.writeStringLength(token.substring(separator + 1));
                 } else {
-                    writeStringLength(token, "");
+                    buffer.writeStringLength(token);
+                    buffer.writeStringLength("");
                 }
             }
         }
-        pos.writeFieldLength(connectionAttributesPosition);
-        pos.write(Arrays.copyOfRange(connectionAttributesArray, 0, connectionAttributesPosition));
-    }
-
-    private void writeStringLength(String strKey, String strValue) {
-        try {
-            final byte[] strBytesKey = strKey.getBytes("UTF-8");
-            final byte[] strBytesValue = strValue.getBytes("UTF-8");
-
-            assureBufferCapacity(strBytesKey.length + strBytesValue.length + 18);
-            writeFieldLength(strBytesKey.length);
-            writeBytes(strBytesKey);
-
-            writeFieldLength(strBytesValue.length);
-            writeBytes(strBytesValue);
-
-        } catch (UnsupportedEncodingException u) {
-        }
-    }
-
-    private void assureBufferCapacity(int additionalSize) {
-        if (connectionAttributesArray.length < connectionAttributesPosition + additionalSize) {
-            byte[] newConnectionAttributesArray = new byte[Math.max(connectionAttributesArray.length * 2,
-                    connectionAttributesPosition + additionalSize)];
-            System.arraycopy(connectionAttributesArray, 0, newConnectionAttributesArray, 0, connectionAttributesPosition);
-            connectionAttributesArray = newConnectionAttributesArray;
-        }
-    }
-
-    private void writeFieldLength(long length) {
-        if (length < 251) {
-            connectionAttributesArray[connectionAttributesPosition++] = (byte) length;
-        } else {
-            connectionAttributesArray[connectionAttributesPosition++] = (byte) 0xfc;
-            connectionAttributesArray[connectionAttributesPosition++] = (byte) (length & 0xff);
-            connectionAttributesArray[connectionAttributesPosition++] = (byte) (length >>> 8);
-        }
-    }
-
-    private void writeBytes(byte[] byteValue) {
-        assureBufferCapacity(byteValue.length);
-        System.arraycopy(byteValue, 0, this.connectionAttributesArray, connectionAttributesPosition, byteValue.length);
-        this.connectionAttributesPosition += byteValue.length;
+        pos.writeFieldLength(buffer.position);
+        pos.write(buffer.buf, 0, buffer.position);
     }
 
 }

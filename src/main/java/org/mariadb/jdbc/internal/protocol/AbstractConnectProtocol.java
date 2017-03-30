@@ -88,7 +88,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.security.*;
 import java.sql.ResultSet;
@@ -124,13 +123,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected ServerPrepareStatementCache serverPrepareStatementCache;
     protected boolean moreResults = false;
     protected boolean eofDeprecated = false;
+    protected long serverCapabilities;
     private boolean hostFailed;
     private String serverVersion;
     private boolean serverMariaDb;
     private int majorVersion;
     private int minorVersion;
     private int patchVersion;
-    private Map<String, String> serverData;
+    protected Map<String, String> serverData;
     private TimeZone timeZone;
 
     /**
@@ -438,6 +438,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
         // after setting autocommit, we can rely on serverStatus value
         String sessionOption = "autocommit=1";
 
+        if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) != 0) {
+            sessionOption += ", session_track_schema=1, session_track_system_variables='auto_increment_increment' ";
+        }
         if (options.jdbcCompliantTruncation) {
             if (serverData.get("sql_mode") == null || "".equals(serverData.get("sql_mode"))) {
                 sessionOption += ",sql_mode='STRICT_TRANS_TABLES'";
@@ -469,10 +472,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
             this.serverThreadId = greetingPacket.getServerThreadId();
             this.serverVersion = greetingPacket.getServerVersion();
             this.serverMariaDb = greetingPacket.isServerMariaDb();
-
+            this.serverCapabilities = greetingPacket.getServerCapabilities();
             byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage());
             parseVersion();
-            long clientCapabilities = initializeClientCapabilities(greetingPacket.getServerCapabilities());
+            long clientCapabilities = initializeClientCapabilities(serverCapabilities);
 
             byte packetSeq = 1;
             if (options.useSsl && (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.SSL) != 0) {
@@ -499,7 +502,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
 
             authentication(exchangeCharset, clientCapabilities, greetingPacket.getSeed(), packetSeq,
-                    greetingPacket.getPluginName(), greetingPacket.getServerCapabilities());
+                    greetingPacket.getPluginName());
 
         } catch (IOException e) {
             if (reader != null) {
@@ -514,19 +517,22 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void authentication(byte exchangeCharset, long clientCapabilities, byte[] seed, byte packetSeq, String plugin, long serverCapabilities)
+    private void authentication(byte exchangeCharset, long clientCapabilities, byte[] seed, byte packetSeq, String plugin)
             throws SQLException, IOException {
-        final SendHandshakeResponsePacket cap = new SendHandshakeResponsePacket(this.username,
+
+        //send handshake response
+        SendHandshakeResponsePacket.send(writer, this.username,
                 this.password,
                 database,
                 clientCapabilities,
+                serverCapabilities,
                 exchangeCharset,
                 seed,
                 packetSeq,
                 plugin,
                 options.connectionAttributes,
                 options.passwordCharacterEncoding);
-        cap.send(writer);
+
         Buffer buffer = reader.getPacket(false);
 
         if ((buffer.getByteAt(0) & 0xFF) == 0xFE) {
@@ -536,7 +542,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 byte[] authData;
                 if (buffer.remaining() > 0) {
                     //AuthSwitchRequest packet.
-                    plugin = buffer.readString(Charset.forName("ASCII"));
+                    plugin = buffer.readStringNullEnd(Charset.forName("ASCII"));
                     authData = buffer.readRawBytes(buffer.remaining());
                 } else {
                     //OldAuthSwitchRequest
@@ -585,7 +591,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 | MariaDbServerCapabilities.PLUGIN_AUTH
                 | MariaDbServerCapabilities.CONNECT_ATTRS
                 | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
-                | MariaDbServerCapabilities.MARIADB_CLIENT_COM_MULTI;
+                | MariaDbServerCapabilities.MARIADB_CLIENT_COM_MULTI
+                | MariaDbServerCapabilities.CLIENT_SESSION_TRACK;
 
         if (options.allowMultiQueries || (options.rewriteBatchedStatements)) {
             capabilities |= MariaDbServerCapabilities.MULTI_STATEMENTS;
