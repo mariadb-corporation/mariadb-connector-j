@@ -420,17 +420,7 @@ public enum DefaultOptions {
      * Indicate password encoding charset. If not set, driver use platform's default charset.
      * default to null.
      */
-    PASSWORD_CHARACTER_ENCODING("passwordCharacterEncoding", "1.5.9"),
-
-    /**
-     * When Statement.setFetchSize is set and option useServerPrepStmts is set too,
-     * indicate driver to fetch data from server by bunch of fetchSize rows.
-     * This permit to avoid having to fetch all results from server.
-     * but if most data must be read, this is then slower than retrieve all datas.
-     * default to false.
-     */
-    USE_CURSOR_FETCH("useCursorFetch", Boolean.FALSE, "2.0.0");
-
+    PASSWORD_CHARACTER_ENCODING("passwordCharacterEncoding", "1.5.9");
 
 
 
