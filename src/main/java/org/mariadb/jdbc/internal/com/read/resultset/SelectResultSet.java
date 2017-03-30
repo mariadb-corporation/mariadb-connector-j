@@ -62,7 +62,6 @@ import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.com.Packet;
-import org.mariadb.jdbc.internal.com.send.ComStmtFetch;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.com.read.dao.ColumnNameMap;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
@@ -161,7 +160,6 @@ public class SelectResultSet implements ResultSet {
     private boolean returnTableAlias;
     private boolean isClosed;
     private boolean eofDeprecated;
-    private ComStmtFetch cursorFetch;
 
     /**
      * Create Streaming resultSet.
@@ -210,7 +208,6 @@ public class SelectResultSet implements ResultSet {
             fetchAllResults();
             streaming = false;
         } else {
-            cursorFetch = results.getCursorFetch();
             protocol.setActiveStreamingResult(results);
             data = new byte[Math.max(10, fetchSize)][];
             nextStreamingValue();
@@ -416,28 +413,10 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException if server return an unexpected error
      */
     private void addStreamingValue() throws IOException, SQLException {
-        if (cursorFetch != null) {
-            ReentrantLock lock = protocol.getLock();
-            lock.lock();
-            try {
-                //use COM_STMT_FETCH to ask next resultSet with fetchSize rows
-                cursorFetch.send(protocol.getWriter(), fetchSize);
-
-                //fetch the whole next resultSet
-                while (readNextValue()) {
-                    //read all
-                }
-            } finally {
-                lock.unlock();
-            }
-
-        } else {
-            //read only fetchSize values
-            int fetchSizeTmp = fetchSize;
-            while (fetchSizeTmp > 0 && readNextValue()) {
-                fetchSizeTmp--;
-            }
-
+        //read only fetchSize values
+        int fetchSizeTmp = fetchSize;
+        while (fetchSizeTmp > 0 && readNextValue()) {
+            fetchSizeTmp--;
         }
         dataFetchTime++;
 
@@ -506,11 +485,10 @@ public class SelectResultSet implements ResultSet {
 
             protocol.setHasWarnings(warnings > 0);
 
-            if ((serverStatus & CURSOR_EXISTS) == 0 || (serverStatus & LAST_ROW_SENT) != 0) {
-                isEof = true;
-                protocol = null;
-                reader = null;
-            }
+            isEof = true;
+            protocol = null;
+            reader = null;
+
             return false;
         }
 
@@ -565,7 +543,7 @@ public class SelectResultSet implements ResultSet {
      */
     public void close() throws SQLException {
         isClosed = true;
-        if (protocol != null && cursorFetch == null) {
+        if (protocol != null) {
             ReentrantLock lock = protocol.getLock();
             lock.lock();
             try {

@@ -60,7 +60,6 @@ import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.com.send.*;
 import org.mariadb.jdbc.internal.com.read.dao.*;
-import org.mariadb.jdbc.internal.com.send.ComStmtFetch;
 import org.mariadb.jdbc.internal.util.LogQueryTool;
 import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
@@ -650,23 +649,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
             }
 
-            if (results.getFetchSize() > 0
-                    && options.useCursorFetch
-                    && results.getResultSetScrollType() == ResultSet.TYPE_FORWARD_ONLY) {
-
-                //Real server stream
-                new ComStmtExecute(serverPrepareResult.getStatementId(), parameters,
-                        parameterCount, serverPrepareResult.getParameterTypeHeader(), CURSOR_TYPE_READ_ONLY)
-                        .send(writer);
-                serverPrepareResult.openCursor(results);
-                results.setUseCursorFetch(new ComStmtFetch(serverPrepareResult.getStatementId()));
-
-            } else {
-                //send execute query
-                new ComStmtExecute(serverPrepareResult.getStatementId(), parameters,
-                        parameterCount, serverPrepareResult.getParameterTypeHeader(), CURSOR_TYPE_NO_CURSOR)
-                        .send(writer);
-            }
+            //send execute query
+            new ComStmtExecute(serverPrepareResult.getStatementId(), parameters,
+                    parameterCount, serverPrepareResult.getParameterTypeHeader(), CURSOR_TYPE_NO_CURSOR)
+                    .send(writer);
             getResult(results);
 
         } catch (SQLException qex) {

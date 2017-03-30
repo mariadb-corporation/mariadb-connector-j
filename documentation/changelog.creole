@@ -42,15 +42,6 @@ java 7 maven repository artifact :
         <version>2.0.0</version>
     </dependency>
 </dependencies>
-=== CONJ-315 : implement useCursorFetch option
-
-New Options :
- |=useCursorFetch|* When Statement.setFetchSize is set and option useServerPrepStmts is set too, \\
-                       indicate driver to fetch data from server by bunch of fetchSize rows. \\
-                       This permit to avoid having to fetch all results from server. \\
-                       but if most data must be read, this is then slower than retrieve all datas. \\
-                       compatible only with MariaDB servers when using prepare cache\\
-                       \\//Default: false. Since 1.5.0//|
 
 === CONJ-318 : Handle CLIENT_DEPRECATE_EOF flag
 Implement some protocol changes that permit to save some bytes.(part of https://jira.mariadb.org/browse/MDEV-8931).
