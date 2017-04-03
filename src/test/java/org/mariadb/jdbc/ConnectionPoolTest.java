@@ -60,7 +60,8 @@ public class ConnectionPoolTest extends BaseTest {
 
     @Test
     public void testPoolEffectiveness() throws Exception {
-        Assume.assumeFalse(sharedIsRewrite());
+        Assume.assumeFalse(sharedIsRewrite()
+                || (!sharedOptions().useBatchMultiSend && !sharedOptions().useServerPrepStmts));
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(connU);
         config.setUsername(username);
