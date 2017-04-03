@@ -2078,8 +2078,8 @@ public class MariaSelectResultSet implements ResultSet {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T getObject(String columnLabel, Class<T> arg1) throws SQLException {
-        return (T) getObject(findColumn(columnLabel));
+    public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
+        return getObject(findColumn(columnLabel), type);
     }
 
     /**
