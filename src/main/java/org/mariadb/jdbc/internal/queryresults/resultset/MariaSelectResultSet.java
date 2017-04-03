@@ -3645,6 +3645,10 @@ public class MariaSelectResultSet implements ResultSet {
 
 
     private Date binaryDate(byte[] rawBytes, ColumnInformation columnInfo, Calendar cal) throws ParseException {
+        if (rawBytes.length == 0) {
+            return null;
+        }
+        
         switch (columnInfo.getType()) {
             case TIMESTAMP:
             case DATETIME:
@@ -3693,6 +3697,10 @@ public class MariaSelectResultSet implements ResultSet {
     }
 
     private Time binaryTime(byte[] rawBytes, ColumnInformation columnInfo, Calendar cal) throws ParseException {
+        if (rawBytes.length == 0) {
+            return null;
+        }
+        
         switch (columnInfo.getType()) {
             case TIMESTAMP:
             case DATETIME:
