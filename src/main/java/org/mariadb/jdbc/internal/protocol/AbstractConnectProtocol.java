@@ -519,7 +519,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private void authentication(byte exchangeCharset, long clientCapabilities, byte[] seed, byte packetSeq, String plugin)
             throws SQLException, IOException {
-
         //send handshake response
         SendHandshakeResponsePacket.send(writer, this.username,
                 this.password,
@@ -534,6 +533,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 options.passwordCharacterEncoding);
 
         Buffer buffer = reader.getPacket(false);
+        writer.permitTrace(false);
 
         if ((buffer.getByteAt(0) & 0xFF) == 0xFE) {
             InterfaceAuthSwitchSendResponsePacket interfaceSendPacket;
@@ -561,7 +561,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
             interfaceSendPacket.send(writer);
             interfaceSendPacket.handleResultPacket(reader);
+
         } else {
+
             if (buffer.getByteAt(0) == Packet.ERROR) {
                 ErrorPacket errorPacket = new ErrorPacket(buffer);
                 if (password != null && !password.isEmpty() && errorPacket.getErrorNumber() == 1045 && "28000".equals(errorPacket.getSqlState())) {
@@ -576,6 +578,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
             serverStatus = new OkPacket(buffer).getServerStatus();
         }
+        writer.permitTrace(true);
 
     }
 

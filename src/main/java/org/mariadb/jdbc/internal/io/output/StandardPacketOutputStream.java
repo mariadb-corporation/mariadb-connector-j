@@ -96,8 +96,12 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
             checkMaxAllowedLength(pos - 4);
             out.write(buf, 0, pos);
             if (logger.isTraceEnabled()) {
-                logger.trace("send com : content length:" + (pos - 4)
-                        + " com:0x" + Utils.hexdump(buf, maxQuerySizeToLog, 0, pos));
+                if (permitTrace) {
+                    logger.trace("send com : content length:" + (pos - 4)
+                            + " com:0x" + Utils.hexdump(buf, maxQuerySizeToLog, 0, pos));
+                } else {
+                    logger.trace("send com : content length:" + (pos - 4) + " com:<hidden>");
+                }
             }
 
             //if last com fill the max size, must send an empty com to indicate command end.

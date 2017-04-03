@@ -74,7 +74,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     protected int maxAllowedPacket = Integer.MAX_VALUE;
     protected int maxQuerySizeToLog;
     protected long cmdLength;
-
+    protected boolean permitTrace;
     protected int seqNo = 0;
 
     /**
@@ -686,5 +686,9 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
 
     public int getMaxAllowedPacket() {
         return maxAllowedPacket;
+    }
+
+    public void permitTrace(boolean permitTrace) {
+        this.permitTrace = permitTrace;
     }
 }

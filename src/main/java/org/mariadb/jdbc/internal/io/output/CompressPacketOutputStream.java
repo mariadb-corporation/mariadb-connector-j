@@ -169,10 +169,15 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                     out.write(compressedBytes, 0, compressedLength);
 
                     if (logger.isTraceEnabled()) {
-                        logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + uncompressSize + ")"
-                                + " packet:0x"
-                                + Utils.hexdump(header, maxQuerySizeToLog, 0, 7)
-                                + Utils.hexdump(compressedBytes, maxQuerySizeToLog - 7, 0, compressedLength));
+                        if (permitTrace) {
+                            logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + uncompressSize + ")"
+                                    + " packet:0x"
+                                    + Utils.hexdump(header, maxQuerySizeToLog, 0, 7)
+                                    + Utils.hexdump(compressedBytes, maxQuerySizeToLog - 7, 0, compressedLength));
+                        } else {
+                            logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + uncompressSize + ")"
+                                    + " packet:<hidden>");
+                        }
                     }
 
                     //if last packet fill the max size, must send an empty packet to indicate command end.
@@ -210,12 +215,17 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             }
 
             if (logger.isTraceEnabled()) {
-                logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
-                        + " packet:0x"
-                        + Utils.hexdump(header, maxQuerySizeToLog, 0, pos)
-                        + Utils.hexdump(remainingData, maxQuerySizeToLog - pos, 0, remainingData.length)
-                        + Utils.hexdump(subHeader, maxQuerySizeToLog - (pos + remainingData.length), 0, 4)
-                        + Utils.hexdump(buf, maxQuerySizeToLog - (pos + remainingData.length + 4), 0, pos));
+                if (permitTrace) {
+                    logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
+                            + " packet:0x"
+                            + Utils.hexdump(header, maxQuerySizeToLog, 0, pos)
+                            + Utils.hexdump(remainingData, maxQuerySizeToLog - pos, 0, remainingData.length)
+                            + Utils.hexdump(subHeader, maxQuerySizeToLog - (pos + remainingData.length), 0, 4)
+                            + Utils.hexdump(buf, maxQuerySizeToLog - (pos + remainingData.length + 4), 0, pos));
+                } else {
+                    logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
+                            + " packet:<hidden>");
+                }
             }
 
             //if last packet fill the max size, must send an empty packet to indicate command end.
@@ -252,10 +262,15 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                     out.write(compressedBytes, 0, compressedLength);
 
                     if (logger.isTraceEnabled()) {
-                        logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + uncompressSize + ")"
-                                + " packet:0x"
-                                + Utils.hexdump(header, maxQuerySizeToLog, 0, 7)
-                                + Utils.hexdump(compressedBytes, maxQuerySizeToLog - 7, 0, compressedLength));
+                        if (permitTrace) {
+                            logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + uncompressSize + ")"
+                                    + " packet:0x"
+                                    + Utils.hexdump(header, maxQuerySizeToLog, 0, 7)
+                                    + Utils.hexdump(compressedBytes, maxQuerySizeToLog - 7, 0, compressedLength));
+                        } else {
+                            logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + uncompressSize + ")"
+                                    + " packet:<hidden>");
+                        }
                     }
 
                     //if last packet fill the max size, must send an empty packet to indicate command end.
@@ -281,10 +296,15 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             remainingData = EMPTY_ARRAY;
 
             if (logger.isTraceEnabled()) {
-                logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
-                        + " packet:0x"
-                        + Utils.hexdump(header, maxQuerySizeToLog, 0, pos)
-                        + Utils.hexdump(remainingData, maxQuerySizeToLog - pos, 0, remainingData.length));
+                if (permitTrace) {
+                    logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
+                            + " packet:0x"
+                            + Utils.hexdump(header, maxQuerySizeToLog, 0, pos)
+                            + Utils.hexdump(remainingData, maxQuerySizeToLog - pos, 0, remainingData.length));
+                } else {
+                    logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
+                            + " packet:<hidden>");
+                }
             }
             if (commandEnd && lastPacketExactMaxPacketLength) writeEmptyPacket();
         }
@@ -309,8 +329,13 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
         buf[10] = (byte) this.seqNo++;
         out.write(buf, 0, 11);
         if (logger.isTraceEnabled()) {
-            logger.trace("send compress: length:(zlib:0,std:0)"
-                    + " packet:0x" + Utils.hexdump(buf, maxQuerySizeToLog, 0, 11));
+            if (permitTrace) {
+                logger.trace("send compress: length:(zlib:0,std:0)"
+                        + " packet:0x" + Utils.hexdump(buf, maxQuerySizeToLog, 0, 11));
+            } else {
+                logger.trace("send compress: length:(zlib:0,std:0)"
+                        + " packet:<hidden>");
+            }
         }
     }
 

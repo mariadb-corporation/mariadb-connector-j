@@ -120,10 +120,12 @@ public class SendHandshakeResponsePacket {
                             final String passwordCharacterEncoding) throws IOException {
 
         pos.startPacket(packetSeq);
+
         final byte[] authData;
         switch (plugin) {
             case "": //CONJ-274 : permit connection mysql 5.1 db
             case DefaultAuthenticationProvider.MYSQL_NATIVE_PASSWORD:
+                pos.permitTrace(false);
                 try {
                     authData = Utils.encryptPassword(password, seed, passwordCharacterEncoding);
                     break;
@@ -131,6 +133,7 @@ public class SendHandshakeResponsePacket {
                     throw new RuntimeException("Could not use SHA-1, failing", e);
                 }
             case DefaultAuthenticationProvider.MYSQL_CLEAR_PASSWORD:
+                pos.permitTrace(false);
                 if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
                     authData = password.getBytes(passwordCharacterEncoding);
                 } else {
@@ -178,7 +181,7 @@ public class SendHandshakeResponsePacket {
             writeConnectAttributes(pos, connectionAttributes);
         }
         pos.flush();
-
+        pos.permitTrace(true);
     }
 
     private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes) throws IOException {

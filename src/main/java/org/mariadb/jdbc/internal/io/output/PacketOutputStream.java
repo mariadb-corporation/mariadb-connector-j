@@ -103,4 +103,6 @@ public interface PacketOutputStream  {
     void writeFieldLength(long length) throws IOException;
 
     int getMaxAllowedPacket();
+
+    void permitTrace(boolean permitTrace);
 }
