@@ -680,6 +680,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                         proxy.lock.unlock();
                     }
                     FailoverLoop.addListener(this);
+                    logger.info("Connection to slave lost, using master connection"
+                            + ", query is re-execute on master server without throwing exception");
                     return relaunchOperation(method, args); //now that we are on master, relaunched result if the result was not crashing the master
                 }
             } catch (Exception e) {

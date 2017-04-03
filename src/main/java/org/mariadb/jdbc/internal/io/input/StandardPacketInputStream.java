@@ -283,8 +283,6 @@ public class StandardPacketInputStream implements PacketInputStream {
         for (int i = 0; i < rowData.length; i++) {
             if (rowData[i] == null) {
                 totalLength++;
-            } else if (columnTypes[i] == ColumnType.BIT) {
-                totalLength++;
             } else {
                 int length = rowData[i].length;
                 if (length < 251) {
@@ -304,8 +302,6 @@ public class StandardPacketInputStream implements PacketInputStream {
         for (int i = 0; i < rowData.length; i++) {
             if (rowData[i] == null) {
                 buf[pos++] = (byte) 251;
-            } else if (columnTypes[i] == ColumnType.BIT) {
-                buf[pos++] = (byte) (rowData[i].equals("0") ? 0 : 1);
             } else {
                 byte[] arr = rowData[i];
                 int length = arr.length;
