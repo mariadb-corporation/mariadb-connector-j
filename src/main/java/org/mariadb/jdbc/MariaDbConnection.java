@@ -1117,14 +1117,14 @@ public final class MariaDbConnection implements Connection {
             int charsLength = value.length();
             char charValue;
             if (noBackslashEscapes) {
-                do {
+                while (charsOffset < charsLength) {
                     charValue = value.charAt(charsOffset);
                     if (charValue == '\'') escapeQuery.append('\''); //add a single escape quote
                     escapeQuery.append(charValue);
                     charsOffset++;
-                } while (charsOffset < charsLength);
+                }
             } else {
-                do {
+                while (charsOffset < charsLength){
                     charValue = value.charAt(charsOffset);
                     if (charValue  == '\''
                             || charValue == '\\'
@@ -1132,7 +1132,7 @@ public final class MariaDbConnection implements Connection {
                             || charValue == 0) escapeQuery.append('\\'); //add escape slash
                     escapeQuery.append(charValue);
                     charsOffset++;
-                } while (charsOffset < charsLength);
+                }
             }
             escapeQuery.append("'");
         }
