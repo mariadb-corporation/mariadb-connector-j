@@ -9,9 +9,7 @@ import java.sql.*;
 import java.util.Arrays;
 import java.util.Random;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class BlobTest extends BaseTest {
     /**
@@ -359,5 +357,25 @@ public class BlobTest extends BaseTest {
         }
     }
 
+    @Test
+    public void sendEmptyBlobPreparedQuery() throws SQLException {
+        createTable("emptyBlob", "test longblob, test2 text, test3 text");
+        try (Connection conn = setConnection()) {
+            PreparedStatement ps = conn.prepareStatement("insert into emptyBlob values(?,?,?)");
+            ps.setBlob(1, new MariaDbBlob(new byte[0]));
+            ps.setString(2, "a 'a ");
+            ps.setNull(3, Types.VARCHAR);
+            ps.executeUpdate();
+
+
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("select * from emptyBlob");
+            rs.next();
+            assertEquals(0, rs.getBytes(1).length);
+            assertEquals("a 'a ", rs.getString(2));
+            assertNull(rs.getBytes(3));
+        }
+
+    }
 
 }
