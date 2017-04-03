@@ -1124,7 +1124,7 @@ public final class MariaDbConnection implements Connection {
                     charsOffset++;
                 }
             } else {
-                while (charsOffset < charsLength){
+                while (charsOffset < charsLength) {
                     charValue = value.charAt(charsOffset);
                     if (charValue  == '\''
                             || charValue == '\\'
