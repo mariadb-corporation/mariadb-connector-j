@@ -446,12 +446,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
         }
 
-        if (options.sessionVariables != null) {
-            sessionOption.append("," + options.sessionVariables);
-        }
-
         if (options.jdbcCompliantTruncation) {
             sessionOption.append(", sql_mode = concat(@@sql_mode,',STRICT_TRANS_TABLES')");
+        }
+
+        if (options.sessionVariables != null) {
+            sessionOption.append("," + options.sessionVariables);
         }
 
         writer.startPacket(0);
