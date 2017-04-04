@@ -71,7 +71,7 @@ public class StandardPacketInputStream implements PacketInputStream {
     private byte[] header = new byte[4];
     private byte[] reusableArray = new byte[REUSABLE_BUFFER_LENGTH];
 
-    private InputStream inputStream;
+    private BufferedInputStream inputStream;
 
     private int packetSeq;
     private int maxQuerySizeToLog;
@@ -87,6 +87,16 @@ public class StandardPacketInputStream implements PacketInputStream {
     @Override
     public Buffer getPacket(boolean reUsable) throws IOException {
         return new Buffer(getPacketArray(reUsable), lastPacketLength);
+    }
+
+    /**
+     * Get current Buffered input stream for creating compress input stream,
+     * to avoid losing already read bytes in case of pipelining.
+     *
+     * @return buffer input stream.
+     */
+    public BufferedInputStream getBufferedInputStream() {
+        return inputStream;
     }
 
     /**

@@ -77,15 +77,15 @@ public class DecompressPacketInputStream implements PacketInputStream {
     private int cachePos;
     private int cacheEnd;
 
-    private InputStream inputStream;
+    private BufferedInputStream inputStream;
 
     private int packetSeq;
     private int compressPacketSeq;
     private int maxQuerySizeToLog;
     private int lastPacketLength;
 
-    public DecompressPacketInputStream(InputStream in, int maxQuerySizeToLog) {
-        inputStream = new BufferedInputStream(in, 64 * 1024);
+    public DecompressPacketInputStream(BufferedInputStream in, int maxQuerySizeToLog) {
+        inputStream = in;
         this.maxQuerySizeToLog = maxQuerySizeToLog;
     }
 

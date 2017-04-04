@@ -108,6 +108,7 @@ public class Options {
     public String connectionAttributes;
     public boolean useBatchMultiSend;
     public int useBatchMultiSendNumber;
+    public boolean usePipelineAuth;
 
     //logging options
     public boolean log;
@@ -186,6 +187,7 @@ public class Options {
                 + ", maxQuerySizeToLog=" + maxQuerySizeToLog
                 + ", slowQueryThresholdNanos=" + slowQueryThresholdNanos
                 + ", passwordCharacterEncoding=" + passwordCharacterEncoding
+                + ", usePipelineAuth=" + usePipelineAuth
                 + "}";
     }
 
@@ -293,6 +295,7 @@ public class Options {
         }
         if (useBatchMultiSend != options.useBatchMultiSend) return false;
         if (useBatchMultiSendNumber != options.useBatchMultiSendNumber) return false;
+        if (usePipelineAuth != options.usePipelineAuth) return false;
 
         return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)
                 : options.prepStmtCacheSqlLimit != null);

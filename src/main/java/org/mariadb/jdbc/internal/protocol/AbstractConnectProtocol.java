@@ -95,6 +95,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static org.mariadb.jdbc.internal.com.Packet.COM_QUERY;
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public abstract class AbstractConnectProtocol implements Protocol {
@@ -337,27 +338,40 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws SQLException exception
      */
     public void connect() throws SQLException {
-        if (!isClosed()) {
-            close();
-        }
+        if (!isClosed()) close();
+
         try {
-            if (currentHost != null) {
-                connect(currentHost.host, currentHost.port);
-            } else {
-                connect(null, 3306);
+            connect((currentHost != null) ? currentHost.host : null,
+                    (currentHost != null) ? currentHost.port : 3306,
+                    options.usePipelineAuth);
+            return;
+        } catch (SQLException sqle) {
+            if (options.usePipelineAuth) {
+                try {
+                    connect((currentHost != null) ? currentHost.host : null,
+                            (currentHost != null) ? currentHost.port : 3306,
+                            false);
+                    return;
+                } catch (IOException e) {
+                    throw new SQLException("Could not connect to " + currentHost + ". " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
+                }
             }
+            throw sqle;
         } catch (IOException e) {
-            throw new SQLException("Could not connect to " + currentHost + "." + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new SQLException("Could not connect to " + currentHost + ". " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
         }
     }
 
     /**
      * Connect the client and perform handshake.
      *
-     * @throws SQLException : handshake error, e.g wrong user or password
-     * @throws IOException    : connection error (host/port not available)
+     * @param host              host
+     * @param port              port
+     * @param usePipelineAuth   expect success flag : all queries are pipelined. If error, retry without.
+     * @throws SQLException handshake error, e.g wrong user or password
+     * @throws IOException  connection error (host/port not available)
      */
-    private void connect(String host, int port) throws SQLException, IOException {
+    private void connect(String host, int port, boolean usePipelineAuth) throws SQLException, IOException {
         try {
             socket = Utils.createSocket(urlParser, host);
             initializeSocketOption();
@@ -383,21 +397,16 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 socket.setSoTimeout(options.socketTimeout);
             }
 
-            handleConnectionPhases();
-
-            if (options.useCompression) {
-                writer = new CompressPacketOutputStream(writer.getOutputStream(), options.maxQuerySizeToLog);
-                reader = new DecompressPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
-            }
+            handleConnectionPhases(usePipelineAuth);
             connected = true;
 
-            loadServerData();
-            setSessionOptions();
+            if (!usePipelineAuth) {
+                sendPipelineAdditionalData();
+                readPipelineAdditionalData();
+            }
+
             writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
-
-            createDatabaseIfNotExist();
             loadCalendar();
-
 
             activeStreamingResult = null;
             moreResults = false;
@@ -410,6 +419,154 @@ public abstract class AbstractConnectProtocol implements Protocol {
             ensureClosingSocketOnException();
             throw sqlException;
         }
+    }
+
+    /**
+     * Send all additional needed values.
+     * Command are send one after the other, assuming that command are less than 65k
+     * (minimum hosts TCP/IP buffer size)
+     *
+     * @throws IOException if socket exception occur
+     * @throws SQLException if query exception occur
+     */
+    private void sendPipelineAdditionalData() throws IOException, SQLException {
+        if (options.useCompression) {
+            writer = new CompressPacketOutputStream(writer.getOutputStream(), options.maxQuerySizeToLog);
+        }
+
+        // In JDBC, connection must start in autocommit mode
+        // [CONJ-269] we cannot rely on serverStatus & ServerStatus.AUTOCOMMIT before this command to avoid this command.
+        // if autocommit=0 is set on server configuration, DB always send Autocommit on serverStatus flag
+        // after setting autocommit, we can rely on serverStatus value
+        StringBuilder sessionOption = new StringBuilder("autocommit=1");
+        if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) != 0) {
+            sessionOption.append(", session_track_schema=1");
+        }
+
+        if (options.rewriteBatchedStatements) {
+            sessionOption.append(", session_track_system_variables='auto_increment_increment' ");
+        }
+
+        if (options.sessionVariables != null) {
+            sessionOption.append("," + options.sessionVariables);
+        }
+
+        if (options.jdbcCompliantTruncation) {
+            sessionOption.append(", sql_mode = concat(@@sql_mode,',STRICT_TRANS_TABLES')");
+        }
+
+        writer.startPacket(0);
+        writer.write(COM_QUERY);
+        writer.write("set " + sessionOption.toString());
+        writer.flush();
+
+        //request variables
+        writer.startPacket(0);
+        writer.write(COM_QUERY);
+        writer.write("SELECT @@max_allowed_packet , "
+                + "@@system_time_zone, "
+                + "@@session.time_zone, "
+                + "@@session.sql_mode");
+        writer.flush();
+
+
+        if (checkIfMaster() && options.createDatabaseIfNotExist) {
+            // Try to create the database if it does not exist
+            String quotedDb = MariaDbConnection.quoteIdentifier(this.database);
+
+            writer.startPacket(0);
+            writer.write(COM_QUERY);
+            writer.write("CREATE DATABASE IF NOT EXISTS " + quotedDb);
+            writer.flush();
+
+            writer.startPacket(0);
+            writer.write(COM_QUERY);
+            writer.write("USE " + quotedDb);
+            writer.flush();
+        }
+    }
+
+    private void readPipelineAdditionalData() throws IOException, SQLException {
+        if (options.useCompression) {
+            reader = new DecompressPacketInputStream(((StandardPacketInputStream) reader).getBufferedInputStream(), options.maxQuerySizeToLog);
+        }
+
+        SQLException resultingException = null;
+        serverData = new TreeMap<>();
+        //read set session OKPacket
+        try {
+            getResult(new Results());
+        } catch (SQLException sqlException) {
+            //must read all results, will be thrown only when all results are read.
+            resultingException = sqlException;
+        }
+
+        boolean sessionDataRead;
+        try {
+            Results results = new Results();
+            getResult(results);
+
+            results.commandEnd();
+            ResultSet resultSet = results.getResultSet();
+            resultSet.next();
+
+            serverData.put("max_allowed_packet", resultSet.getString(1));
+            serverData.put("system_time_zone", resultSet.getString(2));
+            serverData.put("time_zone", resultSet.getString(3));
+            serverData.put("sql_mode", resultSet.getString(4));
+
+            sessionDataRead = true;
+
+        } catch (SQLException sqlException) {
+            if (resultingException == null) {
+                new SQLException("could not load system variables", CONNECTION_EXCEPTION.getSqlState(), sqlException);
+            }
+            sessionDataRead = false;
+        }
+
+        //read CREATE DATABASE and USE Query results
+        if (checkIfMaster() && options.createDatabaseIfNotExist) {
+            try {
+                getResult(new Results());
+            } catch (SQLException sqlException) {
+                if (resultingException == null) resultingException = sqlException;
+            }
+            try {
+                getResult(new Results());
+            } catch (SQLException sqlException) {
+                if (resultingException == null) resultingException = sqlException;
+            }
+        }
+
+        if (resultingException != null) throw resultingException;
+        connected = true;
+
+        if (!sessionDataRead) {
+            //fallback in case of galera non primary nodes that permit only show / set command,
+            //not SELECT when not part of quorum
+            try {
+                Results results = new Results();
+                executeQuery(true, results, "SHOW VARIABLES WHERE Variable_name in ("
+                        + "'max_allowed_packet', "
+                        + "'system_time_zone', "
+                        + "'time_zone', "
+                        + "'sql_mode'"
+                        + ")");
+                results.commandEnd();
+                ResultSet resultSet = results.getResultSet();
+
+                while (resultSet.next()) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("server data " + resultSet.getString(1)
+                                + " : " + resultSet.getString(2));
+                    }
+                    serverData.put(resultSet.getString(1), resultSet.getString(2));
+                }
+            } catch (SQLException sqlee) {
+                throw new SQLException("could not load system variables", CONNECTION_EXCEPTION.getSqlState(), sqlee);
+            }
+        }
+
     }
 
     private void ensureClosingSocketOnException() {
@@ -431,39 +588,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return !this.connected;
     }
 
-    private void setSessionOptions() throws SQLException {
-        // In JDBC, connection must start in autocommit mode
-        // [CONJ-269] we cannot rely on serverStatus & ServerStatus.AUTOCOMMIT before this command to avoid this command.
-        // if autocommit=0 is set on server configuration, DB always send Autocommit on serverStatus flag
-        // after setting autocommit, we can rely on serverStatus value
-        String sessionOption = "autocommit=1";
-
-        if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) != 0) {
-            sessionOption += ", session_track_schema=1, session_track_system_variables='auto_increment_increment' ";
-        }
-        if (options.jdbcCompliantTruncation) {
-            if (serverData.get("sql_mode") == null || "".equals(serverData.get("sql_mode"))) {
-                sessionOption += ",sql_mode='STRICT_TRANS_TABLES'";
-            } else {
-                if (!serverData.get("sql_mode").contains("STRICT_TRANS_TABLES")) {
-                    sessionOption += ",sql_mode='" + serverData.get("sql_mode") + ",STRICT_TRANS_TABLES'";
-                }
-            }
-        }
-
-        if (options.sessionVariables != null) {
-            sessionOption += "," + options.sessionVariables;
-        }
-
-        executeQuery("set session " + sessionOption);
-
-        if (options.sessionVariables != null && options.sessionVariables.contains("time_zone")) {
-            //reload session variables, since, time_zone may have change
-            loadServerData();
-        }
-    }
-
-    private void handleConnectionPhases() throws SQLException {
+    private void handleConnectionPhases(boolean usePipelineAuth) throws SQLException {
         try {
             reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
             writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
@@ -502,7 +627,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
 
             authentication(exchangeCharset, clientCapabilities, greetingPacket.getSeed(), packetSeq,
-                    greetingPacket.getPluginName());
+                    greetingPacket.getPluginName(), usePipelineAuth);
 
         } catch (IOException e) {
             if (reader != null) {
@@ -517,8 +642,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void authentication(byte exchangeCharset, long clientCapabilities, byte[] seed, byte packetSeq, String plugin)
-            throws SQLException, IOException {
+    private void authentication(byte exchangeCharset, long clientCapabilities, byte[] seed, byte packetSeq, String plugin,
+                                boolean usePipelineAuth) throws SQLException, IOException {
         //send handshake response
         SendHandshakeResponsePacket.send(writer, this.username,
                 this.password,
@@ -532,10 +657,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 options.connectionAttributes,
                 options.passwordCharacterEncoding);
 
-        Buffer buffer = reader.getPacket(false);
-        writer.permitTrace(false);
+        if (usePipelineAuth) sendPipelineAdditionalData();
 
+        Buffer buffer = reader.getPacket(false);
+
+        writer.permitTrace(false);
         if ((buffer.getByteAt(0) & 0xFF) == 0xFE) {
+            if (usePipelineAuth) throw new SQLException("using usePipelineAuth, but result was plugin change");
+
             InterfaceAuthSwitchSendResponsePacket interfaceSendPacket;
             if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
                 buffer.readByte();
@@ -578,8 +707,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
             serverStatus = new OkPacket(buffer).getServerStatus();
         }
-        writer.permitTrace(true);
 
+        writer.permitTrace(true);
+        if (usePipelineAuth) readPipelineAdditionalData();
     }
 
     private long initializeClientCapabilities(long serverCapabilities) {
@@ -627,20 +757,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return capabilities;
     }
 
-    /**
-     * If createDB is true, then just try to create the database and to use it.
-     *
-     * @throws SQLException if connection failed
-     */
-    private void createDatabaseIfNotExist() throws SQLException {
-        if (checkIfMaster() && options.createDatabaseIfNotExist) {
-            // Try to create the database if it does not exist
-            String quotedDb = MariaDbConnection.quoteIdentifier(this.database);
-            executeQuery("CREATE DATABASE IF NOT EXISTS " + quotedDb);
-            executeQuery("USE " + quotedDb);
-        }
-    }
-
     private void loadCalendar() throws SQLException {
         if (options.useLegacyDatetimeCode) {
             //legacy use client timezone
@@ -678,47 +794,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
                             + "sessionVariables=time_zone='Canada/Atlantic' for example).  See "
                             + "java.util.TimeZone#getAvailableIDs() for available TimeZone, depending on your JRE implementation.", "01S00");
                 }
-            }
-        }
-
-    }
-
-    private void loadServerData() throws SQLException {
-        serverData = new TreeMap<>();
-        try {
-            Results results = new Results();
-            executeQuery(true, results, "SELECT @@max_allowed_packet , "
-                            + "@@system_time_zone, "
-                            + "@@session.time_zone, "
-                            + "@@session.sql_mode");
-            results.commandEnd();
-            ResultSet resultSet = results.getResultSet();
-            resultSet.next();
-
-            serverData.put("max_allowed_packet", resultSet.getString(1));
-            serverData.put("system_time_zone", resultSet.getString(2));
-            serverData.put("time_zone", resultSet.getString(3));
-            serverData.put("sql_mode", resultSet.getString(4));
-
-        } catch (SQLException sqle) {
-
-            //fallback in case of galera non primary nodes that permit only show / set command
-            try {
-                Results results = new Results();
-                executeQuery(true, results, "SHOW VARIABLES WHERE Variable_name in ("
-                        + "'max_allowed_packet', "
-                        + "'system_time_zone', "
-                        + "'time_zone', "
-                        + "'sql_mode'"
-                        + ")");
-                results.commandEnd();
-                ResultSet resultSet = results.getResultSet();
-                while (resultSet.next()) {
-                    logger.debug("server data " + resultSet.getString(1) + " : " + resultSet.getString(2));
-                    serverData.put(resultSet.getString(1), resultSet.getString(2));
-                }
-            } catch (SQLException sqlee) {
-                throw new SQLException("could not load system variables", CONNECTION_EXCEPTION.getSqlState(), sqlee);
             }
         }
 
@@ -835,8 +910,16 @@ public abstract class AbstractConnectProtocol implements Protocol {
         //CONJ-293 : handle name-pipe without host
         if (hosts.isEmpty() && options.pipe != null) {
             try {
-                connect(null, 0);
-                return;
+                try {
+                    connect(null, 0, options.usePipelineAuth);
+                    return;
+                } catch (SQLException sqle) {
+                    if (options.usePipelineAuth) {
+                        connect(null, 0, false);
+                        return;
+                    }
+                    throw sqle;
+                }
             } catch (IOException e) {
                 if (hosts.isEmpty()) {
                     throw new SQLException("Could not connect to named pipe '" + options.pipe + "' : "
@@ -855,8 +938,16 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
             hosts.remove(currentHost);
             try {
-                connect(currentHost.host, currentHost.port);
-                return;
+                try {
+                    connect(currentHost.host, currentHost.port, options.usePipelineAuth);
+                    return;
+                } catch (SQLException sqle) {
+                    if (options.usePipelineAuth) {
+                        connect(currentHost.host, currentHost.port, false);
+                        return;
+                    }
+                    throw sqle;
+                }
             } catch (IOException e) {
                 if (hosts.isEmpty()) {
                     throw new SQLException("Could not connect to " + HostAddress.toString(addrs) + " : " + e.getMessage(),

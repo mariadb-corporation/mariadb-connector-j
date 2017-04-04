@@ -420,8 +420,13 @@ public enum DefaultOptions {
      * Indicate password encoding charset. If not set, driver use platform's default charset.
      * default to null.
      */
-    PASSWORD_CHARACTER_ENCODING("passwordCharacterEncoding", "1.5.9");
+    PASSWORD_CHARACTER_ENCODING("passwordCharacterEncoding", "1.5.9"),
 
+    /**
+     * Fast connection creation (recommended if not using authentication plugins)
+     * default to true.
+     */
+    PIPELINE_AUTH("usePipelineAuth", Boolean.TRUE, "2.0.0");
 
 
     protected final String name;
