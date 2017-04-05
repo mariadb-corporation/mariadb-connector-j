@@ -54,7 +54,6 @@ import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.*;
 
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
@@ -773,7 +772,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             packet.send(writer);
             final Buffer buffer = reader.getPacket(true);
 
-            if (buffer.getByteAt(0) == Packet.ERROR) {
+            if (buffer.getByteAt(0) == ERROR) {
                 final ErrorPacket ep = new ErrorPacket(buffer);
                 throw new SQLException("Could not select database '" + database + "' : " + ep.getMessage(),
                         ep.getSqlState(), ep.getErrorNumber());

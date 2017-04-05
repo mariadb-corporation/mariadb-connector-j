@@ -96,6 +96,8 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.mariadb.jdbc.internal.com.Packet.COM_QUERY;
+import static org.mariadb.jdbc.internal.com.Packet.EOF;
+import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public abstract class AbstractConnectProtocol implements Protocol {
@@ -704,7 +706,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         } else {
 
-            if (buffer.getByteAt(0) == Packet.ERROR) {
+            if (buffer.getByteAt(0) == ERROR) {
                 ErrorPacket errorPacket = new ErrorPacket(buffer);
                 if (password != null && !password.isEmpty() && errorPacket.getErrorNumber() == 1045 && "28000".equals(errorPacket.getSqlState())) {
                     //Access denied
@@ -814,6 +816,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return serverData.get(code);
     }
 
+    /**
+     * Check that current connection is a master connection (not read-only)
+     * @return true if master
+     * @throws SQLException if requesting infos for server fail.
+     */
     public boolean checkIfMaster() throws SQLException {
         boolean master = isMasterConnection();
         reader.setServerThreadId(this.serverThreadId, master);
@@ -846,14 +853,16 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public void readEofPacket() throws SQLException, IOException {
         Buffer buffer = reader.getPacket(true);
         switch (buffer.getByteAt(0)) {
-            case (byte) 0xfe: //EOF
+            case EOF:
                 buffer.skipByte();
                 this.hasWarnings = buffer.readShort() > 0;
                 this.serverStatus = buffer.readShort();
                 break;
-            case (byte) 0xff: //ERROR
+
+            case ERROR:
                 ErrorPacket ep = new ErrorPacket(buffer);
                 throw new SQLException("Could not connect: " + ep.getMessage(), ep.getSqlState(), ep.getErrorNumber());
+
             default:
                 throw new SQLException("Unexpected packet type " + buffer.getByteAt(0)
                         + " instead of EOF");
@@ -869,10 +878,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public void skipEofPacket() throws SQLException, IOException {
         Buffer buffer = reader.getPacket(true);
         switch (buffer.getByteAt(0)) {
-            case (byte) 0xfe: //EOF
+            case EOF:
                 break;
 
-            case (byte) 0xff: //ERROR
+            case ERROR:
                 ErrorPacket ep = new ErrorPacket(buffer);
                 throw new SQLException("Could not connect: " + ep.getMessage(), ep.getSqlState(), ep.getErrorNumber());
 

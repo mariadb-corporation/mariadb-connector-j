@@ -49,7 +49,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send;
 
-import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
@@ -62,9 +61,10 @@ import java.awt.*;
 import java.io.Console;
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.Arrays;
+
+import static org.mariadb.jdbc.internal.com.Packet.*;
 
 public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
     private PacketInputStream reader;
@@ -128,11 +128,11 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
                 packSeq = reader.getLastPacketSeq() + 1;
                 type = buffer.getByteAt(0);
 
-                if (type == Packet.EOF || type == Packet.OK) {
+                if (type == EOF || type == OK) {
                     return;
                 }
 
-                if (type == Packet.ERROR) {
+                if (type == ERROR) {
                     ErrorPacket errorPacket = new ErrorPacket(buffer);
                     throw new SQLException("Error during PAM authentication : " + errorPacket.getMessage());
                 }

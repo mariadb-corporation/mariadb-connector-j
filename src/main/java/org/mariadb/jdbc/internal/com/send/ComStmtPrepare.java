@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send;
 
-import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
@@ -60,8 +59,9 @@ import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+
+import static org.mariadb.jdbc.internal.com.Packet.*;
 
 public class ComStmtPrepare {
     private final Protocol protocol;
@@ -81,7 +81,7 @@ public class ComStmtPrepare {
      */
     public void send(PacketOutputStream pos) throws IOException, SQLException {
         pos.startPacket(0);
-        pos.write(Packet.COM_STMT_PREPARE);
+        pos.write(COM_STMT_PREPARE);
         pos.write(this.sql);
         pos.flush();
     }
@@ -99,7 +99,7 @@ public class ComStmtPrepare {
         Buffer buffer = reader.getPacket(true);
         byte firstByte = buffer.getByteAt(buffer.position);
 
-        if (firstByte == Packet.ERROR) {
+        if (firstByte == ERROR) {
             ErrorPacket ep = new ErrorPacket(buffer);
             String message = ep.getMessage();
             if (1054 == ep.getErrorNumber()) {
@@ -112,7 +112,7 @@ public class ComStmtPrepare {
             }
         }
 
-        if (firstByte == Packet.OK) {
+        if (firstByte == OK) {
 
             /* Prepared Statement OK */
             buffer.readByte(); /* skip field count */

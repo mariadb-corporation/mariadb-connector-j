@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send;
 
-import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.send.gssapi.GssapiAuth;
 import org.mariadb.jdbc.internal.com.send.gssapi.StandardGssapiAuthentication;
@@ -64,6 +63,8 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+
+import static org.mariadb.jdbc.internal.com.Packet.*;
 
 public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
     private PacketInputStream reader;
@@ -94,7 +95,7 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
     public void handleResultPacket(PacketInputStream reader) throws SQLException, IOException {
         try {
             Buffer buffer = reader.getPacket(true);
-            if (buffer.getByteAt(0) == Packet.ERROR) {
+            if (buffer.getByteAt(0) == ERROR) {
                 ErrorPacket ep = new ErrorPacket(buffer);
                 String message = ep.getMessage();
                 throw new SQLException("Could not connect: " + message, ep.getSqlState(), ep.getErrorNumber());

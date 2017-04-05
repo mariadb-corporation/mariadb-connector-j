@@ -50,13 +50,14 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.com.read;
 
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
-import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.util.Utils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+
+import static org.mariadb.jdbc.internal.com.Packet.*;
 
 public class ReadInitialHandShakePacket {
     /* MDEV-4088/CONJ-32 :  in 10.0, the real version string maybe prefixed with "5.5.5-",
@@ -82,7 +83,7 @@ public class ReadInitialHandShakePacket {
      */
     public ReadInitialHandShakePacket(final PacketInputStream reader) throws IOException, SQLException {
         Buffer buffer = reader.getPacket(true);
-        if (buffer.getByteAt(0) == Packet.ERROR) {
+        if (buffer.getByteAt(0) == ERROR) {
             ErrorPacket errorPacket = new ErrorPacket(buffer);
             throw new SQLException(errorPacket.getMessage());
         }

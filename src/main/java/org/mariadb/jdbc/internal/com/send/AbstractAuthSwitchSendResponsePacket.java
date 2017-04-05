@@ -49,7 +49,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send;
 
-import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.com.read.Buffer;
@@ -57,6 +56,7 @@ import org.mariadb.jdbc.internal.com.read.Buffer;
 import java.io.IOException;
 import java.sql.SQLException;
 
+import static org.mariadb.jdbc.internal.com.Packet.*;
 
 public abstract class AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
     protected int packSeq = 0;
@@ -88,7 +88,7 @@ public abstract class AbstractAuthSwitchSendResponsePacket implements InterfaceA
      */
     public void handleResultPacket(PacketInputStream reader) throws SQLException, IOException {
         Buffer buffer = reader.getPacket(true);
-        if (buffer.getByteAt(0) == Packet.ERROR) {
+        if (buffer.getByteAt(0) == ERROR) {
             ErrorPacket ep = new ErrorPacket(buffer);
             String message = ep.getMessage();
             throw new SQLException("Could not connect: " + message, ep.getSqlState(), ep.getErrorNumber());

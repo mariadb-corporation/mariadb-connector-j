@@ -91,6 +91,7 @@ import java.util.regex.Pattern;
 
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 import static org.mariadb.jdbc.internal.util.constant.ServerStatus.*;
+import static org.mariadb.jdbc.internal.com.Packet.*;
 
 @SuppressWarnings("deprecation")
 public class SelectResultSet implements ResultSet {
@@ -433,7 +434,7 @@ public class SelectResultSet implements ResultSet {
         byte[] buf = reader.getPacketArray(false);
 
         //is error Packet
-        if (buf[0] == Packet.ERROR) {
+        if (buf[0] == ERROR) {
             protocol.removeActiveStreamingResult();
             protocol.setMoreResults(false);
             ErrorPacket errorPacket = new ErrorPacket(new Buffer(buf));
@@ -449,7 +450,7 @@ public class SelectResultSet implements ResultSet {
         }
 
         //is end of stream
-        if (buf[0] == Packet.EOF && ((eofDeprecated && reader.getLastPacketLength() < 0xffffff)
+        if (buf[0] == EOF && ((eofDeprecated && reader.getLastPacketLength() < 0xffffff)
                 || (!eofDeprecated && reader.getLastPacketLength() < 8))) {
             int serverStatus;
             int warnings;
@@ -552,7 +553,7 @@ public class SelectResultSet implements ResultSet {
                     Buffer buffer = reader.getPacket(true);
 
                     //is error Packet
-                    if (buffer.getByteAt(0) == Packet.ERROR) {
+                    if (buffer.getByteAt(0) == ERROR) {
                         protocol.removeActiveStreamingResult();
                         protocol.setMoreResults(false);
                         ErrorPacket errorPacket = new ErrorPacket(buffer);
@@ -560,7 +561,7 @@ public class SelectResultSet implements ResultSet {
                     }
 
                     //is EOF stream
-                    if ((buffer.getByteAt(0) == Packet.EOF && buffer.limit < 9)) {
+                    if ((buffer.getByteAt(0) == EOF && buffer.limit < 9)) {
                         final EndOfFilePacket endOfFilePacket = new EndOfFilePacket(buffer);
 
                         protocol.setHasWarnings(endOfFilePacket.getWarningCount() > 0);
