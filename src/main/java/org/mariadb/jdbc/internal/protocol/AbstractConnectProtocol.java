@@ -913,6 +913,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     connect(null, 0, options.usePipelineAuth);
                     return;
                 } catch (SQLException sqle) {
+                    sqle.printStackTrace();
                     if (options.usePipelineAuth) {
                         connect(null, 0, false);
                         return;
