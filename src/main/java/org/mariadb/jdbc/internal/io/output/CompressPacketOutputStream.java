@@ -171,11 +171,13 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                     if (logger.isTraceEnabled()) {
                         if (permitTrace) {
                             logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + uncompressSize + ")"
+                                    + serverThreadLog
                                     + " packet:0x"
                                     + Utils.hexdump(header, maxQuerySizeToLog, 0, 7)
                                     + Utils.hexdump(compressedBytes, maxQuerySizeToLog - 7, 0, compressedLength));
                         } else {
                             logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + uncompressSize + ")"
+                                    + serverThreadLog
                                     + " packet:<hidden>");
                         }
                     }
@@ -217,6 +219,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             if (logger.isTraceEnabled()) {
                 if (permitTrace) {
                     logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
+                            + serverThreadLog
                             + " packet:0x"
                             + Utils.hexdump(header, maxQuerySizeToLog, 0, pos)
                             + Utils.hexdump(remainingData, maxQuerySizeToLog - pos, 0, remainingData.length)
@@ -224,6 +227,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                             + Utils.hexdump(buf, maxQuerySizeToLog - (pos + remainingData.length + 4), 0, pos));
                 } else {
                     logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
+                            + serverThreadLog
                             + " packet:<hidden>");
                 }
             }
@@ -264,11 +268,13 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                     if (logger.isTraceEnabled()) {
                         if (permitTrace) {
                             logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + uncompressSize + ")"
+                                    + serverThreadLog
                                     + " packet:0x"
                                     + Utils.hexdump(header, maxQuerySizeToLog, 0, 7)
                                     + Utils.hexdump(compressedBytes, maxQuerySizeToLog - 7, 0, compressedLength));
                         } else {
                             logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + uncompressSize + ")"
+                                    + serverThreadLog
                                     + " packet:<hidden>");
                         }
                     }
@@ -298,11 +304,13 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             if (logger.isTraceEnabled()) {
                 if (permitTrace) {
                     logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
+                            + serverThreadLog
                             + " packet:0x"
                             + Utils.hexdump(header, maxQuerySizeToLog, 0, pos)
                             + Utils.hexdump(remainingData, maxQuerySizeToLog - pos, 0, remainingData.length));
                 } else {
                     logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
+                            + serverThreadLog
                             + " packet:<hidden>");
                 }
             }
@@ -331,9 +339,11 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
         if (logger.isTraceEnabled()) {
             if (permitTrace) {
                 logger.trace("send compress: length:(zlib:0,std:0)"
+                        + serverThreadLog
                         + " packet:0x" + Utils.hexdump(buf, maxQuerySizeToLog, 0, 11));
             } else {
                 logger.trace("send compress: length:(zlib:0,std:0)"
+                        + serverThreadLog
                         + " packet:<hidden>");
             }
         }

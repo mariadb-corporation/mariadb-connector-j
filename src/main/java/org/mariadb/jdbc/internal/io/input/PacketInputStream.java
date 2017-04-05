@@ -67,4 +67,5 @@ public interface PacketInputStream {
 
     void close() throws IOException;
 
+    void setServerThreadId(long serverThreadId, Boolean isMaster);
 }

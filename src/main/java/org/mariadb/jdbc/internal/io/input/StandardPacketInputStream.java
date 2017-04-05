@@ -76,7 +76,7 @@ public class StandardPacketInputStream implements PacketInputStream {
     private int packetSeq;
     private int maxQuerySizeToLog;
     private int lastPacketLength;
-
+    private String serverThreadLog = "";
 
 
     public StandardPacketInputStream(InputStream in, int maxQuerySizeToLog) {
@@ -149,6 +149,7 @@ public class StandardPacketInputStream implements PacketInputStream {
 
         if (logger.isTraceEnabled()) {
             logger.trace("read packet : seq=" + packetSeq + " len:" + lastPacketLength
+                    + serverThreadLog
                     + " content:0x" + Utils.hexdump(rawBytes, maxQuerySizeToLog, 0, lastPacketLength));
         }
 
@@ -193,6 +194,7 @@ public class StandardPacketInputStream implements PacketInputStream {
 
                 if (logger.isTraceEnabled()) {
                     logger.trace("read packet : seq=" + packetSeq + " len:" + packetLength
+                            + serverThreadLog
                             + " content:0x" + Utils.hexdump(rawBytes, maxQuerySizeToLog, currentBufferLength, packetLength));
                 }
 
@@ -345,4 +347,13 @@ public class StandardPacketInputStream implements PacketInputStream {
         return buf;
     }
 
+    /**
+     * Set server thread id.
+     *
+     * @param serverThreadId current server thread id.
+     * @param isMaster       is server master
+     */
+    public void setServerThreadId(long serverThreadId, Boolean isMaster) {
+        this.serverThreadLog = " conn:" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
+    }
 }

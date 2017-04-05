@@ -98,9 +98,12 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
             if (logger.isTraceEnabled()) {
                 if (permitTrace) {
                     logger.trace("send com : content length:" + (pos - 4)
+                            + serverThreadLog
                             + " com:0x" + Utils.hexdump(buf, maxQuerySizeToLog, 0, pos));
                 } else {
-                    logger.trace("send com : content length:" + (pos - 4) + " com:<hidden>");
+                    logger.trace("send com : content length:" + (pos - 4)
+                            + serverThreadLog
+                            + " com:<hidden>");
                 }
             }
 
@@ -123,7 +126,9 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
         buf[3] = (byte) this.seqNo++;
         out.write(buf, 0, 4);
         if (logger.isTraceEnabled()) {
-            logger.trace("send com : content length:0 com:0x" + Utils.hexdump(buf, maxQuerySizeToLog, 0, 4));
+            logger.trace("send com : content length:0 "
+                    + serverThreadLog
+                    + " com:0x" + Utils.hexdump(buf, maxQuerySizeToLog, 0, 4));
         }
     }
 

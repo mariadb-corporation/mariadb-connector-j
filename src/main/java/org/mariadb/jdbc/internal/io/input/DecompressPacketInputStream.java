@@ -83,6 +83,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
     private int compressPacketSeq;
     private int maxQuerySizeToLog;
     private int lastPacketLength;
+    private String serverThreadLog = "";
 
     public DecompressPacketInputStream(BufferedInputStream in, int maxQuerySizeToLog) {
         inputStream = in;
@@ -130,6 +131,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
             if (logger.isTraceEnabled()) {
                 logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + decompressedLength + ")"
                         + " comp_seq:" + compressPacketSeq
+                        + serverThreadLog
                         + " packet:0x"
                         + Utils.hexdump(header, maxQuerySizeToLog, 0, 7)
                         + Utils.hexdump(rawBytes, maxQuerySizeToLog - 7, 0, compressedLength));
@@ -220,7 +222,8 @@ public class DecompressPacketInputStream implements PacketInputStream {
                         System.arraycopy(cacheData, cachePos + 4, packet, 0, lastPacketLength);
 
                         if (logger.isTraceEnabled()) {
-                            logger.trace("read packet : seq=" + packetSeq + " len:" + lastPacketLength + " content:0x"
+                            logger.trace("read packet : seq=" + packetSeq + " len:" + lastPacketLength
+                                    + serverThreadLog + " content:0x"
                                     + Utils.hexdump(cacheData, maxQuerySizeToLog, cachePos + 4, lastPacketLength));
                         }
 
@@ -239,7 +242,8 @@ public class DecompressPacketInputStream implements PacketInputStream {
                         offset += lastPacketLength;
 
                         if (logger.isTraceEnabled()) {
-                            logger.trace("read packet : seq=" + packetSeq + " len:" + lastPacketLength + " content:0x"
+                            logger.trace("read packet : seq=" + packetSeq + " len:" + lastPacketLength
+                                    + serverThreadLog + " content:0x"
                                     + Utils.hexdump(cacheData, maxQuerySizeToLog, cachePos + 4, lastPacketLength));
                         }
 
@@ -273,4 +277,15 @@ public class DecompressPacketInputStream implements PacketInputStream {
     public void close() throws IOException {
         inputStream.close();
     }
+
+    /**
+     * Set server thread id.
+     *
+     * @param serverThreadId current server thread id.
+     * @param isMaster       is server master
+     */
+    public void setServerThreadId(long serverThreadId, Boolean isMaster) {
+        this.serverThreadLog = " conn:" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
+    }
+
 }

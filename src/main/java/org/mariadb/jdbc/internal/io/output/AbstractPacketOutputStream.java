@@ -76,6 +76,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     protected long cmdLength;
     protected boolean permitTrace;
     protected int seqNo = 0;
+    protected String serverThreadLog = "";
 
     /**
      * Common feature to write data into socket, creating MySQL Packet.
@@ -691,4 +692,15 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     public void permitTrace(boolean permitTrace) {
         this.permitTrace = permitTrace;
     }
+
+    /**
+     * Set server thread id.
+     *
+     * @param serverThreadId current server thread id.
+     * @param isMaster       is server master
+     */
+    public void setServerThreadId(long serverThreadId, Boolean isMaster) {
+        this.serverThreadLog = " conn:" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
+    }
+
 }

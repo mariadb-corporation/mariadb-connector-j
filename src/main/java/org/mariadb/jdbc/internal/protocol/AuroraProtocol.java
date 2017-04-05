@@ -56,12 +56,14 @@ import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static org.mariadb.jdbc.internal.com.Packet.COM_QUERY;
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
@@ -260,6 +262,28 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         return this.masterConnection;
     }
 
+    @Override
+    public void sendPipelineCheckMaster() throws IOException {
+        writer.startPacket(0);
+        writer.write(COM_QUERY);
+        writer.write("show global variables like 'innodb_read_only'");
+        writer.flush();
+    }
+
+    @Override
+    public void readPipelineCheckMaster() throws IOException, SQLException {
+        Results results = new Results();
+        getResult(results);
+        results.commandEnd();
+        ResultSet resultSet = results.getResultSet();
+        if (resultSet.next()) {
+            this.masterConnection = "OFF".equals(resultSet.getString(2));
+            reader.setServerThreadId(this.serverThreadId, this.masterConnection);
+            writer.setServerThreadId(this.serverThreadId, this.masterConnection);
+        }
+
+    }
+
     /**
      * Aurora best way to check if a node is a master : is not in read-only mode.
      *
@@ -276,9 +300,13 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             if (queryResult != null) {
                 queryResult.next();
                 this.masterConnection = "OFF".equals(queryResult.getString(2));
+
+                reader.setServerThreadId(this.serverThreadId, this.masterConnection);
+                writer.setServerThreadId(this.serverThreadId, this.masterConnection);
             } else {
                 this.masterConnection = false;
             }
+
             this.readOnly = !this.masterConnection;
             return this.masterConnection;
 

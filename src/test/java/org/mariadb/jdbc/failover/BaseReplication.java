@@ -72,7 +72,7 @@ public abstract class BaseReplication extends BaseMonoServer {
     @Test()
     public void failoverSlaveAndMasterRewrite() throws Throwable {
         try (Connection connection = getNewConnection(
-                "&rewriteBatchedStatements=true&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
+                "&rewriteBatchedStatements=true&retriesAllDown=6&connectTimeout=2000&socketTimeout=2000", true)) {
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int firstSlaveId = getServerId(connection);
@@ -130,7 +130,7 @@ public abstract class BaseReplication extends BaseMonoServer {
 
     @Test()
     public void failoverSlaveAndMasterWithoutAutoConnect() throws Throwable {
-        try (Connection connection = getNewConnection("&retriesAllDown=20&connectTimeout=1000&socketTimeout=1000", true)) {
+        try (Connection connection = getNewConnection("&retriesAllDown=20&connectTimeout=2000&socketTimeout=2000", true)) {
             int masterServerId = getServerId(connection);
             connection.setReadOnly(true);
             int firstSlaveId = getServerId(connection);
@@ -151,7 +151,7 @@ public abstract class BaseReplication extends BaseMonoServer {
     @Test
     public void reconnectSlaveAndMasterWithAutoConnect() throws Throwable {
         try (Connection connection = getNewConnection(
-                "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
+                "&retriesAllDown=6&connectTimeout=2000&socketTimeout=2000", true)) {
 
             //search actual server_id for master and slave
             int masterServerId = getServerId(connection);

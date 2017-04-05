@@ -105,4 +105,6 @@ public interface PacketOutputStream  {
     int getMaxAllowedPacket();
 
     void permitTrace(boolean permitTrace);
+
+    void setServerThreadId(long serverThreadId, Boolean isMaster);
 }

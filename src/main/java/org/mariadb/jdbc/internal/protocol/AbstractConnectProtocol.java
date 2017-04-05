@@ -159,9 +159,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * Closes socket and stream readers/writers Attempts graceful shutdown.
      */
     public void close() {
-        if (lock != null) {
-            lock.lock();
-        }
+        if (lock != null) lock.lock();
         this.connected = false;
         try {
             /* If a streaming result set is open, close it.*/
@@ -177,9 +175,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         } catch (Exception e) {
             // socket is closed, so it is ok to ignore exception
         } finally {
-            if (lock != null) {
-                lock.unlock();
-            }
+            if (lock != null) lock.unlock();
         }
     }
 
@@ -468,8 +464,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 + "@@session.sql_mode");
         writer.flush();
 
+        //for aurora, check that connection is master
+        sendPipelineCheckMaster();
 
-        if (checkIfMaster() && options.createDatabaseIfNotExist) {
+        if (options.createDatabaseIfNotExist) {
             // Try to create the database if it does not exist
             String quotedDb = MariaDbConnection.quoteIdentifier(this.database);
 
@@ -518,13 +516,22 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         } catch (SQLException sqlException) {
             if (resultingException == null) {
-                new SQLException("could not load system variables", CONNECTION_EXCEPTION.getSqlState(), sqlException);
+                resultingException = new SQLException("could not load system variables",
+                        CONNECTION_EXCEPTION.getSqlState(), sqlException);
             }
             sessionDataRead = false;
         }
+        try {
+            readPipelineCheckMaster();
+        } catch (SQLException sqlException) {
+            if (resultingException == null) {
+                resultingException = new SQLException("could not identified if server is master",
+                        CONNECTION_EXCEPTION.getSqlState(), sqlException);
+            }
+        }
 
         //read CREATE DATABASE and USE Query results
-        if (checkIfMaster() && options.createDatabaseIfNotExist) {
+        if (options.createDatabaseIfNotExist) {
             try {
                 getResult(new Results());
             } catch (SQLException sqlException) {
@@ -594,6 +601,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             final ReadInitialHandShakePacket greetingPacket = new ReadInitialHandShakePacket(reader);
             this.serverThreadId = greetingPacket.getServerThreadId();
+            reader.setServerThreadId(this.serverThreadId, null);
+            writer.setServerThreadId(this.serverThreadId, null);
+
             this.serverVersion = greetingPacket.getServerVersion();
             this.serverMariaDb = greetingPacket.isServerMariaDb();
             this.serverCapabilities = greetingPacket.getServerCapabilities();
@@ -660,10 +670,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         Buffer buffer = reader.getPacket(false);
 
-        writer.permitTrace(false);
         if ((buffer.getByteAt(0) & 0xFF) == 0xFE) {
-            if (usePipelineAuth) throw new SQLException("using usePipelineAuth, but result was plugin change");
+            if (usePipelineAuth) {
+                throw new SQLException("using usePipelineAuth, but result was plugin change");
+            }
 
+            writer.permitTrace(false);
             InterfaceAuthSwitchSendResponsePacket interfaceSendPacket;
             if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
                 buffer.readByte();
@@ -803,7 +815,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     public boolean checkIfMaster() throws SQLException {
-        return isMasterConnection();
+        boolean master = isMasterConnection();
+        reader.setServerThreadId(this.serverThreadId, master);
+        writer.setServerThreadId(this.serverThreadId, master);
+        return master;
     }
 
     private boolean isServerLanguageUtf8mb4(byte serverLanguage) {
@@ -885,6 +900,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return currentHost == null ? true : ParameterConstant.TYPE_MASTER.equals(currentHost.type);
     }
 
+
+    public void sendPipelineCheckMaster() throws IOException {
+        //nothing if not aurora
+    }
+
+    public void readPipelineCheckMaster() throws IOException, SQLException {
+        //nothing if not aurora
+    }
+
     public boolean mustBeMasterConnection() {
         return true;
     }
@@ -913,7 +937,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     connect(null, 0, options.usePipelineAuth);
                     return;
                 } catch (SQLException sqle) {
-                    sqle.printStackTrace();
                     if (options.usePipelineAuth) {
                         connect(null, 0, false);
                         return;
