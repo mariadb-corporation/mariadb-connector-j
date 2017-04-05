@@ -1017,7 +1017,7 @@ public class DriverTest extends BaseTest {
                 exec.awaitTermination(30, TimeUnit.SECONDS);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            assertTrue(e.getMessage(), e.getMessage().contains("Unknown system variable 'named_pipe'"));
         }
     }
 

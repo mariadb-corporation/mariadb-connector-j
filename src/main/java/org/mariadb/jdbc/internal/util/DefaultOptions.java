@@ -423,6 +423,12 @@ public enum DefaultOptions {
     PASSWORD_CHARACTER_ENCODING("passwordCharacterEncoding", "1.5.9"),
 
     /**
+     * Indicate that no authentication plugin will be use.
+     * default to false.
+     */
+    NO_PLUGIN_AUTH("noAuthPlugin", Boolean.FALSE, "2.0.0"),
+
+    /**
      * Fast connection creation (recommended if not using authentication plugins)
      * default to true.
      */
