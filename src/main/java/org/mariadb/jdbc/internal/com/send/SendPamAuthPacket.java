@@ -140,7 +140,7 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
 
             } catch (EOFException eof) {
                 throw new SQLException("Error during PAM authentication reading server response : " + eof.getMessage()
-                        + "\n It may be due to a low @@connect_timeout.");
+                        + "\nPlease check that value of @@connect_timeout is not too low.");
             }
 
         }
