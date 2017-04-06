@@ -345,22 +345,17 @@ public class UrlParser {
 
     @Override
     public boolean equals(Object parser) {
-        if (this == parser) {
-            return true;
-        }
-        if (!(parser instanceof UrlParser)) {
-            return false;
-        }
+        if (this == parser) return true;
+        if (!(parser instanceof UrlParser)) return false;
 
         UrlParser urlParser = (UrlParser) parser;
-
-        if (getDatabase() != null ? !getDatabase().equals(urlParser.getDatabase()) : urlParser.getDatabase() != null) {
+        if (initialUrl != null ? !initialUrl.equals(urlParser.getInitialUrl()) : urlParser.getInitialUrl() != null) {
             return false;
         }
-        if (getOptions() != null ? !getOptions().equals(urlParser.getOptions()) : urlParser.getOptions() != null) {
+        if (getUsername() != null ? !getUsername().equals(urlParser.getUsername()) : urlParser.getUsername() != null) {
             return false;
         }
-        return addresses != null ? addresses.equals(urlParser.addresses) : urlParser.addresses == null && getHaMode() == urlParser.getHaMode();
+        return getPassword() != null ? getPassword().equals(urlParser.getPassword()) : urlParser.getPassword() == null;
 
     }
 

@@ -350,7 +350,11 @@ public class DriverTest extends BaseTest {
     public void testAliasReplication() throws SQLException {
         UrlParser url = UrlParser.parse("jdbc:mysql:replication://localhost/test");
         UrlParser url2 = UrlParser.parse("jdbc:mariadb:replication://localhost/test");
-        assertEquals(url, url2);
+        assertEquals(url.getDatabase(), url2.getDatabase());
+        assertEquals(url.getOptions(), url2.getOptions());
+        assertEquals(url.getHostAddresses(), url2.getHostAddresses());
+        assertEquals(url.getHaMode(), url2.getHaMode());
+
     }
 
     @Test
@@ -362,7 +366,10 @@ public class DriverTest extends BaseTest {
 
         urlParser.parseUrl("jdbc:mysql:replication://localhost/test");
         urlParser2.parseUrl("jdbc:mariadb:replication://localhost/test");
-        assertEquals(urlParser, urlParser2);
+        assertEquals(urlParser.getDatabase(), urlParser2.getDatabase());
+        assertEquals(urlParser.getOptions(), urlParser2.getOptions());
+        assertEquals(urlParser.getHostAddresses(), urlParser2.getHostAddresses());
+        assertEquals(urlParser.getHaMode(), urlParser2.getHaMode());
     }
 
 

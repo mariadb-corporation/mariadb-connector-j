@@ -135,7 +135,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private int patchVersion;
     protected Map<String, String> serverData;
     private TimeZone timeZone;
-    private static boolean expectAuthPlugin = true;
+    private static UrlParser expectAuthUrlParser = null;
 
     /**
      * Get a protocol instance.
@@ -342,7 +342,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
             connect((currentHost != null) ? currentHost.host : null,
                     (currentHost != null) ? currentHost.port : 3306,
-                    expectAuthPlugin);
+                    !urlParser.equals(expectAuthUrlParser));
             return;
         } catch (OptimisticAuthPluginException opt) {
             try {
@@ -718,7 +718,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         if ((buffer.getByteAt(0) & 0xFF) == 0xFE) {
             if (!expectAuthPlugin && options.usePipelineAuth) {
-                this.expectAuthPlugin = true;
+                this.expectAuthUrlParser = null;
                 throw new OptimisticAuthPluginException("doesn't expect Authentication Plugin");
             }
 
@@ -762,7 +762,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 }
                 throw new SQLException("Could not connect: " + errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorNumber());
             }
-            this.expectAuthPlugin = false;
+            //if capability CONNECT_WITH_DB is not set, then server send a plugin auth 0xFE packet.
+            if (database != null && !options.createDatabaseIfNotExist) this.expectAuthUrlParser = urlParser;
             serverStatus = new OkPacket(buffer).getServerStatus();
         }
 
@@ -994,7 +995,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             try {
                 try {
 
-                    connect(null, 0, expectAuthPlugin);
+                    connect(null, 0, !urlParser.equals(expectAuthUrlParser));
                     return;
 
                 } catch (OptimisticAuthPluginException opt) {
@@ -1025,7 +1026,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             try {
                 try {
 
-                    connect(currentHost.host, currentHost.port, expectAuthPlugin);
+                    connect(currentHost.host, currentHost.port, !urlParser.equals(expectAuthUrlParser));
                     return;
 
                 } catch (OptimisticAuthPluginException opt) {

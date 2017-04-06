@@ -14,7 +14,10 @@ public class JdbcParserTest {
     public void testMariaAlias() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
         UrlParser jdbc2 = UrlParser.parse("jdbc:mysql://localhost/test");
-        assertEquals(jdbc, jdbc2);
+        assertEquals(jdbc.getDatabase(), jdbc2.getDatabase());
+        assertEquals(jdbc.getOptions(), jdbc2.getOptions());
+        assertEquals(jdbc.getHostAddresses(), jdbc2.getHostAddresses());
+        assertEquals(jdbc.getHaMode(), jdbc2.getHaMode());
     }
 
     @Test
