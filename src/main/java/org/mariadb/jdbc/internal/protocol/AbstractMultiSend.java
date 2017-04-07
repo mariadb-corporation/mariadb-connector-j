@@ -229,23 +229,36 @@ public abstract class AbstractMultiSend {
                     }
                 }
 
+                AsyncMultiReadResult syncReadResult = new AsyncMultiReadResult(prepareResult);
                 for (; status.sendSubCmdCounter < requestNumberByBulk;) {
-                    sendCmd(writer, results, parametersList, queries, paramCount, status, prepareResult);
-                    status.sendSubCmdCounter++;
-                    status.sendCmdCounter++;
+					sendCmd(writer, results, parametersList, queries, paramCount, status, prepareResult);
+					status.sendSubCmdCounter++;
+					status.sendCmdCounter++;
 
-                    if (futureReadTask == null) {
-                        futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, status,
-                                protocol, false, this, paramCount,
-                                binaryProtocol, results, parametersList, queries, prepareResult));
-                        AbstractQueryProtocol.readScheduler.execute(futureReadTask);
-                    }
-                }
+					if (this.protocol.getOptions().useBatchMultiSend && AbstractQueryProtocol.readScheduler != null && futureReadTask == null) {
+						futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, status, protocol, false, this, paramCount, binaryProtocol, results, parametersList, queries, prepareResult));
+						AbstractQueryProtocol.readScheduler.execute(futureReadTask);
+					}
+					
+					// In case useBatchMultiSend is turned off (aurora does not support async read)
+					// read result synchronously
+					if (!this.protocol.getOptions().useBatchMultiSend || AbstractQueryProtocol.readScheduler == null) {
+						SyncReadUtil.readResultSynchronously(comStmtPrepare, status, protocol, readPrepareStmtResult, this, paramCount, binaryProtocol, results, parametersList, queries, prepareResult, syncReadResult);
+					}
+				}
+
                 status.sendEnded = true;
-
+            
                 protocol.changeSocketTcpNoDelay(protocol.getOptions().tcpNoDelay);
                 try {
-                    AsyncMultiReadResult asyncMultiReadResult = futureReadTask.get();
+                	
+                	AsyncMultiReadResult asyncMultiReadResult;
+                	if (futureReadTask != null) {
+                		asyncMultiReadResult = futureReadTask.get();
+                	} else {
+                		// only synchronous call should fall in here
+                		asyncMultiReadResult = syncReadResult;
+                	}
                     if (binaryProtocol && prepareResult == null && asyncMultiReadResult.getPrepareResult() != null) {
                         prepareResult = asyncMultiReadResult.getPrepareResult();
                         statementId = ((ServerPrepareResult) prepareResult).getStatementId();
