@@ -135,7 +135,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private int patchVersion;
     protected Map<String, String> serverData;
     private TimeZone timeZone;
-    private static UrlParser expectAuthUrlParser = null;
 
     /**
      * Get a protocol instance.
@@ -341,18 +340,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         try {
             connect((currentHost != null) ? currentHost.host : null,
-                    (currentHost != null) ? currentHost.port : 3306,
-                    !urlParser.equals(expectAuthUrlParser));
+                    (currentHost != null) ? currentHost.port : 3306);
             return;
-        } catch (OptimisticAuthPluginException opt) {
-            try {
-                connect((currentHost != null) ? currentHost.host : null,
-                        (currentHost != null) ? currentHost.port : 3306,
-                        true);
-                return;
-            } catch (IOException e) {
-                throw new SQLException("Could not connect to " + currentHost + ". " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
-            }
         } catch (SQLException sqle) {
             throw sqle;
         } catch (IOException e) {
@@ -365,11 +354,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
      *
      * @param host              host
      * @param port              port
-     * @param expectAuthPlugin  expect authentication plugin
      * @throws SQLException handshake error, e.g wrong user or password
      * @throws IOException  connection error (host/port not available)
      */
-    private void connect(String host, int port, boolean expectAuthPlugin) throws SQLException, IOException {
+    private void connect(String host, int port) throws SQLException, IOException {
         try {
             socket = Utils.createSocket(urlParser, host);
             initializeSocketOption();
@@ -395,7 +383,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 socket.setSoTimeout(options.socketTimeout);
             }
 
-            handleConnectionPhases(expectAuthPlugin);
+            handleConnectionPhases();
+
+            connected = true;
+            if (options.usePipelineAuth) {
+                sendPipelineAdditionalData();
+                readPipelineAdditionalData();
+            } else additionalData();
 
             writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
             loadCalendar();
@@ -471,8 +465,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         writer.write(COM_QUERY);
         writer.write("SELECT @@max_allowed_packet , "
                 + "@@system_time_zone, "
-                + "@@session.time_zone, "
-                + "@@session.sql_mode");
+                + "@@time_zone, "
+                + "@@sql_mode");
         writer.flush();
     }
 
@@ -640,7 +634,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return !this.connected;
     }
 
-    private void handleConnectionPhases(boolean expectAuthPlugin) throws SQLException {
+    private void handleConnectionPhases() throws SQLException {
         try {
             reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
             writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
@@ -682,7 +676,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
 
             authentication(exchangeCharset, clientCapabilities, greetingPacket.getSeed(), packetSeq,
-                    greetingPacket.getPluginName(), expectAuthPlugin);
+                    greetingPacket.getPluginName());
 
         } catch (IOException e) {
             if (reader != null) {
@@ -697,8 +691,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void authentication(byte exchangeCharset, long clientCapabilities, byte[] seed, byte packetSeq, String plugin,
-                                boolean expectAuthPlugin) throws SQLException, IOException {
+    private void authentication(byte exchangeCharset, long clientCapabilities, byte[] seed, byte packetSeq, String plugin)
+            throws SQLException, IOException {
+
         //send handshake response
         SendHandshakeResponsePacket.send(writer, this.username,
                 this.password,
@@ -712,15 +707,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 options.connectionAttributes,
                 options.passwordCharacterEncoding);
 
-        if (!expectAuthPlugin && options.usePipelineAuth) sendPipelineAdditionalData();
-
         Buffer buffer = reader.getPacket(false);
 
         if ((buffer.getByteAt(0) & 0xFF) == 0xFE) {
-            if (!expectAuthPlugin && options.usePipelineAuth) {
-                this.expectAuthUrlParser = null;
-                throw new OptimisticAuthPluginException("doesn't expect Authentication Plugin");
-            }
 
             writer.permitTrace(false);
             InterfaceAuthSwitchSendResponsePacket interfaceSendPacket;
@@ -762,17 +751,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 }
                 throw new SQLException("Could not connect: " + errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorNumber());
             }
-            //if capability CONNECT_WITH_DB is not set, then server send a plugin auth 0xFE packet.
-            if (database != null && !options.createDatabaseIfNotExist) this.expectAuthUrlParser = urlParser;
             serverStatus = new OkPacket(buffer).getServerStatus();
         }
 
         writer.permitTrace(true);
-        connected = true;
-        if (options.usePipelineAuth) {
-            if (expectAuthPlugin) sendPipelineAdditionalData();
-            readPipelineAdditionalData();
-        } else additionalData();
 
     }
 
@@ -993,19 +975,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
         //CONJ-293 : handle name-pipe without host
         if (hosts.isEmpty() && options.pipe != null) {
             try {
-                try {
-
-                    connect(null, 0, !urlParser.equals(expectAuthUrlParser));
-                    return;
-
-                } catch (OptimisticAuthPluginException opt) {
-
-                    connect(null, 0, true);
-                    return;
-
-                } catch (SQLException sqle) {
-                    throw sqle;
-                }
+                connect(null, 0);
+                return;
+            } catch (SQLException sqle) {
+                throw sqle;
             } catch (IOException e) {
                 if (hosts.isEmpty()) {
                     throw new SQLException("Could not connect to named pipe '" + options.pipe + "' : "
@@ -1023,20 +996,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 currentHost = hosts.get(0);
             }
             hosts.remove(currentHost);
+
             try {
-                try {
-
-                    connect(currentHost.host, currentHost.port, !urlParser.equals(expectAuthUrlParser));
-                    return;
-
-                } catch (OptimisticAuthPluginException opt) {
-
-                    connect(currentHost.host, currentHost.port, true);
-                    return;
-
-                } catch (SQLException sqle) {
-                    throw sqle;
-                }
+                connect(currentHost.host, currentHost.port);
+                return;
+            } catch (SQLException sqle) {
+                throw sqle;
             } catch (IOException e) {
                 if (hosts.isEmpty()) {
                     throw new SQLException("Could not connect to " + HostAddress.toString(addrs) + " : " + e.getMessage(),
