@@ -274,24 +274,36 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         cmdPrologue();
 
         if (!options.useBatchMultiSend) {
-            String sql = null;
-            try {
 
-                for (int i = 0; i < queries.size(); i++) {
+            String sql = null;
+            QueryException exception = null;
+
+            for (int i = 0; i < queries.size(); i++) {
+
+                try {
+
                     sql = queries.get(i);
                     writer.startPacket(0);
                     writer.write(Packet.COM_QUERY);
                     writer.write(sql);
                     writer.flush();
                     getResult(results);
-                }
-                return;
 
-            } catch (QueryException queryException) {
-                throw addQueryInfo(sql, queryException);
-            } catch (IOException e) {
-                throw handleIoException(e);
+                } catch (QueryException queryException) {
+                    if (exception == null) {
+                        exception = addQueryInfo(sql, queryException);
+                        if (!options.continueBatchOnError) throw exception;
+                    }
+                } catch (IOException e) {
+                    if (exception == null) {
+                        exception = handleIoException(e);
+                        if (!options.continueBatchOnError) throw exception;
+                    }
+                }
             }
+
+            if (exception != null) throw exception;
+            return;
         }
 
         new AbstractMultiSend(this, writer, results, queries) {

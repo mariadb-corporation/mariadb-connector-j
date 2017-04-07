@@ -88,18 +88,18 @@ public class BasicBatchTest extends BaseTest {
         stmt.execute("truncate test_batch2");
         stmt.addBatch("insert into test_batch2 values (null, 'hej1')");
         stmt.addBatch("insert into test_batch2 values (null, 'hej2')");
-        stmt.addBatch("insert into test_batch2 values (null, 'hej3'), (null, 'hej4')");
-        stmt.addBatch("insert into test_batch2 values (null, 'hej5')");
+        stmt.addBatch("insert into test_batch2 values (null, 'hej3')");
+        stmt.addBatch("insert into test_batch2 values (null, 'hej4')");
         int[] inserts = stmt.executeBatch();
 
         assertEquals(4, inserts.length);
         assertEquals(1, inserts[0]);
         assertEquals(1, inserts[1]);
-        assertEquals(2, inserts[2]);
+        assertEquals(1, inserts[2]);
         assertEquals(1, inserts[3]);
 
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from test_batch2");
-        for (int i = 1; i <= 5; i++) {
+        for (int i = 1; i <= 4; i++) {
             assertEquals(true, rs.next());
             assertEquals(i, rs.getInt(1));
             assertEquals("hej" + i, rs.getString(2));
