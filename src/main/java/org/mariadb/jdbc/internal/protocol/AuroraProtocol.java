@@ -63,7 +63,6 @@ import java.util.ArrayDeque;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static org.mariadb.jdbc.internal.com.Packet.COM_QUERY;
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
@@ -260,14 +259,6 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     @Override
     public boolean isMasterConnection() {
         return this.masterConnection;
-    }
-
-    @Override
-    public void sendPipelineCheckMaster() throws IOException {
-        writer.startPacket(0);
-        writer.write(COM_QUERY);
-        writer.write("show global variables like 'innodb_read_only'");
-        writer.flush();
     }
 
     @Override

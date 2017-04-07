@@ -295,7 +295,34 @@ public class Buffer {
     public void writeStringLength(String value) {
         byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
         int length = bytes.length;
+        while (remaining() < length + 9) grow();
+        writeLength(length);
+        System.arraycopy(bytes, 0, buf, position, length);
+        position += length;
 
+    }
+
+    /**
+     * Write bytes.
+     *
+     * @param header header byte
+     * @param bytes  command bytes
+     */
+    public void writeBytes(byte header, byte[] bytes) {
+        int length = bytes.length;
+        while (remaining() < length + 10) grow();
+        writeLength(length + 1);
+        buf[position++] = header;
+        System.arraycopy(bytes, 0, buf, position, length);
+        position += length;
+    }
+
+    /**
+     * Write length.
+     *
+     * @param length length
+     */
+    public void writeLength(long length) {
         if (length < 251) {
             buf[position++] = (byte) length;
         } else if (length < 65536) {
@@ -318,10 +345,6 @@ public class Buffer {
             buf[position++] = (byte) (length >>> 48);
             buf[position++] = (byte) (length >>> 54);
         }
-
-        System.arraycopy(buf, position, bytes, 0, length);
-        position += length;
-
     }
 
     /**
@@ -331,6 +354,7 @@ public class Buffer {
         int newCapacity = buf.length + (buf.length >> 1);
         if (newCapacity - (Integer.MAX_VALUE - 8) > 0) newCapacity = Integer.MAX_VALUE - 8;
         buf = Arrays.copyOf(buf, newCapacity);
+        this.limit = newCapacity;
     }
 
 }

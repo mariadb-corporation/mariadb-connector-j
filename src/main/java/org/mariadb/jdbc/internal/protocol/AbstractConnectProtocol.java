@@ -79,7 +79,6 @@ import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
-import org.mariadb.jdbc.internal.util.exceptions.OptimisticAuthPluginException;
 
 import javax.net.ssl.*;
 
@@ -89,9 +88,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -102,6 +103,12 @@ import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public abstract class AbstractConnectProtocol implements Protocol {
     private static Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
+    public static final byte[] SESSION_QUERY = ("SELECT @@max_allowed_packet , "
+            + "@@system_time_zone, "
+            + "@@time_zone, "
+            + "@@sql_mode").getBytes(StandardCharsets.UTF_8);
+    public static final byte[] IS_MASTER_QUERY = "show global variables like 'innodb_read_only'".getBytes(StandardCharsets.UTF_8);
+
     protected final ReentrantLock lock;
     protected final UrlParser urlParser;
     protected final Options options;
@@ -386,10 +393,35 @@ public abstract class AbstractConnectProtocol implements Protocol {
             handleConnectionPhases();
 
             connected = true;
-            if (options.usePipelineAuth) {
-                sendPipelineAdditionalData();
-                readPipelineAdditionalData();
-            } else additionalData();
+
+            serverData = new TreeMap<>();
+
+            if (options.useCompression) {
+                writer = new CompressPacketOutputStream(writer.getOutputStream(), options.maxQuerySizeToLog);
+                reader = new DecompressPacketInputStream(((StandardPacketInputStream) reader).getBufferedInputStream(), options.maxQuerySizeToLog);
+            }
+
+            if ((serverCapabilities & MariaDbServerCapabilities.MARIADB_CLIENT_COM_IN_AUTH) != 0) {
+
+                //read results
+                Results results = new Results();
+                getResult(results);
+                results.commandEnd();
+                results.getMoreResults(Statement.CLOSE_CURRENT_RESULT, this);
+                ResultSet resultSet = results.getResultSet();
+                resultSet.next();
+
+                serverData.put("max_allowed_packet", resultSet.getString(1));
+                serverData.put("system_time_zone", resultSet.getString(2));
+                serverData.put("time_zone", resultSet.getString(3));
+                serverData.put("sql_mode", resultSet.getString(4));
+
+            } else {
+                if (options.usePipelineAuth) {
+                    sendPipelineAdditionalData();
+                    readPipelineAdditionalData();
+                } else additionalData();
+            }
 
             writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
             loadCalendar();
@@ -416,10 +448,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws SQLException if query exception occur
      */
     private void sendPipelineAdditionalData() throws IOException, SQLException {
-        if (options.useCompression) {
-            writer = new CompressPacketOutputStream(writer.getOutputStream(), options.maxQuerySizeToLog);
-        }
-
         sendSessionInfos();
         sendRequestSessionVariables();
         //for aurora, check that connection is master
@@ -463,10 +491,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void sendRequestSessionVariables() throws IOException {
         writer.startPacket(0);
         writer.write(COM_QUERY);
-        writer.write("SELECT @@max_allowed_packet , "
-                + "@@system_time_zone, "
-                + "@@time_zone, "
-                + "@@sql_mode");
+        writer.write(SESSION_QUERY);
         writer.flush();
     }
 
@@ -499,12 +524,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private void readPipelineAdditionalData() throws IOException, SQLException {
-        if (options.useCompression) {
-            reader = new DecompressPacketInputStream(((StandardPacketInputStream) reader).getBufferedInputStream(), options.maxQuerySizeToLog);
-        }
 
         SQLException resultingException = null;
-        serverData = new TreeMap<>();
         //read set session OKPacket
         try {
             getResult(new Results());
@@ -584,16 +605,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private void additionalData() throws IOException, SQLException {
-        if (options.useCompression) {
-            writer = new CompressPacketOutputStream(writer.getOutputStream(), options.maxQuerySizeToLog);
-            reader = new DecompressPacketInputStream(((StandardPacketInputStream) reader).getBufferedInputStream(), options.maxQuerySizeToLog);
-        }
 
         sendSessionInfos();
         getResult(new Results());
 
         try {
-            serverData = new TreeMap<>();
             sendRequestSessionVariables();
             readRequestSessionVariables();
         } catch (SQLException sqlException) {
@@ -647,6 +663,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             this.serverVersion = greetingPacket.getServerVersion();
             this.serverMariaDb = greetingPacket.isServerMariaDb();
             this.serverCapabilities = greetingPacket.getServerCapabilities();
+
             byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage());
             parseVersion();
             long clientCapabilities = initializeClientCapabilities(serverCapabilities);
@@ -704,8 +721,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 seed,
                 packetSeq,
                 plugin,
-                options.connectionAttributes,
-                options.passwordCharacterEncoding);
+                options,
+                urlParser.getHaMode());
 
         Buffer buffer = reader.getPacket(false);
 
@@ -770,8 +787,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 | MariaDbServerCapabilities.PLUGIN_AUTH
                 | MariaDbServerCapabilities.CONNECT_ATTRS
                 | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
-                | MariaDbServerCapabilities.MARIADB_CLIENT_COM_MULTI
-                | MariaDbServerCapabilities.CLIENT_SESSION_TRACK;
+                | MariaDbServerCapabilities.CLIENT_SESSION_TRACK
+                | MariaDbServerCapabilities.MARIADB_CLIENT_COM_IN_AUTH;
 
         if (options.allowMultiQueries || (options.rewriteBatchedStatements)) {
             capabilities |= MariaDbServerCapabilities.MULTI_STATEMENTS;
@@ -942,9 +959,18 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return currentHost == null ? true : ParameterConstant.TYPE_MASTER.equals(currentHost.type);
     }
 
-
+    /**
+     * Send query to identify if server is master.
+     *
+     * @throws IOException in case of socket error.
+     */
     public void sendPipelineCheckMaster() throws IOException {
-        //nothing if not aurora
+        if (urlParser.getHaMode() == HaMode.AURORA) {
+            writer.startPacket(0);
+            writer.write(COM_QUERY);
+            writer.write(IS_MASTER_QUERY);
+            writer.flush();
+        }
     }
 
     public void readPipelineCheckMaster() throws IOException, SQLException {

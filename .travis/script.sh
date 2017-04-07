@@ -5,7 +5,7 @@ set -e
 
 case "$TYPE" in
  "MAXSCALE" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:4006/testj?user=root&usePipelineAuth=false'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:4006/testj?user=root'
    ;;
  "REWRITE" )
    urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&rewriteBatchedStatements=true'

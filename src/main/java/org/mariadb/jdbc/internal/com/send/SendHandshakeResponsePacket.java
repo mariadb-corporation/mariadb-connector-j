@@ -49,20 +49,26 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send;
 
+import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.protocol.AbstractConnectProtocol;
+import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.PidFactory;
 import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.Version;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.StringTokenizer;
+
+import static org.mariadb.jdbc.internal.com.Packet.*;
 
 /**
  * 4                            client_flags 4                            max_packet_size 1 charset_number 23 (filler)
@@ -102,8 +108,8 @@ public class SendHandshakeResponsePacket {
      * @param seed                      seed
      * @param packetSeq                 packet sequence
      * @param plugin                    plugin name
-     * @param connectionAttributes      connection attributes for information schema
-     * @param passwordCharacterEncoding password character encoding
+     * @param options                   user options
+     * @param haMode                    High availability mode
      * @throws IOException if socket exception occur
      */
     public static void send(final PacketOutputStream pos,
@@ -116,8 +122,8 @@ public class SendHandshakeResponsePacket {
                             final byte[] seed,
                             final byte packetSeq,
                             final String plugin,
-                            final String connectionAttributes,
-                            final String passwordCharacterEncoding) throws IOException {
+                            final Options options,
+                            final HaMode haMode) throws IOException {
 
         pos.startPacket(packetSeq);
 
@@ -127,15 +133,15 @@ public class SendHandshakeResponsePacket {
             case DefaultAuthenticationProvider.MYSQL_NATIVE_PASSWORD:
                 pos.permitTrace(false);
                 try {
-                    authData = Utils.encryptPassword(password, seed, passwordCharacterEncoding);
+                    authData = Utils.encryptPassword(password, seed, options.passwordCharacterEncoding);
                     break;
                 } catch (NoSuchAlgorithmException e) {
                     throw new RuntimeException("Could not use SHA-1, failing", e);
                 }
             case DefaultAuthenticationProvider.MYSQL_CLEAR_PASSWORD:
                 pos.permitTrace(false);
-                if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
-                    authData = password.getBytes(passwordCharacterEncoding);
+                if (options.passwordCharacterEncoding != null && !options.passwordCharacterEncoding.isEmpty()) {
+                    authData = password.getBytes(options.passwordCharacterEncoding);
                 } else {
                     authData = password.getBytes();
                 }
@@ -178,10 +184,55 @@ public class SendHandshakeResponsePacket {
         }
 
         if ((serverCapabilities & MariaDbServerCapabilities.CONNECT_ATTRS) != 0) {
-            writeConnectAttributes(pos, connectionAttributes);
+            writeConnectAttributes(pos, options.connectionAttributes);
+        }
+
+        if ((serverCapabilities & MariaDbServerCapabilities.MARIADB_CLIENT_COM_IN_AUTH) != 0) {
+            writeAdditionalQueries(pos, serverCapabilities, options, haMode, database);
         }
         pos.flush();
         pos.permitTrace(true);
+    }
+
+    private static void writeAdditionalQueries(PacketOutputStream pos, long serverCapabilities, Options options, HaMode haMode, String database)
+            throws IOException {
+
+        //reservation for authentication length
+        Buffer buffer = new Buffer(new byte[200]);
+
+        //send variables command
+        StringBuilder sessionOption = new StringBuilder("set autocommit=1");
+        if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) != 0) {
+            sessionOption.append(", session_track_schema=1");
+            if (options.rewriteBatchedStatements) {
+                sessionOption.append(", session_track_system_variables='auto_increment_increment' ");
+            }
+        }
+        if (options.jdbcCompliantTruncation) {
+            sessionOption.append(", sql_mode = concat(@@sql_mode,',STRICT_TRANS_TABLES')");
+        }
+        if (options.sessionVariables != null) sessionOption.append("," + options.sessionVariables);
+        buffer.writeBytes(COM_QUERY, sessionOption.toString().getBytes(StandardCharsets.UTF_8));
+
+        //ask for session variables
+        buffer.writeBytes(COM_QUERY, AbstractConnectProtocol.SESSION_QUERY);
+
+        //ask if server is read-only
+        if (haMode == HaMode.AURORA) {
+            buffer.writeBytes(COM_QUERY, AuroraProtocol.IS_MASTER_QUERY);
+        }
+
+        if (options.createDatabaseIfNotExist) {
+            // Try to create the database if it does not exist
+            String quotedDb = MariaDbConnection.quoteIdentifier(database);
+            buffer.writeBytes(COM_QUERY, ("CREATE DATABASE IF NOT EXISTS " + quotedDb).getBytes(StandardCharsets.UTF_8));
+            buffer.writeBytes(COM_QUERY, ("USE " + quotedDb).getBytes(StandardCharsets.UTF_8));
+        }
+
+        pos.write(buffer.position + 1); //COM_MULTI packet length
+        pos.write(COM_MULTI);
+        pos.write(buffer.buf, 0, buffer.position);
+
     }
 
     private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes) throws IOException {
