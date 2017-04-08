@@ -56,6 +56,7 @@ import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
+import java.io.IOException;
 import java.sql.*;
 import java.util.*;
 
@@ -381,7 +382,14 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
         try {
             closed = true;
 
-            if (results.getFetchSize() != 0) skipMoreResults();
+            if (results.getFetchSize() != 0) {
+                try {
+                    protocol.cancelCurrentQuery();
+                    skipMoreResults();
+                } catch (SQLException | IOException sqle) {
+                    //eat exception
+                }
+            }
             results.close();
 
             // No possible future use for the cached results, so these can be cleared

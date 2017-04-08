@@ -676,7 +676,14 @@ public class MariaDbStatement implements Statement, Cloneable {
         try {
             closed = true;
 
-            if (results.getFetchSize() != 0 && closed) skipMoreResults();
+            if (results.getFetchSize() != 0) {
+                try {
+                    protocol.cancelCurrentQuery();
+                    skipMoreResults();
+                } catch (SQLException | IOException  sqle) {
+                    //eat exception
+                }
+            }
 
             results.close();
             protocol = null;
@@ -843,9 +850,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     public void cancel() throws SQLException {
         checkClose();
         try {
-            if (!executing) {
-                return;
-            }
+            if (!executing) return;
             protocol.cancelCurrentQuery();
         } catch (SQLException e) {
             logger.error("error cancelling query", e);

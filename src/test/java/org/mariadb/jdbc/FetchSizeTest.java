@@ -144,5 +144,51 @@ public class FetchSizeTest extends BaseTest {
         pstmt.executeBatch();
     }
 
+    /**
+     * CONJ-315 : interrupt when closing statement.
+     *
+     * @throws SQLException sqle
+     */
+    @Test
+    public void fetchSizeClose() throws SQLException {
 
+        Statement stmt = sharedConnection.createStatement();
+        long start = System.currentTimeMillis();
+        stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables");
+        long normalExecutionTime = System.currentTimeMillis() - start;
+
+        start = System.currentTimeMillis();
+        stmt.setFetchSize(1);
+        stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables");
+        stmt.close();
+        long interruptedExecutionTime = System.currentTimeMillis() - start;
+
+        //normalExecutionTime = 1500
+        //interruptedExecutionTime = 77
+        assertTrue("interruptedExecutionTime:" + interruptedExecutionTime
+                + " normalExecutionTime:" + normalExecutionTime,
+                interruptedExecutionTime * 3 < normalExecutionTime);
+    }
+
+    @Test
+    public void fetchSizePrepareClose() throws SQLException {
+
+        PreparedStatement stmt = sharedConnection.prepareStatement("select * from information_schema.columns as c1,  information_schema.tables");
+
+        long start = System.currentTimeMillis();
+        stmt.executeQuery();
+        long normalExecutionTime = System.currentTimeMillis() - start;
+
+        start = System.currentTimeMillis();
+        stmt.setFetchSize(1);
+        stmt.executeQuery();
+        stmt.close();
+        long interruptedExecutionTime = System.currentTimeMillis() - start;
+
+        //normalExecutionTime = 1500
+        //interruptedExecutionTime = 77
+        assertTrue("interruptedExecutionTime:" + interruptedExecutionTime
+                        + " normalExecutionTime:" + normalExecutionTime,
+                interruptedExecutionTime * 3 < normalExecutionTime);
+    }
 }
