@@ -418,8 +418,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             } else {
                 if (options.usePipelineAuth) {
-                    sendPipelineAdditionalData();
-                    readPipelineAdditionalData();
+                    try {
+                        sendPipelineAdditionalData();
+                        readPipelineAdditionalData();
+                    } catch (NullPointerException npe) {
+                        //in case pipeline is not supported
+                        //(proxy flush socket after reading first packet)
+                        additionalData();
+                    }
                 } else additionalData();
             }
 
