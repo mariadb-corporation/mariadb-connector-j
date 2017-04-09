@@ -109,6 +109,7 @@ public class Options {
     public boolean useBatchMultiSend;
     public int useBatchMultiSendNumber;
     public boolean usePipelineAuth;
+    public boolean killFetchStmtOnClose;
 
     //logging options
     public boolean log;
@@ -188,6 +189,7 @@ public class Options {
                 + ", slowQueryThresholdNanos=" + slowQueryThresholdNanos
                 + ", passwordCharacterEncoding=" + passwordCharacterEncoding
                 + ", usePipelineAuth=" + usePipelineAuth
+                + ", killFetchStmtOnClose=" + killFetchStmtOnClose
                 + "}";
     }
 
@@ -296,7 +298,7 @@ public class Options {
         if (useBatchMultiSend != options.useBatchMultiSend) return false;
         if (useBatchMultiSendNumber != options.useBatchMultiSendNumber) return false;
         if (usePipelineAuth != options.usePipelineAuth) return false;
-
+        if (killFetchStmtOnClose != options.killFetchStmtOnClose) return false;
         return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)
                 : options.prepStmtCacheSqlLimit != null);
 

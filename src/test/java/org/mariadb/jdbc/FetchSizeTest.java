@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -151,7 +152,7 @@ public class FetchSizeTest extends BaseTest {
      */
     @Test
     public void fetchSizeClose() throws SQLException {
-
+        Assume.assumeTrue(sharedOptions().killFetchStmtOnClose);
         Statement stmt = sharedConnection.createStatement();
         long start = System.currentTimeMillis();
         stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables");
@@ -172,7 +173,7 @@ public class FetchSizeTest extends BaseTest {
 
     @Test
     public void fetchSizePrepareClose() throws SQLException {
-
+        Assume.assumeTrue(sharedOptions().killFetchStmtOnClose);
         PreparedStatement stmt = sharedConnection.prepareStatement("select * from information_schema.columns as c1,  information_schema.tables");
 
         long start = System.currentTimeMillis();

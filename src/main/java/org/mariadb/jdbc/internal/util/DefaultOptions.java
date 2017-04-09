@@ -426,7 +426,13 @@ public enum DefaultOptions {
      * Fast connection creation (recommended if not using authentication plugins)
      * default to true.
      */
-    PIPELINE_AUTH("usePipelineAuth", Boolean.TRUE, "2.0.0");
+    PIPELINE_AUTH("usePipelineAuth", Boolean.TRUE, "2.0.0"),
+
+    /**
+     * When closing a statement that is fetching result-set (using setFetchSize),
+     * kill query to avoid having to read remaining rows.
+     */
+    KILL_FETCH_STMT("killFetchStmtOnClose", Boolean.TRUE, "2.0.0");
 
 
     protected final String name;

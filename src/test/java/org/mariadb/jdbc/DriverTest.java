@@ -678,7 +678,7 @@ public class DriverTest extends BaseTest {
             //eat exception
         }
 
-        try (Connection connection = setConnection("&createDatabaseIfNotExist=true", "test_testdrop")) {
+        try (Connection connection = setConnection("&createDatabaseIfNotExist=true&profileSql=true", "test_testdrop")) {
             DatabaseMetaData dbmd = connection.getMetaData();
             ResultSet rs = dbmd.getCatalogs();
             boolean foundDb = false;

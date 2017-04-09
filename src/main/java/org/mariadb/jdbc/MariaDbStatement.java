@@ -677,12 +677,14 @@ public class MariaDbStatement implements Statement, Cloneable {
             closed = true;
 
             if (results.getFetchSize() != 0) {
-                try {
-                    protocol.cancelCurrentQuery();
-                    skipMoreResults();
-                } catch (SQLException | IOException  sqle) {
-                    //eat exception
-                }
+                if (options.killFetchStmtOnClose) {
+                    try {
+                        protocol.cancelCurrentQuery();
+                        skipMoreResults();
+                    } catch (SQLException | IOException  sqle) {
+                        //eat exception
+                    }
+                } else skipMoreResults();
             }
 
             results.close();
