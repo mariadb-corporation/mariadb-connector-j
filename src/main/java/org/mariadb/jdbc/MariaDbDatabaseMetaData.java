@@ -434,7 +434,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + " WHEN 'timestamp' THEN " + Types.TIMESTAMP
                 + " WHEN 'tinyint' THEN "
                 + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSet.TINYINT1_IS_BIT) == 0)
-                ? Types.TINYINT : "IF(" + fullTypeColumnName + "like 'tinyint(1)%'," + Types.BIT + "," + Types.TINYINT + ") ")
+                ? Types.TINYINT : "IF(" + fullTypeColumnName + " like 'tinyint(1)%'," + Types.BIT + "," + Types.TINYINT + ") ")
                 + " WHEN 'year' THEN "
                 + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSet.YEAR_IS_DATE_TYPE) == 0)
                 ? Types.SMALLINT : Types.DATE)

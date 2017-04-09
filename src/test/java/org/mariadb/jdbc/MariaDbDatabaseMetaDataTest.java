@@ -13,7 +13,7 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
      */
     @Test
     public void testYearDataType() throws Exception {
-        createTable("yearTableMeta", "xx tinyint(1), yy year(4), zz bit, uu smallint");
+        createTable("yearTableMeta", "xx tinyint(1), x2 tinyint(1) unsigned, yy year(4), zz bit, uu smallint");
         try (Connection connection = setConnection()) {
             checkResults(connection, true, true);
         }
@@ -28,6 +28,8 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
         ResultSet rs = meta.getColumns(null, null, "yearTableMeta", null);
         assertTrue(rs.next());
         assertEquals(tinyAsBit ? "BIT" : "TINYINT", rs.getString(6));
+        assertTrue(rs.next());
+        assertEquals(tinyAsBit ? "BIT" : "TINYINT UNSIGNED", rs.getString(6));
         assertTrue(rs.next());
         assertEquals(yearAsDate ? "YEAR" : "SMALLINT" , rs.getString(6));
         assertEquals(yearAsDate ? null : "5" , rs.getString(7)); // column size

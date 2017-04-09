@@ -305,8 +305,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 }
                 return;
 
-            } catch (QueryException queryException) {
-                throw addQueryInfo(sql, queryException);
+            } catch (SQLException queryException) {
+                throw logQuery.exceptionWithQuery(sql, queryException);
             } catch (IOException e) {
                 throw handleIoException(e);
             }
