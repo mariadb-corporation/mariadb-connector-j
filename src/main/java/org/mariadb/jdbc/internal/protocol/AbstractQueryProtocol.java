@@ -307,7 +307,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     writer.flush();
                     getResult(results);
 
-                } catch (QueryException queryException) {
+                } catch (SQLException queryException) {
                     if (exception == null) {
                         exception = logQuery.exceptionWithQuery(sql, queryException);
                         if (!options.continueBatchOnError) throw exception;
