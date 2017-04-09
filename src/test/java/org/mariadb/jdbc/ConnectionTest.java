@@ -286,6 +286,13 @@ public class ConnectionTest extends BaseTest {
         sharedConnection.setClientInfo("ClientHostname", "testHostName");
         assertEquals("testHostName", sharedConnection.getClientInfo("ClientHostname"));
 
+        sharedConnection.setClientInfo("ClientHostname", null);
+        assertNull(sharedConnection.getClientInfo("ClientHostname"));
+
+        sharedConnection.setClientInfo("ClientHostname", "");
+        assertEquals("", sharedConnection.getClientInfo("ClientHostname"));
+
+
         properties = new Properties();
         properties.setProperty("ApplicationName", "testDriver");
         properties.setProperty("ClientUser", "testClientUser");
