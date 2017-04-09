@@ -86,6 +86,7 @@ PrepareStatement.setObject(...) support for with java 8 temporal temporal object
 * CONJ-446 : ResultSet first() throw an exception for scroll type if TYPE_FORWARD_ONLY only when streaming
 * CONJ-440 : handle very big COM_STMT_SEND_LONG_DATA packet (1Gb)
 * CONJ-429 : ResultSet.getDouble/getFloat may throws a NumberFormatException
+* CONJ-438 : using option rewriteBatchedStatements, permit rewrite when query has column/table that contain 'select' keyword.
 
 == 1.5.8
 * CONJ-424 : getGeneratedKeys() on table without generated key failed on second execution

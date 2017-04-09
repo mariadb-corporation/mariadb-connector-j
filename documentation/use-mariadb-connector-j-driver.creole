@@ -139,7 +139,7 @@ The following options are currently supported.
 |=localSocket|Permits connecting to the database via Unix domain socket, if the server allows it. \\The value is the path of Unix domain socket (i.e "socket" database parameter : select @@socket) .\\//since 1.1.4//|
 |=sharedMemory|Permits connecting to the database via shared memory, if the server allows it. \\The value is the base name of the shared memory.\\//since 1.1.4//|
 |=localSocketAddress|Hostname or IP address to bind the connection socket to a local (UNIX domain) socket.\\//since 1.1.7//|
-|=socketTimeout|Defined the network socket timeout (SO_TIMEOUT) in milliseconds. \\Default: 0 milliseconds(0 disable this timeout).\\//since 1.1.7//|
+|=socketTimeout|Defined the network socket timeout (SO_TIMEOUT) in milliseconds. Value of 0 disable this timeout.. \\Default: 0 (standard configuration) or 10 000ms (using "aurora" failover configuration).\\//since 1.1.7//|
 |=interactiveClient|Session timeout is defined by the [[https://mariadb.com/kb/en/server-system-variables/#wait_timeout|wait_timeout]] server variable. Setting interactiveClient to true will tell the server to use the [[https://mariadb.com/kb/en/mariadb/server-system-variables/#interactive_timeout|interactive_timeout]] server variable.\\//Default: false. Since 1.1.7//|
 |=useOldAliasMetadataBehavior|Metadata ResultSetMetaData.getTableName() returns the physical table name. "useOldAliasMetadataBehavior" permits activating the legacy code that sends the table alias if set. \\//Default: false. Since 1.1.9//|
 |=createDatabaseIfNotExist|the specified database in the url will be created if nonexistent.\\//Default: false. Since 1.1.7//|
