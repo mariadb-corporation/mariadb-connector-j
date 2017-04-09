@@ -156,7 +156,7 @@ public class FetchSizeTest extends BaseTest {
         Statement stmt = sharedConnection.createStatement();
         long start = System.currentTimeMillis();
         stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables");
-        long normalExecutionTime = System.currentTimeMillis() - start;
+        final long normalExecutionTime = System.currentTimeMillis() - start;
 
         start = System.currentTimeMillis();
         stmt.setFetchSize(1);
@@ -178,7 +178,7 @@ public class FetchSizeTest extends BaseTest {
 
         long start = System.currentTimeMillis();
         stmt.executeQuery();
-        long normalExecutionTime = System.currentTimeMillis() - start;
+        final long normalExecutionTime = System.currentTimeMillis() - start;
 
         start = System.currentTimeMillis();
         stmt.setFetchSize(1);
