@@ -13,6 +13,7 @@ import static org.junit.Assert.*;
 public class ResultSetTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()

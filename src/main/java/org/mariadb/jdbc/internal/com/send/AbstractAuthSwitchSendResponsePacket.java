@@ -53,9 +53,9 @@ import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 
 public abstract class AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
@@ -66,6 +66,7 @@ public abstract class AbstractAuthSwitchSendResponsePacket implements InterfaceA
 
     /**
      * Handle Authentication.
+     *
      * @param packSeq                   packet sequence
      * @param authData                  authentication data
      * @param password                  password
@@ -80,16 +81,17 @@ public abstract class AbstractAuthSwitchSendResponsePacket implements InterfaceA
 
     /**
      * Handle response packet.
+     *
      * @param reader packet fetcher
-     * @throws QueryException if any functional error occur
+     * @throws SQLException if any functional error occur
      * @throws IOException if any connection error occur
      */
-    public void handleResultPacket(PacketInputStream reader) throws QueryException, IOException {
+    public void handleResultPacket(PacketInputStream reader) throws SQLException, IOException {
         Buffer buffer = reader.getPacket(true);
         if (buffer.getByteAt(0) == Packet.ERROR) {
             ErrorPacket ep = new ErrorPacket(buffer);
             String message = ep.getMessage();
-            throw new QueryException("Could not connect: " + message, ep.getErrorNumber(), ep.getSqlState());
+            throw new SQLException("Could not connect: " + message, ep.getSqlState(), ep.getErrorNumber());
         }
     }
 }

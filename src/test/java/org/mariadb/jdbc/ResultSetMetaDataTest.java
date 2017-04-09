@@ -10,6 +10,7 @@ import static org.junit.Assert.*;
 public class ResultSetMetaDataTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()

@@ -49,9 +49,9 @@ OF SUCH DAMAGE.
 */
 
 
-
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.MariaDbType;
+
 
 import java.io.IOException;
 
@@ -80,8 +80,8 @@ public class FloatParameter implements Cloneable, ParameterHolder {
         pos.writeInt(Float.floatToIntBits(value));
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.FLOAT;
+    public ColumnType getColumnType() {
+        return ColumnType.FLOAT;
     }
 
     @Override

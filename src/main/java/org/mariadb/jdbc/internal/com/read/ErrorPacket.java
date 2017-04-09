@@ -60,6 +60,7 @@ public class ErrorPacket {
 
     /**
      * Reading error stream.
+     *
      * @param buffer current stream rawBytes
      */
     public ErrorPacket(Buffer buffer) {

@@ -63,13 +63,13 @@ public final class ClientPrepareStatementCache extends LinkedHashMap<String, Cli
         this.maxSize = size;
     }
 
+    public static ClientPrepareStatementCache newInstance(int size) {
+        return new ClientPrepareStatementCache(size);
+    }
+
     @Override
     protected boolean removeEldestEntry(Map.Entry<String, ClientPrepareResult> eldest) {
         return size() > maxSize;
-    }
-
-    public static ClientPrepareStatementCache newInstance(int size) {
-        return new ClientPrepareStatementCache(size);
     }
 
     @Override

@@ -52,20 +52,21 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.thread.ConnectionValidator;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -73,12 +74,12 @@ import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public abstract class AbstractMastersListener implements Listener {
 
-    private static Logger logger = LoggerFactory.getLogger(AbstractMastersListener.class);
     /**
      * List the recent failedConnection.
      */
     private static final ConcurrentMap<HostAddress, Long> blacklist = new ConcurrentHashMap<>();
     private static final ConnectionValidator connectionValidationLoop = new ConnectionValidator();
+    private static Logger logger = LoggerFactory.getLogger(AbstractMastersListener.class);
 
     /* =========================== Failover variables ========================================= */
     public final UrlParser urlParser;
@@ -89,9 +90,9 @@ public abstract class AbstractMastersListener implements Listener {
     protected FailoverProxy proxy;
     protected long lastRetry = 0;
     protected AtomicBoolean explicitClosed = new AtomicBoolean(false);
+    protected long lastQueryNanos = 0;
     private volatile long masterHostFailNanos = 0;
     private AtomicBoolean masterHostFail = new AtomicBoolean();
-    protected long lastQueryNanos = 0;
 
     protected AbstractMastersListener(UrlParser urlParser) {
         this.urlParser = urlParser;
@@ -100,12 +101,20 @@ public abstract class AbstractMastersListener implements Listener {
     }
 
     /**
+     * Clear blacklist data.
+     */
+    public static void clearBlacklist() {
+        blacklist.clear();
+    }
+
+    /**
      * Initialize Listener.
      * This listener will be added to the connection validation loop according to option value so the connection
      * will be verified periodically. (Important for aurora, for other, connection pool often have this functionality)
-     * @throws QueryException if any exception occur.
+     *
+     * @throws SQLException if any exception occur.
      */
-    public void initializeConnection() throws QueryException {
+    public void initializeConnection() throws SQLException {
         long connectionTimeoutMillis = TimeUnit.SECONDS.toMillis(urlParser.getOptions().validConnectionTimeout);
         lastQueryNanos = System.nanoTime();
         if (connectionTimeoutMillis > 0) {
@@ -117,18 +126,18 @@ public abstract class AbstractMastersListener implements Listener {
         connectionValidationLoop.removeListener(this);
     }
 
-    protected void preAutoReconnect() throws QueryException {
+    protected void preAutoReconnect() throws SQLException {
         if (!isExplicitClosed()) {
             try {
                 // save to local value in case updated while constructing SearchFilter
                 boolean currentReadOnlyAsked = this.currentReadOnlyAsked;
                 reconnectFailedConnection(new SearchFilter(!currentReadOnlyAsked, currentReadOnlyAsked));
-            } catch (QueryException e) {
+            } catch (SQLException e) {
                 //eat exception
             }
             handleFailLoop();
         } else {
-            throw new QueryException("Connection is closed", (short) -1, CONNECTION_EXCEPTION);
+            throw new SQLException("Connection is closed", CONNECTION_EXCEPTION.getSqlState());
         }
     }
 
@@ -152,15 +161,15 @@ public abstract class AbstractMastersListener implements Listener {
      * <li> relaunch query if possible</li>
      * </ol>
      *
-     * @param method called method
-     * @param args   methods parameters
+     * @param method   called method
+     * @param args     methods parameters
      * @param protocol current protocol
      * @return a HandleErrorResult object to indicate if query has been relaunched, and the exception if not
      * @throws Throwable when method and parameters does not exist.
      */
-    public HandleErrorResult handleFailover(QueryException qe, Method method, Object[] args, Protocol protocol) throws Throwable {
+    public HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args, Protocol protocol) throws Throwable {
         if (isExplicitClosed()) {
-            throw new QueryException("Connection has been closed !");
+            throw new SQLException("Connection has been closed !");
         }
         if (setMasterHostFail()) {
             logger.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString()
@@ -214,7 +223,7 @@ public abstract class AbstractMastersListener implements Listener {
         }
     }
 
-    protected void setSessionReadOnly(boolean readOnly, Protocol protocol) throws QueryException {
+    protected void setSessionReadOnly(boolean readOnly, Protocol protocol) throws SQLException {
         if (protocol.versionGreaterOrEqual(5, 6, 5)) {
             logger.info("SQL node [" + protocol.getHostAddress().toString()
                     + ", conn " + protocol.getServerThreadId()
@@ -309,8 +318,9 @@ public abstract class AbstractMastersListener implements Listener {
 
     /**
      * Check if query can be re-executed.
+     *
      * @param method invoke method
-     * @param args invoke arguments
+     * @param args   invoke arguments
      * @return true if can be re-executed
      */
     public boolean isQueryRelaunchable(Method method, Object[] args) {
@@ -360,9 +370,9 @@ public abstract class AbstractMastersListener implements Listener {
      *
      * @param from used connection
      * @param to   will-be-current connection
-     * @throws QueryException if catalog cannot be set
+     * @throws SQLException if catalog cannot be set
      */
-    public void syncConnection(Protocol from, Protocol to) throws QueryException {
+    public void syncConnection(Protocol from, Protocol to) throws SQLException {
 
         if (from != null) {
 
@@ -400,13 +410,13 @@ public abstract class AbstractMastersListener implements Listener {
         return urlParser;
     }
 
-    public abstract void preExecute() throws QueryException;
+    public abstract void preExecute() throws SQLException;
 
     public abstract void preClose() throws SQLException;
 
-    public abstract void reconnectFailedConnection(SearchFilter filter) throws QueryException;
+    public abstract void reconnectFailedConnection(SearchFilter filter) throws SQLException;
 
-    public abstract void switchReadOnlyConnection(Boolean readonly) throws QueryException;
+    public abstract void switchReadOnlyConnection(Boolean readonly) throws SQLException;
 
     public abstract HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable;
 
@@ -417,11 +427,11 @@ public abstract class AbstractMastersListener implements Listener {
      * @param wasMaster       was failed connection master
      * @param queryException  internal error
      * @param reconnected     connection status
-     * @throws QueryException error with failover information
+     * @throws SQLException error with failover information
      */
     @Override
-    public void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster, QueryException queryException,
-                                     boolean reconnected) throws QueryException {
+    public void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster, SQLException queryException,
+                                     boolean reconnected) throws SQLException {
         String firstPart = "Communications link failure with "
                 + (wasMaster ? "primary" : "secondary")
                 + ((failHostAddress != null) ? " host " + failHostAddress.host + ":" + failHostAddress.port : "") + ". ";
@@ -434,18 +444,27 @@ public abstract class AbstractMastersListener implements Listener {
             }
         }
 
+        String message;
+        String sqlState;
+        int vendorCode = 0;
+        Throwable cause = null;
+
         if (queryException == null) {
-            queryException = new QueryException(firstPart + error, (short) -1, CONNECTION_EXCEPTION);
+            message = firstPart + error;
+            sqlState = CONNECTION_EXCEPTION.getSqlState();
         } else {
-            error = queryException.getMessage() + ". " + error;
-            queryException.setMessage(firstPart + error);
+            message = firstPart + queryException.getMessage() + ". " + error;
+            sqlState = queryException.getSQLState();
+            vendorCode = queryException.getErrorCode();
+            cause = queryException.getCause();
         }
 
-        if (reconnected && queryException.getSqlState().startsWith("08")) {
+        if (reconnected && sqlState.startsWith("08")) {
             //change sqlState to "Transaction has been rolled back", to transaction exception, since reconnection has succeed
-            queryException.setSqlState("25S03");
+            sqlState = "25S03";
         }
-        throw queryException;
+
+        throw new SQLException(message, sqlState, vendorCode, cause);
 
     }
 
@@ -453,18 +472,9 @@ public abstract class AbstractMastersListener implements Listener {
         return currentConnectionAttempts.get() < urlParser.getOptions().failoverLoopRetries;
     }
 
-
-    public abstract void reconnect() throws QueryException;
+    public abstract void reconnect() throws SQLException;
 
     public abstract boolean checkMasterStatus(SearchFilter searchFilter);
-
-
-    /**
-     * Clear blacklist data.
-     */
-    public static void clearBlacklist() {
-        blacklist.clear();
-    }
 
     public long getLastQueryNanos() {
         return lastQueryNanos;
@@ -474,7 +484,7 @@ public abstract class AbstractMastersListener implements Listener {
         try {
             protocol.ping();
             return true;
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             proxy.lock.lock();
             try {
                 protocol.close();
@@ -490,6 +500,7 @@ public abstract class AbstractMastersListener implements Listener {
 
     /**
      * Utility to close existing connection.
+     *
      * @param protocol connection to close.
      */
     public void closeConnection(Protocol protocol) {

@@ -52,12 +52,11 @@ package org.mariadb.jdbc.internal.com.read;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.Utils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-
+import java.sql.SQLException;
 
 public class ReadInitialHandShakePacket {
     /* MDEV-4088/CONJ-32 :  in 10.0, the real version string maybe prefixed with "5.5.5-",
@@ -76,15 +75,16 @@ public class ReadInitialHandShakePacket {
 
     /**
      * Read database initial stream.
+     *
      * @param reader packetFetcher
-     * @throws IOException if a connection error occur
-     * @throws QueryException if received an error packet
+     * @throws IOException    if a connection error occur
+     * @throws SQLException if received an error packet
      */
-    public ReadInitialHandShakePacket(final PacketInputStream reader) throws IOException, QueryException {
+    public ReadInitialHandShakePacket(final PacketInputStream reader) throws IOException, SQLException {
         Buffer buffer = reader.getPacket(true);
         if (buffer.getByteAt(0) == Packet.ERROR) {
             ErrorPacket errorPacket = new ErrorPacket(buffer);
-            throw new QueryException(errorPacket.getMessage());
+            throw new SQLException(errorPacket.getMessage());
         }
 
         protocolVersion = buffer.readByte();

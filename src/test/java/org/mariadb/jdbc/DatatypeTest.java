@@ -19,6 +19,7 @@ public class DatatypeTest extends BaseTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -41,6 +42,37 @@ public class DatatypeTest extends BaseTest {
         createTable("bitBoolTest", "d1 BOOLEAN, d2 BIT");
 
 
+    }
+
+    /**
+     * Get a simple Statement or a PrepareStatement.
+     *
+     * @param query    query
+     * @param prepared flag must be a prepare statement
+     * @return a statement
+     * @throws SQLException exception
+     */
+    public static ResultSet getResultSet(String query, boolean prepared) throws SQLException {
+        return getResultSet(query, prepared, sharedConnection);
+    }
+
+    /**
+     * Get a simple Statement or a PrepareStatement.
+     *
+     * @param query      query
+     * @param prepared   flag must be a prepare statement
+     * @param connection the connection to use
+     * @return a statement
+     * @throws SQLException exception
+     */
+    public static ResultSet getResultSet(String query, boolean prepared, Connection connection) throws SQLException {
+        if (prepared) {
+            PreparedStatement preparedStatement = connection.prepareStatement(query + " WHERE 1 = ?");
+            preparedStatement.setInt(1, 1);
+            return preparedStatement.executeQuery();
+        } else {
+            return connection.createStatement().executeQuery(query);
+        }
     }
 
     @Before
@@ -67,8 +99,9 @@ public class DatatypeTest extends BaseTest {
 
     /**
      * Testing different date parameters.
-     * @param connection current connection
-     * @param tinyInt1isBit tiny bit must be consider as boolean
+     *
+     * @param connection     current connection
+     * @param tinyInt1isBit  tiny bit must be consider as boolean
      * @param yearIsDateType year must be consider as Date or int
      * @throws Exception exception
      */
@@ -205,21 +238,6 @@ public class DatatypeTest extends BaseTest {
         }
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     @SuppressWarnings("deprecation")
     @Test
     public void testCharacterStreams() throws SQLException, IOException {
@@ -287,35 +305,6 @@ public class DatatypeTest extends BaseTest {
         assertEquals(sb.toString(), toInsert.substring(0, 5));
         assertEquals(rs.getString("strm"), toInsert.substring(0, 5));
 
-    }
-
-    /**
-     * Get a simple Statement or a PrepareStatement.
-     * @param query query
-     * @param prepared flag must be a prepare statement
-     * @return a statement
-     * @throws SQLException exception
-     */
-    public static ResultSet getResultSet(String query, boolean prepared) throws SQLException {
-        return getResultSet(query, prepared, sharedConnection);
-    }
-
-    /**
-     * Get a simple Statement or a PrepareStatement.
-     * @param query query
-     * @param prepared flag must be a prepare statement
-     * @param connection the connection to use
-     * @return a statement
-     * @throws SQLException exception
-     */
-    public static ResultSet getResultSet(String query, boolean prepared, Connection connection) throws SQLException {
-        if (prepared) {
-            PreparedStatement preparedStatement = connection.prepareStatement(query + " WHERE 1 = ?");
-            preparedStatement.setInt(1, 1);
-            return preparedStatement.executeQuery();
-        } else {
-            return connection.createStatement().executeQuery(query);
-        }
     }
 
     @Test

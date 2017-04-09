@@ -51,30 +51,32 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.com.send.parameters;
 
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 import java.io.IOException;
 import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.TimeZone;
 
 
 public class TimeParameter implements Cloneable, ParameterHolder {
 
     private Time time;
-    private Calendar calendar;
+    private TimeZone timeZone;
     private boolean fractionalSeconds;
 
     /**
      * Constructor.
-     * @param time time to write
-     * @param cal session calendar
+     *
+     * @param time              time to write
+     * @param timeZone          timezone
      * @param fractionalSeconds must fractional seconds be send.
      */
-    public TimeParameter(Time time, Calendar cal, boolean fractionalSeconds) {
+    public TimeParameter(Time time, TimeZone timeZone, boolean fractionalSeconds) {
         this.time = time;
-        this.calendar = cal;
+        this.timeZone = timeZone;
         this.fractionalSeconds = fractionalSeconds;
     }
 
@@ -85,7 +87,7 @@ public class TimeParameter implements Cloneable, ParameterHolder {
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
-        sdf.setCalendar(Calendar.getInstance());
+        sdf.setTimeZone(timeZone);
         String dateString = sdf.format(time);
         if (time.getTime() < 0) {
             dateString = "-" + dateString;
@@ -119,7 +121,7 @@ public class TimeParameter implements Cloneable, ParameterHolder {
      */
 
     public void writeBinary(final PacketOutputStream pos) throws IOException {
-        calendar = Calendar.getInstance();
+        Calendar calendar = Calendar.getInstance(timeZone);
         calendar.setTime(time);
         calendar.set(Calendar.DAY_OF_MONTH, 1);
         if (fractionalSeconds) {
@@ -140,8 +142,8 @@ public class TimeParameter implements Cloneable, ParameterHolder {
         }
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.TIME;
+    public ColumnType getColumnType() {
+        return ColumnType.TIME;
     }
 
     @Override

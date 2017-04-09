@@ -51,7 +51,7 @@ OF SUCH DAMAGE.
 
 
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 
 import java.io.IOException;
 
@@ -81,8 +81,8 @@ public class DoubleParameter implements Cloneable, ParameterHolder {
         pos.writeLong(Double.doubleToLongBits(value));
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.DOUBLE;
+    public ColumnType getColumnType() {
+        return ColumnType.DOUBLE;
     }
 
     @Override

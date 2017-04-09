@@ -54,8 +54,8 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
+import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
@@ -75,10 +75,10 @@ public class MastersSlavesProtocol extends MasterProtocol {
      * @param listener     current failover
      * @param addresses    list of HostAddress to loop
      * @param searchFilter search parameter
-     * @throws QueryException if not found
+     * @throws SQLException if not found
      */
     public static void loop(MastersSlavesListener listener, final List<HostAddress> addresses,
-                            SearchFilter searchFilter) throws QueryException {
+                            SearchFilter searchFilter) throws SQLException {
 
         MastersSlavesProtocol protocol;
         ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
@@ -87,7 +87,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
         }
 
         int maxConnectionTry = listener.getRetriesAllDown();
-        QueryException lastQueryException = null;
+        SQLException lastQueryException = null;
 
         while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
             protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
@@ -125,7 +125,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
                     protocol.close();
                 }
 
-            } catch (QueryException e) {
+            } catch (SQLException e) {
                 lastQueryException = e;
                 listener.addToBlacklist(protocol.getHostAddress());
             }
@@ -146,10 +146,10 @@ public class MastersSlavesProtocol extends MasterProtocol {
                 error = "No active connection found for master";
             }
             if (lastQueryException != null) {
-                throw new QueryException(error + " : " + lastQueryException.getMessage(),
-                        lastQueryException.getErrorCode(), lastQueryException.getSqlState(), lastQueryException);
+                throw new SQLException(error + " : " + lastQueryException.getMessage(),
+                        lastQueryException.getSQLState(), lastQueryException.getErrorCode(), lastQueryException);
             }
-            throw new QueryException(error);
+            throw new SQLException(error);
         }
 
     }
@@ -176,7 +176,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
     }
 
     protected static boolean foundSecondary(MastersSlavesListener listener, MastersSlavesProtocol protocol,
-                                            SearchFilter searchFilter) throws QueryException {
+                                            SearchFilter searchFilter) throws SQLException {
         protocol.setMustBeMasterConnection(false);
         if (listener.isSecondaryHostFailReconnect()) {
             listener.foundActiveSecondary(protocol);
@@ -198,7 +198,8 @@ public class MastersSlavesProtocol extends MasterProtocol {
 
     /**
      * Get new instance of MastersSlavesProtocol.
-     * @param proxy proxy
+     *
+     * @param proxy     proxy
      * @param urlParser connection string Object.
      * @return a new MastersSlavesProtocol instance
      */

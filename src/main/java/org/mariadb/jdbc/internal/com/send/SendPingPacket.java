@@ -59,6 +59,7 @@ public class SendPingPacket implements InterfaceSendPacket {
 
     /**
      * Send a Mysql protocol "ping" to check connection is alive.
+     *
      * @param pos database socket
      * @throws IOException if any connection error occur
      */

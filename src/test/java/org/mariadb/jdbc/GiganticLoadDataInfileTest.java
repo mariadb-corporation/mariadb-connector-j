@@ -16,6 +16,7 @@ public class GiganticLoadDataInfileTest extends BaseTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()

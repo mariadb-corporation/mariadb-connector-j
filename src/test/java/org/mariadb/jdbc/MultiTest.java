@@ -225,7 +225,7 @@ public class MultiTest extends BaseTest {
         if (rs.next()) {
             long maxAllowedPacket = rs.getInt(1);
             Assume.assumeTrue(maxAllowedPacket < 512 * 1024 * 1024L);
-            int totalInsertCommands = (int) Math.ceil( maxAllowedPacket / 10050);
+            int totalInsertCommands = (int) Math.ceil(maxAllowedPacket / 10050);
             verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean.TRUE, totalInsertCommands);
         } else {
             fail();
@@ -248,6 +248,7 @@ public class MultiTest extends BaseTest {
 
     /**
      * CONJ-329 error for rewrite without parameter.
+     *
      * @throws SQLException if exception occur
      */
     @Test
@@ -261,6 +262,7 @@ public class MultiTest extends BaseTest {
 
     /**
      * CONJ-330 - correction using execute...() for rewriteBatchedStatements
+     *
      * @throws SQLException if exception occur
      */
     @Test
@@ -952,6 +954,7 @@ public class MultiTest extends BaseTest {
     /**
      * Test that using -1 (last prepared Statement), if next execution has parameter corresponding,
      * previous prepare will not be used.
+     *
      * @throws Throwable if any error.
      */
     @Test

@@ -52,18 +52,17 @@ package org.mariadb.jdbc.internal.failover.impl;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.AbstractMastersSlavesListener;
+import org.mariadb.jdbc.internal.failover.HandleErrorResult;
 import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
-import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
-import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.failover.HandleErrorResult;
 import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
@@ -76,12 +75,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * this class handle the operation when multiple hosts.
  */
 public class MastersSlavesListener extends AbstractMastersSlavesListener {
-    private static Logger logger = LoggerFactory.getLogger(MastersSlavesListener.class);
-
-    protected Protocol masterProtocol;
-    protected Protocol secondaryProtocol;
     private static final DynamicSizedSchedulerInterface dynamicSizedScheduler;
     private static final AtomicInteger listenerCount = new AtomicInteger();
+    private static Logger logger = LoggerFactory.getLogger(MastersSlavesListener.class);
 
     static {
         dynamicSizedScheduler = SchedulerServiceProviderHolder.getScheduler(1, "failover", 8);
@@ -123,6 +119,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         }, 1, 2, TimeUnit.MINUTES);
     }
 
+    protected Protocol masterProtocol;
+    protected Protocol secondaryProtocol;
+
     /**
      * Initialisation.
      *
@@ -146,20 +145,20 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     /**
      * Initialize connections.
      *
-     * @throws QueryException if a connection error append.
+     * @throws SQLException if a connection error append.
      */
     @Override
-    public void initializeConnection() throws QueryException {
+    public void initializeConnection() throws SQLException {
         super.initializeConnection();
         try {
             reconnectFailedConnection(new SearchFilter(true));
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             //initializeConnection failed
             checkInitialConnection(e);
         }
     }
 
-    protected void checkInitialConnection(QueryException queryException) throws QueryException {
+    protected void checkInitialConnection(SQLException queryException) throws SQLException {
         if (this.secondaryProtocol == null || !this.secondaryProtocol.isConnected()) {
             setSecondaryHostFail();
         } else {
@@ -201,7 +200,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     }
 
     @Override
-    public void preExecute() throws QueryException {
+    public void preExecute() throws SQLException {
         lastQueryNanos = System.nanoTime();
         checkWaitingConnection();
         //if connection is closed or failed on slave
@@ -215,9 +214,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      * Verify that there is waiting connection that have to replace failing one.
      * If there is replace failed connection with new one.
      *
-     * @throws QueryException if error occur
+     * @throws SQLException if error occur
      */
-    public void checkWaitingConnection() throws QueryException {
+    public void checkWaitingConnection() throws SQLException {
         if (isSecondaryHostFail()) {
             proxy.lock.lock();
             try {
@@ -247,9 +246,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     /**
      * Loop to connect.
      *
-     * @throws QueryException if there is any error during reconnection
+     * @throws SQLException if there is any error during reconnection
      */
-    public void reconnectFailedConnection(SearchFilter searchFilter) throws QueryException {
+    public void reconnectFailedConnection(SearchFilter searchFilter) throws SQLException {
         if (!searchFilter.isInitialConnection()
                 && (isExplicitClosed()
                 || (searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
@@ -375,8 +374,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      * Method called when a new secondary connection is found after a fallback.
      *
      * @param newSecondaryProtocol the new active connection
+     * @throws SQLException if switch failed
      */
-    public void foundActiveSecondary(Protocol newSecondaryProtocol) throws QueryException {
+    public void foundActiveSecondary(Protocol newSecondaryProtocol) throws SQLException {
         if (isSecondaryHostFail()) {
             if (isExplicitClosed()) {
                 newSecondaryProtocol.close();
@@ -403,9 +403,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      * Use the parameter newSecondaryProtocol as new current secondary connection.
      *
      * @param newSecondaryProtocol new secondary connection
-     * @throws QueryException if an error occur during setting session read-only
+     * @throws SQLException if an error occur during setting session read-only
      */
-    public void lockAndSwitchSecondary(Protocol newSecondaryProtocol) throws QueryException {
+    public void lockAndSwitchSecondary(Protocol newSecondaryProtocol) throws SQLException {
         if (secondaryProtocol != null && !secondaryProtocol.isClosed()) {
             secondaryProtocol.close();
         }
@@ -433,10 +433,10 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      * Switch to a read-only(secondary) or read and write connection(master).
      *
      * @param mustBeReadOnly the read-only status asked
-     * @throws QueryException if operation hasn't change protocol
+     * @throws SQLException if operation hasn't change protocol
      */
     @Override
-    public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws QueryException {
+    public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws SQLException {
         checkWaitingConnection();
         if (currentReadOnlyAsked != mustBeReadOnly) {
             proxy.lock.lock();
@@ -458,7 +458,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                                 currentProtocol = this.secondaryProtocol;
                                 //current connection is now secondary
                                 return;
-                            } catch (QueryException e) {
+                            } catch (SQLException e) {
                                 //switching to secondary connection failed
                                 if (setSecondaryHostFail()) {
                                     addToBlacklist(secondaryProtocol.getHostAddress());
@@ -480,14 +480,14 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                                 currentProtocol = this.masterProtocol;
                                 //current connection is now master
                                 return;
-                            } catch (QueryException e) {
+                            } catch (SQLException e) {
                                 //switching to master connection failed
                                 if (setMasterHostFail()) {
                                     addToBlacklist(masterProtocol.getHostAddress());
                                 }
                             }
                         }
-    
+
                         try {
                             reconnectFailedConnection(new SearchFilter(true, false));
                             handleFailLoop();
@@ -496,20 +496,20 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                             try {
                                 syncConnection(this.secondaryProtocol, this.masterProtocol);
                                 currentProtocol = this.masterProtocol;
-                            } catch (QueryException e) {
+                            } catch (SQLException e) {
                                 //switching to master connection failed
                                 if (setMasterHostFail()) {
                                     addToBlacklist(masterProtocol.getHostAddress());
                                 }
                             }
-                        } catch (QueryException e) {
+                        } catch (SQLException e) {
                             //stop failover, since we will throw a connection exception that will close the connection.
                             FailoverLoop.removeListener(this);
                             HostAddress failHost = (this.masterProtocol != null) ? this.masterProtocol.getHostAddress() : null;
-                            throwFailoverMessage(failHost, true, new QueryException("master "
+                            throwFailoverMessage(failHost, true, new SQLException("master "
                                     + masterProtocol.getHostAddress() + " connection failed"), false);
                         }
-    
+
                     }
                 }
             } finally {
@@ -538,7 +538,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 }
                 return relaunchOperation(method, args);
             }
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             proxy.lock.lock();
             try {
                 masterProtocol.close();
@@ -583,7 +583,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             handleFailLoop();
             if (currentReadOnlyAsked //use master connection temporary in replacement of slave
                     || alreadyClosed //connection was already close
-                    || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args) )) { //connection was not in transaction
+                    || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args))) { //connection was not in transaction
 
                 //can relaunch query
                 logger.info("Connection to master lost, new master " + currentProtocol.getHostAddress() + ", conn:"
@@ -616,9 +616,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     /**
      * Reconnect failed connection.
      *
-     * @throws QueryException if reconnection has failed
+     * @throws SQLException if reconnection has failed
      */
-    public void reconnect() throws QueryException {
+    public void reconnect() throws SQLException {
         SearchFilter filter;
         boolean inTransaction = false;
         if (currentReadOnlyAsked) {
@@ -744,7 +744,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     }
 
     @Override
-    public void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustBeOnMaster) throws QueryException {
+    public void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustBeOnMaster) throws SQLException {
         if (isSecondaryHostFail()) {
             Protocol waitingProtocol = waitNewSecondaryProtocol.getAndSet(null);
             if (waitingProtocol != null) {
@@ -766,7 +766,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             //release prepare on master
             try {
                 serverPrepareResult.getUnProxiedProtocol().releasePrepareStatement(serverPrepareResult);
-            } catch (QueryException exception) {
+            } catch (SQLException exception) {
                 //released failed.
             }
 

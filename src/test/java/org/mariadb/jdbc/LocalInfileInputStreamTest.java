@@ -5,13 +5,17 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.*;
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 import static org.junit.Assert.*;
 
 public class LocalInfileInputStreamTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -126,10 +130,11 @@ public class LocalInfileInputStreamTest extends BaseTest {
     public void testPrepareLocalInfileWithoutInputStream() throws SQLException {
         try {
             PreparedStatement st = sharedConnection.prepareStatement("LOAD DATA LOCAL INFILE 'validateInfile.tsv' "
-                    + "INTO TABLE t (id, test)");
+                    + "INTO TABLE ldinfile");
             st.execute();
             fail();
         } catch (SQLException e) {
+            assertTrue(e.getMessage().contains("Could not send file"));
             //check that connection is alright
             try {
                 assertFalse(sharedConnection.isClosed());
@@ -177,16 +182,16 @@ public class LocalInfileInputStreamTest extends BaseTest {
                 MariaDbStatement stmt = statement.unwrap(MariaDbStatement.class);
                 stmt.setLocalInfileInputStream(is);
                 int insertNumber = stmt.executeUpdate("LOAD DATA LOCAL INFILE 'ignoredFileName' "
-                            + "INTO TABLE `infile` "
-                            + "COLUMNS TERMINATED BY ',' ENCLOSED BY '\\\"' ESCAPED BY '\\\\' "
-                            + "LINES TERMINATED BY '\\n' (`a`, `b`)");
+                        + "INTO TABLE `infile` "
+                        + "COLUMNS TERMINATED BY ',' ENCLOSED BY '\\\"' ESCAPED BY '\\\\' "
+                        + "LINES TERMINATED BY '\\n' (`a`, `b`)");
                 assertEquals(insertNumber, recordNumber);
             }
 
             statement.setFetchSize(1000); //to avoid using too much memory for tests
             try (ResultSet rs = statement.executeQuery("SELECT * FROM `infile`")) {
                 for (int i = 0; i < recordNumber; i++) {
-                    assertTrue("record " + i + " doesn't exist",rs.next());
+                    assertTrue("record " + i + " doesn't exist", rs.next());
                     assertEquals("a", rs.getString(1));
                     assertEquals("b", rs.getString(2));
                 }

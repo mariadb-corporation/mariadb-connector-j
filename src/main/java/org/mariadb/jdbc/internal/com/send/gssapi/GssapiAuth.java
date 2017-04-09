@@ -52,9 +52,9 @@ package org.mariadb.jdbc.internal.com.send.gssapi;
 
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 public abstract class GssapiAuth {
 
@@ -67,5 +67,5 @@ public abstract class GssapiAuth {
     }
 
     public abstract void authenticate(final PacketOutputStream writer, final String serverPrincipalName, final String mechanisms)
-            throws QueryException, IOException;
+            throws SQLException, IOException;
 }

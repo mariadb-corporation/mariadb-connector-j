@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.protocol;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
@@ -58,19 +58,22 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.IOException;
+import java.sql.SQLException;
+import java.sql.SQLTransientConnectionException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
 
 public abstract class AbstractMultiSend {
 
-
+    protected int statementId = -1;
+    protected ColumnType[] parameterTypeHeader;
     private Protocol protocol;
     private PacketOutputStream writer;
     private Results results;
@@ -80,8 +83,6 @@ public abstract class AbstractMultiSend {
     private boolean binaryProtocol;
     private boolean readPrepareStmtResult;
     private String sql;
-    int statementId = -1;
-    MariaDbType[] parameterTypeHeader;
 
     /**
      * Bulk execute for Server PreparedStatement.executeBatch (when no COM_MULTI)
@@ -145,12 +146,12 @@ public abstract class AbstractMultiSend {
 
     public abstract void sendCmd(PacketOutputStream writer, Results results,
                                  List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
-                                 PrepareResult prepareResult) throws QueryException, IOException;
+                                 PrepareResult prepareResult) throws SQLException, IOException;
 
-    public abstract QueryException handleResultException(QueryException qex, Results results,
+    public abstract SQLException handleResultException(SQLException qex, Results results,
                                                          List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
                                                          int sendCmdCounter, int paramCount, PrepareResult prepareResult)
-            throws QueryException;
+            throws SQLException;
 
     public abstract int getParamCount();
 
@@ -165,13 +166,13 @@ public abstract class AbstractMultiSend {
      * Execute Bulk execution (send packets by batch of  useBatchMultiSendNumber or when max packet is reached) before reading results.
      *
      * @return prepare result
-     * @throws QueryException if any error occur
+     * @throws SQLException if any error occur
      */
-    public PrepareResult executeBatch() throws QueryException {
+    public PrepareResult executeBatch() throws SQLException {
         int paramCount = getParamCount();
         if (binaryProtocol) {
             if (readPrepareStmtResult) {
-                parameterTypeHeader = new MariaDbType[paramCount];
+                parameterTypeHeader = new ColumnType[paramCount];
                 if (prepareResult == null && protocol.getOptions().cachePrepStmts) {
                     String key = new StringBuilder(protocol.getDatabase()).append("-").append(sql).toString();
                     prepareResult = protocol.prepareStatementCache().get(key);
@@ -193,11 +194,11 @@ public abstract class AbstractMultiSend {
      *
      * @param paramCount parameter counter
      * @return prepare result
-     * @throws QueryException if any error occur
+     * @throws SQLException if any error occur
      */
-    private PrepareResult executeBatchStandard(int paramCount) throws QueryException {
+    private PrepareResult executeBatchStandard(int paramCount) throws SQLException {
         int totalExecutionNumber = getTotalExecutionNumber();
-        QueryException exception = null;
+        SQLException exception = null;
         BulkStatus status = new BulkStatus();
 
         ComStmtPrepare comStmtPrepare = null;
@@ -218,16 +219,12 @@ public abstract class AbstractMultiSend {
                     comStmtPrepare.send(writer);
 
                     //read prepare result
-                    try {
-                        prepareResult = comStmtPrepare.read(protocol.getReader());
-                        statementId = ((ServerPrepareResult) prepareResult).getStatementId();
-                        paramCount = getParamCount();
-                    } catch (QueryException queryException) {
-                        throw queryException;
-                    }
+                    prepareResult = comStmtPrepare.read(protocol.getReader());
+                    statementId = ((ServerPrepareResult) prepareResult).getStatementId();
+                    paramCount = getParamCount();
                 }
 
-                for (; status.sendSubCmdCounter < requestNumberByBulk;) {
+                for (; status.sendSubCmdCounter < requestNumberByBulk; ) {
                     sendCmd(writer, results, parametersList, queries, paramCount, status, prepareResult);
                     status.sendSubCmdCounter++;
                     status.sendCmdCounter++;
@@ -244,6 +241,7 @@ public abstract class AbstractMultiSend {
                 protocol.changeSocketTcpNoDelay(protocol.getOptions().tcpNoDelay);
                 try {
                     AsyncMultiReadResult asyncMultiReadResult = futureReadTask.get();
+
                     if (binaryProtocol && prepareResult == null && asyncMultiReadResult.getPrepareResult() != null) {
                         prepareResult = asyncMultiReadResult.getPrepareResult();
                         statementId = ((ServerPrepareResult) prepareResult).getStatementId();
@@ -259,13 +257,13 @@ public abstract class AbstractMultiSend {
                     }
                 } catch (ExecutionException executionException) {
                     if (executionException.getCause() == null) {
-                        throw new QueryException("Error reading results " + executionException.getMessage());
+                        throw new SQLException("Error reading results " + executionException.getMessage());
                     }
-                    throw new QueryException("Error reading results " + executionException.getCause().getMessage());
+                    throw new SQLException("Error reading results " + executionException.getCause().getMessage());
                 } catch (InterruptedException interruptedException) {
                     protocol.setActiveFutureTask(futureReadTask);
                     Thread.currentThread().interrupt();
-                    throw new QueryException("Interrupted awaiting response ", -1, INTERRUPTED_EXCEPTION.getSqlState(), interruptedException);
+                    throw new SQLException("Interrupted awaiting response ", INTERRUPTED_EXCEPTION.getSqlState(), interruptedException);
                 } finally {
                     //bulk can prepare, and so if prepare cache is enable, can replace an already cached prepareStatement
                     //this permit to release those old prepared statement without conflict.

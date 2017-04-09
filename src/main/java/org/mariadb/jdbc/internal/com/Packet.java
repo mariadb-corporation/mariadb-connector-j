@@ -66,6 +66,15 @@ public class Packet {
     public static final byte COM_PING = (byte) 0x0e;
     public static final byte COM_STMT_PREPARE = (byte) 0x16;
     public static final byte COM_STMT_EXECUTE = (byte) 0x17;
+    public static final byte COM_STMT_FETCH = (byte) 0x1c;
     public static final byte COM_STMT_SEND_LONG_DATA = (byte) 0x18;
     public static final byte COM_STMT_CLOSE = (byte) 0x19;
+
+
+    //prepare statement cursor flag.
+    public static final byte CURSOR_TYPE_NO_CURSOR  = (byte) 0x00;
+    public static final byte CURSOR_TYPE_READ_ONLY  = (byte) 0x01;
+    public static final byte CURSOR_TYPE_FOR_UPDATE = (byte) 0x02;
+    public static final byte CURSOR_TYPE_SCROLLABLE = (byte) 0x04; //reserved, but not implemented server side
+
 }

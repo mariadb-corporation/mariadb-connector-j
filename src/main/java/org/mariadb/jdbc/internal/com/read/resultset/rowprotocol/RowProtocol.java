@@ -56,6 +56,11 @@ public abstract class RowProtocol {
     public int pos;
     public int length;
     protected int index;
+    public int maxFieldSize;
+
+    public RowProtocol(int maxFieldSize) {
+        this.maxFieldSize = maxFieldSize;
+    }
 
     public void resetRow(byte[] buf) {
         this.buf = buf;
@@ -64,4 +69,11 @@ public abstract class RowProtocol {
 
     public abstract boolean setPosition(int position);
 
+    public int getLengthMaxFieldSize() {
+        return maxFieldSize != 0 && maxFieldSize < length ? maxFieldSize : length;
+    }
+
+    public int getMaxFieldSize() {
+        return maxFieldSize;
+    }
 }

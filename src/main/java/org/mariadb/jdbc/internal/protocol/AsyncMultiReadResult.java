@@ -1,11 +1,12 @@
 package org.mariadb.jdbc.internal.protocol;
 
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
+
+import java.sql.SQLException;
 
 public class AsyncMultiReadResult {
     private PrepareResult prepareResult;
-    private QueryException exception;
+    private SQLException exception;
 
     public AsyncMultiReadResult(PrepareResult prepareResult) {
         this.prepareResult = prepareResult;
@@ -20,11 +21,11 @@ public class AsyncMultiReadResult {
         this.prepareResult = prepareResult;
     }
 
-    public QueryException getException() {
+    public SQLException getException() {
         return exception;
     }
 
-    public void setException(QueryException exception) {
+    public void setException(SQLException exception) {
         this.exception = exception;
     }
 }

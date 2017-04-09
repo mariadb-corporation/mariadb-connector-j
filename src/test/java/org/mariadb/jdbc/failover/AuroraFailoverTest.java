@@ -1,7 +1,7 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
-import org.mariadb.jdbc.MariaDbServerPreparedStatement;
+import org.mariadb.jdbc.MariaDbPreparedStatementServer;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
@@ -17,7 +17,7 @@ import static org.junit.Assert.*;
  * - AURORA_ACCESS_KEY = access key
  * - AURORA_SECRET_KEY = secret key
  * - AURORA_CLUSTER_IDENTIFIER = cluster identifier. example : -DAURORA_CLUSTER_IDENTIFIER=instance-1-cluster
- *
+ * <p>
  * "AURORA" environment variable must be set to a value
  */
 public class AuroraFailoverTest extends BaseReplication {
@@ -208,6 +208,7 @@ public class AuroraFailoverTest extends BaseReplication {
     /**
      * Test failover on prepareStatement on slave.
      * PrepareStatement must fall back on master, and back on slave when a new slave connection is up again.
+     *
      * @throws Throwable if any error occur
      */
     @Test
@@ -321,14 +322,14 @@ public class AuroraFailoverTest extends BaseReplication {
             int nbExceptionBeforeUp = 0;
             boolean failLaunched = false;
             PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
-            assertEquals(1L, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
+            assertEquals(1L, getPrepareResult((MariaDbPreparedStatementServer) preparedStatement1).getStatementId());
             connection.prepareStatement(" select 1");
 
             while (nbExceptionBeforeUp < 1000) {
                 try {
                     PreparedStatement preparedStatement = connection.prepareStatement(" select 1");
                     preparedStatement.executeQuery();
-                    long currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
+                    long currentPrepareId = getPrepareResult((MariaDbPreparedStatementServer) preparedStatement).getStatementId();
                     if (nbExceptionBeforeUp > 0) {
                         assertEquals(1L, currentPrepareId);
                         break;
@@ -364,13 +365,13 @@ public class AuroraFailoverTest extends BaseReplication {
             int nbExecutionBeforeRePrepared = 0;
             boolean failLaunched = false;
             PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
-            assertEquals(1L, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
+            assertEquals(1L, getPrepareResult((MariaDbPreparedStatementServer) preparedStatement1).getStatementId());
             connection.prepareStatement("select @@innodb_read_only as is_read_only");
             long currentPrepareId = 0;
             while (nbExecutionBeforeRePrepared < 1000) {
                 PreparedStatement preparedStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");
                 preparedStatement.executeQuery();
-                currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
+                currentPrepareId = getPrepareResult((MariaDbPreparedStatementServer) preparedStatement).getStatementId();
 
                 if (nbExecutionBeforeRePrepared == 0) {
                     assertEquals(2, currentPrepareId);

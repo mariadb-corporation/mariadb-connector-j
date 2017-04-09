@@ -52,7 +52,6 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.DefaultOptions;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -72,8 +71,9 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
 
     /**
      * Constructor.
+     *
      * @param hostname hostname (ipv4, ipv6, dns name)
-     * @param port server port
+     * @param port     server port
      * @param database database name
      * @throws SQLException exception if connection failed
      */
@@ -255,7 +255,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
             ReentrantLock lock = new ReentrantLock();
             Protocol proxyfiedProtocol = Utils.retrieveProxy(urlParser, lock);
             return MariaDbConnection.newConnection(urlParser.getInitialUrl(), proxyfiedProtocol, lock);
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             ExceptionMapper.throwException(e, null, null);
             return null;
         }
@@ -361,7 +361,15 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @since 1.6
      */
     public <T> T unwrap(final Class<T> iface) throws SQLException {
-        return null;
+        try {
+            if (isWrapperFor(iface)) {
+                return iface.cast(this);
+            } else {
+                throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+            }
+        } catch (Exception e) {
+            throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+        }
     }
 
     /**
@@ -373,14 +381,14 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * <code>unwrap</code> calls that may fail. If this method returns true then calling <code>unwrap</code> with the
      * same argument should succeed.
      *
-     * @param iface a Class defining an interface.
+     * @param interfaceOrWrapper a Class defining an interface.
      * @return true if this implements the interface or directly or indirectly wraps an object that does.
      * @throws SQLException if an error occurs while determining whether this is a wrapper for an object with
-     *                               the given interface.
+     *                      the given interface.
      * @since 1.6
      */
-    public boolean isWrapperFor(final Class<?> iface) throws SQLException {
-        return false;
+    public boolean isWrapperFor(final Class<?> interfaceOrWrapper) throws SQLException {
+        return interfaceOrWrapper.isInstance(this);
     }
 
     /**
@@ -391,8 +399,8 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * connection to the database that this
      * <code>ConnectionPoolDataSource</code> object represents
      * @throws SQLException if a database access error occurs
-     *                               if the JDBC driver does not support
-     *                               this method
+     *                      if the JDBC driver does not support
+     *                      this method
      * @since 1.4
      */
     public PooledConnection getPooledConnection() throws SQLException {
@@ -426,7 +434,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
     }
 
     public Logger getParentLogger() throws SQLFeatureNotSupportedException {
-        // TODO Auto-generated method stub
         return null;
     }
+
 }

@@ -98,7 +98,8 @@ public class UrlParser {
     private HaMode haMode;
     private String initialUrl;
 
-    private UrlParser() { }
+    private UrlParser() {
+    }
 
     protected UrlParser(String database, List<HostAddress> addresses, Options options, HaMode haMode) {
         this.options = options;

@@ -49,7 +49,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.read.resultset.rowprotocol;
 
-import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 
 public class BinaryRowProtocol extends RowProtocol {
@@ -61,8 +60,10 @@ public class BinaryRowProtocol extends RowProtocol {
      *
      * @param columnInformation       column information.
      * @param columnInformationLength number of columns
+     * @param maxFieldSize            max field size
      */
-    public BinaryRowProtocol(ColumnInformation[] columnInformation, int columnInformationLength) {
+    public BinaryRowProtocol(ColumnInformation[] columnInformation, int columnInformationLength, int maxFieldSize) {
+        super(maxFieldSize);
         this.columnInformation = columnInformation;
         this.columnInformationLength = columnInformationLength;
     }
@@ -95,7 +96,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 if ((buf[1 + (counter + 2) / 8] & (1 << ((counter + 2) % 8))) == 0) {
                     if (counter != newIndex) {
                         //skip bytes
-                        switch (columnInformation[counter].getType()) {
+                        switch (columnInformation[counter].getColumnType()) {
                             case BIGINT:
                             case DOUBLE:
                                 pos += 8;
@@ -146,7 +147,7 @@ public class BinaryRowProtocol extends RowProtocol {
                         }
                     } else {
                         //read real pos
-                        switch (columnInformation[counter].getType()) {
+                        switch (columnInformation[counter].getColumnType()) {
                             case BIGINT:
                             case DOUBLE:
                                 length = 8;

@@ -61,6 +61,7 @@ public class SendClearPasswordAuthPacket extends AbstractAuthSwitchSendResponseP
 
     /**
      * Send native password stream.
+     *
      * @param pos database socket
      * @throws IOException if a connection error occur
      */

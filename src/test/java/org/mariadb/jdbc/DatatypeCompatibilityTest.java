@@ -16,6 +16,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
 
     /**
      * Initialization.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()

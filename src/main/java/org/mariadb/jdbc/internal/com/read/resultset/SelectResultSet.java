@@ -52,7 +52,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.com.read.resultset;
 
 import org.mariadb.jdbc.*;
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.EndOfFilePacket;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
@@ -62,6 +62,7 @@ import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.com.Packet;
+import org.mariadb.jdbc.internal.com.send.ComStmtFetch;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.com.read.dao.ColumnNameMap;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
@@ -70,40 +71,70 @@ import org.mariadb.jdbc.internal.util.ExceptionCode;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.util.constant.ServerStatus;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.*;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Date;
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
+import static org.mariadb.jdbc.internal.util.constant.ServerStatus.*;
 
 @SuppressWarnings("deprecation")
-public class MariaSelectResultSet implements ResultSet {
-    private static Logger logger = LoggerFactory.getLogger(MariaSelectResultSet.class);
+public class SelectResultSet implements ResultSet {
+    private static Logger logger = LoggerFactory.getLogger(SelectResultSet.class);
 
     private static final ColumnInformation[] INSERT_ID_COLUMNS;
+    public static final DateTimeFormatter TEXT_LOCAL_DATE_TIME;
+    public static final DateTimeFormatter TEXT_OFFSET_DATE_TIME;
+    public static final DateTimeFormatter TEXT_ZONED_DATE_TIME;
 
     static {
         INSERT_ID_COLUMNS = new ColumnInformation[1];
-        INSERT_ID_COLUMNS[0] = ColumnInformation.create("insert_id", MariaDbType.BIGINT);
+        INSERT_ID_COLUMNS[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
+        TEXT_LOCAL_DATE_TIME = new DateTimeFormatterBuilder()
+                .parseCaseInsensitive()
+                .append(DateTimeFormatter.ISO_LOCAL_DATE)
+                .appendLiteral(' ')
+                .append(DateTimeFormatter.ISO_LOCAL_TIME)
+                .toFormatter();
+
+        TEXT_OFFSET_DATE_TIME = new DateTimeFormatterBuilder()
+                .parseCaseInsensitive()
+                .append(TEXT_LOCAL_DATE_TIME)
+                .appendOffsetId()
+                .toFormatter();
+
+        TEXT_ZONED_DATE_TIME = new DateTimeFormatterBuilder()
+                .append(TEXT_OFFSET_DATE_TIME)
+                .optionalStart()
+                .appendLiteral('[')
+                .parseCaseSensitive()
+                .appendZoneRegionId()
+                .appendLiteral(']')
+                .toFormatter();
     }
 
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
+    private static final String zeroTimestamp = "0000-00-00 00:00:00";
+    private static final String zeroDate = "0000-00-00";
     private static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.0+$");
-
+    private boolean callableResult;
     private Protocol protocol;
     private PacketInputStream reader;
 
@@ -112,7 +143,7 @@ public class MariaSelectResultSet implements ResultSet {
     private ColumnInformation[] columnsInformation;
 
     private boolean isEof;
-    private boolean isBinaryEncoded;
+    protected boolean isBinaryEncoded;
     private int dataFetchTime;
     private boolean streaming;
     private int columnInformationLength;
@@ -122,15 +153,15 @@ public class MariaSelectResultSet implements ResultSet {
     private int resultSetScrollType;
     private int rowPointer;
     private ColumnNameMap columnNameMap;
-    private Calendar cal;
+    protected TimeZone timeZone;
     private boolean lastGetWasNull;
     private boolean lastValueNull;
     private int lastRowPointer = -1;
     private int dataTypeMappingFlags;
-    private Options options;
+    protected Options options;
     private boolean returnTableAlias;
     private boolean isClosed;
-    public boolean callableResult;
+    private ComStmtFetch cursorFetch;
 
     /**
      * Create Streaming resultSet.
@@ -141,27 +172,19 @@ public class MariaSelectResultSet implements ResultSet {
      * @param reader              stream fetcher
      * @param callableResult      is it from a callableStatement ?
      * @throws IOException if any connection error occur
-     * @throws QueryException if any connection error occur
+     * @throws SQLException if any connection error occur
      */
-    public MariaSelectResultSet(ColumnInformation[] columnInformation, Results results, Protocol protocol,
+    public SelectResultSet(ColumnInformation[] columnInformation, Results results, Protocol protocol,
                                 PacketInputStream reader, boolean callableResult)
-            throws IOException, QueryException {
+            throws IOException, SQLException {
 
         this.statement = results.getStatement();
         this.isClosed = false;
         this.protocol = protocol;
-
-        if (protocol != null) {
-            this.options = protocol.getOptions();
-            this.cal = protocol.getCalendar();
-            this.dataTypeMappingFlags = protocol.getDataTypeMappingFlags();
-            this.returnTableAlias = this.options.useOldAliasMetadataBehavior;
-        } else {
-            this.options = null;
-            this.cal = null;
-            this.dataTypeMappingFlags = 3;
-            this.returnTableAlias = false;
-        }
+        this.options = protocol.getOptions();
+        this.timeZone = protocol.getTimeZone();
+        this.dataTypeMappingFlags = protocol.getDataTypeMappingFlags();
+        this.returnTableAlias = this.options.useOldAliasMetadataBehavior;
         this.columnsInformation = columnInformation;
         this.columnNameMap = new ColumnNameMap(columnsInformation);
 
@@ -170,9 +193,9 @@ public class MariaSelectResultSet implements ResultSet {
         this.isEof = false;
         this.isBinaryEncoded = results.isBinaryFormat();
         if (isBinaryEncoded) {
-            row = new BinaryRowProtocol(columnsInformation, columnInformationLength);
+            row = new BinaryRowProtocol(columnsInformation, columnInformationLength, results.getMaxFieldSize());
         } else {
-            row = new TextRowProtocol();
+            row = new TextRowProtocol(results.getMaxFieldSize());
         }
         this.fetchSize = results.getFetchSize();
         this.resultSetScrollType = results.getResultSetScrollType();
@@ -186,6 +209,7 @@ public class MariaSelectResultSet implements ResultSet {
             fetchAllResults();
             streaming = false;
         } else {
+            cursorFetch = results.getCursorFetch();
             protocol.setActiveStreamingResult(results);
             resultSet = new ArrayList<>(fetchSize);
             nextStreamingValue();
@@ -194,28 +218,29 @@ public class MariaSelectResultSet implements ResultSet {
 
     }
 
+
     /**
-     * Create filled resultset.
+     * Create filled result-set.
      *
      * @param columnInformation   column information
-     * @param resultSet           resultset
+     * @param resultSet           result-set data
      * @param protocol            current protocol
      * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
      *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      */
-    public MariaSelectResultSet(ColumnInformation[] columnInformation, List<byte[]> resultSet, Protocol protocol,
+    public SelectResultSet(ColumnInformation[] columnInformation, List<byte[]> resultSet, Protocol protocol,
                                 int resultSetScrollType) {
         this.statement = null;
         this.isClosed = false;
-        this.row = new TextRowProtocol();
+        this.row = new TextRowProtocol(0);
         if (protocol != null) {
             this.options = protocol.getOptions();
-            this.cal = protocol.getCalendar();
+            this.timeZone = protocol.getTimeZone();
             this.dataTypeMappingFlags = protocol.getDataTypeMappingFlags();
             this.returnTableAlias = this.options.useOldAliasMetadataBehavior;
         } else {
             this.options = null;
-            this.cal = null;
+            this.timeZone = TimeZone.getDefault();
             this.dataTypeMappingFlags = 3;
             this.returnTableAlias = false;
         }
@@ -247,7 +272,7 @@ public class MariaSelectResultSet implements ResultSet {
      */
     public static ResultSet createGeneratedData(long[] data, Protocol protocol, boolean findColumnReturnsOne) {
         ColumnInformation[] columns = new ColumnInformation[1];
-        columns[0] = ColumnInformation.create("insert_id", MariaDbType.BIGINT);
+        columns[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
 
         List<byte[]> rows = new ArrayList<>();
         for (long rowData : data) {
@@ -256,19 +281,19 @@ public class MariaSelectResultSet implements ResultSet {
             }
         }
         if (findColumnReturnsOne) {
-            return new MariaSelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE) {
+            return new SelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE) {
                 @Override
                 public int findColumn(String name) {
                     return 1;
                 }
             };
         }
-        return new MariaSelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
+        return new SelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
     }
 
 
     /**
-     * Create a result set from given data. Useful for creating "fake" resultsets for DatabaseMetaData, (one example is
+     * Create a result set from given data. Useful for creating "fake" resultSets for DatabaseMetaData, (one example is
      * MariaDbDatabaseMetaData.getTypeInfo())
      *
      * @param columnNames - string array of column names
@@ -278,7 +303,7 @@ public class MariaSelectResultSet implements ResultSet {
      * @param protocol    protocol
      * @return resultset
      */
-    public static ResultSet createResultSet(String[] columnNames, MariaDbType[] columnTypes, String[][] data,
+    public static ResultSet createResultSet(String[] columnNames, ColumnType[] columnTypes, String[][] data,
                                             Protocol protocol) {
         int columnNameLength = columnNames.length;
         ColumnInformation[] columns = new ColumnInformation[columnNameLength];
@@ -299,15 +324,15 @@ public class MariaSelectResultSet implements ResultSet {
             }
             rows.add(StandardPacketInputStream.create(rowBytes, columnTypes));
         }
-        return new MariaSelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
+        return new SelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
     }
 
-    public static MariaSelectResultSet createEmptyResultSet() {
-        return new MariaSelectResultSet(INSERT_ID_COLUMNS, new ArrayList<byte[]>(), null,
+    public static SelectResultSet createEmptyResultSet() {
+        return new SelectResultSet(INSERT_ID_COLUMNS, new ArrayList<byte[]>(), null,
                 TYPE_SCROLL_SENSITIVE);
     }
 
-    private void fetchAllResults() throws IOException, QueryException {
+    private void fetchAllResults() throws IOException, SQLException {
 
         final List<byte[]> valueObjects = new ArrayList<>();
         while (readNextValue(valueObjects)) {
@@ -331,8 +356,8 @@ public class MariaSelectResultSet implements ResultSet {
                     ReentrantLock lock = protocol.getLock();
                     lock.lock();
                     try {
-                        while (readNextValue(resultSet)) {
-                            //fetch all results
+                        while (!isEof) {
+                            addStreamingValue();
                         }
                         resultSetSize = resultSet.size();
                     } finally {
@@ -341,47 +366,85 @@ public class MariaSelectResultSet implements ResultSet {
                 }
 
             } catch (IOException ioexception) {
-                throw new QueryException("Could not close resultSet : " + ioexception.getMessage(), -1, CONNECTION_EXCEPTION, ioexception);
+                throw new SQLException("Could not close resultSet : " + ioexception.getMessage(),
+                        CONNECTION_EXCEPTION.getSqlState(), ioexception);
             }
-        } catch (QueryException queryException) {
+        } catch (SQLException queryException) {
             ExceptionMapper.throwException(queryException, null, this.statement);
         }
 
         dataFetchTime++;
     }
 
+    private void fetchRemainingLock() throws SQLException {
+        if (!isEof) {
+            //load remaining results
+            ReentrantLock lock = protocol.getLock();
+            lock.lock();
+            try {
+                fetchRemaining();
+            } catch (SQLException ioe) {
+                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
+                        + " read off the result set relatively fast. "
+                        + "In this case, please consider increasing net_wait_timeout session variable."
+                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
+            } finally {
+                lock.unlock();
+            }
+        }
+    }
+
+
     /**
      * This permit to replace current stream results by next ones.
      *
      * @throws IOException if socket exception occur
-     * @throws QueryException if server return an unexpected error
+     * @throws SQLException if server return an unexpected error
      */
-    private void nextStreamingValue() throws IOException, QueryException {
+    private void nextStreamingValue() throws IOException, SQLException {
         lastRowPointer = -1;
 
         //if resultSet can be back to some previous value
         if (resultSetScrollType == TYPE_FORWARD_ONLY) resultSet.clear();
 
         addStreamingValue();
+
     }
 
     /**
      * This permit to add next streaming values to existing resultSet.
      *
      * @throws IOException if socket exception occur
-     * @throws QueryException if server return an unexpected error
+     * @throws SQLException if server return an unexpected error
      */
-    private void addStreamingValue() throws IOException, QueryException {
+    private void addStreamingValue() throws IOException, SQLException {
+        if (cursorFetch != null) {
+            ReentrantLock lock = protocol.getLock();
+            lock.lock();
+            try {
+                //use COM_STMT_FETCH to ask next resultSet with fetchSize rows
+                cursorFetch.send(protocol.getWriter(), fetchSize);
+                //fetch the whole next resultSet
+                while (readNextValue(resultSet)) {
+                    //read all
+                }
+            } finally {
+                lock.unlock();
+            }
 
-        //fetch maximum fetchSize results
-        int fetchSizeTmp = fetchSize;
-        while (fetchSizeTmp > 0 && readNextValue(resultSet)) {
-            fetchSizeTmp--;
+        } else {
+            //read only fetchSize values
+            int fetchSizeTmp = fetchSize;
+            while (fetchSizeTmp > 0 && readNextValue(resultSet)) {
+                fetchSizeTmp--;
+            }
+
         }
+
         dataFetchTime++;
         this.resultSetSize = resultSet.size();
-    }
 
+    }
 
     /**
      * Read next value.
@@ -389,9 +452,9 @@ public class MariaSelectResultSet implements ResultSet {
      * @param values values
      * @return true if have a new value
      * @throws IOException    exception
-     * @throws QueryException exception
+     * @throws SQLException exception
      */
-    public boolean readNextValue(List<byte[]> values) throws IOException, QueryException {
+    public boolean readNextValue(List<byte[]> values) throws IOException, SQLException {
         byte[] buf = reader.getPacketArray(false);
 
         //is error Packet
@@ -401,22 +464,27 @@ public class MariaSelectResultSet implements ResultSet {
             ErrorPacket errorPacket = new ErrorPacket(new Buffer(buf));
             protocol = null;
             reader = null;
+            isEof = true;
             if (statement != null) {
-                throw new QueryException("(conn:" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
-                        errorPacket.getErrorNumber(), errorPacket.getSqlState());
+                throw new SQLException("(conn:" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
+                        errorPacket.getSqlState(), errorPacket.getErrorNumber());
             } else {
-                throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
+                throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorNumber());
             }
         }
 
         //is EOF stream
-        if (buf[0] == Packet.EOF && reader.getLastPacketLength() < 9) {
-            isEof = true;
+        if ((buf[0] == Packet.EOF && reader.getLastPacketLength() < 9)) {
             protocol.setHasWarnings(((buf[1] & 0xff) + ((buf[2] & 0xff) << 8)) > 0);
-            protocol.setMoreResults(callableResult || (((buf[3] & 0xff) + ((buf[4] & 0xff) << 8)) & ServerStatus.MORE_RESULTS_EXISTS) != 0);
+            int serverStatus = ((buf[3] & 0xff) + ((buf[4] & 0xff) << 8));
+            protocol.setMoreResults(callableResult || (serverStatus & MORE_RESULTS_EXISTS) != 0);
             if (!protocol.hasMoreResults()) protocol.removeActiveStreamingResult();
-            protocol = null;
-            reader = null;
+
+            if ((serverStatus & CURSOR_EXISTS) == 0 || (serverStatus & LAST_ROW_SENT) != 0) {
+                isEof = true;
+                protocol = null;
+                reader = null;
+            }
             return false;
         }
 
@@ -429,7 +497,7 @@ public class MariaSelectResultSet implements ResultSet {
      */
     public void close() throws SQLException {
         isClosed = true;
-        if (protocol != null) {
+        if (protocol != null && cursorFetch == null) {
             ReentrantLock lock = protocol.getLock();
             lock.lock();
             try {
@@ -442,7 +510,7 @@ public class MariaSelectResultSet implements ResultSet {
                         protocol.removeActiveStreamingResult();
                         protocol.setMoreResults(false);
                         ErrorPacket errorPacket = new ErrorPacket(buffer);
-                        throw new QueryException(errorPacket.getMessage(), errorPacket.getErrorNumber(), errorPacket.getSqlState());
+                        throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorNumber());
                     }
 
                     //is EOF stream
@@ -450,7 +518,7 @@ public class MariaSelectResultSet implements ResultSet {
                         final EndOfFilePacket endOfFilePacket = new EndOfFilePacket(buffer);
 
                         protocol.setHasWarnings(endOfFilePacket.getWarningCount() > 0);
-                        protocol.setMoreResults(callableResult || (endOfFilePacket.getStatusFlags() & ServerStatus.MORE_RESULTS_EXISTS) != 0);
+                        protocol.setMoreResults(callableResult || (endOfFilePacket.getStatusFlags() & MORE_RESULTS_EXISTS) != 0);
                         if (!protocol.hasMoreResults()) protocol.removeActiveStreamingResult();
 
                         isEof = true;
@@ -458,15 +526,21 @@ public class MariaSelectResultSet implements ResultSet {
                 }
 
             } catch (IOException ioexception) {
-                ExceptionMapper.throwException(new QueryException("Could not close resultSet : "
-                        + ioexception.getMessage(), -1, CONNECTION_EXCEPTION, ioexception), null, this.statement);
-            } catch (QueryException queryException) {
+                ExceptionMapper.throwException(new SQLException(
+                        "Could not close resultSet : " + ioexception.getMessage(),
+                        CONNECTION_EXCEPTION.getSqlState(), ioexception), null, this.statement);
+            } catch (SQLException queryException) {
                 ExceptionMapper.throwException(queryException, null, this.statement);
             } finally {
+                isEof = true;
                 protocol = null;
                 reader = null;
                 lock.unlock();
             }
+        } else {
+            protocol = null;
+            reader = null;
+            isEof = true;
         }
 
         resultSet.clear();
@@ -494,8 +568,6 @@ public class MariaSelectResultSet implements ResultSet {
                             + " read off the result set relatively fast. "
                             + "In this case, please consider increasing net_wait_timeout session variable."
                             + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
-                } catch (QueryException queryException) {
-                    throw new SQLException(queryException);
                 } finally {
                     lock.unlock();
                 }
@@ -520,10 +592,10 @@ public class MariaSelectResultSet implements ResultSet {
 
     protected void checkObjectRange(int position) throws SQLException {
         if (this.rowPointer < 0) {
-            throwError("Current pos is before the first row", ExceptionCode.INVALID_PARAMETER_VALUE);
+            throwError("Current position is before the first row", ExceptionCode.INVALID_PARAMETER_VALUE);
         }
         if (this.rowPointer >= resultSetSize) {
-            throwError("Current pos is after the last row", ExceptionCode.INVALID_PARAMETER_VALUE);
+            throwError("Current position is after the last row", ExceptionCode.INVALID_PARAMETER_VALUE);
         }
 
         if (position <= 0 || position > columnsInformation.length) {
@@ -538,13 +610,12 @@ public class MariaSelectResultSet implements ResultSet {
 
     private void throwError(String message, ExceptionCode exceptionCode) throws SQLException {
         if (statement != null) {
-            ExceptionMapper.throwException(new QueryException(message, ExceptionCode.INVALID_PARAMETER_VALUE),
+            ExceptionMapper.throwException(new SQLException(message, ExceptionCode.INVALID_PARAMETER_VALUE.sqlState),
                     (MariaDbConnection) this.statement.getConnection(), this.statement);
         } else {
             throw new SQLException(message, exceptionCode.sqlState);
         }
     }
-
 
     @Override
     public SQLWarning getWarnings() throws SQLException {
@@ -584,15 +655,13 @@ public class MariaSelectResultSet implements ResultSet {
                 ReentrantLock lock = protocol.getLock();
                 lock.lock();
                 try {
-                    //this time, fetch is added even for forward type to keep current pointer row.
+                    //this time, fetch is added even for streaming forward type only to keep current pointer row.
                     addStreamingValue();
                 } catch (IOException ioe) {
                     throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
                             + " read off the result set relatively fast. "
                             + "In this case, please consider increasing net_wait_timeout session variable."
                             + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
-                } catch (QueryException queryException) {
-                    throw new SQLException(queryException);
                 } finally {
                     lock.unlock();
                 }
@@ -632,8 +701,6 @@ public class MariaSelectResultSet implements ResultSet {
                         + " read off the result set relatively fast. "
                         + "In this case, please consider increasing net_wait_timeout session variable."
                         + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
-            } catch (QueryException queryException) {
-                throw new SQLException(queryException);
             } finally {
                 lock.unlock();
             }
@@ -661,21 +728,7 @@ public class MariaSelectResultSet implements ResultSet {
     @Override
     public void afterLast() throws SQLException {
         checkClose();
-        if (!isEof) {
-            //load remaining results
-            ReentrantLock lock = protocol.getLock();
-            lock.lock();
-            try {
-                fetchRemaining();
-            } catch (SQLException ioe) {
-                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
-                        + " read off the result set relatively fast. "
-                        + "In this case, please consider increasing net_wait_timeout session variable."
-                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
-            } finally {
-                lock.unlock();
-            }
-        }
+        fetchRemainingLock();
         rowPointer = resultSetSize;
     }
 
@@ -694,21 +747,7 @@ public class MariaSelectResultSet implements ResultSet {
     @Override
     public boolean last() throws SQLException {
         checkClose();
-        if (!isEof) {
-            //load remaining results
-            ReentrantLock lock = protocol.getLock();
-            lock.lock();
-            try {
-                fetchRemaining();
-            } catch (SQLException ioe) {
-                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
-                        + " read off the result set relatively fast. "
-                        + "In this case, please consider increasing net_wait_timeout session variable."
-                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
-            } finally {
-                lock.unlock();
-            }
-        }
+        fetchRemainingLock();
         rowPointer = resultSetSize - 1;
         return rowPointer > 0;
     }
@@ -736,20 +775,7 @@ public class MariaSelectResultSet implements ResultSet {
         }
 
         //if streaming, must read additional results.
-        if (!isEof) {
-            ReentrantLock lock = protocol.getLock();
-            lock.lock();
-            try {
-                fetchRemaining();
-            } catch (SQLException ioe) {
-                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
-                        + " read off the result set relatively fast. "
-                        + "In this case, please consider increasing net_wait_timeout session variable."
-                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
-            } finally {
-                lock.unlock();
-            }
-        }
+        fetchRemainingLock();
 
         if (row >= 0) {
 
@@ -758,22 +784,21 @@ public class MariaSelectResultSet implements ResultSet {
                 return true;
             }
 
-            rowPointer = resultSetSize; //go to afterLast() pos
+            rowPointer = resultSetSize; //go to afterLast() position
             return false;
 
         } else {
 
             if (resultSetSize + row >= 0) {
-                //absolute pos reverse from ending resultSet
+                //absolute position reverse from ending resultSet
                 rowPointer = resultSetSize + row;
                 return true;
             }
 
-            rowPointer = -1; // go to before first pos
+            rowPointer = -1; // go to before first position
             return false;
 
         }
-
 
     }
 
@@ -826,13 +851,13 @@ public class MariaSelectResultSet implements ResultSet {
         if (streaming && fetchSize == 0) {
 
             try {
-                while (readNextValue(resultSet)) {
+
+                while (!isEof) {
                     //fetch all results
+                    addStreamingValue();
                 }
             } catch (IOException ioException) {
                 throw new SQLException(ioException);
-            } catch (QueryException queryException) {
-                throw new SQLException(queryException);
             }
 
             streaming = dataFetchTime == 1;
@@ -895,7 +920,7 @@ public class MariaSelectResultSet implements ResultSet {
     public InputStream getAsciiStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (lastValueNull) return null;
-        return new ByteArrayInputStream(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8).getBytes());
+        return new ByteArrayInputStream(new String(row.buf, row.pos, row.getLengthMaxFieldSize(), StandardCharsets.UTF_8).getBytes());
     }
 
     /**
@@ -903,7 +928,7 @@ public class MariaSelectResultSet implements ResultSet {
      */
     public String getString(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalString(columnsInformation[columnIndex - 1], cal);
+        return getInternalString(columnsInformation[columnIndex - 1], null);
     }
 
     /**
@@ -920,7 +945,7 @@ public class MariaSelectResultSet implements ResultSet {
     private String getInternalString(ColumnInformation columnInfo, Calendar cal) throws SQLException {
         if (lastValueNull) return null;
 
-        switch (columnInfo.getType()) {
+        switch (columnInfo.getColumnType()) {
             case BIT:
                 if (options.tinyInt1isBit && columnInfo.getLength() == 1) {
                     return (row.buf[row.pos] == 0) ? "0" : "1";
@@ -958,21 +983,14 @@ public class MariaSelectResultSet implements ResultSet {
                 return getTimeString(columnInfo);
             case DATE:
                 if (isBinaryEncoded) {
-                    try {
-                        Date date = getInternalDate(columnInfo, cal);
-                        return (date == null) ? null : date.toString();
-                    } catch (ParseException e) {
-                    }
+                    Date date = getInternalDate(columnInfo, cal);
+                    return (date == null) ? null : date.toString();
                 }
                 break;
             case YEAR:
                 if (options.yearIsDateType) {
-                    try {
-                        Date date = getInternalDate(columnInfo, cal);
-                        return (date == null) ? null : date.toString();
-                    } catch (ParseException e) {
-                        //eat exception
-                    }
+                    Date date = getInternalDate(columnInfo, cal);
+                    return (date == null) ? null : date.toString();
                 }
                 if (this.isBinaryEncoded) {
                     return String.valueOf(getInternalSmallInt(columnInfo));
@@ -980,18 +998,14 @@ public class MariaSelectResultSet implements ResultSet {
                 break;
             case TIMESTAMP:
             case DATETIME:
-                try {
-                    Timestamp timestamp = getInternalTimestamp(columnInfo, cal);
-                    if (timestamp == null) {
-                        if (!lastValueNull && !this.isBinaryEncoded) {
-                            return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-                        }
-                        return null;
+                Timestamp timestamp = getInternalTimestamp(columnInfo, cal);
+                if (timestamp == null) {
+                    if (!lastValueNull && !this.isBinaryEncoded) {
+                        return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
                     }
-                    return timestamp.toString();
-                } catch (ParseException e) {
+                    return null;
                 }
-                break;
+                return timestamp.toString();
             case DECIMAL:
             case OLDDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
@@ -1001,8 +1015,13 @@ public class MariaSelectResultSet implements ResultSet {
             case NULL:
                 return null;
             default:
+                if (row.getMaxFieldSize() > 0) {
+                    return new String(row.buf, row.pos, Math.max(row.getMaxFieldSize() * 3, row.length), StandardCharsets.UTF_8)
+                            .substring(0, row.getMaxFieldSize());
+                }
                 return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
         }
+
         return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
     }
 
@@ -1022,7 +1041,7 @@ public class MariaSelectResultSet implements ResultSet {
     public InputStream getBinaryStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (lastValueNull) return null;
-        return new ByteArrayInputStream(row.buf, row.pos, row.length);
+        return new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());
     }
 
     /**
@@ -1061,7 +1080,7 @@ public class MariaSelectResultSet implements ResultSet {
             return parseInt(columnInfo);
         } else {
             long value;
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return row.buf[row.pos];
                 case TINYINT:
@@ -1129,7 +1148,7 @@ public class MariaSelectResultSet implements ResultSet {
             return parseLong(columnInfo);
         } else {
             long value;
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return row.buf[row.pos];
                 case TINYINT:
@@ -1213,7 +1232,7 @@ public class MariaSelectResultSet implements ResultSet {
         if (lastValueNull) return 0;
 
         if (!this.isBinaryEncoded) {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return row.buf[row.pos];
                 case TINYINT:
@@ -1234,16 +1253,16 @@ public class MariaSelectResultSet implements ResultSet {
                     } catch (NumberFormatException nfe) {
                         SQLException sqlException = new SQLException("Incorrect format \""
                                 + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + "\" for getFloat for data field with type " + columnInfo.getType().getJavaTypeName(), "22003", 1264);
+                                + "\" for getFloat for data field with type " + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
                         sqlException.initCause(nfe);
                         throw sqlException;
                     }
                 default:
-                    throw new SQLException("getFloat not available for data field type " + columnInfo.getType().getJavaTypeName());
+                    throw new SQLException("getFloat not available for data field type " + columnInfo.getColumnType().getJavaTypeName());
             }
         } else {
             long value;
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return row.buf[row.pos];
                 case TINYINT:
@@ -1291,18 +1310,18 @@ public class MariaSelectResultSet implements ResultSet {
                         return Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
                     } catch (NumberFormatException nfe) {
                         SQLException sqlException = new SQLException("Incorrect format for getFloat for data field with type "
-                                + columnInfo.getType().getJavaTypeName(), "22003", 1264);
+                                + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
                         sqlException.initCause(nfe);
                         throw sqlException;
                     }
                 default:
-                    throw new SQLException("getFloat not available for data field type " + columnInfo.getType().getJavaTypeName());
+                    throw new SQLException("getFloat not available for data field type " + columnInfo.getColumnType().getJavaTypeName());
             }
             try {
                 return Float.valueOf(String.valueOf(value));
             } catch (NumberFormatException nfe) {
                 SQLException sqlException = new SQLException("Incorrect format for getFloat for data field with type "
-                        + columnInfo.getType().getJavaTypeName(), "22003", 1264);
+                        + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
                 sqlException.initCause(nfe);
                 throw sqlException;
             }
@@ -1336,7 +1355,7 @@ public class MariaSelectResultSet implements ResultSet {
     private double getInternalDouble(ColumnInformation columnInfo) throws SQLException {
         if (lastValueNull) return 0;
         if (!this.isBinaryEncoded) {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return row.buf[row.pos];
                 case TINYINT:
@@ -1357,15 +1376,15 @@ public class MariaSelectResultSet implements ResultSet {
                     } catch (NumberFormatException nfe) {
                         SQLException sqlException = new SQLException("Incorrect format \""
                                 + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + "\" for getDouble for data field with type " + columnInfo.getType().getJavaTypeName(), "22003", 1264);
+                                + "\" for getDouble for data field with type " + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
                         sqlException.initCause(nfe);
                         throw sqlException;
                     }
                 default:
-                    throw new SQLException("getDouble not available for data field type " + columnInfo.getType().getJavaTypeName());
+                    throw new SQLException("getDouble not available for data field type " + columnInfo.getColumnType().getJavaTypeName());
             }
         } else {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return row.buf[row.pos];
                 case TINYINT:
@@ -1415,12 +1434,13 @@ public class MariaSelectResultSet implements ResultSet {
                         return Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
                     } catch (NumberFormatException nfe) {
                         SQLException sqlException = new SQLException("Incorrect format for getDouble for data field with type "
-                                + columnInfo.getType().getJavaTypeName(), "22003", 1264);
+                                + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
                         sqlException.initCause(nfe);
                         throw sqlException;
                     }
                 default:
-                    throw new SQLException("getDouble not available for data field type " + columnInfo.getType().getJavaTypeName());
+                    throw new SQLException("getDouble not available for data field type "
+                            + columnInfo.getColumnType().getJavaTypeName());
             }
         }
     }
@@ -1469,7 +1489,7 @@ public class MariaSelectResultSet implements ResultSet {
         if (!this.isBinaryEncoded) {
             return new BigDecimal(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
         } else {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return BigDecimal.valueOf((long) row.buf[row.pos]);
                 case TINYINT:
@@ -1522,8 +1542,8 @@ public class MariaSelectResultSet implements ResultSet {
     public byte[] getBytes(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (lastValueNull) return null;
-        byte[] data = new byte[row.length];
-        System.arraycopy(row.buf, row.pos, data, 0, row.length);
+        byte[] data = new byte[row.getLengthMaxFieldSize()];
+        System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
         return data;
     }
 
@@ -1532,13 +1552,7 @@ public class MariaSelectResultSet implements ResultSet {
      */
     public Date getDate(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        try {
-            return getInternalDate(columnsInformation[columnIndex - 1], cal);
-        } catch (ParseException e) {
-            throw ExceptionMapper.getSqlException("Could not parse column as date, was: \""
-                    + getInternalString(columnsInformation[columnIndex - 1])
-                    + "\"", e);
-        }
+        return getInternalDate(columnsInformation[columnIndex - 1], null);
     }
 
     /**
@@ -1553,11 +1567,7 @@ public class MariaSelectResultSet implements ResultSet {
      */
     public Date getDate(int columnIndex, Calendar cal) throws SQLException {
         checkObjectRange(columnIndex);
-        try {
-            return getInternalDate(columnsInformation[columnIndex - 1], cal);
-        } catch (ParseException e) {
-            throw ExceptionMapper.getSqlException("Could not parse as date");
-        }
+        return getInternalDate(columnsInformation[columnIndex - 1], cal);
     }
 
     /**
@@ -1574,9 +1584,9 @@ public class MariaSelectResultSet implements ResultSet {
      * @param columnInfo current column information
      * @param cal        session calendar
      * @return date
-     * @throws ParseException if raw data cannot be parse
+     * @throws SQLException if raw data cannot be parse
      */
-    private Date getInternalDate(ColumnInformation columnInfo, Calendar cal) throws ParseException {
+    private Date getInternalDate(ColumnInformation columnInfo, Calendar cal) throws SQLException {
         if (lastValueNull) return null;
 
         if (!this.isBinaryEncoded) {
@@ -1586,23 +1596,23 @@ public class MariaSelectResultSet implements ResultSet {
                 return null;
             }
 
-            SimpleDateFormat sdf;
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case TIMESTAMP:
                 case DATETIME:
                     Timestamp timestamp = getInternalTimestamp(columnInfo, cal);
                     if (timestamp == null) return null;
                     return new Date(timestamp.getTime());
+
                 case TIME:
-                    Time time = getInternalTime(columnInfo, cal);
-                    if (time == null) return null;
-                    return new Date(time.getTime());
+                    throw new SQLException("Cannot read DATE using a Types.TIME field");
+
                 case DATE:
                     return new Date(
                             Integer.parseInt(rawValue.substring(0, 4)) - 1900,
                             Integer.parseInt(rawValue.substring(5, 7)) - 1,
                             Integer.parseInt(rawValue.substring(8, 10))
                     );
+
                 case YEAR:
                     int year = Integer.parseInt(rawValue);
                     if (row.length == 2 && columnInfo.getLength() == 2) {
@@ -1614,14 +1624,21 @@ public class MariaSelectResultSet implements ResultSet {
                     }
 
                     return new Date(year - 1900, 0, 1);
+
                 default:
-                    sdf = new SimpleDateFormat("yyyy-MM-dd");
-                    if (cal != null) {
-                        sdf.setCalendar(cal);
+
+                    try {
+
+                        DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                        sdf.setTimeZone(timeZone);
+                        java.util.Date utilDate = sdf.parse(rawValue);
+                        return new Date(utilDate.getTime());
+
+                    } catch (ParseException e) {
+                        throw ExceptionMapper.getSqlException("Could not get object as Date : " + e.getMessage(), "S1009", e);
                     }
             }
-            java.util.Date utilDate = sdf.parse(rawValue);
-            return new Date(utilDate.getTime());
+
         } else {
             return binaryDate(columnInfo, cal);
         }
@@ -1632,13 +1649,7 @@ public class MariaSelectResultSet implements ResultSet {
      */
     public Time getTime(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        try {
-            return getInternalTime(columnsInformation[columnIndex - 1], cal);
-        } catch (ParseException e) {
-            throw ExceptionMapper.getSqlException("Could not parse column as time, was: \""
-                    + getInternalString(columnsInformation[columnIndex - 1])
-                    + "\"", e);
-        }
+        return getInternalTime(columnsInformation[columnIndex - 1], null);
     }
 
     /**
@@ -1654,11 +1665,7 @@ public class MariaSelectResultSet implements ResultSet {
      */
     public Time getTime(int columnIndex, Calendar cal) throws SQLException {
         checkObjectRange(columnIndex);
-        try {
-            return getInternalTime(columnsInformation[columnIndex - 1], cal);
-        } catch (ParseException e) {
-            throw ExceptionMapper.getSqlException("Could not parse time", e);
-        }
+        return getInternalTime(columnsInformation[columnIndex - 1], cal);
     }
 
     /**
@@ -1674,21 +1681,20 @@ public class MariaSelectResultSet implements ResultSet {
      * @param columnInfo current column information
      * @param cal        session calendar
      * @return time value
-     * @throws ParseException if raw data cannot be parse
+     * @throws SQLException if raw data cannot be parse
      */
-    private Time getInternalTime(ColumnInformation columnInfo, Calendar cal) throws ParseException {
+    private Time getInternalTime(ColumnInformation columnInfo, Calendar cal) throws SQLException {
         if (lastValueNull) return null;
 
         if (!this.isBinaryEncoded) {
-
-            if (columnInfo.getType() == MariaDbType.TIMESTAMP || columnInfo.getType() == MariaDbType.DATETIME) {
+            if (columnInfo.getColumnType() == ColumnType.TIMESTAMP || columnInfo.getColumnType() == ColumnType.DATETIME) {
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal);
                 return (timestamp == null) ? null : new Time(timestamp.getTime());
-            } else if (columnInfo.getType() == MariaDbType.DATE) {
-                Calendar zeroCal = Calendar.getInstance();
-                zeroCal.set(1970, 0, 1, 0, 0, 0);
-                zeroCal.set(Calendar.MILLISECOND, 0);
-                return new Time(zeroCal.getTimeInMillis());
+
+            } else if (columnInfo.getColumnType() == ColumnType.DATE) {
+
+                throw new SQLException("Cannot read Time using a Types.DATE field");
+
             } else {
                 String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
                 if ("0000-00-00".equals(raw)) {
@@ -1696,7 +1702,7 @@ public class MariaSelectResultSet implements ResultSet {
                     return null;
                 }
                 if (!options.useLegacyDatetimeCode && (raw.startsWith("-") || raw.split(":").length != 3 || raw.indexOf(":") > 3)) {
-                    throw new ParseException("Time format \"" + raw + "\" incorrect, must be HH:mm:ss", 0);
+                    throw new SQLException("Time format \"" + raw + "\" incorrect, must be HH:mm:ss");
                 }
                 boolean negate = raw.startsWith("-");
                 if (negate) {
@@ -1718,7 +1724,7 @@ public class MariaSelectResultSet implements ResultSet {
 
                     return new Time(calendar.getTimeInMillis());
                 } else {
-                    throw new ParseException(raw + " cannot be parse as time. time must have \"99:99:99\" format", 0);
+                    throw new SQLException(raw + " cannot be parse as time. time must have \"99:99:99\" format");
                 }
             }
         } else {
@@ -1739,11 +1745,7 @@ public class MariaSelectResultSet implements ResultSet {
      */
     public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
         checkObjectRange(columnIndex);
-        try {
-            return getInternalTimestamp(columnsInformation[columnIndex - 1], cal);
-        } catch (ParseException e) {
-            throw ExceptionMapper.getSqlException("Could not parse timestamp", e);
-        }
+        return getInternalTimestamp(columnsInformation[columnIndex - 1], cal);
     }
 
     /**
@@ -1758,24 +1760,18 @@ public class MariaSelectResultSet implements ResultSet {
      */
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        try {
-            return getInternalTimestamp(columnsInformation[columnIndex - 1], cal);
-        } catch (ParseException e) {
-            throw ExceptionMapper.getSqlException("Could not parse column as timestamp, was: \""
-                    + getInternalString(columnsInformation[columnIndex - 1])
-                    + "\"", e);
-        }
+        return getInternalTimestamp(columnsInformation[columnIndex - 1], null);
     }
 
     /**
      * Get timeStamp from raw data.
      *
-     * @param columnInfo current column information
-     * @param cal        session calendar.
+     * @param columnInfo    current column information
+     * @param userCalendar  user calendar.
      * @return timestamp.
-     * @throws ParseException if text value cannot be parse
+     * @throws SQLException if text value cannot be parse
      */
-    private Timestamp getInternalTimestamp(ColumnInformation columnInfo, Calendar cal) throws ParseException {
+    private Timestamp getInternalTimestamp(ColumnInformation columnInfo, Calendar userCalendar) throws SQLException {
         if (lastValueNull) return null;
 
         if (!this.isBinaryEncoded) {
@@ -1785,10 +1781,10 @@ public class MariaSelectResultSet implements ResultSet {
                 return null;
             }
 
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case TIME:
                     //time does not go after millisecond
-                    Timestamp tt = new Timestamp(getInternalTime(columnInfo, cal).getTime());
+                    Timestamp tt = new Timestamp(getInternalTime(columnInfo, userCalendar).getTime());
                     tt.setNanos(extractNanos(rawValue));
                     return tt;
                 default:
@@ -1808,7 +1804,14 @@ public class MariaSelectResultSet implements ResultSet {
                         int nanoseconds = extractNanos(rawValue);
                         Timestamp timestamp;
 
-                        Calendar calendar = options.useLegacyDatetimeCode ? Calendar.getInstance() : cal;
+                        Calendar calendar;
+                        if (userCalendar != null) {
+                            calendar = userCalendar;
+                        } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
+                            calendar = Calendar.getInstance(timeZone);
+                        } else {
+                            calendar = Calendar.getInstance();
+                        }
 
                         synchronized (calendar) {
                             calendar.clear();
@@ -1824,13 +1827,13 @@ public class MariaSelectResultSet implements ResultSet {
                         timestamp.setNanos(nanoseconds);
                         return timestamp;
                     } catch (NumberFormatException n) {
-                        throw new ParseException("Value \"" + rawValue + "\" cannot be parse as Timestamp", 0);
+                        throw new SQLException("Value \"" + rawValue + "\" cannot be parse as Timestamp");
                     } catch (StringIndexOutOfBoundsException s) {
-                        throw new ParseException("Value \"" + rawValue + "\" cannot be parse as Timestamp", 0);
+                        throw new SQLException("Value \"" + rawValue + "\" cannot be parse as Timestamp");
                     }
             }
         } else {
-            return binaryTimestamp(columnInfo, cal);
+            return binaryTimestamp(columnInfo, userCalendar);
         }
 
     }
@@ -1848,7 +1851,7 @@ public class MariaSelectResultSet implements ResultSet {
     public InputStream getUnicodeStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (lastValueNull) return null;
-        return new ByteArrayInputStream(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8).getBytes());
+        return new ByteArrayInputStream(new String(row.buf, row.pos, row.getLengthMaxFieldSize(), StandardCharsets.UTF_8).getBytes());
     }
 
     /**
@@ -1870,11 +1873,7 @@ public class MariaSelectResultSet implements ResultSet {
      */
     public Object getObject(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        try {
-            return getInternalObject(columnsInformation[columnIndex - 1], dataTypeMappingFlags, cal);
-        } catch (ParseException e) {
-            throw ExceptionMapper.getSqlException("Could not get object: " + e.getMessage(), "S1009", e);
-        }
+        return getInternalObject(columnsInformation[columnIndex - 1], dataTypeMappingFlags);
     }
 
     /**
@@ -1888,14 +1887,16 @@ public class MariaSelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public Object getObject(int columnIndex, Map<String, Class<?>> map) throws SQLException {
-        return getObject(columnIndex);
+        throw ExceptionMapper.getFeatureNotSupportedException(
+                "Method ResultSet.getObject(int columnIndex, Map<String, Class<?>> map) not supported");
     }
 
     /**
      * {inheritDoc}.
      */
     public Object getObject(String columnLabel, Map<String, Class<?>> map) throws SQLException {
-        return getObject(findColumn(columnLabel));
+        throw ExceptionMapper.getFeatureNotSupportedException(
+                "Method ResultSet.getObject(String columnLabel, Map<String, Class<?>> map) not supported");
     }
 
 
@@ -1903,13 +1904,13 @@ public class MariaSelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     @SuppressWarnings("unchecked")
-    public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
+    public <T> T getObject(int columnIndex, Class<T> type) throws SQLException {
         if (type == null) throw new SQLException("Class type cannot be null");
-        checkObjectRange(parameterIndex);
-        ColumnInformation col = columnsInformation[parameterIndex - 1];
+        checkObjectRange(columnIndex);
+        ColumnInformation col = columnsInformation[columnIndex - 1];
 
         if (type.equals(String.class)) {
-            return (T) getInternalString(col, cal);
+            return (T) getInternalString(col, null);
 
         } else if (type.equals(Integer.class)) {
             if (lastValueNull) return null;
@@ -1936,55 +1937,39 @@ public class MariaSelectResultSet implements ResultSet {
             return (T) (Byte) getInternalByte(col);
 
         } else if (type.equals(byte[].class)) {
-            byte[] data = new byte[row.length];
-            System.arraycopy(row.buf, row.pos, data, 0, row.length);
+            byte[] data = new byte[row.getLengthMaxFieldSize()];
+            System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
             return (T) data;
 
         } else if (type.equals(Date.class)) {
-            try {
-                return (T) getInternalDate(col, cal);
-            } catch (ParseException e) {
-                throw ExceptionMapper.getSqlException("Could not parse column as date, was: \""
-                        + getInternalString(col)
-                        + "\"", e);
-            }
+            return (T) getInternalDate(col, null);
 
         } else if (type.equals(Time.class)) {
-            try {
-                return (T) getInternalTime(col, cal);
-            } catch (ParseException e) {
-                throw ExceptionMapper.getSqlException("Could not parse column as time, was: \""
-                        + getInternalString(col)
-                        + "\"", e);
-            }
-        } else if (type.equals(Timestamp.class)) {
-            try {
-                return (T) getInternalTimestamp(col, cal);
-            } catch (ParseException e) {
-                throw ExceptionMapper.getSqlException("Could not parse column as timestamp, was: \""
-                        + getInternalString(col)
-                        + "\"", e);
-            }
+            return (T) getInternalTime(col, null);
+
+        } else if (type.equals(Timestamp.class) || type.equals(java.util.Date.class)) {
+            return (T) getInternalTimestamp(col, null);
 
         } else if (type.equals(Boolean.class)) {
             return (T) (Boolean) getInternalBoolean(col);
-        } else if (type.equals(Blob.class)) {
-            if (lastValueNull) return null;
-            //TODO rewrite Blob to use buffer directly (using offset + length)
-            byte[] data = new byte[row.length];
-            System.arraycopy(row.buf, row.pos, data, 0, row.length);
-            return (T) new MariaDbBlob(data);
+
+        } else if (type.equals(java.util.Calendar.class)) {
+            Calendar calendar = Calendar.getInstance(timeZone);
+            Timestamp timestamp = getInternalTimestamp(col, null);
+            if (timestamp == null) return null;
+            calendar.setTimeInMillis(timestamp.getTime());
+            return type.cast(calendar);
 
         } else if (type.equals(Clob.class) || type.equals(NClob.class)) {
             if (lastValueNull) return null;
             //TODO rewrite Blob to use buffer directly (using offset + length)
-            byte[] data = new byte[row.length];
-            System.arraycopy(row.buf, row.pos, data, 0, row.length);
+            byte[] data = new byte[row.getLengthMaxFieldSize()];
+            System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
             return (T) new MariaDbClob(data);
 
         } else if (type.equals(InputStream.class)) {
             if (lastValueNull) return null;
-            return (T) new ByteArrayInputStream(row.buf, row.pos, row.length);
+            return (T) new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());
 
         } else if (type.equals(Reader.class)) {
             String value = getInternalString(col);
@@ -1996,20 +1981,47 @@ public class MariaSelectResultSet implements ResultSet {
 
         } else if (type.equals(BigInteger.class)) {
             return (T) getInternalBigInteger(col);
-        }
+        } else if (type.equals(BigDecimal.class)) {
+            return (T) getInternalBigDecimal(col);
 
-        Object obj = getObject(parameterIndex);
-        if (obj == null) return null;
-        if (obj.getClass().isInstance(type)) {
-            return (T) obj;
-        } else {
-            throw new SQLException("result cannot be cast as  '" + type.getName() + "' (is '" + obj.getClass().getName() + "')");
+        } else if (type.equals(LocalDateTime.class)) {
+            if (lastValueNull) return null;
+            ZonedDateTime zonedDateTime = getZonedDateTime(col, LocalDateTime.class);
+            return zonedDateTime == null ? null : type.cast(zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime());
+
+        } else if (type.equals(ZonedDateTime.class)) {
+            if (lastValueNull) return null;
+            return type.cast(getZonedDateTime(col, ZonedDateTime.class));
+
+        } else if (type.equals(OffsetDateTime.class)) {
+            if (lastValueNull) return null;
+            ZonedDateTime tmpZonedDateTime = getZonedDateTime(col, OffsetDateTime.class);
+            return tmpZonedDateTime == null ? null : type.cast(tmpZonedDateTime.toOffsetDateTime());
+
+        } else if (type.equals(OffsetDateTime.class)) {
+            if (lastValueNull) return null;
+            return type.cast(getLocalDate(col));
+
+        } else if (type.equals(LocalDate.class)) {
+            if (lastValueNull) return null;
+            return type.cast(getLocalDate(col));
+
+        } else if (type.equals(LocalTime.class)) {
+            if (lastValueNull) return null;
+            return type.cast(getLocalTime(col));
+
+        } else if (type.equals(OffsetTime.class)) {
+            if (lastValueNull) return null;
+            return type.cast(getOffsetTime(col));
+
         }
+        throw ExceptionMapper.getFeatureNotSupportedException("Type class '" + type.getName() + "' is not supported");
+
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T getObject(String columnLabel, Class<T> arg1) throws SQLException {
-        return (T) getObject(findColumn(columnLabel));
+    public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
+        return type.cast(getObject(findColumn(columnLabel), type));
     }
 
     /**
@@ -2017,15 +2029,14 @@ public class MariaSelectResultSet implements ResultSet {
      *
      * @param columnInfo           current column information
      * @param dataTypeMappingFlags dataTypeflag (year is date or int, bit boolean or int,  ...)
-     * @param cal                  session calendar
      * @return the object value.
      * @throws ParseException if data cannot be parse
      */
-    private Object getInternalObject(ColumnInformation columnInfo, int dataTypeMappingFlags, Calendar cal)
-            throws SQLException, ParseException {
+    private Object getInternalObject(ColumnInformation columnInfo, int dataTypeMappingFlags)
+            throws SQLException {
         if (lastValueNull) return null;
 
-        switch (columnInfo.getType()) {
+        switch (columnInfo.getColumnType()) {
             case BIT:
                 if (columnInfo.getLength() == 1) {
                     return row.buf[row.pos] != 0;
@@ -2054,32 +2065,33 @@ public class MariaSelectResultSet implements ResultSet {
                 return getInternalLong(columnInfo);
             case DOUBLE:
                 return getInternalDouble(columnInfo);
-            case TIMESTAMP:
-            case DATETIME:
-                return getInternalTimestamp(columnInfo, cal);
-            case DATE:
-                return getInternalDate(columnInfo, cal);
             case VARCHAR:
                 if (columnInfo.isBinary()) {
-                    byte[] data = new byte[row.length];
-                    System.arraycopy(row.buf, row.pos, data, 0, row.length);
+                    byte[] data = new byte[row.getLengthMaxFieldSize()];
+                    System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
                     return data;
                 }
                 return getInternalString(columnInfo);
+
+            case TIMESTAMP:
+            case DATETIME:
+                return getInternalTimestamp(columnInfo, null);
+            case DATE:
+                return getInternalDate(columnInfo, null);
             case DECIMAL:
                 return getInternalBigDecimal(columnInfo);
             case BLOB:
             case LONGBLOB:
             case MEDIUMBLOB:
             case TINYBLOB:
-                byte[] dataBlob = new byte[row.length];
-                System.arraycopy(row.buf, row.pos, dataBlob, 0, row.length);
+                byte[] dataBlob = new byte[row.getLengthMaxFieldSize()];
+                System.arraycopy(row.buf, row.pos, dataBlob, 0, row.getLengthMaxFieldSize());
                 return dataBlob;
             case NULL:
                 return null;
             case YEAR:
                 if ((dataTypeMappingFlags & YEAR_IS_DATE_TYPE) != 0) {
-                    return getInternalDate(columnInfo, cal);
+                    return getInternalDate(columnInfo, null);
                 }
                 return getInternalShort(columnInfo);
             case SMALLINT:
@@ -2088,12 +2100,12 @@ public class MariaSelectResultSet implements ResultSet {
             case FLOAT:
                 return getInternalFloat(columnInfo);
             case TIME:
-                return getInternalTime(columnInfo, cal);
+                return getInternalTime(columnInfo, null);
             case VARSTRING:
             case STRING:
                 if (columnInfo.isBinary()) {
-                    byte[] data = new byte[row.length];
-                    System.arraycopy(row.buf, row.pos, data, 0, row.length);
+                    byte[] data = new byte[row.getLengthMaxFieldSize()];
+                    System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
                     return data;
                 }
                 return getInternalString(columnInfo);
@@ -2112,7 +2124,7 @@ public class MariaSelectResultSet implements ResultSet {
             default:
                 break;
         }
-        throw new RuntimeException(columnInfo.getType().toString());
+        throw ExceptionMapper.getFeatureNotSupportedException("Type '" + columnInfo.getColumnType().getTypeName() + "' is not supported");
     }
 
 
@@ -2597,8 +2609,8 @@ public class MariaSelectResultSet implements ResultSet {
         checkObjectRange(columnIndex);
         if (lastValueNull) return null;
         //TODO implement MariaDbBlob with offset
-        byte[] data = new byte[row.length];
-        System.arraycopy(row.buf, row.pos, data, 0, row.length);
+        byte[] data = new byte[row.getLengthMaxFieldSize()];
+        System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
         return new MariaDbBlob(data);
     }
 
@@ -2616,8 +2628,8 @@ public class MariaSelectResultSet implements ResultSet {
         checkObjectRange(columnIndex);
         if (lastValueNull) return null;
         //TODO implement MariaDbClob with offset
-        byte[] data = new byte[row.length];
-        System.arraycopy(row.buf, row.pos, data, 0, row.length);
+        byte[] data = new byte[row.getLengthMaxFieldSize()];
+        System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
         return new MariaDbClob(data);
     }
 
@@ -2650,7 +2662,7 @@ public class MariaSelectResultSet implements ResultSet {
         checkObjectRange(columnIndex);
         if (lastValueNull) return null;
         try {
-            return new URL(getInternalString(columnsInformation[columnIndex - 1], cal));
+            return new URL(getInternalString(columnsInformation[columnIndex - 1]));
         } catch (MalformedURLException e) {
             throw ExceptionMapper.getSqlException("Could not parse as URL");
         }
@@ -2876,8 +2888,8 @@ public class MariaSelectResultSet implements ResultSet {
         checkObjectRange(columnIndex);
         if (lastValueNull) return null;
         //TODO implement MariaDbBlob with offset
-        byte[] data = new byte[row.length];
-        System.arraycopy(row.buf, row.pos, data, 0, row.length);
+        byte[] data = new byte[row.getLengthMaxFieldSize()];
+        System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
         return new MariaDbClob(data);
     }
 
@@ -2995,7 +3007,7 @@ public class MariaSelectResultSet implements ResultSet {
             final String rawVal = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
             return !("false".equals(rawVal) || "0".equals(rawVal));
         } else {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return row.buf[row.pos] != 0;
                 case TINYINT:
@@ -3045,13 +3057,13 @@ public class MariaSelectResultSet implements ResultSet {
         if (lastValueNull) return 0;
 
         if (!this.isBinaryEncoded) {
-            if (columnInfo.getType() == MariaDbType.BIT) {
+            if (columnInfo.getColumnType() == ColumnType.BIT) {
                 return row.buf[row.pos];
             }
             return parseByte(columnInfo);
         } else {
             long value;
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return row.buf[row.pos];
                 case TINYINT:
@@ -3102,7 +3114,6 @@ public class MariaSelectResultSet implements ResultSet {
      *
      * @param columnInfo current column information
      * @return short
-     * @throws SQLException exception
      * @throws SQLException id any error occur
      */
     private short getInternalShort(ColumnInformation columnInfo) throws SQLException {
@@ -3112,7 +3123,7 @@ public class MariaSelectResultSet implements ResultSet {
             return parseShort(columnInfo);
         } else {
             long value;
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return row.buf[row.pos];
                 case TINYINT:
@@ -3150,15 +3161,23 @@ public class MariaSelectResultSet implements ResultSet {
     /**
      * {inheritDoc}.
      */
-    public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;
+    public <T> T unwrap(final Class<T> iface) throws SQLException {
+        try {
+            if (isWrapperFor(iface)) {
+                return iface.cast(this);
+            } else {
+                throw new SQLException("The receiver is not a wrapper for " + iface.getName());
+            }
+        } catch (Exception e) {
+            throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+        }
     }
 
     /**
      * {inheritDoc}.
      */
-    public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;
+    public boolean isWrapperFor(final Class<?> iface) throws SQLException {
+        return iface.isInstance(this);
     }
 
     public void setReturnTableAlias(boolean returnTableAlias) {
@@ -3276,7 +3295,7 @@ public class MariaSelectResultSet implements ResultSet {
     private byte parseByte(ColumnInformation columnInfo) throws SQLException {
         if (lastValueNull) return 0;
         try {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case FLOAT:
                     Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
                     if (floatValue.compareTo((float) Byte.MAX_VALUE) >= 1) {
@@ -3336,7 +3355,7 @@ public class MariaSelectResultSet implements ResultSet {
     private short parseShort(ColumnInformation columnInfo) throws SQLException {
         if (lastValueNull) return 0;
         try {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case FLOAT:
                     Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
                     if (floatValue.compareTo((float) Short.MAX_VALUE) >= 1) {
@@ -3396,7 +3415,7 @@ public class MariaSelectResultSet implements ResultSet {
 
     private int parseInt(ColumnInformation columnInfo) throws SQLException {
         try {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case FLOAT:
                     Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
                     if (floatValue.compareTo((float) Integer.MAX_VALUE) >= 1) {
@@ -3460,9 +3479,8 @@ public class MariaSelectResultSet implements ResultSet {
     }
 
     private long parseLong(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return 0;
         try {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case FLOAT:
                     Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
                     if (floatValue.compareTo((float) Long.MAX_VALUE) >= 1) {
@@ -3539,7 +3557,7 @@ public class MariaSelectResultSet implements ResultSet {
         if (!this.isBinaryEncoded) {
             return new BigInteger(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
         } else {
-            switch (columnInfo.getType()) {
+            switch (columnInfo.getColumnType()) {
                 case BIT:
                     return BigInteger.valueOf((long) row.buf[row.pos]);
                 case TINYINT:
@@ -3586,12 +3604,14 @@ public class MariaSelectResultSet implements ResultSet {
     }
 
 
-    private Date binaryDate(ColumnInformation columnInfo, Calendar cal) throws ParseException {
-        switch (columnInfo.getType()) {
+    private Date binaryDate(ColumnInformation columnInfo, Calendar cal) throws SQLException {
+        switch (columnInfo.getColumnType()) {
             case TIMESTAMP:
             case DATETIME:
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal);
                 return (timestamp == null) ? null : new Date(timestamp.getTime());
+            case TIME:
+                throw new SQLException("Cannot read Date using a Types.TIME field");
             default:
                 if (row.length == 0) {
                     lastGetWasNull = true;
@@ -3635,18 +3655,14 @@ public class MariaSelectResultSet implements ResultSet {
         }
     }
 
-    private Time binaryTime(ColumnInformation columnInfo, Calendar cal) throws ParseException {
-        switch (columnInfo.getType()) {
+    private Time binaryTime(ColumnInformation columnInfo, Calendar cal) throws SQLException {
+        switch (columnInfo.getColumnType()) {
             case TIMESTAMP:
             case DATETIME:
                 Timestamp ts = binaryTimestamp(columnInfo, cal);
                 return (ts == null) ? null : new Time(ts.getTime());
             case DATE:
-                Calendar tmpCalendar = Calendar.getInstance();
-                tmpCalendar.clear();
-                tmpCalendar.set(1970, 0, 1, 0, 0, 0);
-                tmpCalendar.set(Calendar.MILLISECOND, 0);
-                return new Time(tmpCalendar.getTimeInMillis());
+                throw new SQLException("Cannot read Time using a Types.DATE field");
             default:
                 Calendar calendar = Calendar.getInstance();
                 calendar.clear();
@@ -3686,7 +3702,7 @@ public class MariaSelectResultSet implements ResultSet {
     }
 
 
-    private Timestamp binaryTimestamp(ColumnInformation columnInfo, Calendar cal) throws ParseException {
+    private Timestamp binaryTimestamp(ColumnInformation columnInfo, Calendar userCalendar) throws SQLException {
         if (row.length == 0) {
             lastGetWasNull = true;
             return null;
@@ -3700,9 +3716,8 @@ public class MariaSelectResultSet implements ResultSet {
         int seconds = 0;
         int microseconds = 0;
 
-        if (columnInfo.getType() == MariaDbType.TIME) {
-            Calendar calendar = Calendar.getInstance();
-            calendar.clear();
+        if (columnInfo.getColumnType() == ColumnType.TIME) {
+            Calendar calendar = userCalendar != null ? userCalendar : Calendar.getInstance();
 
             boolean negate = false;
             if (row.length > 0) {
@@ -3727,8 +3742,12 @@ public class MariaSelectResultSet implements ResultSet {
                         + ((row.buf[row.pos + 11] & 0xff) << 24));
             }
 
-            calendar.set(1970, 0, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
-            Timestamp tt = new Timestamp(calendar.getTimeInMillis());
+            Timestamp tt;
+            synchronized (calendar) {
+                calendar.clear();
+                calendar.set(1970, 0, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
+                tt = new Timestamp(calendar.getTimeInMillis());
+            }
             tt.setNanos(microseconds * 1000);
             return tt;
         } else {
@@ -3749,18 +3768,27 @@ public class MariaSelectResultSet implements ResultSet {
             }
         }
 
-        Calendar calendar = options.useLegacyDatetimeCode ? Calendar.getInstance() : cal;
+        Calendar calendar;
+        if (userCalendar != null) {
+            calendar = userCalendar;
+        } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
+            calendar = Calendar.getInstance(timeZone);
+        } else {
+            calendar = Calendar.getInstance();
+        }
+
         Timestamp tt;
         synchronized (calendar) {
             calendar.clear();
             calendar.set(year, month - 1, day, hour, minutes, seconds);
             tt = new Timestamp(calendar.getTimeInMillis());
         }
+
         tt.setNanos(microseconds * 1000);
         return tt;
     }
 
-    private int extractNanos(String timestring) throws ParseException {
+    protected int extractNanos(String timestring) throws SQLException {
         int index = timestring.indexOf('.');
         if (index == -1) {
             return 0;
@@ -3773,13 +3801,422 @@ public class MariaSelectResultSet implements ResultSet {
             } else {
                 char value = timestring.charAt(i);
                 if (value < '0' || value > '9') {
-                    throw new ParseException("cannot parse subsecond part in timestamp string '" + timestring + "'", i);
+                    throw new SQLException("cannot parse sub-second part in timestamp string '" + timestring + "'");
                 }
                 digit = value - '0';
             }
             nanos = nanos * 10 + digit;
         }
         return nanos;
+    }
+
+
+    /**
+     * Get LocalDateTime from raw data.
+     *
+     * @param columnInfo current column information
+     * @param clazz      ending class
+     * @return timestamp.
+     * @throws ParseException if text value cannot be parse
+     */
+    private ZonedDateTime getZonedDateTime(ColumnInformation columnInfo, Class clazz) throws SQLException {
+        if (lastValueNull) return null;
+        if (row.length == 0) {
+            lastGetWasNull = true;
+            return null;
+        }
+
+        if (!this.isBinaryEncoded) {
+
+            String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+
+            switch (columnInfo.getColumnType().getSqlType()) {
+                case Types.TIMESTAMP:
+
+                    if (raw.startsWith("0000-00-00 00:00:00")) return null;
+                    try {
+                        LocalDateTime localDateTime = LocalDateTime.parse(raw, TEXT_LOCAL_DATE_TIME.withZone(timeZone.toZoneId()));
+                        return ZonedDateTime.of(localDateTime, timeZone.toZoneId());
+                    } catch (DateTimeParseException dateParserEx) {
+                        throw new SQLException(raw + " cannot be parse as LocalDateTime. time must have \"yyyy-MM-dd HH:mm:ss[.S]\" format");
+                    }
+
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CHAR:
+
+                    if (raw.startsWith("0000-00-00 00:00:00")) return null;
+                    try {
+                        return ZonedDateTime.parse(raw, TEXT_ZONED_DATE_TIME);
+                    } catch (DateTimeParseException dateParserEx) {
+                        throw new SQLException(raw + " cannot be parse as ZonedDateTime. time must have \"yyyy-MM-dd[T/ ]HH:mm:ss[.S]\" "
+                                + "with offset and timezone format (example : '2011-12-03 10:15:30+01:00[Europe/Paris]')");
+                    }
+
+                default:
+                    throw new SQLException("Cannot read " + clazz.getName() + " using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
+
+            }
+
+        } else {
+
+            switch (columnInfo.getColumnType().getSqlType()) {
+                case Types.TIMESTAMP:
+
+                    int year = ((row.buf[row.pos] & 0xff) | (row.buf[row.pos + 1] & 0xff) << 8);
+                    int month = row.buf[row.pos + 2];
+                    int day = row.buf[row.pos + 3];
+                    int hour = 0;
+                    int minutes = 0;
+                    int seconds = 0;
+                    int microseconds = 0;
+
+                    if (row.length > 4) {
+                        hour = row.buf[row.pos + 4];
+                        minutes = row.buf[row.pos + 5];
+                        seconds = row.buf[row.pos + 6];
+
+                        if (row.length > 7) {
+                            microseconds = ((row.buf[row.pos + 7] & 0xff)
+                                    + ((row.buf[row.pos + 8] & 0xff) << 8)
+                                    + ((row.buf[row.pos + 9] & 0xff) << 16)
+                                    + ((row.buf[row.pos + 10] & 0xff) << 24));
+                        }
+                    }
+
+                    return ZonedDateTime.of(year, month, day, hour, minutes, seconds, microseconds * 1000, timeZone.toZoneId());
+
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CHAR:
+
+                    //string conversion
+                    String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+                    if (raw.startsWith("0000-00-00 00:00:00")) return null;
+                    try {
+                        return ZonedDateTime.parse(raw, TEXT_ZONED_DATE_TIME);
+                    } catch (DateTimeParseException dateParserEx) {
+                        throw new SQLException(raw + " cannot be parse as ZonedDateTime. time must have \"yyyy-MM-dd[T/ ]HH:mm:ss[.S]\" "
+                                + "with offset and timezone format (example : '2011-12-03 10:15:30+01:00[Europe/Paris]')");
+                    }
+
+                default:
+                    throw new SQLException("Cannot read " + clazz.getName() + " using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
+            }
+
+        }
+    }
+
+
+    /**
+     * Get OffsetTime from raw data.
+     *
+     * @param columnInfo current column information
+     * @return timestamp.
+     * @throws ParseException if text value cannot be parse
+     */
+    private OffsetTime getOffsetTime(ColumnInformation columnInfo) throws SQLException {
+        if (lastValueNull) return null;
+        if (row.length == 0) {
+            lastGetWasNull = true;
+            return null;
+        }
+
+        ZoneId zoneId = timeZone.toZoneId().normalized();
+        if (ZoneOffset.class.isInstance(zoneId)) {
+            ZoneOffset zoneOffset = ZoneOffset.class.cast(zoneId);
+            if (!this.isBinaryEncoded) {
+                String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+                switch (columnInfo.getColumnType().getSqlType()) {
+
+                    case Types.TIMESTAMP:
+                        if (raw.startsWith("0000-00-00 00:00:00")) return null;
+                        try {
+                            return ZonedDateTime.parse(raw, TEXT_LOCAL_DATE_TIME.withZone(zoneOffset)).toOffsetDateTime().toOffsetTime();
+                        } catch (DateTimeParseException dateParserEx) {
+                            throw new SQLException(raw + " cannot be parse as OffsetTime. time must have \"yyyy-MM-dd HH:mm:ss[.S]\" format");
+                        }
+
+                    case Types.TIME:
+                        try {
+                            LocalTime localTime = LocalTime.parse(raw, DateTimeFormatter.ISO_LOCAL_TIME.withZone(zoneOffset));
+                            return OffsetTime.of(localTime, zoneOffset);
+                        } catch (DateTimeParseException dateParserEx) {
+                            throw new SQLException(raw + " cannot be parse as OffsetTime (format is \"HH:mm:ss[.S]\" for data type \""
+                                    + columnInfo.getColumnType() + "\")");
+                        }
+
+                    case Types.VARCHAR:
+                    case Types.LONGVARCHAR:
+                    case Types.CHAR:
+                        try {
+                            return OffsetTime.parse(raw, DateTimeFormatter.ISO_OFFSET_TIME);
+                        } catch (DateTimeParseException dateParserEx) {
+                            throw new SQLException(raw + " cannot be parse as OffsetTime (format is \"HH:mm:ss[.S]\" with offset for data type \""
+                                    + columnInfo.getColumnType() + "\")");
+                        }
+
+                    default:
+                        throw new SQLException("Cannot read " + OffsetTime.class.getName() + " using a "
+                                + columnInfo.getColumnType().getJavaTypeName() + " field");
+                }
+
+            } else {
+
+                int day = 0;
+                int hour = 0;
+                int minutes = 0;
+                int seconds = 0;
+                int microseconds = 0;
+
+                switch (columnInfo.getColumnType().getSqlType()) {
+                    case Types.TIMESTAMP:
+                        int year = ((row.buf[row.pos] & 0xff) | (row.buf[row.pos + 1] & 0xff) << 8);
+                        int month = row.buf[row.pos + 2];
+                        day = row.buf[row.pos + 3];
+
+                        if (row.length > 4) {
+                            hour = row.buf[row.pos + 4];
+                            minutes = row.buf[row.pos + 5];
+                            seconds = row.buf[row.pos + 6];
+
+                            if (row.length > 7) {
+                                microseconds = ((row.buf[row.pos + 7] & 0xff)
+                                        + ((row.buf[row.pos + 8] & 0xff) << 8)
+                                        + ((row.buf[row.pos + 9] & 0xff) << 16)
+                                        + ((row.buf[row.pos + 10] & 0xff) << 24));
+                            }
+                        }
+
+                        return ZonedDateTime.of(year, month, day, hour, minutes, seconds, microseconds * 1000, zoneOffset)
+                                .toOffsetDateTime().toOffsetTime();
+
+                    case Types.TIME:
+
+                        boolean negate = (row.buf[row.pos] & 0xff) == 0x01;
+
+                        if (row.length > 4) {
+                            day = ((row.buf[row.pos + 1] & 0xff)
+                                    + ((row.buf[row.pos + 2] & 0xff) << 8)
+                                    + ((row.buf[row.pos + 3] & 0xff) << 16)
+                                    + ((row.buf[row.pos + 4] & 0xff) << 24));
+                        }
+
+                        if (row.length > 7) {
+                            hour = row.buf[row.pos + 5];
+                            minutes = row.buf[row.pos + 6];
+                            seconds = row.buf[row.pos + 7];
+                        }
+
+                        if (row.length > 8) {
+                            microseconds = ((row.buf[row.pos + 8] & 0xff)
+                                    + ((row.buf[row.pos + 9] & 0xff) << 8)
+                                    + ((row.buf[row.pos + 10] & 0xff) << 16)
+                                    + ((row.buf[row.pos + 11] & 0xff) << 24));
+                        }
+
+                        return OffsetTime.of((negate ? -1 : 1) * (day * 24 + hour), minutes, seconds, microseconds * 1000, zoneOffset);
+
+                    case Types.VARCHAR:
+                    case Types.LONGVARCHAR:
+                    case Types.CHAR:
+                        String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+                        try {
+                            return OffsetTime.parse(raw, DateTimeFormatter.ISO_OFFSET_TIME);
+                        } catch (DateTimeParseException dateParserEx) {
+                            throw new SQLException(raw + " cannot be parse as OffsetTime (format is \"HH:mm:ss[.S]\" with offset for data type \""
+                                    + columnInfo.getColumnType() + "\")");
+                        }
+
+                    default:
+                        throw new SQLException("Cannot read " + OffsetTime.class.getName() + " using a "
+                                + columnInfo.getColumnType().getJavaTypeName() + " field");
+                }
+            }
+        }
+
+        if (options.useLegacyDatetimeCode) {
+            //system timezone is not an offset
+            throw new SQLException("Cannot return an OffsetTime for a TIME field when default timezone is '" + zoneId
+                    + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
+        }
+
+        //server timezone is not an offset
+        throw new SQLException("Cannot return an OffsetTime for a TIME field when server timezone '" + zoneId
+                + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
+
+    }
+
+    /**
+     * Get LocalTime from raw data.
+     *
+     * @param columnInfo current column information
+     * @return timestamp.
+     * @throws ParseException if text value cannot be parse
+     */
+    private LocalTime getLocalTime(ColumnInformation columnInfo) throws SQLException {
+        if (lastValueNull) return null;
+        if (row.length == 0) {
+            lastGetWasNull = true;
+            return null;
+        }
+
+        if (!this.isBinaryEncoded) {
+
+            String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+
+            switch (columnInfo.getColumnType().getSqlType()) {
+                case Types.TIME:
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CHAR:
+                    try {
+                        return LocalTime.parse(raw, DateTimeFormatter.ISO_LOCAL_TIME.withZone(timeZone.toZoneId()));
+                    } catch (DateTimeParseException dateParserEx) {
+                        throw new SQLException(raw + " cannot be parse as LocalTime (format is \"HH:mm:ss[.S]\" for data type \""
+                                + columnInfo.getColumnType() + "\")");
+                    }
+
+                case Types.TIMESTAMP:
+                    ZonedDateTime zonedDateTime = getZonedDateTime(columnInfo, LocalTime.class);
+                    return zonedDateTime == null ? null : zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalTime();
+
+                default:
+                    throw new SQLException("Cannot read LocalTime using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
+            }
+
+        } else {
+
+
+            switch (columnInfo.getColumnType().getSqlType()) {
+                case Types.TIME:
+
+                    int day = 0;
+                    int hour = 0;
+                    int minutes = 0;
+                    int seconds = 0;
+                    int microseconds = 0;
+
+                    boolean negate = (row.buf[row.pos] & 0xff) == 0x01;
+
+                    if (row.length > 4) {
+                        day = ((row.buf[row.pos + 1] & 0xff)
+                                + ((row.buf[row.pos + 2] & 0xff) << 8)
+                                + ((row.buf[row.pos + 3] & 0xff) << 16)
+                                + ((row.buf[row.pos + 4] & 0xff) << 24));
+                    }
+
+                    if (row.length > 7) {
+                        hour = row.buf[row.pos + 5];
+                        minutes = row.buf[row.pos + 6];
+                        seconds = row.buf[row.pos + 7];
+                    }
+
+                    if (row.length > 8) {
+                        microseconds = ((row.buf[row.pos + 8] & 0xff)
+                                + ((row.buf[row.pos + 9] & 0xff) << 8)
+                                + ((row.buf[row.pos + 10] & 0xff) << 16)
+                                + ((row.buf[row.pos + 11] & 0xff) << 24));
+                    }
+
+                    return LocalTime.of((negate ? -1 : 1) * (day * 24 + hour), minutes, seconds, microseconds * 1000);
+
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CHAR:
+                    //string conversion
+                    String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+                    try {
+                        return LocalTime.parse(raw, DateTimeFormatter.ISO_LOCAL_TIME.withZone(timeZone.toZoneId()));
+                    } catch (DateTimeParseException dateParserEx) {
+                        throw new SQLException(raw + " cannot be parse as LocalTime (format is \"HH:mm:ss[.S]\" for data type \""
+                                + columnInfo.getColumnType() + "\")");
+                    }
+
+                case Types.TIMESTAMP:
+                    ZonedDateTime zonedDateTime = getZonedDateTime(columnInfo, LocalTime.class);
+                    return zonedDateTime == null ? null : zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalTime();
+
+                default:
+                    throw new SQLException("Cannot read LocalTime using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
+            }
+
+        }
+    }
+
+
+
+    /**
+     * Get LocalDateTime from raw data.
+     *
+     * @param columnInfo current column information
+     * @return timestamp.
+     * @throws ParseException if text value cannot be parse
+     */
+    private LocalDate getLocalDate(ColumnInformation columnInfo) throws SQLException {
+        if (lastValueNull) return null;
+        if (row.length == 0) {
+            lastGetWasNull = true;
+            return null;
+        }
+
+        if (!this.isBinaryEncoded) {
+
+            String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+
+            switch (columnInfo.getColumnType().getSqlType()) {
+                case Types.DATE:
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CHAR:
+                    if (raw.startsWith("0000-00-00")) return null;
+                    try {
+                        return LocalDate.parse(raw, DateTimeFormatter.ISO_LOCAL_DATE.withZone(timeZone.toZoneId()));
+                    } catch (DateTimeParseException dateParserEx) {
+                        throw new SQLException(raw + " cannot be parse as LocalDate (format is \"yyyy-MM-dd\" for data type \""
+                                + columnInfo.getColumnType() + "\")");
+                    }
+
+                case Types.TIMESTAMP:
+                    ZonedDateTime zonedDateTime = getZonedDateTime(columnInfo, LocalDate.class);
+                    return zonedDateTime == null ? null : zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalDate();
+
+                default:
+                    throw new SQLException("Cannot read LocalDate using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
+
+            }
+
+        } else {
+
+            switch (columnInfo.getColumnType().getSqlType()) {
+
+                case Types.DATE:
+                    int year = ((row.buf[row.pos] & 0xff) | (row.buf[row.pos + 1] & 0xff) << 8);
+                    int month = row.buf[row.pos + 2];
+                    int day = row.buf[row.pos + 3];
+                    return LocalDate.of(year, month, day);
+
+                case Types.TIMESTAMP:
+                    ZonedDateTime zonedDateTime = getZonedDateTime(columnInfo, LocalDate.class);
+                    return zonedDateTime == null ? null : zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalDate();
+
+                case Types.VARCHAR:
+                case Types.LONGVARCHAR:
+                case Types.CHAR:
+                    //string conversion
+                    String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+                    if (raw.startsWith("0000-00-00")) return null;
+                    try {
+                        return LocalDate.parse(raw, DateTimeFormatter.ISO_LOCAL_DATE.withZone(timeZone.toZoneId()));
+                    } catch (DateTimeParseException dateParserEx) {
+                        throw new SQLException(raw + " cannot be parse as LocalDate. time must have \"yyyy-MM-dd\" format");
+                    }
+
+                default:
+                    throw new SQLException("Cannot read LocalDate using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
+            }
+
+        }
     }
 
 }

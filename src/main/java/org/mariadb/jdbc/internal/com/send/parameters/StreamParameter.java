@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 import java.io.IOException;
@@ -122,8 +122,8 @@ public class StreamParameter implements Cloneable, ParameterHolder {
         return "<Stream>";
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.BLOB;
+    public ColumnType getColumnType() {
+        return ColumnType.BLOB;
     }
 
 

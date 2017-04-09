@@ -49,12 +49,13 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.sql.SQLException;
 
 
 public class SerializableParameter implements Cloneable, ParameterHolder {
@@ -70,6 +71,7 @@ public class SerializableParameter implements Cloneable, ParameterHolder {
 
     /**
      * Write object to buffer for text protocol.
+     *
      * @param pos the stream to write to
      * @throws IOException if error reading stream
      */
@@ -117,8 +119,8 @@ public class SerializableParameter implements Cloneable, ParameterHolder {
         return "<Serializable>";
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.BLOB;
+    public ColumnType getColumnType() {
+        return ColumnType.BLOB;
     }
 
     public boolean isNullData() {

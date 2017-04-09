@@ -4,6 +4,7 @@ package org.mariadb.jdbc.internal.com.read.dao;
 MariaDB Client for Java
 
 Copyright (c) 2012-2014 Monty Program Ab.
+Copyright (c) 2015-2017 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
 the terms of the GNU Lesser General Public License as published by the Free
@@ -50,7 +51,7 @@ OF SUCH DAMAGE.
 */
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.com.read.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
@@ -61,7 +62,7 @@ public class CmdInformationMultiple implements CmdInformation {
 
 
     private ArrayList<Long> insertIds;
-    private ArrayList<Integer> updateCounts;
+    private ArrayList<Long> updateCounts;
     private int insertIdNumber = 0;
     private int expectedSize;
     private int autoIncrement;
@@ -84,15 +85,15 @@ public class CmdInformationMultiple implements CmdInformation {
     @Override
     public void addErrorStat() {
         hasException = true;
-        this.updateCounts.add(Statement.EXECUTE_FAILED);
+        this.updateCounts.add((long) Statement.EXECUTE_FAILED);
     }
 
     public void addResultSetStat() {
-        this.updateCounts.add(RESULT_SET_VALUE);
+        this.updateCounts.add((long) RESULT_SET_VALUE);
     }
 
     @Override
-    public void addSuccessStat(int updateCount, long insertId) {
+    public void addSuccessStat(long updateCount, long insertId) {
         this.insertIds.add(insertId);
         insertIdNumber += updateCount;
         this.updateCounts.add(updateCount);
@@ -103,7 +104,27 @@ public class CmdInformationMultiple implements CmdInformation {
 
         int[] ret = new int[Math.max(updateCounts.size(), expectedSize)];
 
-        Iterator<Integer> iterator = updateCounts.iterator();
+        Iterator<Long> iterator = updateCounts.iterator();
+        int pos = 0;
+        while (iterator.hasNext()) {
+            ret[pos++] = iterator.next().intValue();
+        }
+
+        //in case of Exception
+        while (pos < ret.length) {
+            ret[pos++] = Statement.EXECUTE_FAILED;
+        }
+
+        return ret;
+    }
+
+
+    @Override
+    public long[] getLargeUpdateCounts() {
+
+        long[] ret = new long[Math.max(updateCounts.size(), expectedSize)];
+
+        Iterator<Long> iterator = updateCounts.iterator();
         int pos = 0;
         while (iterator.hasNext()) {
             ret[pos++] = iterator.next();
@@ -123,6 +144,19 @@ public class CmdInformationMultiple implements CmdInformation {
      *
      * @return update count array.
      */
+    public long[] getLargeRewriteUpdateCounts() {
+        long[] ret = new long[expectedSize];
+        Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
+        return ret;
+    }
+
+
+    /**
+     * Will return an array filled with Statement.EXECUTE_FAILED if any error occur,
+     * or Statement.SUCCESS_NO_INFO, if execution succeed.
+     *
+     * @return update count array.
+     */
     public int[] getRewriteUpdateCounts() {
         int[] ret = new int[expectedSize];
         Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
@@ -130,7 +164,20 @@ public class CmdInformationMultiple implements CmdInformation {
     }
 
     @Override
+    public long[] getRewriteLargeUpdateCounts() {
+        long[] ret = new long[expectedSize];
+        Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
+        return ret;
+    }
+
+    @Override
     public int getUpdateCount() {
+        if (moreResults >= updateCounts.size()) return -1;
+        return updateCounts.get(moreResults).intValue();
+    }
+
+    @Override
+    public long getLargeUpdateCount() {
         if (moreResults >= updateCounts.size()) return -1;
         return updateCounts.get(moreResults);
     }
@@ -141,9 +188,9 @@ public class CmdInformationMultiple implements CmdInformation {
         int position = 0;
         long insertId;
         Iterator<Long> idIterator = insertIds.iterator();
-        Iterator<Integer> updateIterator = updateCounts.iterator();
+        Iterator<Long> updateIterator = updateCounts.iterator();
         while (updateIterator.hasNext()) {
-            int updateCount = updateIterator.next();
+            long updateCount = updateIterator.next();
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
                     && (insertId = idIterator.next().longValue()) > 0) {
@@ -152,7 +199,7 @@ public class CmdInformationMultiple implements CmdInformation {
                 }
             }
         }
-        return MariaSelectResultSet.createGeneratedData(ret, protocol, true);
+        return SelectResultSet.createGeneratedData(ret, protocol, true);
     }
 
     /**
@@ -167,13 +214,13 @@ public class CmdInformationMultiple implements CmdInformation {
         int position = 0;
         long insertId;
         Iterator<Long> idIterator = insertIds.iterator();
-        Iterator<Integer> updateIterator = updateCounts.iterator();
+        Iterator<Long> updateIterator = updateCounts.iterator();
 
         for (int element = 0 ; element <= moreResults; element++) {
-            int updateCount = updateIterator.next();
+            long updateCount = updateIterator.next();
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
-                    && (insertId = idIterator.next().longValue()) > 0) {
+                    && (insertId = idIterator.next()) > 0) {
                 if (element == moreResults) {
                     for (int i = 0; i < updateCount; i++) {
                         ret[position++] = insertId + i * autoIncrement;
@@ -181,7 +228,7 @@ public class CmdInformationMultiple implements CmdInformation {
                 }
             }
         }
-        return MariaSelectResultSet.createGeneratedData(ret, protocol, true);
+        return SelectResultSet.createGeneratedData(ret, protocol, true);
     }
 
     public int getCurrentStatNumber() {

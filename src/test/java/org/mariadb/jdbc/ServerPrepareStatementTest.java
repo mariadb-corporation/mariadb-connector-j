@@ -21,6 +21,7 @@ import static org.junit.Assert.*;
 public class ServerPrepareStatementTest extends BaseTest {
     /**
      * Tables initialisations.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -224,6 +225,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     /**
      * CONJ-290 : Timestamps format error when using prepareStatement with options useFractionalSeconds and useServerPrepStmts.
+     *
      * @throws SQLException exception
      */
     @Test
@@ -725,46 +727,6 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     }
 
-    protected class CreatePrepareDouble implements Runnable {
-        private String sql;
-        private Connection connection;
-        private long firstWaitTime;
-        private long secondWaitTime;
-
-
-        public CreatePrepareDouble(String sql, Connection connection, long firstWaitTime, long secondWaitTime) {
-            this.sql = sql;
-            this.connection = connection;
-            this.firstWaitTime = firstWaitTime;
-            this.secondWaitTime = secondWaitTime;
-        }
-
-        public void run() {
-            try {
-                Protocol protocol = getProtocolFromConnection(connection);
-                if (protocol.prepareStatementCache().containsKey(sql)) {
-                    protocol.prepareStatementCache().get(sql);
-                }
-                if (protocol.prepareStatementCache().containsKey(sql)) {
-                    protocol.prepareStatementCache().get(sql);
-                }
-                PreparedStatement ps = connection.prepareStatement(sql);
-                Thread.sleep(firstWaitTime);
-                ps.setBoolean(1, true);
-                ps.addBatch();
-                ps.executeBatch();
-                Thread.sleep(secondWaitTime);
-                ps.close();
-                if (protocol.prepareStatementCache().containsKey(sql)) {
-                    protocol.prepareStatementCache().get(sql);
-                }
-            } catch (Throwable e) {
-                e.printStackTrace();
-                fail();
-            }
-        }
-    }
-
     @Test
     public void testPrepareStatementCache() throws Throwable {
         Assume.assumeTrue(sharedOptions().useServerPrepStmts);
@@ -793,13 +755,14 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     /**
      * CONJ-270 : permit to have more than 32768 parameters.
+     *
      * @throws SQLException exception
      */
     @Test
     public void testRewriteMultiPacket() throws SQLException {
         createTable("PreparedStatementTest3", "id int");
         String sql = "INSERT INTO PreparedStatementTest3 VALUES (?)";
-        for (int i = 1 ; i < 65535 ; i++) {
+        for (int i = 1; i < 65535; i++) {
             sql += ",(?)";
         }
         PreparedStatement pstmt = sharedConnection.prepareStatement(sql);
@@ -884,6 +847,46 @@ public class ServerPrepareStatementTest extends BaseTest {
                 preparedStatement.executeBatch();
             } catch (SQLException e) {
                 e.printStackTrace();
+            }
+        }
+    }
+
+    protected class CreatePrepareDouble implements Runnable {
+        private String sql;
+        private Connection connection;
+        private long firstWaitTime;
+        private long secondWaitTime;
+
+
+        public CreatePrepareDouble(String sql, Connection connection, long firstWaitTime, long secondWaitTime) {
+            this.sql = sql;
+            this.connection = connection;
+            this.firstWaitTime = firstWaitTime;
+            this.secondWaitTime = secondWaitTime;
+        }
+
+        public void run() {
+            try {
+                Protocol protocol = getProtocolFromConnection(connection);
+                if (protocol.prepareStatementCache().containsKey(sql)) {
+                    protocol.prepareStatementCache().get(sql);
+                }
+                if (protocol.prepareStatementCache().containsKey(sql)) {
+                    protocol.prepareStatementCache().get(sql);
+                }
+                PreparedStatement ps = connection.prepareStatement(sql);
+                Thread.sleep(firstWaitTime);
+                ps.setBoolean(1, true);
+                ps.addBatch();
+                ps.executeBatch();
+                Thread.sleep(secondWaitTime);
+                ps.close();
+                if (protocol.prepareStatementCache().containsKey(sql)) {
+                    protocol.prepareStatementCache().get(sql);
+                }
+            } catch (Throwable e) {
+                e.printStackTrace();
+                fail();
             }
         }
     }

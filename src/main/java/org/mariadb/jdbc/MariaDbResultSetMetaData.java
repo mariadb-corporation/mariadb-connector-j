@@ -49,11 +49,11 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.com.read.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -68,9 +68,10 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
 
     /**
      * Constructor.
-     * @param fieldPackets column informations
+     *
+     * @param fieldPackets         column informations
      * @param datatypeMappingFlags Data type
-     * @param returnTableAlias must return table alias or real table name
+     * @param returnTableAlias     must return table alias or real table name
      */
     public MariaDbResultSetMetaData(ColumnInformation[] fieldPackets, int datatypeMappingFlags, boolean returnTableAlias) {
         this.fieldPackets = fieldPackets;
@@ -271,20 +272,20 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      */
     public int getColumnType(final int column) throws SQLException {
         ColumnInformation ci = getColumnInformation(column);
-        switch (ci.getType()) {
+        switch (ci.getColumnType()) {
             case BIT:
                 if (ci.getLength() == 1) {
                     return Types.BIT;
                 }
                 return Types.VARBINARY;
             case TINYINT:
-                if (ci.getLength() == 1 && (datatypeMappingflags & MariaSelectResultSet.TINYINT1_IS_BIT) != 0) {
+                if (ci.getLength() == 1 && (datatypeMappingflags & SelectResultSet.TINYINT1_IS_BIT) != 0) {
                     return Types.BIT;
                 } else {
                     return Types.TINYINT;
                 }
             case YEAR:
-                if ((datatypeMappingflags & MariaSelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
+                if ((datatypeMappingflags & SelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
                     return Types.DATE;
                 } else {
                     return Types.SMALLINT;
@@ -309,7 +310,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
                 }
                 return Types.CHAR;
             default:
-                return ci.getType().getSqlType();
+                return ci.getColumnType().getSqlType();
         }
 
     }
@@ -324,7 +325,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      */
     public String getColumnTypeName(final int column) throws SQLException {
         ColumnInformation ci = getColumnInformation(column);
-        return MariaDbType.getColumnTypeName(ci.getType(), ci.getLength(), ci.isSigned(), ci.isBinary());
+        return ColumnType.getColumnTypeName(ci.getColumnType(), ci.getLength(), ci.isSigned(), ci.isBinary());
 
     }
 
@@ -376,8 +377,8 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
 
     public String getColumnClassName(int column) throws SQLException {
         ColumnInformation ci = getColumnInformation(column);
-        MariaDbType type = ci.getType();
-        return MariaDbType.getClassName(type, (int) ci.getLength(), ci.isSigned(), ci.isBinary(), datatypeMappingflags);
+        ColumnType type = ci.getColumnType();
+        return ColumnType.getClassName(type, (int) ci.getLength(), ci.isSigned(), ci.isBinary(), datatypeMappingflags);
     }
 
     private ColumnInformation getColumnInformation(int column) throws SQLException {
@@ -403,25 +404,30 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      * @since 1.6
      */
     public <T> T unwrap(final Class<T> iface) throws SQLException {
-        return null;
+        try {
+            if (isWrapperFor(iface)) {
+                return iface.cast(this);
+            } else {
+                throw new SQLException("The receiver is not a wrapper for " + iface.getName());
+            }
+        } catch (Exception e) {
+            throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+        }
     }
 
     /**
-     * Returns true if this either implements the interface argument or is directly or indirectly a wrapper for an
-     * object that does. Returns false otherwise. If this implements the interface then return true, else if this is a
-     * wrapper then return the result of recursively calling <code>isWrapperFor</code> on the wrapped object. If this
-     * does not implement the interface and is not a wrapper, return false. This method should be implemented as a
-     * low-cost operation compared to <code>unwrap</code> so that callers can use this method to avoid expensive
-     * <code>unwrap</code> calls that may fail. If this method returns true then calling <code>unwrap</code> with the
-     * same argument should succeed.
+     * Returns true if this either implements the interface argument or is directly or indirectly a wrapper for an object that does. Returns false
+     * otherwise. If this implements the interface then return true, else if this is a wrapper then return the result of recursively calling
+     * <code>isWrapperFor</code> on the wrapped object. If this does not implement the interface and is not a wrapper, return false. This method
+     * should be implemented as a low-cost operation compared to <code>unwrap</code> so that callers can use this method to avoid expensive
+     * <code>unwrap</code> calls that may fail. If this method returns true then calling <code>unwrap</code> with the same argument should succeed.
      *
      * @param iface a Class defining an interface.
      * @return true if this implements the interface or directly or indirectly wraps an object that does.
-     * @throws SQLException if an error occurs while determining whether this is a wrapper for an object with
-     *                               the given interface.
+     * @throws SQLException if an error occurs while determining whether this is a wrapper for an object with the given interface.
      * @since 1.6
      */
     public boolean isWrapperFor(final Class<?> iface) throws SQLException {
-        return false;
+        return iface.isInstance(this);
     }
 }

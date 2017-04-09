@@ -49,10 +49,11 @@ OF SUCH DAMAGE.
 */
 
 import org.mariadb.jdbc.MariaDbStatement;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.com.send.ComStmtFetch;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.com.read.resultset.MariaSelectResultSet;
+
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -60,28 +61,50 @@ import java.sql.Statement;
 import java.util.ArrayDeque;
 import java.util.Deque;
 
+
 public class Results {
 
     private MariaDbStatement statement;
     private int fetchSize;
+    private ComStmtFetch cursorFetch;
     private boolean batch;
     private int expectedSize;
     private CmdInformation cmdInformation;
-    private Deque<MariaSelectResultSet> executionResults;
-    private MariaSelectResultSet resultSet;
-    private MariaSelectResultSet callableResultSet;
+    private Deque<SelectResultSet> executionResults;
+    private SelectResultSet resultSet;
+    private SelectResultSet callableResultSet;
     private boolean binaryFormat;
     private int resultSetScrollType;
+    private int maxFieldSize;
     private int autoIncrement;
 
     /**
      * Single Text query.
      *
-     * @param autoIncrement         connection auto increment
+     * /! use internally, because autoincrement value is not right for multi-queries !/
+     *
      */
-    public Results(int autoIncrement) {
+    public Results() {
         this.statement = null;
         this.fetchSize = 0;
+        this.maxFieldSize = 0;
+        this.batch = false;
+        this.expectedSize = 1;
+        this.cmdInformation = null;
+        this.binaryFormat = false;
+        this.resultSetScrollType = ResultSet.TYPE_FORWARD_ONLY;
+        this.autoIncrement = 1;
+    }
+
+    /**
+     * Constructor for specific statement.
+     * @param statement     current Statement.
+     * @param autoIncrement connection auto-increment
+     */
+    public Results(MariaDbStatement statement, int autoIncrement) {
+        this.statement = statement;
+        this.fetchSize = 0;
+        this.maxFieldSize = 0;
         this.batch = false;
         this.expectedSize = 1;
         this.cmdInformation = null;
@@ -100,18 +123,39 @@ public class Results {
      * @param binaryFormat          use binary protocol
      * @param resultSetScrollType   one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
      *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param autoIncrement         connection auto increment
+     * @param autoIncrement         Connection auto-increment value
      */
-    public Results(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat,
-                   int resultSetScrollType, int autoIncrement) {
+    public Results(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType,
+                   int autoIncrement) {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.batch = batch;
+        this.maxFieldSize = statement.getMaxFieldSize();
         this.expectedSize = expectedSize;
         this.cmdInformation = null;
         this.binaryFormat = binaryFormat;
         this.resultSetScrollType = resultSetScrollType;
         this.autoIncrement = autoIncrement;
+    }
+
+    /**
+     * Reset.
+     *
+     * @param fetchSize             fetch size
+     * @param batch                 select result possible
+     * @param expectedSize          expected size
+     * @param binaryFormat          use binary protocol
+     * @param resultSetScrollType   one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     */
+    public void reset(int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType) {
+        this.fetchSize = fetchSize;
+        this.batch = batch;
+        this.maxFieldSize = statement.getMaxFieldSize();
+        this.expectedSize = expectedSize;
+        this.cmdInformation = null;
+        this.binaryFormat = binaryFormat;
+        this.resultSetScrollType = resultSetScrollType;
     }
 
     /**
@@ -121,7 +165,7 @@ public class Results {
      * @param insertId            primary key
      * @param moreResultAvailable is there additional packet
      */
-    public void addStats(int updateCount, long insertId, boolean moreResultAvailable) {
+    public void addStats(long updateCount, long insertId, boolean moreResultAvailable) {
         if (cmdInformation == null) {
             if (batch) {
                 cmdInformation = new CmdInformationBatch(expectedSize, autoIncrement);
@@ -163,7 +207,7 @@ public class Results {
      * @param resultSet new resultSet.
      * @param moreResultAvailable indicate if other results (ResultSet or updateCount) are available.
      */
-    public void addResultSet(MariaSelectResultSet resultSet, boolean moreResultAvailable) {
+    public void addResultSet(SelectResultSet resultSet, boolean moreResultAvailable) {
         if (resultSet.isCallableResult()) {
             callableResultSet = resultSet;
             return;
@@ -189,20 +233,24 @@ public class Results {
 
     /**
      * Indicate that command / batch is finished, so set current resultSet if needed.
+     * @return current results
      */
-    public void commandEnd() {
-        if (cmdInformation != null) {
-            if (executionResults != null && !cmdInformation.isCurrentUpdateCount()) {
-                resultSet = executionResults.poll();
-            }
+    public Results commandEnd() {
+        if (cmdInformation != null
+                && executionResults != null
+                && !cmdInformation.isCurrentUpdateCount()) {
+            resultSet = executionResults.poll();
+        } else {
+            resultSet = null;
         }
+        return this;
     }
 
-    public MariaSelectResultSet getResultSet() {
+    public SelectResultSet getResultSet() {
         return resultSet;
     }
 
-    public MariaSelectResultSet getCallableResultSet() {
+    public SelectResultSet getCallableResultSet() {
         return callableResultSet;
     }
 
@@ -211,12 +259,11 @@ public class Results {
      *
      * <i>Lock must be set before using this method</i>
      *
-     * @param skip must result be available afterwhile
-     * @param protocol current protocol
+     * @param skip      must result be available afterwhile
+     * @param protocol  current protocol
      * @throws SQLException if any connection error occur
-     * @throws QueryException if any connection error occur
      */
-    public void loadFully(boolean skip, Protocol protocol) throws SQLException, QueryException {
+    public void loadFully(boolean skip, Protocol protocol) throws SQLException {
         if (fetchSize != 0) {
             fetchSize = 0;
             if (resultSet != null) {
@@ -226,7 +273,7 @@ public class Results {
                     resultSet.fetchRemaining();
                 }
             } else {
-                MariaSelectResultSet firstResult = executionResults.peekFirst();
+                SelectResultSet firstResult = executionResults.peekFirst();
                 if (firstResult != null ) {
                     if (skip) {
                         firstResult.close();
@@ -243,10 +290,11 @@ public class Results {
     /**
      * Position to next resultSet.
      *
-     * @param current one of the following <code>Statement</code> constants indicating what should happen to current <code>ResultSet</code> objects
-     * obtained using the method <code>getResultSet</code>: <code>Statement.CLOSE_CURRENT_RESULT</code>, <code>Statement.KEEP_CURRENT_RESULT</code>,
-     * or <code>Statement.CLOSE_ALL_RESULTS</code>
-     * @param protocol current protocol
+     * @param current   one of the following <code>Statement</code> constants indicating what should happen to current
+     *                  <code>ResultSet</code> objects obtained using the method <code>getResultSet</code>:
+     *                  <code>Statement.CLOSE_CURRENT_RESULT</code>, <code>Statement.KEEP_CURRENT_RESULT</code>,
+     *                  or <code>Statement.CLOSE_ALL_RESULTS</code>
+     * @param protocol  current protocol
      * @return true if other resultSet exists.
      * @throws SQLException if any connection error occur.
      */
@@ -266,7 +314,7 @@ public class Results {
                     //load next data if there is
                     if (protocol.hasMoreResults()) protocol.getResult(this);
 
-                } catch (QueryException e) {
+                } catch (SQLException e) {
                     ExceptionMapper.throwException(e, null, statement);
                 } finally {
                     protocol.getLock().unlock();
@@ -343,6 +391,23 @@ public class Results {
             if (batch) return cmdInformation.getBatchGeneratedKeys(protocol);
             return cmdInformation.getGeneratedKeys(protocol);
         }
-        return MariaSelectResultSet.createEmptyResultSet();
+        return SelectResultSet.createEmptyResultSet();
+    }
+
+    public void close() {
+        statement = null;
+        fetchSize = 0;
+    }
+
+    public int getMaxFieldSize() {
+        return maxFieldSize;
+    }
+
+    public ComStmtFetch getCursorFetch() {
+        return cursorFetch;
+    }
+
+    public void setUseCursorFetch(ComStmtFetch cursorFetch) {
+        this.cursorFetch = cursorFetch;
     }
 }

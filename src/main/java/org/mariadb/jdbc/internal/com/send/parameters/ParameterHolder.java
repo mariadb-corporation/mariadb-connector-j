@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 import java.io.IOException;
@@ -74,7 +74,7 @@ public interface ParameterHolder {
 
     boolean isNullData();
 
-    MariaDbType getMariaDbType();
+    ColumnType getColumnType();
 
     boolean isLongData();
 }

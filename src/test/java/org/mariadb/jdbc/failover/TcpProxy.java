@@ -17,9 +17,10 @@ public class TcpProxy {
 
     /**
      * Initialise proxy.
-     * @param host host (ip / dns)
+     *
+     * @param host       host (ip / dns)
      * @param remoteport port
-     * @throws IOException  exception
+     * @throws IOException exception
      */
     public TcpProxy(String host, int remoteport) throws IOException {
         this.host = host;
@@ -34,6 +35,7 @@ public class TcpProxy {
 
     /**
      * Stop proxy and restart after X milliseconds.
+     *
      * @param sleepTime sleep time in milliseconds
      */
     public void restart(long sleepTime) {

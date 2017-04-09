@@ -9,10 +9,11 @@ import java.sql.Statement;
 
 import static org.junit.Assert.*;
 
-public class GeneratedTest  extends BaseTest {
+public class GeneratedTest extends BaseTest {
 
     /**
      * Tables initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()

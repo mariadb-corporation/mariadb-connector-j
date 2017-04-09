@@ -56,13 +56,12 @@ import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.exceptions.PrepareException;
 import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.IOException;
-
+import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 
 public class ComStmtPrepare {
     private final Protocol protocol;
@@ -78,9 +77,9 @@ public class ComStmtPrepare {
      *
      * @param pos the writer
      * @throws IOException if connection error occur
-     * @throws QueryException if packet max size is to big.
+     * @throws SQLException if packet max size is to big.
      */
-    public void send(PacketOutputStream pos) throws IOException, QueryException {
+    public void send(PacketOutputStream pos) throws IOException, SQLException {
         pos.startPacket(0);
         pos.write(Packet.COM_STMT_PREPARE);
         pos.write(this.sql);
@@ -92,10 +91,10 @@ public class ComStmtPrepare {
      *
      * @param reader inputStream
      * @return ServerPrepareResult prepare result
-     * @throws IOException is connection has error
-     * @throws QueryException if server answer with error.
+     * @throws IOException  if connection has error
+     * @throws SQLException if server answer with error.
      */
-    public ServerPrepareResult read(PacketInputStream reader) throws IOException, QueryException {
+    public ServerPrepareResult read(PacketInputStream reader) throws IOException, SQLException {
         Buffer buffer = reader.getPacket(true);
         byte firstByte = buffer.getByteAt(buffer.position);
 
@@ -103,12 +102,12 @@ public class ComStmtPrepare {
             ErrorPacket ep = new ErrorPacket(buffer);
             String message = ep.getMessage();
             if (1054 == ep.getErrorNumber()) {
-                throw new PrepareException("Error preparing query: " + message
+                throw new SQLException("Error preparing query: " + message
                         + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
                         + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
-                        ep.getErrorNumber(), ep.getSqlState());
+                        ep.getSqlState(), ep.getErrorNumber());
             } else {
-                throw new PrepareException("Error preparing query: " + message, ep.getErrorNumber(), ep.getSqlState());
+                throw new SQLException("Error preparing query: " + message, ep.getSqlState(), ep.getErrorNumber());
             }
         }
 
@@ -156,7 +155,7 @@ public class ComStmtPrepare {
             return serverPrepareResult;
 
         } else {
-            throw new QueryException("Unexpected packet returned by server, first byte " + firstByte);
+            throw new SQLException("Unexpected packet returned by server, first byte " + firstByte);
         }
     }
 

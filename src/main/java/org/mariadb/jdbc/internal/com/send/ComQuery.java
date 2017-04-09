@@ -53,9 +53,9 @@ import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.List;
 
 public class ComQuery {
@@ -65,9 +65,9 @@ public class ComQuery {
     /**
      * Client-side PrepareStatement.execute() packet send.
      *
-     * @param writer outputStream
+     * @param writer              outputStream
      * @param clientPrepareResult clientPrepareResult
-     * @param parameters parameter
+     * @param parameters          parameter
      * @throws IOException if connection fail
      */
     public static void sendSubCmd(final PacketOutputStream writer, final ClientPrepareResult clientPrepareResult, ParameterHolder[] parameters)
@@ -245,9 +245,9 @@ public class ComQuery {
     /**
      * Statement.executeBatch() rewritten multiple (concatenate with ";") according to max_allowed_packet)
      *
-     * @param writer outputstream
-     * @param firstQuery first query
-     * @param queries queries
+     * @param writer       outputstream
+     * @param firstQuery   first query
+     * @param queries      queries
      * @param currentIndex currentIndex
      * @return current index
      * @throws IOException if connection error occur
@@ -277,9 +277,9 @@ public class ComQuery {
      * @param pos       output stream
      * @param sqlBytes  the query in UTF-8 bytes
      * @throws IOException    if connection error occur
-     * @throws QueryException if packet max size is to big.
+     * @throws SQLException if packet max size is to big.
      */
-    public static void sendDirect(final PacketOutputStream pos, byte[] sqlBytes) throws IOException, QueryException {
+    public static void sendDirect(final PacketOutputStream pos, byte[] sqlBytes) throws IOException, SQLException {
         pos.startPacket(0);
         pos.write(Packet.COM_QUERY);
         pos.write(sqlBytes);

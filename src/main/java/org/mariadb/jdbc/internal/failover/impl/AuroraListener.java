@@ -55,10 +55,9 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.read.resultset.MariaSelectResultSet;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.logging.Level;
@@ -118,10 +117,10 @@ public class AuroraListener extends MastersSlavesListener {
      * so search for each host until found all the failed connection.
      * By default, search for the host not down, and recheck the down one after if not found valid connections.
      *
-     * @throws QueryException if a connection asked is not found
+     * @throws SQLException if a connection asked is not found
      */
     @Override
-    public void reconnectFailedConnection(SearchFilter searchFilter) throws QueryException {
+    public void reconnectFailedConnection(SearchFilter searchFilter) throws SQLException {
         if (!searchFilter.isInitialConnection()
                 && (isExplicitClosed()
                 || (searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
@@ -200,9 +199,9 @@ public class AuroraListener extends MastersSlavesListener {
      * Calls the methods that retrieves the instance identifiers and sets urlParser accordingly.
      *
      * @param protocol current protocol connected to
-     * @throws QueryException if connection error occur
+     * @throws SQLException if connection error occur
      */
-    public void retrieveAllEndpointsAndSet(Protocol protocol) throws QueryException {
+    public void retrieveAllEndpointsAndSet(Protocol protocol) throws SQLException {
         // For a given cluster, same port for all endpoints and same end host address
         int port = protocol.getPort();
         if ("".equals(urlEndStr) && protocol.getHost().indexOf(".") > -1) {
@@ -221,21 +220,21 @@ public class AuroraListener extends MastersSlavesListener {
      *
      * @param protocol current protocol connected to
      * @return instance endpoints of the cluster
-     * @throws QueryException if connection error occur
+     * @throws SQLException if connection error occur
      */
-    private List<String> getCurrentEndpointIdentifiers(Protocol protocol) throws QueryException {
+    private List<String> getCurrentEndpointIdentifiers(Protocol protocol) throws SQLException {
         List<String> endpoints = new ArrayList<>();
         try {
             proxy.lock.lock();
             try {
                 // Deleted instance may remain in db for 24 hours so ignoring instances that have had no change
                 // for 3 minutes
-                Results results = new Results(1);
+                Results results = new Results();
                 protocol.executeQuery(false, results,
                         "select server_id, session_id from information_schema.replica_host_status "
                                 + "where last_update_timestamp > now() - INTERVAL 3 MINUTE");
                 results.commandEnd();
-                MariaSelectResultSet resultSet = results.getResultSet();
+                ResultSet resultSet = results.getResultSet();
 
                 while (resultSet.next()) {
                     endpoints.add(resultSet.getString(1) + urlEndStr);
@@ -247,9 +246,8 @@ public class AuroraListener extends MastersSlavesListener {
             } finally {
                 proxy.lock.unlock();
             }
-        } catch (SQLException se) {
-            log.log(Level.WARNING, "SQL exception occurred: " + se);
-        } catch (QueryException qe) {
+        } catch (SQLException qe) {
+            log.log(Level.WARNING, "SQL exception occurred: " + qe.getMessage());
             if (protocol.getProxy().hasToHandleFailover(qe)) {
                 if (masterProtocol.equals(protocol)) {
                     setMasterHostFail();
@@ -299,7 +297,7 @@ public class AuroraListener extends MastersSlavesListener {
             do {
                 try {
                     currentWriter = searchForMasterHostAddress(secondaryProtocol, loopAddress);
-                } catch (QueryException qe) {
+                } catch (SQLException qe) {
                     if (proxy.hasToHandleFailover(qe) && setSecondaryHostFail()) {
                         addToBlacklist(secondaryProtocol.getHostAddress());
                         return null;
@@ -316,7 +314,7 @@ public class AuroraListener extends MastersSlavesListener {
                     possibleMasterProtocol.connect();
                     possibleMasterProtocol.setMustBeMasterConnection(true);
                     foundActiveMaster(possibleMasterProtocol);
-                } catch (QueryException qe) {
+                } catch (SQLException qe) {
                     if (proxy.hasToHandleFailover(qe)) {
                         addToBlacklist(possibleMasterProtocol.getHostAddress());
                     }
@@ -337,20 +335,20 @@ public class AuroraListener extends MastersSlavesListener {
      * @param protocol    current protocol
      * @param loopAddress list of possible hosts
      * @return the probable host address or null if no valid endpoint found
-     * @throws QueryException if any connection error occur
+     * @throws SQLException if any connection error occur
      */
-    private HostAddress searchForMasterHostAddress(Protocol protocol, List<HostAddress> loopAddress) throws QueryException {
+    private HostAddress searchForMasterHostAddress(Protocol protocol, List<HostAddress> loopAddress) throws SQLException {
         String masterHostName = null;
         proxy.lock.lock();
         try {
-            Results results = new Results(1);
+            Results results = new Results();
             protocol.executeQuery(false, results,
                     "select server_id from information_schema.replica_host_status "
                             + "where session_id = 'MASTER_SESSION_ID' "
                             + "and last_update_timestamp > now() - INTERVAL 3 MINUTE "
                             + "ORDER BY last_update_timestamp DESC LIMIT 1");
             results.commandEnd();
-            MariaSelectResultSet queryResult = results.getResultSet();
+            ResultSet queryResult = results.getResultSet();
 
             if (!queryResult.isBeforeFirst()) {
                 return null;
@@ -402,10 +400,10 @@ public class AuroraListener extends MastersSlavesListener {
                     }
                     return true;
                 }
-            } catch (QueryException e) {
+            } catch (SQLException e) {
                 try {
                     masterProtocol.ping();
-                } catch (QueryException ee) {
+                } catch (SQLException ee) {
                     proxy.lock.lock();
                     try {
                         masterProtocol.close();
@@ -430,7 +428,7 @@ public class AuroraListener extends MastersSlavesListener {
                     }
                     return true;
                 }
-            } catch (QueryException e) {
+            } catch (SQLException e) {
                 try {
                     this.secondaryProtocol.ping();
                 } catch (Exception ee) {

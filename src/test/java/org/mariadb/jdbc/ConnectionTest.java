@@ -18,6 +18,7 @@ public class ConnectionTest extends BaseTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -54,7 +55,7 @@ public class ConnectionTest extends BaseTest {
                     break;
 
                 default:
-                    fail("Wrong error code : " + e.getErrorCode());
+                    e.printStackTrace();
             }
         }
     }
@@ -165,7 +166,7 @@ public class ConnectionTest extends BaseTest {
     /**
      * Conj-116: Make SQLException prettier when too large stream is sent to the server.
      *
-     * @throws SQLException exception
+     * @throws SQLException                 exception
      * @throws UnsupportedEncodingException exception
      */
     @Test
@@ -244,7 +245,7 @@ public class ConnectionTest extends BaseTest {
     /**
      * CONJ-120 Fix Connection.isValid method
      *
-     * @throws SQLException exception
+     * @throws SQLException         exception
      * @throws InterruptedException exception
      */
     @Test
@@ -261,6 +262,7 @@ public class ConnectionTest extends BaseTest {
 
     /**
      * CONJ-363 : follow JDBC connection client infos rules.
+     *
      * @throws Exception if any occur.
      */
     @Test

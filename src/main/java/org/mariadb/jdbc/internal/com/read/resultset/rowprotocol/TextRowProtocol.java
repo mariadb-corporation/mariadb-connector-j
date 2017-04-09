@@ -51,6 +51,10 @@ package org.mariadb.jdbc.internal.com.read.resultset.rowprotocol;
 
 public class TextRowProtocol extends RowProtocol {
 
+    public TextRowProtocol(int maxFieldSize) {
+        super(maxFieldSize);
+    }
+
     /**
      * Set length and pos indicator to asked index.
      *

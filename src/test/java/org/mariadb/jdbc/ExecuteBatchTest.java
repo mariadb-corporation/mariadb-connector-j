@@ -19,6 +19,15 @@ import static org.junit.Assert.*;
 
 public class ExecuteBatchTest extends BaseTest {
 
+    static String oneHundredLengthString = "";
+    static boolean profileSql = true;
+
+    static {
+        char[] chars = new char[100];
+        for (int i = 27; i < 127; i++) chars[i - 27] = (char) i;
+        oneHundredLengthString = new String(chars);
+    }
+
     /**
      * Create test tables.
      *
@@ -28,15 +37,6 @@ public class ExecuteBatchTest extends BaseTest {
     public static void initClass() throws SQLException {
         createTable("ExecuteBatchTest", "id int not null primary key auto_increment, test varchar(100) , test2 int");
         createTable("ExecuteBatchUseBatchMultiSend", "test varchar(100)");
-    }
-
-    static String oneHundredLengthString = "";
-    static boolean profileSql = true;
-
-    static {
-        char[] chars = new char[100];
-        for (int i = 27; i < 127; i++) chars[i - 27] = (char) i;
-        oneHundredLengthString = new String(chars);
     }
 
     /**

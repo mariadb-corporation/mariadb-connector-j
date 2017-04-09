@@ -14,6 +14,7 @@ import static org.junit.Assert.fail;
 public class ScrollTypeTest extends BaseTest {
     /**
      * Data initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()

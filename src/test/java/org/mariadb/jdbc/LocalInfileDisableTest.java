@@ -12,6 +12,7 @@ import static org.junit.Assert.*;
 public class LocalInfileDisableTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -31,8 +32,7 @@ public class LocalInfileDisableTest extends BaseTest {
 
             assertNotNull("Expected an exception to be thrown", ex);
             String message = ex.getMessage();
-            String expectedMessage = "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true\n"
-                    + "Query is : LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)";
+            String expectedMessage = "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true";
             assertTrue(message.contains(expectedMessage));
         }
     }

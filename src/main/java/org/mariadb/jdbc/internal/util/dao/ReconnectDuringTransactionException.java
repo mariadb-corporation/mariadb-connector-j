@@ -49,17 +49,19 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.util.dao;
 
-public class ReconnectDuringTransactionException extends QueryException {
+import java.sql.SQLException;
+
+public class ReconnectDuringTransactionException extends SQLException {
 
     public ReconnectDuringTransactionException(String message) {
         super(message);
     }
 
     public ReconnectDuringTransactionException(String message, int errorCode, String sqlState) {
-        super(message, errorCode, sqlState);
+        super(message, sqlState, errorCode);
     }
 
     public ReconnectDuringTransactionException(String message, int errorCode, String sqlState, Throwable cause) {
-        super(message, errorCode, sqlState, cause);
+        super(message, sqlState, errorCode, cause);
     }
 }

@@ -52,18 +52,16 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.com.read.dao.*;
-import org.mariadb.jdbc.internal.com.read.resultset.MariaSelectResultSet;
-import org.mariadb.jdbc.internal.util.exceptions.PrepareException;
-import org.mariadb.jdbc.internal.util.exceptions.PrepareSqlException;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.sql.*;
 import java.util.*;
 
-public class MariaDbServerPreparedStatement extends AbstractPrepareStatement implements Cloneable {
-    private static Logger logger = LoggerFactory.getLogger(MariaDbServerPreparedStatement.class);
+public class MariaDbPreparedStatementServer extends BasePrepareStatement implements Cloneable {
+
+    private static Logger logger = LoggerFactory.getLogger(MariaDbPreparedStatementServer.class);
 
     String sql;
     ServerPrepareResult serverPrepareResult = null;
@@ -71,49 +69,28 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
     int parameterCount = -1;
     MariaDbResultSetMetaData metadata;
     MariaDbParameterMetaData parameterMetaData;
-    Map<Integer,ParameterHolder> currentParameterHolder;
+    Map<Integer, ParameterHolder> currentParameterHolder;
     List<ParameterHolder[]> queryParameters = new ArrayList<>();
     boolean mustExecuteOnMaster;
 
     /**
      * Constructor for creating Server prepared statement.
-     * @param connection current connection
-     * @param sql Sql String to prepare
+     *
+     * @param connection          current connection
+     * @param sql                 Sql String to prepare
      * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param forcePrepare force immediate prepare
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param forcePrepare        force immediate prepare
      * @throws SQLException exception
      */
-    public MariaDbServerPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
+    public MariaDbPreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
             throws SQLException {
         super(connection, resultSetScrollType);
         this.sql = sql;
-        useFractionalSeconds = options.useFractionalSeconds;
         returnTableAlias = options.useOldAliasMetadataBehavior;
-        currentParameterHolder = Collections.synchronizedMap(new TreeMap<Integer,ParameterHolder>());
+        currentParameterHolder = Collections.synchronizedMap(new TreeMap<Integer, ParameterHolder>());
         mustExecuteOnMaster = protocol.isMasterConnection();
         if (forcePrepare) prepare(this.sql);
-    }
-
-    /**
-     * Constructor for creating Server prepared statement.
-     * @param connection current connection
-     * @param sql Sql String to prepare
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param serverPrepareResult prepare result from cache
-     * @throws SQLException exception
-     */
-    public MariaDbServerPreparedStatement(MariaDbConnection connection, String sql, int resultSetScrollType, ServerPrepareResult serverPrepareResult)
-            throws SQLException {
-        super(connection, resultSetScrollType);
-        this.sql = sql;
-        useFractionalSeconds = options.useFractionalSeconds;
-        returnTableAlias = options.useOldAliasMetadataBehavior;
-        currentParameterHolder = new TreeMap<>();
-        mustExecuteOnMaster = protocol.isMasterConnection();
-        this.serverPrepareResult = serverPrepareResult;
-        setMetaFromResult();
     }
 
     /**
@@ -123,8 +100,8 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public MariaDbServerPreparedStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
-        MariaDbServerPreparedStatement clone = (MariaDbServerPreparedStatement) super.clone(connection);
+    public MariaDbPreparedStatementServer clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        MariaDbPreparedStatementServer clone = (MariaDbPreparedStatementServer) super.clone(connection);
         clone.metadata = metadata;
         clone.parameterMetaData = parameterMetaData;
         clone.queryParameters = new ArrayList<>();
@@ -142,16 +119,14 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
         try {
             serverPrepareResult = protocol.prepare(sql, mustExecuteOnMaster);
             setMetaFromResult();
-        } catch (PrepareException exception) {
-            throw new PrepareSqlException("(conn:" + getServerThreadId() + ") " + exception.getMessage(), exception);
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             try {
                 this.close();
             } catch (Exception ee) {
                 //eat exception.
             }
             logger.error("error preparing query", e);
-            ExceptionMapper.throwException(e, connection, this);
+            throw ExceptionMapper.getException(e, connection, this, false);
         }
     }
 
@@ -159,21 +134,6 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
         parameterCount = serverPrepareResult.getParameters().length;
         metadata = new MariaDbResultSetMetaData(serverPrepareResult.getColumns(), protocol.getDataTypeMappingFlags(), returnTableAlias);
         parameterMetaData = new MariaDbParameterMetaData(serverPrepareResult.getParameters());
-    }
-
-    @Override
-    protected boolean isNoBackslashEscapes() {
-        return connection.noBackslashEscapes;
-    }
-
-    @Override
-    protected boolean useFractionalSeconds() {
-        return useFractionalSeconds;
-    }
-
-    @Override
-    protected Calendar cal() {
-        return protocol.getCalendar();
     }
 
     protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
@@ -188,6 +148,7 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
 
     /**
      * Add batch.
+     *
      * @param sql typically this is a SQL <code>INSERT</code> or <code>UPDATE</code> statement
      * @throws SQLException every time since that method is forbidden on prepareStatement
      */
@@ -239,10 +200,10 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
      * @return an array of update counts containing one element for each command in the batch.  The elements of the
      * array are ordered according to the order in which send were added to the batch.
      * @throws SQLException if a database access error occurs, this method is called on a closed
-     *                               <code>Statement</code> or the driver does not support batch statements. Throws
-     *                               {@link BatchUpdateException} (a subclass of <code>SQLException</code>) if
-     *                               one of the send sent to the database fails to execute properly or attempts to
-     *                               return a result set.
+     *                      <code>Statement</code> or the driver does not support batch statements. Throws
+     *                      {@link BatchUpdateException} (a subclass of <code>SQLException</code>) if
+     *                      one of the send sent to the database fails to execute properly or attempts to
+     *                      return a result set.
      * @see #addBatch
      * @see DatabaseMetaData#supportsBatchUpdates
      * @since 1.3
@@ -250,91 +211,79 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
     @Override
     public int[] executeBatch() throws SQLException {
         checkClose();
-        batchResultSet = null;
         int queryParameterSize = queryParameters.size();
         if (queryParameterSize == 0) return new int[0];
+        executeBatchInternal(queryParameterSize);
+        return results.getCmdInformation().getUpdateCounts();
+    }
 
+    /**
+     * Execute batch, like executeBatch(), with returning results with long[].
+     * For when row count may exceed Integer.MAX_VALUE.
+     *
+     * @return an array of update counts (one element for each command in the batch)
+     * @throws SQLException if a database error occur.
+     */
+    @Override
+    public long[] executeLargeBatch() throws SQLException {
+        checkClose();
+        int queryParameterSize = queryParameters.size();
+        if (queryParameterSize == 0) return new long[0];
+        executeBatchInternal(queryParameterSize);
+        return results.getCmdInformation().getLargeUpdateCounts();
+    }
+
+    private void executeBatchInternal(int queryParameterSize) throws SQLException {
         lock.lock();
         executing = true;
-        QueryException exception = null;
-        Results internalResult = null;
         try {
-            executeQueryProlog(serverPrepareResult);
-            try {
-                internalResult = new Results(this, 0, true, queryParameterSize, true, resultSetScrollType,
-                        connection.getAutoIncrementIncrement());
-                executeBatchInternal(internalResult, queryParameterSize);
-            } catch (QueryException queryException) {
-                exception = queryException;
-            } finally {
-                internalResult.commandEnd();
-                results = internalResult;
-                executeQueryEpilog(exception);
-                executing = false;
+            executeQueryPrologue(serverPrepareResult);
+
+            results.reset(0, true, queryParameterSize, true,resultSetScrollType);;
+
+            //if  multi send capacity
+            if (options.useBatchMultiSend) {
+                //send all sub-command in one packet (or more if > max_allowed_packet)
+                serverPrepareResult = protocol.prepareAndExecutes(mustExecuteOnMaster, serverPrepareResult, results, sql, queryParameters);
+                if (metadata == null) setMetaFromResult(); //first prepare
+                return;
             }
-            clearBatch();
-            return internalResult.getCmdInformation().getUpdateCounts();
-        } catch (PrepareSqlException p) {
-            throw p;
-        } catch (SQLException sqle) {
-            clearBatch();
-            int[] ret;
-            if (internalResult.getCmdInformation() == null) {
-                ret = new int[queryParameterSize];
-                Arrays.fill(ret, Statement.EXECUTE_FAILED);
-            } else ret = internalResult.getCmdInformation().getUpdateCounts();
-            throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), ret, sqle);
+
+            //send query one by one, reading results for each query before sending another one
+            SQLException exception = null;
+            for (int counter = 0; counter < queryParameterSize; counter++) {
+                ParameterHolder[] parameterHolder = queryParameters.get(counter);
+                try {
+                    serverPrepareResult.resetParameterTypeHeader();
+                    protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
+                } catch (SQLException queryException) {
+                    if (options.continueBatchOnError) {
+                        if (exception == null) exception = queryException;
+                    } else {
+                        throw queryException;
+                    }
+                }
+            }
+            if (exception != null) throw exception;
+
+            results.commandEnd();
+        } catch (SQLException initialSqlEx) {
+            throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), queryParameterSize, false);
         } finally {
+            executeBatchEpilogue();
             lock.unlock();
         }
     }
 
-    /**
-     * Send batch datas according to options.
-     *
-     * @param results results.
-     * @param queryParameterSize batch size
-     * @throws QueryException if any error occur.
-     * @throws SQLException if prepare fail
-     */
-    private void executeBatchInternal(Results results, int queryParameterSize)
-            throws QueryException, SQLException {
-
-        //if  multi send capacity
-        if (options.useBatchMultiSend) {
-            //send all sub-command in one packet (or more if > max_allowed_packet)
-            serverPrepareResult = protocol.prepareAndExecutes(mustExecuteOnMaster, serverPrepareResult, results, sql, queryParameters);
-            if (metadata == null) setMetaFromResult(); //first prepare
-            return;
-        }
-
-        //send query one by one, reading results for each query before sending another one
-        QueryException exception = null;
-        for (int counter = 0; counter < queryParameterSize; counter++) {
-            ParameterHolder[] parameterHolder = queryParameters.get(counter);
-            try {
-                serverPrepareResult.resetParameterTypeHeader();
-                protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
-            } catch (QueryException queryException) {
-                if (options.continueBatchOnError || queryException.isPrepareError()) {
-                    if (exception == null) exception = queryException;
-                } else {
-                    throw queryException;
-                }
-            }
-        }
-        if (exception != null) throw exception;
-    }
-
     // must have "lock" locked before invoking
-    private void executeQueryProlog(ServerPrepareResult serverPrepareResult) throws SQLException {
+    private void executeQueryPrologue(ServerPrepareResult serverPrepareResult) throws SQLException {
+        executing = true;
         if (closed) {
             throw new SQLException("execute() is called on closed statement");
         }
-        protocol.prologProxy(serverPrepareResult, results, maxRows, protocol.getProxy() != null, connection, this);
-        if (queryTimeout != 0) {
-            setTimerTask();
-        }
+        if (serverPrepareResult != null) serverPrepareResult.fetchAllOpenCursor();
+        protocol.prologProxy(serverPrepareResult, maxRows, protocol.getProxy() != null, connection, this);
+        if (queryTimeout != 0) setTimerTask();
     }
 
     @Override
@@ -342,12 +291,14 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
         if (execute()) {
             return results.getResultSet();
         }
-        return MariaSelectResultSet.createEmptyResultSet();
+        return SelectResultSet.createEmptyResultSet();
     }
 
     @Override
     public int executeUpdate() throws SQLException {
-        execute();
+        if (execute()) {
+            return 0;
+        }
         return getUpdateCount();
     }
 
@@ -358,7 +309,7 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
 
     @Override
     public boolean execute() throws SQLException {
-        return executeInternal(getFetchSize(), false);
+        return executeInternal(getFetchSize());
     }
 
     protected void validParameters() throws SQLException {
@@ -366,7 +317,7 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
             for (int i = 0; i < parameterCount; i++) {
                 if (currentParameterHolder.get(i) == null) {
                     logger.error("Parameter at position " + (i + 1) + " is not set");
-                    ExceptionMapper.throwException(new QueryException("Parameter at position " + (i + 1) + " is not set", -1, "07004"),
+                    ExceptionMapper.throwException(new SQLException("Parameter at position " + (i + 1) + " is not set", "07004"),
                             connection, this);
                 }
             }
@@ -376,45 +327,41 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
                 if (!currentParameterHolder.containsKey(i)) {
                     parameterCount = -1;
                     logger.error("Parameter at position " + (i + 1) + " is not set");
-                    ExceptionMapper.throwException(new QueryException("Parameter at position " + (i + 1) + " is not set", -1, "07004"),
+                    ExceptionMapper.throwException(new SQLException("Parameter at position " + (i + 1) + " is not set", "07004"),
                             connection, this);
                 }
             }
         }
     }
 
-    protected boolean executeInternal(int fetchSize, boolean canHaveCallableResultset) throws SQLException {
+    protected boolean executeInternal(int fetchSize) throws SQLException {
         validParameters();
+
         lock.lock();
         try {
-            executing = true;
-            QueryException exception = null;
-            executeQueryProlog(serverPrepareResult);
-            try {
-                batchResultSet = null;
-                Results internalResults = new Results(this, fetchSize, false,1, true, resultSetScrollType,
-                        connection.getAutoIncrementIncrement());
-                ParameterHolder[] parameterHolders = currentParameterHolder.values().toArray(new ParameterHolder[0]);
-                if (serverPrepareResult != null) {
-                    serverPrepareResult.resetParameterTypeHeader();
-                    protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, internalResults, parameterHolders);
-                } else {
-                    serverPrepareResult = protocol.prepareAndExecute(mustExecuteOnMaster, null, internalResults, sql, parameterHolders);
-                    setMetaFromResult();
-                }
-                internalResults.commandEnd();
-                results = internalResults;
-                return results.getResultSet() != null;
-            } catch (QueryException e) {
-                exception = e;
-                return false;
-            } finally {
-                executeQueryEpilog(exception);
-                executing = false;
+            executeQueryPrologue(serverPrepareResult);
+            ParameterHolder[] parameterHolders = currentParameterHolder.values().toArray(new ParameterHolder[0]);
+
+            results.reset(fetchSize, false,1,  true,resultSetScrollType);
+
+            if (serverPrepareResult != null) {
+                serverPrepareResult.resetParameterTypeHeader();
+                protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, results, parameterHolders);
+            } else {
+                serverPrepareResult = protocol.prepareAndExecute(mustExecuteOnMaster, null, results, sql, parameterHolders);
+                setMetaFromResult();
             }
+
+            results.commandEnd();
+            return results.getResultSet() != null;
+
+        } catch (SQLException exception) {
+            throw executeExceptionEpilogue(exception);
         } finally {
+            executeEpilogue();
             lock.unlock();
         }
+
     }
 
 
@@ -434,14 +381,16 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
         try {
             closed = true;
 
+            if (results.getFetchSize() != 0) skipMoreResults();
+            results.close();
+
             // No possible future use for the cached results, so these can be cleared
             // This makes the cache eligible for garbage collection earlier if the statement is not
             // immediately garbage collected
-
             if (serverPrepareResult != null && protocol != null) {
                 try {
                     serverPrepareResult.getUnProxiedProtocol().releasePrepareStatement(serverPrepareResult);
-                } catch (QueryException e) {
+                } catch (SQLException e) {
                     //if (log.isDebugEnabled()) log.debug("Error releasing preparedStatement", e);
                 }
             }
@@ -464,6 +413,7 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
 
     /**
      * Return sql String value.
+     *
      * @return String representation
      */
     public String toString() {
@@ -506,6 +456,7 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
 
     /**
      * Permit to retrieve current connection thread id, or -1 if unknown.
+     *
      * @return current connection thread id.
      */
     public long getServerThreadId() {
@@ -514,4 +465,5 @@ public class MariaDbServerPreparedStatement extends AbstractPrepareStatement imp
         }
         return (protocol != null) ? protocol.getServerThreadId() : -1;
     }
+
 }

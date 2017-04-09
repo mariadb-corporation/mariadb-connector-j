@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal;
 
-import org.mariadb.jdbc.internal.com.read.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -59,8 +59,7 @@ import java.sql.Timestamp;
 import java.sql.Types;
 
 
-public enum MariaDbType {
-
+public enum ColumnType {
     OLDDECIMAL(0, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName()),
     TINYINT(1, Types.SMALLINT, "Types.SMALLINT", Integer.class.getName()),
     SMALLINT(2, Types.SMALLINT, "Types.SMALLINT", Integer.class.getName()),
@@ -68,14 +67,14 @@ public enum MariaDbType {
     FLOAT(4, Types.REAL, "Types.REAL", Float.class.getName()),
     DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", Double.class.getName()),
     NULL(6, Types.NULL, "Types.NULL", String.class.getName()),
-    TIMESTAMP(7, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName()),
+    TIMESTAMP(7, Types.TIMESTAMP, "Types.TIMESTAMP", java.sql.Timestamp.class.getName()),
     BIGINT(8, Types.BIGINT, "Types.BIGINT", Long.class.getName()),
     MEDIUMINT(9, Types.INTEGER, "Types.INTEGER", Integer.class.getName()),
-    DATE(10, Types.DATE, "Types.DATE", Date.class.getName()),
-    TIME(11, Types.TIME, "Types.TIME", Time.class.getName()),
-    DATETIME(12, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName()),
+    DATE(10, Types.DATE, "Types.DATE", java.sql.Date.class.getName()),
+    TIME(11, Types.TIME, "Types.TIME", java.sql.Time.class.getName()),
+    DATETIME(12, Types.TIMESTAMP, "Types.TIMESTAMP", java.sql.Timestamp.class.getName()),
     YEAR(13, Types.SMALLINT, "Types.SMALLINT", Short.class.getName()),
-    NEWDATE(14, Types.DATE, "Types.DATE", Date.class.getName()),
+    NEWDATE(14, Types.DATE, "Types.DATE", java.sql.Date.class.getName()),
     VARCHAR(15, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
     BIT(16, Types.BIT, "Types.BIT", "[B"),
     DECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName()),
@@ -89,23 +88,23 @@ public enum MariaDbType {
     STRING(254, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
     GEOMETRY(255, Types.VARBINARY, "Types.VARBINARY", "[B");
 
-    static MariaDbType[] typeMap;
+    static ColumnType[] typeMap;
 
     static {
-        typeMap = new MariaDbType[256];
-        for (MariaDbType v : values()) {
+        typeMap = new ColumnType[256];
+        for (ColumnType v : values()) {
             typeMap[v.mysqlType] = v;
         }
     }
 
-    private final int javaType;
     private final int mysqlType;
+    private final int javaType;
     private final String javaTypeName;
     private final String className;
 
-    MariaDbType(int mysqlType, int javaType, String javaTypeName, String className) {
-        this.javaType = javaType;
+    ColumnType(int mysqlType, int javaType, String javaTypeName, String className) {
         this.mysqlType = mysqlType;
+        this.javaType = javaType;
         this.javaTypeName = javaTypeName;
         this.className = className;
     }
@@ -192,10 +191,11 @@ public enum MariaDbType {
 
     /**
      * Is type numeric.
+     *
      * @param type mariadb type
      * @return true if type is numeric
      */
-    public static boolean isNumeric(MariaDbType type) {
+    public static boolean isNumeric(ColumnType type) {
         switch (type) {
             case OLDDECIMAL:
             case TINYINT:
@@ -213,56 +213,16 @@ public enum MariaDbType {
         }
     }
 
-    public String getClassName() {
-        return className;
-    }
-
-    /**
-     * Get class name.
-     * @param type type
-     * @param len len
-     * @param signed signed
-     * @param binary binary
-     * @param flags flags
-     * @return class name
-     */
-    public static String getClassName(MariaDbType type, int len, boolean signed, boolean binary, int flags) {
-        switch (type) {
-            case TINYINT:
-                if (len == 1 && ((flags & MariaSelectResultSet.TINYINT1_IS_BIT) != 0)) {
-                    return Boolean.class.getName();
-                }
-                return Integer.class.getName();
-            case INTEGER:
-                return (signed) ? Integer.class.getName() : Long.class.getName();
-            case BIGINT:
-                return (signed) ? Long.class.getName() : BigInteger.class.getName();
-            case YEAR:
-                if ((flags & MariaSelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
-                    return Date.class.getName();
-                }
-                return Short.class.getName();
-            case BIT:
-                return (len == 1) ? Boolean.class.getName() : "[B";
-            case STRING:
-            case VARCHAR:
-            case VARSTRING:
-                return binary ? "[B" : String.class.getName();
-            default:
-                break;
-        }
-        return type.getClassName();
-    }
-
     /**
      * Get columnTypeName.
-     * @param type type
-     * @param len len
+     *
+     * @param type   type
+     * @param len    len
      * @param signed signed
      * @param binary binary
      * @return type
      */
-    public static String getColumnTypeName(MariaDbType type, long len, boolean signed, boolean binary) {
+    public static String getColumnTypeName(ColumnType type, long len, boolean signed, boolean binary) {
         switch (type) {
             case SMALLINT:
             case MEDIUMINT:
@@ -307,35 +267,79 @@ public enum MariaDbType {
 
     /**
      * Convert server Type to server type.
+     *
      * @param typeValue type value
      * @return MariaDb type
      */
-    public static MariaDbType fromServer(int typeValue) {
+    public static ColumnType fromServer(int typeValue) {
 
-        MariaDbType mariaDbType = typeMap[typeValue];
+        ColumnType columnType = typeMap[typeValue];
 
-        if (mariaDbType == null) {
+        if (columnType == null) {
             /*
               Potential fallback for types that are not implemented.
               Should not be normally used.
              */
-            mariaDbType = BLOB;
+            columnType = BLOB;
         }
-        return mariaDbType;
+        return columnType;
     }
 
     /**
-     * Convert javatype to MariaDbType.
+     * Convert javatype to ColumnType.
+     *
      * @param javaType javatype value
      * @return mariaDb type value
      */
-    public static MariaDbType toServer(int javaType) {
-        for (MariaDbType v : values()) {
+    public static ColumnType toServer(int javaType) {
+        for (ColumnType v : values()) {
             if (v.javaType == javaType) {
                 return v;
             }
         }
-        return MariaDbType.BLOB;
+        return ColumnType.BLOB;
+    }
+
+    public String getClassName() {
+        return className;
+    }
+
+    /**
+     * Get class name.
+     *
+     * @param type   type
+     * @param len    len
+     * @param signed signed
+     * @param binary binary
+     * @param flags  flags
+     * @return class name
+     */
+    public static String getClassName(ColumnType type, int len, boolean signed, boolean binary, int flags) {
+        switch (type) {
+            case TINYINT:
+                if (len == 1 && ((flags & SelectResultSet.TINYINT1_IS_BIT) != 0)) {
+                    return Boolean.class.getName();
+                }
+                return Integer.class.getName();
+            case INTEGER:
+                return (signed) ? Integer.class.getName() : Long.class.getName();
+            case BIGINT:
+                return (signed) ? Long.class.getName() : BigInteger.class.getName();
+            case YEAR:
+                if ((flags & SelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
+                    return java.sql.Date.class.getName();
+                }
+                return Short.class.getName();
+            case BIT:
+                return (len == 1) ? Boolean.class.getName() : "[B";
+            case STRING:
+            case VARCHAR:
+            case VARSTRING:
+                return binary ? "[B" : String.class.getName();
+            default:
+                break;
+        }
+        return type.getClassName();
     }
 
     public int getSqlType() {

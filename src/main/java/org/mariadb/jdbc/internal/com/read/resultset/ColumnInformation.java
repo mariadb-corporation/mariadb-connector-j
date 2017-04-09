@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.read.resultset;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 
@@ -58,7 +58,6 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Types;
 
 public class ColumnInformation {
-    static int lazyPositionFromEnd = 0;
     // This array stored character length for every collation id up to collation id 256
     // It is generated from the information schema using
     // "select  id, maxlen from information_schema.character_sets, information_schema.collations
@@ -97,19 +96,21 @@ public class ColumnInformation {
             4, 4, 4, 4, 0, 4, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0
     };
+    static int lazyPositionFromEnd = 0;
     Buffer buffer;
     private short charsetNumber;
     private long length;
-    private MariaDbType type;
+    private ColumnType type;
     private byte decimals;
     private short flags;
 
-    public ColumnInformation(MariaDbType type) {
+    public ColumnInformation(ColumnType type) {
         this.type = type;
     }
 
     /**
      * Read column information from buffer.
+     *
      * @param buffer buffer
      */
     public ColumnInformation(Buffer buffer) {
@@ -147,7 +148,7 @@ public class ColumnInformation {
 
         charsetNumber = buffer.readShort();
         length = buffer.readInt();
-        type = MariaDbType.fromServer(buffer.readByte() & 0xff);
+        type = ColumnType.fromServer(buffer.readByte() & 0xff);
         flags = buffer.readShort();
         decimals = buffer.readByte();
 
@@ -157,17 +158,18 @@ public class ColumnInformation {
         if ((sqlType == Types.BLOB || sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY)
                 && !isBinary()) {
            /* MySQL Text datatype */
-            type = MariaDbType.VARCHAR;
+            type = ColumnType.VARCHAR;
         }
     }
 
     /**
      * Constructor.
+     *
      * @param name column name
      * @param type column type
      * @return ColumnInformation
      */
-    public static ColumnInformation create(String name, MariaDbType type) {
+    public static ColumnInformation create(String name, ColumnType type) {
         try {
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
             for (int i = 0; i < 4; i++) {
@@ -198,7 +200,7 @@ public class ColumnInformation {
                     break;
             }
             baos.write(new byte[]{(byte) len, 0, 0, 0});  /*  length */
-            baos.write(MariaDbType.toServer(type.getSqlType()).getType());
+            baos.write(ColumnType.toServer(type.getSqlType()).getType());
             baos.write(new byte[]{0, 0});   /* flags */
             baos.write(0); /* decimals */
             baos.write(new byte[]{0, 0});   /* filler */
@@ -254,6 +256,7 @@ public class ColumnInformation {
 
     /**
      * Return metadata precision.
+     *
      * @return precision
      */
     public long getPrecision() {
@@ -276,6 +279,7 @@ public class ColumnInformation {
 
     /**
      * Get column size.
+     *
      * @return size
      */
     public int getDisplaySize() {
@@ -296,7 +300,7 @@ public class ColumnInformation {
         return decimals;
     }
 
-    public MariaDbType getType() {
+    public ColumnType getColumnType() {
         return type;
     }
 

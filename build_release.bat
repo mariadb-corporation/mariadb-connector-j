@@ -10,7 +10,7 @@ call mvn exec:exec package -Dpackage-source
 call %BINDIR%\mysqladmin -uroot shutdown
 
 #packaging
-#mvn package -Dmaven.test.skip=true -P test,package-source
+#mvn package -Dmaven.test.skip=true -Pjdbc42
 
 #deployment
-#mvn clean deploy -Dmaven.test.skip=true -Dpackage-source=true
+#mvn clean deploy -Dmaven.test.skip=true -Dpackage-source=true -Pjdbc42

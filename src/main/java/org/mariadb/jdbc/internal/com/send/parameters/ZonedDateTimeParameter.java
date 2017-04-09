@@ -51,32 +51,53 @@ package org.mariadb.jdbc.internal.com.send.parameters;
 
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.Options;
 
 import java.io.IOException;
-import java.sql.SQLException;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
+/**
+ * server doesn't support temporal with timezone (MDEV-10018) for the moment.
+ * So driver parse String entry and send it to Server according to server timezone
+ */
+public class ZonedDateTimeParameter implements Cloneable, ParameterHolder {
 
-public class StringParameter implements Cloneable, ParameterHolder {
+    private ZonedDateTime tz;
+    private boolean fractionalSeconds;
 
-    private String stringValue;
-    private boolean noBackslashEscapes;
-
-    public StringParameter(String str, boolean noBackslashEscapes) throws SQLException {
-        this.stringValue = str;
-        this.noBackslashEscapes = noBackslashEscapes;
+    /**
+     * Constructor.
+     *
+     * @param tz                zone date time
+     * @param serverZoneId      server session zoneId
+     * @param fractionalSeconds must fractional Seconds be send to database.
+     * @param options           session options
+     */
+    public ZonedDateTimeParameter(ZonedDateTime tz, ZoneId serverZoneId, boolean fractionalSeconds, Options options) {
+        ZoneId zoneId = options.useLegacyDatetimeCode ? ZoneOffset.systemDefault() : serverZoneId;
+        this.tz = tz.withZoneSameInstant(zoneId);;
+        this.fractionalSeconds = fractionalSeconds;
     }
 
     /**
-     * Send escaped String to outputStream.
+     * Write timestamps to outputStream.
      *
-     * @param pos outpustream.
+     * @param pos the stream to write to
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
-        pos.write(stringValue,true, noBackslashEscapes);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
+                fractionalSeconds ? "yyyy-MM-dd HH:mm:ss.SSSSSS" : "yyyy-MM-dd HH:mm:ss", Locale.ENGLISH );
+        pos.write(QUOTE);
+        pos.write(formatter.format(tz).getBytes());
+        pos.write(QUOTE);
     }
 
-    public long getApproximateTextProtocolLength() {
-        return stringValue.length() * 3;
+    public long getApproximateTextProtocolLength() throws IOException {
+        return 27;
     }
 
     /**
@@ -85,24 +106,26 @@ public class StringParameter implements Cloneable, ParameterHolder {
      * @param pos socket output stream
      * @throws IOException if socket error occur
      */
-
     public void writeBinary(final PacketOutputStream pos) throws IOException {
-        byte[] bytes = stringValue.getBytes("UTF-8");
-        pos.writeFieldLength(bytes.length);
-        pos.write(bytes);
+        pos.write((byte) (fractionalSeconds ? 11 : 7));//length
+        pos.writeShort((short) tz.getYear());
+        pos.write((byte) ((tz.getMonth().getValue()) & 0xff));
+        pos.write((byte) (tz.getDayOfMonth() & 0xff));
+        pos.write((byte) tz.getHour());
+        pos.write((byte) tz.getMinute());
+        pos.write((byte) tz.getSecond());
+        if (fractionalSeconds) {
+            pos.writeInt(tz.getNano() / 1000);
+        }
     }
 
     public ColumnType getColumnType() {
-        return ColumnType.VARCHAR;
+        return ColumnType.DATETIME;
     }
 
     @Override
     public String toString() {
-        if (stringValue.length() < 1024) {
-            return "'" + stringValue + "'";
-        } else {
-            return "'" + stringValue.substring(0, 1024) + "...'";
-        }
+        return "'" + tz.toString() + "'";
     }
 
     public boolean isNullData() {

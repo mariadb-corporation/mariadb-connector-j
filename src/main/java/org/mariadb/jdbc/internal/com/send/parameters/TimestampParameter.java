@@ -49,35 +49,33 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.TimeZone;
 
 
 public class TimestampParameter implements Cloneable, ParameterHolder {
 
     private Timestamp ts;
-    private Calendar calendar;
+    private TimeZone timeZone;
     private boolean fractionalSeconds;
-    private Options options;
 
     /**
      * Constructor.
-     * @param ts timestamps
-     * @param cal session calendar
+     *
+     * @param ts                timestamps
+     * @param timeZone          timeZone
      * @param fractionalSeconds must fractional Seconds be send to database.
-     * @param options session options
      */
-    public TimestampParameter(Timestamp ts, Calendar cal, boolean fractionalSeconds, Options options) {
+    public TimestampParameter(Timestamp ts, TimeZone timeZone, boolean fractionalSeconds) {
         this.ts = ts;
-        calendar = cal;
+        this.timeZone = timeZone;
         this.fractionalSeconds = fractionalSeconds;
-        this.options = options;
     }
 
     /**
@@ -87,12 +85,7 @@ public class TimestampParameter implements Cloneable, ParameterHolder {
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        if (options.useLegacyDatetimeCode) {
-            sdf.setCalendar(Calendar.getInstance());
-        } else if (calendar != null) {
-            sdf.setCalendar(calendar);
-        }
+        sdf.setTimeZone(timeZone);
 
         pos.write(QUOTE);
         pos.write(sdf.format(ts).getBytes());
@@ -122,7 +115,7 @@ public class TimestampParameter implements Cloneable, ParameterHolder {
      * @throws IOException if socket error occur
      */
     public void writeBinary(final PacketOutputStream pos) throws IOException {
-        if (options.useLegacyDatetimeCode) calendar = Calendar.getInstance();
+        Calendar calendar = Calendar.getInstance(timeZone);
         calendar.setTimeInMillis(ts.getTime());
 
         pos.write((byte) (fractionalSeconds ? 11 : 7));//length
@@ -136,10 +129,11 @@ public class TimestampParameter implements Cloneable, ParameterHolder {
         if (fractionalSeconds) {
             pos.writeInt(ts.getNanos() / 1000);
         }
+
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.DATETIME;
+    public ColumnType getColumnType() {
+        return ColumnType.DATETIME;
     }
 
     @Override

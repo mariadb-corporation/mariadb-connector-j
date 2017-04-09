@@ -49,7 +49,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
@@ -60,52 +60,55 @@ public class ComStmtExecute implements InterfaceSendPacket {
     private final int parameterCount;
     private final ParameterHolder[] parameters;
     private final int statementId;
-    private MariaDbType[] parameterTypeHeader;
+    private ColumnType[] parameterTypeHeader;
+    private final byte cursorFlag;
 
     /**
      * Initialize parameters.
      *
-     * @param statementId         prepareResult object received after preparation.
-     * @param parameters          parameters
-     * @param parameterCount      parameters number
-     * @param parameterTypeHeader parameters header
-     */
+     * @param statementId           prepareResult object received after preparation.
+     * @param parameters            parameters
+     * @param parameterCount        parameters number
+     * @param parameterTypeHeader   parameters header
+     * @param cursorFlag            cursor flag. Possible values : <ol>
+     *                              <li>CURSOR_TYPE_NO_CURSOR = fetch all</li>
+     *                              <li>CURSOR_TYPE_READ_ONLY = fetch by bunch</li>
+     *                              <li>CURSOR_TYPE_FOR_UPDATE = fetch by bunch with lock ?</li>
+     *                              <li>CURSOR_TYPE_SCROLLABLE = //reserved, but not working</li>
+     *                              </ol>     */
     public ComStmtExecute(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
-                          MariaDbType[] parameterTypeHeader) {
+                          ColumnType[] parameterTypeHeader, byte cursorFlag) {
         this.parameterCount = parameterCount;
         this.parameters = parameters;
         this.statementId = statementId;
         this.parameterTypeHeader = parameterTypeHeader;
-    }
-
-    /**
-     * Send a prepare statement binary stream.
-     *
-     * @param pos database socket
-     * @throws IOException if a connection error occur
-     */
-    public void send(final PacketOutputStream pos) throws IOException {
-        pos.startPacket(0);
-        writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, pos);
-        pos.flush();
+        this.cursorFlag = cursorFlag;
     }
 
     /**
      * Write COM_STMT_EXECUTE sub-command to output buffer.
      *
-     * @param statementId         prepareResult object received after preparation.
-     * @param parameters          parameters
-     * @param parameterCount      parameters number
-     * @param parameterTypeHeader parameters header1
-     * @param pos outputStream
+     * @param statementId           prepareResult object received after preparation.
+     * @param parameters            parameters
+     * @param parameterCount        parameters number
+     * @param parameterTypeHeader   parameters header1
+     * @param pos                   outputStream
+     * @param cursorFlag            cursor flag. Possible values : <ol>
+     *                              <li>CURSOR_TYPE_NO_CURSOR = fetch all</li>
+     *                              <li>CURSOR_TYPE_READ_ONLY = fetch by bunch</li>
+     *                              <li>CURSOR_TYPE_FOR_UPDATE = fetch by bunch with lock ?</li>
+     *                              <li>CURSOR_TYPE_SCROLLABLE = //reserved, but not working</li>
+     *                              </ol>
      * @throws IOException if a connection error occur
      */
     public static void writeCmd(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
-                                MariaDbType[] parameterTypeHeader, final PacketOutputStream pos) throws IOException {
+                                ColumnType[] parameterTypeHeader, final PacketOutputStream pos,
+                                final byte cursorFlag) throws IOException {
         pos.write(Packet.COM_STMT_EXECUTE);
         pos.writeInt(statementId);
-        pos.write((byte) 0x00); //CURSOR TYPE NO CURSOR
+        pos.write(cursorFlag);
         pos.writeInt(1); //Iteration pos
+
 
         //create null bitmap
         if (parameterCount > 0) {
@@ -125,7 +128,7 @@ public class ComStmtExecute implements InterfaceSendPacket {
                 mustSendHeaderType = true;
             } else {
                 for (int i = 0; i < parameterCount; i++) {
-                    if (!parameterTypeHeader[i].equals(parameters[i].getMariaDbType())) {
+                    if (!parameterTypeHeader[i].equals(parameters[i].getColumnType())) {
                         mustSendHeaderType = true;
                         break;
                     }
@@ -136,7 +139,7 @@ public class ComStmtExecute implements InterfaceSendPacket {
                 pos.write((byte) 0x01);
                 //Store types of parameters in first in first package that is sent to the server.
                 for (int i = 0; i < parameterCount; i++) {
-                    parameterTypeHeader[i] = parameters[i].getMariaDbType();
+                    parameterTypeHeader[i] = parameters[i].getColumnType();
                     pos.writeShort((short) parameterTypeHeader[i].getType());
                 }
             } else {
@@ -148,5 +151,17 @@ public class ComStmtExecute implements InterfaceSendPacket {
             ParameterHolder holder = parameters[i];
             if (!holder.isNullData() && !holder.isLongData()) holder.writeBinary(pos);
         }
+    }
+
+    /**
+     * Send a prepare statement binary stream.
+     *
+     * @param pos database socket
+     * @throws IOException if a connection error occur
+     */
+    public void send(final PacketOutputStream pos) throws IOException {
+        pos.startPacket(0);
+        writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, pos, cursorFlag);
+        pos.flush();
     }
 }

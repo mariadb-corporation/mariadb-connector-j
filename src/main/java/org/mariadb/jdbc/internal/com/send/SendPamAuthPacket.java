@@ -54,7 +54,6 @@ import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import javax.swing.*;
 import javax.swing.event.AncestorEvent;
@@ -63,6 +62,8 @@ import java.awt.*;
 import java.io.Console;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.sql.SQLException;
 import java.util.Arrays;
 
 public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
@@ -79,7 +80,7 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
      * @param pos database socket
      * @throws IOException if a connection error occur
      */
-    public void send(PacketOutputStream pos) throws IOException, QueryException {
+    public void send(PacketOutputStream pos) throws IOException, SQLException {
         byte type = authData[0];
         String promptb;
         //conversation is :
@@ -107,7 +108,7 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
                 //ask user to answer
                 String password = showInputDialog(promptb, isPassword);
                 if (password == null) {
-                    throw new QueryException("Error during PAM authentication : dialog input cancelled");
+                    throw new SQLException("Error during PAM authentication : dialog input cancelled");
                 }
                 pos.startPacket(packSeq);
                 byte[] bytePwd;
@@ -133,12 +134,12 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
 
                 if (type == Packet.ERROR) {
                     ErrorPacket errorPacket = new ErrorPacket(buffer);
-                    throw new QueryException("Error during PAM authentication : " + errorPacket.getMessage());
+                    throw new SQLException("Error during PAM authentication : " + errorPacket.getMessage());
                 }
                 authData = buffer.readRawBytes(buffer.remaining());
 
             } catch (EOFException eof) {
-                throw new QueryException("Error during PAM authentication reading server response : " + eof.getMessage()
+                throw new SQLException("Error during PAM authentication reading server response : " + eof.getMessage()
                         + "\n It may be due to a low @@connect_timeout.");
             }
 
@@ -183,7 +184,7 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
     }
 
     @Override
-    public void handleResultPacket(PacketInputStream reader) throws QueryException, IOException {
+    public void handleResultPacket(PacketInputStream reader) throws SQLException, IOException {
         //do nothing, since the OK packet has already been read in the send conversation
     }
 

@@ -62,9 +62,10 @@ public class MariaDbXid implements Xid {
 
     /**
      * Global transaction identifier.
-     * @param formatId the format identifier part of the XID.
+     *
+     * @param formatId            the format identifier part of the XID.
      * @param globalTransactionId the global transaction identifier part of XID as an array of bytes.
-     * @param branchQualifier the transaction branch identifier part of XID as an array of bytes.
+     * @param branchQualifier     the transaction branch identifier part of XID as an array of bytes.
      */
     public MariaDbXid(int formatId, byte[] globalTransactionId, byte[] branchQualifier) {
         this.formatId = formatId;
@@ -75,6 +76,7 @@ public class MariaDbXid implements Xid {
 
     /**
      * Equal implementation.
+     *
      * @param obj object to compare
      * @return true if object is MariaDbXi and as same parameters
      */

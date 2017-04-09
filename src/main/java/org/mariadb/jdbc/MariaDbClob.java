@@ -69,6 +69,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
 
     /**
      * ToString implementation.
+     *
      * @return string value of blob content.
      */
     public String toString() {
@@ -81,7 +82,8 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
 
     /**
      * Get sub string.
-     * @param pos position
+     *
+     * @param pos    position
      * @param length length of sub string
      * @return substring
      * @throws SQLException if position is not possible
@@ -105,6 +107,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
 
     /**
      * Set character stream.
+     *
      * @param pos position
      * @return writer
      * @throws SQLException if position is invalid
@@ -156,6 +159,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
 
     /**
      * Set String.
+     *
      * @param pos position
      * @param str string
      * @return string length

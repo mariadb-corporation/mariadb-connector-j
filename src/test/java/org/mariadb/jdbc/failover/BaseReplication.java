@@ -3,7 +3,7 @@ package org.mariadb.jdbc.failover;
 import org.junit.Assume;
 import org.junit.Test;
 import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.MariaDbServerPreparedStatement;
+import org.mariadb.jdbc.MariaDbPreparedStatementServer;
 
 import java.sql.*;
 import java.util.HashMap;
@@ -31,7 +31,7 @@ public abstract class BaseReplication extends BaseMonoServer {
 
             //prepareStatement on slave connection
             PreparedStatement preparedStatement = connection.prepareStatement("SELECT test from replicationFailoverBinary" + jobId + " where id = ?");
-            final long currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
+            final long currentPrepareId = getPrepareResult((MariaDbPreparedStatementServer) preparedStatement).getStatementId();
             int slaveServerId = getServerId(connection);
             assertFalse(masterServerId == slaveServerId);
             //stop slave for a few seconds
@@ -42,7 +42,7 @@ public abstract class BaseReplication extends BaseMonoServer {
             ResultSet rs = preparedStatement.executeQuery();
             rs.next();
             assertEquals("Harriba !", rs.getString(1));
-            assertNotEquals(currentPrepareId, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId());
+            assertNotEquals(currentPrepareId, getPrepareResult((MariaDbPreparedStatementServer) preparedStatement).getStatementId());
 
             int currentServerId = getServerId(connection);
 
@@ -244,19 +244,6 @@ public abstract class BaseReplication extends BaseMonoServer {
 
     }
 
-    class MutableInt {
-
-        private int value = 1; // note that we start at 1 since we're counting
-
-        public void increment() {
-            ++value;
-        }
-
-        public int get() {
-            return value;
-        }
-    }
-
     @Test
     public void closeWhenInReconnectionLoop() throws Throwable {
         try (Connection connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000", true)) {
@@ -311,6 +298,19 @@ public abstract class BaseReplication extends BaseMonoServer {
             assertFalse(slaveServerId == masterServerId);
             assertTrue(connection.isReadOnly());
             restartProxy(masterServerId);
+        }
+    }
+
+    class MutableInt {
+
+        private int value = 1; // note that we start at 1 since we're counting
+
+        public void increment() {
+            ++value;
+        }
+
+        public int get() {
+            return value;
         }
     }
 }

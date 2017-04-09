@@ -58,7 +58,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class ConnectionValidator  {
+public class ConnectionValidator {
     private static final ScheduledExecutorService fixedSizedScheduler = SchedulerServiceProviderHolder.getFixedSizeScheduler(1, "validator");
     private static final int MINIMUM_CHECK_DELAY_MILLIS = 100;
 
@@ -68,7 +68,8 @@ public class ConnectionValidator  {
 
     /**
      * Add listener to validation list.
-     * @param listener listener
+     *
+     * @param listener            listener
      * @param listenerCheckMillis schedule time
      */
     public void addListener(Listener listener, long listenerCheckMillis) {
@@ -92,6 +93,7 @@ public class ConnectionValidator  {
 
     /**
      * Remove listener to validation list.
+     *
      * @param listener listener
      */
     public void removeListener(Listener listener) {
@@ -120,7 +122,7 @@ public class ConnectionValidator  {
                 }
             }
         }
-        
+
         private void doRun() {
             Listener listener;
             Iterator<Listener> tmpQueue = queue.iterator();

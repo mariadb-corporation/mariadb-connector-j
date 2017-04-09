@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -47,6 +48,7 @@ public class TruncateExceptionTest extends BaseTest {
 
     /**
      * Execute a query with truncated data.
+     *
      * @param truncation connection parameter.
      * @throws SQLException if SQLException occur
      */
@@ -63,9 +65,7 @@ public class TruncateExceptionTest extends BaseTest {
     public void queryTruncationFetch() throws SQLException {
         try (Connection connection = setConnection("&jdbcCompliantTruncation=true")) {
             Statement stmt = connection.createStatement();
-            for (int i = 0 ; i < 10; i++    ) {
-                stmt.execute("INSERT INTO TruncateExceptionTest2 (id2) VALUES (" + i + ")");
-            }
+            stmt.execute("TRUNCATE TABLE TruncateExceptionTest2");
             stmt.setFetchSize(1);
             PreparedStatement pstmt = connection.prepareStatement("INSERT INTO TruncateExceptionTest2 (id2) VALUES (?)");
             pstmt.setInt(1, 45);
@@ -85,8 +85,51 @@ public class TruncateExceptionTest extends BaseTest {
                 assertFalse(rs.next());
             } else {
                 assertTrue(rs.next());
-                System.out.println(rs.getInt(1));
+                Assert.assertEquals(1, rs.getInt(1));
+                assertTrue(rs.next());
+                Assert.assertEquals(2, rs.getInt(1));
+                assertFalse(rs.next());
             }
         }
     }
+
+    @Test
+    public void queryTruncationBatch() throws SQLException {
+        try (Connection connection = setConnection("&jdbcCompliantTruncation=true&useBatchMultiSendNumber=3&profileSql=true&log=true")) {
+            Statement stmt = connection.createStatement();
+            stmt.execute("TRUNCATE TABLE TruncateExceptionTest2");
+            PreparedStatement pstmt = connection.prepareStatement("INSERT INTO TruncateExceptionTest2 (id2) VALUES (?)");
+            pstmt.setInt(1, 45);
+            pstmt.addBatch();
+            pstmt.setInt(1, 46);
+            pstmt.addBatch();
+            pstmt.setInt(1, 47);
+            pstmt.addBatch();
+            pstmt.setInt(1, 48);
+            pstmt.addBatch();
+            pstmt.setInt(1, 999);
+            pstmt.addBatch();
+            pstmt.setInt(1, 49);
+            pstmt.addBatch();
+            pstmt.setInt(1, 50);
+            pstmt.addBatch();
+            try {
+                pstmt.executeBatch();
+                fail("Must have thrown SQLException");
+            } catch (SQLException e) {
+            }
+            //resultSet must have been fetch
+            ResultSet rs = pstmt.getGeneratedKeys();
+            if (sharedIsRewrite()) {
+                assertFalse(rs.next());
+            } else {
+                for (int i = 1; i <= 6; i++) {
+                    assertTrue(rs.next());
+                    Assert.assertEquals(i, rs.getInt(1));
+                }
+                assertFalse(rs.next());
+            }
+        }
+    }
+
 }

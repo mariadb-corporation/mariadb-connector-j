@@ -54,7 +54,6 @@ import org.ietf.jgss.*;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;
@@ -62,6 +61,7 @@ import javax.security.auth.login.LoginException;
 import java.io.*;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.sql.SQLException;
 
 public class StandardGssapiAuthentication extends GssapiAuth {
     public StandardGssapiAuthentication(PacketInputStream reader, int packSeq) {
@@ -70,10 +70,10 @@ public class StandardGssapiAuthentication extends GssapiAuth {
 
     @Override
     public void authenticate(final PacketOutputStream writer, final String serverPrincipalName, String mechanisms)
-            throws QueryException, IOException {
+            throws SQLException, IOException {
         if ("".equals(serverPrincipalName)) {
-            throw new QueryException("No principal name defined on server. "
-                    + "Please set server variable \"gssapi-principal-name\"", 0, "28000");
+            throw new SQLException("No principal name defined on server. "
+                    + "Please set server variable \"gssapi-principal-name\"", "28000");
         }
 
         if (System.getProperty("java.security.auth.login.config") == null) {
@@ -139,21 +139,21 @@ public class StandardGssapiAuthentication extends GssapiAuth {
                                 }
 
                             } catch (GSSException le) {
-                                throw new QueryException("GSS-API authentication exception", 1045, "28000", le);
+                                throw new SQLException("GSS-API authentication exception", "28000", 1045, le);
                             }
                             return null;
                         }
                     };
                     Subject.doAs(mySubject, action);
                 } catch (PrivilegedActionException exception) {
-                    throw new QueryException("GSS-API authentication exception", 1045, "28000", exception);
+                    throw new SQLException("GSS-API authentication exception", "28000", 1045, exception);
                 }
             } else {
-                throw new QueryException("GSS-API authentication exception : no credential cache not found.", 0, "28000");
+                throw new SQLException("GSS-API authentication exception : no credential cache not found.", "28000", 1045);
             }
 
         } catch (LoginException le) {
-            throw new QueryException("GSS-API authentication exception", 1045, "28000", le);
+            throw new SQLException("GSS-API authentication exception", "28000", 1045, le);
         }
     }
 }

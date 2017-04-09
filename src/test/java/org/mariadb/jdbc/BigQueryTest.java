@@ -24,6 +24,7 @@ public class BigQueryTest extends BaseTest {
         createTable("bigblob2", "id int not null primary key auto_increment, test longblob, test2 longblob");
         createTable("bigblob3", "id int not null primary key auto_increment, test longblob, test2 longblob, test3 varchar(20)");
         createTable("bigblob4", "test longblob");
+        createTable("bigblob5", "id int not null primary key auto_increment, test longblob, test2 text");
     }
 
     @Test
@@ -234,5 +235,34 @@ public class BigQueryTest extends BaseTest {
         }
 
         assertFalse(rs.next());
+    }
+
+
+    @Test
+    public void maxFieldSizeTest() throws SQLException {
+
+        byte abyte = (byte) 'a';
+        byte bbyte = (byte) 'b';
+
+        byte[] arr = new byte[200];
+        Arrays.fill(arr, abyte);
+        byte[] arr2 = new byte[200];
+        Arrays.fill(arr2, bbyte);
+
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into bigblob5 values(null, ?,?)");
+
+        ps.setBytes(1, arr);
+        ps.setBytes(2, arr2);
+        ps.executeUpdate();
+
+        Statement stmt = sharedConnection.createStatement();
+        stmt.setMaxFieldSize(2);
+        ResultSet rs = stmt.executeQuery("select * from bigblob5");
+        rs.next();
+        assertEquals(2, rs.getBytes(2).length);
+        assertEquals(2, rs.getString(3).length());
+        assertArrayEquals(new byte[] {abyte, abyte}, rs.getBytes(2));
+        assertEquals("bb", rs.getString(3));
+
     }
 }

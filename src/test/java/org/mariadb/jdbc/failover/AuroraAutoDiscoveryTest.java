@@ -19,7 +19,6 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -106,7 +105,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
     /**
      * Takes down the table created solely for these tests.
      *
-     * @throws SQLException  if unexpected error occur
+     * @throws SQLException if unexpected error occur
      */
     @After
     public void after() throws SQLException {

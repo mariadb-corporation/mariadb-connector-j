@@ -78,6 +78,7 @@ public enum SqlStates {
 
     /**
      * Get sqlState from group.
+     *
      * @param group group
      * @return sqlState
      */

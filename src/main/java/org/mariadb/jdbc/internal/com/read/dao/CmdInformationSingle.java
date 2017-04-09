@@ -50,14 +50,14 @@ OF SUCH DAMAGE.
 */
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.com.read.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 
 import java.sql.ResultSet;
 
 public class CmdInformationSingle implements CmdInformation {
 
     private long insertId;
-    private int updateCount;
+    private long updateCount;
     private int autoIncrement;
 
     /**
@@ -67,7 +67,7 @@ public class CmdInformationSingle implements CmdInformation {
      * @param updateCount   update count
      * @param autoIncrement connection auto increment value.
      */
-    public CmdInformationSingle(long insertId, int updateCount, int autoIncrement) {
+    public CmdInformationSingle(long insertId, long updateCount, int autoIncrement) {
         this.insertId = insertId;
         this.updateCount = updateCount;
         this.autoIncrement = autoIncrement;
@@ -75,17 +75,23 @@ public class CmdInformationSingle implements CmdInformation {
 
     @Override
     public int[] getUpdateCounts() {
-        return new int[] {updateCount};
+        return new int[] { (int) updateCount};
     }
+
+    @Override
+    public long[] getLargeUpdateCounts() {
+        return new long[] {updateCount};
+    }
+
 
     @Override
     public int getUpdateCount() {
-        return updateCount;
+        return (int) updateCount;
     }
 
     @Override
-    public void addSuccessStat(int updateCount, long insertId) {
-        //not expected
+    public long getLargeUpdateCount() {
+        return updateCount;
     }
 
     @Override
@@ -107,18 +113,18 @@ public class CmdInformationSingle implements CmdInformation {
      */
     public ResultSet getGeneratedKeys(Protocol protocol) {
         if (insertId == 0) {
-            return MariaSelectResultSet.createEmptyResultSet();
+            return SelectResultSet.createEmptyResultSet();
         }
 
         if (updateCount > 1) {
-            long[] insertIds = new long[updateCount];
+            long[] insertIds = new long[(int) updateCount];
             for (int i = 0; i < updateCount; i++) {
                 insertIds[i] = insertId + i * autoIncrement;
             }
-            return MariaSelectResultSet.createGeneratedData(insertIds, protocol, true);
+            return SelectResultSet.createGeneratedData(insertIds, protocol, true);
         }
 
-        return MariaSelectResultSet.createGeneratedData(new long[] {insertId}, protocol, true);
+        return SelectResultSet.createGeneratedData(new long[] {insertId}, protocol, true);
     }
 
     @Override
@@ -141,7 +147,19 @@ public class CmdInformationSingle implements CmdInformation {
     }
 
     public int[] getRewriteUpdateCounts() {
-        return null; //never occur
+        //cannot occur
+        return null;
+    }
+
+    @Override
+    public long[] getRewriteLargeUpdateCounts() {
+        //cannot occur
+        return null;
+    }
+
+    @Override
+    public void addSuccessStat(long updateCount, long insertId) {
+        //cannot occur
     }
 }
 

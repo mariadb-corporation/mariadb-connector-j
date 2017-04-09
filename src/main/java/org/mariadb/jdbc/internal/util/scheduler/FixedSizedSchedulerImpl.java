@@ -54,6 +54,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 public class FixedSizedSchedulerImpl extends ScheduledThreadPoolExecutor {
     /**
      * Create scheduler with fixed size.
+     *
      * @param corePoolSize  core pool size
      * @param poolName      name of pool to identify threads
      */

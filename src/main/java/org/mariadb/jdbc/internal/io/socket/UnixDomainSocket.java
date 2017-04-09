@@ -188,6 +188,7 @@ public class UnixDomainSocket extends Socket {
 
         /**
          * Contructor.
+         *
          * @param sunPath path
          */
         public SockAddr(String sunPath) {

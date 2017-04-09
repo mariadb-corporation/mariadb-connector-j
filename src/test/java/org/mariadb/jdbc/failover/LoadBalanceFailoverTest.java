@@ -15,6 +15,7 @@ import java.util.Map;
 public class LoadBalanceFailoverTest extends BaseMultiHostTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -25,6 +26,7 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @Before
@@ -71,9 +73,12 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
     public void testReadonly() throws SQLException {
         try (Connection connection = getNewConnection(false)) {
             connection.setReadOnly(true);
+
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists multinode");
             stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
+        } catch (SQLException sqle) {
+            //normal exception
         }
     }
 

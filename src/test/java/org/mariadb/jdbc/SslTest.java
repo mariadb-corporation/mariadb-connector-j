@@ -35,7 +35,7 @@ public class SslTest extends BaseTest {
             field.setAccessible(true);
             field.set(null, Boolean.FALSE);
         } catch (Exception ex) {
-            ex.printStackTrace();
+
         }
     }
 
@@ -156,7 +156,7 @@ public class SslTest extends BaseTest {
         Assume.assumeFalse(Platform.isWindows());
         // Only test with MariaDB since MySQL community is compiled with yaSSL
         if (isMariadbServer()) {
-            useSslForceTls("TLSv1.2", "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384");
+            useSslForceTls("TLSv1.2", "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
         }
     }
 
@@ -408,6 +408,8 @@ public class SslTest extends BaseTest {
             info.setProperty("useSSL", "true");
             info.setProperty("trustStore", "file:///" + keystorePath);
             testConnect(info, true);
+        } catch (SQLNonTransientConnectionException nonTransient) {
+            //java 9 doesn't accept empty keystore
         } finally {
             tempKeystore.delete();
         }
@@ -527,6 +529,8 @@ public class SslTest extends BaseTest {
             info.setProperty("keyStore", "file:///" + clientKeystorePath);
             info.setProperty("keyStorePassword", clientKeystorePassword);
             testConnect(info, true, testUser, "ssltestpassword");
+        } catch (SQLNonTransientConnectionException nonTransient) {
+            //java 9 doesn't accept empty keystore
         } finally {
             tempTruststore.delete();
             deleteSslTestUser(testUser);
@@ -601,7 +605,9 @@ public class SslTest extends BaseTest {
         String clientKeyStore2Path = System.getProperty("keystore2Path");
         String clientKeyStore2Password = System.getProperty("keystore2Password");
         String clientKeyPassword = System.getProperty("keyPassword");
-        Assume.assumeTrue(clientKeyPassword != null);
+        Assume.assumeTrue(clientKeyPassword != null
+                && clientKeyStore2Password != null
+                && clientKeyStore2Path != null);
         String testUser = "testKeystore";
         // For this testcase, the testUser must be configured with ssl_type=X509
         createSslTestUser(testUser);
@@ -614,8 +620,10 @@ public class SslTest extends BaseTest {
             info.setProperty("keyStore", "file:///" + clientKeyStore2Path);
             info.setProperty("keyStorePassword", clientKeyStore2Password);
             testConnect(info, true, testUser, "ssltestpassword");
+
             fail("Must have Error since client private key is protected with a password different than keystore");
         } catch (SQLException sqle) {
+            sqle.printStackTrace();
             assertTrue(sqle.getMessage().contains("Access denied for user"));
         }
 
@@ -631,6 +639,33 @@ public class SslTest extends BaseTest {
             deleteSslTestUser(testUser);
         }
     }
+
+    /**
+     * Verification when private key password differ from keyStore password.
+     *
+     * @throws Exception if error occur
+     */
+    @Test
+    public void testClientKeyStorePkcs12() throws Exception {
+        String clientKeyStore2Path = System.getProperty("keystore2PathP12");
+        String clientKeyStore2Password = System.getProperty("keystore2Password");
+        Assume.assumeTrue(clientKeyStore2Password != null && clientKeyStore2Path != null);
+        String testUser = "testKeystore";
+        // For this testcase, the testUser must be configured with ssl_type=X509
+        createSslTestUser(testUser);
+
+        try {
+            Properties info = new Properties();
+            info.setProperty("useSSL", "true");
+            info.setProperty("serverSslCert", serverCertificatePath);
+            info.setProperty("keyStore", "file:///" + clientKeyStore2Path);
+            info.setProperty("keyStorePassword", clientKeyStore2Password);
+            testConnect(info, true, testUser, "ssltestpassword");
+        } finally {
+            deleteSslTestUser(testUser);
+        }
+    }
+
 
     @Test
     public void testKeyStoreWithProperties() throws Exception {

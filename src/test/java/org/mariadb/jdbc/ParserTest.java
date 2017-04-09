@@ -17,6 +17,7 @@ import static org.junit.Assert.*;
 public class ParserTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()

@@ -21,7 +21,8 @@ public class TcpProxySocket implements Runnable {
 
     /**
      * Creation of proxy.
-     * @param host database host
+     *
+     * @param host       database host
      * @param remoteport database port
      * @throws IOException exception
      */

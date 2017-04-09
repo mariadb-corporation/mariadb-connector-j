@@ -49,8 +49,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.MariaDbType;
 
 import java.io.*;
 
@@ -116,8 +116,8 @@ public class ReaderParameter implements Cloneable, ParameterHolder {
         }
     }
 
-    public MariaDbType getMariaDbType() {
-        return MariaDbType.STRING;
+    public ColumnType getColumnType() {
+        return ColumnType.STRING;
     }
 
 

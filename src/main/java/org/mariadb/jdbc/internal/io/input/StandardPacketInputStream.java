@@ -50,7 +50,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.io.input;
 
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.Utils;
@@ -277,13 +277,13 @@ public class StandardPacketInputStream implements PacketInputStream {
      * @param columnTypes   column types
      * @return Buffer
      */
-    public static byte[] create(byte[][] rowData, MariaDbType[] columnTypes) {
+    public static byte[] create(byte[][] rowData, ColumnType[] columnTypes) {
 
         int totalLength = 0;
         for (int i = 0; i < rowData.length; i++) {
             if (rowData[i] == null) {
                 totalLength++;
-            } else if (columnTypes[i] == MariaDbType.BIT) {
+            } else if (columnTypes[i] == ColumnType.BIT) {
                 totalLength++;
             } else {
                 int length = rowData[i].length;
@@ -304,7 +304,7 @@ public class StandardPacketInputStream implements PacketInputStream {
         for (int i = 0; i < rowData.length; i++) {
             if (rowData[i] == null) {
                 buf[pos++] = (byte) 251;
-            } else if (columnTypes[i] == MariaDbType.BIT) {
+            } else if (columnTypes[i] == ColumnType.BIT) {
                 buf[pos++] = (byte) (rowData[i].equals("0") ? 0 : 1);
             } else {
                 byte[] arr = rowData[i];

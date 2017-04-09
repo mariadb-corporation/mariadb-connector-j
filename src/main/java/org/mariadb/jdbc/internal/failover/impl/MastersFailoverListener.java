@@ -51,19 +51,17 @@ package org.mariadb.jdbc.internal.failover.impl;
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.MariaDbType;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.failover.HandleErrorResult;
 import org.mariadb.jdbc.internal.failover.thread.FailoverLoop;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
@@ -89,10 +87,10 @@ public class MastersFailoverListener extends AbstractMastersListener {
     /**
      * Connect to database.
      *
-     * @throws QueryException if connection is on error.
+     * @throws SQLException if connection is on error.
      */
     @Override
-    public void initializeConnection() throws QueryException {
+    public void initializeConnection() throws SQLException {
         super.initializeConnection();
         this.currentProtocol = null;
         //launching initial loop
@@ -103,9 +101,9 @@ public class MastersFailoverListener extends AbstractMastersListener {
     /**
      * Before executing query, reconnect if connection is closed, and autoReconnect option is set.
      *
-     * @throws QueryException if connection has been explicitly closed.
+     * @throws SQLException if connection has been explicitly closed.
      */
-    public void preExecute() throws QueryException {
+    public void preExecute() throws SQLException {
         lastQueryNanos = System.nanoTime();
         //if connection is closed or failed on slave
         if (this.currentProtocol != null && this.currentProtocol.isClosed()) {
@@ -142,7 +140,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 }
                 return new HandleErrorResult(true);
             }
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             proxy.lock.lock();
             try {
                 currentProtocol.close();
@@ -174,10 +172,10 @@ public class MastersFailoverListener extends AbstractMastersListener {
      * Loop to connect failed hosts.
      *
      * @param searchFilter search parameters.
-     * @throws QueryException if there is any error during reconnection
+     * @throws SQLException if there is any error during reconnection
      */
     @Override
-    public void reconnectFailedConnection(SearchFilter searchFilter) throws QueryException {
+    public void reconnectFailedConnection(SearchFilter searchFilter) throws SQLException {
         proxy.lock.lock();
         try {
             if (!searchFilter.isInitialConnection()
@@ -228,9 +226,9 @@ public class MastersFailoverListener extends AbstractMastersListener {
      * Force session to read-only according to options.
      *
      * @param mustBeReadOnly is read-only flag
-     * @throws QueryException if a connection error occur
+     * @throws SQLException if a connection error occur
      */
-    public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws QueryException {
+    public void switchReadOnlyConnection(Boolean mustBeReadOnly) throws SQLException {
         if (urlParser.getOptions().assureReadOnly && currentReadOnlyAsked != mustBeReadOnly) {
             proxy.lock.lock();
             try {
@@ -251,7 +249,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
      * @param protocol the new active connection
      */
     @Override
-    public void foundActiveMaster(Protocol protocol) throws QueryException {
+    public void foundActiveMaster(Protocol protocol) throws SQLException {
         if (isExplicitClosed()) {
             proxy.lock.lock();
             try {
@@ -279,9 +277,9 @@ public class MastersFailoverListener extends AbstractMastersListener {
     /**
      * Try to reconnect connection.
      *
-     * @throws QueryException if reconnect a new connection but there was an active transaction.
+     * @throws SQLException if reconnect a new connection but there was an active transaction.
      */
-    public void reconnect() throws QueryException {
+    public void reconnect() throws SQLException {
         boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();
         reconnectFailedConnection(new SearchFilter(true, false));
         handleFailLoop();

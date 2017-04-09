@@ -58,11 +58,13 @@ import org.mariadb.jdbc.internal.com.send.gssapi.WindowsNativeSspiAuthentication
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
-import java.io.*;
+import java.io.EOFException;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 
 public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
     private PacketInputStream reader;
@@ -78,7 +80,7 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
      * @param pos database socket
      * @throws IOException if a connection error occur
      */
-    public void send(PacketOutputStream pos) throws IOException, QueryException {
+    public void send(PacketOutputStream pos) throws IOException, SQLException {
         Buffer buffer = new Buffer(authData);
         final String serverPrincipalName = buffer.readString(StandardCharsets.UTF_8);
         String mechanisms = buffer.readString(StandardCharsets.UTF_8);
@@ -90,16 +92,16 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
 
 
     @Override
-    public void handleResultPacket(PacketInputStream reader) throws QueryException, IOException {
+    public void handleResultPacket(PacketInputStream reader) throws SQLException, IOException {
         try {
             Buffer buffer = reader.getPacket(true);
             if (buffer.getByteAt(0) == Packet.ERROR) {
                 ErrorPacket ep = new ErrorPacket(buffer);
                 String message = ep.getMessage();
-                throw new QueryException("Could not connect: " + message, ep.getErrorNumber(), ep.getSqlState());
+                throw new SQLException("Could not connect: " + message, ep.getSqlState(), ep.getErrorNumber());
             }
         } catch (EOFException e) {
-            throw new QueryException("Authentication exception", 1045, "28000", e);
+            throw new SQLException("Authentication exception", "28000", 1045, e);
         }
     }
 

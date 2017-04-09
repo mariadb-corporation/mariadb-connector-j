@@ -5,11 +5,12 @@ import org.junit.Test;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringReader;
-import java.sql.*;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Types;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class DataNTypeTest extends BaseTest {
 
@@ -122,7 +123,7 @@ public class DataNTypeTest extends BaseTest {
         checkCharStream(rs.getCharacterStream(2), toInsert);
 
         assertTrue(rs.next());
-        checkCharStream(rs.getCharacterStream(2), toInsert.substring(0,3));
+        checkCharStream(rs.getCharacterStream(2), toInsert.substring(0, 3));
     }
 
     @Test
@@ -130,7 +131,8 @@ public class DataNTypeTest extends BaseTest {
 
         createTable("testSetObjectNCharacter", "id int not null primary key, strm text", "CHARSET utf8");
         PreparedStatement stmt = sharedConnection.prepareStatement("insert into testSetObjectNCharacter (id, strm) values (?,?)");
-        String toInsert = "\u00D8abcdefgh\njklmn\"";;
+        String toInsert = "\u00D8abcdefgh\njklmn\"";
+        ;
 
         stmt.setInt(1, 1);
         stmt.setObject(2, new StringReader(toInsert));

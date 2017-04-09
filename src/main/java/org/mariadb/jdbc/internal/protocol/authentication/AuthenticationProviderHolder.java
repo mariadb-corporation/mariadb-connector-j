@@ -51,7 +51,8 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.internal.com.send.InterfaceAuthSwitchSendResponsePacket;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
+import java.sql.SQLException;
+
 
 /**
  * Provider to handle plugin authentication.
@@ -66,7 +67,7 @@ public class AuthenticationProviderHolder {
         @Override
         public InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
                                                                        byte[] authData, int seqNo, String passwordCharacterEncoding)
-                throws QueryException {
+                throws SQLException {
             return DefaultAuthenticationProvider.processAuthPlugin(reader, plugin, password, authData, seqNo, passwordCharacterEncoding);
         }
     };
@@ -105,7 +106,7 @@ public class AuthenticationProviderHolder {
     public interface AuthenticationProvider {
         public InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
                                                                        byte[] authData, int seqNo, String passwordCharacterEncoding)
-                throws QueryException;
+                throws SQLException;
     }
 
 
