@@ -780,8 +780,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         lock.lock();
         try {
 
-            final SendPingPacket pingPacket = new SendPingPacket();
-            pingPacket.send(writer);
+            writer.startPacket(0);
+            writer.write(COM_PING);
+            writer.flush();
+
             Buffer buffer = reader.getPacket(true);
             return buffer.getByteAt(0) == OK;
 

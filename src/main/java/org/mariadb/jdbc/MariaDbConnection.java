@@ -50,8 +50,9 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
@@ -69,6 +70,7 @@ import java.util.regex.Pattern;
 
 
 public class MariaDbConnection implements Connection {
+    private static Logger logger = LoggerFactory.getLogger(MariaDbConnection.class);
 
     /**
      * Pattern  to check the correctness of callable statement query string
@@ -99,6 +101,7 @@ public class MariaDbConnection implements Connection {
     private volatile int lowercaseTableNames = -1;
     private boolean canUseServerTimeout = false;
     private boolean sessionStateAware = true;
+
 
     /**
      * save point count - to generate good names for the savepoints.
@@ -728,6 +731,7 @@ public class MariaDbConnection implements Connection {
      */
     public void setReadOnly(final boolean readOnly) throws SQLException {
         try {
+            logger.debug("setReadOnly to value " + readOnly);
             protocol.setReadonly(readOnly);
         } catch (SQLException e) {
             ExceptionMapper.throwException(e, this, null);
@@ -1100,9 +1104,8 @@ public class MariaDbConnection implements Connection {
         if (timeout < 0) {
             throw new SQLException("the value supplied for timeout is negative");
         }
-        if (isClosed()) {
-            return false;
-        }
+        if (isClosed()) return false;
+
         try {
             return protocol.ping();
         } catch (SQLException e) {

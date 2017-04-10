@@ -130,6 +130,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
         boolean alreadyClosed = !currentProtocol.isConnected();
         boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();
 
+        proxy.lock.lock();
         try {
             if (currentProtocol != null && currentProtocol.isConnected() && currentProtocol.ping()) {
                 //connection re-established
@@ -141,15 +142,12 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 return new HandleErrorResult(true);
             }
         } catch (SQLException e) {
-            proxy.lock.lock();
-            try {
-                currentProtocol.close();
-            } finally {
-                proxy.lock.unlock();
-            }
+            currentProtocol.close();
             if (setMasterHostFail()) {
                 addToBlacklist(currentProtocol.getHostAddress());
             }
+        } finally {
+            proxy.lock.unlock();
         }
 
         try {

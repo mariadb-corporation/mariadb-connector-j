@@ -441,12 +441,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         if (currentReadOnlyAsked != mustBeReadOnly) {
             proxy.lock.lock();
             try {
-                if (currentReadOnlyAsked == mustBeReadOnly) {
-                    // someone else updated state
-                    return;
-                } else {
-                    currentReadOnlyAsked = mustBeReadOnly;
-                }
+                // another thread updated state
+                if (currentReadOnlyAsked == mustBeReadOnly) return;
+                currentReadOnlyAsked = mustBeReadOnly;
                 if (currentReadOnlyAsked) {
                     if (currentProtocol.isMasterConnection()) {
                         //must change to replica connection
@@ -529,7 +526,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     public HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable {
         boolean alreadyClosed = !masterProtocol.isConnected();
         boolean inTransaction = masterProtocol != null && masterProtocol.inTransaction();
+
         //try to reconnect automatically only time before looping
+        proxy.lock.lock();
         try {
             if (masterProtocol != null && masterProtocol.isConnected() && masterProtocol.ping()) {
                 if (inTransaction) {
@@ -539,16 +538,13 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 return relaunchOperation(method, args);
             }
         } catch (SQLException e) {
-            proxy.lock.lock();
-            try {
-                masterProtocol.close();
-            } finally {
-                proxy.lock.unlock();
-            }
+            masterProtocol.close();
 
             if (setMasterHostFail()) {
                 addToBlacklist(masterProtocol.getHostAddress());
             }
+        } finally {
+            proxy.lock.unlock();
         }
 
         //fail on slave if parameter permit so
@@ -634,18 +630,20 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         }
     }
 
+    /**
+     * Ping secondary protocol.
+     * ! lock must be set !
+     *
+     * @param protocol socket to ping
+     * @return true if ping is valid.
+     */
     private boolean pingSecondaryProtocol(Protocol protocol) {
         try {
             if (protocol != null && protocol.isConnected() && protocol.ping()) {
                 return true;
             }
         } catch (Exception e) {
-            proxy.lock.lock();
-            try {
-                protocol.close();
-            } finally {
-                proxy.lock.unlock();
-            }
+            protocol.close();
 
             if (setSecondaryHostFail()) {
                 addToBlacklist(protocol.getHostAddress());
@@ -663,9 +661,15 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      * @throws Throwable if failover has not catch error
      */
     public HandleErrorResult secondaryFail(Method method, Object[] args) throws Throwable {
-        if (pingSecondaryProtocol(this.secondaryProtocol)) {
-            return relaunchOperation(method, args);
+        proxy.lock.lock();
+        try {
+            if (pingSecondaryProtocol(this.secondaryProtocol)) {
+                return relaunchOperation(method, args);
+            }
+        } finally {
+            proxy.lock.unlock();
         }
+
 
         if (!isMasterHostFail()) {
             try {
