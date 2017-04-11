@@ -252,8 +252,8 @@ public class MariaDbBlob implements Blob, Serializable {
         } else if (blobContent.length > arrayPos + bytes.length) {
             bytesWritten = bytes.length;
         } else {
-            blobContent = Utils.copyWithLength(blobContent, arrayPos + bytes.length);
-            actualSize = blobContent.length;
+            this.blobContent = Utils.copyWithLength(blobContent, arrayPos + bytes.length);
+            this.actualSize = blobContent.length;
             bytesWritten = bytes.length;
         }
 
