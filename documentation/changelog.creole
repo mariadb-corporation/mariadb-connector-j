@@ -1,5 +1,5 @@
 = Changelog
-* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#200|2.0.0]] not Released
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#200|2.0.0]] Released on 11 Apr. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#158|1.5.9]] Released on 09 Mar. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#158|1.5.8]] Released on 10 Fev  2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#157|1.5.7]] Released on 12 Jan. 2016
@@ -19,29 +19,11 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
-== 2.0.0
+== 2.0.0-RC
 
-Java 8 and Java 7 have now separate maven artifacts, mostly due od java 8 time implementation.
+Release candidate version.
 
-java 8 maven repository artifact :
-
-<dependencies>
-    <dependency>
-        <groupId>org.mariadb.jdbc</groupId>
-        <artifactId>mariadb-java-client</artifactId>
-        <version>2.0.0</version>
-    </dependency>
-</dependencies>
-
-java 7 maven repository artifact :
-
-<dependencies>
-    <dependency>
-        <groupId>org.mariadb.jdbc</groupId>
-        <artifactId>mariadb-java-client-jre7</artifactId>
-        <version>2.0.0</version>
-    </dependency>
-</dependencies>
+Java 8 is now minimum required version.
 
 === CONJ-318 : Handle CLIENT_DEPRECATE_EOF flag
 Implement some protocol changes that permit to save some bytes.(part of https://jira.mariadb.org/browse/MDEV-8931).
@@ -60,21 +42,36 @@ When query ended before timeout, the scheduled task will be canceled.
 
 If server is > 10.1.2, query timeout will be handle server side using "SET MAX_STATEMENT_TIME FOR" command.
 
-=== [CONJ-402]
+=== [CONJ-315]
 
-tcpKeepAlive option now default to true.
+Closing a Statement that was fetching a result-set (using Statement.setFetchSize) and all rows where not read at the time of closing, a kill query command
+will be executed on close, to avoid having to parse all remaining results.
 
-Usually pool will ensure that connection is still valid.
-Since the process doesn't start until a connection has been idle for two hours (this time is OS dependant),
-TCP keep alive after this time will ensure that socket is still OK..
+=== [CONJ-442]
+Memory optimization : streaming query.
+Very big command now doesn't use any intermediate buffer. Commands are send directly to socket avoiding using memory, This permit to send very large object (1G) without using any additional memory.
 
-=== [CONJ-409]
-PrepareStatement.setObject(...) support for with java 8 temporal temporal object.
-(Support for LocalDateTime, DateTime, ZoneDateTime, OffsetDateTime, OffsetTime)
+=== [CONJ-366]
+Faster connection : bundle first commands in authentication packet
+Driver execute different command on connection. Those queries are now send using pipeline (all queries are send, then only all results are reads).
+
+New Options :
+ |=usePipelineAuth|Fast connection creation.//Default: true. Since 2.0.0//|
+
+=== [CONJ-368]
+Parsing row result optimisation to avoid creating byte array to the maximum for faster results and less memory use.
+
+=== Remaining JDBC 4.2 missing implementation :
+- CONJ-414 - support for large update count [CONJ-414]
+- CONJ-409 - PrepareStatement.setObject(...) support for with java 8 temporal temporal object.
+- CONJ-411 - support for Statement maxFieldSize
 
 === Misc
 
-* minor : set disableMariaDbDriver
+* CONJ-443 - NullpointerException when making concurrent procedure calls
+* CONJ-446 - ResultSet.getBigDecimal throwns NumberFormatException when value is an empty string
+* CONJ-391 - Improve connection using SELECT in place of SHOW to avoid creating a mutex server side.
+* CONJ-402 - tcpKeepAlive option now default to true.
 
 
 == 1.5.9
