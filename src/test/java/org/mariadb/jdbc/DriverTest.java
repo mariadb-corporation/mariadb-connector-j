@@ -671,6 +671,8 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testConnectWithDb() throws SQLException {
+        Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
+
         requireMinimumVersion(5, 0);
         try {
             sharedConnection.createStatement().executeUpdate("drop database test_testdrop");

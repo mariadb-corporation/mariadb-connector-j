@@ -417,7 +417,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 serverData.put("sql_mode", resultSet.getString(4));
 
             } else {
-                if (options.usePipelineAuth) {
+                //MySQL 5.6 with SSL doesn't support pipeline auth.
+                if (options.usePipelineAuth && (serverMariaDb || (!serverMariaDb && options.useSsl))) {
                     try {
                         sendPipelineAdditionalData();
                         readPipelineAdditionalData();
