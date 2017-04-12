@@ -27,9 +27,8 @@ public class SslTest extends BaseTest {
      * Enable Crypto.
      */
     @BeforeClass
-    public static void enableCrypto() {
+    public static void enableCrypto() throws Exception {
         Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
-
         try {
             Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
             field.setAccessible(true);
@@ -47,6 +46,7 @@ public class SslTest extends BaseTest {
     @Before
     public void checkSsl() throws SQLException {
         boolean isJava7 = System.getProperty("java.version").contains("1.7.");
+        cancelForVersion(5, 6, 36); //has SSL issues with client authentication.
         Assume.assumeTrue(haveSsl(sharedConnection));
         //Skip SSL test on java 7 since SSL stream size JDK-6521495).
         Assume.assumeFalse(isJava7);
