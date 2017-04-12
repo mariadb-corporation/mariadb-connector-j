@@ -283,7 +283,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
             char[] keyStorePasswordChars = keyStorePassword == null ? null : keyStorePassword.toCharArray();
 
             //permit using "file:..." for compatibility
-            if (keyStoreUrl.startsWith("file:///")) keyStoreUrl = keyStoreUrl.substring(8);
             if (keyStoreUrl.startsWith("file://")) keyStoreUrl = keyStoreUrl.substring(7);
 
             inStream = new FileInputStream(keyStoreUrl);
@@ -417,8 +416,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 serverData.put("sql_mode", resultSet.getString(4));
 
             } else {
-                //MySQL 5.6 with SSL doesn't support pipeline auth.
-                if (options.usePipelineAuth && (serverMariaDb || (!serverMariaDb && options.useSsl))) {
+                if (options.usePipelineAuth) {
                     try {
                         sendPipelineAdditionalData();
                         readPipelineAdditionalData();

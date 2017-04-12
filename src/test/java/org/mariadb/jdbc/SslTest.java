@@ -406,7 +406,7 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustStore", "file:///" + keystorePath);
+            info.setProperty("trustStore", "file://" + keystorePath);
             testConnect(info, true);
         } catch (SQLNonTransientConnectionException nonTransient) {
             //java 9 doesn't accept empty keystore
@@ -425,7 +425,7 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustStore", "file:///" + keystorePath);
+            info.setProperty("trustStore", "file://" + keystorePath);
             info.setProperty("trustStorePassword", "mysecret");
             testConnect(info, true);
         } finally {
@@ -478,7 +478,7 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustStore", "file:///" + keystorePath);
+            info.setProperty("trustStore", "file://" + keystorePath);
             info.setProperty("trustStorePassword", "notthepassword");
             testConnect(info, true);
         } finally {
@@ -496,7 +496,7 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustStore", "file:///" + keystorePath);
+            info.setProperty("trustStore", "file://" + keystorePath);
             info.setProperty("trustStorePassword", "mysecret");
             testConnect(info, true);
         } finally {
@@ -525,8 +525,8 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustStore", "file:///" + truststorePath);
-            info.setProperty("keyStore", "file:///" + clientKeystorePath);
+            info.setProperty("trustStore", "file://" + truststorePath);
+            info.setProperty("keyStore", "file://" + clientKeystorePath);
             info.setProperty("keyStorePassword", clientKeystorePassword);
             testConnect(info, true, testUser, "ssltestpassword");
         } catch (SQLNonTransientConnectionException nonTransient) {
@@ -559,9 +559,9 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustCertificateKeyStoreUrl", "file:///" + truststorePath);
+            info.setProperty("trustCertificateKeyStoreUrl", "file://" + truststorePath);
             info.setProperty("trustCertificateKeyStorePassword", "trustPwd");
-            info.setProperty("clientCertificateKeyStoreUrl", "file:///" + clientKeystorePath);
+            info.setProperty("clientCertificateKeyStoreUrl", "file://" + clientKeystorePath);
             info.setProperty("clientCertificateKeyStorePassword", clientKeystorePassword);
             testConnect(info, true, testUser, "ssltestpassword");
         } finally {
@@ -587,7 +587,7 @@ public class SslTest extends BaseTest {
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
             info.setProperty("serverSslCert", serverCertificatePath);
-            info.setProperty("keyStore", "file:///" + clientKeystorePath);
+            info.setProperty("keyStore", "file://" + clientKeystorePath);
             info.setProperty("keyStorePassword", clientKeystorePassword);
             testConnect(info, true, testUser, "ssltestpassword");
         } finally {
@@ -617,7 +617,7 @@ public class SslTest extends BaseTest {
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
             info.setProperty("serverSslCert", serverCertificatePath);
-            info.setProperty("keyStore", "file:///" + clientKeyStore2Path);
+            info.setProperty("keyStore", "file://" + clientKeyStore2Path);
             info.setProperty("keyStorePassword", clientKeyStore2Password);
             testConnect(info, true, testUser, "ssltestpassword");
 
@@ -631,7 +631,7 @@ public class SslTest extends BaseTest {
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
             info.setProperty("serverSslCert", serverCertificatePath);
-            info.setProperty("keyStore", "file:///" + clientKeyStore2Path);
+            info.setProperty("keyStore", "file://" + clientKeyStore2Path);
             info.setProperty("keyStorePassword", clientKeyStore2Password);
             info.setProperty("keyPassword", clientKeyPassword);
             testConnect(info, true, testUser, "ssltestpassword");
@@ -658,7 +658,7 @@ public class SslTest extends BaseTest {
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
             info.setProperty("serverSslCert", serverCertificatePath);
-            info.setProperty("keyStore", "file:///" + clientKeyStore2Path);
+            info.setProperty("keyStore", "file://" + clientKeyStore2Path);
             info.setProperty("keyStorePassword", clientKeyStore2Password);
             testConnect(info, true, testUser, "ssltestpassword");
         } finally {
@@ -794,7 +794,7 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("keyStore", "file:///" + clientKeystorePath);
+            info.setProperty("keyStore", "file://" + clientKeystorePath);
             info.setProperty("keyStorePassword", clientKeystorePassword);
 
             testConnect(info, true, testUser, "ssltestpassword");
@@ -835,8 +835,8 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustStore", "file:///" + truststorePath);
-            info.setProperty("keyStore", "file:///" + clientKeystorePath);
+            info.setProperty("trustStore", "file://" + truststorePath);
+            info.setProperty("keyStore", "file://" + clientKeystorePath);
             info.setProperty("keyStorePassword", "notthekeystorepass");
             testConnect(info, true, testUser, "ssltestpassword");
         } finally {
