@@ -92,7 +92,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + "COLUMN_TYPE))";
 
         if ((dataTypeMappingFlags & SelectResultSet.TINYINT1_IS_BIT) > 0) {
-            upperCaseWithoutSize = " IF(COLUMN_TYPE = 'tinyint(1)', 'BIT', " + upperCaseWithoutSize + ")";
+            upperCaseWithoutSize = " IF(COLUMN_TYPE like 'tinyint(1)%', 'BIT', " + upperCaseWithoutSize + ")";
         }
 
         if ((dataTypeMappingFlags & SelectResultSet.YEAR_IS_DATE_TYPE) == 0) {
@@ -434,7 +434,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + " WHEN 'timestamp' THEN " + Types.TIMESTAMP
                 + " WHEN 'tinyint' THEN "
                 + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSet.TINYINT1_IS_BIT) == 0)
-                ? Types.TINYINT : "IF(" + fullTypeColumnName + "='tinyint(1)'," + Types.BIT + "," + Types.TINYINT + ") ")
+                ? Types.TINYINT : "IF(" + fullTypeColumnName + " like 'tinyint(1)%'," + Types.BIT + "," + Types.TINYINT + ") ")
                 + " WHEN 'year' THEN "
                 + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSet.YEAR_IS_DATE_TYPE) == 0)
                 ? Types.SMALLINT : Types.DATE)

@@ -99,7 +99,6 @@ public class MariaDbX509TrustManager implements X509TrustManager {
                     String trustStore = options.trustStore;
 
                     //permit using "file:..." for compatibility
-                    if (trustStore.startsWith("file:///")) trustStore = trustStore.substring(8);
                     if (trustStore.startsWith("file://")) trustStore = trustStore.substring(7);
                     inStream = new FileInputStream(trustStore);
 
