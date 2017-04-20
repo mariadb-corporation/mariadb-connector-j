@@ -24,6 +24,7 @@ public class BigQueryTest extends BaseTest {
         createTable("bigblob2", "id int not null primary key auto_increment, test longblob, test2 longblob");
         createTable("bigblob3", "id int not null primary key auto_increment, test longblob, test2 longblob, test3 varchar(20)");
         createTable("bigblob4", "test longblob");
+        createTable("bigblob5", "id int not null primary key auto_increment, test longblob, test2 text");
     }
 
     @Test
@@ -85,24 +86,24 @@ public class BigQueryTest extends BaseTest {
 
     @Test
     public void sendBigBlobPreparedQuery() throws SQLException {
-
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigPreparedQuery") && sharedUsePrepare());
-        int maxAllowedPacket = 0;
+        long maxAllowedPacket = 0;
         Statement st = sharedConnection.createStatement();
         ResultSet rs1 = st.executeQuery("select @@max_allowed_packet");
         if (rs1.next()) {
             maxAllowedPacket = rs1.getInt(1);
+            Assume.assumeTrue(maxAllowedPacket < 512 * 1024 * 1024L);
         } else {
             fail();
         }
 
-        byte[] arr = new byte[maxAllowedPacket - 1000];
+        byte[] arr = new byte[(int) maxAllowedPacket - 1000];
         int pos = 0;
         while (pos < maxAllowedPacket - 1000) {
             arr[pos] = (byte) ((pos % 132) + 40);
             pos++;
         }
-        byte[] arr2 = new byte[maxAllowedPacket - 1000];
+        byte[] arr2 = new byte[(int) maxAllowedPacket - 1000];
         pos = 0;
         while (pos < maxAllowedPacket - 1000) {
             arr2[pos] = (byte) (((pos + 5 ) % 127) + 40);
@@ -137,9 +138,7 @@ public class BigQueryTest extends BaseTest {
         // check that maxAllowedPacket is big enough for the test
         Assume.assumeTrue(checkMaxAllowedPacketMore20m("testError"));
 
-        Connection connection = null;
-        try {
-            connection = setConnection();
+        try (Connection connection = setConnection()) {
             int selectSize = 9;
             char[] arr = new char[16 * 1024 * 1024 - selectSize];
             Arrays.fill(arr, 'a');
@@ -147,10 +146,6 @@ public class BigQueryTest extends BaseTest {
             ResultSet rs = connection.createStatement().executeQuery(request);
             rs.next();
             assertEquals(arr.length, rs.getString(1).length());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
@@ -240,5 +235,34 @@ public class BigQueryTest extends BaseTest {
         }
 
         assertFalse(rs.next());
+    }
+
+
+    @Test
+    public void maxFieldSizeTest() throws SQLException {
+
+        byte abyte = (byte) 'a';
+        byte bbyte = (byte) 'b';
+
+        byte[] arr = new byte[200];
+        Arrays.fill(arr, abyte);
+        byte[] arr2 = new byte[200];
+        Arrays.fill(arr2, bbyte);
+
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into bigblob5 values(null, ?,?)");
+
+        ps.setBytes(1, arr);
+        ps.setBytes(2, arr2);
+        ps.executeUpdate();
+
+        Statement stmt = sharedConnection.createStatement();
+        stmt.setMaxFieldSize(2);
+        ResultSet rs = stmt.executeQuery("select * from bigblob5");
+        rs.next();
+        assertEquals(2, rs.getBytes(2).length);
+        assertEquals(2, rs.getString(3).length());
+        assertArrayEquals(new byte[] {abyte, abyte}, rs.getBytes(2));
+        assertEquals("bb", rs.getString(3));
+
     }
 }

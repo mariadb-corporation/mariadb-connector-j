@@ -51,8 +51,8 @@ package org.mariadb.jdbc.internal.util;
 
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
+import java.sql.SQLException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -73,6 +73,7 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
 
     /**
      * Remove eldestEntry.
+     *
      * @param eldest eldest entry
      * @return true if eldest entry must be removed
      */
@@ -86,7 +87,7 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
             if (serverPrepareResult.canBeDeallocate()) {
                 try {
                     protocol.forceReleasePrepareStatement(serverPrepareResult.getStatementId());
-                } catch (QueryException e) {
+                } catch (SQLException e) {
                     //eat exception
                 }
             }
@@ -98,7 +99,8 @@ public final class ServerPrepareStatementCache extends LinkedHashMap<String, Ser
      * Associates the specified value with the specified key in this map.
      * If the map previously contained a mapping for the key,
      * the existing cached prepared result shared counter will be incremented.
-     * @param key key
+     *
+     * @param key    key
      * @param result new prepare result.
      * @return the previous value associated with key if not been deallocate, or null if there was no mapping for key.
      */

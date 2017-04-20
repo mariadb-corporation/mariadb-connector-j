@@ -5,7 +5,7 @@ set -e
 
 case "$TYPE" in
  "MAXSCALE" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:4006/testj?user=root'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:4006/testj?user=root&killFetchStmtOnClose=false'
    ;;
  "REWRITE" )
    urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&rewriteBatchedStatements=true'
@@ -34,7 +34,8 @@ else
     testSingleHost=true
 fi
 
-
+echo "Running coveralls for JDK version: $TRAVIS_JDK_VERSION with profile jdbc42"
 mvn clean test $urlString -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID  \
-    -DkeystorePath="/etc/mysql/client-keystore.p12" -DkeystorePassword="kspass"  \
-    -Dkeystore2Path="/etc/mysql/fullclient-keystore.p12" -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"
+    -DkeystorePath="/etc/mysql/client-keystore.jks" -DkeystorePassword="kspass"  \
+    -Dkeystore2Path="/etc/mysql/fullclient-keystore.jks" -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
+    -Dkeystore2PathP12="/etc/mysql/fullclient-keystore.p12"

@@ -49,9 +49,10 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.packet.send.InterfaceAuthSwitchSendResponsePacket;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
+import org.mariadb.jdbc.internal.com.send.InterfaceAuthSwitchSendResponsePacket;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import java.sql.SQLException;
+
 
 /**
  * Provider to handle plugin authentication.
@@ -64,10 +65,10 @@ public class AuthenticationProviderHolder {
      */
     public static AuthenticationProvider DEFAULT_PROVIDER = new AuthenticationProvider() {
         @Override
-        public InterfaceAuthSwitchSendResponsePacket processAuthPlugin(ReadPacketFetcher packetFetcher, String plugin, String password,
+        public InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
                                                                        byte[] authData, int seqNo, String passwordCharacterEncoding)
-                throws QueryException {
-            return DefaultAuthenticationProvider.processAuthPlugin(packetFetcher, plugin, password, authData, seqNo, passwordCharacterEncoding);
+                throws SQLException {
+            return DefaultAuthenticationProvider.processAuthPlugin(reader, plugin, password, authData, seqNo, passwordCharacterEncoding);
         }
     };
 
@@ -103,9 +104,9 @@ public class AuthenticationProviderHolder {
      * Provider to handle authentication.
      */
     public interface AuthenticationProvider {
-        public InterfaceAuthSwitchSendResponsePacket processAuthPlugin(ReadPacketFetcher packetFetcher, String plugin, String password,
+        public InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
                                                                        byte[] authData, int seqNo, String passwordCharacterEncoding)
-                throws QueryException;
+                throws SQLException;
     }
 
 

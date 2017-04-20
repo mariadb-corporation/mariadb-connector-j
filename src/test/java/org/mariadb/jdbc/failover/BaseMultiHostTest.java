@@ -9,7 +9,7 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.MariaDbServerPreparedStatement;
+import org.mariadb.jdbc.MariaDbPreparedStatementServer;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
@@ -41,8 +41,6 @@ public class BaseMultiHostTest {
     protected static String initialSequentialUrl;
     protected static String initialLoadbalanceUrl;
     protected static String initialUrl;
-    protected String defaultUrl;
-
     protected static String proxyGaleraUrl;
     protected static String proxySequentialUrl;
     protected static String proxyAuroraUrl;
@@ -50,17 +48,13 @@ public class BaseMultiHostTest {
     protected static String proxyLoadbalanceUrl;
     protected static String proxyUrl;
     protected static String jobId;
-
-
     protected static AmazonRDSClient amazonRDSClient;
-    private static String auroraClusterIdentifier;
-
     protected static String username;
+    private static String auroraClusterIdentifier;
     private static String hostname;
     //hosts
     private static HashMap<HaMode, TcpProxy[]> proxySet = new HashMap<>();
     public HaMode currentType;
-
     @Rule
     public TestRule watcher = new TestWatcher() {
         protected void starting(Description description) {
@@ -75,11 +69,13 @@ public class BaseMultiHostTest {
             System.out.println("finished test failed : " + description.getClassName() + "." + description.getMethodName());
         }
     };
+    protected String defaultUrl;
 
     /**
      * Initialize parameters.
+     *
      * @throws SQLException exception
-     * @throws IOException exception
+     * @throws IOException  exception
      */
     @BeforeClass
     public static void beforeClass() throws SQLException, IOException {
@@ -119,21 +115,11 @@ public class BaseMultiHostTest {
     }
 
     /**
-     * Delete table and procedure if created.
-     * Close connection if needed
-     * @throws SQLException exception
-     */
-    @After
-    public void afterBaseTest() throws SQLException {
-        assureProxy();
-        assureBlackList();
-    }
-
-    /**
      * Check server minimum version.
+     *
      * @param connection connection to use
-     * @param major major minimal number
-     * @param minor minor minimal number
+     * @param major      major minimal number
+     * @param minor      minor minimal number
      * @return is server compatible
      * @throws SQLException exception
      */
@@ -198,6 +184,7 @@ public class BaseMultiHostTest {
 
     /**
      * Clean proxies.
+     *
      * @throws SQLException exception
      */
     @AfterClass
@@ -213,6 +200,18 @@ public class BaseMultiHostTest {
                 }
             }
         }
+    }
+
+    /**
+     * Delete table and procedure if created.
+     * Close connection if needed
+     *
+     * @throws SQLException exception
+     */
+    @After
+    public void afterBaseTest() throws SQLException {
+        assureProxy();
+        assureBlackList();
     }
 
     protected Connection getNewConnection() throws SQLException {
@@ -258,7 +257,8 @@ public class BaseMultiHostTest {
 
     /**
      * Stop proxy, and restart it after a certain amount of time.
-     * @param hostNumber hostnumber (first is one)
+     *
+     * @param hostNumber   hostnumber (first is one)
      * @param millissecond milliseconds
      */
     public void stopProxy(int hostNumber, long millissecond) {
@@ -267,6 +267,7 @@ public class BaseMultiHostTest {
 
     /**
      * Stop proxy.
+     *
      * @param hostNumber host number (first is 1)
      */
     public void stopProxy(int hostNumber) {
@@ -275,11 +276,12 @@ public class BaseMultiHostTest {
 
     /**
      * Stop all proxy but the one in parameter.
+     *
      * @param hostNumber the proxy to not close
      */
     public void stopProxyButParameter(int hostNumber) {
         TcpProxy[] proxies = proxySet.get(currentType);
-        for (int i = 0 ; i < proxies.length ; i++) {
+        for (int i = 0; i < proxies.length; i++) {
             if (i != hostNumber - 1) {
                 proxies[i].stop();
             }
@@ -288,6 +290,7 @@ public class BaseMultiHostTest {
 
     /**
      * Restart proxy.
+     *
      * @param hostNumber host number (first is  1)
      */
     public void restartProxy(int hostNumber) {
@@ -322,19 +325,19 @@ public class BaseMultiHostTest {
         Statement st = connection.createStatement();
 
         // first test for specific user and host combination
-        ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '"
-                + hostname + "'");
-        if (rs.next()) {
-            superPrivilege = (rs.getString(1).equals("Y"));
-        } else {
-            // then check for user on whatever (%) host
-            rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'");
+        try (ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '"
+                + hostname + "'")) {
             if (rs.next()) {
                 superPrivilege = (rs.getString(1).equals("Y"));
+            } else {
+                // then check for user on whatever (%) host
+                try (ResultSet rs2 = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'")) {
+                    if (rs2.next()) {
+                        superPrivilege = (rs2.getString(1).equals("Y"));
+                    }
+                }
             }
         }
-
-        rs.close();
 
         if (superPrivilege) {
             System.out.println("test '" + testName + "' skipped because user '" + username + "' has SUPER privileges");
@@ -359,9 +362,10 @@ public class BaseMultiHostTest {
 
     /**
      * Retrieve server Id.
+     *
      * @param connection connection
      * @return server index
-     * @throws Throwable  exception
+     * @throws Throwable exception
      */
     public int getServerId(Connection connection) throws Throwable {
         Protocol protocol = getProtocolFromConnection(connection);
@@ -392,8 +396,8 @@ public class BaseMultiHostTest {
         return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
     }
 
-    ServerPrepareResult getPrepareResult(MariaDbServerPreparedStatement preparedStatement) throws IllegalAccessException, NoSuchFieldException {
-        Field prepareResultField = MariaDbServerPreparedStatement.class.getDeclaredField("serverPrepareResult"); //NoSuchFieldException
+    ServerPrepareResult getPrepareResult(MariaDbPreparedStatementServer preparedStatement) throws IllegalAccessException, NoSuchFieldException {
+        Field prepareResultField = MariaDbPreparedStatementServer.class.getDeclaredField("serverPrepareResult"); //NoSuchFieldException
         prepareResultField.setAccessible(true);
         return (ServerPrepareResult) prepareResultField.get(preparedStatement); //IllegalAccessException
     }

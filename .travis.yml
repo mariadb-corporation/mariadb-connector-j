@@ -3,16 +3,15 @@ language: java
 before_install:
     - chmod +x .travis/before_test.sh
     - chmod +x .travis/script.sh
+    - echo "MAVEN_OPTS='-Xmx384m'" > ~/.mavenrc
 install: .travis/before_test.sh
+dist: trusty
 cache:
   directories:
-  - $HOME/.m2
+    - $HOME/.m2
 jdk:
+    - oraclejdk9
     - oraclejdk8
-    - oraclejdk7
-    - openjdk7
-services:
-    - mysql
 env:
     - AURORA=true
     - MARIA=5.5 PACKET=8M
@@ -34,5 +33,4 @@ env:
     - COMPRESSION=false MARIA=10.2 PACKET=40M
     - MYSQL=5.7 PACKET=8M
     - MYSQL=5.6 PACKET=8M
-    - MYSQL=5.5 PACKET=8M UTF8_ONLY=true
 script: .travis/script.sh

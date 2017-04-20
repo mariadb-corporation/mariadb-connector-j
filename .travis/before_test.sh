@@ -6,15 +6,15 @@ set -e
 remove_mysql(){
     sudo service mysql stop
     sudo apt-get -qq autoremove --purge mysql-server mysql-client mysql-common
-    sudo rm -rf /etc/mysql||true
-    sudo rm -rf /var/lib/mysql||true
+    sudo rm -Rf /etc/mysql||true
+    sudo rm -Rf /var/lib/mysql||true
 }
 
 if [ "$TYPE" == "MAXSCALE" ]
 then
     #install maxscale
-    wget "https://downloads.mariadb.com/MaxScale/${MAXSCALE_VERSION}/ubuntu/dists/precise/main/binary-amd64/maxscale-2.0.2-1.ubuntu.precise.x86_64.deb"
-    sudo dpkg -i maxscale-2.0.2-1.ubuntu.precise.x86_64.deb
+    wget "https://downloads.mariadb.com/MaxScale/${MAXSCALE_VERSION}/ubuntu/dists/trusty/main/binary-amd64/maxscale-2.0.2-1.ubuntu.trusty.x86_64.deb"
+    sudo dpkg -i maxscale-2.0.2-1.ubuntu.trusty.x86_64.deb
     sudo apt-get install -f
     sudo sed -i 's/user=myuser/user=root/g' /etc/maxscale.cnf
     sudo sed -i 's/passwd=mypwd/passwd=/g' /etc/maxscale.cnf
@@ -23,47 +23,55 @@ then
     sudo sed -i 's|port=4006|port=4006\naddress=localhost|g' /etc/maxscale.cnf
 fi
 
+remove_mysql
+
 if [ -n "$AURORA" ]
 then
     # AURORA tests doesn't need an installation
-    remove_mysql
     echo "$MYSQL"
 else
     if [ -n "$MYSQL" ]
     then
-        if [ "$MYSQL" == "5.5" ]
-        then
-            sudo apt-get -qq update --force-yes
-
-            dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL/-dmr/}
-            sudo mysql -u root -e "SELECT 1"
-
-        else
-            remove_mysql
-            sudo tee /etc/apt/sources.list.d/mysql.list << END
+        sudo tee /etc/apt/sources.list.d/mysql.list << END
 deb http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL
 deb-src http://repo.mysql.com/apt/ubuntu/ precise mysql-$MYSQL
 END
-            #normal way, but working only 90% of the time. Temporary force with key in project.
-            #sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 5072E1F5
-            sudo apt-key add .travis/mysql_pubkey.asc
+        #normal way, but working only 90% of the time. Temporary force with key in project.
+        #sudo apt-key adv --keyserver pgp.mit.edu --recv-keys 5072E1F5
+        sudo apt-key add .travis/mysql_pubkey.asc
 
-            sudo apt-get -qq update --force-yes
-            sudo apt-get -qq install mysql-server --force-yes
+        sudo apt-get -qq update --force-yes
+        sudo apt-get -qq install mysql-server --force-yes
 
-            dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL/-dmr/}
+        dpkg -l|grep ^ii|grep mysql-server|grep ${MYSQL/-dmr/}
+        if [ "$MYSQL" == "5.7"]
+        then
+            #compatibility for 5.7.8 that disable global status request
+            sudo tee /etc/mysql/conf.d/compat.cnf << END
+[mysqld]
+show_compatibility_56 = ON
+END
         fi
-
     else
 
-        remove_mysql
-        sudo apt-get -qq install python-software-properties
+        sudo apt-get -qq install software-properties-common
+
 
         sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
-        sudo add-apt-repository "deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/${MARIA}/ubuntu precise main"
+        sudo add-apt-repository "deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/${MARIA}/ubuntu trusty main"
+
+        #Force using MariaDB repo in place of System repo
+        sudo tee /etc/apt/preferences.d/MariaDB.pref << END
+Package: *
+Pin: origin nyc2.mirrors.digitalocean.com
+Pin-Priority: 1000
+END
 
         sudo apt-get -qq update
-
+        if [ "$MARIA" == "5.5" ]
+        then
+            sudo apt-get install mariadb-server-core-5.5=5.5.54+maria-1~trusty mariadb-server-5.5=5.5.54+maria-1~trusty mariadb-client-5.5=5.5.54+maria-1~trusty
+        fi
         sudo apt-get -qq install mariadb-server
     fi
 
@@ -85,7 +93,7 @@ END
 
     # Generate SSL files:
     sudo .travis/gen-ssl.sh mariadb.example.com /etc/mysql
-    sudo chown mysql:mysql /etc/mysql/*.crt /etc/mysql/*.key /etc/mysql/*.p12
+    sudo chown mysql:mysql /etc/mysql/*.crt /etc/mysql/*.key /etc/mysql/*.p12 /etc/mysql/*.jks
 
     # Enable SSL:
     sudo tee /etc/mysql/conf.d/ssl.cnf << END

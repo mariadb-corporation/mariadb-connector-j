@@ -119,7 +119,6 @@ public class AllowMultiQueriesTest extends BaseTest {
             try (Statement statement = connection.createStatement()) {
                 statement.setFetchSize(1);
                 statement.execute("INSERT INTO AllowMultiQueriesTest2(test) VALUES ('a'), ('b');SELECT * from AllowMultiQueriesTest;SELECT 3;");
-                statement.close();
             }
         }
     }

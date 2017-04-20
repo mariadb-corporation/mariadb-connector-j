@@ -54,10 +54,9 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-import org.mariadb.jdbc.internal.queryresults.Results;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
 
+import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayDeque;
@@ -76,7 +75,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      * Connect aurora probable master.
      * Aurora master change in time. The only way to check that a server is a master is to asked him.
      *
-     * @param listener aurora failover to call back if master is found
+     * @param listener       aurora failover to call back if master is found
      * @param probableMaster probable master host
      */
     public static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster) {
@@ -98,7 +97,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
             }
 
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             listener.addToBlacklist(protocol.getHostAddress());
         }
     }
@@ -109,10 +108,10 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      * @param listener     current failover
      * @param addresses    list of HostAddress to loop
      * @param searchFilter search parameter
-     * @throws QueryException if not found
+     * @throws SQLException if not found
      */
     public static void loop(AuroraListener listener, final List<HostAddress> addresses, SearchFilter searchFilter)
-            throws QueryException {
+            throws SQLException {
 
         AuroraProtocol protocol;
         ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
@@ -120,7 +119,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
         }
         int maxConnectionTry = listener.getRetriesAllDown();
-        QueryException lastQueryException = null;
+        SQLException lastQueryException = null;
         HostAddress probableMasterHost = null;
 
         while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
@@ -210,7 +209,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                     protocol.close();
                 }
 
-            } catch (QueryException e) {
+            } catch (SQLException e) {
                 lastQueryException = e;
                 listener.addToBlacklist(protocol.getHostAddress());
             }
@@ -234,19 +233,20 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
         if (listener.isMasterHostFailReconnect() || listener.isSecondaryHostFailReconnect()) {
             String error = "No active connection found for replica";
-            if (listener.isMasterHostFailReconnect())  {
+            if (listener.isMasterHostFailReconnect()) {
                 error = "No active connection found for master";
             }
             if (lastQueryException != null) {
-                throw new QueryException(error, lastQueryException.getErrorCode(), lastQueryException.getSqlState(), lastQueryException);
+                throw new SQLException(error, lastQueryException.getSQLState(), lastQueryException.getErrorCode(), lastQueryException);
             }
-            throw new QueryException(error);
+            throw new SQLException(error);
         }
     }
 
     /**
      * Initialize new protocol instance.
-     * @param proxy proxy
+     *
+     * @param proxy     proxy
      * @param urlParser connection string data's
      * @return new AuroraProtocol
      */
@@ -261,31 +261,49 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         return this.masterConnection;
     }
 
+    @Override
+    public void readPipelineCheckMaster() throws IOException, SQLException {
+        Results results = new Results();
+        getResult(results);
+        results.commandEnd();
+        ResultSet resultSet = results.getResultSet();
+        if (resultSet.next()) {
+            this.masterConnection = "OFF".equals(resultSet.getString(2));
+            reader.setServerThreadId(this.serverThreadId, this.masterConnection);
+            writer.setServerThreadId(this.serverThreadId, this.masterConnection);
+        }
+
+    }
+
     /**
      * Aurora best way to check if a node is a master : is not in read-only mode.
      *
      * @return indicate if master has been found
      */
     @Override
-    public boolean checkIfMaster() throws QueryException {
+    public boolean checkIfMaster() throws SQLException {
         proxy.lock.lock();
         try {
-            Results results = new Results(1);
+            Results results = new Results();
             executeQuery(this.isMasterConnection(), results, "show global variables like 'innodb_read_only'");
             results.commandEnd();
-            MariaSelectResultSet queryResult = results.getResultSet();
+            ResultSet queryResult = results.getResultSet();
             if (queryResult != null) {
                 queryResult.next();
                 this.masterConnection = "OFF".equals(queryResult.getString(2));
+
+                reader.setServerThreadId(this.serverThreadId, this.masterConnection);
+                writer.setServerThreadId(this.serverThreadId, this.masterConnection);
             } else {
                 this.masterConnection = false;
             }
+
             this.readOnly = !this.masterConnection;
             return this.masterConnection;
 
         } catch (SQLException sqle) {
-            throw new QueryException("could not check the 'innodb_read_only' variable status on " + this.getHostAddress()
-                    + " : " + sqle.getMessage(), -1, CONNECTION_EXCEPTION.getSqlState(), sqle);
+            throw new SQLException("could not check the 'innodb_read_only' variable status on " + this.getHostAddress()
+                    + " : " + sqle.getMessage(), CONNECTION_EXCEPTION.getSqlState(), sqle);
         } finally {
             proxy.lock.unlock();
         }

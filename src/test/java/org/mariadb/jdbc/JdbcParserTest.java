@@ -14,7 +14,10 @@ public class JdbcParserTest {
     public void testMariaAlias() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
         UrlParser jdbc2 = UrlParser.parse("jdbc:mysql://localhost/test");
-        assertEquals(jdbc, jdbc2);
+        assertEquals(jdbc.getDatabase(), jdbc2.getDatabase());
+        assertEquals(jdbc.getOptions(), jdbc2.getOptions());
+        assertEquals(jdbc.getHostAddresses(), jdbc2.getHostAddresses());
+        assertEquals(jdbc.getHaMode(), jdbc2.getHaMode());
     }
 
     @Test
@@ -57,7 +60,7 @@ public class JdbcParserTest {
     public void testOptionTakeDefault() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
         assertNull(jdbc.getOptions().connectTimeout);
-        assertTrue(jdbc.getOptions().validConnectionTimeout == 120);
+        assertTrue(jdbc.getOptions().validConnectionTimeout == 0);
         assertFalse(jdbc.getOptions().autoReconnect);
         assertNull(jdbc.getOptions().user);
         assertFalse(jdbc.getOptions().createDatabaseIfNotExist);
@@ -69,7 +72,7 @@ public class JdbcParserTest {
     public void testOptionTakeDefaultAurora() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb:aurora://cluster-identifier.cluster-customerID.region.rds.amazonaws.com/test");
         assertNull(jdbc.getOptions().connectTimeout);
-        assertTrue(jdbc.getOptions().validConnectionTimeout == 120);
+        assertTrue(jdbc.getOptions().validConnectionTimeout == 0);
         assertFalse(jdbc.getOptions().autoReconnect);
         assertNull(jdbc.getOptions().user);
         assertFalse(jdbc.getOptions().createDatabaseIfNotExist);
@@ -315,5 +318,6 @@ public class JdbcParserTest {
         UrlParser jdbc = UrlParser.parse("jdbc:mysql://localhost/test?disableMariaDbDriver");
         assertTrue(jdbc == null);
     }
+
 
 }

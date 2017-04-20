@@ -27,15 +27,14 @@ public class SslTest extends BaseTest {
      * Enable Crypto.
      */
     @BeforeClass
-    public static void enableCrypto() {
+    public static void enableCrypto() throws Exception {
         Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
-
         try {
             Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
             field.setAccessible(true);
             field.set(null, Boolean.FALSE);
         } catch (Exception ex) {
-            ex.printStackTrace();
+
         }
     }
 
@@ -47,15 +46,16 @@ public class SslTest extends BaseTest {
     @Before
     public void checkSsl() throws SQLException {
         boolean isJava7 = System.getProperty("java.version").contains("1.7.");
+        cancelForVersion(5, 6, 36); //has SSL issues with client authentication.
         Assume.assumeTrue(haveSsl(sharedConnection));
         //Skip SSL test on java 7 since SSL stream size JDK-6521495).
         Assume.assumeFalse(isJava7);
 
         if (System.getProperty("serverCertificatePath") == null) {
-            ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert");
-            rs.next();
-            serverCertificatePath = rs.getString(1);
-            rs.close();
+            try (ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert")) {
+                rs.next();
+                serverCertificatePath = rs.getString(1);
+            }
         } else {
             serverCertificatePath = System.getProperty("serverCertificatePath");
         }
@@ -75,11 +75,8 @@ public class SslTest extends BaseTest {
         Assume.assumeTrue(haveSsl(sharedConnection));
         //Skip SSL test on java 7 since SSL stream size JDK-6521495).
         Assume.assumeFalse(System.getProperty("java.version").contains("1.7."));
-        Connection connection = setConnection("&useSSL=true&trustServerCertificate=true");
-        try {
+        try (Connection connection = setConnection("&useSSL=true&trustServerCertificate=true")) {
             connection.createStatement().execute("select 1");
-        } finally {
-            connection.close();
         }
     }
 
@@ -100,11 +97,8 @@ public class SslTest extends BaseTest {
         info.setProperty("enabledSslProtocolSuites", tls);
         if (ciphers != null) info.setProperty("enabledSslCipherSuites", ciphers);
 
-        Connection connection = setConnection(info);
-        try {
+        try (Connection connection = setConnection(info)) {
             connection.createStatement().execute("select 1");
-        } finally {
-            connection.close();
         }
     }
 
@@ -162,7 +156,7 @@ public class SslTest extends BaseTest {
         Assume.assumeFalse(Platform.isWindows());
         // Only test with MariaDB since MySQL community is compiled with yaSSL
         if (isMariadbServer()) {
-            useSslForceTls("TLSv1.2", "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384");
+            useSslForceTls("TLSv1.2", "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
         }
     }
 
@@ -208,12 +202,9 @@ public class SslTest extends BaseTest {
                 //enabledSSLCipherSuites, not enabledSslCipherSuites (different case)
                 info.setProperty("enabledSSLCipherSuites", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
 
-                Connection connection = setConnection(info);
-                try {
+                try (Connection connection = setConnection(info)) {
                     connection.createStatement().execute("select 1");
                     fail("Must have thrown error since cipher aren't TLSv1.1 ciphers");
-                } finally {
-                    connection.close();
                 }
             }
         } catch (SQLException e) {
@@ -251,9 +242,7 @@ public class SslTest extends BaseTest {
     }
 
     private String getServerCertificate() {
-        BufferedReader br = null;
-        try {
-            br = new BufferedReader(new InputStreamReader(new FileInputStream(serverCertificatePath)));
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(serverCertificatePath)))) {
             StringBuilder sb = new StringBuilder();
             String line = null;
             while ((line = br.readLine()) != null) {
@@ -263,32 +252,14 @@ public class SslTest extends BaseTest {
             return sb.toString();
         } catch (Exception e) {
             throw new RuntimeException(e);
-        } finally {
-            if (br != null) {
-                try {
-                    br.close();
-                } catch (Exception e) {
-                    //eat exception
-                }
-            }
         }
     }
 
     private void saveToFile(String path, String contents) {
-        PrintWriter out = null;
-        try {
-            out = new PrintWriter(new FileOutputStream(path));
+        try (PrintWriter out = new PrintWriter(new FileOutputStream(path))) {
             out.print(contents);
         } catch (Exception e) {
             throw new RuntimeException(e);
-        } finally {
-            if (out != null) {
-                try {
-                    out.close();
-                } catch (Exception e) {
-                    //eat exception
-                }
-            }
         }
     }
 
@@ -417,9 +388,9 @@ public class SslTest extends BaseTest {
             Properties info = new Properties();
             info.setProperty("serverSslCert", getServerCertificate());
             info.setProperty("useSSL", "true");
-            Connection conn = createConnection(info);
-            assertEquals("testj", conn.getCatalog());
-            conn.close();
+            try (Connection conn = createConnection(info)) {
+                assertEquals("testj", conn.getCatalog());
+            }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -435,8 +406,10 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustStore", "file:///" + keystorePath);
+            info.setProperty("trustStore", "file://" + keystorePath);
             testConnect(info, true);
+        } catch (SQLNonTransientConnectionException nonTransient) {
+            //java 9 doesn't accept empty keystore
         } finally {
             tempKeystore.delete();
         }
@@ -452,7 +425,7 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustStore", "file:///" + keystorePath);
+            info.setProperty("trustStore", "file://" + keystorePath);
             info.setProperty("trustStorePassword", "mysecret");
             testConnect(info, true);
         } finally {
@@ -505,7 +478,7 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustStore", "file:///" + keystorePath);
+            info.setProperty("trustStore", "file://" + keystorePath);
             info.setProperty("trustStorePassword", "notthepassword");
             testConnect(info, true);
         } finally {
@@ -523,7 +496,7 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustStore", "file:///" + keystorePath);
+            info.setProperty("trustStore", "file://" + keystorePath);
             info.setProperty("trustStorePassword", "mysecret");
             testConnect(info, true);
         } finally {
@@ -552,10 +525,12 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustStore", "file:///" + truststorePath);
-            info.setProperty("keyStore", "file:///" + clientKeystorePath);
+            info.setProperty("trustStore", "file://" + truststorePath);
+            info.setProperty("keyStore", "file://" + clientKeystorePath);
             info.setProperty("keyStorePassword", clientKeystorePassword);
             testConnect(info, true, testUser, "ssltestpassword");
+        } catch (SQLNonTransientConnectionException nonTransient) {
+            //java 9 doesn't accept empty keystore
         } finally {
             tempTruststore.delete();
             deleteSslTestUser(testUser);
@@ -584,9 +559,9 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustCertificateKeyStoreUrl", "file:///" + truststorePath);
+            info.setProperty("trustCertificateKeyStoreUrl", "file://" + truststorePath);
             info.setProperty("trustCertificateKeyStorePassword", "trustPwd");
-            info.setProperty("clientCertificateKeyStoreUrl", "file:///" + clientKeystorePath);
+            info.setProperty("clientCertificateKeyStoreUrl", "file://" + clientKeystorePath);
             info.setProperty("clientCertificateKeyStorePassword", clientKeystorePassword);
             testConnect(info, true, testUser, "ssltestpassword");
         } finally {
@@ -612,7 +587,7 @@ public class SslTest extends BaseTest {
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
             info.setProperty("serverSslCert", serverCertificatePath);
-            info.setProperty("keyStore", "file:///" + clientKeystorePath);
+            info.setProperty("keyStore", "file://" + clientKeystorePath);
             info.setProperty("keyStorePassword", clientKeystorePassword);
             testConnect(info, true, testUser, "ssltestpassword");
         } finally {
@@ -630,7 +605,9 @@ public class SslTest extends BaseTest {
         String clientKeyStore2Path = System.getProperty("keystore2Path");
         String clientKeyStore2Password = System.getProperty("keystore2Password");
         String clientKeyPassword = System.getProperty("keyPassword");
-        Assume.assumeTrue(clientKeyPassword != null);
+        Assume.assumeTrue(clientKeyPassword != null
+                && clientKeyStore2Password != null
+                && clientKeyStore2Path != null);
         String testUser = "testKeystore";
         // For this testcase, the testUser must be configured with ssl_type=X509
         createSslTestUser(testUser);
@@ -640,11 +617,13 @@ public class SslTest extends BaseTest {
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
             info.setProperty("serverSslCert", serverCertificatePath);
-            info.setProperty("keyStore", "file:///" + clientKeyStore2Path);
+            info.setProperty("keyStore", "file://" + clientKeyStore2Path);
             info.setProperty("keyStorePassword", clientKeyStore2Password);
             testConnect(info, true, testUser, "ssltestpassword");
+
             fail("Must have Error since client private key is protected with a password different than keystore");
         } catch (SQLException sqle) {
+            sqle.printStackTrace();
             assertTrue(sqle.getMessage().contains("Access denied for user"));
         }
 
@@ -652,7 +631,7 @@ public class SslTest extends BaseTest {
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
             info.setProperty("serverSslCert", serverCertificatePath);
-            info.setProperty("keyStore", "file:///" + clientKeyStore2Path);
+            info.setProperty("keyStore", "file://" + clientKeyStore2Path);
             info.setProperty("keyStorePassword", clientKeyStore2Password);
             info.setProperty("keyPassword", clientKeyPassword);
             testConnect(info, true, testUser, "ssltestpassword");
@@ -660,6 +639,33 @@ public class SslTest extends BaseTest {
             deleteSslTestUser(testUser);
         }
     }
+
+    /**
+     * Verification when private key password differ from keyStore password.
+     *
+     * @throws Exception if error occur
+     */
+    @Test
+    public void testClientKeyStorePkcs12() throws Exception {
+        String clientKeyStore2Path = System.getProperty("keystore2PathP12");
+        String clientKeyStore2Password = System.getProperty("keystore2Password");
+        Assume.assumeTrue(clientKeyStore2Password != null && clientKeyStore2Path != null);
+        String testUser = "testKeystore";
+        // For this testcase, the testUser must be configured with ssl_type=X509
+        createSslTestUser(testUser);
+
+        try {
+            Properties info = new Properties();
+            info.setProperty("useSSL", "true");
+            info.setProperty("serverSslCert", serverCertificatePath);
+            info.setProperty("keyStore", "file://" + clientKeyStore2Path);
+            info.setProperty("keyStorePassword", clientKeyStore2Password);
+            testConnect(info, true, testUser, "ssltestpassword");
+        } finally {
+            deleteSslTestUser(testUser);
+        }
+    }
+
 
     @Test
     public void testKeyStoreWithProperties() throws Exception {
@@ -788,7 +794,7 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("keyStore", "file:///" + clientKeystorePath);
+            info.setProperty("keyStore", "file://" + clientKeystorePath);
             info.setProperty("keyStorePassword", clientKeystorePassword);
 
             testConnect(info, true, testUser, "ssltestpassword");
@@ -829,8 +835,8 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustStore", "file:///" + truststorePath);
-            info.setProperty("keyStore", "file:///" + clientKeystorePath);
+            info.setProperty("trustStore", "file://" + truststorePath);
+            info.setProperty("keyStore", "file://" + clientKeystorePath);
             info.setProperty("keyStorePassword", "notthekeystorepass");
             testConnect(info, true, testUser, "ssltestpassword");
         } finally {

@@ -19,6 +19,7 @@ public class DatatypeTest extends BaseTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -41,6 +42,37 @@ public class DatatypeTest extends BaseTest {
         createTable("bitBoolTest", "d1 BOOLEAN, d2 BIT");
 
 
+    }
+
+    /**
+     * Get a simple Statement or a PrepareStatement.
+     *
+     * @param query    query
+     * @param prepared flag must be a prepare statement
+     * @return a statement
+     * @throws SQLException exception
+     */
+    public static ResultSet getResultSet(String query, boolean prepared) throws SQLException {
+        return getResultSet(query, prepared, sharedConnection);
+    }
+
+    /**
+     * Get a simple Statement or a PrepareStatement.
+     *
+     * @param query      query
+     * @param prepared   flag must be a prepare statement
+     * @param connection the connection to use
+     * @return a statement
+     * @throws SQLException exception
+     */
+    public static ResultSet getResultSet(String query, boolean prepared, Connection connection) throws SQLException {
+        if (prepared) {
+            PreparedStatement preparedStatement = connection.prepareStatement(query + " WHERE 1 = ?");
+            preparedStatement.setInt(1, 1);
+            return preparedStatement.executeQuery();
+        } else {
+            return connection.createStatement().executeQuery(query);
+        }
     }
 
     @Before
@@ -67,8 +99,9 @@ public class DatatypeTest extends BaseTest {
 
     /**
      * Testing different date parameters.
-     * @param connection current connection
-     * @param tinyInt1isBit tiny bit must be consider as boolean
+     *
+     * @param connection     current connection
+     * @param tinyInt1isBit  tiny bit must be consider as boolean
      * @param yearIsDateType year must be consider as Date or int
      * @throws Exception exception
      */
@@ -186,51 +219,24 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void datatypes2() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection("&tinyInt1isBit=0&yearIsDateType=0");
+        try (Connection connection = setConnection("&tinyInt1isBit=0&yearIsDateType=0")) {
             datatypes(connection, false, false);
-        } finally {
-            connection.close();
         }
     }
 
     @Test
     public void datatypes3() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection("&tinyInt1isBit=1&yearIsDateType=0");
+        try (Connection connection = setConnection("&tinyInt1isBit=1&yearIsDateType=0")) {
             datatypes(connection, true, false);
-        } finally {
-            connection.close();
         }
     }
 
     @Test
     public void datatypes4() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection("&tinyInt1isBit=0&yearIsDateType=1");
+        try (Connection connection = setConnection("&tinyInt1isBit=0&yearIsDateType=1")) {
             datatypes(connection, false, true);
-        } finally {
-            connection.close();
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     @SuppressWarnings("deprecation")
     @Test
@@ -299,35 +305,6 @@ public class DatatypeTest extends BaseTest {
         assertEquals(sb.toString(), toInsert.substring(0, 5));
         assertEquals(rs.getString("strm"), toInsert.substring(0, 5));
 
-    }
-
-    /**
-     * Get a simple Statement or a PrepareStatement.
-     * @param query query
-     * @param prepared flag must be a prepare statement
-     * @return a statement
-     * @throws SQLException exception
-     */
-    public static ResultSet getResultSet(String query, boolean prepared) throws SQLException {
-        return getResultSet(query, prepared, sharedConnection);
-    }
-
-    /**
-     * Get a simple Statement or a PrepareStatement.
-     * @param query query
-     * @param prepared flag must be a prepare statement
-     * @param connection the connection to use
-     * @return a statement
-     * @throws SQLException exception
-     */
-    public static ResultSet getResultSet(String query, boolean prepared, Connection connection) throws SQLException {
-        if (prepared) {
-            PreparedStatement preparedStatement = connection.prepareStatement(query + " WHERE 1 = ?");
-            preparedStatement.setInt(1, 1);
-            return preparedStatement.executeQuery();
-        } else {
-            return connection.createStatement().executeQuery(query);
-        }
     }
 
     @Test
@@ -897,4 +874,48 @@ public class DatatypeTest extends BaseTest {
         }
     }
 
+
+
+    @Test
+    public void testBinarySetter() throws Throwable {
+        createTable("LatinTable", "t1 varchar(30)","DEFAULT CHARSET=latin1");
+
+        try (Connection connection = DriverManager.getConnection(connU + "?user=" + username
+                + (password != null && !"".equals(password) ? "&password=" + password : "") + "&useServerPrepStmts=true")) {
+            checkCharactersInsert(connection);
+        }
+
+        sharedConnection.createStatement().execute("truncate LatinTable");
+
+        try (Connection connection = DriverManager.getConnection(connU + "?user=" + username
+                + (password != null && !"".equals(password) ? "&password=" + password : "") + "&useServerPrepStmts=false")) {
+            checkCharactersInsert(connection);
+        }
+    }
+
+    private String str = "\u4f60\u597d(hello in Chinese)";
+
+    private void checkCharactersInsert(Connection connection) throws Throwable {
+        try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO LatinTable(t1)  values (?)")) {
+            try {
+                preparedStatement.setString(1, str);
+                preparedStatement.execute();
+                fail("must have fail");
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("Incorrect string value"));
+            }
+
+            try {
+                preparedStatement.setBytes(1, str.getBytes("UTF-8"));
+                preparedStatement.execute();
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("Incorrect string value"));
+            }
+
+            ByteArrayInputStream bais = new ByteArrayInputStream(str.getBytes("UTF-8"));
+            preparedStatement.setBinaryStream(1, bais);
+            preparedStatement.execute();
+        }
+
+    }
 }

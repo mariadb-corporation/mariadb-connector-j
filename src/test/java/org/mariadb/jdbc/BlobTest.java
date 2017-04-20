@@ -9,13 +9,12 @@ import java.sql.*;
 import java.util.Arrays;
 import java.util.Random;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class BlobTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -321,11 +320,8 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void conj77() throws Exception {
-        final Statement sta1 = sharedConnection.createStatement();
-        try {
-
-            final PreparedStatement pre = sharedConnection.prepareStatement("INSERT INTO conj77_test (Name,Archive) VALUES (?,?)");
-            try {
+        try (Statement sta1 = sharedConnection.createStatement()) {
+            try (PreparedStatement pre = sharedConnection.prepareStatement("INSERT INTO conj77_test (Name,Archive) VALUES (?,?)")) {
                 pre.setString(1, "Empty String");
                 pre.setBytes(2, "".getBytes());
                 pre.addBatch();
@@ -339,54 +335,48 @@ public class BlobTest extends BaseTest {
                 pre.addBatch();
 
                 pre.executeBatch();
-            } finally {
-                if (pre != null) {
-                    pre.close();
-                }
-            }
-        } finally {
-            if (sta1 != null) {
-                sta1.close();
             }
         }
-        final Statement sta2 = sharedConnection.createStatement();
-        try {
-            final ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test");
-            try {
+
+        try (Statement sta2 = sharedConnection.createStatement()) {
+            try (ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test")) {
                 while (set.next()) {
                     final Blob blob = set.getBlob("text");
                     if (blob != null) {
-                        final ByteArrayOutputStream bout = new ByteArrayOutputStream((int) blob.length());
-                        try {
-                            final InputStream bin = blob.getBinaryStream();
-                            try {
+
+                        try (ByteArrayOutputStream bout = new ByteArrayOutputStream((int) blob.length())) {
+                            try (InputStream bin = blob.getBinaryStream()) {
                                 final byte[] buffer = new byte[1024 * 4];
                                 for (int read = bin.read(buffer); read != -1; read = bin.read(buffer)) {
                                     bout.write(buffer, 0, read);
                                 }
-                            } finally {
-                                if (bin != null) {
-                                    bin.close();
-                                }
-                            }
-                        } finally {
-                            if (bout != null) {
-                                bout.close();
                             }
                         }
                     }
                 }
-            } finally {
-                if (set != null) {
-                    set.close();
-                }
-            }
-        } finally {
-            if (sta2 != null) {
-                sta2.close();
             }
         }
     }
 
+    @Test
+    public void sendEmptyBlobPreparedQuery() throws SQLException {
+        createTable("emptyBlob", "test longblob, test2 text, test3 text");
+        try (Connection conn = setConnection()) {
+            PreparedStatement ps = conn.prepareStatement("insert into emptyBlob values(?,?,?)");
+            ps.setBlob(1, new MariaDbBlob(new byte[0]));
+            ps.setString(2, "a 'a ");
+            ps.setNull(3, Types.VARCHAR);
+            ps.executeUpdate();
+
+
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("select * from emptyBlob");
+            rs.next();
+            assertEquals(0, rs.getBytes(1).length);
+            assertEquals("a 'a ", rs.getString(2));
+            assertNull(rs.getBytes(3));
+        }
+
+    }
 
 }

@@ -14,6 +14,7 @@ import static org.junit.Assert.*;
 public class DatabaseMetadataTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -181,19 +182,19 @@ public class DatabaseMetadataTest extends BaseTest {
         st.execute("CREATE TABLE `cus``tomer` (id INT NOT NULL, PRIMARY KEY (id))   ENGINE=INNODB");
 
         st.execute("CREATE TABLE product_order (\n"
-                        + "    no INT NOT NULL AUTO_INCREMENT,\n"
-                        + "    product_category INT NOT NULL,\n"
-                        + "    product_id INT NOT NULL,\n"
-                        + "    customer_id INT NOT NULL,\n"
-                        + "    PRIMARY KEY(no),\n"
-                        + "    INDEX (product_category, product_id),\n"
-                        + "    INDEX (customer_id),\n"
-                        + "    FOREIGN KEY (product_category, product_id)\n"
-                        + "      REFERENCES t1.product(category, id)\n"
-                        + "      ON UPDATE CASCADE ON DELETE RESTRICT,\n"
-                        + "    FOREIGN KEY (customer_id)\n"
-                        + "      REFERENCES `cus``tomer`(id)\n"
-                        + ")   ENGINE=INNODB;"
+                + "    no INT NOT NULL AUTO_INCREMENT,\n"
+                + "    product_category INT NOT NULL,\n"
+                + "    product_id INT NOT NULL,\n"
+                + "    customer_id INT NOT NULL,\n"
+                + "    PRIMARY KEY(no),\n"
+                + "    INDEX (product_category, product_id),\n"
+                + "    INDEX (customer_id),\n"
+                + "    FOREIGN KEY (product_category, product_id)\n"
+                + "      REFERENCES t1.product(category, id)\n"
+                + "      ON UPDATE CASCADE ON DELETE RESTRICT,\n"
+                + "    FOREIGN KEY (customer_id)\n"
+                + "      REFERENCES `cus``tomer`(id)\n"
+                + ")   ENGINE=INNODB;"
         );
 
 
@@ -825,9 +826,7 @@ public class DatabaseMetadataTest extends BaseTest {
     /* Verify that "nullCatalogMeansCurrent=false" works (i.e information_schema columns are returned)*/
     @Test
     public void nullCatalogMeansCurrent2() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection("&nullCatalogMeansCurrent=false");
+        try (Connection connection = setConnection("&nullCatalogMeansCurrent=false")) {
             boolean haveInformationSchema = false;
             ResultSet rs = connection.getMetaData().getColumns(null, null, null, null);
             while (rs.next()) {
@@ -837,8 +836,6 @@ public class DatabaseMetadataTest extends BaseTest {
                 }
             }
             assertTrue(haveInformationSchema);
-        } finally {
-            connection.close();
         }
 
     }
@@ -930,17 +927,13 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void conj72() throws Exception {
-        Connection connection = null;
-        try {
-            connection = setConnection("&tinyInt1isBit=true");
+        try (Connection connection = setConnection("&tinyInt1isBit=true")) {
             connection.createStatement().execute("insert into conj72 values(1)");
             ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "conj72", null);
             assertTrue(rs.next());
             assertEquals(rs.getInt("DATA_TYPE"), Types.BIT);
             ResultSet rs1 = connection.createStatement().executeQuery("select * from conj72");
             assertEquals(rs1.getMetaData().getColumnType(1), Types.BIT);
-        } finally {
-            connection.close();
         }
     }
 
@@ -1100,6 +1093,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
     /**
      * CONJ-381 - getProcedureColumns returns NULL as TIMESTAMP/DATETIME precision instead of 19.
+     *
      * @throws SQLException if connection error occur
      */
     @Test

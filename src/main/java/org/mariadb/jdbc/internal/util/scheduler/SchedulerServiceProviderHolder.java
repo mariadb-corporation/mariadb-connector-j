@@ -89,16 +89,6 @@ public class SchedulerServiceProviderHolder {
     private static volatile SchedulerProvider currentProvider = null;
 
     /**
-     * Change the current set scheduler provider.  This provider will be provided in future requests
-     * to {@link #getSchedulerProvider()}.
-     *
-     * @param newProvider New provider to use, or {@code null} to use the default provider
-     */
-    public static void setSchedulerProvider(SchedulerProvider newProvider) {
-        currentProvider = newProvider;
-    }
-
-    /**
      * Get the currently set {@link SchedulerProvider} from set invocations via
      * {@link #setSchedulerProvider(SchedulerProvider)}.  If none has been set a default provider
      * will be provided (never a {@code null} result).
@@ -112,6 +102,16 @@ public class SchedulerServiceProviderHolder {
         } else {
             return result;
         }
+    }
+
+    /**
+     * Change the current set scheduler provider.  This provider will be provided in future requests
+     * to {@link #getSchedulerProvider()}.
+     *
+     * @param newProvider New provider to use, or {@code null} to use the default provider
+     */
+    public static void setSchedulerProvider(SchedulerProvider newProvider) {
+        currentProvider = newProvider;
     }
 
     /**
@@ -169,7 +169,7 @@ public class SchedulerServiceProviderHolder {
 
         /**
          * Default Timeout scheduler.
-         *
+         * <p>
          * This is a one Thread fixed sized scheduler.
          * This specific scheduler is using java 1.7 RemoveOnCancelPolicy, so
          * the task are removed from queue permitting to avoid memory consumption [CONJ-297]

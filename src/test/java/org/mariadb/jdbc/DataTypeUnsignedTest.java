@@ -617,7 +617,7 @@ public class DataTypeUnsignedTest extends BaseTest {
             if (decimal) {
                 if (floatingPoint) {
                     BigDecimal bd = rs.getBigDecimal(1);
-                    if (!bd.equals(new BigDecimal("1")) && !bd.equals(new BigDecimal("1.0")) ) {
+                    if (!bd.equals(new BigDecimal("1")) && !bd.equals(new BigDecimal("1.0"))) {
                         fail("getBigDecimal error : is " + bd.toString());
                     }
                     assertEquals("1.0", rs.getString(1));

@@ -13,6 +13,7 @@ public class ErrorMessageTest extends BaseTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -26,9 +27,7 @@ public class ErrorMessageTest extends BaseTest {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values ('whoua0', 0), ('whoua1', 1), "
-                    + "('whoua2', 2), ('whoua3', 3), ('whoua4', 4), ('whoua5', 5), ('whoua6', 6), ('whoua7', 7), "
-                    + "('whoua8', 8), ('whoua9', 9), ('more than 10 characters to provoc error', 10)"));
+            assertTrue(sqle.getCause().getCause().getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
         }
     }
 
@@ -38,7 +37,9 @@ public class ErrorMessageTest extends BaseTest {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue("message : " + sqle.getMessage(), sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values "
+            assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+                    sqle.getCause().getCause().getMessage().contains(
+                    "INSERT INTO testErrorMessage(test, test2) values "
                     + "('more than 10 characters to provoc error', 10)"));
         }
     }
@@ -49,23 +50,20 @@ public class ErrorMessageTest extends BaseTest {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?), "
+            assertTrue(sqle.getCause().getCause().getMessage().contains(
+                    "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
                     + "parameters ['more than 10 characters to provoc error',10]"));
         }
     }
 
     @Test
     public void testSmallBulkErrorMessage() throws SQLException {
-        Connection connection = setBlankConnection("&useBatchMultiSend=true");
-        try {
+        try (Connection connection = setBlankConnection("&useBatchMultiSend=true")) {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
-                    + "['whoua0',0],['whoua1',1],['whoua2',2],['whoua3',3],['whoua4',4],['whoua5',5],['whoua6',6],"
-                    + "['whoua7',7],['whoua8',8],['whoua9',9],['more than 10 characters to provoc error',10]"));
-        } finally {
-            connection.close();
+            assertTrue(sqle.getCause().getCause().getMessage().contains(
+                    "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
         }
     }
 
@@ -75,7 +73,7 @@ public class ErrorMessageTest extends BaseTest {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("('whoua56', 56), ('whoua57', 57), ('whou..."));
+            assertTrue(sqle.getCause().getCause().getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
         }
     }
 
@@ -85,7 +83,9 @@ public class ErrorMessageTest extends BaseTest {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue("message : " + sqle.getMessage(), sqle.getMessage().contains("INSERT INTO testErrorMessage(test, test2) values "
+            assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+                    sqle.getCause().getCause().getMessage().contains(
+                    "INSERT INTO testErrorMessage(test, test2) values "
                     + "('more than 10 characters to provoc error', 200)"));
         }
     }
@@ -96,22 +96,21 @@ public class ErrorMessageTest extends BaseTest {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue("message : " + sqle.getMessage(), sqle.getMessage().contains(
+            assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+                    sqle.getCause().getCause().getMessage().contains(
                     "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
-                    + "['more than 10 characters to provoc error',200]"));
+                            + "['more than 10 characters to provoc error',200]"));
         }
     }
 
     @Test
     public void testBigBulkErrorMessage() throws SQLException {
-        Connection connection = setBlankConnection("&useBatchMultiSend=true");
-        try {
+        try (Connection connection = setBlankConnection("&useBatchMultiSend=true")) {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains(",['whoua60',60],['whoua61',61],['whoua62',62],['whoua63',63],['whoua64',64..."));
-        } finally {
-            connection.close();
+            assertTrue(sqle.getCause().getCause().getMessage().contains(
+                    "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
         }
     }
 

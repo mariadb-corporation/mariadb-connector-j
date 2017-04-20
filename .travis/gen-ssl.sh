@@ -33,10 +33,10 @@ main () {
   local csrFile=$(mktemp)
   local clientCertFile="${sslDir}/client.crt"
   local clientKeyFile="${sslDir}/client.key"
-  local clientKeystoreFile="${sslDir}/client-keystore.p12"
-  local fullClientKeystoreFile="${sslDir}/fullclient-keystore.p12"
+  local clientKeystoreFile="${sslDir}/client-keystore.jks"
+  local fullClientKeystoreFile="${sslDir}/fullclient-keystore.jks"
   local tmpKeystoreFile=$(mktemp)
-  local tmpFullKeystoreFile=$(mktemp)
+  local pcks12FullKeystoreFile="${sslDir}/fullclient-keystore.p12"
   local clientReqFile=$(mktemp)
 
   log "Generating CA key"
@@ -125,7 +125,7 @@ main () {
     -export \
     -in "${clientCertFile}" \
     -inkey "${clientKeyFile}" \
-    -out "${tmpFullKeystoreFile}" \
+    -out "${pcks12FullKeystoreFile}" \
     -name "mysqlAlias" \
     -passout pass:kspass
 
@@ -135,8 +135,9 @@ main () {
     -importkeystore \
     -deststorepass kspass \
     -destkeypass kspasskey \
+    -deststoretype JKS \
     -destkeystore "${fullClientKeystoreFile}" \
-    -srckeystore ${tmpFullKeystoreFile} \
+    -srckeystore ${pcks12FullKeystoreFile} \
     -srcstoretype PKCS12 \
     -srcstorepass kspass \
     -alias "mysqlAlias"
@@ -148,7 +149,6 @@ main () {
   rm "$csrFile"
   rm "$clientReqFile"
   rm "$tmpKeystoreFile"
-  rm "$tmpFullKeystoreFile"
 
   log "Generated key file and certificate in: ${sslDir}"
   ls -l "${sslDir}"

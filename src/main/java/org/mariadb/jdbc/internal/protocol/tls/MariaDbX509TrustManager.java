@@ -53,14 +53,11 @@ package org.mariadb.jdbc.internal.protocol.tls;
 
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.SqlStates;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-
 import java.io.*;
-import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
@@ -68,18 +65,22 @@ import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.sql.SQLException;
 import java.util.Collection;
 import java.util.UUID;
+
+import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
 public class MariaDbX509TrustManager implements X509TrustManager {
     private X509TrustManager trustManager;
 
     /**
      * MyX509TrustManager.
+     *
      * @param options parsed url options
-     * @throws QueryException exception
+     * @throws SQLException exception
      */
-    public MariaDbX509TrustManager(Options options) throws QueryException {
+    public MariaDbX509TrustManager(Options options) throws SQLException {
         //if trustServerCertificate is true, will have a X509TrustManager implementation that validate all.
         if (options.trustServerCertificate) return;
 
@@ -87,7 +88,7 @@ public class MariaDbX509TrustManager implements X509TrustManager {
         try {
             ks = KeyStore.getInstance(KeyStore.getDefaultType());
         } catch (GeneralSecurityException generalSecurityEx) {
-            throw new QueryException("Failed to create keystore instance", -1, SqlStates.CONNECTION_EXCEPTION, generalSecurityEx);
+            throw new SQLException("Failed to create keystore instance", SqlStates.CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
         }
 
         InputStream inStream = null;
@@ -98,7 +99,6 @@ public class MariaDbX509TrustManager implements X509TrustManager {
                     String trustStore = options.trustStore;
 
                     //permit using "file:..." for compatibility
-                    if (trustStore.startsWith("file:///")) trustStore = trustStore.substring(8);
                     if (trustStore.startsWith("file://")) trustStore = trustStore.substring(7);
                     inStream = new FileInputStream(trustStore);
 
@@ -106,13 +106,14 @@ public class MariaDbX509TrustManager implements X509TrustManager {
                             options.trustStorePassword == null ? null : options.trustStorePassword.toCharArray());
 
                 } catch (GeneralSecurityException generalSecurityEx) {
-                    throw new QueryException("Failed to create trustStore instance", -1, SqlStates.CONNECTION_EXCEPTION, generalSecurityEx);
+                    throw new SQLException("Failed to create trustStore instance",
+                            CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
                 } catch (FileNotFoundException fileNotFoundEx) {
-                    throw new QueryException("Failed to find trustStore file. trustStore=" + options.trustStore,
-                            -1, SqlStates.CONNECTION_EXCEPTION, fileNotFoundEx);
+                    throw new SQLException("Failed to find trustStore file. trustStore=" + options.trustStore,
+                            CONNECTION_EXCEPTION.getSqlState(), fileNotFoundEx);
                 } catch (IOException ioEx) {
-                    throw new QueryException("Failed to read trustStore file. trustStore=" + options.trustStore,
-                            -1, SqlStates.CONNECTION_EXCEPTION, ioEx);
+                    throw new SQLException("Failed to read trustStore file. trustStore=" + options.trustStore,
+                            CONNECTION_EXCEPTION.getSqlState(), ioEx);
                 }
             } else {
                 // generate a keyStore from the provided cert
@@ -126,8 +127,8 @@ public class MariaDbX509TrustManager implements X509TrustManager {
                     try {
                         inStream = new FileInputStream(options.serverSslCert);
                     } catch (FileNotFoundException fileNotFoundEx) {
-                        throw new QueryException("Failed to find serverSslCert file. serverSslCert=" + options.serverSslCert, -1,
-                                SqlStates.CONNECTION_EXCEPTION, fileNotFoundEx);
+                        throw new SQLException("Failed to find serverSslCert file. serverSslCert=" + options.serverSslCert,
+                                CONNECTION_EXCEPTION.getSqlState(), fileNotFoundEx);
                     }
                 }
 
@@ -141,10 +142,10 @@ public class MariaDbX509TrustManager implements X509TrustManager {
                         ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
                     }
                 } catch (IOException ioEx) {
-                    throw new QueryException("Failed load keyStore", -1, SqlStates.CONNECTION_EXCEPTION, ioEx);
+                    throw new SQLException("Failed load keyStore", CONNECTION_EXCEPTION.getSqlState(), ioEx);
                 } catch (GeneralSecurityException generalSecurityEx) {
-                    throw new QueryException("Failed to store certificate from serverSslCert into a keyStore", -1,
-                            SqlStates.CONNECTION_EXCEPTION, generalSecurityEx);
+                    throw new SQLException("Failed to store certificate from serverSslCert into a keyStore",
+                            CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
                 }
 
             }
@@ -167,9 +168,10 @@ public class MariaDbX509TrustManager implements X509TrustManager {
                 }
             }
         } catch (NoSuchAlgorithmException noSuchAlgorithmEx) {
-            throw new QueryException("Failed to create TrustManagerFactory default instance", -1, SqlStates.CONNECTION_EXCEPTION, noSuchAlgorithmEx);
+            throw new SQLException("Failed to create TrustManagerFactory default instance",
+                    CONNECTION_EXCEPTION.getSqlState(), noSuchAlgorithmEx);
         } catch (GeneralSecurityException generalSecurityEx) {
-            throw new QueryException("Failed to initialize trust manager", -1, SqlStates.CONNECTION_EXCEPTION, generalSecurityEx);
+            throw new SQLException("Failed to initialize trust manager", CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
         }
 
         if (trustManager == null) {
@@ -179,8 +181,9 @@ public class MariaDbX509TrustManager implements X509TrustManager {
 
     /**
      * Check client trusted.
+     *
      * @param x509Certificates certificate
-     * @param string string
+     * @param string           string
      * @throws CertificateException exception
      */
     @Override
@@ -191,8 +194,9 @@ public class MariaDbX509TrustManager implements X509TrustManager {
 
     /**
      * Check server trusted.
+     *
      * @param x509Certificates certificate
-     * @param string string
+     * @param string           string
      * @throws CertificateException exception
      */
     @Override

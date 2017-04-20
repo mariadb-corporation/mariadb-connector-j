@@ -10,13 +10,12 @@ import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.sql.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class CollationTest extends BaseTest {
     /**
      * Tables Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -35,9 +34,7 @@ public class CollationTest extends BaseTest {
      */
     @Test
     public void emoji() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = setConnection();
+        try (Connection connection = setConnection()) {
             String sqlForCharset = "select @@character_set_server";
             ResultSet rs = connection.createStatement().executeQuery(sqlForCharset);
             assertTrue(rs.next());
@@ -61,8 +58,6 @@ public class CollationTest extends BaseTest {
             assertTrue(rs.next());
             // compare to the Java representation of UTF32
             assertEquals("\uD83D\uDE04", rs.getString(1));
-        } finally {
-            connection.close();
         }
     }
 
@@ -145,11 +140,9 @@ public class CollationTest extends BaseTest {
     }
 
     /**
-     *
      * CONJ-369 : Writes and reads a clob (longtext) of a latin1 table.
      *
      * @throws java.sql.SQLException if connection error occur.
-     *
      */
     @Test
     public void insertAndSelectShouldBothUseLatin1Encoding() throws SQLException {

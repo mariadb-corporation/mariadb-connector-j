@@ -21,6 +21,7 @@ import static org.junit.Assert.*;
 public class ServerPrepareStatementTest extends BaseTest {
     /**
      * Tables initialisations.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -54,9 +55,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void serverExecutionTest() throws SQLException {
         Assume.assumeTrue(sharedOptions().useServerPrepStmts);
-        Connection connection = null;
-        try {
-            connection = setConnection();
+        try (Connection connection = setConnection()) {
             Statement statement = connection.createStatement();
             ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             assertTrue(rs.next());
@@ -71,25 +70,18 @@ public class ServerPrepareStatementTest extends BaseTest {
             rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             assertTrue(rs.next());
             assertTrue(rs.getInt(2) == nbStatementCount + 1);
-        } finally {
-            connection.close();
         }
     }
 
     @Test
     public void serverCacheStatementTest() throws Throwable {
         Assume.assumeTrue(sharedUsePrepare());
-        Connection connection = null;
-        try {
-            connection = setConnection();
+        try (Connection connection = setConnection()) {
             PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)  ");
             ps.setBoolean(1, true);
             ps.addBatch();
             ps.executeBatch();
-        } finally {
-            connection.close();
         }
-
 
         Protocol protocol = getProtocolFromConnection(sharedConnection);
         int cacheSize = protocol.prepareStatementCache().size();
@@ -107,9 +99,7 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void prepStmtCacheSize() throws Throwable {
         Assume.assumeTrue(sharedOptions().useServerPrepStmts);
-        Connection connection = null;
-        try {
-            connection = setConnection("&prepStmtCacheSize=10");
+        try (Connection connection = setConnection("&prepStmtCacheSize=10")) {
             List<PreparedStatement> activePrepareStatement = new ArrayList<>(20);
             for (int i = 0; i < 20; i++) {
                 PreparedStatement preparedStatement = connection.prepareStatement("SELECT " + i);
@@ -230,24 +220,19 @@ public class ServerPrepareStatementTest extends BaseTest {
                     + "testj-SELECT 27-0\n"
                     + "testj-SELECT 28-0\n"
                     + "testj-SELECT 29-0]", protocol.prepareStatementCache().toString());
-
-
-        } finally {
-            connection.close();
         }
     }
 
     /**
      * CONJ-290 : Timestamps format error when using prepareStatement with options useFractionalSeconds and useServerPrepStmts.
+     *
      * @throws SQLException exception
      */
     @Test
     public void timeFractionnalSecondTest() throws SQLException {
         Assume.assumeTrue(doPrecisionTest);
 
-        Connection connection = null;
-        try {
-            connection = setConnection("&useFractionalSeconds=false");
+        try (Connection connection = setConnection("&useFractionalSeconds=false")) {
             Time time0 = new Time(55549392);
             Time time1 = new Time(55549000);
 
@@ -279,8 +264,6 @@ public class ServerPrepareStatementTest extends BaseTest {
             } else {
                 fail("Error in query");
             }
-        } finally {
-            connection.close();
         }
 
     }
@@ -487,10 +470,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void blobTest() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = setConnection("&prepStmtCacheSize=10");
-
+        try (Connection connection = setConnection("&prepStmtCacheSize=10")) {
             PreparedStatement ps = connection.prepareStatement(
                     "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
             ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
@@ -499,16 +479,12 @@ public class ServerPrepareStatementTest extends BaseTest {
             ps.setBlob(1, input);
             ps.addBatch();
             ps.executeBatch();
-        } finally {
-            connection.close();
         }
     }
 
     @Test
     public void readerTest() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = setConnection("&prepStmtCacheSize=10");
+        try (Connection connection = setConnection("&prepStmtCacheSize=10")) {
             PreparedStatement ps = connection.prepareStatement(
                     "INSERT INTO ServerPrepareStatementCacheSize3(test) VALUES (?)");
             Reader reader = new BufferedReader(new InputStreamReader(
@@ -517,8 +493,6 @@ public class ServerPrepareStatementTest extends BaseTest {
             ps.setCharacterStream(1, reader);
             ps.addBatch();
             ps.executeBatch();
-        } finally {
-            connection.close();
         }
     }
 
@@ -590,12 +564,12 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void executeBatchNumber() throws Throwable {
-        PreparedStatement ps = prepareInsert();
-        ps.executeBatch();
-        ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
-        rs.next();
-        assertEquals(rs.getInt(1), 3);
-        ps.close();
+        try (PreparedStatement ps = prepareInsert()) {
+            ps.executeBatch();
+            ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
+            rs.next();
+            assertEquals(rs.getInt(1), 3);
+        }
     }
 
     private PreparedStatement prepareInsert() throws Throwable {
@@ -753,46 +727,6 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     }
 
-    protected class CreatePrepareDouble implements Runnable {
-        private String sql;
-        private Connection connection;
-        private long firstWaitTime;
-        private long secondWaitTime;
-
-
-        public CreatePrepareDouble(String sql, Connection connection, long firstWaitTime, long secondWaitTime) {
-            this.sql = sql;
-            this.connection = connection;
-            this.firstWaitTime = firstWaitTime;
-            this.secondWaitTime = secondWaitTime;
-        }
-
-        public void run() {
-            try {
-                Protocol protocol = getProtocolFromConnection(connection);
-                if (protocol.prepareStatementCache().containsKey(sql)) {
-                    protocol.prepareStatementCache().get(sql);
-                }
-                if (protocol.prepareStatementCache().containsKey(sql)) {
-                    protocol.prepareStatementCache().get(sql);
-                }
-                PreparedStatement ps = connection.prepareStatement(sql);
-                Thread.sleep(firstWaitTime);
-                ps.setBoolean(1, true);
-                ps.addBatch();
-                ps.executeBatch();
-                Thread.sleep(secondWaitTime);
-                ps.close();
-                if (protocol.prepareStatementCache().containsKey(sql)) {
-                    protocol.prepareStatementCache().get(sql);
-                }
-            } catch (Throwable e) {
-                e.printStackTrace();
-                fail();
-            }
-        }
-    }
-
     @Test
     public void testPrepareStatementCache() throws Throwable {
         Assume.assumeTrue(sharedOptions().useServerPrepStmts);
@@ -821,13 +755,14 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     /**
      * CONJ-270 : permit to have more than 32768 parameters.
+     *
      * @throws SQLException exception
      */
     @Test
     public void testRewriteMultiPacket() throws SQLException {
         createTable("PreparedStatementTest3", "id int");
         String sql = "INSERT INTO PreparedStatementTest3 VALUES (?)";
-        for (int i = 1 ; i < 65535 ; i++) {
+        for (int i = 1; i < 65535; i++) {
             sql += ",(?)";
         }
         PreparedStatement pstmt = sharedConnection.prepareStatement(sql);
@@ -912,6 +847,46 @@ public class ServerPrepareStatementTest extends BaseTest {
                 preparedStatement.executeBatch();
             } catch (SQLException e) {
                 e.printStackTrace();
+            }
+        }
+    }
+
+    protected class CreatePrepareDouble implements Runnable {
+        private String sql;
+        private Connection connection;
+        private long firstWaitTime;
+        private long secondWaitTime;
+
+
+        public CreatePrepareDouble(String sql, Connection connection, long firstWaitTime, long secondWaitTime) {
+            this.sql = sql;
+            this.connection = connection;
+            this.firstWaitTime = firstWaitTime;
+            this.secondWaitTime = secondWaitTime;
+        }
+
+        public void run() {
+            try {
+                Protocol protocol = getProtocolFromConnection(connection);
+                if (protocol.prepareStatementCache().containsKey(sql)) {
+                    protocol.prepareStatementCache().get(sql);
+                }
+                if (protocol.prepareStatementCache().containsKey(sql)) {
+                    protocol.prepareStatementCache().get(sql);
+                }
+                PreparedStatement ps = connection.prepareStatement(sql);
+                Thread.sleep(firstWaitTime);
+                ps.setBoolean(1, true);
+                ps.addBatch();
+                ps.executeBatch();
+                Thread.sleep(secondWaitTime);
+                ps.close();
+                if (protocol.prepareStatementCache().containsKey(sql)) {
+                    protocol.prepareStatementCache().get(sql);
+                }
+            } catch (Throwable e) {
+                e.printStackTrace();
+                fail();
             }
         }
     }

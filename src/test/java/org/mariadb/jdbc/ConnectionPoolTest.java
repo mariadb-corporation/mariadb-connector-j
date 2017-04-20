@@ -1,118 +1,201 @@
 package org.mariadb.jdbc;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Properties;
+import javax.sql.DataSource;
+import java.sql.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class ConnectionPoolTest extends BaseTest {
 
-    @Test
-    public void testConnectionWithApacheDbcp() throws SQLException {
-        org.apache.commons.dbcp.BasicDataSource dataSource;
-        dataSource = new org.apache.commons.dbcp.BasicDataSource();
-        dataSource.setUrl(connU);
-        dataSource.setUsername(username);
-        dataSource.setPassword(password);
-        dataSource.setMaxActive(5);
-        dataSource.setLogAbandoned(true);
-        dataSource.setRemoveAbandoned(true);
-        dataSource.setRemoveAbandonedTimeout(300);
-        dataSource.setAccessToUnderlyingConnectionAllowed(true);
-        dataSource.setMinEvictableIdleTimeMillis(1800000);
-        dataSource.setTimeBetweenEvictionRunsMillis(-1);
-        dataSource.setNumTestsPerEvictionRun(3);
-
-        // dataSource.setValidationQuery("/* ping */ SELECT 1");
-        try (Connection connection = dataSource.getConnection()) {
-            //do nothing, just verify that connection works
-        }
-
-        dataSource.close();
-    }
-
-
     /**
-     * This test case simulates how the Apache DBCP connection pools works. It is written so it
-     * should compile without Apache DBCP but still show the problem.
+     * Tables initialisation.
+     *
+     * @throws SQLException exception
      */
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        for (int i = 0; i < 50; i++) {
+            createTable("test_pool_batch" + i, "id int not null primary key auto_increment, test varchar(10)");
+        }
+    }
+
+
     @Test
-    public void testConnectionWithSimululatedApacheDbcp() throws SQLException {
+    public void testBasicPool() throws SQLException {
 
-        java.sql.Driver driver = new Driver();
+        final HikariDataSource ds = new HikariDataSource();
+        ds.setMaximumPoolSize(20);
+        ds.setDriverClassName("org.mariadb.jdbc.Driver");
+        ds.setJdbcUrl(connU);
+        ds.addDataSourceProperty("user", username);
+        if (password != null ) ds.addDataSourceProperty("password", password);
+        ds.setAutoCommit(false);
+        validateDataSource(ds);
 
-        Properties props = new Properties();
-        props.put("user", username);
-        props.put("password", (password == null) ? "" : password);
-
-        //A connection pool typically has a connection factor that stored everything needed to
-        //create a Connection. Here I create a factory that stores URL, username and password.
-        SimulatedDriverConnectionFactory factory = new SimulatedDriverConnectionFactory(driver,
-                connU, props);
-
-        //Create 1 first connection (This is typically done in the Connection validation step in a
-        //connection pool)
-        Connection connection1 = factory.createConnection();
-
-        //Create another connection to make sure we can access the database. This is typically the
-        //Connection that is exposed to the user of the connection pool
-        Connection connection2 = factory.createConnection();
-
-        connection1.close();
-        connection2.close();
     }
 
-    /**
-     * This class is a simulated version of org.apache.commons.dbcp.DriverConnectionFactory
-     */
-    private static class SimulatedDriverConnectionFactory {
-        protected java.sql.Driver internalDriver = null;
-        protected String internalConnectUri = null;
-        protected Properties internalProps = null;
+    @Test
+    public void testPoolHikariCpWithConfig() throws SQLException {
 
-        public SimulatedDriverConnectionFactory(java.sql.Driver driver, String connectUri, Properties props) {
-            internalDriver = driver;
-            internalConnectUri = connectUri;
-            internalProps = props;
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(connU);
+        config.setUsername(username);
+        if (password != null ) config.setPassword(password);
+        config.addDataSourceProperty("cachePrepStmts", "true");
+        config.addDataSourceProperty("prepStmtCacheSize", "250");
+        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+        try (HikariDataSource ds = new HikariDataSource(config)) {
+            validateDataSource(ds);
         }
 
-        public Connection createConnection() throws SQLException {
-            return internalDriver.connect(internalConnectUri, internalProps);
+    }
+
+    @Test
+    public void testPoolEffectiveness() throws Exception {
+        Assume.assumeFalse(sharedIsRewrite()
+                || (!sharedOptions().useBatchMultiSend && !sharedOptions().useServerPrepStmts));
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(connU);
+        config.setUsername(username);
+        if (password != null ) config.addDataSourceProperty("password", password);
+
+        try (HikariDataSource ds = new HikariDataSource(config)) {
+            ds.setAutoCommit(true);
+
+            //force pool loading
+            forcePoolLoading(ds);
+
+            long monoConnectionExecutionTime = insert500WithOneConnection(ds);
+
+
+            for (int j = 0; j < 50; j++) {
+                sharedConnection.createStatement().execute("TRUNCATE test_pool_batch" + j);
+            }
+
+            long poolExecutionTime = insert500WithPool(ds);
+            System.out.println("mono connection execution time : " + monoConnectionExecutionTime);
+            System.out.println("pool execution time : " + poolExecutionTime);
+            if (!sharedIsRewrite() && !sharedOptions().allowMultiQueries) {
+                Assert.assertTrue(monoConnectionExecutionTime > poolExecutionTime);
+            }
         }
     }
 
-    private class InsertThread implements Runnable {
-        private org.apache.commons.dbcp.BasicDataSource dataSource;
-        private int insertTimes;
 
-        public InsertThread(int insertTimes, org.apache.commons.dbcp.BasicDataSource dataSource) {
-            this.insertTimes = insertTimes;
-            this.dataSource = dataSource;
+    private void forcePoolLoading(DataSource ds) {
+        ExecutorService exec = Executors.newFixedThreadPool(50);
+        //check blacklist shared
+
+        //force pool loading
+        for (int j = 0; j < 100; j++) {
+            exec.execute(new ForceLoadPoolThread(ds));
+        }
+        exec.shutdown();
+        try {
+            exec.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            //eat exception
+        }
+        exec = Executors.newFixedThreadPool(50);
+
+    }
+
+
+    private void validateDataSource(DataSource ds) throws SQLException {
+        try (Connection connection = ds.getConnection()) {
+            try (Statement statement = connection.createStatement()) {
+                try (ResultSet rs = statement.executeQuery("SELECT 1")) {
+                    Assert.assertTrue(rs.next());
+                    Assert.assertEquals(1, rs.getInt(1));
+                }
+            }
+        }
+    }
+
+    private long insert500WithOneConnection(DataSource ds) throws SQLException {
+        long startTime = System.currentTimeMillis();
+        try (Connection connection = ds.getConnection()) {
+            for (int j = 0; j < 50; j++) {
+                try {
+                    PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test_pool_batch" + j + "(test) VALUES (?)");
+                    for (int i = 1; i < 10; i++) {
+                        preparedStatement.setString(1, i + "");
+                        preparedStatement.addBatch();
+                    }
+                    preparedStatement.executeBatch();
+                } catch (SQLException e) {
+                    Assert.fail("ERROR insert : " + e.getMessage());
+                }
+            }
+        }
+        return System.currentTimeMillis() - startTime;
+    }
+
+
+    private long insert500WithPool(DataSource ds) throws SQLException {
+        ExecutorService exec = Executors.newFixedThreadPool(50);
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < 50; i++) {
+            exec.execute(new InsertThread(i, 10, ds));
+        }
+        exec.shutdown();
+        try {
+            exec.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            //eat exception
         }
 
-        public synchronized org.apache.commons.dbcp.BasicDataSource getDataSource() {
-            return this.dataSource;
-        }
+        return System.currentTimeMillis() - startTime;
+    }
 
-        public synchronized void setDataSource(org.apache.commons.dbcp.BasicDataSource dataSource) {
+    private class ForceLoadPoolThread implements Runnable {
+        private DataSource dataSource;
+
+        public ForceLoadPoolThread(DataSource dataSource) {
             this.dataSource = dataSource;
         }
 
         public void run() {
-            Connection conn = null;
-            Statement stmt = null;
+            try (Connection connection = dataSource.getConnection()) {
+                connection.createStatement().execute("SELECT 1");
+            } catch (SQLException e) {
+                Assert.fail("ERROR insert : " + e.getMessage());
+            }
+        }
 
-            for (int i = 1; i < insertTimes + 1; i++) {
-                try {
-                    conn = this.dataSource.getConnection();
-                    stmt = conn.createStatement();
-                    stmt.execute("insert into t3 values('hello" + Thread.currentThread().getId() + "-" + i + "')");
-                    conn.close();
-                } catch (SQLException e) {
-                    //eat exception
+    }
+
+    private class InsertThread implements Runnable {
+        private DataSource dataSource;
+        private int insertNumber;
+        private int tableNumber;
+
+        public InsertThread(int tableNumber, int insertNumber, DataSource dataSource) {
+            this.insertNumber = insertNumber;
+            this.tableNumber = tableNumber;
+            this.dataSource = dataSource;
+        }
+
+        public void run() {
+
+            try (Connection connection = dataSource.getConnection()) {
+                PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test_pool_batch"
+                        + tableNumber + "(test) VALUES (?)");
+                for (int i = 1; i < insertNumber; i++) {
+                    preparedStatement.setString(1, i + "");
+                    preparedStatement.addBatch();
                 }
+                preparedStatement.executeBatch();
+            } catch (SQLException e) {
+                Assert.fail("ERROR insert : " + e.getMessage());
             }
         }
     }

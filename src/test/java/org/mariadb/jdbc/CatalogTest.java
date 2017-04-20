@@ -1,7 +1,9 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.Test;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -40,17 +42,17 @@ public class CatalogTest extends BaseTest {
     public void catalogTest5() throws SQLException {
         requireMinimumVersion(5, 1);
 
-
         String[] weirdDbNames = new String[]{"abc 123", "\"", "`"};
         for (String name : weirdDbNames) {
-            Statement stmt = sharedConnection.createStatement();
-            stmt.execute("drop database if exists " + MariaDbConnection.quoteIdentifier(name));
-            stmt.execute("create database " + MariaDbConnection.quoteIdentifier(name));
-            sharedConnection.setCatalog(name);
-            assertEquals(name, sharedConnection.getCatalog());
-            stmt.execute("drop database if exists " + MariaDbConnection.quoteIdentifier(name));
-            stmt.close();
+            try (Statement stmt = sharedConnection.createStatement()) {
+                stmt.execute("drop database if exists " + MariaDbConnection.quoteIdentifier(name));
+                stmt.execute("create database " + MariaDbConnection.quoteIdentifier(name));
+                sharedConnection.setCatalog(name);
+                assertEquals(name, sharedConnection.getCatalog());
+                stmt.execute("drop database if exists " + MariaDbConnection.quoteIdentifier(name));
+            }
             sharedConnection.setCatalog(database);
         }
     }
+
 }

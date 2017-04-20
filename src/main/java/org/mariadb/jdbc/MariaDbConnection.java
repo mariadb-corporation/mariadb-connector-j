@@ -50,12 +50,13 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.Results;
 import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.net.SocketException;
 import java.sql.*;
@@ -68,15 +69,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
-public final class MariaDbConnection implements Connection {
-    public final ReentrantLock lock;
-    /**
-     * the protocol to communicate with.
-     */
-    private final Protocol protocol;
-    private final String initialUrl;
-    protected CallableStatementCache callableStatementCache;
-    private final ClientPrepareStatementCache clientPrepareStatementCache;
+public class MariaDbConnection implements Connection {
+    private static Logger logger = LoggerFactory.getLogger(MariaDbConnection.class);
 
     /**
      * Pattern  to check the correctness of callable statement query string
@@ -85,21 +79,29 @@ public final class MariaDbConnection implements Connection {
      */
     private static Pattern CALLABLE_STATEMENT_PATTERN =
             Pattern.compile("^\\s*(\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
-                    + "((((`[^`]+`)|([^`]+))\\.)?((`[^`]+`)|([^`\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(#.*)?$",
+                            + "((((`[^`]+`)|([^`]+))\\.)?((`[^`]+`)|([^`\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(#.*)?$",
                     Pattern.CASE_INSENSITIVE);
-
     /**
      * Check that query can be executed with PREPARE.
      */
     private static Pattern PREPARABLE_STATEMENT_PATTERN =
             Pattern.compile("^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL)",
                     Pattern.CASE_INSENSITIVE);
-
+    public final ReentrantLock lock;
+    /**
+     * the protocol to communicate with.
+     */
+    private final Protocol protocol;
+    private final String initialUrl;
+    private final ClientPrepareStatementCache clientPrepareStatementCache;
     public MariaDbPooledConnection pooledConnection;
-    boolean noBackslashEscapes;
-    boolean nullCatalogMeansCurrent = true;
-    int autoIncrementIncrement;
-    volatile int lowercaseTableNames = -1;
+    protected CallableStatementCache callableStatementCache;
+    protected boolean noBackslashEscapes;
+    protected boolean nullCatalogMeansCurrent = true;
+    private volatile int lowercaseTableNames = -1;
+    private boolean canUseServerTimeout = false;
+    private boolean sessionStateAware = true;
+
 
     /**
      * save point count - to generate good names for the savepoints.
@@ -122,7 +124,9 @@ public final class MariaDbConnection implements Connection {
         this.protocol = protocol;
         this.initialUrl = initialUrl;
         options = protocol.getOptions();
+        canUseServerTimeout = protocol.versionGreaterOrEqual(10, 1, 2);
         noBackslashEscapes = protocol.noBackslashEscapes();
+        sessionStateAware = protocol.sessionStateAware();
         nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
         if (options.cacheCallableStmts) {
             callableStatementCache = CallableStatementCache.newInstance(options.callableStmtCacheSize);
@@ -163,23 +167,6 @@ public final class MariaDbConnection implements Connection {
         return protocol;
     }
 
-    int getAutoIncrementIncrement() {
-        if (autoIncrementIncrement == 0) {
-            try {
-                Results results = new Results(1);
-                protocol.executeQuery(protocol.isMasterConnection(), results,
-                        Utils.nativeSql("select @@auto_increment_increment", noBackslashEscapes));
-                results.commandEnd();
-                ResultSet rs = results.getResultSet();
-                rs.next();
-                autoIncrementIncrement = rs.getInt(1);
-            } catch (Exception e) {
-                autoIncrementIncrement = 1;
-            }
-        }
-        return autoIncrementIncrement;
-    }
-
     /**
      * creates a new statement.
      *
@@ -192,37 +179,49 @@ public final class MariaDbConnection implements Connection {
     }
 
     /**
-     * Creates a <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given type and concurrency. This method is
-     * the same as the <code>createStatement</code> method above, but it allows the default result set type and concurrency to be overridden. The
-     * holdability of the created result sets can be determined by calling {@link #getHoldability}.
+     * Creates a <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given type
+     * and concurrency. This method is the same as the <code>createStatement</code> method above, but it allows the
+     * default result set type and concurrency to be overridden.
+     * The holdability of the created result sets can be determined by calling {@link #getHoldability}.
      *
-     * @param resultSetType a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-     * <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given type and concurrency
-     * @throws SQLException if a database access error occurs, this method is called on a closed connection or the given parameters are not
-     * <code>ResultSet</code> constants indicating type and concurrency
+     * @param resultSetType        a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                             <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                             <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given
+     *         type and concurrency
+     * @throws SQLException if a database access error occurs, this method is called on a closed connection or the given
+     *                      parameters are not <code>ResultSet</code> constants indicating type and concurrency
      */
     public Statement createStatement(final int resultSetType, final int resultSetConcurrency) throws SQLException {
         return new MariaDbStatement(this, resultSetType);
     }
 
     /**
-     * Creates a <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given type, concurrency, and holdability.
-     * This method is the same as the <code>createStatement</code> method above, but it allows the default result set type, concurrency, and
-     * holdability to be overridden.
+     * Creates a <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given type,
+     * concurrency, and holdability.
+     * This method is the same as the <code>createStatement</code> method above, but it allows the default result set
+     * type, concurrency, and holdability to be overridden.
      *
-     * @param resultSetType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param resultSetConcurrency one of the following <code>ResultSet</code> constants: <code>ResultSet.CONCUR_READ_ONLY</code> or
-     * <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @param resultSetHoldability one of the following <code>ResultSet</code> constants: <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
-     * <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
-     * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given type, concurrency, and holdability
-     * @throws SQLException if a database access error occurs, this method is called on a closed connection or the given parameters are not
-     * <code>ResultSet</code> constants indicating type, concurrency, and holdability
-     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method or this method is not supported for the
-     * specified result set type, result set holdability and result set concurrency.
+     * @param resultSetType        one of the following <code>ResultSet</code> constants:
+     *                             <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                             <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency one of the following <code>ResultSet</code> constants:
+     *                             <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                             <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @param resultSetHoldability one of the following <code>ResultSet</code> constants:
+     *                             <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
+     *                             <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given
+     * type, concurrency, and holdability
+     * @throws SQLException                    if a database access error occurs, this method is called on a closed
+     *                                         connection or the given parameters are not <code>ResultSet</code>
+     *                                         constants indicating type, concurrency, and holdability
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method or this method is not
+     *                                         supported for the specified result set type, result set holdability
+     *                                         and result set concurrency.
      * @see ResultSet
      * @since 1.4
      */
@@ -235,7 +234,7 @@ public final class MariaDbConnection implements Connection {
         return createStatement();
     }
 
-    private void checkConnection() throws SQLException {
+    protected void checkConnection() throws SQLException {
         if (protocol.isExplicitClosed()) {
             throw new SQLException("createStatement() is called on closed connection");
         }
@@ -256,8 +255,8 @@ public final class MariaDbConnection implements Connection {
      * @return a prepared statement.
      * @throws SQLException if there is a problem preparing the statement.
      */
-    protected MariaDbClientPreparedStatement clientPrepareStatement(final String sql) throws SQLException {
-        return new MariaDbClientPreparedStatement(this, sql, ResultSet.TYPE_FORWARD_ONLY);
+    protected MariaDbPreparedStatementClient clientPrepareStatement(final String sql) throws SQLException {
+        return new MariaDbPreparedStatementClient(this, sql, ResultSet.TYPE_FORWARD_ONLY);
     }
 
     /**
@@ -273,18 +272,22 @@ public final class MariaDbConnection implements Connection {
 
 
     /**
-     * Creates a <code>PreparedStatement</code> object that will generate <code>ResultSet</code> objects with the given type and concurrency. This
-     * method is the same as the <code>prepareStatement</code> method above, but it allows the default result set type and concurrency to be
-     * overridden. The holdability of the created result sets can be determined by calling {@link #getHoldability}.
+     * Creates a <code>PreparedStatement</code> object that will generate <code>ResultSet</code> objects with the given
+     * type and concurrency. This method is the same as the <code>prepareStatement</code> method above, but it allows
+     * the default result set type and concurrency to be overridden. The holdability of the created result sets can be
+     * determined by calling {@link #getHoldability}.
      *
-     * @param sql a <code>String</code> object that is the SQL statement to be sent to the database; may contain one or more '?' IN parameters
-     * @param resultSetType a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-     * <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @return a new PreparedStatement object containing the pre-compiled SQL statement that will produce <code>ResultSet</code> objects with the
-     * given type and concurrency
-     * @throws SQLException if a database access error occurs, this method is called on a closed connection or the given parameters are not
-     * <code>ResultSet</code> constants indicating type and concurrency
+     * @param sql                  a <code>String</code> object that is the SQL statement to be sent to the database;
+     *                             may contain one or more '?' IN parameters
+     * @param resultSetType        a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                             <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                             <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @return a new PreparedStatement object containing the pre-compiled SQL statement that will produce
+     * <code>ResultSet</code> objects with the given type and concurrency
+     * @throws SQLException if a database access error occurs, this method is called on a closed connection or the
+     *                      given parameters are not<code>ResultSet</code> constants indicating type and concurrency
      */
     public PreparedStatement prepareStatement(final String sql, final int resultSetType, final int resultSetConcurrency)
             throws SQLException {
@@ -292,24 +295,32 @@ public final class MariaDbConnection implements Connection {
     }
 
     /**
-     * <p>Creates a <code>PreparedStatement</code> object that will generate <code>ResultSet</code> objects with the given type, concurrency, and
-     * holdability.</p>
-     * <p>This method is the same as the <code>prepareStatement</code> method above, but it allows the default result set type, concurrency, and
-     * holdability to be overridden.</p>
+     * <p>Creates a <code>PreparedStatement</code> object that will generate <code>ResultSet</code> objects with the
+     * given type, concurrency, and holdability.</p>
+     * <p>This method is the same as the <code>prepareStatement</code> method above, but it allows the default result
+     * set type, concurrency, and holdability to be overridden.</p>
      *
-     * @param sql a <code>String</code> object that is the SQL statement to be sent to the database; may contain one or more '?' IN parameters
-     * @param resultSetType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param resultSetConcurrency one of the following <code>ResultSet</code> constants: <code>ResultSet.CONCUR_READ_ONLY</code> or
-     * <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @param resultSetHoldability one of the following <code>ResultSet</code> constants: <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
-     * <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
-     * @return a new <code>PreparedStatement</code> object, containing the pre-compiled SQL statement, that will generate <code>ResultSet</code>
-     * objects with the given type, concurrency, and holdability
-     * @throws SQLException if a database access error occurs, this method is called on a closed connection or the given parameters are not
-     * <code>ResultSet</code> constants indicating type, concurrency, and holdability
-     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method or this method is not supported for the
-     * specified result set type, result set holdability and result set concurrency.
+     * @param sql                  a <code>String</code> object that is the SQL statement to be sent to the database;
+     *                             may contain one or more '?' IN parameters
+     * @param resultSetType        one of the following <code>ResultSet</code> constants:
+     *                             <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                             <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency one of the following <code>ResultSet</code> constants:
+     *                             <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                             <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @param resultSetHoldability one of the following <code>ResultSet</code> constants:
+     *                             <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
+     *                             <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     * @return a new <code>PreparedStatement</code> object, containing the pre-compiled SQL statement, that will
+     * generate <code>ResultSet</code> objects with the given type, concurrency, and holdability
+     * @throws SQLException                    if a database access error occurs, this method is called on a closed
+     *                                         connection or the given parameters are not
+     *                                         <code>ResultSet</code> constants indicating type, concurrency, and
+     *                                         holdability
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method or this method is not
+     *                                         supported for the specified result set type, result set holdability and
+     *                                         result set concurrency.
      * @see ResultSet
      * @since 1.4
      */
@@ -337,15 +348,17 @@ public final class MariaDbConnection implements Connection {
      * have a concurrency level of <code>CONCUR_READ_ONLY</code>. The holdability of the created result sets can be determined by calling {@link
      * #getHoldability}.</p>
      *
-     * @param sql an SQL statement that may contain one or more '?' IN parameter placeholders
-     * @param autoGeneratedKeys a flag indicating whether auto-generated keys should be returned; one of <code>Statement.RETURN_GENERATED_KEYS</code>
-     * or <code>Statement.NO_GENERATED_KEYS</code>
-     * @return a new <code>PreparedStatement</code> object, containing the pre-compiled SQL statement, that will have the capability of returning
-     * auto-generated keys
-     * @throws SQLException if a database access error occurs, this method is called on a closed connection or the given parameter is not a
-     * <code>Statement</code> constant indicating whether auto-generated keys should be returned
+     * @param sql               an SQL statement that may contain one or more '?' IN parameter placeholders
+     * @param autoGeneratedKeys a flag indicating whether auto-generated keys should be returned; one of
+     *                          <code>Statement.RETURN_GENERATED_KEYS</code>
+     *                          or <code>Statement.NO_GENERATED_KEYS</code>
+     * @return a new <code>PreparedStatement</code> object, containing the pre-compiled SQL statement, that will have
+     * the capability of returning auto-generated keys
+     * @throws SQLException                    if a database access error occurs, this method is called on a closed
+     *                                         connection or the given parameter is not a <code>Statement</code>
+     *                                         constant indicating whether auto-generated keys should be returned
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method with a constant of
-     * Statement.RETURN_GENERATED_KEYS
+     *                                         Statement.RETURN_GENERATED_KEYS
      * @since 1.4
      */
     public PreparedStatement prepareStatement(final String sql, final int autoGeneratedKeys) throws SQLException {
@@ -368,11 +381,11 @@ public final class MariaDbConnection implements Connection {
      * concurrency level of <code>CONCUR_READ_ONLY</code>. The holdability of the created result sets can be determined by calling {@link
      * #getHoldability}.</p>
      *
-     * @param sql an SQL statement that may contain one or more '?' IN parameter placeholders
+     * @param sql           an SQL statement that may contain one or more '?' IN parameter placeholders
      * @param columnIndexes an array of column indexes indicating the columns that should be returned from the inserted row or rows
      * @return a new <code>PreparedStatement</code> object, containing the pre-compiled statement, that is capable of returning the auto-generated
      * keys designated by the given array of column indexes
-     * @throws SQLException if a database access error occurs or this method is called on a closed connection
+     * @throws SQLException                    if a database access error occurs or this method is called on a closed connection
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
@@ -395,11 +408,11 @@ public final class MariaDbConnection implements Connection {
      * have a concurrency level of <code>CONCUR_READ_ONLY</code>. The holdability of the created result sets can be determined by calling {@link
      * #getHoldability}.</p>
      *
-     * @param sql an SQL statement that may contain one or more '?' IN parameter placeholders
+     * @param sql         an SQL statement that may contain one or more '?' IN parameter placeholders
      * @param columnNames an array of column names indicating the columns that should be returned from the inserted row or rows
      * @return a new <code>PreparedStatement</code> object, containing the pre-compiled statement, that is capable of returning the auto-generated
      * keys designated by the given array of column names
-     * @throws SQLException if a database access error occurs or this method is called on a closed connection
+     * @throws SQLException                    if a database access error occurs or this method is called on a closed connection
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
@@ -412,9 +425,9 @@ public final class MariaDbConnection implements Connection {
      * Send ServerPrepareStatement or ClientPrepareStatement depending on SQL query and options
      * If server side and PREPARE can be delayed, a facade will be return, to have a fallback on client prepareStatement.
      *
-     * @param sql sql query
+     * @param sql                 sql query
      * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @return PrepareStatement
      * @throws SQLException if a connection error occur during the server preparation.
      */
@@ -429,7 +442,7 @@ public final class MariaDbConnection implements Connection {
                 //prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?
                 checkConnection();
                 try {
-                    return new MariaDbServerPreparedStatement(this, sqlQuery, resultSetScrollType, true);
+                    return new MariaDbPreparedStatementServer(this, sqlQuery, resultSetScrollType, true);
                 } catch (SQLNonTransientConnectionException e) {
                     throw e;
                 } catch (SQLException e) {
@@ -437,7 +450,7 @@ public final class MariaDbConnection implements Connection {
                     //will use clientPreparedStatement
                 }
             }
-            return new MariaDbClientPreparedStatement(this, sqlQuery, resultSetScrollType);
+            return new MariaDbPreparedStatementClient(this, sqlQuery, resultSetScrollType);
         } else {
             throw new SQLException("SQL value can not be NULL");
         }
@@ -449,19 +462,20 @@ public final class MariaDbConnection implements Connection {
      * The <code>CallableStatement</code> object provides
      * methods for setting up its IN and OUT parameters, and
      * methods for executing the call to a stored procedure.
-     *   example : {?= call &lt;procedure-name&gt;[(&lt;arg1&gt;,&lt;arg2&gt;, ...)]}
-     *   or {call &lt;procedure-name&gt;[(&lt;arg1&gt;,&lt;arg2&gt;, ...)]}
+     * example : {?= call &lt;procedure-name&gt;[(&lt;arg1&gt;,&lt;arg2&gt;, ...)]}
+     * or {call &lt;procedure-name&gt;[(&lt;arg1&gt;,&lt;arg2&gt;, ...)]}
      * <p>
      * <b>Note:</b> This method is optimized for handling stored
      * procedure call statements.
-     *</p>
+     * </p>
+     *
      * @param sql an SQL statement that may contain one or more '?'
-     * parameter placeholders. Typically this statement is specified using JDBC
-     * call escape syntax.
+     *            parameter placeholders. Typically this statement is specified using JDBC
+     *            call escape syntax.
      * @return a new default <code>CallableStatement</code> object containing the
      * pre-compiled SQL statement
-     * @exception SQLException if a database access error occurs
-     * or this method is called on a closed connection
+     * @throws SQLException if a database access error occurs
+     *                      or this method is called on a closed connection
      */
     public CallableStatement prepareCall(final String sql) throws SQLException {
         checkConnection();
@@ -478,14 +492,16 @@ public final class MariaDbConnection implements Connection {
         String database = matcher.group(8);
         String procedureName = matcher.group(11);
         String arguments = matcher.group(14);
+        if (database == null && sessionStateAware) database = getDatabase();
 
         if (database != null && options.cacheCallableStmts) {
+
             if (callableStatementCache.containsKey(new CallableStatementCacheKey(database, query))) {
-                //Clone to avoid side effect like having some open resultset.
                 try {
-                    CallableStatement callableStatement = callableStatementCache.get(new CallableStatementCacheKey(getDatabase(), query));
+                    CallableStatement callableStatement = callableStatementCache.get(new CallableStatementCacheKey(database, query));
                     if (callableStatement != null) {
-                        return ((CloneableCallableStatement) callableStatement).clone();
+                        //Clone to avoid side effect like having some open resultSet.
+                        return ((CloneableCallableStatement) callableStatement).clone(this);
                     }
                 } catch (CloneNotSupportedException cloneNotSupportedException) {
                     cloneNotSupportedException.printStackTrace();
@@ -501,43 +517,57 @@ public final class MariaDbConnection implements Connection {
 
 
     /**
-     * Creates a <code>CallableStatement</code> object that will generate <code>ResultSet</code> objects with the given type and concurrency. This
-     * method is the same as the <code>prepareCall</code> method above, but it allows the default result set type and concurrency to be overridden.
+     * Creates a <code>CallableStatement</code> object that will generate <code>ResultSet</code> objects with the given
+     * type and concurrency. This method is the same as the <code>prepareCall</code> method above, but it allows the
+     * default result set type and concurrency to be overridden.
      * The holdability of the created result sets can be determined by calling {@link #getHoldability}.
      *
-     * @param sql a <code>String</code> object that is the SQL statement to be sent to the database; may contain on or more '?' parameters
-     * @param resultSetType a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-     * <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @return a new <code>CallableStatement</code> object containing the pre-compiled SQL statement that will produce <code>ResultSet</code> objects
-     * with the given type and concurrency
-     * @throws SQLException if a database access error occurs, this method is called on a closed connection or the given parameters are not
-     * <code>ResultSet</code> constants indicating type and concurrency
-     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method or this method is not supported for the
-     * specified result set type and result set concurrency.
+     * @param sql                  a <code>String</code> object that is the SQL statement to be sent to the database;
+     *                             may contain on or more '?' parameters
+     * @param resultSetType        a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                             <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                             <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @return a new <code>CallableStatement</code> object containing the pre-compiled SQL statement that will produce
+     * <code>ResultSet</code> objects with the given type and concurrency
+     * @throws SQLException                    if a database access error occurs, this method is called on a closed
+     *                                         connection or the given parameters are not
+     *                                         <code>ResultSet</code> constants indicating type and concurrency
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method or this method is not
+     *                                         supported for the
+     *                                         specified result set type and result set concurrency.
      */
     public CallableStatement prepareCall(final String sql, final int resultSetType, final int resultSetConcurrency) throws SQLException {
         return prepareCall(sql);
     }
 
     /**
-     * Creates a <code>CallableStatement</code> object that will generate <code>ResultSet</code> objects with the given type and concurrency. This
-     * method is the same as the <code>prepareCall</code> method above, but it allows the default result set type, result set concurrency type and
-     * holdability to be overridden.
+     * Creates a <code>CallableStatement</code> object that will generate <code>ResultSet</code> objects with the given
+     * type and concurrency. This method is the same as the <code>prepareCall</code> method above, but it allows the
+     * default result set type, result set concurrency type and holdability to be overridden.
      *
-     * @param sql a <code>String</code> object that is the SQL statement to be sent to the database; may contain on or more '?' parameters
-     * @param resultSetType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param resultSetConcurrency one of the following <code>ResultSet</code> constants: <code>ResultSet.CONCUR_READ_ONLY</code> or
-     * <code>ResultSet.CONCUR_UPDATABLE</code>
-     * @param resultSetHoldability one of the following <code>ResultSet</code> constants: <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
-     * <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
-     * @return a new <code>CallableStatement</code> object, containing the pre-compiled SQL statement, that will generate <code>ResultSet</code>
-     * objects with the given type, concurrency, and holdability
-     * @throws SQLException if a database access error occurs, this method is called on a closed connection or the given parameters are not
-     * <code>ResultSet</code> constants indicating type, concurrency, and holdability
-     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method or this method is not supported for the
-     * specified result set type, result set holdability and result set concurrency.
+     * @param sql                  a <code>String</code> object that is the SQL statement to be sent to the database;
+     *                             may contain on or more '?' parameters
+     * @param resultSetType        one of the following <code>ResultSet</code> constants:
+     *                             <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                             <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency one of the following <code>ResultSet</code> constants:
+     *                             <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                             <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @param resultSetHoldability one of the following <code>ResultSet</code> constants:
+     *                             <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
+     *                             <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     * @return a new <code>CallableStatement</code> object, containing the pre-compiled SQL statement, that will
+     * generate <code>ResultSet</code> objects with the given type, concurrency, and holdability
+     * @throws SQLException                    if a database access error occurs, this method is called on a closed
+     *                                         connection or the given parameters are not
+     *                                         <code>ResultSet</code> constants indicating type, concurrency, and
+     *                                         holdability
+     * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method or this method is not
+     *                                         supported for the specified result set type, result set holdability and
+     *                                         result set concurrency.
      * @see ResultSet
      * @since 1.4
      */
@@ -582,14 +612,10 @@ public final class MariaDbConnection implements Connection {
      * @throws SQLException if something goes wrong talking to the server.
      */
     public void setAutoCommit(boolean autoCommit) throws SQLException {
-        if (autoCommit == getAutoCommit()) {
-            return;
-        }
-        Statement stmt = createStatement();
-        try {
+        if (autoCommit == getAutoCommit()) return;
+
+        try (Statement stmt = createStatement()) {
             stmt.executeUpdate("set autocommit=" + ((autoCommit) ? "1" : "0"));
-        } finally {
-            stmt.close();
         }
     }
 
@@ -599,18 +625,17 @@ public final class MariaDbConnection implements Connection {
      * @throws SQLException if there is an error commiting.
      */
     public void commit() throws SQLException {
-        lock.lock();
-        try {
-            if (!getAutoCommit()) {
-                Statement st = createStatement();
-                try {
-                    st.execute("COMMIT");
-                } finally {
-                    st.close();
+        if (!getAutoCommit()) {
+            lock.lock();
+            try {
+                if (!getAutoCommit()) {
+                    try (Statement st = createStatement()) {
+                        st.execute("COMMIT");
+                    }
                 }
+            } finally {
+                lock.unlock();
             }
-        } finally {
-            lock.unlock();
         }
     }
 
@@ -620,11 +645,8 @@ public final class MariaDbConnection implements Connection {
      * @throws SQLException if there is an error rolling back.
      */
     public void rollback() throws SQLException {
-        Statement st = createStatement();
-        try {
+        try (Statement st = createStatement()) {
             st.execute("ROLLBACK");
-        } finally {
-            st.close();
         }
     }
 
@@ -633,18 +655,20 @@ public final class MariaDbConnection implements Connection {
      * <p>This method should be used only when auto-commit has been disabled.</p>
      *
      * @param savepoint the <code>Savepoint</code> object to roll back to
-     * @throws SQLException if a database access error occurs, this method is called while participating in a distributed transaction, this
-     * method is called on a closed connection, the <code>Savepoint</code> object is no longer valid, or this <code>Connection</code> object is
-     * currently in auto-commit mode
+     * @throws SQLException                    if a database access error occurs, this method is called while
+     *                                         participating in a distributed transaction, this
+     *                                         method is called on a closed connection, the <code>Savepoint</code>
+     *                                         object is no longer valid, or this <code>Connection</code> object is
+     *                                         currently in auto-commit mode
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see Savepoint
      * @see #rollback
      * @since 1.4
      */
     public void rollback(final Savepoint savepoint) throws SQLException {
-        Statement st = createStatement();
-        st.execute("ROLLBACK TO SAVEPOINT " + savepoint.toString());
-        st.close();
+        try (Statement st = createStatement()) {
+            st.execute("ROLLBACK TO SAVEPOINT " + savepoint.toString());
+        }
     }
 
     /**
@@ -707,8 +731,9 @@ public final class MariaDbConnection implements Connection {
      */
     public void setReadOnly(final boolean readOnly) throws SQLException {
         try {
+            logger.debug("setReadOnly to value " + readOnly);
             protocol.setReadonly(readOnly);
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             ExceptionMapper.throwException(e, this, null);
         }
     }
@@ -721,19 +746,12 @@ public final class MariaDbConnection implements Connection {
      * @see #setCatalog
      */
     public String getCatalog() throws SQLException {
-        String catalog = null;
-        Statement st = null;
-        try {
-            st = createStatement();
-            ResultSet rs = st.executeQuery("select database()");
-            rs.next();
-            catalog = rs.getString(1);
-        } finally {
-            if (st != null) {
-                st.close();
+        try (Statement st = createStatement()) {
+            try (ResultSet rs = st.executeQuery("select database()")) {
+                rs.next();
+                return rs.getString(1);
             }
         }
-        return catalog;
     }
 
     /**
@@ -751,7 +769,7 @@ public final class MariaDbConnection implements Connection {
         }
         try {
             protocol.setCatalog(catalog);
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             ExceptionMapper.throwException(e, this, null);
         }
     }
@@ -767,47 +785,49 @@ public final class MariaDbConnection implements Connection {
      * @see #setTransactionIsolation
      */
     public int getTransactionIsolation() throws SQLException {
-        final Statement stmt = createStatement();
-        try {
-            final ResultSet rs = stmt.executeQuery("SELECT @@tx_isolation");
-            rs.next();
-            final String response = rs.getString(1);
-            if (response.equals("REPEATABLE-READ")) {
-                return Connection.TRANSACTION_REPEATABLE_READ;
+        try (Statement stmt = createStatement()) {
+            try (ResultSet rs = stmt.executeQuery("SELECT @@tx_isolation")) {
+                rs.next();
+                final String response = rs.getString(1);
+                if (response.equals("REPEATABLE-READ")) {
+                    return Connection.TRANSACTION_REPEATABLE_READ;
+                }
+                if (response.equals("READ-UNCOMMITTED")) {
+                    return Connection.TRANSACTION_READ_UNCOMMITTED;
+                }
+                if (response.equals("READ-COMMITTED")) {
+                    return Connection.TRANSACTION_READ_COMMITTED;
+                }
+                if (response.equals("SERIALIZABLE")) {
+                    return Connection.TRANSACTION_SERIALIZABLE;
+                }
             }
-            if (response.equals("READ-UNCOMMITTED")) {
-                return Connection.TRANSACTION_READ_UNCOMMITTED;
-            }
-            if (response.equals("READ-COMMITTED")) {
-                return Connection.TRANSACTION_READ_COMMITTED;
-            }
-            if (response.equals("SERIALIZABLE")) {
-                return Connection.TRANSACTION_SERIALIZABLE;
-            }
-        } finally {
-            stmt.close();
         }
         throw ExceptionMapper.getSqlException("Could not get transaction isolation level");
     }
 
     /**
-     * <p>Attempts to change the transaction isolation level for this <code>Connection</code> object to the one given. The constants defined in the
-     * interface <code>Connection</code> are the possible transaction isolation levels.</p>
+     * <p>Attempts to change the transaction isolation level for this <code>Connection</code> object to the one given.
+     * The constants defined in the interface <code>Connection</code> are the possible transaction isolation levels.</p>
      * <p><B>Note:</B> If this method is called during a transaction, the result is implementation-defined.</p>
      *
-     * @param level one of the following <code>Connection</code> constants: <code>Connection.TRANSACTION_READ_UNCOMMITTED</code>,
-     * <code>Connection.TRANSACTION_READ_COMMITTED</code>, <code>Connection.TRANSACTION_REPEATABLE_READ</code>, or
-     * <code>Connection.TRANSACTION_SERIALIZABLE</code>. (Note that <code>Connection.TRANSACTION_NONE</code> cannot be used because it specifies that
-     * transactions are not supported.)
-     * @throws SQLException if a database access error occurs, this method is called on a closed connection or the given parameter is not one
-     * of the <code>Connection</code> constants
+     * @param level one of the following <code>Connection</code> constants:
+     *              <code>Connection.TRANSACTION_READ_UNCOMMITTED</code>,
+     *              <code>Connection.TRANSACTION_READ_COMMITTED</code>,
+     *              <code>Connection.TRANSACTION_REPEATABLE_READ</code>, or
+     *              <code>Connection.TRANSACTION_SERIALIZABLE</code>.
+     *              (Note that <code>Connection.TRANSACTION_NONE</code> cannot be used because it specifies that
+     *              transactions are not supported.)
+     * @throws SQLException if a database access error occurs, this method is called on a closed connection or the given
+     *                      parameter is not one
+     *                      of the <code>Connection</code> constants
      * @see DatabaseMetaData#supportsTransactionIsolationLevel
      * @see #getTransactionIsolation
      */
     public void setTransactionIsolation(final int level) throws SQLException {
         try {
             protocol.setTransactionIsolation(level);
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             ExceptionMapper.throwException(e, this, null);
         }
     }
@@ -824,35 +844,26 @@ public final class MariaDbConnection implements Connection {
      * @see SQLWarning
      */
     public SQLWarning getWarnings() throws SQLException {
-        if (warningsCleared || isClosed() || !protocol.hasWarnings()) {
-            return null;
-        }
-        Statement st = null;
-        ResultSet rs = null;
+        if (warningsCleared || isClosed() || !protocol.hasWarnings()) return null;
+
         SQLWarning last = null;
         SQLWarning first = null;
-        try {
-            st = this.createStatement();
-            rs = st.executeQuery("show warnings");
-            // returned result set has 'level', 'code' and 'message' columns, in this order.
-            while (rs.next()) {
-                int code = rs.getInt(2);
-                String message = rs.getString(3);
-                SQLWarning warning = new SQLWarning(message, ExceptionMapper.mapCodeToSqlState(code), code);
-                if (first == null) {
-                    first = warning;
-                    last = warning;
-                } else {
-                    last.setNextWarning(warning);
-                    last = warning;
+
+        try (Statement st = this.createStatement()) {
+            try (ResultSet rs = st.executeQuery("show warnings")) {
+                // returned result set has 'level', 'code' and 'message' columns, in this order.
+                while (rs.next()) {
+                    int code = rs.getInt(2);
+                    String message = rs.getString(3);
+                    SQLWarning warning = new SQLWarning(message, ExceptionMapper.mapCodeToSqlState(code), code);
+                    if (first == null) {
+                        first = warning;
+                        last = warning;
+                    } else {
+                        last.setNextWarning(warning);
+                        last = warning;
+                    }
                 }
-            }
-        } finally {
-            if (rs != null) {
-                rs.close();
-            }
-            if (st != null) {
-                st.close();
             }
         }
         return first;
@@ -883,7 +894,7 @@ public final class MariaDbConnection implements Connection {
      * map returned will be empty.
      *
      * @return the <code>java.util.Map</code> object associated with this <code>Connection</code> object
-     * @throws SQLException if a database access error occurs or this method is called on a closed connection
+     * @throws SQLException                    if a database access error occurs or this method is called on a closed connection
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see #setTypeMap
      * @since 1.2
@@ -893,12 +904,15 @@ public final class MariaDbConnection implements Connection {
     }
 
     /**
-     * Installs the given <code>TypeMap</code> object as the type map for this <code>Connection</code> object.  The type map will be used for the
+     * Installs the given <code>TypeMap</code> object as the type map for this <code>Connection</code> object.
+     * The type map will be used for the
      * custom mapping of SQL structured types and distinct types.
      *
-     * @param map the <code>java.util.Map</code> object to install as the replacement for this <code>Connection</code> object's default type map
-     * @throws SQLException if a database access error occurs, this method is called on a closed connection or the given parameter is not a
-     * <code>java.util.Map</code> object
+     * @param map the <code>java.util.Map</code> object to install as the replacement for this <code>Connection</code>
+     *            object's default type map
+     * @throws SQLException                    if a database access error occurs, this method is called on a closed
+     *                                         connection or the given parameter is not a
+     *                                         <code>java.util.Map</code> object
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see #getTypeMap
      */
@@ -907,9 +921,11 @@ public final class MariaDbConnection implements Connection {
     }
 
     /**
-     * Retrieves the current holdability of <code>ResultSet</code> objects created using this <code>Connection</code> object.
+     * Retrieves the current holdability of <code>ResultSet</code> objects created using this <code>Connection</code>
+     * object.
      *
-     * @return the holdability, one of <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     * @return the holdability, one of <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
+     *         <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
      * @throws SQLException if a database access error occurs or this method is called on a closed connection
      * @see #setHoldability
      * @see DatabaseMetaData#getResultSetHoldability
@@ -921,14 +937,17 @@ public final class MariaDbConnection implements Connection {
     }
 
     /**
-     * Changes the default holdability of <code>ResultSet</code> objects created using this <code>Connection</code> object to the given holdability.
+     * Changes the default holdability of <code>ResultSet</code> objects created using this <code>Connection</code>
+     * object to the given holdability.
      * The default holdability of <code>ResultSet</code> objects can be be determined by invoking {@link
      * DatabaseMetaData#getResultSetHoldability}.
      *
-     * @param holdability a <code>ResultSet</code> holdability constant; one of <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
-     * <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
-     * @throws SQLException if a database access occurs, this method is called on a closed connection, or the given parameter is not a
-     * <code>ResultSet</code> constant indicating holdability
+     * @param holdability a <code>ResultSet</code> holdability constant; one of
+     *                    <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
+     *                    <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     * @throws SQLException                    if a database access occurs, this method is called on a closed
+     *                                         connection, or the given parameter is not a
+     *                                         <code>ResultSet</code> constant indicating holdability
      * @throws SQLFeatureNotSupportedException if the given holdability is not supported
      * @see #getHoldability
      * @see DatabaseMetaData#getResultSetHoldability
@@ -939,12 +958,16 @@ public final class MariaDbConnection implements Connection {
     }
 
     /**
-     * <p>Creates an unnamed savepoint in the current transaction and returns the new <code>Savepoint</code> object that represents it.</p>
-     * <p>if setSavepoint is invoked outside of an active transaction, a transaction will be started at this newly created savepoint.</p>
+     * <p>Creates an unnamed savepoint in the current transaction and returns the new <code>Savepoint</code> object that
+     * represents it.</p>
+     * <p>if setSavepoint is invoked outside of an active transaction, a transaction will be started at this newly
+     * created savepoint.</p>
      *
      * @return the new <code>Savepoint</code> object
-     * @throws SQLException if a database access error occurs, this method is called while participating in a distributed transaction, this
-     * method is called on a closed connection or this <code>Connection</code> object is currently in auto-commit mode
+     * @throws SQLException                    if a database access error occurs, this method is called while
+     *                                         participating in a distributed transaction, this method is called on a
+     *                                         closed connection or this <code>Connection</code> object is currently in
+     *                                         auto-commit mode
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see Savepoint
      * @since 1.4
@@ -954,50 +977,58 @@ public final class MariaDbConnection implements Connection {
     }
 
     /**
-     * <p>Creates a savepoint with the given name in the current transaction and returns the new <code>Savepoint</code> object that represents it.</p>
-     * if setSavepoint is invoked outside of an active transaction, a transaction will be started at this newly created savepoint.
+     * <p>Creates a savepoint with the given name in the current transaction and returns the new <code>Savepoint</code>
+     * object that represents it.</p>
+     * if setSavepoint is invoked outside of an active transaction, a transaction will be started at this newly created
+     * savepoint.
      *
      * @param name a <code>String</code> containing the name of the savepoint
      * @return the new <code>Savepoint</code> object
-     * @throws SQLException if a database access error occurs, this method is called while participating in a distributed transaction, this
-     * method is called on a closed connection or this <code>Connection</code> object is currently in auto-commit mode
+     * @throws SQLException                    if a database access error occurs, this method is called while
+     *                                         participating in a distributed transaction, this method is called on a
+     *                                         closed connection or this <code>Connection</code> object is currently in
+     *                                         auto-commit mode
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see Savepoint
      * @since 1.4
      */
     public Savepoint setSavepoint(final String name) throws SQLException {
         Savepoint savepoint = new MariaDbSavepoint(name, savepointCount++);
-        Statement st = createStatement();
-        st.execute("SAVEPOINT " + savepoint.toString());
+        try (Statement st = createStatement()) {
+            st.execute("SAVEPOINT " + savepoint.toString());
+        }
         return savepoint;
 
     }
 
 
     /**
-     * Removes the specified <code>Savepoint</code>  and subsequent <code>Savepoint</code> objects from the current transaction. Any reference to the
-     * savepoint after it have been removed will cause an <code>SQLException</code> to be thrown.
+     * Removes the specified <code>Savepoint</code>  and subsequent <code>Savepoint</code> objects from the current
+     * transaction. Any reference to the savepoint after it have been removed will cause an <code>SQLException</code>
+     * to be thrown.
      *
      * @param savepoint the <code>Savepoint</code> object to be removed
-     * @throws SQLException if a database access error occurs, this method is called on a closed connection or the given
-     * <code>Savepoint</code> object is not a valid savepoint in the current transaction
+     * @throws SQLException                    if a database access error occurs, this method is called on a closed
+     *                                         connection or the given <code>Savepoint</code> object is not a valid
+     *                                         savepoint in the current transaction
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public void releaseSavepoint(final Savepoint savepoint) throws SQLException {
-        Statement st = createStatement();
-        st.execute("RELEASE SAVEPOINT " + savepoint.toString());
-        st.close();
+        try (Statement st = createStatement()) {
+            st.execute("RELEASE SAVEPOINT " + savepoint.toString());
+        }
     }
 
     /**
-     * Constructs an object that implements the <code>Clob</code> interface. The object returned initially contains no data.  The
-     * <code>setAsciiStream</code>, <code>setCharacterStream</code> and <code>setString</code> methods of the <code>Clob</code> interface may be used
-     * to add data to the <code>Clob</code>.
+     * Constructs an object that implements the <code>Clob</code> interface. The object returned initially contains no
+     * data. The <code>setAsciiStream</code>, <code>setCharacterStream</code> and <code>setString</code> methods of the
+     * <code>Clob</code> interface may be used to add data to the <code>Clob</code>.
      *
      * @return An object that implements the <code>Clob</code> interface
-     * @throws SQLException if an object that implements the <code>Clob</code> interface can not be constructed, this method is called on a
-     * closed connection or a database access error occurs.
+     * @throws SQLException                    if an object that implements the <code>Clob</code> interface can not be
+     *                                         constructed, this method is called on a
+     *                                         closed connection or a database access error occurs.
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this data type
      * @since 1.6
      */
@@ -1006,13 +1037,14 @@ public final class MariaDbConnection implements Connection {
     }
 
     /**
-     * Constructs an object that implements the <code>Blob</code> interface. The object returned initially contains no data.  The
-     * <code>setBinaryStream</code> and <code>setBytes</code> methods of the <code>Blob</code> interface may be used to add data to the
-     * <code>Blob</code>.
+     * Constructs an object that implements the <code>Blob</code> interface. The object returned initially contains no
+     * data. The <code>setBinaryStream</code> and <code>setBytes</code> methods of the <code>Blob</code> interface may
+     * be used to add data to the <code>Blob</code>.
      *
      * @return An object that implements the <code>Blob</code> interface
-     * @throws SQLException if an object that implements the <code>Blob</code> interface can not be constructed, this method is called on a
-     * closed connection or a database access error occurs.
+     * @throws SQLException                    if an object that implements the <code>Blob</code> interface can not be
+     *                                         constructed, this method is called on a
+     *                                         closed connection or a database access error occurs.
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this data type
      * @since 1.6
      */
@@ -1021,13 +1053,14 @@ public final class MariaDbConnection implements Connection {
     }
 
     /**
-     * Constructs an object that implements the <code>NClob</code> interface. The object returned initially contains no data.  The
-     * <code>setAsciiStream</code>, <code>setCharacterStream</code> and <code>setString</code> methods of the <code>NClob</code> interface may be used
-     * to add data to the <code>NClob</code>.
+     * Constructs an object that implements the <code>NClob</code> interface. The object returned initially contains no
+     * data. The <code>setAsciiStream</code>, <code>setCharacterStream</code> and <code>setString</code> methods of the
+     * <code>NClob</code> interface may be used to add data to the <code>NClob</code>.
      *
      * @return An object that implements the <code>NClob</code> interface
-     * @throws SQLException if an object that implements the <code>NClob</code> interface can not be constructed, this method is called on a
-     * closed connection or a database access error occurs.
+     * @throws SQLException                    if an object that implements the <code>NClob</code> interface can not be
+     *                                         constructed, this method is called on a
+     *                                         closed connection or a database access error occurs.
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this data type
      * @since 1.6
      */
@@ -1036,13 +1069,14 @@ public final class MariaDbConnection implements Connection {
     }
 
     /**
-     * Constructs an object that implements the <code>SQLXML</code> interface. The object returned initially contains no data. The
-     * <code>createXmlStreamWriter</code> object and <code>setString</code> method of the <code>SQLXML</code> interface may be used to add data to the
-     * <code>SQLXML</code> object.
+     * Constructs an object that implements the <code>SQLXML</code> interface. The object returned initially contains no
+     * data. The <code>createXmlStreamWriter</code> object and <code>setString</code> method of the <code>SQLXML</code>
+     * interface may be used to add data to the <code>SQLXML</code> object.
      *
      * @return An object that implements the <code>SQLXML</code> interface
-     * @throws SQLException if an object that implements the <code>SQLXML</code> interface can not be constructed, this method is called on a
-     * closed connection or a database access error occurs.
+     * @throws SQLException                    if an object that implements the <code>SQLXML</code> interface can not be
+     *                                         constructed, this method is called on a
+     *                                         closed connection or a database access error occurs.
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this data type
      * @since 1.6
      */
@@ -1052,13 +1086,15 @@ public final class MariaDbConnection implements Connection {
     }
 
     /**
-     * <p>Returns true if the connection has not been closed and is still valid. The driver shall submit a query on the connection or use some other
-     * mechanism that positively verifies the connection is still valid when this method is called.</p>
-     * <p>The query submitted by the driver to validate the connection shall be executed in the context of the current transaction.</p>
+     * <p>Returns true if the connection has not been closed and is still valid. The driver shall submit a query on the
+     * connection or use some other mechanism that positively verifies the connection is still valid when this method
+     * is called.</p>
+     * <p>The query submitted by the driver to validate the connection shall be executed in the context of the current
+     * transaction.</p>
      *
-     * @param timeout -             The time in seconds to wait for the database operation used to validate the connection to complete.  If the
-     * timeout period expires before the operation completes, this method returns false.  A value of 0 indicates a timeout is not applied to the
-     * database operation.
+     * @param timeout - The time in seconds to wait for the database operation used to validate the connection to
+     *                complete.  If the timeout period expires before the operation completes, this method returns
+     *                false.  A value of 0 indicates a timeout is not applied to thedatabase operation.
      * @return true if the connection is valid, false otherwise
      * @throws SQLException if the value supplied for <code>timeout</code> is less then 0
      * @see DatabaseMetaData#getClientInfoProperties
@@ -1068,12 +1104,11 @@ public final class MariaDbConnection implements Connection {
         if (timeout < 0) {
             throw new SQLException("the value supplied for timeout is negative");
         }
-        if (isClosed()) {
-            return false;
-        }
+        if (isClosed()) return false;
+
         try {
             return protocol.ping();
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             return false;
         }
     }
@@ -1097,10 +1132,10 @@ public final class MariaDbConnection implements Connection {
      * establishing the connection.</li> <li>ClientHostname   -       The hostname of the computer the application using the connection is running
      * on.</li> </ul>
      *
-     * @param name The name of the client info property to set
+     * @param name  The name of the client info property to set
      * @param value The value to set the client info property to.  If the value is null, the current value of the specified property is cleared.
      * @throws SQLClientInfoException if the database server returns an error while setting the client info value on the database server or
-     * this method is called on a closed connection
+     *                                this method is called on a closed connection
      * @since 1.6
      */
     public void setClientInfo(final String name, final String value) throws SQLClientInfoException {
@@ -1141,22 +1176,22 @@ public final class MariaDbConnection implements Connection {
             int charsLength = value.length();
             char charValue;
             if (noBackslashEscapes) {
-                do {
+                while (charsOffset < charsLength) {
                     charValue = value.charAt(charsOffset);
                     if (charValue == '\'') escapeQuery.append('\''); //add a single escape quote
                     escapeQuery.append(charValue);
                     charsOffset++;
-                } while (charsOffset < charsLength);
+                }
             } else {
-                do {
+                while (charsOffset < charsLength) {
                     charValue = value.charAt(charsOffset);
-                    if (charValue  == '\''
+                    if (charValue == '\''
                             || charValue == '\\'
                             || charValue == '"'
                             || charValue == 0) escapeQuery.append('\\'); //add escape slash
                     escapeQuery.append(charValue);
                     charsOffset++;
-                } while (charsOffset < charsLength);
+                }
             }
             escapeQuery.append("'");
         }
@@ -1172,20 +1207,24 @@ public final class MariaDbConnection implements Connection {
         }
     }
 
+
     /**
-     * <p>Sets the value of the connection's client info properties.  The <code>Properties</code> object contains the names and values of the client
-     * info properties to be set.  The set of client info properties contained in the properties list replaces the current set of client info
-     * properties on the connection.  If a property that is currently set on the connection is not present in the properties list, that property is
+     * <p>Sets the value of the connection's client info properties.  The <code>Properties</code> object contains the
+     * names and values of the client info properties to be set.  The set of client info properties contained in the
+     * properties list replaces the current set of client info properties on the connection.  If a property that is
+     * currently set on the connection is not present in the properties list, that property is
      * cleared. Specifying an empty properties list will clear all of the properties on the connection.  See
      * <code>setClientInfo (String, String)</code> for more information.</p>
-     * <p>If an error occurs in setting any of the client info properties, a <code>SQLClientInfoException</code> is thrown. The
-     * <code>SQLClientInfoException</code> contains information indicating which client info properties were not set. The state of the client
-     * information is unknown because some databases do not allow multiple client info properties to be set atomically.  For those databases, one or
+     * <p>If an error occurs in setting any of the client info properties, a <code>SQLClientInfoException</code> is
+     * thrown. The <code>SQLClientInfoException</code> contains information indicating which client info properties
+     * were not set. The state of the client information is unknown because some databases do not allow multiple
+     * client info properties to be set atomically.  For those databases, one or
      * more properties may have been set before the error occurred.</p>
      *
      * @param properties the list of client info properties to set
-     * @throws SQLClientInfoException if the database server returns an error while setting the clientInfo values on the database server or
-     * this method is called on a closed connection
+     * @throws SQLClientInfoException if the database server returns an error while setting the clientInfo values on the
+     *                                database server or
+     *                                this method is called on a closed connection
      * @see Connection#setClientInfo(String, String) setClientInfo(String, String)
      * @since 1.6
      */
@@ -1215,7 +1254,7 @@ public final class MariaDbConnection implements Connection {
      * @param name The name of the client info property to retrieve
      * @return The value of the client info property specified
      * @throws SQLException if the database server returns an error when fetching the client info value from the database or this method is
-     * called on a closed connection
+     *                      called on a closed connection
      * @see DatabaseMetaData#getClientInfoProperties
      * @since 1.6
      */
@@ -1241,7 +1280,7 @@ public final class MariaDbConnection implements Connection {
      * @return A <code>Properties</code> object that contains the name and current value of each of the client info properties supported by the
      * driver.
      * @throws SQLException if the database server returns an error when fetching the client info values from the database or this method is
-     * called on a closed connection
+     *                      called on a closed connection
      * @since 1.6
      */
     public Properties getClientInfo() throws SQLException {
@@ -1264,7 +1303,6 @@ public final class MariaDbConnection implements Connection {
         return new Properties();
     }
 
-
     /**
      * Factory method for creating Array objects.
      * <b>Note: </b>When <code>createArrayOf</code> is used to create an array object that maps to a primitive data type, then it is
@@ -1275,12 +1313,12 @@ public final class MariaDbConnection implements Connection {
      * is thrown or the driver supports the resulting conversion.
      *
      * @param typeName the SQL name of the type the elements of the array map to. The typeName is a database-specific name which may be the name of a
-     * built-in type, a user-defined type or a standard  SQL type supported by this database. This is the value returned by
-     * <code>Array.getBaseTypeName</code>
+     *                 built-in type, a user-defined type or a standard  SQL type supported by this database. This is the value returned by
+     *                 <code>Array.getBaseTypeName</code>
      * @param elements the elements that populate the returned object
      * @return an Array object whose elements map to the specified SQL type
-     * @throws SQLException if a database error occurs, the JDBC type is not appropriate for the typeName and the conversion is not
-     * supported, the typeName is null or this method is called on a closed connection
+     * @throws SQLException                    if a database error occurs, the JDBC type is not appropriate for the typeName and the conversion is not
+     *                                         supported, the typeName is null or this method is called on a closed connection
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this data type
      * @since 1.6
      */
@@ -1291,11 +1329,11 @@ public final class MariaDbConnection implements Connection {
     /**
      * Factory method for creating Struct objects.
      *
-     * @param typeName the SQL type name of the SQL structured type that this <code>Struct</code> object maps to. The typeName is the name of  a
-     * user-defined type that has been defined for this database. It is the value returned by <code>Struct.getSQLTypeName</code>.
+     * @param typeName   the SQL type name of the SQL structured type that this <code>Struct</code> object maps to. The typeName is the name of  a
+     *                   user-defined type that has been defined for this database. It is the value returned by <code>Struct.getSQLTypeName</code>.
      * @param attributes the attributes that populate the returned object
      * @return a Struct object that maps to the given SQL type and is populated with the given attributes
-     * @throws SQLException if a database error occurs, the typeName is null or this method is called on a closed connection
+     * @throws SQLException                    if a database error occurs, the typeName is null or this method is called on a closed connection
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this data type
      * @since 1.6
      */
@@ -1316,7 +1354,15 @@ public final class MariaDbConnection implements Connection {
      * @since 1.6
      */
     public <T> T unwrap(final Class<T> iface) throws SQLException {
-        return iface.cast(this);
+        try {
+            if (isWrapperFor(iface)) {
+                return iface.cast(this);
+            } else {
+                throw new SQLException("The receiver is not a wrapper for " + iface.getName());
+            }
+        } catch (Exception e) {
+            throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+        }
     }
 
     /**
@@ -1404,10 +1450,12 @@ public final class MariaDbConnection implements Connection {
      */
     public int getLowercaseTableNames() throws SQLException {
         if (lowercaseTableNames == -1) {
-            Statement st = createStatement();
-            ResultSet rs = st.executeQuery("select @@lower_case_table_names");
-            rs.next();
-            lowercaseTableNames = rs.getInt(1);
+            try (Statement st = createStatement()) {
+                try (ResultSet rs = st.executeQuery("select @@lower_case_table_names")) {
+                    rs.next();
+                    lowercaseTableNames = rs.getInt(1);
+                }
+            }
         }
         return lowercaseTableNames;
     }
@@ -1419,9 +1467,8 @@ public final class MariaDbConnection implements Connection {
      * @throws SQLException if security manager doesn't permit it.
      */
     public void abort(Executor executor) throws SQLException {
-        if (this.isClosed()) {
-            return;
-        }
+        if (this.isClosed()) return;
+
         SQLPermission sqlPermission = new SQLPermission("callAbort");
         SecurityManager securityManager = System.getSecurityManager();
         if (securityManager != null && sqlPermission != null) {
@@ -1430,6 +1477,7 @@ public final class MariaDbConnection implements Connection {
         if (executor == null) {
             throw ExceptionMapper.getSqlException("Cannot abort the connection: null executor passed");
         }
+
         executor.execute(new Runnable() {
             @Override
             public void run() {
@@ -1470,7 +1518,7 @@ public final class MariaDbConnection implements Connection {
     /**
      * Change network timeout
      *
-     * @param executor executor (can be null)
+     * @param executor     executor (can be null)
      * @param milliseconds network timeout in milliseconds.
      * @throws SQLException if security manager doesn't permit it.
      */
@@ -1510,5 +1558,9 @@ public final class MariaDbConnection implements Connection {
 
     public long getServerThreadId() {
         return (protocol != null) ? protocol.getServerThreadId() : -1;
+    }
+
+    public boolean canUseServerTimeout() {
+        return canUseServerTimeout;
     }
 }

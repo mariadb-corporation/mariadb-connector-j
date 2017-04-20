@@ -50,18 +50,18 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.packet.dao.parameters.NullParameter;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.com.send.parameters.NullParameter;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
-public class MariaDbProcedureStatement extends AbstractCallableProcedureStatement implements CloneableCallableStatement {
+public class MariaDbProcedureStatement extends CallableProcedureStatement implements CloneableCallableStatement {
 
-    private MariaSelectResultSet outputResultSet = null;
+    private SelectResultSet outputResultSet = null;
 
     /**
      * Specific implementation of CallableStatement to handle function call, represent by call like
@@ -99,10 +99,15 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
         }
     }
 
-    protected MariaSelectResultSet getResult() throws SQLException {
+    protected SelectResultSet getOutputResult() throws SQLException {
         if (outputResultSet == null) {
-            if (!hasOutParameters) {
-                throw new SQLException("No output result. registerOutParameter() must be call before executing command  !");
+            if (fetchSize != 0) {
+                results.loadFully(false, protocol);
+                outputResultSet = results.getCallableResultSet();
+                if (outputResultSet != null) {
+                    outputResultSet.next();
+                    return outputResultSet;
+                }
             }
             throw new SQLException("No output result.");
         }
@@ -111,47 +116,21 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
 
     /**
      * Clone statement.
-     *
+     * @param connection connection
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public MariaDbProcedureStatement clone() throws CloneNotSupportedException {
-        MariaDbProcedureStatement clone = (MariaDbProcedureStatement) super.clone();
+    public MariaDbProcedureStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        MariaDbProcedureStatement clone = (MariaDbProcedureStatement) super.clone(connection);
         clone.outputResultSet = null;
         return clone;
     }
 
-    /**
-     * Executes the CALL statement.
-     *
-     * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements
-     * that return nothing
-     * @throws SQLException if a database access error occurs; this method is called on a closed
-     *                      <code>PreparedStatement</code> or the SQL statement returns a
-     *                      <code>ResultSet</code> object
-     */
-    public int executeUpdate() throws SQLException {
-        validAllParameters();
-        connection.lock.lock();
-        try {
-            super.executeInternal(0, hasOutParameters);
-            retrieveOutputResult();
-            return getUpdateCount();
-        } finally {
-            connection.lock.unlock();
-        }
-    }
-
     private void retrieveOutputResult() throws SQLException {
-
-        if (hasOutParameters) {
-            //resultSet will be just before last packet
-            outputResultSet = results.getCallableResultSet();
-            if (outputResultSet != null) {
-                outputResultSet.next();
-            }
-        } else {
-            outputResultSet = null;
+        //resultSet will be just before last packet
+        outputResultSet = results.getCallableResultSet();
+        if (outputResultSet != null) {
+            outputResultSet.next();
         }
     }
 
@@ -165,7 +144,7 @@ public class MariaDbProcedureStatement extends AbstractCallableProcedureStatemen
         connection.lock.lock();
         try {
             validAllParameters();
-            super.executeInternal(0, hasOutParameters);
+            super.executeInternal(fetchSize);
             retrieveOutputResult();
             return results != null && results.getResultSet() != null;
         } finally {

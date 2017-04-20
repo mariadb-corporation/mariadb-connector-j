@@ -50,10 +50,9 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.util.Utils;
-
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -73,25 +72,27 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
     /**
      * Retrieve Callable metaData.
-     * @param con connection
-     * @param database database name
-     * @param name procedure/function name
+     *
+     * @param con        connection
+     * @param database   database name
+     * @param name       procedure/function name
      * @param isFunction is it a function
      */
     public CallableParameterMetaData(MariaDbConnection con, String database, String name, boolean isFunction) {
         this.params = null;
         this.con = con;
         if (database != null) {
-            this.database = database.replace("`","");
+            this.database = database.replace("`", "");
         } else {
             this.database = null;
         }
-        this.name = name.replace("`","");
+        this.name = name.replace("`", "");
         this.isFunction = isFunction;
     }
 
     /**
      * Search metaData if not already loaded.
+     *
      * @throws SQLException if error append during loading metaData
      */
     public void readMetadataFromDbIfRequired() throws SQLException {
@@ -106,39 +107,72 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
         str = str.toUpperCase();
         switch (str) {
-            case "BIT": return Types.BIT;
-            case "TINYINT":  return Types.TINYINT;
-            case "SMALLINT": return Types.SMALLINT;
-            case "MEDIUMINT": return Types.INTEGER;
-            case "INT": return Types.INTEGER;
-            case "INTEGER": return Types.INTEGER;
-            case "LONG": return Types.INTEGER;
-            case "BIGINT": return Types.BIGINT;
-            case "INT24": return Types.INTEGER;
-            case "REAL": return Types.DOUBLE;
-            case "FLOAT": return Types.FLOAT;
-            case "DECIMAL": return Types.DECIMAL;
-            case "NUMERIC": return Types.NUMERIC;
-            case "DOUBLE": return Types.DOUBLE;
-            case "CHAR": return Types.CHAR;
-            case "VARCHAR": return Types.VARCHAR;
-            case "DATE": return Types.DATE;
-            case "TIME": return Types.TIME;
-            case "YEAR": return Types.SMALLINT;
-            case "TIMESTAMP": return Types.TIMESTAMP;
-            case "DATETIME": return Types.TIMESTAMP;
-            case "TINYBLOB": return Types.BINARY;
-            case "BLOB": return Types.LONGVARBINARY;
-            case "MEDIUMBLOB": return Types.LONGVARBINARY;
-            case "LONGBLOB": return Types.LONGVARBINARY;
-            case "TINYTEXT": return Types.VARCHAR;
-            case "TEXT" : return Types.LONGVARCHAR;
-            case "MEDIUMTEXT" : return Types.LONGVARCHAR;
-            case "LONGTEXT": return Types.LONGVARCHAR;
-            case "ENUM": return Types.VARCHAR;
-            case "SET": return Types.VARCHAR;
-            case "GEOMETRY": return Types.LONGVARBINARY;
-            case "VARBINARY": return Types.VARBINARY;
+            case "BIT":
+                return Types.BIT;
+            case "TINYINT":
+                return Types.TINYINT;
+            case "SMALLINT":
+                return Types.SMALLINT;
+            case "MEDIUMINT":
+                return Types.INTEGER;
+            case "INT":
+                return Types.INTEGER;
+            case "INTEGER":
+                return Types.INTEGER;
+            case "LONG":
+                return Types.INTEGER;
+            case "BIGINT":
+                return Types.BIGINT;
+            case "INT24":
+                return Types.INTEGER;
+            case "REAL":
+                return Types.DOUBLE;
+            case "FLOAT":
+                return Types.FLOAT;
+            case "DECIMAL":
+                return Types.DECIMAL;
+            case "NUMERIC":
+                return Types.NUMERIC;
+            case "DOUBLE":
+                return Types.DOUBLE;
+            case "CHAR":
+                return Types.CHAR;
+            case "VARCHAR":
+                return Types.VARCHAR;
+            case "DATE":
+                return Types.DATE;
+            case "TIME":
+                return Types.TIME;
+            case "YEAR":
+                return Types.SMALLINT;
+            case "TIMESTAMP":
+                return Types.TIMESTAMP;
+            case "DATETIME":
+                return Types.TIMESTAMP;
+            case "TINYBLOB":
+                return Types.BINARY;
+            case "BLOB":
+                return Types.LONGVARBINARY;
+            case "MEDIUMBLOB":
+                return Types.LONGVARBINARY;
+            case "LONGBLOB":
+                return Types.LONGVARBINARY;
+            case "TINYTEXT":
+                return Types.VARCHAR;
+            case "TEXT":
+                return Types.LONGVARCHAR;
+            case "MEDIUMTEXT":
+                return Types.LONGVARCHAR;
+            case "LONGTEXT":
+                return Types.LONGVARCHAR;
+            case "ENUM":
+                return Types.VARCHAR;
+            case "SET":
+                return Types.VARCHAR;
+            case "GEOMETRY":
+                return Types.LONGVARBINARY;
+            case "VARBINARY":
+                return Types.VARBINARY;
             default:
                 return Types.OTHER;
         }
@@ -147,40 +181,29 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
 
     private String[] queryMetaInfos(boolean isFunction) throws SQLException {
-        PreparedStatement preparedStatement;
-        if (database != null) {
-            preparedStatement = con.prepareStatement("select param_list, returns, db, type from mysql.proc where db=? and name=?");
-        } else {
-            preparedStatement = con.prepareStatement("select param_list, returns, db, type from mysql.proc where db=DATABASE() and name=?");
-        }
-
-        ResultSet rs = null;
         String paramList;
         String functionReturn;
-        try {
-            if (database == null) {
-                preparedStatement.setString(1, name);
-            } else {
-                preparedStatement.setString(1, database);
-                preparedStatement.setString(2, name);
+        try (PreparedStatement preparedStatement = con.prepareStatement(
+                "select param_list, returns, db, type from mysql.proc where name=? and db="
+                + (database != null ? "?" : "DATABASE()"))) {
+
+            preparedStatement.setString(1, name);
+            if (database != null) preparedStatement.setString(2, database);
+
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                if (!rs.next()) {
+                    throw new SQLException((isFunction ? "function" : "procedure") + " `" + name + "` does not exist");
+                }
+                paramList = rs.getString(1);
+                functionReturn = rs.getString(2);
+                database = rs.getString(3);
+                this.isFunction = "FUNCTION".equals(rs.getString(4));
+                return new String[]{paramList, functionReturn};
             }
-            rs = preparedStatement.executeQuery();
-            if (!rs.next()) {
-                throw new SQLException((isFunction ? "function" : "procedure") + " `" + name + "` does not exist");
-            }
-            paramList = rs.getString(1);
-            functionReturn = rs.getString(2);
-            database = rs.getString(3);
-            this.isFunction = "FUNCTION".equals(rs.getString(4));
-            return new String[]{paramList, functionReturn};
+
         } catch (SQLSyntaxErrorException sqlSyntaxErrorException) {
             throw new SQLException("Access to metaData informations not granted for current user. Consider grant select access to mysql.proc "
                     + " or avoid using parameter by name", sqlSyntaxErrorException);
-        } finally {
-            if (rs != null) {
-                rs.close();
-            }
-            preparedStatement.close();
         }
 
     }
@@ -250,11 +273,12 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
     /**
      * Read procedure metadata from mysql.proc table(column param_list).
+     *
      * @throws SQLException if data doesn't correspond.
      */
     public void readMetadata() throws SQLException {
         if (valid) {
-            return ;
+            return;
         }
 
         String[] metaInfos = queryMetaInfos(isFunction);
@@ -313,11 +337,11 @@ public class CallableParameterMetaData implements ParameterMetaData {
     /**
      * Get mode info.
      * <ul>
-     *     <li>0 : unknown</li>
-     *     <li>1 : IN</li>
-     *     <li>2 : INOUT</li>
-     *     <li>4 : OUT</li>
-     *</ul>
+     * <li>0 : unknown</li>
+     * <li>1 : IN</li>
+     * <li>2 : INOUT</li>
+     * <li>4 : OUT</li>
+     * </ul>
      *
      * @param param parameter index
      * @return mode information

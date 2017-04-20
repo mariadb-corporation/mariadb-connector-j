@@ -49,19 +49,22 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.util.dao;
 
-import org.mariadb.jdbc.internal.MariaDbType;
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 
+import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ServerPrepareResult implements PrepareResult {
     private int statementId;
     private ColumnInformation[] columns;
     private ColumnInformation[] parameters;
-    private MariaDbType[] parameterTypeHeader;
+    private ColumnType[] parameterTypeHeader;
     private Protocol unProxiedProtocol;
     private String sql;
+    private Results activeCursorResult;
 
 
     //share indicator
@@ -72,10 +75,10 @@ public class ServerPrepareResult implements PrepareResult {
     /**
      * PrepareStatement Result object.
      *
-     * @param sql query
-     * @param statementId server statement Id.
-     * @param columns columns information
-     * @param parameters parameters information
+     * @param sql               query
+     * @param statementId       server statement Id.
+     * @param columns           columns information
+     * @param parameters        parameters information
      * @param unProxiedProtocol indicate the protocol on which the prepare has been done
      */
     public ServerPrepareResult(String sql, int statementId, ColumnInformation[] columns, ColumnInformation[] parameters,
@@ -85,22 +88,23 @@ public class ServerPrepareResult implements PrepareResult {
         this.columns = columns;
         this.parameters = parameters;
         this.unProxiedProtocol = unProxiedProtocol;
-        this.parameterTypeHeader = new MariaDbType[parameters.length];
+        this.parameterTypeHeader = new ColumnType[parameters.length];
     }
 
     public void resetParameterTypeHeader() {
-        this.parameterTypeHeader = new MariaDbType[parameters.length];
+        this.parameterTypeHeader = new ColumnType[parameters.length];
     }
 
     /**
      * Update information after a failover.
-     * @param statementId new statement Id
+     *
+     * @param statementId       new statement Id
      * @param unProxiedProtocol the protocol on which the prepare has been done
      */
     public void failover(int statementId, Protocol unProxiedProtocol) {
         this.statementId = statementId;
         this.unProxiedProtocol = unProxiedProtocol;
-        this.parameterTypeHeader = new MariaDbType[parameters.length];
+        this.parameterTypeHeader = new ColumnType[parameters.length];
         this.shareCounter = 1;
         this.isBeingDeallocate = false;
 
@@ -116,12 +120,16 @@ public class ServerPrepareResult implements PrepareResult {
 
     /**
      * Increment share counter.
+     *
      * @return true if can be used (is not been deallocate).
      */
     public synchronized boolean incrementShareCounter() {
+        fetchAllOpenCursor();
+
         if (isBeingDeallocate) {
             return false;
         }
+
         shareCounter++;
         return true;
     }
@@ -176,7 +184,29 @@ public class ServerPrepareResult implements PrepareResult {
         return sql;
     }
 
-    public MariaDbType[] getParameterTypeHeader() {
+    public ColumnType[] getParameterTypeHeader() {
         return parameterTypeHeader;
     }
+
+    public void openCursor(Results result) {
+        activeCursorResult = result;
+    }
+
+    /**
+     * if a new query will be done using this statementId and there is an open cursor,
+     * then fetch all results in resultSet (Cursor will be closed after executing a query).
+     */
+    public void fetchAllOpenCursor() {
+        if (activeCursorResult != null && activeCursorResult.getResultSet() != null) {
+            //will then fetch all remaining results
+            try {
+                activeCursorResult.getResultSet().setFetchSize(0);
+            } catch (SQLException sqle) {
+                //error will be thrown by query that cause this closing.
+            }
+        }
+        activeCursorResult = null;
+    }
+
+
 }

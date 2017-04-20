@@ -54,34 +54,33 @@ import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.packet.read.ReadPacketFetcher;
-import org.mariadb.jdbc.internal.queryresults.Results;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.SocketException;
-import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
-import java.util.Calendar;
 import java.util.List;
+import java.util.TimeZone;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.locks.ReentrantLock;
 
 public interface Protocol {
-    ServerPrepareResult prepare(String sql, boolean executeOnMaster) throws QueryException;
+    ServerPrepareResult prepare(String sql, boolean executeOnMaster) throws SQLException;
 
     boolean getAutocommit();
 
     boolean noBackslashEscapes();
 
-    void connect() throws QueryException;
+    void connect() throws SQLException;
 
     UrlParser getUrlParser();
 
@@ -101,7 +100,7 @@ public interface Protocol {
 
     boolean isClosed();
 
-    void setCatalog(String database) throws QueryException;
+    void setCatalog(String database) throws SQLException;
 
     String getServerVersion();
 
@@ -109,7 +108,7 @@ public interface Protocol {
 
     boolean getReadonly();
 
-    void setReadonly(boolean readOnly) throws QueryException;
+    void setReadonly(boolean readOnly) throws SQLException;
 
     boolean isMasterConnection();
 
@@ -123,7 +122,7 @@ public interface Protocol {
 
     int getPort();
 
-    void rollback() throws QueryException;
+    void rollback() throws SQLException;
 
     String getDatabase();
 
@@ -131,55 +130,55 @@ public interface Protocol {
 
     String getPassword();
 
-    boolean ping() throws QueryException;
+    boolean ping() throws SQLException;
 
-    void executeQuery(String sql) throws QueryException;
+    void executeQuery(String sql) throws SQLException;
 
-    void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql) throws QueryException;
+    void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql) throws SQLException;
 
-    void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql, Charset charset) throws QueryException;
+    void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql, Charset charset) throws SQLException;
 
     void executeQuery(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
-                      ParameterHolder[] parameters) throws QueryException;
+                      ParameterHolder[] parameters) throws SQLException;
 
     void executeBatchMulti(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
-                           List<ParameterHolder[]> parameterList) throws QueryException;
+                           List<ParameterHolder[]> parameterList) throws SQLException;
 
-    void executeBatch(boolean mustExecuteOnMaster, Results results, List<String> queries) throws QueryException;
+    void executeBatch(boolean mustExecuteOnMaster, Results results, List<String> queries) throws SQLException;
 
-    void executeBatchMultiple(boolean mustExecuteOnMaster, Results results, List<String> queries) throws QueryException;
+    void executeBatchMultiple(boolean mustExecuteOnMaster, Results results, List<String> queries) throws SQLException;
 
     void executeBatchRewrite(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult prepareResult,
-                             List<ParameterHolder[]> parameterList, boolean rewriteValues) throws QueryException;
+                             List<ParameterHolder[]> parameterList, boolean rewriteValues) throws SQLException;
 
 
     void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                              Results results, ParameterHolder[] parameters) throws QueryException;
+                              Results results, ParameterHolder[] parameters) throws SQLException;
 
     ServerPrepareResult prepareAndExecutes(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
                                            Results results, String sql,
-                                           List<ParameterHolder[]> parameterList) throws QueryException;
+                                           List<ParameterHolder[]> parameterList) throws SQLException;
 
     ServerPrepareResult prepareAndExecute(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                                          Results results, String sql, ParameterHolder[] parameters) throws QueryException;
+                                          Results results, String sql, ParameterHolder[] parameters) throws SQLException;
 
-    void getResult(Results results) throws QueryException;
+    void getResult(Results results) throws SQLException;
 
-    void cancelCurrentQuery() throws QueryException, IOException;
+    void cancelCurrentQuery() throws SQLException, IOException;
 
-    void skip() throws SQLException, QueryException;
+    void skip() throws SQLException, SQLException;
 
-    boolean checkIfMaster() throws QueryException;
+    boolean checkIfMaster() throws SQLException;
 
     boolean hasWarnings();
 
     int getDataTypeMappingFlags();
 
-    void setInternalMaxRows(int max);
+    void setInternalMaxRows(long max);
 
-    int getMaxRows();
+    long getMaxRows();
 
-    void setMaxRows(int max) throws QueryException;
+    void setMaxRows(long max) throws SQLException;
 
     int getMajorServerVersion();
 
@@ -197,35 +196,35 @@ public interface Protocol {
 
     long getServerThreadId();
 
-    void setTransactionIsolation(int level) throws QueryException;
+    void setTransactionIsolation(int level) throws SQLException;
 
     int getTransactionIsolationLevel();
 
     boolean isExplicitClosed();
 
-    void connectWithoutProxy() throws QueryException;
+    void connectWithoutProxy() throws SQLException;
 
     boolean shouldReconnectWithoutProxy();
 
     void setHostFailedWithoutProxy();
 
-    void releasePrepareStatement(ServerPrepareResult serverPrepareResult) throws QueryException;
+    void releasePrepareStatement(ServerPrepareResult serverPrepareResult) throws SQLException;
 
-    boolean forceReleasePrepareStatement(int statementId) throws QueryException;
+    boolean forceReleasePrepareStatement(int statementId) throws SQLException;
 
-    void forceReleaseWaitingPrepareStatement() throws QueryException;
+    void forceReleaseWaitingPrepareStatement() throws SQLException;
 
     ServerPrepareStatementCache prepareStatementCache();
 
 
     String getServerData(String code);
 
-    Calendar getCalendar();
+    TimeZone getTimeZone();
 
-    void prolog(Results results, int maxRows, boolean hasProxy, MariaDbConnection connection,
+    void prolog(long maxRows, boolean hasProxy, MariaDbConnection connection,
                 MariaDbStatement statement) throws SQLException;
 
-    void prologProxy(ServerPrepareResult serverPrepareResult, Results results, int maxRows, boolean hasProxy,
+    void prologProxy(ServerPrepareResult serverPrepareResult, long maxRows, boolean hasProxy,
                      MariaDbConnection connection, MariaDbStatement statement) throws SQLException;
 
     Results getActiveStreamingResult();
@@ -238,17 +237,11 @@ public interface Protocol {
 
     void setHasWarnings(boolean hasWarnings);
 
-    void releaseWriterBuffer();
-
-    ByteBuffer getWriter();
-
     ServerPrepareResult addPrepareInCache(String key, ServerPrepareResult serverPrepareResult);
 
-    void readEofPacket() throws QueryException, IOException;
+    void readEofPacket() throws SQLException, IOException;
 
-    void skipEofPacket() throws QueryException, IOException;
-
-    ReadPacketFetcher getPacketFetcher();
+    void skipEofPacket() throws SQLException, IOException;
 
     void changeSocketTcpNoDelay(boolean setTcpNoDelay) throws SocketException;
 
@@ -256,10 +249,22 @@ public interface Protocol {
 
     void removeActiveStreamingResult();
 
-    void resetStateAfterFailover(int maxRows, int transactionIsolationLevel, String database, boolean autocommit)
-            throws QueryException;
+    void resetStateAfterFailover(long maxRows, int transactionIsolationLevel, String database, boolean autocommit)
+            throws SQLException;
 
     void setActiveFutureTask(FutureTask activeFutureTask);
 
     boolean isServerMariaDb();
+
+    SQLException handleIoException(IOException initialException);
+
+    PacketInputStream getReader();
+
+    PacketOutputStream getWriter();
+
+    boolean isEofDeprecated();
+
+    int getAutoIncrementIncrement();
+
+    boolean sessionStateAware();
 }

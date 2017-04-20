@@ -1,6 +1,9 @@
 package org.mariadb.jdbc.failover;
 
-import org.junit.*;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.sql.*;
@@ -34,49 +37,31 @@ public class CancelTest extends BaseMultiHostTest {
 
     @Test(expected = SQLTimeoutException.class)
     public void timeoutSleep() throws Exception {
-        Connection connection = null;
-        try {
-            connection = getNewConnection(false);
+        try (Connection connection = getNewConnection(false)) {
             PreparedStatement stmt = connection.prepareStatement("select sleep(100)");
             stmt.setQueryTimeout(1);
             stmt.execute();
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
     @Test
     public void noTimeoutSleep() throws Exception {
-        Connection connection = null;
-        try {
-            connection = getNewConnection(false);
+        try (Connection connection = getNewConnection(false)) {
             Statement stmt = connection.createStatement();
             stmt.setQueryTimeout(1);
             stmt.execute("select sleep(0.5)");
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
 
     }
 
     @Test
     public void cancelIdleStatement() throws Exception {
-        Connection connection = null;
-        try {
-            connection = getNewConnection(false);
+        try (Connection connection = getNewConnection(false)) {
             Statement stmt = connection.createStatement();
             stmt.cancel();
             ResultSet rs = stmt.executeQuery("select 1");
             rs.next();
             assertEquals(rs.getInt(1), 1);
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 }

@@ -6,15 +6,13 @@ import org.junit.Test;
 
 import java.sql.*;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 
 public class BooleanTest extends BaseTest {
     /**
      * Initialization.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -104,7 +102,7 @@ public class BooleanTest extends BaseTest {
 
     private void checkBooleanValue(ResultSet rs, boolean expectedValue, Boolean expectedNull) throws SQLException {
         rs.next();
-        for (int i = 1; i <= 14; i++ ) {
+        for (int i = 1; i <= 14; i++) {
             assertEquals(expectedValue, rs.getBoolean(i));
             if (i == 1 || i == 2) {
                 assertEquals(expectedNull, rs.getObject(i));

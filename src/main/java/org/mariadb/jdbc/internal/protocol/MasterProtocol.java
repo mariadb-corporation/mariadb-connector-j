@@ -53,22 +53,22 @@ package org.mariadb.jdbc.internal.protocol;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.failover.Listener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-
+import java.sql.SQLException;
+import java.io.Closeable;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 
-public class MasterProtocol extends AbstractQueryProtocol {
+public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
 
     /**
      * Get a protocol instance.
      *
      * @param urlParser connection URL infos
-     * @param lock the lock for thread synchronisation
+     * @param lock      the lock for thread synchronisation
      */
 
     public MasterProtocol(final UrlParser urlParser, final ReentrantLock lock) {
@@ -78,7 +78,7 @@ public class MasterProtocol extends AbstractQueryProtocol {
     /**
      * Get new instance.
      *
-     * @param proxy proxy
+     * @param proxy     proxy
      * @param urlParser url connection object
      * @return new instance
      */
@@ -91,13 +91,13 @@ public class MasterProtocol extends AbstractQueryProtocol {
     /**
      * loop until found the failed connection.
      *
-     * @param listener current failover
-     * @param addresses list of HostAddress to loop
+     * @param listener     current failover
+     * @param addresses    list of HostAddress to loop
      * @param searchFilter search parameter
-     * @throws QueryException if not found
+     * @throws SQLException if not found
      */
     public static void loop(Listener listener, final List<HostAddress> addresses,
-                            SearchFilter searchFilter) throws QueryException {
+                            SearchFilter searchFilter) throws SQLException {
 
         MasterProtocol protocol;
         ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
@@ -105,7 +105,7 @@ public class MasterProtocol extends AbstractQueryProtocol {
             loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
         }
         int maxConnectionTry = listener.getRetriesAllDown();
-        QueryException lastQueryException = null;
+        SQLException lastQueryException = null;
         while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
             protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
 
@@ -130,7 +130,7 @@ public class MasterProtocol extends AbstractQueryProtocol {
                 listener.foundActiveMaster(protocol);
                 return;
 
-            } catch (QueryException e) {
+            } catch (SQLException e) {
                 listener.addToBlacklist(protocol.getHostAddress());
                 lastQueryException = e;
             }
@@ -140,10 +140,10 @@ public class MasterProtocol extends AbstractQueryProtocol {
             }
         }
         if (lastQueryException != null) {
-            throw new QueryException("No active connection found for master : " + lastQueryException.getMessage(),
-                    lastQueryException.getErrorCode(), lastQueryException.getSqlState(), lastQueryException);
+            throw new SQLException("No active connection found for master : " + lastQueryException.getMessage(),
+                    lastQueryException.getSQLState(), lastQueryException.getErrorCode(), lastQueryException);
         }
-        throw new QueryException("No active connection found for master");
+        throw new SQLException("No active connection found for master");
     }
 
 }

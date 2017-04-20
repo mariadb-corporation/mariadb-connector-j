@@ -1,6 +1,7 @@
 package org.mariadb.jdbc;
 
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -12,6 +13,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -36,6 +42,148 @@ public class StoredProcedureTest extends BaseTest {
                 + "SIGNAL SQLSTATE '70100'\n"
                 + "SET MESSAGE_TEXT = 'Test error from SP'; \n"
                 + "END");
+
+        //sequence table are not in MySQL and MariaDB < 10.1, so create some basic table
+        createTable("table_10", "val int");
+        createTable("table_5", "val int");
+        if (testSingleHost) {
+            try (Statement stmt = sharedConnection.createStatement()) {
+                stmt.execute("INSERT INTO table_10 VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
+                stmt.execute("INSERT INTO table_5 VALUES (1),(2),(3),(4),(5)");
+            }
+        }
+    }
+
+
+    @Test
+    public void testStoreProcedureStreaming() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
+        createProcedure("StoredWithOutput", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
+                + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5;end");
+
+        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StoredWithOutput(?,?,?)}")) {
+            //indicate to stream results
+            callableStatement.setFetchSize(1);
+
+            callableStatement.registerOutParameter(1, Types.BIT);
+            callableStatement.registerOutParameter(2, Types.BIT);
+            callableStatement.registerOutParameter(3, Types.BIT);
+            callableStatement.execute();
+
+
+            ResultSet rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 10; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+
+            //force reading of all result-set since output parameter are in the end.
+            assertEquals(true, callableStatement.getBoolean(1));
+            assertEquals(false, callableStatement.getBoolean(2));
+            assertEquals(false, callableStatement.getBoolean(3));
+
+            assertTrue(callableStatement.getMoreResults());
+
+            rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 5; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+        }
+
+    }
+
+    @Test
+    public void testStoreProcedureStreamingWithAnotherQuery() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
+        createProcedure("StreamInterrupted", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
+                + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5;end");
+
+        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StreamInterrupted(?,?,?)}")) {
+            //indicate to stream results
+            callableStatement.setFetchSize(1);
+
+            callableStatement.registerOutParameter(1, Types.BIT);
+            callableStatement.registerOutParameter(2, Types.BIT);
+            callableStatement.registerOutParameter(3, Types.BIT);
+
+            callableStatement.execute();
+
+
+            ResultSet rs = callableStatement.getResultSet();
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+
+
+            //execute another query on same connection must force loading of
+            //existing streaming result-set
+            try (Statement stmt = sharedConnection.createStatement()) {
+                ResultSet otherRs = stmt.executeQuery("SELECT 'test'");
+                assertTrue(otherRs.next());
+                assertEquals("test", otherRs.getString(1));
+            }
+
+            for (int i = 2; i <= 10; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+
+            assertEquals(true, callableStatement.getBoolean(1));
+            assertEquals(false, callableStatement.getBoolean(2));
+            assertEquals(false, callableStatement.getBoolean(3));
+
+            //force reading of all result-set since output parameter are in the end.
+            assertTrue(callableStatement.getMoreResults());
+
+            rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 5; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+        }
+
+    }
+
+    @Test
+    public void testStoreProcedureStreamingWithoutOutput() throws Exception {
+        createProcedure("StreamWithoutOutput", "(IN MAX_PARAM TINYINT)"
+                + "begin SELECT * from table_10; SELECT * from table_5;end");
+
+        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StreamWithoutOutput(?)}")) {
+            //indicate to stream results
+            callableStatement.setFetchSize(1);
+            callableStatement.setInt(1, 100);
+            callableStatement.execute();
+
+            ResultSet rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 10; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+
+            assertTrue(callableStatement.getMoreResults());
+
+            rs = callableStatement.getResultSet();
+            for (int i = 1; i <= 5; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+        }
+
     }
 
     @Before
@@ -55,6 +203,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void callWithOutParameter() throws SQLException {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createProcedure("prepareStmtWithOutParameter", "(x int, INOUT y int)\n"
                 + "BEGIN\n"
                 + "SELECT 1;end\n");
@@ -121,6 +274,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void callInoutParam() throws SQLException {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         CallableStatement storedProc = sharedConnection.prepareCall("{call inOutParam(?)}");
         storedProc.registerOutParameter(1, Types.INTEGER);
         storedProc.setInt(1, 1);
@@ -130,21 +288,22 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void callWithStrangeParameter() throws SQLException {
-        CallableStatement stmt = sharedConnection.prepareCall("{call withStrangeParameter(?)}");
-        double expected = 5.43;
-        stmt.setDouble("a", expected);
-        ResultSet rs = stmt.executeQuery();
-        assertTrue(rs.next());
-        double res = rs.getDouble(1);
-        assertEquals(expected, res, 0);
-        // now fail due to three decimals
-        double tooMuch = 34.987;
-        stmt.setDouble("a", tooMuch);
-        rs = stmt.executeQuery();
-        assertTrue(rs.next());
-        assertThat(rs.getDouble(1), is(not(tooMuch)));
-        rs.close();
-        stmt.close();
+        try (CallableStatement stmt = sharedConnection.prepareCall("{call withStrangeParameter(?)}")) {
+            double expected = 5.43;
+            stmt.setDouble("a", expected);
+            try (ResultSet rs = stmt.executeQuery()) {
+                assertTrue(rs.next());
+                double res = rs.getDouble(1);
+                assertEquals(expected, res, 0);
+                // now fail due to three decimals
+                double tooMuch = 34.987;
+                stmt.setDouble("a", tooMuch);
+                try (ResultSet rs2 = stmt.executeQuery()) {
+                    assertTrue(rs2.next());
+                    assertThat(rs2.getDouble(1), is(not(tooMuch)));
+                }
+            }
+        }
     }
 
     @Test
@@ -160,6 +319,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testMetaCatalogNoAccessToProcedureBodies() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         Statement statement = sharedConnection.createStatement();
         try {
             statement.execute("DROP USER 'test_jdbc'@'%'");
@@ -255,15 +419,9 @@ public class StoredProcedureTest extends BaseTest {
                 + "BEGIN\n"
                 + "   SELECT 1;\n"
                 + "END");
-        CallableStatement callableStatement = null;
-        try {
-            callableStatement = sharedConnection.prepareCall("Call testProcDecimalComa(?)");
+        try (CallableStatement callableStatement = sharedConnection.prepareCall("Call testProcDecimalComa(?)")) {
             callableStatement.setDouble(1, 18.0);
             callableStatement.execute();
-        } finally {
-            if (callableStatement != null) {
-                callableStatement.close();
-            }
         }
     }
 
@@ -378,6 +536,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testMultiResultset() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createProcedure("testInOutParam", "(IN p1 VARCHAR(255), INOUT p2 INT)\n"
                 + "begin\n"
                 + " DECLARE z INT;\n"
@@ -449,6 +612,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testResultsetWithInoutParameter() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createTable("testResultsetWithInoutParameterTb", "test VARCHAR(10)");
         createProcedure("testResultsetWithInoutParameter", "(INOUT testValue VARCHAR(10))\n"
                 + "BEGIN\n"
@@ -479,6 +647,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testSettingFixedParameter() throws SQLException {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         try (Connection connection = setConnection()) {
             createProcedure("simpleproc", "(IN inParam CHAR(20), INOUT inOutParam CHAR(20), OUT outParam CHAR(50))"
                     + "     BEGIN\n"
@@ -549,6 +722,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testStreamInOutWithName() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createProcedure("testStreamInOutWithName", "(INOUT mblob MEDIUMBLOB) BEGIN SELECT 1 FROM DUAL WHERE 1=0;\nEND");
         try (CallableStatement cstmt = sharedConnection.prepareCall("{call testStreamInOutWithName(?)}")) {
             byte[] buffer = new byte[65];
@@ -707,6 +885,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testCallableNullSetters() throws Throwable {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createTable("testCallableNullSettersTable", "value_1 BIGINT PRIMARY KEY,value_2 VARCHAR(20)");
         createFunction("testCallableNullSetters", "(value_1_v BIGINT, value_2_v VARCHAR(20)) RETURNS BIGINT "
                 + "DETERMINISTIC MODIFIES SQL DATA BEGIN "
@@ -753,7 +936,7 @@ public class StoredProcedureTest extends BaseTest {
                 if (args.length == 2 && args[0].equals(Integer.TYPE)) {
                     if (!args[1].isPrimitive()) {
                         try {
-                            setters[i].invoke(callable, new Object[]{new Integer(2), null});
+                            setters[i].invoke(callable, new Object[]{2, null});
                         } catch (InvocationTargetException ive) {
                             if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                 throw ive;
@@ -762,7 +945,7 @@ public class StoredProcedureTest extends BaseTest {
                     } else {
                         if (args[1].getName().equals("boolean")) {
                             try {
-                                setters[i].invoke(callable, new Object[]{new Integer(2), Boolean.FALSE});
+                                setters[i].invoke(callable, new Object[]{2, Boolean.FALSE});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -773,7 +956,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("byte")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[]{new Integer(2), new Byte((byte) 0)});
+                                setters[i].invoke(callable, new Object[]{2, (byte) 0});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -785,7 +968,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("double")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[]{new Integer(2), new Double(0)});
+                                setters[i].invoke(callable, new Object[]{2, 0D});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -797,7 +980,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("float")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[]{new Integer(2), new Float(0)});
+                                setters[i].invoke(callable, new Object[]{2, 0f});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -809,7 +992,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("int")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[]{new Integer(2), new Integer(0)});
+                                setters[i].invoke(callable, new Object[]{2, 0});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -820,7 +1003,7 @@ public class StoredProcedureTest extends BaseTest {
 
                         if (args[1].getName().equals("long")) {
                             try {
-                                setters[i].invoke(callable, new Object[]{new Integer(2), new Long(0)});
+                                setters[i].invoke(callable, new Object[]{2, 0L});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -830,7 +1013,7 @@ public class StoredProcedureTest extends BaseTest {
 
                         if (args[1].getName().equals("short")) {
                             try {
-                                setters[i].invoke(callable, new Object[]{new Integer(2), new Short((short) 0)});
+                                setters[i].invoke(callable, new Object[]{2, (short) 0});
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -887,26 +1070,6 @@ public class StoredProcedureTest extends BaseTest {
     }
 
     @Test
-    public void testBitSp() throws Exception {
-        createTable("`Bit_Tab`", "`MAX_VAL` tinyint(1) default NULL, `MIN_VAL` tinyint(1) default NULL, `NULL_VAL` tinyint(1) default NULL");
-        createProcedure("Bit_Proc", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
-                + "begin select MAX_VAL, MIN_VAL, NULL_VAL  into MAX_PARAM, MIN_PARAM, NULL_PARAM from Bit_Tab; end");
-
-        sharedConnection.createStatement().executeUpdate("delete from Bit_Tab");
-        sharedConnection.createStatement().executeUpdate("insert into Bit_Tab values(1,0,null)");
-        CallableStatement callableStatement = sharedConnection.prepareCall("{call Bit_Proc(?,?,?)}");
-
-        callableStatement.registerOutParameter(1, Types.BIT);
-        callableStatement.registerOutParameter(2, Types.BIT);
-        callableStatement.registerOutParameter(3, Types.BIT);
-
-        callableStatement.executeUpdate();
-        assertEquals(Boolean.TRUE, callableStatement.getBoolean(1));
-        assertEquals(Boolean.FALSE, callableStatement.getBoolean(2));
-        assertEquals(Boolean.FALSE, callableStatement.getBoolean(3));
-    }
-
-    @Test
     public void testCallableStatementFormat() throws Exception {
         try {
             sharedConnection.prepareCall("CREATE TABLE testCallableStatementFormat(id INT)");
@@ -931,6 +1094,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testParameterNumber() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createTable("TMIX91P", "F01SMALLINT         SMALLINT NOT NULL, F02INTEGER          INTEGER,F03REAL             REAL,"
                 + "F04FLOAT            FLOAT,F05NUMERIC31X4      NUMERIC(31,4), F06NUMERIC16X16     NUMERIC(16,16), F07CHAR_10          CHAR(10),"
                 + " F08VARCHAR_10       VARCHAR(10), F09CHAR_20          CHAR(20), F10VARCHAR_20       VARCHAR(20), F11DATE         DATE,"
@@ -972,9 +1140,7 @@ public class StoredProcedureTest extends BaseTest {
         Properties props = new Properties();
         props.put("jdbcCompliantTruncation", "true");
         props.put("useInformationSchema", "true");
-        Connection conn1 = null;
-        conn1 = setConnection(props);
-        try {
+        try (Connection conn1 = setConnection(props)) {
             CallableStatement callSt = conn1.prepareCall("{ call testParameterNumber_1(?, ?, ?, ?) }");
             callSt.setString(2, "xxx");
             callSt.registerOutParameter(1, Types.VARCHAR);
@@ -1009,13 +1175,16 @@ public class StoredProcedureTest extends BaseTest {
             assertEquals("ncfact string", callSt3.getString(2));
             assertEquals("ffact string", callSt3.getString(3));
             assertEquals("fdoc string", callSt3.getString(4));
-        } finally {
-            conn1.close();
         }
     }
 
     @Test
     public void testProcMultiDb() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         String originalCatalog = sharedConnection.getCatalog();
 
         sharedConnection.createStatement().executeUpdate("CREATE DATABASE IF NOT EXISTS testProcMultiDb");
@@ -1061,6 +1230,11 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void callProcSendNullInOut() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createProcedure("testProcSendNullInOut_1", "(INOUT x INTEGER)\nBEGIN\nSET x = x + 1;\nEND");
         createProcedure("testProcSendNullInOut_2", "(x INTEGER, OUT y INTEGER)\nBEGIN\nSET y = x + 1;\nEND");
         createProcedure("testProcSendNullInOut_3", "(INOUT x INTEGER)\nBEGIN\nSET x = 10;\nEND");
@@ -1138,6 +1312,11 @@ public class StoredProcedureTest extends BaseTest {
      */
     @Test
     public void testOutputObjectType() throws Exception {
+        //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
+        cancelForVersion(10,2,2);
+        cancelForVersion(10,2,3);
+        cancelForVersion(10,2,4);
+
         createProcedure("issue425", "(IN inValue TEXT, OUT testValue TEXT)\n"
                 + "BEGIN\n"
                 + " set testValue = CONCAT('o', inValue);\n"
@@ -1195,5 +1374,62 @@ public class StoredProcedureTest extends BaseTest {
         assertTrue(cstmt2.getObject(1) instanceof byte[]);
         assertArrayEquals("ox".getBytes(), ((byte[]) cstmt2.getObject(1)));
 
+    }
+
+    @Test
+    public void procedureCaching() throws SQLException {
+        createProcedure("cacheCall", "(IN inValue int)\n"
+                + "BEGIN\n"
+                + " /*do nothing*/ \n"
+                + "END");
+
+        CallableStatement st = sharedConnection.prepareCall("{call testj.cacheCall(?)}");
+        st.setInt(1, 2);
+        st.execute();
+
+        try (CallableStatement st2 = sharedConnection.prepareCall("{call testj.cacheCall(?)}")) {
+            st2.setInt(1, 2);
+            st2.execute();
+            st.close();
+
+            try (CallableStatement st3 = sharedConnection.prepareCall("{call testj.cacheCall(?)}")) {
+                st3.setInt(1, 2);
+                st3.execute();
+                st3.execute();
+            }
+        }
+
+        try (CallableStatement st3 = sharedConnection.prepareCall("{?=call pow(?,?)}")) {
+            st3.setInt(2, 2);
+            st3.setInt(3, 2);
+            st3.execute();
+        }
+    }
+
+    @Test
+    public void functionCaching() throws SQLException {
+        createFunction("hello2", "()\n"
+                + "    RETURNS CHAR(50) DETERMINISTIC\n"
+                + "    RETURN CONCAT('Hello, !');");
+        CallableStatement st = sharedConnection.prepareCall("{? = call hello2()}");
+        st.registerOutParameter(1, Types.INTEGER);
+        assertFalse(st.execute());
+
+        try (CallableStatement st2 = sharedConnection.prepareCall("{? = call hello2()}")) {
+            st2.registerOutParameter(1, Types.INTEGER);
+            assertFalse(st2.execute());
+
+            st.close();
+
+            try (CallableStatement st3 = sharedConnection.prepareCall("{? = call hello2()}")) {
+                st3.registerOutParameter(1, Types.INTEGER);
+                assertFalse(st3.execute());
+            }
+        }
+
+        try (CallableStatement st3 = sharedConnection.prepareCall("{? = call hello2()}")) {
+            st3.registerOutParameter(1, Types.INTEGER);
+            assertFalse(st3.execute());
+        }
     }
 }

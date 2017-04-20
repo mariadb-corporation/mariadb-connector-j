@@ -49,8 +49,10 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.util.dao;
 
+import org.mariadb.jdbc.MariaDbConnection;
+
 import java.sql.CallableStatement;
 
-public interface CloneableCallableStatement extends CallableStatement, Cloneable {
-    CloneableCallableStatement clone() throws CloneNotSupportedException;
+public interface CloneableCallableStatement extends CallableStatement {
+    CloneableCallableStatement clone(MariaDbConnection connection) throws CloneNotSupportedException;
 }

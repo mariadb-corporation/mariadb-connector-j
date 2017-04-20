@@ -50,24 +50,25 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.packet.dao.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement implements CloneableCallableStatement {
+public class MariaDbFunctionStatement extends CallableFunctionStatement implements CloneableCallableStatement {
 
-    private MariaSelectResultSet outputResultSet = null;
+    private SelectResultSet outputResultSet = null;
 
     /**
      * Specific implementation of CallableStatement to handle function call, represent by call like
      * {?= call procedure-name[(arg1,arg2, ...)]}.
-     * @param connection current connection
-     * @param databaseName database name
+     *
+     * @param connection    current connection
+     * @param databaseName  database name
      * @param procedureName function name
-     * @param arguments function args
+     * @param arguments     function args
      * @throws SQLException exception
      */
     public MariaDbFunctionStatement(MariaDbConnection connection, String databaseName, String procedureName, String arguments) throws SQLException {
@@ -77,7 +78,7 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
         super.initFunctionData(getParameterCount() + 1);
     }
 
-    protected MariaSelectResultSet getResult() throws SQLException {
+    protected SelectResultSet getResult() throws SQLException {
         if (outputResultSet == null) {
             throw new SQLException("No output result");
         }
@@ -87,11 +88,12 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
     /**
      * Clone statement.
      *
+     * @param connection connection
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
      */
-    public MariaDbFunctionStatement clone() throws CloneNotSupportedException {
-        MariaDbFunctionStatement clone = (MariaDbFunctionStatement) super.clone();
+    public MariaDbFunctionStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        MariaDbFunctionStatement clone = (MariaDbFunctionStatement) super.clone(connection);
         clone.outputResultSet = null;
         return clone;
     }
@@ -102,8 +104,8 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
      * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements
      * that return nothing
      * @throws SQLException if a database access error occurs; this method is called on a closed
-     *                               <code>PreparedStatement</code> or the SQL statement returns a
-     *                               <code>ResultSet</code> object
+     *                      <code>PreparedStatement</code> or the SQL statement returns a
+     *                      <code>ResultSet</code> object
      */
     @Override
     public int executeUpdate() throws SQLException {
@@ -142,7 +144,7 @@ public class MariaDbFunctionStatement extends AbstractCallableFunctionStatement 
             if (results != null && results.getResultSet() == null) {
                 return results.getResultSet();
             }
-            return MariaSelectResultSet.createEmptyResultSet();
+            return SelectResultSet.createEmptyResultSet();
         } finally {
             connection.lock.unlock();
         }

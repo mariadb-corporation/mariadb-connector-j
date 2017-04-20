@@ -49,31 +49,37 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.queryresults.*;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
-import org.mariadb.jdbc.internal.util.ExceptionMapper;
+import org.mariadb.jdbc.internal.com.read.dao.*;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.sql.*;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 
 public class MariaDbStatement implements Statement, Cloneable {
-    private static Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
+
     //timeout scheduler
     private static final ScheduledExecutorService timeoutScheduler = SchedulerServiceProviderHolder.getTimeoutScheduler();
+    protected static Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
+    protected final ReentrantLock lock;
 
     /**
      * the protocol used to talk to the server.
@@ -85,64 +91,64 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     protected MariaDbConnection connection;
     protected Future<?> timerTaskFuture;
-    protected ResultSet batchResultSet = null;
     protected volatile boolean closed = false;
-    boolean isTimedout;
-    volatile boolean executing;
     protected List<String> batchQueries;
-
-    //are warnings cleared?
-    private boolean warningsCleared;
     protected int queryTimeout;
-    private int fetchSize;
-    protected int maxRows;
-    protected final ReentrantLock lock;
-    protected Results results = null;
+    protected long maxRows;
+    protected Results results;
     protected int resultSetScrollType;
     protected boolean mustCloseOnCompletion = false;
     protected Options options;
+    boolean isTimedout;
+    volatile boolean executing;
+    //are warnings cleared?
+    protected boolean warningsCleared;
+    protected int fetchSize;
+    private boolean canUseServerTimeout;
+    private int maxFieldSize;
 
     /**
      * Creates a new Statement.
      *
-     * @param connection the connection to return in getConnection.
+     * @param connection          the connection to return in getConnection.
      * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     * <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      */
     public MariaDbStatement(MariaDbConnection connection, int resultSetScrollType) {
         this.protocol = connection.getProtocol();
         this.connection = connection;
+        this.canUseServerTimeout = connection.canUseServerTimeout();
         this.resultSetScrollType = resultSetScrollType;
         this.lock = this.connection.lock;
         this.options = this.protocol.getOptions();
+        this.results = new Results(this, protocol.getAutoIncrementIncrement());
     }
-
-    /**
-     * Clone statement.
-     *
-     * @return Clone statement.
-     * @throws CloneNotSupportedException if any error occur.
-     */
-    public MariaDbStatement clone() throws CloneNotSupportedException {
-        MariaDbStatement clone = (MariaDbStatement) super.clone();
-        clone.connection = connection;
-        clone.protocol = protocol;
-        clone.timerTaskFuture = null;
-        clone.batchQueries = new ArrayList<>();
-        clone.results = null;
-        clone.closed = false;
-        clone.warningsCleared = true;
-        clone.fetchSize = 0;
-        clone.maxRows = 0;
-        return clone;
-    }
-
 
     /**
      * Provide a "cleanup" method that can be called after unloading driver, to fix Tomcat's obscure classpath handling.
      */
     public static void unloadDriver() {
         // nothing to do here, as scheduler is already daemon thread
+    }
+
+    /**
+     * Clone statement.
+     * @param connection connection
+     * @return Clone statement.
+     * @throws CloneNotSupportedException if any error occur.
+     */
+    public MariaDbStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
+        MariaDbStatement clone = (MariaDbStatement) super.clone();
+        clone.connection = connection;
+        clone.protocol = connection.getProtocol();
+        clone.timerTaskFuture = null;
+        clone.batchQueries = new ArrayList<>();
+        clone.results = new Results(clone, clone.protocol.getAutoIncrementIncrement());
+        clone.closed = false;
+        clone.warningsCleared = true;
+        clone.fetchSize = 0;
+        clone.maxRows = 0;
+        return clone;
     }
 
     /**
@@ -170,19 +176,20 @@ public class MariaDbStatement implements Statement, Cloneable {
         }, queryTimeout, TimeUnit.SECONDS);
     }
 
-    protected void executeQueryProlog() throws SQLException {
+    protected void executeQueryPrologue() throws SQLException {
+        executing = true;
         if (closed) {
             throw new SQLException("execute() is called on closed statement");
         }
-        protocol.prolog(results, maxRows, protocol.getProxy() != null, connection, this);
-        if (queryTimeout != 0) {
+        protocol.prolog(maxRows, protocol.getProxy() != null, connection, this);
+        if (queryTimeout != 0 && !canUseServerTimeout) {
             setTimerTask();
         }
     }
 
     protected void stopTimeoutTask() {
         if (timerTaskFuture != null) {
-            if (! timerTaskFuture.cancel(true)) {
+            if (!timerTaskFuture.cancel(true)) {
                 // could not cancel, task either started or already finished
                 // we must now wait for task to finish to ensure state modifications are done
                 try {
@@ -203,59 +210,135 @@ public class MariaDbStatement implements Statement, Cloneable {
     /**
      * Reset timeout after query, re-throw SQL exception
      *
-     * @param queryException exception if exist
-     * @throws SQLException exception with new message in case of timer timeout.
+     * @param sqle current exception
+     * @return SQLException exception with new message in case of timer timeout.
      */
-    protected void executeQueryEpilog(QueryException queryException) throws SQLException {
-        stopTimeoutTask();
+    protected SQLException executeExceptionEpilogue(SQLException sqle) {
+        //if has a failover, closing the statement
+        if (sqle.getSQLState() != null && sqle.getSQLState().startsWith("08")) {
+            try {
+                close();
+            } catch (SQLException sqlee) {
+                //eat exception
+            }
+        }
 
         if (isTimedout) {
-            isTimedout = false;
-            queryException = new QueryException("Query timed out", 1317, "JZ0002", queryException);
+            return new SQLTimeoutException("(conn:" + getServerThreadId() + ") Query timed out", "JZ0002", 1317, sqle);
         }
+        SQLException sqlException = ExceptionMapper.getException(sqle, connection, this, queryTimeout != 0);
+        logger.error("error executing query", sqlException);
+        return sqlException;
+    }
 
-        if (queryException == null) {
-            return;
-        }
+    protected void executeEpilogue() {
+        stopTimeoutTask();
+        isTimedout = false;
+        executing = false;
+    }
+
+
+
+
+    protected void executeBatchEpilogue() {
+        executing = false;
+        stopTimeoutTask();
+        isTimedout = false;
+        clearBatch();
+    }
+
+    protected SQLException handleFailoverAndTimeout(SQLException sqle) {
 
         //if has a failover, closing the statement
-        if (queryException.getSqlState() != null && queryException.getSqlState().startsWith("08")) {
-            close();
+        if (sqle.getSQLState() != null && sqle.getSQLState().startsWith("08")) {
+            try {
+                close();
+            } catch (SQLException sqlee) {
+                //eat exception
+            }
         }
 
-        ExceptionMapper.throwAndLogException(queryException, connection, this, logger);
+        if (isTimedout) {
+            sqle = new SQLTimeoutException("(conn:" + getServerThreadId() + ") Query timed out", "JZ0002", 1317, sqle);
+        }
+        return sqle;
     }
+
+    protected BatchUpdateException executeBatchExceptionEpilogue(SQLException sqle, CmdInformation cmdInformation, int size, boolean rewritten) {
+        sqle = handleFailoverAndTimeout(sqle);
+        int[] ret;
+        if (cmdInformation == null) {
+            ret = new int[size];
+            Arrays.fill(ret, Statement.EXECUTE_FAILED);
+        } else if (rewritten) {
+            ret = cmdInformation.getRewriteUpdateCounts();
+        } else {
+            ret = cmdInformation.getUpdateCounts();
+        }
+
+        sqle = ExceptionMapper.getException(sqle, connection, this, queryTimeout != 0);
+        logger.error("error executing query", sqle);
+
+        return new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), ret, sqle);
+    }
+
+    /**
+     * Handle Exception for large batch update (return BatchUpdateException with long[].
+     *
+     * @param exception      initial exception
+     * @param cmdInformation command return information (to indicate output that have been executed)
+     * @param size           initial batch length
+     * @return a BatchUpdateException
+     */
+    private BatchUpdateException executeLargeBatchExceptionEpilogue(SQLException exception, CmdInformation cmdInformation, int size) {
+        exception = handleFailoverAndTimeout(exception);
+        long[] ret;
+        if (cmdInformation == null) {
+            ret = new long[size];
+            Arrays.fill(ret, Statement.EXECUTE_FAILED);
+        } else ret = cmdInformation.getLargeUpdateCounts();
+
+        exception = ExceptionMapper.getException(exception, connection, this, getQueryTimeout() != 0);
+        logger.error("error executing query", exception);
+
+        return new BatchUpdateException(exception.getMessage(), exception.getSQLState(), exception.getErrorCode(), ret, exception);
+    }
+
 
     /**
      * executes a query.
      *
-     * @param sql the query
+     * @param sql       the query
      * @param fetchSize fetch size
      * @return true if there was a result set, false otherwise.
      * @throws SQLException the error description
      */
     protected boolean executeInternal(String sql, int fetchSize) throws SQLException {
-        executing = true;
-        QueryException exception = null;
+
         lock.lock();
         try {
-            executeQueryProlog();
-            batchResultSet = null;
-            Results internalResults = new Results(this, fetchSize, false, 1, false, resultSetScrollType,
-                    connection.getAutoIncrementIncrement());
-            protocol.executeQuery(protocol.isMasterConnection(), internalResults,
-                    Utils.nativeSql(sql, connection.noBackslashEscapes));
-            internalResults.commandEnd();
-            results = internalResults;
+
+            executeQueryPrologue();
+            results.reset(fetchSize, false, 1, false, resultSetScrollType);
+            protocol.executeQuery(protocol.isMasterConnection(), results,
+                    getTimeoutSql(Utils.nativeSql(sql, connection.noBackslashEscapes)));
+            results.commandEnd();
             return results.getResultSet() != null;
-        } catch (QueryException e) {
-            exception = e;
-            return false;
+
+        } catch (SQLException exception) {
+            throw executeExceptionEpilogue(exception);
         } finally {
+            executeEpilogue();
             lock.unlock();
-            executeQueryEpilog(exception);
-            executing = false;
         }
+
+    }
+
+    private String getTimeoutSql(String sql) {
+        if (queryTimeout != 0 && canUseServerTimeout) {
+            return "SET STATEMENT max_statement_time=" + queryTimeout + " FOR " + sql;
+        }
+        return sql;
     }
 
     /**
@@ -268,26 +351,21 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException if any exception occur
      */
     public boolean testExecute(String sql, Charset charset) throws SQLException {
-        executing = true;
-        QueryException exception = null;
         lock.lock();
         try {
-            executeQueryProlog();
-            batchResultSet = null;
-            Results internalResults = new Results(this, fetchSize, false, 1, false, resultSetScrollType,
-                    connection.getAutoIncrementIncrement());
-            protocol.executeQuery(protocol.isMasterConnection(), internalResults,
-                    Utils.nativeSql(sql, connection.noBackslashEscapes), charset);
-            internalResults.commandEnd();
-            results = internalResults;
+
+            executeQueryPrologue();
+            results.reset(fetchSize, false, 1, false, resultSetScrollType);
+            protocol.executeQuery(protocol.isMasterConnection(), results,
+                    getTimeoutSql(Utils.nativeSql(sql, connection.noBackslashEscapes)),charset);
+            results.commandEnd();
             return results.getResultSet() != null;
-        } catch (QueryException e) {
-            exception = e;
-            return false;
+
+        } catch (SQLException exception) {
+            throw executeExceptionEpilogue(exception);
         } finally {
+            executeEpilogue();
             lock.unlock();
-            executeQueryEpilog(exception);
-            executing = false;
         }
     }
 
@@ -303,24 +381,32 @@ public class MariaDbStatement implements Statement, Cloneable {
     }
 
     /**
-     * <p>Executes the given SQL statement, which may return multiple results, and signals the driver that any auto-generated keys should be made
-     * available for retrieval.  The driver will ignore this signal if the SQL statement is not an <code>INSERT</code> statement, or an SQL statement
-     * able to return auto-generated keys (the list of such statements is vendor-specific).</p> <p>In some (uncommon) situations, a single SQL
-     * statement may return multiple result sets and/or update counts. Normally you can ignore this unless you are (1) executing a stored procedure
-     * that you know may return multiple results or (2) you are dynamically executing an unknown SQL string. </p> The <code>execute</code> method
-     * executes an SQL statement and indicates the form of the first result.  You must then use the methods <code>getResultSet</code> or
-     * <code>getUpdateCount</code> to retrieve the result, and <code>getInternalMoreResults</code> to move to any subsequent result(s).
+     * <p>Executes the given SQL statement, which may return multiple results, and signals the driver that any
+     * auto-generated keys should be made available for retrieval.  The driver will ignore this signal if the SQL
+     * statement is not an <code>INSERT</code> statement, or an SQL statement able to return auto-generated keys
+     * (the list of such statements is vendor-specific).</p>
+     * <p>In some (uncommon) situations, a single SQL statement may return multiple result sets and/or update counts.
+     * Normally you can ignore this unless you are (1) executing a stored procedure
+     * that you know may return multiple results or (2) you are dynamically executing an unknown SQL string. </p>
+     * The <code>execute</code> method
+     * executes an SQL statement and indicates the form of the first result.  You must then use the methods
+     * <code>getResultSet</code> or
+     * <code>getUpdateCount</code> to retrieve the result, and <code>getInternalMoreResults</code> to move to any
+     * subsequent result(s).
      *
-     * @param sql any SQL statement
-     * @param autoGeneratedKeys a constant indicating whether auto-generated keys should be made available for retrieval using the method
-     * <code>getGeneratedKeys</code>; one of the following constants: <code>Statement.RETURN_GENERATED_KEYS</code> or
-     * <code>Statement.NO_GENERATED_KEYS</code>
-     * @return <code>true</code> if the first result is a <code>ResultSet</code> object; <code>false</code> if it is an update count or there are no
-     * results
-     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the second
-     * parameter supplied to this method is not <code>Statement.RETURN_GENERATED_KEYS</code> or <code>Statement.NO_GENERATED_KEYS</code>.
+     * @param sql               any SQL statement
+     * @param autoGeneratedKeys a constant indicating whether auto-generated keys should be made available for retrieval
+     *                          using the method<code>getGeneratedKeys</code>; one of the following constants:
+     *                          <code>Statement.RETURN_GENERATED_KEYS</code> or
+     *                          <code>Statement.NO_GENERATED_KEYS</code>
+     * @return <code>true</code> if the first result is a <code>ResultSet</code> object; <code>false</code> if it is an
+     * update count or there are no results
+     * @throws SQLException                    if a database access error occurs, this method is called on a closed
+     *                                         <code>Statement</code> or the second parameter supplied to this method is
+     *                                         not <code>Statement.RETURN_GENERATED_KEYS</code> or
+     *                                         <code>Statement.NO_GENERATED_KEYS</code>.
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method with a constant of
-     * Statement.RETURN_GENERATED_KEYS
+     *                                         Statement.RETURN_GENERATED_KEYS
      * @see #getResultSet
      * @see #getUpdateCount
      * @see #getMoreResults
@@ -332,23 +418,30 @@ public class MariaDbStatement implements Statement, Cloneable {
 
 
     /**
-     * Executes the given SQL statement, which may return multiple results, and signals the driver that the auto-generated keys indicated in the given
-     * array should be made available for retrieval.  This array contains the indexes of the columns in the target table that contain the
-     * auto-generated keys that should be made available. The driver will ignore the array if the SQL statement is not an <code>INSERT</code>
-     * statement, or an SQL statement able to return auto-generated keys (the list of such statements is vendor-specific). <p>Under some (uncommon)
-     * situations, a single SQL statement may return multiple result sets and/or update counts. Normally you can ignore this unless you are (1)
-     * executing a stored procedure that you know may return multiple results or (2) you are dynamically executing an unknown SQL string.</p> The
-     * <code>execute</code> method executes an SQL statement and indicates the form of the first result.  You must then use the methods
-     * <code>getResultSet</code> or <code>getUpdateCount</code> to retrieve the result, and <code>getInternalMoreResults</code> to move to any
-     * subsequent result(s).
+     * Executes the given SQL statement, which may return multiple results, and signals the driver that the
+     * auto-generated keys indicated in the given array should be made available for retrieval.  This array contains
+     * the indexes of the columns in the target table that contain the auto-generated keys that should be made
+     * available. The driver will ignore the array if the SQL statement is not an <code>INSERT</code>
+     * statement, or an SQL statement able to return auto-generated keys (the list of such statements is
+     * vendor-specific).
+     * <p>Under some (uncommon) situations, a single SQL statement may return multiple result sets and/or update counts.
+     * Normally you can ignore this unless you are
+     * (1) executing a stored procedure that you know may return multiple results or
+     * (2) you are dynamically executing an unknown SQL string.</p>
+     * The <code>execute</code> method executes an SQL statement and indicates the form of the first result.
+     * You must then use the methods <code>getResultSet</code> or <code>getUpdateCount</code> to retrieve the result,
+     * and <code>getInternalMoreResults</code> to move to any subsequent result(s).
      *
-     * @param sql any SQL statement
-     * @param columnIndexes an array of the indexes of the columns in the inserted row that should be  made available for retrieval by a call to the
-     * method <code>getGeneratedKeys</code>
-     * @return <code>true</code> if the first result is a <code>ResultSet</code> object; <code>false</code> if it is an update count or there are no
-     * results
-     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the elements in
-     * the <code>int</code> array passed to this method are not valid column indexes
+     * @param sql           any SQL statement
+     * @param columnIndexes an array of the indexes of the columns in the inserted row that should be  made available
+     *                      for retrieval by a call to the
+     *                      method <code>getGeneratedKeys</code>
+     * @return <code>true</code> if the first result is a <code>ResultSet</code> object; <code>false</code> if it is an
+     * update count or there are no results
+     * @throws SQLException                    if a database access error occurs, this method is called on a closed
+     *                                         <code>Statement</code> or the elements in
+     *                                         the <code>int</code> array passed to this method are not valid column
+     *                                         indexes
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see #getResultSet
      * @see #getUpdateCount
@@ -361,24 +454,28 @@ public class MariaDbStatement implements Statement, Cloneable {
 
 
     /**
-     * <p>Executes the given SQL statement, which may return multiple results, and signals the driver that the auto-generated keys indicated in the
-     * given array should be made available for retrieval. This array contains the names of the columns in the target table that contain the
-     * auto-generated keys that should be made available.  The driver will ignore the array if the SQL statement is not an <code>INSERT</code>
-     * statement, or an SQL statement able to return auto-generated keys (the list of such statements is vendor-specific). </p>
-     * <p> In some (uncommon) situations, a single
-     * SQL statement may return multiple result sets and/or update counts. Normally you can ignore this unless you are (1) executing a stored
-     * procedure that you know may return multiple results or (2) you are dynamically executing an unknown SQL string. </p>
-     * <p>The <code>execute</code> method executes an SQL statement and indicates the form of the first result.  You must then use the methods
-     * <code>getResultSet</code> or <code>getUpdateCount</code> to retrieve the result, and <code>getInternalMoreResults</code> to move to any
-     * subsequent result(s).</p>
+     * <p>Executes the given SQL statement, which may return multiple results, and signals the driver that the
+     * auto-generated keys indicated in the given array should be made available for retrieval. This array contains
+     * the names of the columns in the target table that contain the auto-generated keys that should be made available.
+     * The driver will ignore the array if the SQL statement is not an <code>INSERT</code>
+     * statement, or an SQL statement able to return auto-generated keys (the list of such statements is
+     * vendor-specific). </p>
+     * <p> In some (uncommon) situations, a single SQL statement may return multiple result sets and/or update counts.
+     * Normally you can ignore this unless you are (1) executing a stored procedure that you know may return multiple
+     * results or (2) you are dynamically executing an unknown SQL string. </p>
+     * <p>The <code>execute</code> method executes an SQL statement and indicates the form of the first result.
+     * You must then use the methods <code>getResultSet</code> or <code>getUpdateCount</code> to retrieve the result,
+     * and <code>getInternalMoreResults</code> to move to any subsequent result(s).</p>
      *
-     * @param sql any SQL statement
-     * @param columnNames an array of the names of the columns in the inserted row that should be made available for retrieval by a call to the method
-     * <code>getGeneratedKeys</code>
-     * @return <code>true</code> if the next result is a <code>ResultSet</code> object; <code>false</code> if it is an update count or there are no
-     * more results
-     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the elements of
-     * the <code>String</code> array passed to this method are not valid column names
+     * @param sql         any SQL statement
+     * @param columnNames an array of the names of the columns in the inserted row that should be made available
+     *                    for retrieval by a call to the method <code>getGeneratedKeys</code>
+     * @return <code>true</code> if the next result is a <code>ResultSet</code> object; <code>false</code> if it is an
+     * update count or there are no more results
+     * @throws SQLException                    if a database access error occurs, this method is called on a closed
+     *                                         <code>Statement</code> or the elements of
+     *                                         the <code>String</code> array passed to this method are not valid column
+     *                                         names
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @see #getResultSet
      * @see #getUpdateCount
@@ -403,7 +500,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             return results.getResultSet();
         }
         //throw new SQLException("executeQuery() with query '" + query +"' did not return a result set");
-        return MariaSelectResultSet.createEmptyResultSet();
+        return SelectResultSet.createEmptyResultSet();
     }
 
 
@@ -423,19 +520,26 @@ public class MariaDbStatement implements Statement, Cloneable {
 
 
     /**
-     * Executes the given SQL statement and signals the driver with the given flag about whether the auto-generated keys produced by this
-     * <code>Statement</code> object should be made available for retrieval.  The driver will ignore the flag if the SQL statement is not an
-     * <code>INSERT</code> statement, or an SQL statement able to return auto-generated keys (the list of such statements is vendor-specific).
+     * Executes the given SQL statement and signals the driver with the given flag about whether the auto-generated keys
+     * produced by this <code>Statement</code> object should be made available for retrieval.  The driver will ignore
+     * the flag if the SQL statement is not an
+     * <code>INSERT</code> statement, or an SQL statement able to return auto-generated keys (the list of such
+     * statements is vendor-specific).
      *
-     * @param sql an SQL Data Manipulation Language (DML) statement, such as <code>INSERT</code>, <code>UPDATE</code> or <code>DELETE</code>; or an
-     * SQL statement that returns nothing, such as a DDL statement.
-     * @param autoGeneratedKeys a flag indicating whether auto-generated keys should be made available for retrieval; one of the following constants:
-     * <code>Statement.RETURN_GENERATED_KEYS</code> <code>Statement.NO_GENERATED_KEYS</code>
-     * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements that return nothing
-     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>, the given SQL
-     * statement returns a <code>ResultSet</code> object, or the given constant is not one of those allowed
+     * @param sql               an SQL Data Manipulation Language (DML) statement, such as <code>INSERT</code>,
+     *                          <code>UPDATE</code> or <code>DELETE</code>; or an
+     *                          SQL statement that returns nothing, such as a DDL statement.
+     * @param autoGeneratedKeys a flag indicating whether auto-generated keys should be made available for retrieval;
+     *                          one of the following constants:
+     *                          <code>Statement.RETURN_GENERATED_KEYS</code> <code>Statement.NO_GENERATED_KEYS</code>
+     * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements
+     * that return nothing
+     * @throws SQLException                    if a database access error occurs, this method is called on a closed
+     *                                         <code>Statement</code>, the given SQL
+     *                                         statement returns a <code>ResultSet</code> object, or the given constant
+     *                                         is not one of those allowed
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method with a constant of
-     * Statement.RETURN_GENERATED_KEYS
+     *                                         Statement.RETURN_GENERATED_KEYS
      * @since 1.4
      */
     public int executeUpdate(final String sql, final int autoGeneratedKeys) throws SQLException {
@@ -445,52 +549,118 @@ public class MariaDbStatement implements Statement, Cloneable {
         return getUpdateCount();
     }
 
-
     /**
-     * Executes the given SQL statement and signals the driver that the auto-generated keys indicated in the given array should be made available for
-     * retrieval.   This array contains the indexes of the columns in the target table that contain the auto-generated keys that should be made
-     * available. The driver will ignore the array if the SQL statement is not an <code>INSERT</code> statement, or an SQL statement able to return
-     * auto-generated keys (the list of such statements is vendor-specific).
+     * Executes the given SQL statement and signals the driver that the auto-generated keys indicated in the given array
+     * should be made available for retrieval.   This array contains the indexes of the columns in the target table that
+     * contain the auto-generated keys that should be made available. The driver will ignore the array if the SQL
+     * statement is not an <code>INSERT</code> statement, or an SQL statement able to return auto-generated keys (the
+     * list of such statements is vendor-specific).
      *
-     * @param sql an SQL Data Manipulation Language (DML) statement, such as <code>INSERT</code>, <code>UPDATE</code> or <code>DELETE</code>; or an
-     * SQL statement that returns nothing, such as a DDL statement.
-     * @param columnIndexes an array of column indexes indicating the columns that should be returned from the inserted row
-     * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements that return nothing
-     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>, the SQL statement
-     * returns a <code>ResultSet</code> object, or the second argument supplied to this method is not an <code>int</code> array whose elements are
-     * valid column indexes
+     * @param sql           an SQL Data Manipulation Language (DML) statement, such as <code>INSERT</code>,
+     *                      <code>UPDATE</code> or <code>DELETE</code>; or an SQL statement that returns nothing, such
+     *                      as a DDL statement.
+     * @param columnIndexes an array of column indexes indicating the columns that should be returned from the
+     *                      inserted row
+     * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements
+     * that return nothing
+     * @throws SQLException if a database access error occurs, this method is called on a closed
+     * <code>Statement</code>, the SQL statement returns a <code>ResultSet</code> object, or the second argument
+     * supplied to this method is not an <code>int</code> array whose elements are valid column indexes
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public int executeUpdate(final String sql, final int[] columnIndexes) throws SQLException {
-        if (executeInternal(sql, fetchSize)) {
-            return 0;
-        }
-        return getUpdateCount();
+        return executeUpdate(sql);
     }
 
     /**
-     * Executes the given SQL statement and signals the driver that the auto-generated keys indicated in the given array should be made available for
-     * retrieval.   This array contains the names of the columns in the target table that contain the auto-generated keys that should be made
-     * available. The driver will ignore the array if the SQL statement is not an <code>INSERT</code> statement, or an SQL statement able to return
+     * Executes the given SQL statement and signals the driver that the auto-generated keys indicated in the given
+     * array should be made available for retrieval. This array contains the names of the columns in the target table
+     * that contain the auto-generated keys that should be made available. The driver will ignore the array if the SQL
+     * statement is not an <code>INSERT</code> statement, or an SQL statement able to return
      * auto-generated keys (the list of such statements is vendor-specific).
      *
-     * @param sql an SQL Data Manipulation Language (DML) statement, such as <code>INSERT</code>, <code>UPDATE</code> or <code>DELETE</code>; or an
-     * SQL statement that returns nothing, such as a DDL statement.
+     * @param sql         an SQL Data Manipulation Language (DML) statement, such as <code>INSERT</code>,
+     *                    <code>UPDATE</code> or <code>DELETE</code>; or an
+     *                    SQL statement that returns nothing, such as a DDL statement.
      * @param columnNames an array of the names of the columns that should be returned from the inserted row
-     * @return either the row count for <code>INSERT</code>, <code>UPDATE</code>, or <code>DELETE</code> statements, or 0 for SQL statements that
-     * return nothing
-     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>, the SQL statement
-     * returns a <code>ResultSet</code> object, or the second argument supplied to this method is not a <code>String</code> array whose elements are
-     * valid column names
+     * @return either the row count for <code>INSERT</code>, <code>UPDATE</code>, or <code>DELETE</code> statements,
+     * or 0 for SQL statements that return nothing
+     * @throws SQLException  if a database access error occurs, this method is called on a closed
+     * <code>Statement</code>, the SQL statement returns a <code>ResultSet</code> object, or the second argument
+     * supplied to this method is not a <code>String</code> array whose elements are valid column names
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public int executeUpdate(final String sql, final String[] columnNames) throws SQLException {
+        return executeUpdate(sql);
+    }
+
+
+
+    /**
+     * Executes the given SQL statement, which may be an INSERT, UPDATE, or DELETE statement or an SQL statement that returns nothing,
+     * such as an SQL DDL statement.
+     * This method should be used when the returned row count may exceed Integer.MAX_VALUE.
+     *
+     * @param sql sql command
+     * @return update counts
+     * @throws SQLException if any error occur during execution
+     */
+    @Override
+    public long executeLargeUpdate(String sql) throws SQLException {
         if (executeInternal(sql, fetchSize)) {
             return 0;
         }
-        return getUpdateCount();
+        return getLargeUpdateCount();
+    }
+
+    /**
+     * Identical to executeLargeUpdate(String sql), with a flag that indicate that autoGeneratedKeys (primary key fields with "auto_increment")
+     * generated id's must be retrieved.
+     *
+     * Those id's will be available using getGeneratedKeys() method.
+     *
+     * @param sql               sql command
+     * @param autoGeneratedKeys a flag indicating whether auto-generated keys should be made available for retrieval;
+     *                          one of the following constants:
+     *                          Statement.RETURN_GENERATED_KEYS
+     *                          Statement.NO_GENERATED_KEYS
+     * @return update counts
+     * @throws SQLException if any error occur during execution
+     */
+    @Override
+    public long executeLargeUpdate(String sql, int autoGeneratedKeys) throws SQLException {
+        //driver always get generated keys.
+        return executeLargeUpdate(sql);
+    }
+
+    /**
+     * Identical to executeLargeUpdate(String sql, int autoGeneratedKeys) with autoGeneratedKeys = Statement.RETURN_GENERATED_KEYS set.
+     *
+     * @param sql               sql command
+     * @param columnIndexes     column Indexes
+     * @return update counts
+     * @throws SQLException if any error occur during execution
+     */
+    @Override
+    public long executeLargeUpdate(String sql, int[] columnIndexes) throws SQLException {
+        //driver always get generated keys. no need for columnIndexes indication
+        return executeLargeUpdate(sql);
+    }
+
+    /**
+     * Identical to executeLargeUpdate(String sql, int autoGeneratedKeys) with autoGeneratedKeys = Statement.RETURN_GENERATED_KEYS set.
+     *
+     * @param sql               sql command
+     * @param columnNames       columns names
+     * @return update counts
+     * @throws SQLException if any error occur during execution
+     */
+    @Override
+    public long executeLargeUpdate(String sql, String[] columnNames) throws SQLException {
+        //driver always get generated keys. no need for columnNames indication
+        return executeLargeUpdate(sql);
     }
 
     /**
@@ -506,12 +676,20 @@ public class MariaDbStatement implements Statement, Cloneable {
         try {
             closed = true;
 
-            if (results != null) {
-                if (results.getFetchSize() != 0) skipMoreResults();
-                results = null;
+            if (results.getFetchSize() != 0) {
+                if (options.killFetchStmtOnClose) {
+                    try {
+                        protocol.cancelCurrentQuery();
+                        skipMoreResults();
+                    } catch (SQLException | IOException  sqle) {
+                        //eat exception
+                    }
+                } else skipMoreResults();
             }
 
+            results.close();
             protocol = null;
+
             if (connection == null || connection.pooledConnection == null
                     || connection.pooledConnection.statementEventListeners.isEmpty()) {
                 return;
@@ -524,16 +702,24 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     /**
      * Retrieves the maximum number of bytes that can be returned for character and binary column values in a <code>ResultSet</code> object produced
-     * by this <code>Statement</code> object. This limit applies only to <code>BINARY</code>, <code>VARBINARY</code>, <code>LONGVARBINARY</code>,
-     * <code>CHAR</code>, <code>VARCHAR</code>, <code>NCHAR</code>, <code>NVARCHAR</code>, <code>LONGNVARCHAR</code> and <code>LONGVARCHAR</code>
+     * by this <code>Statement</code> object.
+     * This limit applies only to
+     * <code>BINARY</code>,
+     * <code>VARBINARY</code>,
+     * <code>LONGVARBINARY</code>,
+     * <code>CHAR</code>,
+     * <code>VARCHAR</code>,
+     * <code>NCHAR</code>,
+     * <code>NVARCHAR</code>,
+     * <code>LONGNVARCHAR</code> and
+     * <code>LONGVARCHAR</code>
      * columns.  If the limit is exceeded, the excess data is silently discarded.
      *
      * @return the current column size limit for columns storing character and binary values; zero means there is no limit
-     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @see #setMaxFieldSize
      */
-    public int getMaxFieldSize() throws SQLException {
-        return 0;
+    public int getMaxFieldSize() {
+        return maxFieldSize;
     }
 
     /**
@@ -545,11 +731,11 @@ public class MariaDbStatement implements Statement, Cloneable {
      *
      * @param max the new column size limit in bytes; zero means there is no limit
      * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the condition max
-     * &gt;= 0 is not satisfied
+     *                      &gt;= 0 is not satisfied
      * @see #getMaxFieldSize
      */
     public void setMaxFieldSize(final int max) throws SQLException {
-        //we dont support max field sizes
+        maxFieldSize = max;
     }
 
     /**
@@ -562,9 +748,33 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @see #setMaxRows
      */
     public int getMaxRows() throws SQLException {
+        return (int) maxRows;
+    }
+
+    /**
+     * Retrieves the maximum number of rows that a ResultSet object produced by this Statement object can contain.
+     * If this limit is exceeded, the excess rows are silently dropped.
+     * @return the current maximum number of rows for a ResultSet object produced by this Statement object; zero means there is no limit
+     */
+    @Override
+    public long getLargeMaxRows() {
         return maxRows;
     }
 
+    /**
+     * Sets the limit for the maximum number of rows that any ResultSet object generated by this Statement object can contain to the given number.
+     * If the limit is exceeded, the excess rows are silently dropped.
+     *
+     * @param max the new max rows limit; zero means there is no limit
+     * @throws SQLException if the condition max &gt;= 0 is not satisfied
+     */
+    @Override
+    public void setLargeMaxRows(long max) throws SQLException {
+        if (max < 0) {
+            throw new SQLException("max rows cannot be negative : setLargeMaxRows value is " + max);
+        }
+        maxRows = max;
+    }
     /**
      * Sets the limit for the maximum number of rows that any <code>ResultSet</code> object  generated by this <code>Statement</code> object can
      * contain to the given number. If the limit is exceeded, the excess rows are silently dropped.
@@ -597,10 +807,9 @@ public class MariaDbStatement implements Statement, Cloneable {
      * <code>SQLException</code> is thrown.
      *
      * @return the current query timeout limit in seconds; zero means there is no limit
-     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @see #setQueryTimeout
      */
-    public int getQueryTimeout() throws SQLException {
+    public int getQueryTimeout() {
         return queryTimeout;
     }
 
@@ -611,10 +820,13 @@ public class MariaDbStatement implements Statement, Cloneable {
      *
      * @param seconds the new query timeout limit in seconds; zero means there is no limit
      * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the condition
-     * seconds &gt;= 0 is not satisfied
+     *                      seconds &gt;= 0 is not satisfied
      * @see #getQueryTimeout
      */
     public void setQueryTimeout(final int seconds) throws SQLException {
+        if (seconds < 0) {
+            throw new SQLException("Query timeout rows cannot be negative : asked for " + seconds);
+        }
         this.queryTimeout = seconds;
     }
 
@@ -634,17 +846,15 @@ public class MariaDbStatement implements Statement, Cloneable {
      * Cancels this <code>Statement</code> object if both the DBMS and driver support aborting an SQL statement. This method can be used by one thread
      * to cancel a statement that is being executed by another thread.
      *
-     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException                    if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void cancel() throws SQLException {
         checkClose();
         try {
-            if (!executing) {
-                return;
-            }
+            if (!executing) return;
             protocol.cancelCurrentQuery();
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             logger.error("error cancelling query", e);
             ExceptionMapper.throwException(e, connection, this);
         } catch (IOException e) {
@@ -690,7 +900,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * object being used for positioning. Also, cursor names must be unique within a connection.</p>
      *
      * @param name the new cursor name, which must be unique within a connection
-     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException                    if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void setCursorName(final String name) throws SQLException {
@@ -703,7 +913,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @return the connection
      * @throws SQLException if connection is invalid
      */
-    public Connection getConnection() throws SQLException {
+    public MariaDbConnection getConnection() throws SQLException {
         return this.connection;
     }
 
@@ -713,7 +923,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * keys were not specified, the JDBC driver implementation will determine the columns which best represent the auto-generated keys.</p>
      *
      * @return a <code>ResultSet</code> object containing the auto-generated key(s) generated by the execution of this <code>Statement</code> object
-     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @throws SQLException                    if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
@@ -721,7 +931,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         if (results != null) {
             return results.getGeneratedKeys(protocol);
         }
-        return MariaSelectResultSet.createEmptyResultSet();
+        return SelectResultSet.createEmptyResultSet();
     }
 
     /**
@@ -783,17 +993,15 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     public ResultSet getResultSet() throws SQLException {
         checkClose();
-        if (results != null) {
-            return results.getResultSet();
-        }
-        return null;
+        return results.getResultSet();
     }
 
     /**
-     * Retrieves the current result as an update count; if the result is a ResultSet object or there are no more results, -1 is returned. This method
-     * should be called only once per result.
+     * Retrieves the current result as an update count; if the result is a ResultSet object or there are no more
+     * results, -1 is returned. This method should be called only once per result.
      *
-     * @return the current result as an update count; -1 if the current result is a ResultSet object or there are no more results
+     * @return the current result as an update count; -1 if the current result is a ResultSet object or there are no
+     * more results
      * @throws SQLException if a database access error occurs or this method is called on a closed Statement
      */
     public int getUpdateCount() throws SQLException {
@@ -803,26 +1011,41 @@ public class MariaDbStatement implements Statement, Cloneable {
         return -1;
     }
 
+    /**
+     * Retrieves the current result as an update count; if the result is a ResultSet object or there are no more results, -1 is returned.
+     *
+     * @return last update count
+     */
+    @Override
+    public long getLargeUpdateCount() {
+        if (results.getCmdInformation() != null) {
+            return results.getCmdInformation().getLargeUpdateCount();
+        }
+        return -1;
+    }
+
     protected void skipMoreResults() throws SQLException {
         try {
             protocol.skip();
             warningsCleared = false;
             connection.reenableWarnings();
-        } catch (QueryException e) {
+        } catch (SQLException e) {
             logger.debug("error skipMoreResults", e);
             ExceptionMapper.throwException(e, connection, this);
         }
     }
 
     /**
-     * <p>Moves to this <code>Statement</code> object's next result, returns <code>true</code> if it is a <code>ResultSet</code> object, and
-     * implicitly closes any current <code>ResultSet</code> object(s) obtained with the method <code>getResultSet</code>.</p>
+     * <p>Moves to this <code>Statement</code> object's next result, returns <code>true</code> if it is a
+     * <code>ResultSet</code> object, and implicitly closes any current <code>ResultSet</code> object(s) obtained with
+     * the method <code>getResultSet</code>.</p>
      * There are no more results when the following is true: <pre> // stmt is a Statement object
      * ((stmt.getInternalMoreResults() == false) &amp;&amp; (stmt.getUpdateCount() == -1)) </pre>
      *
-     * @return <code>true</code> if the next result is a <code>ResultSet</code> object; <code>false</code> if it is an update count or there are no
-     * more results
-     * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
+     * @return <code>true</code> if the next result is a <code>ResultSet</code> object; <code>false</code> if it is an
+     * update count or there are no more results
+     * @throws SQLException if a database access error occurs or this method is called on a closed
+     * <code>Statement</code>
      * @see #execute
      */
     public boolean getMoreResults() throws SQLException {
@@ -830,36 +1053,32 @@ public class MariaDbStatement implements Statement, Cloneable {
     }
 
     /**
-     * <p>Moves to this <code>Statement</code> object's next result, deals with any current <code>ResultSet</code> object(s) according  to the
-     * instructions specified by the given flag, and returns <code>true</code> if the next result is a <code>ResultSet</code> object.</p>
+     * <p>Moves to this <code>Statement</code> object's next result, deals with any current <code>ResultSet</code>
+     * object(s) according to the instructions specified by the given flag, and returns <code>true</code> if the next
+     * result is a <code>ResultSet</code> object.</p>
      * There are no more results when the following is true: <pre> // stmt is a Statement object
      * ((stmt.getInternalMoreResults(current) == false) &amp;&amp; (stmt.getUpdateCount() == -1))</pre>
      *
-     * @param current one of the following <code>Statement</code> constants indicating what should happen to current <code>ResultSet</code> objects
-     * obtained using the method <code>getResultSet</code>: <code>Statement.CLOSE_CURRENT_RESULT</code>, <code>Statement.KEEP_CURRENT_RESULT</code>,
-     * or <code>Statement.CLOSE_ALL_RESULTS</code>
-     * @return <code>true</code> if the next result is a <code>ResultSet</code> object; <code>false</code> if it is an update count or there are no
-     * more results
-     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the argument
-     * supplied is not one of the following: <code>Statement.CLOSE_CURRENT_RESULT</code>, <code>Statement.KEEP_CURRENT_RESULT</code> or
-     * <code>Statement.CLOSE_ALL_RESULTS</code>
-     * @throws SQLFeatureNotSupportedException if <code>DatabaseMetaData.supportsMultipleOpenResults</code> returns <code>false</code> and
-     * either <code>Statement.KEEP_CURRENT_RESULT</code> or <code>Statement.CLOSE_ALL_RESULTS</code> are supplied as the argument.
+     * @param current one of the following <code>Statement</code> constants indicating what should happen to current
+     *                <code>ResultSet</code> objects obtained using the method <code>getResultSet</code>:
+     *                <code>Statement.CLOSE_CURRENT_RESULT</code>, <code>Statement.KEEP_CURRENT_RESULT</code>,
+     *                or <code>Statement.CLOSE_ALL_RESULTS</code>
+     * @return <code>true</code> if the next result is a <code>ResultSet</code> object; <code>false</code> if it is an
+     * update count or there are no more results
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>
+     * or the argument supplied is not one of the following: <code>Statement.CLOSE_CURRENT_RESULT</code>,
+     * <code>Statement.KEEP_CURRENT_RESULT</code> or <code>Statement.CLOSE_ALL_RESULTS</code>
+     * @throws SQLFeatureNotSupportedException if <code>DatabaseMetaData.supportsMultipleOpenResults</code> returns
+     * <code>false</code> and either <code>Statement.KEEP_CURRENT_RESULT</code>
+     * or <code>Statement.CLOSE_ALL_RESULTS</code> are supplied as the argument.
      * @see #execute
      * @since 1.4
      */
     public boolean getMoreResults(final int current) throws SQLException {
         //if fetch size is set to read fully, other resultSet are put in cache
-        if (results != null) {
-            //must fetch new data
-            checkClose();
-            return results.getMoreResults(current, protocol);
-        } else {
-            return false;
-        }
+        checkClose();
+        return results.getMoreResults(current, protocol);
     }
-
-
 
 
     /**
@@ -884,8 +1103,9 @@ public class MariaDbStatement implements Statement, Cloneable {
      * fetch direction. </p>
      *
      * @param direction the initial direction for processing rows
-     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the given
-     * direction is not one of <code>ResultSet.FETCH_FORWARD</code>, <code>ResultSet.FETCH_REVERSE</code>, or <code>ResultSet.FETCH_UNKNOWN</code>
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>
+     * or the given direction is not one of <code>ResultSet.FETCH_FORWARD</code>,
+     * <code>ResultSet.FETCH_REVERSE</code>, or <code>ResultSet.FETCH_UNKNOWN</code>
      * @see #getFetchDirection
      * @since 1.2
      */
@@ -914,7 +1134,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      *
      * @param rows the number of rows to fetch
      * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the condition
-     * <code>rows &gt;= 0</code> is not satisfied.
+     *                      <code>rows &gt;= 0</code> is not satisfied.
      * @see #getFetchSize
      * @since 1.2
      */
@@ -958,7 +1178,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      *
      * @param sql typically this is a SQL <code>INSERT</code> or <code>UPDATE</code> statement
      * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the driver does
-     * not support batch updates
+     *                      not support batch updates
      * @see #executeBatch
      * @see DatabaseMetaData#supportsBatchUpdates
      * @since 1.2
@@ -972,29 +1192,28 @@ public class MariaDbStatement implements Statement, Cloneable {
     /**
      * Empties this <code>Statement</code> object's current list of SQL send.
      *
-     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the driver does
-     * not support batch updates
      * @see #addBatch
      * @see DatabaseMetaData#supportsBatchUpdates
      * @since 1.2
      */
-    public void clearBatch() throws SQLException {
+    public void clearBatch() {
         if (batchQueries != null) batchQueries.clear();
     }
 
     /**
      * Execute statements. depending on option, queries mays be rewritten :
-     *
+     * <p>
      * those queries will be rewritten if possible to
      * INSERT INTO ... VALUES (...) ; INSERT INTO ... VALUES (...);
-     *
+     * <p>
      * if option rewriteBatchedStatements is set to true, rewritten to
      * INSERT INTO ... VALUES (...), (...);
      *
-     * @return an array of update counts containing one element for each command in the batch.  The elements of the array are ordered according to the
-     * order in which send were added to the batch.
-     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code> or the driver does
-     * not support batch statements. Throws {@link BatchUpdateException} (a subclass of <code>SQLException</code>) if one of the send
+     * @return an array of update counts containing one element for each command in the batch.  The elements of the
+     * array are ordered according to the order in which send were added to the batch.
+     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>
+     * or the driver does not support batch statements. Throws {@link BatchUpdateException}
+     * (a subclass of <code>SQLException</code>) if one of the send
      * sent to the database fails to execute properly or attempts to return a result set.
      * @see #addBatch
      * @see DatabaseMetaData#supportsBatchUpdates
@@ -1003,57 +1222,80 @@ public class MariaDbStatement implements Statement, Cloneable {
     public int[] executeBatch() throws SQLException {
         checkClose();
         int size;
-        if (batchQueries == null || (size = batchQueries.size()) == 0) {
-            return new int[0];
-        }
+        if (batchQueries == null || (size = batchQueries.size()) == 0) return new int[0];
 
-        Results internalResults = new Results(this, 0, true, size, false, resultSetScrollType,
-                connection.getAutoIncrementIncrement());
         lock.lock();
         try {
-            QueryException exception = null;
-            executing = true;
-            executeQueryProlog();
-            try {
-                if (this.options.rewriteBatchedStatements) {
-                    //check that queries are rewritable
-                    boolean batchQueryMultiRewritable = true;
-                    for (String query : batchQueries) {
-                        if (!ClientPrepareResult.isRewritableBatch(query, connection.noBackslashEscapes)) {
-                            batchQueryMultiRewritable = false;
-                            break;
-                        }
-                    }
-                    if (batchQueryMultiRewritable) {
-                        protocol.executeBatchMultiple(protocol.isMasterConnection(), internalResults, batchQueries);
-                    } else {
-                        protocol.executeBatch(protocol.isMasterConnection(), internalResults, batchQueries);
-                    }
-                } else {
-                    protocol.executeBatch(protocol.isMasterConnection(), internalResults, batchQueries);
-                }
-            } catch (QueryException e) {
-                exception = e;
-            } finally {
-                internalResults.commandEnd();
-                results = internalResults;
-                executing = false;
-                executeQueryEpilog(exception);
-            }
-            return internalResults.getCmdInformation().getUpdateCounts();
+            internalBatchExecution(size);
+            return results.getCmdInformation().getUpdateCounts();
 
-        } catch (SQLException sqle) {
-            int[] ret;
-            if (internalResults.getCmdInformation() == null) {
-                ret = new int[size];
-                Arrays.fill(ret, Statement.EXECUTE_FAILED);
-            } else ret = internalResults.getCmdInformation().getUpdateCounts();
-
-            throw new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), ret, sqle);
+        } catch (SQLException initialSqlEx) {
+            throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), size, false);
         } finally {
+            executeBatchEpilogue();
             lock.unlock();
-            clearBatch();
         }
+    }
+
+    /**
+     * Execute batch, like executeBatch(), with returning results with long[].
+     * For when row count may exceed Integer.MAX_VALUE.
+     *
+     * @return an array of update counts (one element for each command in the batch)
+     * @throws SQLException if a database error occur.
+     */
+    @Override
+    public long[] executeLargeBatch() throws SQLException {
+        checkClose();
+        int size;
+        if (batchQueries == null || (size = batchQueries.size()) == 0) return new long[0];
+
+        lock.lock();
+        try {
+            internalBatchExecution(size);
+            return results.getCmdInformation().getLargeUpdateCounts();
+
+        } catch (SQLException initialSqlEx) {
+            throw executeLargeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), size);
+        } finally {
+            executeBatchEpilogue();
+            lock.unlock();
+        }
+    }
+    /**
+     * Internal batch execution.
+     * @param size expected result-set size
+     * @throws SQLException throw exception if batch error occur
+     */
+    protected void internalBatchExecution(int size) throws SQLException {
+
+        executeQueryPrologue();
+
+        results.reset(0, true, size, false, resultSetScrollType);
+        if (this.options.rewriteBatchedStatements) {
+
+            //check that queries are rewritable
+            boolean batchQueryMultiRewritable = true;
+            for (String query : batchQueries) {
+                if (!ClientPrepareResult.isRewritableBatch(query, connection.noBackslashEscapes)) {
+                    batchQueryMultiRewritable = false;
+                    break;
+                }
+            }
+
+            if (batchQueryMultiRewritable) {
+                protocol.executeBatchMultiple(protocol.isMasterConnection(), results, batchQueries);
+            } else {
+                protocol.executeBatch(protocol.isMasterConnection(), results, batchQueries);
+            }
+
+        } else {
+
+            protocol.executeBatch(protocol.isMasterConnection(), results, batchQueries);
+
+        }
+
+        results.commandEnd();
     }
 
     /**
@@ -1108,13 +1350,13 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     /**
      * Check that close on completion is asked, and close if so.
+     *
      * @param resultSet resultSet
      * @throws SQLException if close has error
      */
     public void checkCloseOnCompletion(ResultSet resultSet) throws SQLException {
         if (mustCloseOnCompletion
                 && !closed
-                && results != null
                 && resultSet.equals(results.getResultSet())) {
             close();
         }
@@ -1122,6 +1364,7 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     /**
      * Check if statement is closed, and throw exception if so.
+     *
      * @throws SQLException if statement close
      */
     protected void checkClose() throws SQLException {
@@ -1132,6 +1375,7 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     /**
      * Permit to retrieve current connection thread id, or -1 if unknown.
+     *
      * @return current connection thread id.
      */
     public long getServerThreadId() {

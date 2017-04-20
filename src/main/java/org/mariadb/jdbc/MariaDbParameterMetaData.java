@@ -50,8 +50,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
+import org.mariadb.jdbc.internal.ColumnType;
 
 import java.sql.ParameterMetaData;
 import java.sql.SQLException;
@@ -76,7 +76,7 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
             return parametersInformation[param - 1];
         }
         throw new SQLException("Parameter metadata out of range : param was " + param + " and must be 1 <= param <=" + parametersInformation.length,
-                "22003");
+                "07009");
     }
 
     @Override
@@ -101,7 +101,7 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
 
     @Override
     public int getScale(int param) throws SQLException {
-        if (MariaDbType.isNumeric(getParameterInformation(param).getType())) {
+        if (ColumnType.isNumeric(getParameterInformation(param).getColumnType())) {
             return getParameterInformation(param).getDecimals();
         }
         return 0;
@@ -109,17 +109,17 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
 
     @Override
     public int getParameterType(int param) throws SQLException {
-        return getParameterInformation(param).getType().getSqlType();
+        return getParameterInformation(param).getColumnType().getSqlType();
     }
 
     @Override
     public String getParameterTypeName(int param) throws SQLException {
-        return getParameterInformation(param).getType().getTypeName();
+        return getParameterInformation(param).getColumnType().getTypeName();
     }
 
     @Override
     public String getParameterClassName(int param) throws SQLException {
-        return getParameterInformation(param).getType().getClassName();
+        return getParameterInformation(param).getColumnType().getClassName();
     }
 
     @Override
@@ -128,12 +128,19 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
     }
 
     @Override
-    public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;
+    public <T> T unwrap(final Class<T> iface) throws SQLException {
+        try {
+            if (isWrapperFor(iface)) {
+                return iface.cast(this);
+            } else {
+                throw new SQLException("The receiver is not a wrapper for " + iface.getName());
+            }
+        } catch (Exception e) {
+            throw new SQLException("The receiver is not a wrapper and does not implement the interface");
+        }
     }
 
-    @Override
-    public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;
+    public boolean isWrapperFor(final Class<?> iface) throws SQLException {
+        return iface.isInstance(this);
     }
 }

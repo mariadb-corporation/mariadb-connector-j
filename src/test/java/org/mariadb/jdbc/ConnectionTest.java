@@ -18,6 +18,7 @@ public class ConnectionTest extends BaseTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -54,7 +55,7 @@ public class ConnectionTest extends BaseTest {
                     break;
 
                 default:
-                    fail("Wrong error code : " + e.getErrorCode());
+                    e.printStackTrace();
             }
         }
     }
@@ -67,39 +68,37 @@ public class ConnectionTest extends BaseTest {
      */
     @Test
     public void abortTest() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = setConnection();
-            Statement stmt = connection.createStatement();
-            SQLPermission sqlPermission = new SQLPermission("callAbort");
+        try (Connection connection = setConnection()) {
 
-            SecurityManager securityManager = System.getSecurityManager();
-            if (securityManager != null && sqlPermission != null) {
+            try (Statement stmt = connection.createStatement()) {
+
+                SQLPermission sqlPermission = new SQLPermission("callAbort");
+                SecurityManager securityManager = System.getSecurityManager();
+                if (securityManager != null && sqlPermission != null) {
+                    try {
+                        securityManager.checkPermission(sqlPermission);
+                    } catch (SecurityException se) {
+                        System.out.println("test 'abortTest' skipped  due to missing policy");
+                        return;
+                    }
+                }
+
+                Executor executor = new Executor() {
+                    @Override
+                    public void execute(Runnable command) {
+                        command.run();
+                    }
+                };
+
+                connection.abort(executor);
+                assertTrue(connection.isClosed());
                 try {
-                    securityManager.checkPermission(sqlPermission);
-                } catch (SecurityException se) {
-                    System.out.println("test 'abortTest' skipped  due to missing policy");
-                    return;
+                    stmt.executeQuery("SELECT 1");
+                    fail();
+                } catch (SQLException sqle) {
+                    //normal exception
                 }
             }
-            Executor executor = new Executor() {
-                @Override
-                public void execute(Runnable command) {
-                    command.run();
-                }
-            };
-            connection.abort(executor);
-            assertTrue(connection.isClosed());
-            try {
-                stmt.executeQuery("SELECT 1");
-                assertTrue(false);
-            } catch (SQLException sqle) {
-                assertTrue(true);
-            } finally {
-                stmt.close();
-            }
-        } finally {
-            connection.close();
         }
     }
 
@@ -110,9 +109,8 @@ public class ConnectionTest extends BaseTest {
      */
     @Test
     public void networkTimeoutTest() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = setConnection();
+        try (Connection connection = setConnection()) {
+
             int timeout = 1000;
             SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
             SecurityManager securityManager = System.getSecurityManager();
@@ -147,8 +145,6 @@ public class ConnectionTest extends BaseTest {
             } catch (SQLException sqlex) {
                 assertTrue(connection.isClosed());
             }
-        } finally {
-            connection.close();
         }
     }
 
@@ -170,7 +166,7 @@ public class ConnectionTest extends BaseTest {
     /**
      * Conj-116: Make SQLException prettier when too large stream is sent to the server.
      *
-     * @throws SQLException exception
+     * @throws SQLException                 exception
      * @throws UnsupportedEncodingException exception
      */
     @Test
@@ -239,41 +235,34 @@ public class ConnectionTest extends BaseTest {
      */
     @Test
     public void isValidClosedConnection() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = setConnection();
+        try (Connection connection = setConnection()) {
             connection.close();
             boolean isValid = connection.isValid(0);
             assertFalse(isValid);
-        } finally {
-            connection.close();
         }
     }
 
     /**
      * CONJ-120 Fix Connection.isValid method
      *
-     * @throws SQLException exception
+     * @throws SQLException         exception
      * @throws InterruptedException exception
      */
     @Test
     public void isValidConnectionThatTimesOutByServer() throws SQLException, InterruptedException {
-        Connection connection = null;
-        try {
-            connection = setConnection();
-            Statement statement = connection.createStatement();
-            statement.execute("set session wait_timeout=1");
-            Thread.sleep(3000); // Wait for the server to kill the connection
-            boolean isValid = connection.isValid(0);
-            assertFalse(isValid);
-            statement.close();
-        } finally {
-            connection.close();
+        try (Connection connection = setConnection()) {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("set session wait_timeout=1");
+                Thread.sleep(3000); // Wait for the server to kill the connection
+                boolean isValid = connection.isValid(0);
+                assertFalse(isValid);
+            }
         }
     }
 
     /**
      * CONJ-363 : follow JDBC connection client infos rules.
+     *
      * @throws Exception if any occur.
      */
     @Test
@@ -296,6 +285,13 @@ public class ConnectionTest extends BaseTest {
 
         sharedConnection.setClientInfo("ClientHostname", "testHostName");
         assertEquals("testHostName", sharedConnection.getClientInfo("ClientHostname"));
+
+        sharedConnection.setClientInfo("ClientHostname", null);
+        assertNull(sharedConnection.getClientInfo("ClientHostname"));
+
+        sharedConnection.setClientInfo("ClientHostname", "");
+        assertEquals("", sharedConnection.getClientInfo("ClientHostname"));
+
 
         properties = new Properties();
         properties.setProperty("ApplicationName", "testDriver");

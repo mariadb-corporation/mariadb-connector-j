@@ -3,11 +3,14 @@ package org.mariadb.jdbc.failover;
 import org.junit.*;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.threadly.test.concurrent.TestableScheduler;
 
 import java.sql.*;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -21,6 +24,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -31,6 +35,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @Before
@@ -45,20 +50,19 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
         Assume.assumeTrue(!initialGaleraUrl.contains("failover"));
         UrlParser urlParser = UrlParser.parse(initialGaleraUrl);
         for (int i = 0; i < urlParser.getHostAddresses().size(); i++) {
-            Connection connection = getNewConnection(true);
-            int serverNb = getServerId(connection);
-            assertTrue(serverNb == i + 1);
-            connection.close();
+            int serverNb;
+            try (Connection connection = getNewConnection(true)) {
+                serverNb = getServerId(connection);
+                assertTrue(serverNb == i + 1);
+            }
             stopProxy(serverNb);
         }
     }
 
     @Test
     public void checkStaticBlacklist() throws Throwable {
-        Connection connection = null;
-        try {
-            assureProxy();
-            connection = getNewConnection("&loadBalanceBlacklistTimeout=500", true);
+        assureProxy();
+        try (Connection connection = getNewConnection("&loadBalanceBlacklistTimeout=500", true)) {
             Statement st = connection.createStatement();
 
             int firstServerId = getServerId(connection);
@@ -91,16 +95,9 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             //check blacklist shared
             scheduler.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklistKeys()));
             scheduler.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklistKeys()));
-            
+
             // deterministically execute CheckBlacklists
             scheduler.tick();
-        } catch (Throwable e) {
-            e.printStackTrace();
-            fail();
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
@@ -118,9 +115,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
     @Test
     public void pingReconnectAfterRestart() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&retriesAllDown=6", true);
+        try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -143,10 +138,6 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
                 }
                 Thread.sleep(250);
             }
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
@@ -160,9 +151,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
         }
 
         public void run() {
-            Connection connection2 = null;
-            try {
-                connection2 = getNewConnection();
+            try (Connection connection2 = getNewConnection()) {
                 int otherServerId = getServerId(connection2);
                 assertTrue(otherServerId != firstServerId);
                 Protocol protocol = getProtocolFromConnection(connection2);
@@ -172,14 +161,6 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             } catch (Throwable e) {
                 e.printStackTrace();
                 fail();
-            } finally {
-                if (connection2 != null) {
-                    try {
-                        connection2.close();
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                    }
-                }
             }
         }
     }

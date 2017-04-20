@@ -70,7 +70,7 @@ public class CallStatementTest extends BaseTest {
             sharedConnection.createStatement().execute("{call stmtSimpleFunction(2,2,2)}");
             fail("call mustn't work for function, use SELECT <function>");
         } catch (SQLSyntaxErrorException sqle) {
-            assertTrue(sqle.getMessage().contains("PROCEDURE testj.stmtSimpleFunction does not exist"));
+            assertTrue("error : " + sqle.getMessage(), sqle.getMessage().contains("PROCEDURE testj.stmtSimpleFunction does not exist"));
         }
     }
 
@@ -85,7 +85,7 @@ public class CallStatementTest extends BaseTest {
             preparedStatement.execute();
             fail("call mustn't work for function, use SELECT <function>");
         } catch (SQLSyntaxErrorException sqle) {
-            assertTrue(sqle.getMessage().contains("PROCEDURE testj.stmtSimpleFunction does not exist"));
+            assertTrue("error : " + sqle.getMessage(), sqle.getMessage().contains("PROCEDURE testj.stmtSimpleFunction does not exist"));
         }
     }
 
@@ -151,8 +151,8 @@ public class CallStatementTest extends BaseTest {
             fail("must fail : statement cannot be use when there is out parameter");
         } catch (SQLSyntaxErrorException e) {
             assertTrue(e.getMessage().contains("OUT or INOUT argument 1 for routine testj.inOutParam is not a variable "
-                    + "or NEW pseudo-variable in BEFORE trigger\n"
-                    + "Query is : call inOutParam(1)"));
+                    + "or NEW pseudo-variable in BEFORE trigger")
+                    && e.getCause().getMessage().contains("Query is: call inOutParam(1)"));
         }
     }
 

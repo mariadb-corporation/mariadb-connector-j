@@ -54,12 +54,15 @@ public class SearchFilter {
     boolean initialConnection;
     boolean failoverLoop;
 
-    public SearchFilter() { }
+    public SearchFilter() {
+        //empty constructor
+    }
 
     /**
      * Constructor.
+     *
      * @param fineIfFoundOnlyMaster stop searching if master found
-     * @param fineIfFoundOnlySlave stop searching if slave found
+     * @param fineIfFoundOnlySlave  stop searching if slave found
      */
     public SearchFilter(boolean fineIfFoundOnlyMaster, boolean fineIfFoundOnlySlave) {
         this.fineIfFoundOnlyMaster = fineIfFoundOnlyMaster;
@@ -68,6 +71,7 @@ public class SearchFilter {
 
     /**
      * Constructor.
+     *
      * @param initialConnection initial connection flag
      */
     public SearchFilter(boolean initialConnection) {

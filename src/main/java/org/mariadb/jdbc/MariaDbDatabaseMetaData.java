@@ -49,12 +49,13 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.packet.dao.ColumnInformation;
-import org.mariadb.jdbc.internal.queryresults.resultset.MariaSelectResultSet;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.dao.Identifier;
-import org.mariadb.jdbc.internal.MariaDbType;
+import org.mariadb.jdbc.internal.ColumnType;
 
 import java.sql.*;
 import java.text.ParseException;
@@ -75,8 +76,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * Constructor.
      *
      * @param connection connection
-     * @param user userName
-     * @param url connection String url.
+     * @param user       userName
+     * @param url        connection String url.
      */
     public MariaDbDatabaseMetaData(Connection connection, String user, String url) {
         this.connection = (MariaDbConnection) connection;
@@ -90,11 +91,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + "COLUMN_TYPE) - 1 ), SUBSTRING(COLUMN_TYPE ,1+locate(')', COLUMN_TYPE))), "
                 + "COLUMN_TYPE))";
 
-        if ((dataTypeMappingFlags & MariaSelectResultSet.TINYINT1_IS_BIT) > 0) {
-            upperCaseWithoutSize = " IF(COLUMN_TYPE = 'tinyint(1)', 'BIT', " + upperCaseWithoutSize + ")";
+        if ((dataTypeMappingFlags & SelectResultSet.TINYINT1_IS_BIT) > 0) {
+            upperCaseWithoutSize = " IF(COLUMN_TYPE like 'tinyint(1)%', 'BIT', " + upperCaseWithoutSize + ")";
         }
 
-        if ((dataTypeMappingFlags & MariaSelectResultSet.YEAR_IS_DATE_TYPE) == 0) {
+        if ((dataTypeMappingFlags & SelectResultSet.YEAR_IS_DATE_TYPE) == 0) {
             return " IF(COLUMN_TYPE IN ('year(2)', 'year(4)'), 'SMALLINT', " + upperCaseWithoutSize + ")";
         }
 
@@ -103,74 +104,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
 
     /**
-     * Retrieves a description of the primary key columns that are referenced by the given table's foreign key columns (the primary keys imported by a
-     * table).  They are ordered by PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME, and KEY_SEQ.
-     * <P>Each primary key column description has the following columns: <OL> <LI><B>PKTABLE_CAT</B> String {@code =>} primary key table catalog being
-     * imported (may be <code>null</code>) <LI><B>PKTABLE_SCHEM</B> String {@code =>} primary key table schema being imported (may be
-     * <code>null</code>) <LI><B>PKTABLE_NAME</B> String {@code =>} primary key table name being imported <LI><B>PKCOLUMN_NAME</B> String {@code =>}
-     * primary key column name being imported <LI><B>FKTABLE_CAT</B> String {@code =>} foreign key table catalog (may be <code>null</code>)
-     * <LI><B>FKTABLE_SCHEM</B> String {@code =>} foreign key table schema (may be <code>null</code>) <LI><B>FKTABLE_NAME</B> String {@code =>}
-     * foreign key table name <LI><B>FKCOLUMN_NAME</B> String {@code =>} foreign key column name <LI><B>KEY_SEQ</B> short {@code =>} sequence number
-     * within a foreign key( a value of 1 represents the first column of the foreign key, a value of 2 would represent the second column within the
-     * foreign key). <LI><B>UPDATE_RULE</B> short {@code =>} What happens to a foreign key when the primary key is updated: <UL> <LI> importedNoAction
-     * - do not allow update of primary key if it has been imported <LI> importedKeyCascade - change imported key to agree with primary key update
-     * <LI> importedKeySetNull - change imported key to <code>NULL</code> if its primary key has been updated <LI> importedKeySetDefault - change
-     * imported key to default values if its primary key has been updated <LI> importedKeyRestrict - same as importedKeyNoAction (for ODBC 2.x
-     * compatibility) </UL> <LI><B>DELETE_RULE</B> short {@code =>} What happens to the foreign key when primary is deleted. <UL> <LI>
-     * importedKeyNoAction - do not allow delete of primary key if it has been imported <LI> importedKeyCascade - delete rows that import a deleted
-     * key <LI> importedKeySetNull - change imported key to NULL if its primary key has been deleted <LI> importedKeyRestrict - same as
-     * importedKeyNoAction (for ODBC 2.x compatibility) <LI> importedKeySetDefault - change imported key to default if its primary key has been
-     * deleted </UL> <LI><B>FK_NAME</B> String {@code =>} foreign key name (may be <code>null</code>) <LI><B>PK_NAME</B> String {@code =>} primary key
-     * name (may be <code>null</code>) <LI><B>DEFERRABILITY</B> short {@code =>} can the evaluation of foreign key constraints be deferred until
-     * commit <UL> <LI> importedKeyInitiallyDeferred - see SQL92 for definition <LI> importedKeyInitiallyImmediate - see SQL92 for definition <LI>
-     * importedKeyNotDeferrable - see SQL92 for definition </UL> </OL>
-     *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schema a schema name; must match the schema name as it is stored in the database; "" retrieves those without a schema; <code>null</code>
-     * means that the schema name should not be used to narrow the search
-     * @param table a table name; must match the table name as it is stored in the database
-     * @return <code>ResultSet</code> - each row is a primary key column description
-     * @throws SQLException if a database access error occurs
-     * @see #getExportedKeys
-     */
-    public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
-
-        // We avoid using information schema queries by default, because this appears to be an expensive
-        // query (CONJ-41).
-        if (table == null) {
-            throw new SQLException("'table' parameter in getImportedKeys cannot be null");
-        }
-
-        if (catalog == null && connection.nullCatalogMeansCurrent) {
-            /* Treat null catalog as current */
-            catalog = "";
-        }
-        if (catalog == null) {
-            return getImportedKeysUsingInformationSchema(catalog, schema, table);
-        }
-
-        if (catalog.equals("")) {
-            catalog = connection.getCatalog();
-            if (catalog == null || catalog.equals("")) {
-                return getImportedKeysUsingInformationSchema(catalog, schema, table);
-            }
-        }
-
-        try {
-            return getImportedKeysUsingShowCreateTable(catalog, schema, table);
-        } catch (Exception e) {
-            // Likely, parsing failed, try out I_S query.
-            return getImportedKeysUsingInformationSchema(catalog, schema, table);
-        }
-    }
-
-    /**
      * Get imported keys.
      *
-     * @param tableDef table definiation
-     * @param tableName table name
-     * @param catalog catalog
+     * @param tableDef   table definiation
+     * @param tableName  table name
+     * @param catalog    catalog
      * @param connection connection
      * @return resultset resultset
      * @throws ParseException exception
@@ -183,12 +121,12 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 "UPDATE_RULE", "DELETE_RULE", "FK_NAME",
                 "PK_NAME", "DEFERRABILITY"
         };
-        MariaDbType[] columnTypes = {
-                MariaDbType.VARCHAR, MariaDbType.NULL, MariaDbType.VARCHAR,
-                MariaDbType.VARCHAR, MariaDbType.VARCHAR, MariaDbType.NULL,
-                MariaDbType.VARCHAR, MariaDbType.VARCHAR, MariaDbType.SMALLINT,
-                MariaDbType.SMALLINT, MariaDbType.SMALLINT, MariaDbType.VARCHAR,
-                MariaDbType.NULL, MariaDbType.SMALLINT};
+        ColumnType[] columnTypes = {
+                ColumnType.VARCHAR, ColumnType.NULL, ColumnType.VARCHAR,
+                ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.NULL,
+                ColumnType.VARCHAR, ColumnType.VARCHAR, ColumnType.SMALLINT,
+                ColumnType.SMALLINT, ColumnType.SMALLINT, ColumnType.VARCHAR,
+                ColumnType.NULL, ColumnType.SMALLINT};
 
         String[] parts = tableDef.split("\n");
 
@@ -272,8 +210,93 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 return result;
             }
         });
-        ResultSet ret = MariaSelectResultSet.createResultSet(columnNames, columnTypes, arr, connection.getProtocol());
+        ResultSet ret = SelectResultSet.createResultSet(columnNames, columnTypes, arr, connection.getProtocol());
         return ret;
+    }
+
+    /**
+     * Retrieves a description of the primary key columns that are referenced by the given table's foreign key columns
+     * (the primary keys imported by a table).  They are ordered by PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME,
+     * and KEY_SEQ.
+     * <P>Each primary key column description has the following columns:
+     * <OL>
+     *     <LI><B>PKTABLE_CAT</B> String {@code =>} primary key table catalog being imported (may be <code>null</code>)
+     *     <LI><B>PKTABLE_SCHEM</B> String {@code =>} primary key table schema being imported (may be <code>null</code>)
+     *     <LI><B>PKTABLE_NAME</B> String {@code =>} primary key table name being imported
+     *     <LI><B>PKCOLUMN_NAME</B> String {@code =>} primary key column name being imported
+     *     <LI><B>FKTABLE_CAT</B> String {@code =>} foreign key table catalog (may be <code>null</code>)
+     *     <LI><B>FKTABLE_SCHEM</B> String {@code =>} foreign key table schema (may be <code>null</code>)
+     *     <LI><B>FKTABLE_NAME</B> String {@code =>} foreign key table name
+     *     <LI><B>FKCOLUMN_NAME</B> String {@code =>} foreign key column name
+     *     <LI><B>KEY_SEQ</B> short {@code =>} sequence number within a foreign key( a value of 1 represents the first
+     *     column of the foreign key, a value of 2 would represent the second column within the foreign key).
+     *     <LI><B>UPDATE_RULE</B> short {@code =>} What happens to a foreign key when the primary key is updated:
+     *     <UL>
+     *         <LI> importedNoAction - do not allow update of primary key if it has been imported
+     *         <LI> importedKeyCascade - change imported key to agree with primary key update
+     *         <LI> importedKeySetNull - change imported key to <code>NULL</code> if its primary key has been updated
+     *         <LI> importedKeySetDefault - change imported key to default values if its primary key has been updated
+     *         <LI> importedKeyRestrict - same as importedKeyNoAction (for ODBC 2.x compatibility)
+     *     </UL>
+     *     <LI><B>DELETE_RULE</B> short {@code =>} What happens to the foreign key when primary is deleted.
+     *     <UL>
+     *         <LI> importedKeyNoAction - do not allow delete of primary key if it has been imported
+     *         <LI> importedKeyCascade - delete rows that import a deleted key
+     *         <LI> importedKeySetNull - change imported key to NULL if its primary key has been deleted
+     *         <LI> importedKeyRestrict - same as importedKeyNoAction (for ODBC 2.x compatibility)
+     *         <LI> importedKeySetDefault - change imported key to default if its primary key has been deleted
+     *     </UL>
+     *     <LI><B>FK_NAME</B> String {@code =>} foreign key name (may be <code>null</code>)
+     *     <LI><B>PK_NAME</B> String {@code =>} primary key name (may be <code>null</code>)
+     *     <LI><B>DEFERRABILITY</B> short {@code =>} can the evaluation of foreign key constraints be deferred until
+     *     commit
+     *     <UL>
+     *         <LI> importedKeyInitiallyDeferred - see SQL92 for definition
+     *         <LI> importedKeyInitiallyImmediate - see SQL92 for definition
+     *         <LI> importedKeyNotDeferrable - see SQL92 for definition
+     *     </UL>
+     * </OL>
+     *
+     * @param catalog a catalog name; must match the catalog name as it is stored in the database;
+     *                "" retrieves those without a catalog;
+     *                <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schema  a schema name; must match the schema name as it is stored in the database;
+     *                "" retrieves those without a schema; <code>null</code>
+     *                means that the schema name should not be used to narrow the search
+     * @param table   a table name; must match the table name as it is stored in the database
+     * @return <code>ResultSet</code> - each row is a primary key column description
+     * @throws SQLException if a database access error occurs
+     * @see #getExportedKeys
+     */
+    public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
+
+        // We avoid using information schema queries by default, because this appears to be an expensive
+        // query (CONJ-41).
+        if (table == null) {
+            throw new SQLException("'table' parameter in getImportedKeys cannot be null");
+        }
+
+        if (catalog == null && connection.nullCatalogMeansCurrent) {
+            /* Treat null catalog as current */
+            catalog = "";
+        }
+        if (catalog == null) {
+            return getImportedKeysUsingInformationSchema(catalog, schema, table);
+        }
+
+        if (catalog.equals("")) {
+            catalog = connection.getCatalog();
+            if (catalog == null || catalog.equals("")) {
+                return getImportedKeysUsingInformationSchema(catalog, schema, table);
+            }
+        }
+
+        try {
+            return getImportedKeysUsingShowCreateTable(catalog, schema, table);
+        } catch (Exception e) {
+            // Likely, parsing failed, try out I_S query.
+            return getImportedKeysUsingInformationSchema(catalog, schema, table);
+        }
     }
 
     // Extract identifier quoted string from input String.
@@ -379,49 +402,48 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         throw new AssertionError("should not happen");
     }
 
-
     private String dataTypeClause(String fullTypeColumnName) {
-        return
-                " CASE data_type"
-                        + " WHEN 'bit' THEN " + Types.BIT
-                        + " WHEN 'tinyblob' THEN " + Types.VARBINARY
-                        + " WHEN 'mediumblob' THEN " + Types.LONGVARBINARY
-                        + " WHEN 'longblob' THEN " + Types.LONGVARBINARY
-                        + " WHEN 'blob' THEN " + Types.LONGVARBINARY
-                        + " WHEN 'tinytext' THEN " + Types.VARCHAR
-                        + " WHEN 'mediumtext' THEN " + Types.LONGVARCHAR
-                        + " WHEN 'longtext' THEN " + Types.LONGVARCHAR
-                        + " WHEN 'text' THEN " + Types.LONGVARCHAR
-                        + " WHEN 'date' THEN " + Types.DATE
-                        + " WHEN 'datetime' THEN " + Types.TIMESTAMP
-                        + " WHEN 'decimal' THEN " + Types.DECIMAL
-                        + " WHEN 'double' THEN " + Types.DOUBLE
-                        + " WHEN 'enum' THEN " + Types.VARCHAR
-                        + " WHEN 'float' THEN " + Types.REAL
-                        + " WHEN 'int' THEN IF( " + fullTypeColumnName + " like '%unsigned%', " + Types.INTEGER + "," + Types.INTEGER + ")"
-                        + " WHEN 'bigint' THEN " + Types.BIGINT
-                        + " WHEN 'mediumint' THEN " + Types.INTEGER
-                        + " WHEN 'null' THEN " + Types.NULL
-                        + " WHEN 'set' THEN " + Types.VARCHAR
-                        + " WHEN 'smallint' THEN IF( " + fullTypeColumnName + " like '%unsigned%', " + Types.SMALLINT + "," + Types.SMALLINT + ")"
-                        + " WHEN 'varchar' THEN " + Types.VARCHAR
-                        + " WHEN 'varbinary' THEN " + Types.VARBINARY
-                        + " WHEN 'char' THEN " + Types.CHAR
-                        + " WHEN 'binary' THEN " + Types.BINARY
-                        + " WHEN 'time' THEN " + Types.TIME
-                        + " WHEN 'timestamp' THEN " + Types.TIMESTAMP
-                        + " WHEN 'tinyint' THEN "
-                        + (((connection.getProtocol().getDataTypeMappingFlags() & MariaSelectResultSet.TINYINT1_IS_BIT) == 0)
-                        ? Types.TINYINT : "IF(" + fullTypeColumnName + "='tinyint(1)'," + Types.BIT + "," + Types.TINYINT + ") ")
-                        + " WHEN 'year' THEN "
-                        + (((connection.getProtocol().getDataTypeMappingFlags() & MariaSelectResultSet.YEAR_IS_DATE_TYPE) == 0)
-                        ? Types.SMALLINT : Types.DATE)
-                        + " ELSE " + Types.OTHER
-                        + " END ";
+        return " CASE data_type"
+                + " WHEN 'bit' THEN " + Types.BIT
+                + " WHEN 'tinyblob' THEN " + Types.VARBINARY
+                + " WHEN 'mediumblob' THEN " + Types.LONGVARBINARY
+                + " WHEN 'longblob' THEN " + Types.LONGVARBINARY
+                + " WHEN 'blob' THEN " + Types.LONGVARBINARY
+                + " WHEN 'tinytext' THEN " + Types.VARCHAR
+                + " WHEN 'mediumtext' THEN " + Types.LONGVARCHAR
+                + " WHEN 'longtext' THEN " + Types.LONGVARCHAR
+                + " WHEN 'text' THEN " + Types.LONGVARCHAR
+                + " WHEN 'date' THEN " + Types.DATE
+                + " WHEN 'datetime' THEN " + Types.TIMESTAMP
+                + " WHEN 'decimal' THEN " + Types.DECIMAL
+                + " WHEN 'double' THEN " + Types.DOUBLE
+                + " WHEN 'enum' THEN " + Types.VARCHAR
+                + " WHEN 'float' THEN " + Types.REAL
+                + " WHEN 'int' THEN IF( " + fullTypeColumnName + " like '%unsigned%', " + Types.INTEGER + ","
+                + Types.INTEGER + ")"
+                + " WHEN 'bigint' THEN " + Types.BIGINT
+                + " WHEN 'mediumint' THEN " + Types.INTEGER
+                + " WHEN 'null' THEN " + Types.NULL
+                + " WHEN 'set' THEN " + Types.VARCHAR
+                + " WHEN 'smallint' THEN IF( " + fullTypeColumnName + " like '%unsigned%', " + Types.SMALLINT + "," + Types.SMALLINT + ")"
+                + " WHEN 'varchar' THEN " + Types.VARCHAR
+                + " WHEN 'varbinary' THEN " + Types.VARBINARY
+                + " WHEN 'char' THEN " + Types.CHAR
+                + " WHEN 'binary' THEN " + Types.BINARY
+                + " WHEN 'time' THEN " + Types.TIME
+                + " WHEN 'timestamp' THEN " + Types.TIMESTAMP
+                + " WHEN 'tinyint' THEN "
+                + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSet.TINYINT1_IS_BIT) == 0)
+                ? Types.TINYINT : "IF(" + fullTypeColumnName + " like 'tinyint(1)%'," + Types.BIT + "," + Types.TINYINT + ") ")
+                + " WHEN 'year' THEN "
+                + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSet.YEAR_IS_DATE_TYPE) == 0)
+                ? Types.SMALLINT : Types.DATE)
+                + " ELSE " + Types.OTHER
+                + " END ";
     }
 
     private ResultSet executeQuery(String sql) throws SQLException {
-        MariaSelectResultSet rs = (MariaSelectResultSet) connection.createStatement().executeQuery(sql);
+        SelectResultSet rs = (SelectResultSet) connection.createStatement().executeQuery(sql);
         rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
         rs.setReturnTableAlias(true);
         return rs;
@@ -435,16 +457,20 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     /**
-     * Generate part of the information schema query that restricts catalog names In the driver, catalogs is the equivalent to MySQL schemas.
+     * Generate part of the information schema query that restricts catalog names In the driver, catalogs is the
+     * equivalent to MySQL schemas.
      *
      * @param columnName - column name in the information schema table
-     * @param catalog - catalog name.
-     * This driver does not (always) follow JDBC standard for following special values, due to ConnectorJ compatibility
-     * 1. empty string ("") - matches current catalog (i.e database).JDBC standard says only tables without catalog should be returned - such tables
-     * do not exist in MySQL. If there is no current catalog, then empty string matches any catalog.
-     * 2. null  - if nullCatalogMeansCurrent=true (which is the default), then the handling is the same as for "" . i.e return current catalog.
-     * JDBC-conforming way would be to match any catalog with null parameter. This can be switched with nullCatalogMeansCurrent=false in the
-     * connection URL.
+     * @param catalog    - catalog name.
+     *                   This driver does not (always) follow JDBC standard for following special values, due to
+     *                   ConnectorJ compatibility
+     *                   1. empty string ("") - matches current catalog (i.e database).
+     *                   JDBC standard says only tables without catalog should be returned - such tables do not exist in
+     *                   MySQL. If there is no current catalog, then empty string matches any catalog.
+     *                   2. null  - if nullCatalogMeansCurrent=true (which is the default), then the handling is the
+     *                   same as for "" . i.e return current catalog.JDBC-conforming way would be to match any catalog
+     *                   with null parameter. This can be switched with nullCatalogMeansCurrent=false in the
+     *                   connection URL.
      * @return part of SQL query ,that restricts search for the catalog.
      */
     String catalogCond(String columnName, String catalog) {
@@ -480,11 +506,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * of 1 represents the first column of the primary key, a value of 2 would represent the second column within the primary key). <LI><B>PK_NAME</B>
      * String {@code =>} primary key name (may be <code>null</code>) </OL>
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schema a schema name; must match the schema name as it is stored in the database; "" retrieves those without a schema; <code>null</code>
-     * means that the schema name should not be used to narrow the search
-     * @param table a table name; must match the table name as it is stored in the database
+     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those
+     *                without a catalog;
+     *                <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schema  a schema name; must match the schema name as it is stored in the database; "" retrieves those
+     *                without a schema; <code>null</code>
+     *                means that the schema name should not be used to narrow the search
+     * @param table   a table name; must match the table name as it is stored in the database
      * @return <code>ResultSet</code> - each row is a primary key column description
      * @throws SQLException if a database access error occurs
      */
@@ -535,13 +563,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * SELF_REFERENCING_COL_NAME are created. Values are "SYSTEM", "USER", "DERIVED". (may be <code>null</code>) </OL>
      * <P><B>Note:</B> Some databases may not return information for all tables.
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schemaPattern a schema name pattern; must match the schema name as it is stored in the database; "" retrieves those without a schema;
-     * <code>null</code> means that the schema name should not be used to narrow the search
+     * @param catalog          a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
+     *                         <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schemaPattern    a schema name pattern; must match the schema name as it is stored in the database; "" retrieves those without a schema;
+     *                         <code>null</code> means that the schema name should not be used to narrow the search
      * @param tableNamePattern a table name pattern; must match the table name as it is stored in the database
-     * @param types a list of table types, which must be from the list of table types returned from {@link #getTableTypes},to include;
-     * <code>null</code> returns all types
+     * @param types            a list of table types, which must be from the list of table types returned from {@link #getTableTypes},to include;
+     *                         <code>null</code> returns all types
      * @return <code>ResultSet</code> - each row is a table description
      * @throws SQLException if a database access error occurs
      * @see #getSearchStringEscape
@@ -611,11 +639,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * allowed precision of the fractional seconds component). For binary data, this is the length in bytes.  For the ROWID datatype, this is the
      * length in bytes. Null is returned for data types where the column size is not applicable.
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schemaPattern a schema name pattern; must match the schema name as it is stored in the database; "" retrieves those without a schema;
-     * <code>null</code> means that the schema name should not be used to narrow the search
-     * @param tableNamePattern a table name pattern; must match the table name as it is stored in the database
+     * @param catalog           a catalog name; must match the catalog name as it is stored in the database;
+     *                          "" retrieves those without a catalog;
+     *                          <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schemaPattern     a schema name pattern; must match the schema name as it is stored in the database;
+     *                          "" retrieves those without a schema;
+     *                          <code>null</code> means that the schema name should not be used to narrow the search
+     * @param tableNamePattern  a table name pattern; must match the table name as it is stored in the database
      * @param columnNamePattern a column name pattern; must match the column name as it is stored in the database
      * @return <code>ResultSet</code> - each row is a column description
      * @throws SQLException if a database access error occurs
@@ -629,21 +659,21 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + columnTypeClause(dataType) + " TYPE_NAME, "
                 + " CASE DATA_TYPE"
                 + "  WHEN 'time' THEN "
-                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
+                +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
                 + "  WHEN 'date' THEN 10"
                 + "  WHEN 'datetime' THEN "
-                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                 + "  WHEN 'timestamp' THEN "
                     + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
-                + (((dataType & MariaSelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? " WHEN 'year' THEN 5" : "")
+                + (((dataType & SelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? " WHEN 'year' THEN 5" : "")
                 + "  ELSE "
                 + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
                 + " END"
                 + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
 
                 + " CONVERT (CASE DATA_TYPE"
-                + " WHEN 'year' THEN " + (((dataType & MariaSelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? "0" : "NUMERIC_SCALE")
-                + " WHEN 'tinyint' THEN " + (((dataType & MariaSelectResultSet.TINYINT1_IS_BIT) > 0) ? "0" : "NUMERIC_SCALE")
+                + " WHEN 'year' THEN " + (((dataType & SelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? "0" : "NUMERIC_SCALE")
+                + " WHEN 'tinyint' THEN " + (((dataType & SelectResultSet.TINYINT1_IS_BIT) > 0) ? "0" : "NUMERIC_SCALE")
                 + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
 
                 + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
@@ -695,11 +725,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * constraints be deferred until commit <UL> <LI> importedKeyInitiallyDeferred - see SQL92 for definition <LI> importedKeyInitiallyImmediate - see
      * SQL92 for definition <LI> importedKeyNotDeferrable - see SQL92 for definition </UL> </OL>
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in this database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schema a schema name; must match the schema name as it is stored in the database; "" retrieves those without a schema; <code>null</code>
-     * means that the schema name should not be used to narrow the search
-     * @param table a table name; must match the table name as it is stored in this database
+     * @param catalog a catalog name; must match the catalog name as it is stored in this database; "" retrieves those
+     *                without a catalog;
+     *                <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schema  a schema name; must match the schema name as it is stored in the database; "" retrieves those
+     *                without a schema; <code>null</code>
+     *                means that the schema name should not be used to narrow the search
+     * @param table   a table name; must match the table name as it is stored in this database
      * @return a <code>ResultSet</code> object in which each row is a foreign key column description
      * @throws SQLException if a database access error occurs
      * @see #getImportedKeys
@@ -746,8 +778,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * GetImportedKeysUsingInformationSchema.
      *
      * @param catalog catalog
-     * @param schema schema
-     * @param table table
+     * @param schema  schema
+     * @param table   table
      * @return resultset
      * @throws SQLException exception
      */
@@ -793,8 +825,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * GetImportedKeysUsingShowCreateTable.
      *
      * @param catalog catalog
-     * @param schema schema
-     * @param table table
+     * @param schema  schema
+     * @param table   table
      * @return resultset
      * @throws SQLException exception
      */
@@ -829,12 +861,14 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * (assuming the maximum allowed precision of the fractional seconds component). For binary data, this is the length in bytes.  For the ROWID
      * datatype, this is the length in bytes. Null is returned for data types where the column size is not applicable.
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schema a schema name; must match the schema name as it is stored in the database; "" retrieves those without a schema; <code>null</code>
-     * means that the schema name should not be used to narrow the search
-     * @param table a table name; must match the table name as it is stored in the database
-     * @param scope the scope of interest; use same values as SCOPE
+     * @param catalog  a catalog name; must match the catalog name as it is stored in the database; "" retrieves those
+     *                 without a catalog;
+     *                 <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schema   a schema name; must match the schema name as it is stored in the database; "" retrieves those
+     *                 without a schema; <code>null</code>
+     *                 means that the schema name should not be used to narrow the search
+     * @param table    a table name; must match the table name as it is stored in the database
+     * @param scope    the scope of interest; use same values as SCOPE
      * @param nullable include columns that are nullable.
      * @return <code>ResultSet</code> - each row is a column description
      * @throws SQLException if a database access error occurs
@@ -887,11 +921,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * allowed precision of the fractional seconds component). For binary data, this is the length in bytes.  For the ROWID datatype, this is the
      * length in bytes. Null is returned for data types where the column size is not applicable.
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schemaPattern a schema name pattern; must match the schema name as it is stored in the database; "" retrieves those without a schema;
-     * <code>null</code> means that the schema name should not be used to narrow the search
-     * @param tableNamePattern a table name pattern; must match the table name as it is stored in the database
+     * @param catalog           a catalog name; must match the catalog name as it is stored in the database;
+     *                          "" retrieves those without a catalog;
+     *                          <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schemaPattern     a schema name pattern; must match the schema name as it is stored in the database;
+     *                          "" retrieves those without a schema;
+     *                          <code>null</code> means that the schema name should not be used to narrow the search
+     * @param tableNamePattern  a table name pattern; must match the table name as it is stored in the database
      * @param columnNamePattern a column name pattern; must match the column name as it is stored in the database
      * @return <code>ResultSet</code> - each row is a column description
      * @throws SQLException if a database access error occurs
@@ -1560,10 +1596,12 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * </OL>
      * A user may not have permissions to execute any of the procedures that are returned by <code>getProcedures</code>
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schemaPattern a schema name pattern; must match the schema name as it is stored in the database; "" retrieves those without a schema;
-     * <code>null</code> means that the schema name should not be used to narrow the search
+     * @param catalog              a catalog name; must match the catalog name as it is stored in the database;
+     *                             "" retrieves those without a catalog;
+     *                             <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schemaPattern        a schema name pattern; must match the schema name as it is stored in the database;
+     *                             "" retrieves those without a schema;
+     *                             <code>null</code> means that the schema name should not be used to narrow the search
      * @param procedureNamePattern a procedure name pattern; must match the procedure name as it is stored in the database
      * @return <code>ResultSet</code> - each row is a procedure description
      * @throws SQLException if a database access error occurs
@@ -1628,12 +1666,14 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * (assuming the maximum allowed precision of the fractional seconds component). For binary data, this is the length in bytes.  For the ROWID
      * datatype, this is the length in bytes. Null is returned for data types where the column size is not applicable.
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schemaPattern a schema name pattern; must match the schema name as it is stored in the database; "" retrieves those without a schema;
-     * <code>null</code> means that the schema name should not be used to narrow the search
+     * @param catalog              a catalog name; must match the catalog name as it is stored in the database; ""
+     *                             retrieves those without a catalog;
+     *                             <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schemaPattern        a schema name pattern; must match the schema name as it is stored in the database;
+     *                             "" retrieves those without a schema;
+     *                             <code>null</code> means that the schema name should not be used to narrow the search
      * @param procedureNamePattern a procedure name pattern; must match the procedure name as it is stored in the database
-     * @param columnNamePattern a column name pattern; must match the column name as it is stored in the database
+     * @param columnNamePattern    a column name pattern; must match the column name as it is stored in the database
      * @return <code>ResultSet</code> - each row describes a stored procedure parameter or column
      * @throws SQLException if a database access error occurs
      * @see #getSearchStringEscape
@@ -1658,24 +1698,24 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                     + "DATA_TYPE TYPE_NAME,"
                     + " CASE DATA_TYPE"
                     + "  WHEN 'time' THEN "
-                        + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
+                    +        (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
                     + "  WHEN 'date' THEN 10"
                     + "  WHEN 'datetime' THEN "
-                        + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                    +        (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                     + "  WHEN 'timestamp' THEN "
-                        + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                    +        (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                     + "  ELSE "
                     + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
                     + " END `PRECISION`,"
 
                     + " CASE DATA_TYPE"
                     + "  WHEN 'time' THEN "
-                        + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
+                    +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
                     + "  WHEN 'date' THEN 10"
                     + "  WHEN 'datetime' THEN "
-                        + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                    +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                     + "  WHEN 'timestamp' THEN "
-                        + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                    +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                     + "  ELSE "
                     + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
                     + " END `LENGTH`,"
@@ -1752,12 +1792,14 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * representation (assuming the maximum allowed precision of the fractional seconds component). For binary data, this is the length in bytes.  For
      * the ROWID datatype, this is the length in bytes. Null is returned for data types where the column size is not applicable.
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schemaPattern a schema name pattern; must match the schema name as it is stored in the database; "" retrieves those without a schema;
-     * <code>null</code> means that the schema name should not be used to narrow the search
+     * @param catalog             a catalog name; must match the catalog name as it is stored in the database;
+     *                            "" retrieves those without a catalog;
+     *                            <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schemaPattern       a schema name pattern; must match the schema name as it is stored in the database;
+     *                            "" retrieves those without a schema;
+     *                            <code>null</code> means that the schema name should not be used to narrow the search
      * @param functionNamePattern a procedure name pattern; must match the function name as it is stored in the database
-     * @param columnNamePattern a parameter name pattern; must match the parameter or column name as it is stored in the database
+     * @param columnNamePattern   a parameter name pattern; must match the parameter or column name as it is stored in the database
      * @return <code>ResultSet</code> - each row describes a user function parameter, column  or return type
      * @throws SQLException if a database access error occurs
      * @see #getSearchStringEscape
@@ -1834,11 +1876,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * REFRENCES, ...) <LI><B>IS_GRANTABLE</B> String {@code =>} "YES" if grantee is permitted to grant to others; "NO" if not; <code>null</code> if
      * unknown </OL>
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schema a schema name; must match the schema name as it is stored in the database; "" retrieves those without a schema; <code>null</code>
-     * means that the schema name should not be used to narrow the search
-     * @param table a table name; must match the table name as it is stored in the database
+     * @param catalog           a catalog name; must match the catalog name as it is stored in the database; ""
+     *                          retrieves those without a catalog;
+     *                          <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schema            a schema name; must match the schema name as it is stored in the database; "" retrieves
+     *                          those without a schema; <code>null</code>
+     *                          means that the schema name should not be used to narrow the search
+     * @param table             a table name; must match the table name as it is stored in the database
      * @param columnNamePattern a column name pattern; must match the column name as it is stored in the database
      * @return <code>ResultSet</code> - each row is a column privilege description
      * @throws SQLException if a database access error occurs
@@ -1876,10 +1920,10 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * <LI><B>PRIVILEGE</B> String {@code =>} name of access (SELECT, INSERT, UPDATE, REFRENCES, ...) <LI><B>IS_GRANTABLE</B> String {@code =>} "YES"
      * if grantee is permitted to grant to others; "NO" if not; <code>null</code> if unknown </OL>
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schemaPattern a schema name pattern; must match the schema name as it is stored in the database; "" retrieves those without a schema;
-     * <code>null</code> means that the schema name should not be used to narrow the search
+     * @param catalog          a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
+     *                         <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schemaPattern    a schema name pattern; must match the schema name as it is stored in the database; "" retrieves those without a schema;
+     *                         <code>null</code> means that the schema name should not be used to narrow the search
      * @param tableNamePattern a table name pattern; must match the table name as it is stored in the database
      * @return <code>ResultSet</code> - each row is a table privilege description
      * @throws SQLException if a database access error occurs
@@ -1912,11 +1956,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * (assuming the maximum allowed precision of the fractional seconds component). For binary data, this is the length in bytes.  For the ROWID
      * datatype, this is the length in bytes. Null is returned for data types where the column size is not applicable.
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schema a schema name; must match the schema name as it is stored in the database; "" retrieves those without a schema; <code>null</code>
-     * means that the schema name should not be used to narrow the search
-     * @param table a table name; must match the table name as it is stored in the database
+     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those
+     *                without a catalog;<code>null</code> means that the catalog name should not be used to narrow the
+     *                search
+     * @param schema  a schema name; must match the schema name as it is stored in the database; "" retrieves those
+     *                without a schema; <code>null</code> means that the schema name should not be used to narrow the
+     *                search
+     * @param table   a table name; must match the table name as it is stored in the database
      * @return a <code>ResultSet</code> object in which each row is a column description
      * @throws SQLException if a database access error occurs
      */
@@ -1954,16 +2000,16 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * <UL> <LI> importedKeyInitiallyDeferred - see SQL92 for definition <LI> importedKeyInitiallyImmediate - see SQL92 for definition <LI>
      * importedKeyNotDeferrable - see SQL92 for definition </UL> </OL>
      *
-     * @param parentCatalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means drop catalog name from the selection criteria
-     * @param parentSchema a schema name; must match the schema name as it is stored in the database; "" retrieves those without a schema;
-     * <code>null</code> means drop schema name from the selection criteria
-     * @param parentTable the name of the table that exports the key; must match the table name as it is stored in the database
+     * @param parentCatalog  a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
+     *                       <code>null</code> means drop catalog name from the selection criteria
+     * @param parentSchema   a schema name; must match the schema name as it is stored in the database; "" retrieves those without a schema;
+     *                       <code>null</code> means drop schema name from the selection criteria
+     * @param parentTable    the name of the table that exports the key; must match the table name as it is stored in the database
      * @param foreignCatalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means drop catalog name from the selection criteria
-     * @param foreignSchema a schema name; must match the schema name as it is stored in the database; "" retrieves those without a schema;
-     * <code>null</code> means drop schema name from the selection criteria
-     * @param foreignTable the name of the table that imports the key; must match the table name as it is stored in the database
+     *                       <code>null</code> means drop catalog name from the selection criteria
+     * @param foreignSchema  a schema name; must match the schema name as it is stored in the database; "" retrieves those without a schema;
+     *                       <code>null</code> means drop schema name from the selection criteria
+     * @param foreignTable   the name of the table that imports the key; must match the table name as it is stored in the database
      * @return <code>ResultSet</code> - each row is a foreign key column description
      * @throws SQLException if a database access error occurs
      * @see #getImportedKeys
@@ -2011,29 +2057,52 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     /**
-     * Retrieves a description of all the data types supported by this database. They are ordered by DATA_TYPE and then by how closely the data type
-     * maps to the corresponding JDBC SQL type.
-     * <P>If the database supports SQL distinct types, then getTypeInfo() will return a single row with a TYPE_NAME of DISTINCT and a DATA_TYPE of
-     * Types.DISTINCT. If the database supports SQL structured types, then getTypeInfo() will return a single row with a TYPE_NAME of STRUCT and a
-     * DATA_TYPE of Types.STRUCT.
-     * <P>If SQL distinct or structured types are supported, then information on the individual types may be obtained from the getUDTs() method.
-     * <P>Each type description has the following columns: <OL> <LI><B>TYPE_NAME</B> String {@code =>} Type name <LI><B>DATA_TYPE</B> int {@code =>}
-     * SQL data type from java.sql.Types <LI><B>PRECISION</B> int {@code =>} maximum precision <LI><B>LITERAL_PREFIX</B> String {@code =>} prefix used
-     * to quote a literal (may be <code>null</code>) <LI><B>LITERAL_SUFFIX</B> String {@code =>} suffix used to quote a literal (may be
-     * <code>null</code>) <LI><B>CREATE_PARAMS</B> String {@code =>} parameters used in creating the type (may be <code>null</code>)
-     * <LI><B>NULLABLE</B> short {@code =>} can you use NULL for this type. <UL> <LI> typeNoNulls - does not allow NULL values <LI> typeNullable -
-     * allows NULL values <LI> typeNullableUnknown - nullability unknown </UL> <LI><B>CASE_SENSITIVE</B> boolean{@code =>} is it case sensitive.
-     * <LI><B>SEARCHABLE</B> short {@code =>} can you use "WHERE" based on this type: <UL> <LI> typePredNone - No support <LI> typePredChar - Only
-     * supported with WHERE .. LIKE <LI> typePredBasic - Supported except for WHERE .. LIKE <LI> typeSearchable - Supported for all WHERE .. </UL>
-     * <LI><B>UNSIGNED_ATTRIBUTE</B> boolean {@code =>} is it unsigned. <LI><B>FIXED_PREC_SCALE</B> boolean {@code =>} can it be a money value.
-     * <LI><B>AUTO_INCREMENT</B> boolean {@code =>} can it be used for an auto-increment value. <LI><B>LOCAL_TYPE_NAME</B> String {@code =>} localized
-     * version of type name (may be <code>null</code>) <LI><B>MINIMUM_SCALE</B> short {@code =>} minimum scale supported <LI><B>MAXIMUM_SCALE</B>
-     * short {@code =>} maximum scale supported <LI><B>SQL_DATA_TYPE</B> int {@code =>} unused <LI><B>SQL_DATETIME_SUB</B> int {@code =>} unused
+     * Retrieves a description of all the data types supported by this database. They are ordered by DATA_TYPE and then
+     * by how closely the data type maps to the corresponding JDBC SQL type.
+     * <P>If the database supports SQL distinct types, then getTypeInfo() will return a single row with a TYPE_NAME of
+     * DISTINCT and a DATA_TYPE of Types.DISTINCT. If the database supports SQL structured types, then getTypeInfo()
+     * will return a single row with a TYPE_NAME of STRUCT and a DATA_TYPE of Types.STRUCT.
+     * <P>If SQL distinct or structured types are supported, then information on the individual types may be obtained
+     * from the getUDTs() method.
+     * <P>Each type description has the following columns:
+     * <OL>
+     *     <LI><B>TYPE_NAME</B> String {@code =>} Type name
+     *     <LI><B>DATA_TYPE</B> int {@code =>}
+     * SQL data type from java.sql.Types
+     * <LI><B>PRECISION</B> int {@code =>} maximum precision
+     * <LI><B>LITERAL_PREFIX</B> String {@code =>} prefix used to quote a literal (may be <code>null</code>)
+     * <LI><B>LITERAL_SUFFIX</B> String {@code =>} suffix used to quote a literal (may be <code>null</code>)
+     * <LI><B>CREATE_PARAMS</B> String {@code =>} parameters used in creating the type (may be <code>null</code>)
+     * <LI><B>NULLABLE</B> short {@code =>} can you use NULL for this type.
+     * <UL>
+     *     <LI> typeNoNulls - does not allow NULL values
+     *     <LI> typeNullable - allows NULL values
+     *     <LI> typeNullableUnknown - nullability unknown
+     * </UL>
+     * <LI><B>CASE_SENSITIVE</B> boolean{@code =>} is it case sensitive.
+     * <LI><B>SEARCHABLE</B> short {@code =>} can you use "WHERE" based on this type:
+     * <UL>
+     *     <LI> typePredNone - No support
+     *     <LI> typePredChar - Only supported with WHERE .. LIKE
+     *     <LI> typePredBasic - Supported except for WHERE .. LIKE
+     *     <LI> typeSearchable - Supported for all WHERE ..
+     * </UL>
+     * <LI><B>UNSIGNED_ATTRIBUTE</B> boolean {@code =>} is it unsigned.
+     * <LI><B>FIXED_PREC_SCALE</B> boolean {@code =>} can it be a money value.
+     * <LI><B>AUTO_INCREMENT</B> boolean {@code =>} can it be used for an auto-increment value.
+     * <LI><B>LOCAL_TYPE_NAME</B> String {@code =>} localized version of type name (may be <code>null</code>)
+     * <LI><B>MINIMUM_SCALE</B> short {@code =>} minimum scale supported
+     * <LI><B>MAXIMUM_SCALE</B> short {@code =>} maximum scale supported
+     * <LI><B>SQL_DATA_TYPE</B> int {@code =>} unused
+     * <LI><B>SQL_DATETIME_SUB</B> int {@code =>} unused
      * <LI><B>NUM_PREC_RADIX</B> int {@code =>} usually 2 or 10 </OL>
-     * <p>The PRECISION column represents the maximum column size that the server supports for the given datatype. For numeric data, this is the
-     * maximum precision.  For character data, this is the length in characters. For datetime datatypes, this is the length in characters of the
-     * String representation (assuming the maximum allowed precision of the fractional seconds component). For binary data, this is the length in
-     * bytes.  For the ROWID datatype, this is the length in bytes. Null is returned for data types where the column size is not applicable.
+     * <p>The PRECISION column represents the maximum column size that the server supports for the given datatype.
+     * For numeric data, this is the
+     * maximum precision.  For character data, this is the length in characters. For datetime datatypes, this is the
+     * length in characters of the String representation (assuming the maximum allowed precision of the fractional
+     * seconds component). For binary data, this is the length in bytes.
+     * For the ROWID datatype, this is the length in bytes. Null is returned for data types where the column size is
+     * not applicable.
      *
      * @return a <code>ResultSet</code> object in which each row is an SQL type description
      * @throws SQLException if a database access error occurs
@@ -2045,91 +2114,137 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 "FIXED_PREC_SCALE", "AUTO_INCREMENT", "LOCAL_TYPE_NAME", "MINIMUM_SCALE", "MAXIMUM_SCALE",
                 "SQL_DATA_TYPE", "SQL_DATETIME_SUB", "NUM_PREC_RADIX"
         };
-        MariaDbType[] columnTypes = {
-                MariaDbType.VARCHAR, MariaDbType.INTEGER, MariaDbType.INTEGER, MariaDbType.VARCHAR, MariaDbType.VARCHAR,
-                MariaDbType.VARCHAR, MariaDbType.INTEGER, MariaDbType.BIT, MariaDbType.SMALLINT, MariaDbType.BIT,
-                MariaDbType.BIT, MariaDbType.BIT, MariaDbType.VARCHAR, MariaDbType.SMALLINT, MariaDbType.SMALLINT,
-                MariaDbType.INTEGER, MariaDbType.INTEGER, MariaDbType.INTEGER
+        ColumnType[] columnTypes = {
+                ColumnType.VARCHAR, ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.VARCHAR, ColumnType.VARCHAR,
+                ColumnType.VARCHAR, ColumnType.INTEGER, ColumnType.BIT, ColumnType.SMALLINT, ColumnType.BIT,
+                ColumnType.BIT, ColumnType.BIT, ColumnType.VARCHAR, ColumnType.SMALLINT, ColumnType.SMALLINT,
+                ColumnType.INTEGER, ColumnType.INTEGER, ColumnType.INTEGER
         };
 
         String[][] data = {
                 {"BIT", "-7", "1", "", "", "", "1", "1", "3", "0", "0", "0", "BIT", "0", "0", "0", "0", "10"},
                 {"BOOL", "-7", "1", "", "", "", "1", "1", "3", "0", "0", "0", "BOOL", "0", "0", "0", "0", "10"},
-                {"TINYINT", "-6", "3", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "TINYINT", "0", "0", "0", "0", "10"},
-                {"TINYINT UNSIGNED", "-6", "3", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "TINYINT UNSIGNED", "0", "0",
+                {"TINYINT", "-6", "3", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "TINYINT",
+                        "0", "0", "0", "0", "10"},
+                {"TINYINT UNSIGNED", "-6", "3", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0", "1",
+                        "TINYINT UNSIGNED", "0", "0", "0", "0", "10"},
+                {"BIGINT", "-5", "19", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "BIGINT",
+                        "0", "0", "0", "0", "10"},
+                {"BIGINT UNSIGNED", "-5", "20", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1", "0", "1",
+                        "BIGINT UNSIGNED", "0", "0", "0", "0", "10"},
+                {"LONG VARBINARY", "-4", "16777215", "'", "'", "", "1", "1", "3", "0", "0", "0", "LONG VARBINARY", "0",
+                        "0", "0", "0", "10"},
+                {"MEDIUMBLOB", "-4", "16777215", "'", "'", "", "1", "1", "3", "0", "0", "0", "MEDIUMBLOB", "0", "0",
                         "0", "0", "10"},
-                {"BIGINT", "-5", "19", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "BIGINT", "0", "0", "0", "0", "10"},
-                {"BIGINT UNSIGNED", "-5", "20", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "BIGINT UNSIGNED", "0", "0", "0", "0",
-                        "10"},
-                {"LONG VARBINARY", "-4", "16777215", "'", "'", "", "1", "1", "3", "0", "0", "0", "LONG VARBINARY", "0", "0", "0", "0", "10"},
-                {"MEDIUMBLOB", "-4", "16777215", "'", "'", "", "1", "1", "3", "0", "0", "0", "MEDIUMBLOB", "0", "0", "0", "0", "10"},
-                {"LONGBLOB", "-4", "2147483647", "'", "'", "", "1", "1", "3", "0", "0", "0", "LONGBLOB", "0", "0", "0", "0", "10"},
-                {"BLOB", "-4", "65535", "'", "'", "", "1", "1", "3", "0", "0", "0", "BLOB", "0", "0", "0", "0", "10"},
-                {"TINYBLOB", "-4", "255", "'", "'", "", "1", "1", "3", "0", "0", "0", "TINYBLOB", "0", "0", "0", "0", "10"},
-                {"VARBINARY", "-3", "255", "'", "'", "(M)", "1", "1", "3", "0", "0", "0", "VARBINARY", "0", "0", "0", "0", "10"},
-                {"BINARY", "-2", "255", "'", "'", "(M)", "1", "1", "3", "0", "0", "0", "BINARY", "0", "0", "0", "0", "10"},
-                {"LONG VARCHAR", "-1", "16777215", "'", "'", "", "1", "0", "3", "0", "0", "0", "LONG VARCHAR", "0", "0", "0", "0", "10"},
-                {"MEDIUMTEXT", "-1", "16777215", "'", "'", "", "1", "0", "3", "0", "0", "0", "MEDIUMTEXT", "0", "0", "0", "0", "10"},
-                {"LONGTEXT", "-1", "2147483647", "'", "'", "", "1", "0", "3", "0", "0", "0", "LONGTEXT", "0", "0", "0", "0", "10"},
-                {"TEXT", "-1", "65535", "'", "'", "", "1", "0", "3", "0", "0", "0", "TEXT", "0", "0", "0", "0", "10"},
-                {"TINYTEXT", "-1", "255", "'", "'", "", "1", "0", "3", "0", "0", "0", "TINYTEXT", "0", "0", "0", "0", "10"},
-                {"CHAR", "1", "255", "'", "'", "(M)", "1", "0", "3", "0", "0", "0", "CHAR", "0", "0", "0", "0", "10"},
-                {"NUMERIC", "2", "65", "", "", "[(M,D])] [ZEROFILL]", "1", "0", "3", "0", "0", "1", "NUMERIC", "-308", "308", "0", "0", "10"},
-                {"DECIMAL", "3", "65", "", "", "[(M,D])] [ZEROFILL]", "1", "0", "3", "0", "0", "1", "DECIMAL", "-308", "308", "0", "0", "10"},
-                {"INTEGER", "4", "10", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "INTEGER", "0", "0", "0", "0", "10"},
-                {"INTEGER UNSIGNED", "4", "10", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "INTEGER UNSIGNED", "0", "0", "0", "0",
-                        "10"},
-                {"INT", "4", "10", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "INT", "0", "0", "0", "0", "10"},
-                {"INT UNSIGNED", "4", "10", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "INT UNSIGNED", "0", "0", "0", "0", "10"},
-                {"MEDIUMINT", "4", "7", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "MEDIUMINT", "0", "0", "0", "0", "10"},
-                {"MEDIUMINT UNSIGNED", "4", "8", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "MEDIUMINT UNSIGNED", "0", "0", "0", "0",
-                        "10"},
-                {"SMALLINT", "5", "5", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "SMALLINT", "0", "0", "0", "0", "10"},
-                {"SMALLINT UNSIGNED", "5", "5", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "SMALLINT UNSIGNED", "0", "0", "0", "0",
-                        "10"},
-                {"FLOAT", "7", "10", "", "", "[(M|D)] [ZEROFILL]", "1", "0", "3", "0", "0", "1", "FLOAT", "-38", "38", "0", "0", "10"},
-                {"DOUBLE", "8", "17", "", "", "[(M|D)] [ZEROFILL]", "1", "0", "3", "0", "0", "1", "DOUBLE", "-308", "308", "0", "0", "10"},
-                {"DOUBLE PRECISION", "8", "17", "", "", "[(M,D)] [ZEROFILL]", "1", "0", "3", "0", "0", "1", "DOUBLE PRECISION", "-308", "308", "0",
+                {"LONGBLOB", "-4", "2147483647", "'", "'", "", "1", "1", "3", "0", "0", "0", "LONGBLOB", "0", "0", "0",
                         "0", "10"},
-                {"REAL", "8", "17", "", "", "[(M,D)] [ZEROFILL]", "1", "0", "3", "0", "0", "1", "REAL", "-308", "308", "0", "0", "10"},
-                {"VARCHAR", "12", "255", "'", "'", "(M)", "1", "0", "3", "0", "0", "0", "VARCHAR", "0", "0", "0", "0", "10"},
+                {"BLOB", "-4", "65535", "'", "'", "", "1", "1", "3", "0", "0", "0", "BLOB", "0", "0", "0", "0", "10"},
+                {"TINYBLOB", "-4", "255", "'", "'", "", "1", "1", "3", "0", "0", "0", "TINYBLOB", "0", "0", "0", "0",
+                        "10"},
+                {"VARBINARY", "-3", "255", "'", "'", "(M)", "1", "1", "3", "0", "0", "0", "VARBINARY", "0", "0", "0",
+                        "0", "10"},
+                {"BINARY", "-2", "255", "'", "'", "(M)", "1", "1", "3", "0", "0", "0", "BINARY", "0", "0", "0", "0",
+                        "10"},
+                {"LONG VARCHAR", "-1", "16777215", "'", "'", "", "1", "0", "3", "0", "0", "0", "LONG VARCHAR", "0",
+                        "0", "0", "0", "10"},
+                {"MEDIUMTEXT", "-1", "16777215", "'", "'", "", "1", "0", "3", "0", "0", "0", "MEDIUMTEXT", "0", "0",
+                        "0", "0", "10"},
+                {"LONGTEXT", "-1", "2147483647", "'", "'", "", "1", "0", "3", "0", "0", "0", "LONGTEXT", "0", "0",
+                        "0", "0", "10"},
+                {"TEXT", "-1", "65535", "'", "'", "", "1", "0", "3", "0", "0", "0", "TEXT", "0", "0", "0", "0", "10"},
+                {"TINYTEXT", "-1", "255", "'", "'", "", "1", "0", "3", "0", "0", "0", "TINYTEXT", "0", "0", "0",
+                        "0", "10"},
+                {"CHAR", "1", "255", "'", "'", "(M)", "1", "0", "3", "0", "0", "0", "CHAR", "0", "0", "0", "0", "10"},
+                {"NUMERIC", "2", "65", "", "", "[(M,D])] [ZEROFILL]", "1", "0", "3", "0", "0", "1", "NUMERIC",
+                        "-308", "308", "0", "0", "10"},
+                {"DECIMAL", "3", "65", "", "", "[(M,D])] [ZEROFILL]", "1", "0", "3", "0", "0", "1", "DECIMAL", "-308",
+                        "308", "0", "0", "10"},
+                {"INTEGER", "4", "10", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "INTEGER",
+                        "0", "0", "0", "0", "10"},
+                {"INTEGER UNSIGNED", "4", "10", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1", "0", "1",
+                        "INTEGER UNSIGNED", "0", "0", "0", "0", "10"},
+                {"INT", "4", "10", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "INT", "0",
+                        "0", "0", "0", "10"},
+                {"INT UNSIGNED", "4", "10", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "INT UNSIGNED",
+                        "0", "0", "0", "0", "10"},
+                {"MEDIUMINT", "4", "7", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0", "1",
+                        "MEDIUMINT", "0", "0", "0", "0", "10"},
+                {"MEDIUMINT UNSIGNED", "4", "8", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1", "0", "1",
+                        "MEDIUMINT UNSIGNED", "0", "0", "0", "0", "10"},
+                {"SMALLINT", "5", "5", "", "", "[(M)] [UNSIGNED] [ZEROFILL]", "1", "0", "3", "1", "0", "1", "SMALLINT",
+                        "0", "0", "0", "0", "10"},
+                {"SMALLINT UNSIGNED", "5", "5", "", "", "[(M)] [ZEROFILL]", "1", "0", "3", "1", "0", "1",
+                        "SMALLINT UNSIGNED", "0", "0", "0", "0", "10"},
+                {"FLOAT", "7", "10", "", "", "[(M|D)] [ZEROFILL]", "1", "0", "3", "0", "0", "1", "FLOAT", "-38", "38",
+                        "0", "0", "10"},
+                {"DOUBLE", "8", "17", "", "", "[(M|D)] [ZEROFILL]", "1", "0", "3", "0", "0", "1", "DOUBLE", "-308",
+                        "308", "0", "0", "10"},
+                {"DOUBLE PRECISION", "8", "17", "", "", "[(M,D)] [ZEROFILL]", "1", "0", "3", "0", "0", "1",
+                        "DOUBLE PRECISION", "-308", "308", "0", "0", "10"},
+                {"REAL", "8", "17", "", "", "[(M,D)] [ZEROFILL]", "1", "0", "3", "0", "0", "1", "REAL", "-308",
+                        "308", "0", "0", "10"},
+                {"VARCHAR", "12", "255", "'", "'", "(M)", "1", "0", "3", "0", "0", "0", "VARCHAR", "0", "0", "0",
+                        "0", "10"},
                 {"ENUM", "12", "65535", "'", "'", "", "1", "0", "3", "0", "0", "0", "ENUM", "0", "0", "0", "0", "10"},
                 {"SET", "12", "64", "'", "'", "", "1", "0", "3", "0", "0", "0", "SET", "0", "0", "0", "0", "10"},
                 {"DATE", "91", "10", "'", "'", "", "1", "0", "3", "0", "0", "0", "DATE", "0", "0", "0", "0", "10"},
                 {"TIME", "92", "18", "'", "'", "[(M)]", "1", "0", "3", "0", "0", "0", "TIME", "0", "0", "0", "0", "10"},
-                {"DATETIME", "93", "27", "'", "'", "[(M)]", "1", "0", "3", "0", "0", "0", "DATETIME", "0", "0", "0", "0", "10"},
-                {"TIMESTAMP", "93", "27", "'", "'", "[(M)]", "1", "0", "3", "0", "0", "0", "TIMESTAMP", "0", "0", "0", "0", "10"}
+                {"DATETIME", "93", "27", "'", "'", "[(M)]", "1", "0", "3", "0", "0", "0", "DATETIME", "0", "0", "0",
+                        "0", "10"},
+                {"TIMESTAMP", "93", "27", "'", "'", "[(M)]", "1", "0", "3", "0", "0", "0", "TIMESTAMP", "0", "0",
+                        "0", "0", "10"}
         };
 
-        return MariaSelectResultSet.createResultSet(columnNames, columnTypes, data, connection.getProtocol());
+        return SelectResultSet.createResultSet(columnNames, columnTypes, data, connection.getProtocol());
     }
 
     /**
-     * Retrieves a description of the given table's indices and statistics. They are ordered by NON_UNIQUE, TYPE, INDEX_NAME, and
-     * ORDINAL_POSITION.<p>
-     * Each index column description has the following columns: <ol> <li><B>TABLE_CAT</B> String {@code =>} table catalog (may be
-     * <code>null</code>)</li> <li><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>)</li> <li><B>TABLE_NAME</B> String
-     * {@code =>} table name</li> <li><B>NON_UNIQUE</B> boolean {@code =>} Can index values be non-unique. false when TYPE is tableIndexStatistic</li>
-     * <li><B>INDEX_QUALIFIER</B> String {@code =>} index catalog (may be <code>null</code>); <code>null</code> when TYPE is tableIndexStatistic</li>
-     * <li><B>INDEX_NAME</B> String {@code =>} index name; <code>null</code> when TYPE is tableIndexStatistic</li> <li><B>TYPE</B> short {@code =>}
-     * index type: <ul> <li> tableIndexStatistic - this identifies table statistics that are returned in conjuction with a table's index descriptions
-     * <li> tableIndexClustered - this is a clustered index <li> tableIndexHashed - this is a hashed index <li> tableIndexOther - this is some other
-     * style of index </ul></li> <li><B>ORDINAL_POSITION</B> short {@code =>} column sequence number within index; zero when TYPE is
-     * tableIndexStatistic</li> <li><B>COLUMN_NAME</B> String {@code =>} column name; <code>null</code> when TYPE is tableIndexStatistic</li>
-     * <li><B>ASC_OR_DESC</B> String {@code =>} column sort sequence, "A" {@code =>} ascending, "D" {@code =>} descending, may be <code>null</code> if
-     * sort sequence is not supported; <code>null</code> when TYPE is tableIndexStatistic</li> <li><B>CARDINALITY</B> long {@code =>} When TYPE is
-     * tableIndexStatistic, then this is the number of rows in the table; otherwise, it is the number of unique values in the index.</li>
-     * <li><B>PAGES</B> long {@code =>} When TYPE is  tableIndexStatisic then this is the number of pages used for the table, otherwise it is the
-     * number of pages used for the current index.</li> <li><B>FILTER_CONDITION</B> String {@code =>} Filter condition, if any. (may be
-     * <code>null</code>)</li> </ol>
+     * Retrieves a description of the given table's indices and statistics. They are ordered by NON_UNIQUE,
+     * TYPE, INDEX_NAME, and ORDINAL_POSITION.<p>
+     * Each index column description has the following columns:
+     * <ol>
+     *     <li><B>TABLE_CAT</B> String {@code =>} table catalog (may be <code>null</code>)</li>
+     *     <li><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>)</li>
+     *     <li><B>TABLE_NAME</B> String {@code =>} table name</li>
+     *     <li><B>NON_UNIQUE</B> boolean {@code =>} Can index values be non-unique. false when TYPE is
+     *     tableIndexStatistic</li>
+     * <li><B>INDEX_QUALIFIER</B> String {@code =>} index catalog (may be <code>null</code>); <code>null</code>
+     * when TYPE is tableIndexStatistic</li>
+     * <li><B>INDEX_NAME</B> String {@code =>} index name; <code>null</code> when TYPE is tableIndexStatistic</li>
+     * <li><B>TYPE</B> short {@code =>} index type:
+     * <ul>
+     *     <li> tableIndexStatistic - this identifies table statistics that are returned in conjuction with a
+     *     table's index descriptions
+     *     <li> tableIndexClustered - this is a clustered index
+     *     <li> tableIndexHashed - this is a hashed index
+     *     <li> tableIndexOther - this is some other style of index
+     * </ul>
+     * </li>
+     * <li><B>ORDINAL_POSITION</B> short {@code =>} column sequence number within index; zero when TYPE is
+     * tableIndexStatistic</li> <li><B>COLUMN_NAME</B> String {@code =>} column name; <code>null</code> when TYPE
+     * is tableIndexStatistic</li>
+     * <li><B>ASC_OR_DESC</B> String {@code =>} column sort sequence, "A" {@code =>} ascending, "D" {@code =>}
+     * descending, may be <code>null</code> if sort sequence is not supported; <code>null</code> when TYPE is
+     * tableIndexStatistic</li> <li><B>CARDINALITY</B> long {@code =>} When TYPE is
+     * tableIndexStatistic, then this is the number of rows in the table; otherwise, it is the number of unique values
+     * in the index.</li>
+     * <li><B>PAGES</B> long {@code =>} When TYPE is  tableIndexStatisic then this is the number of pages used for the
+     * table, otherwise it is the
+     * number of pages used for the current index.</li>
+     * <li><B>FILTER_CONDITION</B> String {@code =>} Filter condition, if any. (may be <code>null</code>)</li>
+     * </ol>
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in this database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schema a schema name; must match the schema name as it is stored in this database; "" retrieves those without a schema;
-     * <code>null</code> means that the schema name should not be used to narrow the search
-     * @param table a table name; must match the table name as it is stored in this database
-     * @param unique when true, return only indices for unique values; when false, return indices regardless of whether unique or not
-     * @param approximate when true, result is allowed to reflect approximate or out of data values; when false, results are requested to be accurate
+     * @param catalog     a catalog name; must match the catalog name as it is stored in this database; "" retrieves
+     *                    those without a catalog; <code>null</code> means that the catalog name should not be used to
+     *                    narrow the search
+     * @param schema      a schema name; must match the schema name as it is stored in this database; "" retrieves
+     *                    those without a schema; <code>null</code> means that the schema name should not be used to
+     *                    narrow the search
+     * @param table       a table name; must match the table name as it is stored in this database
+     * @param unique      when true, return only indices for unique values; when false, return indices regardless of
+     *                    whether unique or not
+     * @param approximate when true, result is allowed to reflect approximate or out of data values; when false,
+     *                    results are requested to be accurate
      * @return <code>ResultSet</code> - each row is an index column description
      * @throws SQLException if a database access error occurs
      */
@@ -2156,7 +2271,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
-        return (type == ResultSet.TYPE_SCROLL_INSENSITIVE || type == ResultSet.TYPE_FORWARD_ONLY) && concurrency == ResultSet.CONCUR_READ_ONLY;
+        return (type == ResultSet.TYPE_SCROLL_INSENSITIVE || type == ResultSet.TYPE_FORWARD_ONLY)
+                && concurrency == ResultSet.CONCUR_READ_ONLY;
     }
 
     public boolean ownUpdatesAreVisible(int type) throws SQLException {
@@ -2200,26 +2316,38 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     /**
-     * Retrieves a description of the user-defined types (UDTs) defined in a particular schema.  Schema-specific UDTs may have type
-     * <code>JAVA_OBJECT</code>, <code>STRUCT</code>, or <code>DISTINCT</code>.<p>
-     * Only types matching the catalog, schema, type name and type criteria are returned.  They are ordered by <code>DATA_TYPE</code>,
-     * <code>TYPE_CAT</code>, <code>TYPE_SCHEM</code>  and <code>TYPE_NAME</code>.  The type name parameter may be a fully-qualified name.  In this
-     * case, the catalog and schemaPattern parameters are ignored.<p>
-     * Each type description has the following columns: <ol> <li><B>TYPE_CAT</B> String {@code =>} the type's catalog (may be <code>null</code>)</li>
-     * <li><B>TYPE_SCHEM</B> String {@code =>} type's schema (may be <code>null</code>)</li> <li><B>TYPE_NAME</B> String {@code =>} type name</li>
-     * <li><B>CLASS_NAME</B> String {@code =>} Java class name</li> <li><B>DATA_TYPE</B> int {@code =>} type value defined in java.sql.Types. One of
-     * JAVA_OBJECT, STRUCT, or DISTINCT</li> <li><B>REMARKS</B> String {@code =>} explanatory comment on the type</li> <li><B>BASE_TYPE</B> short
-     * {@code =>} type code of the source type of a DISTINCT type or the type that implements the user-generated reference type of the
-     * SELF_REFERENCING_COLUMN of a structured type as defined in java.sql.Types (<code>null</code> if DATA_TYPE is not DISTINCT or not STRUCT with
-     * REFERENCE_GENERATION = USER_DEFINED)</li> </ol>
+     * Retrieves a description of the user-defined types (UDTs) defined in a particular schema.
+     * Schema-specific UDTs may have type <code>JAVA_OBJECT</code>, <code>STRUCT</code>, or <code>DISTINCT</code>.<p>
+     * Only types matching the catalog, schema, type name and type criteria are returned.
+     * They are ordered by <code>DATA_TYPE</code>, <code>TYPE_CAT</code>, <code>TYPE_SCHEM</code>  and
+     * <code>TYPE_NAME</code>.  The type name parameter may be a fully-qualified name.
+     * In this case, the catalog and schemaPattern parameters are ignored.<p>
+     * Each type description has the following columns:
+     * <ol>
+     *     <li><B>TYPE_CAT</B> String {@code =>} the type's catalog (may be <code>null</code>)</li>
+     * <li><B>TYPE_SCHEM</B> String {@code =>} type's schema (may be <code>null</code>)</li>
+     * <li><B>TYPE_NAME</B> String {@code =>} type name</li>
+     * <li><B>CLASS_NAME</B> String {@code =>} Java class name</li>
+     * <li><B>DATA_TYPE</B> int {@code =>} type value defined in java.sql.Types. One of JAVA_OBJECT, STRUCT,
+     * or DISTINCT</li>
+     * <li><B>REMARKS</B> String {@code =>} explanatory comment on the type</li>
+     * <li><B>BASE_TYPE</B> short {@code =>} type code of the source type of a DISTINCT type or the type that
+     * implements the user-generated reference type of the SELF_REFERENCING_COLUMN of a structured type as defined
+     * in java.sql.Types (<code>null</code> if DATA_TYPE is not DISTINCT or not STRUCT
+     * with REFERENCE_GENERATION = USER_DEFINED)</li>
+     * </ol>
      * <P><B>Note:</B> If the driver does not support UDTs, an empty result set is returned.
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schemaPattern a schema pattern name; must match the schema name as it is stored in the database; "" retrieves those without a schema;
-     * <code>null</code> means that the schema name should not be used to narrow the search
-     * @param typeNamePattern a type name pattern; must match the type name as it is stored in the database; may be a fully qualified name
-     * @param types a list of user-defined types (JAVA_OBJECT, STRUCT, or DISTINCT) to include; <code>null</code> returns all types
+     * @param catalog         a catalog name; must match the catalog name as it is stored in the database; ""
+     *                        retrieves those without a catalog;
+     *                        <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schemaPattern   a schema pattern name; must match the schema name as it is stored in the database; ""
+     *                        retrieves those without a schema;
+     *                        <code>null</code> means that the schema name should not be used to narrow the search
+     * @param typeNamePattern a type name pattern; must match the type name as it is stored in the database; may be a
+     *                        fully qualified name
+     * @param types           a list of user-defined types (JAVA_OBJECT, STRUCT, or DISTINCT) to include;
+     *                        <code>null</code> returns all types
      * @return <code>ResultSet</code> object in which each row describes a UDT
      * @throws SQLException if a database access error occurs
      * @see #getSearchStringEscape
@@ -2256,20 +2384,27 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     /**
-     * Retrieves a description of the user-defined type (UDT) hierarchies defined in a particular schema in this database. Only the immediate super
-     * type/ sub type relationship is modeled.
-     * Only supertype information for UDTs matching the catalog, schema, and type name is returned. The type name parameter may be a fully-qualified
-     * name. When the UDT name supplied is a fully-qualified name, the catalog and schemaPattern parameters are ignored.
-     * If a UDT does not have a direct super type, it is not listed here. A row of the <code>ResultSet</code> object returned by this method describes
-     * the designated UDT and a direct supertype. A row has the following columns: <OL> <li><B>TYPE_CAT</B> String {@code =>} the UDT's catalog (may
-     * be <code>null</code>) <li><B>TYPE_SCHEM</B> String {@code =>} UDT's schema (may be <code>null</code>) <li><B>TYPE_NAME</B> String {@code =>}
-     * type name of the UDT <li><B>SUPERTYPE_CAT</B> String {@code =>} the direct super type's catalog (may be <code>null</code>)
-     * <li><B>SUPERTYPE_SCHEM</B> String {@code =>} the direct super type's schema (may be <code>null</code>) <li><B>SUPERTYPE_NAME</B> String {@code
+     * Retrieves a description of the user-defined type (UDT) hierarchies defined in a particular schema in this
+     * database. Only the immediate super type/ sub type relationship is modeled.
+     * Only supertype information for UDTs matching the catalog, schema, and type name is returned.
+     * The type name parameter may be a fully-qualified name.
+     * When the UDT name supplied is a fully-qualified name, the catalog and schemaPattern parameters are ignored.
+     * If a UDT does not have a direct super type, it is not listed here.
+     * A row of the <code>ResultSet</code> object returned by this method describes
+     * the designated UDT and a direct supertype. A row has the following columns:
+     * <OL>
+     *     <li><B>TYPE_CAT</B> String {@code =>} the UDT's catalog (may
+     * be <code>null</code>) <li><B>TYPE_SCHEM</B> String {@code =>} UDT's schema (may be <code>null</code>)
+     * <li><B>TYPE_NAME</B> String {@code =>} type name of the UDT <li><B>SUPERTYPE_CAT</B>
+     * String {@code =>} the direct super type's catalog (may be <code>null</code>)
+     * <li><B>SUPERTYPE_SCHEM</B> String {@code =>} the direct super type's schema (may be <code>null</code>)
+     * <li><B>SUPERTYPE_NAME</B> String {@code
      * =>} the direct super type's name </OL>
      * <P><B>Note:</B> If the driver does not support type hierarchies, an empty result set is returned.
      *
-     * @param catalog a catalog name; "" retrieves those without a catalog; <code>null</code> means drop catalog name from the selection criteria
-     * @param schemaPattern a schema name pattern; "" retrieves those without a schema
+     * @param catalog         a catalog name; "" retrieves those without a catalog; <code>null</code> means drop
+     *                        catalog name from the selection criteria
+     * @param schemaPattern   a schema name pattern; "" retrieves those without a schema
      * @param typeNamePattern a UDT name pattern; may be a fully-qualified name
      * @return a <code>ResultSet</code> object in which a row gives information about the designated UDT
      * @throws SQLException if a database access error occurs
@@ -2287,17 +2422,22 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     /**
      * Retrieves a description of the table hierarchies defined in a particular schema in this database.
-     * <P>Only supertable information for tables matching the catalog, schema and table name are returned. The table name parameter may be a fully-
-     * qualified name, in which case, the catalog and schemaPattern parameters are ignored. If a table does not have a super table, it is not listed
-     * here. Supertables have to be defined in the same catalog and schema as the sub tables. Therefore, the type description does not need to include
+     * <P>Only supertable information for tables matching the catalog, schema and table name are returned.
+     * The table name parameter may be a fully-qualified name, in which case, the catalog and schemaPattern parameters
+     * are ignored. If a table does not have a super table, it is not listed
+     * here. Supertables have to be defined in the same catalog and schema as the sub tables. Therefore, the type
+     * description does not need to include
      * this information for the supertable.
-     * <P>Each type description has the following columns: <OL> <li><B>TABLE_CAT</B> String {@code =>} the type's catalog (may be <code>null</code>)
-     * <li><B>TABLE_SCHEM</B> String {@code =>} type's schema (may be <code>null</code>) <li><B>TABLE_NAME</B> String {@code =>} type name
+     * <P>Each type description has the following columns: <OL> <li><B>TABLE_CAT</B> String {@code =>} the type's
+     * catalog (may be <code>null</code>)
+     * <li><B>TABLE_SCHEM</B> String {@code =>} type's schema (may be <code>null</code>) <li><B>TABLE_NAME</B> String
+     * {@code =>} type name
      * <li><B>SUPERTABLE_NAME</B> String {@code =>} the direct super type's name </OL>
      * <P><B>Note:</B> If the driver does not support type hierarchies, an empty result set is returned.
      *
-     * @param catalog a catalog name; "" retrieves those without a catalog; <code>null</code> means drop catalog name from the selection criteria
-     * @param schemaPattern a schema name pattern; "" retrieves those without a schema
+     * @param catalog          a catalog name; "" retrieves those without a catalog; <code>null</code> means drop
+     *                         catalog name from the selection criteria
+     * @param schemaPattern    a schema name pattern; "" retrieves those without a schema
      * @param tableNamePattern a table name pattern; may be a fully-qualified name
      * @return a <code>ResultSet</code> object in which each row is a type description
      * @throws SQLException if a database access error occurs
@@ -2312,37 +2452,55 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     /**
-     * Retrieves a description of the given attribute of the given type for a user-defined type (UDT) that is available in the given schema and
-     * catalog.
-     * Descriptions are returned only for attributes of UDTs matching the catalog, schema, type, and attribute name criteria. They are ordered by
-     * <code>TYPE_CAT</code>, <code>TYPE_SCHEM</code>, <code>TYPE_NAME</code> and <code>ORDINAL_POSITION</code>. This description does not contain
-     * inherited attributes.
-     * The <code>ResultSet</code> object that is returned has the following columns: <OL> <li><B>TYPE_CAT</B> String {@code =>} type catalog (may be
-     * <code>null</code>) <li><B>TYPE_SCHEM</B> String {@code =>} type schema (may be <code>null</code>) <li><B>TYPE_NAME</B> String {@code =>} type
-     * name <li><B>ATTR_NAME</B> String {@code =>} attribute name <li><B>DATA_TYPE</B> int {@code =>} attribute type SQL type from java.sql.Types
-     * <li><B>ATTR_TYPE_NAME</B> String {@code =>} Data source dependent type name. For a UDT, the type name is fully qualified. For a REF, the type
-     * name is fully qualified and represents the target type of the reference type. <li><B>ATTR_SIZE</B> int {@code =>} column size.  For char or
-     * date types this is the maximum number of characters; for numeric or decimal types this is precision. <li><B>DECIMAL_DIGITS</B> int {@code =>}
-     * the number of fractional digits. Null is returned for data types where DECIMAL_DIGITS is not applicable. <li><B>NUM_PREC_RADIX</B> int {@code
-     * =>} Radix (typically either 10 or 2) <li><B>NULLABLE</B> int {@code =>} whether NULL is allowed <UL> <li> attributeNoNulls - might not allow
-     * NULL values <li> attributeNullable - definitely allows NULL values <li> attributeNullableUnknown - nullability unknown </UL> <li><B>REMARKS</B>
-     * String {@code =>} comment describing column (may be <code>null</code>) <li><B>ATTR_DEF</B> String {@code =>} default value (may be
-     * <code>null</code>) <li><B>SQL_DATA_TYPE</B> int {@code =>} unused <li><B>SQL_DATETIME_SUB</B> int {@code =>} unused
-     * <li><B>CHAR_OCTET_LENGTH</B> int {@code =>} for char types the maximum number of bytes in the column <li><B>ORDINAL_POSITION</B> int {@code =>}
-     * index of the attribute in the UDT (starting at 1) <li><B>IS_NULLABLE</B> String  {@code =>} ISO rules are used to determine the nullability for
-     * a attribute. <UL> <li> YES           --- if the attribute can include NULLs <li> NO            --- if the attribute cannot include NULLs <li>
-     * empty string  --- if the nullability for the attribute is unknown </UL> <li><B>SCOPE_CATALOG</B> String {@code =>} catalog of table that is the
-     * scope of a reference attribute (<code>null</code> if DATA_TYPE isn't REF) <li><B>SCOPE_SCHEMA</B> String {@code =>} schema of table that is the
-     * scope of a reference attribute (<code>null</code> if DATA_TYPE isn't REF) <li><B>SCOPE_TABLE</B> String {@code =>} table name that is the scope
-     * of a reference attribute (<code>null</code> if the DATA_TYPE isn't REF) <li><B>SOURCE_DATA_TYPE</B> short {@code =>} source type of a distinct
-     * type or user-generated Ref type,SQL type from java.sql.Types (<code>null</code> if DATA_TYPE isn't DISTINCT or user-generated REF) </OL>
+     * Retrieves a description of the given attribute of the given type for a user-defined type (UDT) that is available
+     * in the given schema and catalog.
+     * Descriptions are returned only for attributes of UDTs matching the catalog, schema, type, and attribute name
+     * criteria. They are ordered by <code>TYPE_CAT</code>, <code>TYPE_SCHEM</code>, <code>TYPE_NAME</code> and
+     * <code>ORDINAL_POSITION</code>. This description does not contain inherited attributes.
+     * The <code>ResultSet</code> object that is returned has the following columns: <OL> <li><B>TYPE_CAT</B>
+     * String {@code =>} type catalog (may be <code>null</code>) <li><B>TYPE_SCHEM</B> String {@code =>} type schema
+     * (may be <code>null</code>) <li><B>TYPE_NAME</B> String {@code =>} type name <li><B>ATTR_NAME</B> String
+     * {@code =>} attribute name <li><B>DATA_TYPE</B> int {@code =>} attribute type SQL type from java.sql.Types
+     * <li><B>ATTR_TYPE_NAME</B> String {@code =>} Data source dependent type name. For a UDT, the type name is fully
+     * qualified. For a REF, the type name is fully qualified and represents the target type of the reference type.
+     * <li><B>ATTR_SIZE</B> int {@code =>} column size.  For char or date types this is the maximum number of
+     * characters; for numeric or decimal types this is precision. <li><B>DECIMAL_DIGITS</B> int {@code =>} the number
+     * of fractional digits. Null is returned for data types where DECIMAL_DIGITS is not applicable.
+     * <li><B>NUM_PREC_RADIX</B> int {@code =>} Radix (typically either 10 or 2) <li><B>NULLABLE</B> int {@code =>}
+     * whether NULL is allowed <UL> <li> attributeNoNulls - might not allow NULL values
+     * <li> attributeNullable - definitely allows NULL values
+     * <li> attributeNullableUnknown - nullability unknown
+     * </UL>
+     * <li><B>REMARKS</B> String {@code =>} comment describing column (may be <code>null</code>)
+     * <li><B>ATTR_DEF</B> String {@code =>} default value (may be<code>null</code>)
+     * <li><B>SQL_DATA_TYPE</B> int {@code =>} unused <li><B>SQL_DATETIME_SUB</B> int {@code =>} unused
+     * <li><B>CHAR_OCTET_LENGTH</B> int {@code =>} for char types the maximum number of bytes in the column
+     * <li><B>ORDINAL_POSITION</B> int {@code =>} index of the attribute in the UDT (starting at 1)
+     * <li><B>IS_NULLABLE</B> String  {@code =>} ISO rules are used to determine the nullability for a attribute.
+     * <UL>
+     *     <li> YES --- if the attribute can include NULLs
+     *     <li> NO  --- if the attribute cannot include NULLs
+     *     <li> empty string  --- if the nullability for the attribute is unknown
+     * </UL>
+     * <li><B>SCOPE_CATALOG</B> String {@code =>} catalog of table that is the scope of a reference attribute
+     * (<code>null</code> if DATA_TYPE isn't REF)
+     * <li><B>SCOPE_SCHEMA</B> String {@code =>} schema of table that is the scope of a reference attribute
+     * (<code>null</code> if DATA_TYPE isn't REF)
+     * <li><B>SCOPE_TABLE</B> String {@code =>} table name that is the scope of a reference attribute
+     * (<code>null</code> if the DATA_TYPE isn't REF)
+     * <li><B>SOURCE_DATA_TYPE</B> short {@code =>} source type of a distinct type or user-generated Ref
+     * type,SQL type from java.sql.Types (<code>null</code> if DATA_TYPE isn't DISTINCT or user-generated REF)
+     * </OL>
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schemaPattern a schema name pattern; must match the schema name as it is stored in the database; "" retrieves those without a schema;
-     * <code>null</code> means that the schema name should not be used to narrow the search
-     * @param typeNamePattern a type name pattern; must match the type name as it is stored in the database
-     * @param attributeNamePattern an attribute name pattern; must match the attribute name as it is declared in the database
+     * @param catalog              a catalog name; must match the catalog name as it is stored in the database;
+     *                             "" retrieves those without a catalog; <code>null</code> means that the catalog name
+     *                             should not be used to narrow the search
+     * @param schemaPattern        a schema name pattern; must match the schema name as it is stored in the database;
+     *                             "" retrieves those without a schema; <code>null</code> means that the schema name
+     *                             should not be used to narrow the search
+     * @param typeNamePattern      a type name pattern; must match the type name as it is stored in the database
+     * @param attributeNamePattern an attribute name pattern; must match the attribute name as it is declared in the
+     *                             database
      * @return a <code>ResultSet</code> object in which each row is an attribute description
      * @throws SQLException if a database access error occurs
      * @see #getSearchStringEscape
@@ -2418,65 +2576,70 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     /**
      * Retrieves a list of the client info properties that the driver supports. The result set contains the following columns
      * <ol>
-     *     <li>NAME String : The name of the client info property</li>
-     *     <li>MAX_LEN int : The maximum length of the value for the property</li>
-     *     <li>DEFAULT_VALUE String : The default value of the property</li>
-     *     <li>DESCRIPTION String : A description of the property.
-     *     This will typically contain information as to where this property is stored in the database.</li>
+     * <li>NAME String : The name of the client info property</li>
+     * <li>MAX_LEN int : The maximum length of the value for the property</li>
+     * <li>DEFAULT_VALUE String : The default value of the property</li>
+     * <li>DESCRIPTION String : A description of the property.
+     * This will typically contain information as to where this property is stored in the database.</li>
      * </ol>
      * The ResultSet is sorted by the NAME column
+     *
      * @return A ResultSet object; each row is a supported client info property
      * @throws SQLException if connection error occur
      */
     public ResultSet getClientInfoProperties() throws SQLException {
         ColumnInformation[] columns = new ColumnInformation[4];
-        columns[0] = ColumnInformation.create("NAME", MariaDbType.STRING);
-        columns[1] = ColumnInformation.create("MAX_LEN", MariaDbType.INTEGER);
-        columns[2] = ColumnInformation.create("DEFAULT_VALUE", MariaDbType.STRING);
-        columns[3] = ColumnInformation.create("DESCRIPTION", MariaDbType.STRING);
+        columns[0] = ColumnInformation.create("NAME", ColumnType.STRING);
+        columns[1] = ColumnInformation.create("MAX_LEN", ColumnType.INTEGER);
+        columns[2] = ColumnInformation.create("DEFAULT_VALUE", ColumnType.STRING);
+        columns[3] = ColumnInformation.create("DESCRIPTION", ColumnType.STRING);
 
+        byte[] sixteenMb = new byte[] {(byte) 49, (byte) 54, (byte) 55, (byte) 55, (byte) 55, (byte) 50, (byte) 49, (byte) 53};
+        byte[] empty = new byte[0];
 
-        List<byte[][]> rows = new ArrayList<>(3);
-        rows.add(new byte[][] {
-                "ApplicationName".getBytes(),
-                new byte[] {(byte) 49, (byte) 54, (byte) 55, (byte) 55, (byte) 55, (byte) 50, (byte) 49, (byte) 53},  //16Mb
-                new byte[]{},
-                "The name of the application currently utilizing the connection".getBytes()
-        });
-        rows.add(new byte[][] {
-                "ClientUser".getBytes(),
-                new byte[] {(byte) 49, (byte) 54, (byte) 55, (byte) 55, (byte) 55, (byte) 50, (byte) 49, (byte) 53},  //16Mb
-                new byte[]{},
+        ColumnType[] types = new ColumnType[] {ColumnType.STRING, ColumnType.INTEGER, ColumnType.STRING, ColumnType.STRING};
+        List<byte[]> rows = new ArrayList<>(3);
+
+        rows.add(StandardPacketInputStream.create(new byte[][] {
+                "ApplicationName".getBytes(), sixteenMb, empty,
+                "The name of the application currently utilizing the connection".getBytes()}, types));
+
+        rows.add(StandardPacketInputStream.create(new byte[][] {
+                "ClientUser".getBytes(), sixteenMb, empty,
                 ("The name of the user that the application using the connection is performing work for. "
-                        + "This may not be the same as the user name that was used in establishing the connection.").getBytes()
-        });
-        rows.add(new byte[][] {
-                "ClientHostname".getBytes(),
-                new byte[] {(byte) 49, (byte) 54, (byte) 55, (byte) 55, (byte) 55, (byte) 50, (byte) 49, (byte) 53},  //16Mb
-                new byte[]{},
-                "The hostname of the computer the application using the connection is running on".getBytes()
-        });
+                        + "This may not be the same as the user name that was used in establishing the connection.").getBytes()}, types));
 
-        return new MariaSelectResultSet(columns, rows, connection.getProtocol(), ResultSet.TYPE_SCROLL_INSENSITIVE);
+        rows.add(StandardPacketInputStream.create(new byte[][] {
+                "ClientHostname".getBytes(), sixteenMb, empty,
+                "The hostname of the computer the application using the connection is running on".getBytes()}, types));
+
+        return new SelectResultSet(columns, rows, connection.getProtocol(), ResultSet.TYPE_SCROLL_INSENSITIVE);
     }
 
     /**
      * Retrieves a description of the  system and user functions available in the given catalog.
-     * Only system and user function descriptions matching the schema and function name criteria are returned.  They are ordered by
-     * <code>FUNCTION_CAT</code>, <code>FUNCTION_SCHEM</code>, <code>FUNCTION_NAME</code> and <code>SPECIFIC_ NAME</code>.
-     * <P>Each function description has the the following columns: <OL> <li><B>FUNCTION_CAT</B> String {@code =>} function catalog (may be
-     * <code>null</code>) <li><B>FUNCTION_SCHEM</B> String {@code =>} function schema (may be <code>null</code>) <li><B>FUNCTION_NAME</B> String
-     * {@code =>} function name.  This is the name used to invoke the function <li><B>REMARKS</B> String {@code =>} explanatory comment on the
-     * function <li><B>FUNCTION_TYPE</B> short {@code =>} kind of function: <UL> <li>functionResultUnknown - Cannot determine if a return value or
-     * table will be returned <li> functionNoTable- Does not return a table <li> functionReturnsTable - Returns a table </UL> <li><B>SPECIFIC_NAME</B>
-     * String  {@code =>} the name which uniquely identifies this function within its schema.  This is a user specified, or DBMS generated, name that
-     * may be different then the <code>FUNCTION_NAME</code> for example with overload functions </OL>
+     * Only system and user function descriptions matching the schema and function name criteria are returned.
+     * They are ordered by <code>FUNCTION_CAT</code>, <code>FUNCTION_SCHEM</code>, <code>FUNCTION_NAME</code> and
+     * <code>SPECIFIC_ NAME</code>.
+     * <P>Each function description has the the following columns: <OL> <li><B>FUNCTION_CAT</B> String {@code =>}
+     * function catalog (may be <code>null</code>) <li><B>FUNCTION_SCHEM</B> String {@code =>} function schema (may be
+     * <code>null</code>) <li><B>FUNCTION_NAME</B> String {@code =>} function name.
+     * This is the name used to invoke the function <li><B>REMARKS</B> String {@code =>} explanatory comment on the
+     * function <li><B>FUNCTION_TYPE</B> short {@code =>} kind of function: <UL> <li>functionResultUnknown - Cannot
+     * determine if a return value or table will be returned <li> functionNoTable- Does not return a table
+     * <li> functionReturnsTable - Returns a table
+     * </UL> <li><B>SPECIFIC_NAME</B>
+     * String  {@code =>} the name which uniquely identifies this function within its schema.  This is a user specified,
+     * or DBMS generated, name that may be different then the <code>FUNCTION_NAME</code> for example with overload
+     * functions </OL>
      * A user may not have permission to execute any of the functions that are returned by <code>getFunctions</code>
      *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those without a catalog;
-     * <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schemaPattern a schema name pattern; must match the schema name as it is stored in the database; "" retrieves those without a schema;
-     * <code>null</code> means that the schema name should not be used to narrow the search
+     * @param catalog             a catalog name; must match the catalog name as it is stored in the database; ""
+     *                            retrieves those without a catalog; <code>null</code> means that the catalog name
+     *                            should not be used to narrow the search
+     * @param schemaPattern       a schema name pattern; must match the schema name as it is stored in the database; ""
+     *                            retrieves those without a schema; <code>null</code> means that the schema name should
+     *                            not be used to narrow the search
      * @param functionNamePattern a function name pattern; must match the function name as it is stored in the database
      * @return <code>ResultSet</code> - each row is a function description
      * @throws SQLException if a database access error occurs
@@ -2503,6 +2666,16 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean isWrapperFor(final Class<?> iface) throws SQLException {
+        return false;
+    }
+
+    @Override
+    public long getMaxLogicalLobSize() throws SQLException {
+        return 4294967295L;
+    }
+
+    @Override
+    public boolean supportsRefCursors() throws SQLException {
         return false;
     }
 

@@ -72,10 +72,13 @@ public class MariaDbServerCapabilities {
     public static final int PLUGIN_AUTH = 1 << 19;      /* Client supports plugin authentication */
     public static final int CONNECT_ATTRS = 1 << 20;    /* Client send connection attributes */
     public static final int PLUGIN_AUTH_LENENC_CLIENT_DATA = 1 << 21;    /* authentication data length is a length auth integer */
+    public static final int CLIENT_SESSION_TRACK = 1 << 23; /* server send session tracking info */
+    public static final int CLIENT_DEPRECATE_EOF = 1 << 24; /* EOF packet deprecated */
     public static final int PROGRESS_OLD = 1 << 29;         /* Client support progress indicator (before 10.2)*/
 
     /* MariaDB specific capabilities */
     public static final long MARIADB_CLIENT_PROGRESS = 1L << 32; /* Client support progress indicator (since 10.2) */
-    public static final long MARIADB_CLIENT_COM_MULTI = 1L << 33;
+    public static final long MARIADB_CLIENT_COM_MULTI = 1L << 33; /* bundle command during connection */
+    public static final long MARIADB_CLIENT_COM_IN_AUTH = 1L << 34; /* support bundle first command with the authentication packet*/
 
 }

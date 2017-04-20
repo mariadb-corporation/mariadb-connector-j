@@ -89,16 +89,16 @@ public class DistributedTransaction extends BaseTest {
             }
 
             // check the completion
-            ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i");
-            if (doCommit) {
-                for (int i = 0; i < connectionNumber; i++) {
-                    rs.next();
-                    assertEquals(rs.getInt(1), i);
+            try (ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
+                if (doCommit) {
+                    for (int i = 0; i < connectionNumber; i++) {
+                        rs.next();
+                        assertEquals(rs.getInt(1), i);
+                    }
+                } else {
+                    assertFalse(rs.next());
                 }
-            } else {
-                assertFalse(rs.next());
             }
-            rs.close();
         } finally {
             for (int i = 0; i < connectionNumber; i++) {
                 try {

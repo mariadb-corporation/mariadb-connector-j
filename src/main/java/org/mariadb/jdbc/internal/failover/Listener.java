@@ -51,10 +51,9 @@ package org.mariadb.jdbc.internal.failover;
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.internal.util.dao.QueryException;
-import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
@@ -65,25 +64,25 @@ public interface Listener {
 
     void setProxy(FailoverProxy proxy);
 
-    void initializeConnection() throws QueryException;
+    void initializeConnection() throws SQLException;
 
-    void preExecute() throws QueryException;
+    void preExecute() throws SQLException;
 
     void preClose() throws SQLException;
 
-    void reconnectFailedConnection(SearchFilter filter) throws QueryException;
+    void reconnectFailedConnection(SearchFilter filter) throws SQLException;
 
-    void switchReadOnlyConnection(Boolean readonly) throws QueryException;
+    void switchReadOnlyConnection(Boolean readonly) throws SQLException;
 
     HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable;
 
-    Object invoke(Method method, Object[] args, Protocol specificProtocol) throws Throwable ;
+    Object invoke(Method method, Object[] args, Protocol specificProtocol) throws Throwable;
 
     Object invoke(Method method, Object[] args) throws Throwable;
 
-    HandleErrorResult handleFailover(QueryException qe, Method method, Object[] args, Protocol protocol) throws Throwable;
+    HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args, Protocol protocol) throws Throwable;
 
-    void foundActiveMaster(Protocol protocol) throws QueryException;
+    void foundActiveMaster(Protocol protocol) throws SQLException;
 
     Set<HostAddress> getBlacklistKeys();
 
@@ -91,12 +90,12 @@ public interface Listener {
 
     void removeFromBlacklist(HostAddress hostAddress);
 
-    void syncConnection(Protocol from, Protocol to) throws QueryException;
+    void syncConnection(Protocol from, Protocol to) throws SQLException;
 
     UrlParser getUrlParser();
 
-    void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster, QueryException queryException,
-                              boolean reconnected) throws QueryException;
+    void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster, SQLException queryException,
+                              boolean reconnected) throws SQLException;
 
     boolean isAutoReconnect();
 
@@ -104,7 +103,7 @@ public interface Listener {
 
     boolean isExplicitClosed();
 
-    void reconnect() throws QueryException;
+    void reconnect() throws SQLException;
 
     boolean isReadOnly();
 
@@ -128,5 +127,5 @@ public interface Listener {
 
     boolean checkMasterStatus(SearchFilter searchFilter);
 
-    void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnMaster) throws QueryException;
+    void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnMaster) throws SQLException;
 }

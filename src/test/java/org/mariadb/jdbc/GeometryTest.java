@@ -3,7 +3,6 @@ package org.mariadb.jdbc;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.xml.bind.DatatypeConverter;
 import java.math.BigInteger;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -14,6 +13,7 @@ import static org.junit.Assert.*;
 public class GeometryTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -22,40 +22,37 @@ public class GeometryTest extends BaseTest {
     }
 
     private void geometryTest(String geometryString, String geometryBinary) throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
-        stmt.execute("TRUNCATE geom_test");
-        ResultSet rs;
-        String tmpGeometryBinary = geometryBinary;
-        if (tmpGeometryBinary == null) {
-            rs = stmt.executeQuery("SELECT AsWKB(GeomFromText('" + geometryString + "'))");
-            rs.next();
-            tmpGeometryBinary = DatatypeConverter.printHexBinary(rs.getBytes(1));
-        }
-        String sql = "INSERT INTO geom_test VALUES (GeomFromText('" + geometryString + "'))";
-        stmt.execute(sql);
-        rs = stmt.executeQuery("SELECT AsText(g), AsBinary(g), g FROM geom_test");
-        rs.next();
-        // as text
-        assertEquals(geometryString, rs.getString(1));
-        // as binary
-        String returnWkb = DatatypeConverter.printHexBinary((byte[]) rs.getObject(2));
-        assertEquals(tmpGeometryBinary, returnWkb);
-        // as object
-        Object geometry = null;
-        try {
-            geometry = rs.getObject(3);
-        } catch (Exception e) {
-            fail();
-        }
-        String returnGeometry = DatatypeConverter.printHexBinary((byte[]) geometry);
-        BigInteger returnNumber = new BigInteger(returnGeometry, 16);
-        BigInteger geometryNumber = new BigInteger(tmpGeometryBinary, 16);
-        assertEquals(geometryNumber, returnNumber);
-        if (rs != null) {
-            rs.close();
-        }
-        if (stmt != null) {
-            stmt.close();
+        try (Statement stmt = sharedConnection.createStatement()) {
+            stmt.execute("TRUNCATE geom_test");
+
+            String tmpGeometryBinary = geometryBinary;
+            if (tmpGeometryBinary == null) {
+                try (ResultSet rs = stmt.executeQuery("SELECT AsWKB(GeomFromText('" + geometryString + "'))")) {
+                    rs.next();
+                    tmpGeometryBinary = printHexBinary(rs.getBytes(1));
+                }
+            }
+            String sql = "INSERT INTO geom_test VALUES (GeomFromText('" + geometryString + "'))";
+            stmt.execute(sql);
+            try (ResultSet rs = stmt.executeQuery("SELECT AsText(g), AsBinary(g), g FROM geom_test")) {
+                rs.next();
+                // as text
+                assertEquals(geometryString, rs.getString(1));
+                // as binary
+                String returnWkb = printHexBinary((byte[]) rs.getObject(2));
+                assertEquals(tmpGeometryBinary, returnWkb);
+                // as object
+                Object geometry = null;
+                try {
+                    geometry = rs.getObject(3);
+                } catch (Exception e) {
+                    fail();
+                }
+                String returnGeometry = printHexBinary((byte[]) geometry);
+                BigInteger returnNumber = new BigInteger(returnGeometry, 16);
+                BigInteger geometryNumber = new BigInteger(tmpGeometryBinary, 16);
+                assertEquals(geometryNumber, returnNumber);
+            }
         }
     }
 
@@ -76,6 +73,17 @@ public class GeometryTest extends BaseTest {
     public void polygonTest() throws SQLException {
         String polygonString = "POLYGON((0 0,10 0,0 10,0 0))";
         geometryTest(polygonString, null);
+    }
+
+    private static final char[] hexCode = "0123456789ABCDEF".toCharArray();
+
+    private String printHexBinary(byte[] data) {
+        StringBuilder builder = new StringBuilder(data.length * 2);
+        for (byte b : data) {
+            builder.append(hexCode[(b >> 4) & 0xF]);
+            builder.append(hexCode[(b & 0xF)]);
+        }
+        return builder.toString();
     }
 
 }

@@ -1,7 +1,7 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.*;
-import org.mariadb.jdbc.MariaDbServerPreparedStatement;
+import org.mariadb.jdbc.MariaDbPreparedStatementServer;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
@@ -17,7 +17,7 @@ import static org.junit.Assert.*;
  * - AURORA_ACCESS_KEY = access key
  * - AURORA_SECRET_KEY = secret key
  * - AURORA_CLUSTER_IDENTIFIER = cluster identifier. example : -DAURORA_CLUSTER_IDENTIFIER=instance-1-cluster
- *
+ * <p>
  * "AURORA" environment variable must be set to a value
  */
 public class AuroraFailoverTest extends BaseReplication {
@@ -47,9 +47,7 @@ public class AuroraFailoverTest extends BaseReplication {
 
     @Test
     public void testErrorWriteOnReplica() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = getNewConnection(false);
+        try (Connection connection = getNewConnection(false)) {
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists auroraDelete" + jobId);
             stmt.execute("create table auroraDelete" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
@@ -64,18 +62,12 @@ public class AuroraFailoverTest extends BaseReplication {
                 connection.setReadOnly(false);
                 stmt.execute("drop table if exists auroraDelete" + jobId);
             }
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
     @Test
     public void testReplication() throws SQLException, InterruptedException {
-        Connection connection = null;
-        try {
-            connection = getNewConnection(false);
+        try (Connection connection = getNewConnection(false)) {
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists auroraReadSlave" + jobId);
             stmt.execute("create table auroraReadSlave" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
@@ -88,18 +80,12 @@ public class AuroraFailoverTest extends BaseReplication {
             assertTrue(rs.next());
             connection.setReadOnly(false);
             stmt.execute("drop table  if exists auroraReadSlave" + jobId);
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
     @Test
     public void testFailMaster() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000", true);
+        try (Connection connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000", true)) {
             int previousPort = getProtocolFromConnection(connection).getPort();
             Statement stmt = connection.createStatement();
             int masterServerId = getServerId(connection);
@@ -117,10 +103,6 @@ public class AuroraFailoverTest extends BaseReplication {
             assertFalse(connection.isReadOnly());
             long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stopTime);
             assertTrue(duration < 25 * 1000);
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
@@ -131,17 +113,15 @@ public class AuroraFailoverTest extends BaseReplication {
      */
     @Test
     public void socketTimeoutTest() throws SQLException {
-        Connection connection = null;
-        try {
-            // set a short connection timeout
-            connection = getNewConnection("&socketTimeout=4000", false);
+        // set a short connection timeout
+        try (Connection connection = getNewConnection("&socketTimeout=4000", false)) {
 
             PreparedStatement ps = connection.prepareStatement("SELECT 1");
             ResultSet rs = ps.executeQuery();
             rs.next();
 
             // wait for the connection to time out
-            ps = connection.prepareStatement("DO sleep(5)");
+            ps = connection.prepareStatement("DO sleep(20)");
 
             // a timeout should occur here
             try {
@@ -166,10 +146,6 @@ public class AuroraFailoverTest extends BaseReplication {
 
             // the connection should not be closed
             assertTrue(!connection.isClosed());
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
@@ -194,9 +170,7 @@ public class AuroraFailoverTest extends BaseReplication {
 
     @Test
     public void testClearBlacklist() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection(true);
+        try (Connection connection = getNewConnection(true)) {
             connection.setReadOnly(true);
             int current = getServerId(connection);
             stopProxy(current);
@@ -212,24 +186,21 @@ public class AuroraFailoverTest extends BaseReplication {
             assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 1);
             assureBlackList();
             assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
     @Test
     public void testCloseFail() throws Throwable {
         assureBlackList();
-        Connection connection = getNewConnection(true);
-        connection.setReadOnly(true);
-        int current = getServerId(connection);
-        Protocol protocol = getProtocolFromConnection(connection);
-        assertTrue("Blacklist would normally be zero, but was " + protocol.getProxy().getListener().getBlacklistKeys().size(),
-                protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
-        stopProxy(current);
-        connection.close();
+        Protocol protocol = null;
+        try (Connection connection = getNewConnection(true)) {
+            connection.setReadOnly(true);
+            int current = getServerId(connection);
+            protocol = getProtocolFromConnection(connection);
+            assertTrue("Blacklist would normally be zero, but was " + protocol.getProxy().getListener().getBlacklistKeys().size(),
+                    protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
+            stopProxy(current);
+        }
         //check that after error connection have not been put to blacklist
         assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
     }
@@ -237,17 +208,16 @@ public class AuroraFailoverTest extends BaseReplication {
     /**
      * Test failover on prepareStatement on slave.
      * PrepareStatement must fall back on master, and back on slave when a new slave connection is up again.
+     *
      * @throws Throwable if any error occur
      */
     @Test
     public void failoverPrepareStatementOnSlave() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&validConnectionTimeout=120"
+        try (Connection connection = getNewConnection("&validConnectionTimeout=120"
                     + "&socketTimeout=1000"
                     + "&failoverLoopRetries=120"
                     + "&connectTimeout=250"
-                    + "&loadBalanceBlacklistTimeout=50", false);
+                    + "&loadBalanceBlacklistTimeout=50", false)) {
 
             connection.setReadOnly(true);
 
@@ -330,10 +300,6 @@ public class AuroraFailoverTest extends BaseReplication {
             assertTrue("prepare never get back on slave", nbExecutionOnSlave + nbExecutionOnMasterSecondFailover < 500);
 
             Thread.sleep(2000); //sleep because failover may not be completely finished
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
@@ -346,26 +312,24 @@ public class AuroraFailoverTest extends BaseReplication {
      */
     @Test
     public void failoverPrepareStatementOnMasterWithException() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&validConnectionTimeout=120"
+        try (Connection connection = getNewConnection("&validConnectionTimeout=120"
                     + "&socketTimeout=1000"
                     + "&failoverLoopRetries=120"
                     + "&connectTimeout=250"
                     + "&loadBalanceBlacklistTimeout=50"
-                    + "&useBatchMultiSend=false", false);
+                    + "&useBatchMultiSend=false", false)) {
 
             int nbExceptionBeforeUp = 0;
             boolean failLaunched = false;
             PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
-            assertEquals(1L, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
+            assertEquals(1L, getPrepareResult((MariaDbPreparedStatementServer) preparedStatement1).getStatementId());
             connection.prepareStatement(" select 1");
 
             while (nbExceptionBeforeUp < 1000) {
                 try {
                     PreparedStatement preparedStatement = connection.prepareStatement(" select 1");
                     preparedStatement.executeQuery();
-                    long currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
+                    long currentPrepareId = getPrepareResult((MariaDbPreparedStatementServer) preparedStatement).getStatementId();
                     if (nbExceptionBeforeUp > 0) {
                         assertEquals(1L, currentPrepareId);
                         break;
@@ -381,10 +345,6 @@ public class AuroraFailoverTest extends BaseReplication {
                 }
             }
             assertTrue(nbExceptionBeforeUp < 50);
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 
@@ -395,25 +355,23 @@ public class AuroraFailoverTest extends BaseReplication {
      */
     @Test
     public void failoverPrepareStatementOnMaster() throws Throwable {
-        Connection connection = null;
-        try {
-            connection = getNewConnection("&validConnectionTimeout=120"
+        try (Connection connection = getNewConnection("&validConnectionTimeout=120"
                     + "&socketTimeout=1000"
                     + "&failoverLoopRetries=120"
                     + "&connectTimeout=250"
                     + "&loadBalanceBlacklistTimeout=50"
-                    + "&useBatchMultiSend=false", false);
+                    + "&useBatchMultiSend=false", false)) {
 
             int nbExecutionBeforeRePrepared = 0;
             boolean failLaunched = false;
             PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
-            assertEquals(1L, getPrepareResult((MariaDbServerPreparedStatement) preparedStatement1).getStatementId());
+            assertEquals(1L, getPrepareResult((MariaDbPreparedStatementServer) preparedStatement1).getStatementId());
             connection.prepareStatement("select @@innodb_read_only as is_read_only");
             long currentPrepareId = 0;
             while (nbExecutionBeforeRePrepared < 1000) {
                 PreparedStatement preparedStatement = connection.prepareStatement("select @@innodb_read_only as is_read_only");
                 preparedStatement.executeQuery();
-                currentPrepareId = getPrepareResult((MariaDbServerPreparedStatement) preparedStatement).getStatementId();
+                currentPrepareId = getPrepareResult((MariaDbPreparedStatementServer) preparedStatement).getStatementId();
 
                 if (nbExecutionBeforeRePrepared == 0) {
                     assertEquals(2, currentPrepareId);
@@ -428,10 +386,6 @@ public class AuroraFailoverTest extends BaseReplication {
             }
             assertEquals(1, currentPrepareId);
             assertTrue(nbExecutionBeforeRePrepared < 200);
-        } finally {
-            if (connection != null) {
-                connection.close();
-            }
         }
     }
 }

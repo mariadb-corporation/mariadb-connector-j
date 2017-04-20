@@ -7,17 +7,10 @@ import org.junit.Test;
 
 import java.sql.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 
 public class BufferTest extends BaseTest {
-
-    @BeforeClass()
-    public static void initClass() throws SQLException {
-        createTable("BufferTest", "test longText");
-    }
 
     static char[] array8m;
     static char[] array20m;
@@ -36,6 +29,11 @@ public class BufferTest extends BaseTest {
         for (int i = 0; i < array40m.length; i++) {
             array40m[i] = (char) (0x30 + (i % 10));
         }
+    }
+
+    @BeforeClass()
+    public static void initClass() throws SQLException {
+        createTable("BufferTest", "test longText");
     }
 
     @Test
@@ -137,8 +135,8 @@ public class BufferTest extends BaseTest {
             sendByteBufferData(false, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
+                    sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -149,8 +147,8 @@ public class BufferTest extends BaseTest {
             sendByteBufferData(true, array20m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
+                    sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -161,8 +159,8 @@ public class BufferTest extends BaseTest {
             sendByteBufferData(false, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
+                    sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
@@ -173,15 +171,16 @@ public class BufferTest extends BaseTest {
             sendByteBufferData(true, array40m);
             fail("must have thrown exception");
         } catch (SQLException sqlexception) {
-            assertTrue("not the expected exception. was " + sqlexception.getMessage(),
-                    sqlexception.getMessage().contains("is >= to max_allowed_packet"));
+            assertTrue("not the expected exception. was " + sqlexception.getCause().getCause().getMessage(),
+                    sqlexception.getCause().getMessage().contains("is >= to max_allowed_packet"));
         }
     }
 
     /**
      * Insert data using bytebuffer implementation on PacketOutputStream.
+     *
      * @param compression use packet compression
-     * @param arr data to insert
+     * @param arr         data to insert
      * @throws SQLException if anything wrong append
      */
     private void sendByteBufferData(boolean compression, char[] arr) throws SQLException {
@@ -197,8 +196,9 @@ public class BufferTest extends BaseTest {
 
     /**
      * Insert data using sql buffer implementation on PacketOutputStream.
+     *
      * @param compression use packet compression
-     * @param arr data to insert
+     * @param arr         data to insert
      * @throws SQLException if anything wrong append
      */
     private void sendSqlData(boolean compression, char[] arr) throws SQLException {
@@ -217,9 +217,8 @@ public class BufferTest extends BaseTest {
             String resString = rs.getString(1);
             char[] cc = resString.toCharArray();
             assertEquals("error in data : length not equal", cc.length, arr.length);
-            for (int i = 0 ; i < arr.length ; i++ ) {
-                assertEquals("error in data", cc[i], arr[i]);
-            }
+            assertEquals(String.valueOf(cc), resString);
+
         } else {
             fail("Error, must have result");
         }

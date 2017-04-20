@@ -10,6 +10,7 @@ import static org.junit.Assert.*;
 public class ResultSetMetaDataTest extends BaseTest {
     /**
      * Initialisation.
+     *
      * @throws SQLException exception
      */
     @BeforeClass()
@@ -108,10 +109,7 @@ public class ResultSetMetaDataTest extends BaseTest {
 
         // add useOldAliasMetadataBehavior to get the alias instead of the real
         // table name
-        Connection connection = null;
-        try {
-            connection = setConnection("&useOldAliasMetadataBehavior=true");
-
+        try (Connection connection = setConnection("&useOldAliasMetadataBehavior=true")) {
             rs = connection.createStatement().executeQuery(
                     "SELECT id AS id_alias FROM t3 AS t1_alias");
             rsmd = rs.getMetaData();
@@ -121,8 +119,6 @@ public class ResultSetMetaDataTest extends BaseTest {
             assertEquals(rsmd.getTableName(1), "t1_alias");
             assertEquals(rsmd.getColumnLabel(1), "id_alias");
             assertEquals(rsmd.getColumnName(1), "id_alias");
-        } finally {
-            connection.close();
         }
     }
 

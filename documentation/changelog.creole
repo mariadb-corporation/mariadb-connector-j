@@ -1,7 +1,8 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#200|2.0.0]] Released on 11 Apr. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#158|1.5.9]] Released on 09 Mar. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#158|1.5.8]] Released on 10 Fev  2017
-* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#157|1.5.7]] Released on 12 Jan. 2017
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#157|1.5.7]] Released on 12 Jan. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#156|1.5.6]] Released on 21 Dec. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#155|1.5.5]] Released on 07 Nov. 2016
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#154|1.5.4]] Released on 10 Oct. 2016
@@ -18,6 +19,61 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+== 2.0.0-RC
+
+Release candidate version.
+
+Java 8 is now minimum required version.
+
+=== CONJ-318 : Handle CLIENT_DEPRECATE_EOF flag
+Implement some protocol changes that permit to save some bytes.(part of https://jira.mariadb.org/browse/MDEV-8931).
+
+=== CONJ-341 : handle SERVER_SESSION_STATE_CHANGE status flag
+With server with version MariaDB 10.2, MySQL 5.7, ensure driver state :
+- driver does now always get current database, even database is changed by query.
+- when using rewriteBatchedStatements does return correct autoincrement ids even when session variable @auto_increment_increment has change during session.
+
+
+=== CONJ-393 : improve setQueryTimeout to use SET STATEMENT max_statement_time
+
+Previous implementation of query timeout handling (using Statement.setQueryTimeout) will create an additional thread with a scheduler.
+When timeout is reached, a temporary connection will be created to permit executing "KILL QUERY <current connection id>", then closing the temporary connection.
+When query ended before timeout, the scheduled task will be canceled.
+
+If server is > 10.1.2, query timeout will be handle server side using "SET MAX_STATEMENT_TIME FOR" command.
+
+=== [CONJ-315]
+
+Closing a Statement that was fetching a result-set (using Statement.setFetchSize) and all rows where not read at the time of closing, a kill query command
+will be executed on close, to avoid having to parse all remaining results.
+
+=== [CONJ-442]
+Memory optimization : streaming query.
+Very big command now doesn't use any intermediate buffer. Commands are send directly to socket avoiding using memory, This permit to send very large object (1G) without using any additional memory.
+
+=== [CONJ-366]
+Faster connection : bundle first commands in authentication packet
+Driver execute different command on connection. Those queries are now send using pipeline (all queries are send, then only all results are reads).
+
+New Options :
+ |=usePipelineAuth|Fast connection creation.//Default: true. Since 2.0.0//|
+
+=== [CONJ-368]
+Parsing row result optimisation to avoid creating byte array to the maximum for faster results and less memory use.
+
+=== Remaining JDBC 4.2 missing implementation :
+- CONJ-414 - support for large update count [CONJ-414]
+- CONJ-409 - PrepareStatement.setObject(...) support for with java 8 temporal temporal object.
+- CONJ-411 - support for Statement maxFieldSize
+
+=== Misc
+
+* CONJ-443 - NullpointerException when making concurrent procedure calls
+* CONJ-446 - ResultSet.getBigDecimal throwns NumberFormatException when value is an empty string
+* CONJ-391 - Improve connection using SELECT in place of SHOW to avoid creating a mutex server side.
+* CONJ-402 - tcpKeepAlive option now default to true.
+
+
 == 1.5.9
 * CONJ-212 : Implement password encoding charset option
 * CONJ-423 : Permit to have MySQL driver and MariaDB driver in same classpath
@@ -44,6 +100,7 @@
 * CONJ-407 : handling failover when packet > max_allowed_packet reset the connection state.
 * CONJ-403 : possible NPE on ResultSet.close() correction
 * CONJ-405 : Calendar instance not cleared before being used in ResultSet.getTimestamp
+
 
 == 1.5.6
 * CONJ-399 : resultSet getLong() for BIGINT column fails if value is Long.MIN_VALUE in Text protocol

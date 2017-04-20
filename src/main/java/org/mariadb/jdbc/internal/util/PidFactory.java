@@ -57,14 +57,11 @@ import java.lang.reflect.Method;
 
 public class PidFactory {
 
-    public interface PidRequestInter {
-        String getPid();
-    }
-
     private static PidRequestInter pidRequest = null;
 
     /**
      * Factory method to avoid loading JNA classes every connection.
+     *
      * @return factory that implement PID according to environment.
      */
     public static PidRequestInter getInstance() {
@@ -133,8 +130,13 @@ public class PidFactory {
         return pidRequest;
     }
 
+    public interface PidRequestInter {
+        String getPid();
+    }
+
     private interface CLibrary extends Library {
         CLibrary INSTANCE = (CLibrary) Native.loadLibrary("c", CLibrary.class);
+
         int getpid();
     }
 }

@@ -52,6 +52,7 @@ package org.mariadb.jdbc.internal.util;
 
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
+import java.lang.invoke.WrongMethodTypeException;
 import java.util.Properties;
 
 public enum DefaultOptions {
@@ -64,7 +65,7 @@ public enum DefaultOptions {
      */
     PASSWORD("password", "1.0.0"),
 
-    CONNECT_TIMEOUT("connectTimeout", (Integer) null, new Integer(0), Integer.MAX_VALUE, "1.1.8"),
+    CONNECT_TIMEOUT("connectTimeout", (Integer) null, 0, Integer.MAX_VALUE, "1.1.8"),
 
     /**
      * On Windows, specify named pipe name to connect to mysqld.exe.
@@ -101,7 +102,7 @@ public enum DefaultOptions {
      * Defined the network socket timeout (SO_TIMEOUT) in milliseconds.
      * 0 (default) disable this timeout
      */
-    SOCKET_TIMEOUT("socketTimeout", new Integer[]{10000, null, null, null, null, null}, new Integer(0), Integer.MAX_VALUE, "1.1.8"),
+    SOCKET_TIMEOUT("socketTimeout", new Integer[]{10000, null, null, null, null, null}, 0, Integer.MAX_VALUE, "1.1.8"),
 
     /**
      * Session timeout is defined by the wait_timeout server variable.
@@ -180,18 +181,19 @@ public enum DefaultOptions {
 
     /**
      * Sets corresponding option on the connection socket.
+     * Defaults to true since 1.6.0 (false before)
      */
-    TCP_KEEP_ALIVE("tcpKeepAlive", Boolean.FALSE, "1.0.0"),
+    TCP_KEEP_ALIVE("tcpKeepAlive", Boolean.TRUE, "1.0.0"),
 
     /**
      * set buffer size for TCP buffer (SO_RCVBUF).
      */
-    TCP_RCV_BUF("tcpRcvBuf", (Integer) null, new Integer(0), Integer.MAX_VALUE, "1.0.0"),
+    TCP_RCV_BUF("tcpRcvBuf", (Integer) null, 0, Integer.MAX_VALUE, "1.0.0"),
 
     /**
      * set buffer size for TCP buffer (SO_SNDBUF).
      */
-    TCP_SND_BUF("tcpSndBuf", (Integer) null, new Integer(0), Integer.MAX_VALUE, "1.0.0"),
+    TCP_SND_BUF("tcpSndBuf", (Integer) null, 0, Integer.MAX_VALUE, "1.0.0"),
 
     /**
      * to use custom socket factory, set it to full name of the class that implements javax.net.SocketFactory.
@@ -231,26 +233,26 @@ public enum DefaultOptions {
      * When using loadbalancing, the number of times the driver should cycle through available hosts, attempting to connect.
      * Between cycles, the driver will pause for 250ms if no servers are available.
      */
-    RETRY_ALL_DOWN("retriesAllDown", new Integer(120), new Integer(0), Integer.MAX_VALUE, "1.2.0"),
+    RETRY_ALL_DOWN("retriesAllDown", 120, 0, Integer.MAX_VALUE, "1.2.0"),
 
     /**
      * When using failover, the number of times the driver should cycle silently through available hosts, attempting to connect.
      * Between cycles, the driver will pause for 250ms if no servers are available.
      * if set to 0, there will be no silent reconnection
      */
-    FAILOVER_LOOP_RETRIES("failoverLoopRetries", new Integer(120), new Integer(0), Integer.MAX_VALUE, "1.2.0"),
+    FAILOVER_LOOP_RETRIES("failoverLoopRetries", 120, 0, Integer.MAX_VALUE, "1.2.0"),
 
 
     /**
      * When in multiple hosts, after this time in second without used, verification that the connections haven't been lost.
      * When 0, no verification will be done. Defaults to 0 (120 before 1.5.8 version)
      */
-    VALID_CONNECTION_TIMEOUT("validConnectionTimeout", new Integer(120), new Integer(0), Integer.MAX_VALUE, "1.2.0"),
+    VALID_CONNECTION_TIMEOUT("validConnectionTimeout", 0, 0, Integer.MAX_VALUE, "1.2.0"),
 
     /**
      * time in second a server is blacklisted after a connection failure.  default to 50s
      */
-    LOAD_BALANCE_BLACKLIST_TIMEOUT("loadBalanceBlacklistTimeout", new Integer(50), new Integer(0), Integer.MAX_VALUE, "1.2.0"),
+    LOAD_BALANCE_BLACKLIST_TIMEOUT("loadBalanceBlacklistTimeout", 50, 0, Integer.MAX_VALUE, "1.2.0"),
 
     /**
      * enable/disable prepare Statement cache, default true.
@@ -261,13 +263,13 @@ public enum DefaultOptions {
      * This sets the number of prepared statements that the driver will cache per VM if "cachePrepStmts" is enabled.
      * default to 250.
      */
-    PREPSTMTCACHESIZE("prepStmtCacheSize", new Integer(250), new Integer(0), Integer.MAX_VALUE, "1.3.0"),
+    PREPSTMTCACHESIZE("prepStmtCacheSize", 250, 0, Integer.MAX_VALUE, "1.3.0"),
 
     /**
      * This is the maximum length of a prepared SQL statement that the driver will cache  if "cachePrepStmts" is enabled.
      * default to 2048.
      */
-    PREPSTMTCACHESQLLIMIT("prepStmtCacheSqlLimit", new Integer(2048), new Integer(0), Integer.MAX_VALUE, "1.3.0"),
+    PREPSTMTCACHESQLLIMIT("prepStmtCacheSqlLimit", 2048, 0, Integer.MAX_VALUE, "1.3.0"),
 
     /**
      * when in high availability, and switching to a read-only host, assure that this host is in read-only mode by
@@ -302,15 +304,14 @@ public enum DefaultOptions {
      * File path of the trustStore file (similar to java System property "javax.net.ssl.trustStore").
      * Use the specified keystore for trusted root certificates.
      * When set, overrides serverSslCert.
-     *
+     * <p>
      * (legacy alias trustCertificateKeyStoreUrl)
-     *
      */
     TRUST_CERTIFICATE_KEYSTORE_URL("trustStore", "1.3.0"),
 
     /**
      * Password for the trusted root certificate file (similar to java System property "javax.net.ssl.trustStorePassword").
-     *
+     * <p>
      * (legacy alias trustCertificateKeyStorePassword)
      */
     TRUST_CERTIFICATE_KEYSTORE_PASSWORD("trustStorePassword", "1.3.0"),
@@ -367,7 +368,7 @@ public enum DefaultOptions {
      * This sets the number of callable statements that the driver will cache per VM if "cacheCallableStmts" is enabled.
      * default to 150.
      */
-    CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", new Integer(150), new Integer(0), Integer.MAX_VALUE, "1.4.0"),
+    CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", 150, 0, Integer.MAX_VALUE, "1.4.0"),
 
     /**
      * Indicate to server some client information in a key;value pair.
@@ -387,12 +388,12 @@ public enum DefaultOptions {
      * When using useBatchMultiSend, indicate maximum query that can be send at a time.
      * default to 100
      */
-    USE_BATCH_MULTI_SEND_NUMBER("useBatchMultiSendNumber", new Integer(100), new Integer(1), Integer.MAX_VALUE, "1.5.0"),
+    USE_BATCH_MULTI_SEND_NUMBER("useBatchMultiSendNumber", 100, 1, Integer.MAX_VALUE, "1.5.0"),
 
     /**
      * Enable log information. require Slf4j version &gt; 1.4 dependency.
      * log informations :
-     *  - info : query log
+     * - info : query log
      * default to false.
      */
     LOGGING("log", Boolean.FALSE, "1.5.0"),
@@ -407,20 +408,32 @@ public enum DefaultOptions {
      * Max query log size.
      * default to 1024.
      */
-    MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", new Integer(1024), new Integer(0), Integer.MAX_VALUE, "1.5.0"),
+    MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", 1024, 0, Integer.MAX_VALUE, "1.5.0"),
 
     /**
      * Will log query with execution time superior to this value (if defined )
      * default to null.
      */
-    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, new Long(0), Long.MAX_VALUE, "1.5.0"),
-
+    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, 0L, Long.MAX_VALUE, "1.5.0"),
 
     /**
      * Indicate password encoding charset. If not set, driver use platform's default charset.
      * default to null.
      */
-    PASSWORD_CHARACTER_ENCODING("passwordCharacterEncoding", "1.5.9");
+    PASSWORD_CHARACTER_ENCODING("passwordCharacterEncoding", "1.5.9"),
+
+    /**
+     * Fast connection creation (recommended if not using authentication plugins)
+     * default to true.
+     */
+    PIPELINE_AUTH("usePipelineAuth", Boolean.TRUE, "2.0.0"),
+
+    /**
+     * When closing a statement that is fetching result-set (using setFetchSize),
+     * kill query to avoid having to read remaining rows.
+     */
+    KILL_FETCH_STMT("killFetchStmtOnClose", Boolean.TRUE, "2.0.0");
+
 
     protected final String name;
     protected final Object objType;
@@ -478,6 +491,25 @@ public enum DefaultOptions {
 
     public static Options defaultValues(HaMode haMode) {
         return parse(haMode, "", new Properties());
+    }
+
+    /**
+     * Add a property (name + value) to current session options
+     *
+     * @param haMode  current haMode.
+     * @param name    property name
+     * @param value   new property value
+     * @param options session options.
+     * @return new session options.
+     */
+    public static Options addProperty(HaMode haMode, String name, String value, Options options) {
+        Properties additionnalProperties = new Properties();
+        additionnalProperties.put(name, value);
+        return parse(haMode, additionnalProperties, options);
+    }
+
+    public static Options addProperty(HaMode haMode, Properties additionnalProperties, Options options) {
+        return parse(haMode, additionnalProperties, options);
     }
 
     public static Options parse(HaMode haMode, String urlParameters, Options options) {
@@ -630,4 +662,109 @@ public enum DefaultOptions {
         return options;
     }
 
+    /**
+     * Get properties from session options.
+     *
+     * @param options session options.
+     * @return properties
+     */
+    public static Properties getProperties(Options options) {
+        Properties prop = new Properties();
+        try {
+            for (DefaultOptions o : DefaultOptions.values()) {
+                try {
+                    Object obj = Options.class.getField(o.name).get(options);
+                    if (obj != null) {
+                        prop.put(o.name, String.valueOf(Options.class.getField(o.name).get(options)).toString());
+                    }
+                } catch (NoSuchFieldException exe) {
+                    //eat exception
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return prop;
+    }
+
+    /**
+     * Get properties value by name.
+     *
+     * @param optionName String name
+     * @param options    session options.
+     * @return string value of option if exists.
+     */
+    public static String getProperties(String optionName, Options options) {
+        try {
+            return String.valueOf(Options.class.getField(optionName).get(options));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Set a int value.
+     *
+     * @param value int value to set.
+     */
+    private void setIntValue(Integer value) {
+        this.value = value;
+    }
+
+    /**
+     * Set a boolean value.
+     *
+     * @param value boolean value to set.
+     */
+    private void setBooleanValue(Boolean value) {
+        this.value = value;
+    }
+
+    /**
+     * Return an integer value.
+     *
+     * @return an integer
+     */
+    public int intValue() {
+        if (objType.equals(Integer.class)) {
+            if (value != null) {
+                return ((Integer) value).intValue();
+            } else {
+                return ((Integer) defaultValue).intValue();
+            }
+        } else {
+            throw new WrongMethodTypeException("Method " + name + " is of type " + objType + " intValue() does not apply");
+        }
+    }
+
+    /**
+     * Return boolean value.
+     *
+     * @return a boolean.
+     */
+    public boolean boolValue() {
+        if (objType.equals(Boolean.class)) {
+            if (value != null) {
+                return ((Boolean) value).booleanValue();
+            } else {
+                return ((Boolean) defaultValue).booleanValue();
+            }
+        } else {
+            throw new WrongMethodTypeException("Method " + name + " is of type " + objType + " intValue() does not apply");
+        }
+    }
+
+    /**
+     * Return String value.
+     *
+     * @return string
+     */
+    public String stringValue() {
+        if (objType.equals(String.class)) {
+            return ((String) value);
+        } else {
+            throw new WrongMethodTypeException("Method " + name + " is of type " + objType + " intValue() does not apply");
+        }
+    }
 }
