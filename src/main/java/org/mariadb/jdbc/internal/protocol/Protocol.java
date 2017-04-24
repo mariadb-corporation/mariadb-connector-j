@@ -233,7 +233,9 @@ public interface Protocol {
 
     ReentrantLock getLock();
 
-    void setMoreResults(boolean moreResults);
+    void setServerStatus(short serverStatus);
+
+    void removeHasMoreResults();
 
     void setHasWarnings(boolean hasWarnings);
 

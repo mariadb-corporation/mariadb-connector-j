@@ -210,6 +210,7 @@ public class SelectResultSet implements ResultSet {
             streaming = false;
         } else {
             protocol.setActiveStreamingResult(results);
+            protocol.removeHasMoreResults();
             data = new byte[Math.max(10, fetchSize)][];
             nextStreamingValue();
             streaming = true;
@@ -436,7 +437,8 @@ public class SelectResultSet implements ResultSet {
         //is error Packet
         if (buf[0] == ERROR) {
             protocol.removeActiveStreamingResult();
-            protocol.setMoreResults(false);
+            protocol.removeHasMoreResults();
+            protocol.setHasWarnings(false);
             ErrorPacket errorPacket = new ErrorPacket(new Buffer(buf));
             protocol = null;
             reader = null;
@@ -479,12 +481,9 @@ public class SelectResultSet implements ResultSet {
                 warnings = (buf[pos++] & 0xff) + ((buf[pos++] & 0xff) << 8);
                 callableResult = (serverStatus & PS_OUT_PARAMETERS) != 0;
             }
-
-            if ((serverStatus & MORE_RESULTS_EXISTS) != 0) {
-                protocol.setMoreResults(true);
-            } else protocol.removeActiveStreamingResult();
-
+            protocol.setServerStatus((short) serverStatus);
             protocol.setHasWarnings(warnings > 0);
+            if ((serverStatus & MORE_RESULTS_EXISTS) == 0) protocol.removeActiveStreamingResult();
 
             isEof = true;
             protocol = null;
@@ -549,27 +548,8 @@ public class SelectResultSet implements ResultSet {
             lock.lock();
             try {
                 while (!isEof) {
-                    //fetch all results
-                    Buffer buffer = reader.getPacket(true);
-
-                    //is error Packet
-                    if (buffer.getByteAt(0) == ERROR) {
-                        protocol.removeActiveStreamingResult();
-                        protocol.setMoreResults(false);
-                        ErrorPacket errorPacket = new ErrorPacket(buffer);
-                        throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorNumber());
-                    }
-
-                    //is EOF stream
-                    if ((buffer.getByteAt(0) == EOF && buffer.limit < 9)) {
-                        final EndOfFilePacket endOfFilePacket = new EndOfFilePacket(buffer);
-
-                        protocol.setHasWarnings(endOfFilePacket.getWarningCount() > 0);
-                        protocol.setMoreResults(callableResult || (endOfFilePacket.getStatusFlags() & MORE_RESULTS_EXISTS) != 0);
-                        if (!protocol.hasMoreResults()) protocol.removeActiveStreamingResult();
-
-                        isEof = true;
-                    }
+                    dataSize = 0; //to avoid storing data
+                    readNextValue();
                 }
 
             } catch (IOException ioexception) {
