@@ -57,6 +57,7 @@ END
         sudo apt-get -qq install software-properties-common
 
         if [ "$MARIA" != "5.5" ]
+        then
             sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
             sudo add-apt-repository "deb [arch=amd64,i386,ppc64el] http://nyc2.mirrors.digitalocean.com/mariadb/repo/${MARIA}/ubuntu trusty main"
 
