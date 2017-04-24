@@ -56,25 +56,21 @@ END
 
         sudo apt-get -qq install software-properties-common
 
+        if [ "$MARIA" != "5.5" ]
+            sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
+            sudo add-apt-repository "deb [arch=amd64,i386,ppc64el] http://nyc2.mirrors.digitalocean.com/mariadb/repo/${MARIA}/ubuntu trusty main"
 
-        sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
-
-        sudo add-apt-repository "deb [arch=amd64,i386,ppc64el] http://nyc2.mirrors.digitalocean.com/mariadb/repo/${MARIA}/ubuntu trusty main"
-
-        #Force using MariaDB repo in place of System repo
-        sudo tee /etc/apt/preferences.d/MariaDB.pref << END
+            #Force using MariaDB repo in place of System repo
+            sudo tee /etc/apt/preferences.d/MariaDB.pref << END
 Package: *
 Pin: origin nyc2.mirrors.digitalocean.com
 Pin-Priority: 1000
 END
 
+        fi
+
         sudo apt-get -qq update
 
-        # if needed to run a test for a specific version / during a security release
-        #if [ "$MARIA" == "5.5" ]
-        #then
-        #    sudo apt-get install mariadb-server-core-5.5=5.5.54+maria-1~trusty mariadb-server-5.5=5.5.54+maria-1~trusty mariadb-client-5.5=5.5.54+maria-1~trusty
-        #fi
         sudo apt-get -qq install mariadb-server
     fi
 
