@@ -69,9 +69,18 @@ Parsing row result optimisation to avoid creating byte array to the maximum for 
 === Misc
 
 * CONJ-443 - NullpointerException when making concurrent procedure calls
-* CONJ-446 - ResultSet.getBigDecimal throwns NumberFormatException when value is an empty string
 * CONJ-391 - Improve connection using SELECT in place of SHOW to avoid creating a mutex server side.
 * CONJ-402 - tcpKeepAlive option now default to true.
+* CONJ-448 - QueryException: Incorrect arguments to mysqld_stmt_execute on inserting an "emptyString"-Lob with JPA
+* CONJ-451 - Respect type parameter of ResultSet.getObject with type
+* CONJ-455 - MetaData : tinyInt1isBit doesn't work properly in TINYINT(1) column that is marked as UNSIGNED
+* CONJ-450 - NPE on setClientInfo if value is an empty string
+* CONJ-457 - trustStore : Retain leading slash when trust store beings with 'file:///'
+* CONJ-160 - ConnectionPool test using hikariCP
+* CONJ-307 - valid connector java 9 early access
+* CONJ-402 - make tcpKeepAlive option default to true
+* CONJ-411 - Implement Statement maxFieldSize
+* CONJ-449 - Permit CallableStatement streaming
 
 
 == 1.5.9

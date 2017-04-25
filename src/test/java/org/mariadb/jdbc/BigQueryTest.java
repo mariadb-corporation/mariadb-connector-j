@@ -155,9 +155,14 @@ public class BigQueryTest extends BaseTest {
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("sendBigPreparedQuery") && sharedUsePrepare());
 
         File tmpFile = File.createTempFile("temp-file-name", ".tmp");
+        byte[] bb = new byte[11000];
+        for (int i = 0; i < 11_000; i++) {
+            bb[i] = (byte) (i % 110 + 40);
+        }
+
         try (FileOutputStream fos = new FileOutputStream(tmpFile)) {
-            for (int i = 0; i < 20_000_000; i++) {
-                fos.write(i % 110 + 40);
+            for (int i = 0; i < 2_000; i++) {
+                fos.write(bb);
             }
         }
 
