@@ -853,12 +853,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         return ((serverStatus & ServerStatus.IN_TRANSACTION) != 0);
     }
 
-
-    @Override
-    public boolean hasMoreResults() {
-        return moreResults;
-    }
-
     public void closeExplicit() {
         this.explicitClosed = true;
         close();
@@ -989,7 +983,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         readPacket(results);
 
         //load additional results
-        while (moreResults) {
+        while (hasMoreResults()) {
             readPacket(results);
         }
 
@@ -1057,14 +1051,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         buffer.skipByte(); //fieldCount
         final long updateCount = buffer.getLengthEncodedNumeric();
         final long insertId = buffer.getLengthEncodedNumeric();
+
         serverStatus = buffer.readShort();
-        this.hasWarnings = (buffer.readShort() > 0);
-        this.moreResults = ((serverStatus & ServerStatus.MORE_RESULTS_EXISTS) != 0);
+        hasWarnings = (buffer.readShort() > 0);
+
         if ((serverStatus & ServerStatus.SERVER_SESSION_STATE_CHANGED) != 0) {
             handleStateChange(buffer, results);
         }
 
-        results.addStats(updateCount, insertId, moreResults);
+        results.addStats(updateCount, insertId, hasMoreResults());
     }
 
     private void handleStateChange(Buffer buf, Results results) throws SQLException {
@@ -1136,7 +1131,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @return SQLException if sub-result connection fail
      */
     public SQLException readErrorPacket(Buffer buffer, Results results) {
-        this.moreResults = false;
+        removeHasMoreResults();
         this.hasWarnings = false;
         buffer.skipByte();
         int errorNumber = buffer.readShort();
@@ -1249,8 +1244,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @throws SQLException if sub-result connection fail
      */
     public void readResultSet(Buffer buffer, Results results) throws SQLException {
-        this.hasWarnings = false;
-        this.moreResults = false;
         long fieldCount = buffer.getLengthEncodedNumeric();
 
         try {
@@ -1279,7 +1272,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             //read resultSet
             SelectResultSet selectResultSet = new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated);
-            results.addResultSet(selectResultSet, moreResults);
+            results.addResultSet(selectResultSet, hasMoreResults());
 
         } catch (IOException e) {
             throw handleIoException(e);
@@ -1355,8 +1348,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
             activeFutureTask = null;
         }
-
-        this.moreResults = false;
 
         if (!this.connected) throw new SQLException("Connection is close", "08000", 1220);
 

@@ -628,7 +628,7 @@ public class MariaDbConnection implements Connection {
         if (!getAutoCommit()) {
             lock.lock();
             try {
-                if (!getAutoCommit()) {
+                if (!getAutoCommit() && protocol.inTransaction()) {
                     try (Statement st = createStatement()) {
                         st.execute("COMMIT");
                     }

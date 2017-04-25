@@ -114,12 +114,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected final Options options;
     private final String username;
     private final String password;
-    public boolean moreResultsTypeBinary = false;
     public boolean hasWarnings = false;
     public Results activeStreamingResult = null;
     public int dataTypeMappingFlags;
     public short serverStatus;
-    protected boolean checkCallableResultSet;
     protected Socket socket;
     protected PacketOutputStream writer;
     protected boolean readOnly = false;
@@ -131,7 +129,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     protected String database;
     protected long serverThreadId;
     protected ServerPrepareStatementCache serverPrepareStatementCache;
-    protected boolean moreResults = false;
     protected boolean eofDeprecated = false;
     protected long serverCapabilities;
     private boolean hostFailed;
@@ -229,10 +226,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    public void setMoreResults(boolean moreResults) {
-        this.moreResults = moreResults;
+    public void setServerStatus(short serverStatus) {
+        this.serverStatus = serverStatus;
     }
 
+    public void removeHasMoreResults() {
+        if (hasMoreResults()) this.serverStatus = (short) (serverStatus ^ ServerStatus.MORE_RESULTS_EXISTS);
+    }
 
     private SSLSocketFactory getSslSocketFactory() throws SQLException {
         if (!options.trustServerCertificate
@@ -432,8 +432,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
             loadCalendar();
 
             activeStreamingResult = null;
-            moreResults = false;
-            hasWarnings = false;
             hostFailed = false;
         } catch (IOException ioException) {
             ensureClosingSocketOnException();
@@ -1289,7 +1287,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     @Override
     public boolean hasMoreResults() {
-        return moreResults;
+        return (serverStatus & ServerStatus.MORE_RESULTS_EXISTS) != 0;
     }
 
     public ServerPrepareStatementCache prepareStatementCache() {

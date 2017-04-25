@@ -159,7 +159,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         if (buf.length > SMALL_BUFFER_SIZE && cmdLength * 2 < buf.length) buf = new byte[SMALL_BUFFER_SIZE];
 
         if (cmdLength >= maxAllowedPacket) {
-            throw new MaxAllowedPacketException("query size is >= to max_allowed_packet (" + maxAllowedPacket + ")", true);
+            throw new MaxAllowedPacketException("query size (" + cmdLength + ") is >= to max_allowed_packet (" + maxAllowedPacket + ")", true);
         }
     }
 
