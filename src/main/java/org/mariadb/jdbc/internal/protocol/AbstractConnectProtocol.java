@@ -386,15 +386,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 }
             }
 
-            // Extract socketTimeout URL parameter
-            if (options.socketTimeout != null) {
-                socket.setSoTimeout(options.socketTimeout);
-            }
 
             handleConnectionPhases();
 
             connected = true;
-
             serverData = new TreeMap<>();
 
             if (options.useCompression) {
@@ -435,6 +430,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
             autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
 
             loadCalendar();
+
+            // Extract socketTimeout URL parameter
+            if (options.socketTimeout != null) socket.setSoTimeout(options.socketTimeout);
 
             serverData = null;
             activeStreamingResult = null;
