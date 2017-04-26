@@ -513,22 +513,21 @@ public class ClientPrepareResult implements PrepareResult {
                     case 'l':
                     case 'L':
                         if (state == LexState.Normal) {
-                            if (preValuePart1 == null
-                                    && queryLength > i + 14
-                                    && (query[i + 1] == 'a' || query[i + 1] == 'A')
-                                    && (query[i + 2] == 's' || query[i + 2] == 'S')
-                                    && (query[i + 3] == 't' || query[i + 3] == 'T')
-                                    && query[i + 4] == '_'
-                                    && (query[i + 5] == 'i' || query[i + 5] == 'I')
-                                    && (query[i + 6] == 'n' || query[i + 1] == 'N')
-                                    && (query[i + 7] == 's' || query[i + 2] == 'S')
-                                    && (query[i + 8] == 'e' || query[i + 3] == 'E')
-                                    && (query[i + 9] == 'r' || query[i + 5] == 'R')
-                                    && (query[i + 10] == 't' || query[i + 1] == 'T')
-                                    && query[i + 11] == '_'
-                                    && (query[i + 12] == 'i' || query[i + 5] == 'I')
-                                    && (query[i + 13] == 'd' || query[i + 1] == 'D')
-                                    && query[i + 14] == '(') {
+                            if (queryLength > i + 14
+                                && (query[i + 1] == 'a' || query[i + 1] == 'A')
+                                && (query[i + 2] == 's' || query[i + 2] == 'S')
+                                && (query[i + 3] == 't' || query[i + 3] == 'T')
+                                && query[i + 4] == '_'
+                                && (query[i + 5] == 'i' || query[i + 5] == 'I')
+                                && (query[i + 6] == 'n' || query[i + 6] == 'N')
+                                && (query[i + 7] == 's' || query[i + 7] == 'S')
+                                && (query[i + 8] == 'e' || query[i + 8] == 'E')
+                                && (query[i + 9] == 'r' || query[i + 9] == 'R')
+                                && (query[i + 10] == 't' || query[i + 10] == 'T')
+                                && query[i + 11] == '_'
+                                && (query[i + 12] == 'i' || query[i + 12] == 'I')
+                                && (query[i + 13] == 'd' || query[i + 13] == 'D')
+                                && query[i + 14] == '(') {
                                 sb.append(car);
                                 reWritablePrepare = false;
                                 skipChar = true;
