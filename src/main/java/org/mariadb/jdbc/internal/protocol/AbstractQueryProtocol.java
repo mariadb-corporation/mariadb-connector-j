@@ -101,7 +101,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     private int transactionIsolationLevel = 0;
 
     private InputStream localInfileInputStream;
-    private int autoIncrementIncrement;
     private long maxRows;  /* max rows returned by a statement */
 
     private volatile int statementIdToRelease = -1;

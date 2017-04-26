@@ -1,5 +1,6 @@
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.sql.*;
@@ -10,19 +11,11 @@ public class TimeoutTest extends BaseTest {
 
     private static int selectValue(Connection conn, int value)
             throws SQLException {
-        Statement stmt = null;
-        ResultSet rs = null;
-        try {
-            stmt = conn.createStatement();
-            rs = stmt.executeQuery("select " + value);
-            rs.next();
-            return rs.getInt(1);
-        } finally {
-            if (rs != null) {
-                rs.close();
-            }
-            if (stmt != null) {
-                stmt.close();
+        try (Statement stmt = conn.createStatement()) {
+            try (ResultSet rs = stmt.executeQuery("select " + value)) {
+                rs.next();
+                return rs.getInt(1);
+
             }
         }
     }
@@ -33,37 +26,35 @@ public class TimeoutTest extends BaseTest {
      * @throws SQLException exception
      */
     @Test
-    public void resultSetAfterSocketTimeoutTest() throws SQLException {
-        Connection connection = null;
-        try {
-            try {
-                connection = setConnection("&connectTimeout=5&socketTimeout=5");
-            } catch (SQLException e) {
-                connection = setConnection("&connectTimeout=5000&socketTimeout=5000");
-            }
-            boolean bugReproduced = false;
-            int exc = 0;
-            int went = 0;
-            for (int i = 0; i < 1000; i++) {
-                try {
-                    int v1 = selectValue(connection, 1);
-                    int v2 = selectValue(connection, 2);
-                    if (v1 != 1 || v2 != 2) {
-                        bugReproduced = true;
-                        break;
+    public void resultSetAfterSocketTimeoutTest() throws Throwable {
+        int went = 0;
+        for (int j = 0; j < 100; j++) {
+            try (Connection connection = setConnection("&connectTimeout=5&socketTimeout=1")) {
+                boolean bugReproduced = false;
+                int exc = 0;
+                int repetition = 1000;
+                for (int i = 0; i < repetition && !connection.isClosed(); i++) {
+                    try {
+                        int v1 = selectValue(connection, 1);
+                        int v2 = selectValue(connection, 2);
+                        if (v1 != 1 || v2 != 2) {
+                            bugReproduced = true;
+                            break;
+                        }
+                        assertTrue(v1 == 1 && v2 == 2);
+                        went++;
+                    } catch (SQLNonTransientConnectionException e) {
+                        exc++;
+                    } catch (SQLException e) {
+                        e.printStackTrace();
                     }
-                    assertTrue(v1 == 1 && v2 == 2);
-                    went++;
-                } catch (Exception e) {
-                    exc++;
                 }
+                assertFalse(bugReproduced); // either Exception or fine
+            } catch (SQLException e) {
+                //SQLNonTransientConnectionException error
             }
-            assertFalse(bugReproduced); // either Exception or fine
-            assertTrue(went > 0);
-            assertTrue(went + exc == 1000);
-        } finally {
-            connection.close();
         }
+        assertTrue(went > 0);
     }
 
     /**
