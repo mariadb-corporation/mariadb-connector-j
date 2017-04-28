@@ -220,7 +220,7 @@ public class UrlParser {
 
         if (additionalParameters != null) {
             String regex = "(\\/[^\\?]*)(\\?.+)*|(\\?[^\\/]*)(\\/.+)*";
-            Pattern pattern = Pattern.compile(regex);
+            Pattern pattern = Pattern.compile(regex, Pattern.DOTALL);
             Matcher matcher = pattern.matcher(additionalParameters);
             if (matcher.find()) {
                 String db1 = (matcher.group(1) != null && !matcher.group(1).equals("/")) ? matcher.group(1).substring(1) : null;
