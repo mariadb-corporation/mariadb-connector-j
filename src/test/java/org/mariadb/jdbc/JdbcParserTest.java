@@ -320,4 +320,16 @@ public class JdbcParserTest {
     }
 
 
+    /**
+     * CONJ-464 : Using of "slowQueryThresholdNanos" option results in class cast exception.
+     * @throws SQLException if any exception occur
+     */
+    @Test
+    public void checkBigSlowQueryThresholdNanosValue() throws SQLException {
+        String url = "jdbc:mariadb://1.2.3.4/testj?user=john&slowQueryThresholdNanos=" + Long.MAX_VALUE;
+        UrlParser jdbc = UrlParser.parse(url);
+        assertEquals(Long.MAX_VALUE, jdbc.getOptions().slowQueryThresholdNanos.longValue());
+
+    }
+
 }

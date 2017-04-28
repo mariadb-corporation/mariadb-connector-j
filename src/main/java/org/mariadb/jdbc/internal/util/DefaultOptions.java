@@ -472,7 +472,7 @@ public enum DefaultOptions {
 
     DefaultOptions(String name, Long defaultValue, Long minValue, Long maxValue, String implementationVersion) {
         this.name = name;
-        this.objType = Integer.class;
+        this.objType = Long.class;
         this.defaultValue = defaultValue;
         this.minValue = minValue;
         this.maxValue = maxValue;
