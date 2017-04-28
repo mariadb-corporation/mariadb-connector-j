@@ -595,6 +595,12 @@ public class Utils {
     /**
      * Hexdump.
      *
+     * String output example :
+     * 38 00 00 00 03 63 72 65  61 74 65 20 74 61 62 6C     8....cre ate tabl
+     * 65 20 42 6C 6F 62 54 65  73 74 63 6C 6F 62 74 65     e BlobTe stclobte
+     * 73 74 32 20 28 73 74 72  6D 20 74 65 78 74 29 20     st2 (str m text)
+     * 43 48 41 52 53 45 54 20  75 74 66 38                 CHARSET  utf8
+     *
      * @param bytes             byte array
      * @param maxQuerySizeToLog max log size
      * @param offset            offset
@@ -604,13 +610,50 @@ public class Utils {
     public static String hexdump(byte[] bytes, int maxQuerySizeToLog, int offset, int length) {
         if (bytes.length <= offset) return "";
         int dataLength = Math.min(maxQuerySizeToLog, Math.min(bytes.length - offset, length));
-        char[] hexChars = new char[dataLength * 2];
-        for (int j = 0; j < dataLength; j++) {
-            int byteValue = bytes[j + offset] & 0xFF;
-            hexChars[j * 2] = hexArray[byteValue >>> 4];
-            hexChars[j * 2 + 1] = hexArray[byteValue & 0x0F];
-        }
-        return new String(hexChars);
-    }
 
+        StringBuilder outputBuilder = new StringBuilder(dataLength * 5);
+        outputBuilder.append("\n");
+        char[] hexaValue = new char[17];
+        hexaValue[8] = ' ';
+
+        int pos = offset;
+        int posHexa = 0;
+
+        while (pos < dataLength) {
+            int byteValue = bytes[pos] & 0xFF;
+            outputBuilder.append(hexArray[byteValue >>> 4])
+                    .append(hexArray[byteValue & 0x0F])
+                    .append(" ");
+
+            hexaValue[posHexa++] = (byteValue > 31 && byteValue < 127) ? (char) byteValue : '.';
+
+            if (posHexa == 8) {
+                outputBuilder.append(" ");
+                posHexa++;
+            }
+
+            if (posHexa == 17) {
+                outputBuilder.append("    ")
+                        .append(hexaValue)
+                        .append("\n");
+                posHexa = 0;
+            }
+
+            pos++;
+        }
+
+        int remaining = posHexa;
+        if (remaining < 8) {
+            for (; remaining < 8; remaining++) outputBuilder.append("   ");
+            remaining++;
+            outputBuilder.append(" ");
+        }
+
+        for (;remaining < 17; remaining++) outputBuilder.append("   ");
+
+        outputBuilder.append("    ")
+                .append(hexaValue, 0, posHexa)
+                .append("\n");
+        return outputBuilder.toString();
+    }
 }

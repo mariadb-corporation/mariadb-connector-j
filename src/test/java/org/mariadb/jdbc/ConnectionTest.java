@@ -131,13 +131,15 @@ public class ConnectionTest extends BaseTest {
             try {
                 connection.setNetworkTimeout(executor, timeout);
             } catch (SQLException sqlex) {
-                assertTrue(false);
+                sqlex.printStackTrace();
+                fail(sqlex.getMessage());
             }
             try {
                 int networkTimeout = connection.getNetworkTimeout();
                 assertEquals(timeout, networkTimeout);
             } catch (SQLException sqlex) {
-                assertTrue(false);
+                sqlex.printStackTrace();
+                fail(sqlex.getMessage());
             }
             try {
                 connection.createStatement().execute("select sleep(2)");
