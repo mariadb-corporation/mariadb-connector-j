@@ -599,36 +599,6 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
         registerOutParameter(nameToIndex(parameterName), sqlType, typeName);
     }
 
-    @Override
-    public void registerOutParameter(int parameterIndex, SQLType sqlType) throws SQLException {
-        registerOutParameter(parameterIndex, sqlType.getVendorTypeNumber());
-    }
-
-    @Override
-    public void registerOutParameter(int parameterIndex, SQLType sqlType, int scale) throws SQLException {
-        registerOutParameter(parameterIndex, sqlType.getVendorTypeNumber(), scale);
-    }
-
-    @Override
-    public void registerOutParameter(int parameterIndex, SQLType sqlType, String typeName) throws SQLException {
-        registerOutParameter(parameterIndex, sqlType.getVendorTypeNumber(), typeName);
-    }
-
-    @Override
-    public void registerOutParameter(String parameterName, SQLType sqlType) throws SQLException {
-        registerOutParameter(parameterName, sqlType.getVendorTypeNumber());
-    }
-
-    @Override
-    public void registerOutParameter(String parameterName, SQLType sqlType, int scale) throws SQLException {
-        registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), scale);
-    }
-
-    @Override
-    public void registerOutParameter(String parameterName, SQLType sqlType, String typeName) throws SQLException {
-        registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), typeName);
-    }
-
     CallParameter getParameter(int index) throws SQLException {
         if (index > params.length || index <= 0) {
             throw new SQLException("No parameter with index " + (index));
@@ -862,16 +832,6 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
     @Override
     public void setObject(String parameterName, Object obj) throws SQLException {
         setObject(nameToIndex(parameterName), obj);
-    }
-
-    @Override
-    public void setObject(String parameterName, Object obj, SQLType targetSqlType, int scaleOrLength) throws SQLException {
-        setObject(nameToIndex(parameterName), obj, targetSqlType.getVendorTypeNumber(), scaleOrLength);
-    }
-
-    @Override
-    public void setObject(String parameterName, Object obj, SQLType targetSqlType) throws SQLException {
-        setObject(nameToIndex(parameterName), obj, targetSqlType.getVendorTypeNumber());
     }
 
 }

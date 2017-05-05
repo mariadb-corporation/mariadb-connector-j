@@ -6,7 +6,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>1.6.0-SNAPSHOT</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
@@ -17,9 +17,9 @@
         <version.file>src/main/java/org/mariadb/jdbc/internal/util/constant/Version.java</version.file>
         <checkstyleVersion>6.11.2</checkstyleVersion>
         <checkstyle.plugin.version>2.16</checkstyle.plugin.version>
-        <driver.version.major>2</driver.version.major>
-        <driver.version.minor>0</driver.version.minor>
-        <driver.version.patch>1</driver.version.patch>
+        <driver.version.major>1</driver.version.major>
+        <driver.version.minor>6</driver.version.minor>
+        <driver.version.patch>0</driver.version.patch>
         <driver.version.qualifier>SNAPSHOT</driver.version.qualifier>
     </properties>
 
@@ -76,8 +76,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.6.0</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>1.7</source>
+                    <target>1.7</target>
                     <compilerArgs>
                         <arg>-Xlint:all,-options,-path</arg>
                     </compilerArgs>
@@ -152,7 +152,7 @@
                         </replacement>
                         <replacement>
                             <token>@version</token>
-                            <value>${driver.version}</value>
+                            <value>${project.version}</value>
                         </replacement>
                         <replacement>
                             <token>@majorVersion</token>

@@ -225,7 +225,6 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
      * @return an array of update counts (one element for each command in the batch)
      * @throws SQLException if a database error occur.
      */
-    @Override
     public long[] executeLargeBatch() throws SQLException {
         checkClose();
         int queryParameterSize = queryParameters.size();
