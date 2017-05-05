@@ -404,34 +404,16 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 reader = new DecompressPacketInputStream(((StandardPacketInputStream) reader).getBufferedInputStream(), options.maxQuerySizeToLog);
             }
 
-            if ((serverCapabilities & MariaDbServerCapabilities.MARIADB_CLIENT_COM_IN_AUTH) != 0) {
-
-                //read results
-                Results results = new Results();
-                getResult(results);
-                results.commandEnd();
-                results.getMoreResults(Statement.CLOSE_CURRENT_RESULT, this);
-                ResultSet resultSet = results.getResultSet();
-                resultSet.next();
-
-                serverData.put("max_allowed_packet", resultSet.getString(1));
-                serverData.put("system_time_zone", resultSet.getString(2));
-                serverData.put("time_zone", resultSet.getString(3));
-                serverData.put("sql_mode", resultSet.getString(4));
-                serverData.put("auto_increment_increment", resultSet.getString(5));
-
-            } else {
-                if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
-                    try {
-                        sendPipelineAdditionalData();
-                        readPipelineAdditionalData();
-                    } catch (SQLException sqle) {
-                        //in case pipeline is not supported
-                        //(proxy flush socket after reading first packet)
-                        additionalData();
-                    }
-                } else additionalData();
-            }
+            if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
+                try {
+                    sendPipelineAdditionalData();
+                    readPipelineAdditionalData();
+                } catch (SQLException sqle) {
+                    //in case pipeline is not supported
+                    //(proxy flush socket after reading first packet)
+                    additionalData();
+                }
+            } else additionalData();
 
             writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
             autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
@@ -795,8 +777,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 | MariaDbServerCapabilities.PLUGIN_AUTH
                 | MariaDbServerCapabilities.CONNECT_ATTRS
                 | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
-                | MariaDbServerCapabilities.CLIENT_SESSION_TRACK
-                | MariaDbServerCapabilities.MARIADB_CLIENT_COM_IN_AUTH;
+                | MariaDbServerCapabilities.CLIENT_SESSION_TRACK;
 
         if (options.allowMultiQueries || (options.rewriteBatchedStatements)) {
             capabilities |= MariaDbServerCapabilities.MULTI_STATEMENTS;
