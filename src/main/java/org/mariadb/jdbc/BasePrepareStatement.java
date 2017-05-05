@@ -50,8 +50,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.com.send.parameters.*;
-import org.mariadb.jdbc.internal.com.send.parameters.OffsetTimeParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.ZonedDateTimeParameter;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.ColumnType;
 
@@ -62,39 +60,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URL;
 import java.sql.*;
-import java.time.*;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
 import java.util.TimeZone;
 
 public abstract class BasePrepareStatement extends MariaDbStatement implements PreparedStatement {
-
-    /**
-     * The ISO-like date-time formatter that formats or parses a date-time with
-     * offset and zone, such as '2011-12-03T10:15:30+01:00[Europe/Paris]'.
-     * and without the 'T' time delimiter
-     * <p>This returns an immutable formatter capable of formatting and parsing
-     * a format that extends the ISO-8601 extended offset date-time format
-     * to add the time-zone.</p>
-     **/
-    private static final DateTimeFormatter SPEC_ISO_ZONED_DATE_TIME = new DateTimeFormatterBuilder()
-            .parseCaseInsensitive()
-            .append(DateTimeFormatter.ISO_LOCAL_DATE)
-            .optionalStart()
-            .appendLiteral('T')
-            .optionalEnd()
-            .optionalStart()
-            .appendLiteral(' ')
-            .optionalEnd()
-            .append(DateTimeFormatter.ISO_LOCAL_TIME)
-            .appendOffsetId()
-            .optionalStart()
-            .appendLiteral('[')
-            .parseCaseSensitive()
-            .appendZoneRegionId()
-            .appendLiteral(']')
-            .toFormatter();
 
     protected boolean useFractionalSeconds;
     protected boolean hasLongData = false;
@@ -117,15 +86,6 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
         base.useFractionalSeconds = options.useFractionalSeconds;
         return base;
     }
-
-    @Override
-    public long executeLargeUpdate() throws SQLException {
-        if (executeInternal(getFetchSize())) {
-            return 0;
-        }
-        return getLargeUpdateCount();
-    }
-
 
     protected abstract boolean executeInternal(int fetchSize) throws SQLException;
 
@@ -887,35 +847,6 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setString(parameterIndex, obj.toString());
         } else if (obj instanceof Clob) {
             setClob(parameterIndex, (Clob) obj);
-        } else if (LocalDateTime.class.isInstance(obj)) {
-            setTimestamp(parameterIndex, Timestamp.valueOf(LocalDateTime.class.cast(obj)));
-        } else if (Instant.class.isInstance(obj)) {
-            setTimestamp(parameterIndex, Timestamp.from(Instant.class.cast(obj)));
-        } else if (LocalDate.class.isInstance(obj)) {
-            setDate(parameterIndex, Date.valueOf(LocalDate.class.cast(obj)));
-        } else if (OffsetDateTime.class.isInstance(obj)) {
-            setParameter(parameterIndex,
-                    new ZonedDateTimeParameter(
-                            OffsetDateTime.class.cast(obj).toZonedDateTime(),
-                            protocol.getTimeZone().toZoneId(),
-                            useFractionalSeconds,
-                            options));
-        } else if (OffsetTime.class.isInstance(obj)) {
-            setParameter(parameterIndex,
-                    new OffsetTimeParameter(
-                            OffsetTime.class.cast(obj),
-                            protocol.getTimeZone().toZoneId(),
-                            useFractionalSeconds,
-                            options));
-        } else if (ZonedDateTime.class.isInstance(obj)) {
-            setParameter(parameterIndex,
-                    new ZonedDateTimeParameter(
-                            ZonedDateTime.class.cast(obj),
-                            protocol.getTimeZone().toZoneId(),
-                            useFractionalSeconds,
-                            options));
-        } else if (LocalTime.class.isInstance(obj)) {
-            setTime(parameterIndex, Time.valueOf(LocalTime.class.cast(obj)));
         } else {
             //fallback to sending serialized object
             try {
@@ -926,16 +857,6 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
                         "Could not set parameter in setObject, Object class is not handled (Class : " + obj.getClass() + ")");
             }
         }
-    }
-
-    @Override
-    public void setObject(int parameterIndex, Object obj, SQLType targetSqlType, int scaleOrLength) throws SQLException {
-        setObject(parameterIndex, obj, targetSqlType.getVendorTypeNumber(), scaleOrLength);
-    }
-
-    @Override
-    public void setObject(int parameterIndex, Object obj, SQLType targetSqlType) throws SQLException {
-        setObject(parameterIndex, obj, targetSqlType.getVendorTypeNumber());
     }
 
     protected void setInternalObject(final int parameterIndex, final Object obj, final int targetSqlType,
@@ -1008,23 +929,6 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
                         break;
                     case Types.TIME:
                         setTime(parameterIndex, Time.valueOf((String) obj));
-                        break;
-                    case Types.TIME_WITH_TIMEZONE:
-                        setParameter(parameterIndex,
-                                new OffsetTimeParameter(
-                                        OffsetTime.parse(str),
-                                        protocol.getTimeZone().toZoneId(),
-                                        useFractionalSeconds,
-                                        options));
-                        break;
-                    case Types.TIMESTAMP_WITH_TIMEZONE:
-
-                        setParameter(parameterIndex,
-                                new ZonedDateTimeParameter(
-                                        ZonedDateTime.parse(str, SPEC_ISO_ZONED_DATE_TIME),
-                                        protocol.getTimeZone().toZoneId(),
-                                        useFractionalSeconds,
-                                        options));
                         break;
                     default:
                         throw ExceptionMapper.getSqlException("Could not convert [" + str + "] to " + targetSqlType);
@@ -1111,35 +1015,6 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setBinaryStream(parameterIndex, (InputStream) obj, scaleOrLength);
         } else if (obj instanceof Reader) {
             setCharacterStream(parameterIndex, (Reader) obj, scaleOrLength);
-        } else if (LocalDateTime.class.isInstance(obj)) {
-            setTimestamp(parameterIndex, Timestamp.valueOf(LocalDateTime.class.cast(obj)));
-        } else if (Instant.class.isInstance(obj)) {
-            setTimestamp(parameterIndex, Timestamp.from(Instant.class.cast(obj)));
-        } else if (LocalDate.class.isInstance(obj)) {
-            setDate(parameterIndex, Date.valueOf(LocalDate.class.cast(obj)));
-        } else if (OffsetDateTime.class.isInstance(obj)) {
-            setParameter(parameterIndex,
-                    new ZonedDateTimeParameter(
-                            OffsetDateTime.class.cast(obj).toZonedDateTime(),
-                            protocol.getTimeZone().toZoneId(),
-                            useFractionalSeconds,
-                            options));
-        } else if (OffsetTime.class.isInstance(obj)) {
-            setParameter(parameterIndex,
-                    new OffsetTimeParameter(
-                            OffsetTime.class.cast(obj),
-                            protocol.getTimeZone().toZoneId(),
-                            useFractionalSeconds,
-                            options));
-        } else if (ZonedDateTime.class.isInstance(obj)) {
-            setParameter(parameterIndex,
-                    new ZonedDateTimeParameter(
-                            ZonedDateTime.class.cast(obj),
-                            protocol.getTimeZone().toZoneId(),
-                            useFractionalSeconds,
-                            options));
-        } else if (LocalTime.class.isInstance(obj)) {
-            setTime(parameterIndex, Time.valueOf(LocalTime.class.cast(obj)));
         } else {
             throw ExceptionMapper.getSqlException("Could not set parameter in setObject, could not convert: " + obj.getClass() + " to "
                     + targetSqlType);

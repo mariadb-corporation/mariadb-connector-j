@@ -2545,7 +2545,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public int getJDBCMinorVersion() throws SQLException {
-        return 2;
+        return 1;
     }
 
     @Override
@@ -2669,12 +2669,10 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         return false;
     }
 
-    @Override
     public long getMaxLogicalLobSize() throws SQLException {
         return 4294967295L;
     }
 
-    @Override
     public boolean supportsRefCursors() throws SQLException {
         return false;
     }

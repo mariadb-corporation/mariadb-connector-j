@@ -534,7 +534,7 @@ public class DatatypeTest extends BaseTest {
                 int read = is.read();
                 assertEquals(i, read);
             }
-            assertEquals(rs.getString(1), new String(allBytes, "UTF-8"));
+            assertArrayEquals(rs.getBytes(1), allBytes);
 
             is = rs.getBinaryStream(2);
 
@@ -542,7 +542,7 @@ public class DatatypeTest extends BaseTest {
                 int read = is.read();
                 assertEquals(i, read);
             }
-            assertEquals(rs.getString(2), new String(allBytes, "UTF-8"));
+            assertArrayEquals(rs.getBytes(2), allBytes);
         } else {
             fail("Must have result !");
         }
