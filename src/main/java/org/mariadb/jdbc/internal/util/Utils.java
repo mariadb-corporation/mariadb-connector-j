@@ -584,8 +584,10 @@ public class Utils {
      * Hexdump.
      *
      * String output example :
-     *    7D 00 00 01 C5 00 00                                 }......            <- first byte array
-     *    01 00 00 01 02 33 00 00  02 03 64 65 66 05 74 65     .....3....def.te   <- second byte array
+     * <pre>
+     * {@code
+     *    7D 00 00 01 C5 00 00                                 }......            &lt;- first byte array
+     *    01 00 00 01 02 33 00 00  02 03 64 65 66 05 74 65     .....3....def.te   &lt;- second byte array
      *    73 74 6A 0A 74 65 73 74  5F 62 61 74 63 68 0A 74     stj.test_batch.t
      *    65 73 74 5F 62 61 74 63  68 02 69 64 02 69 64 0C     est_batch.id.id.
      *    3F 00 0B 00 00 00 03 03  42 00 00 00 37 00 00 03     ?.......B...7...
@@ -598,6 +600,8 @@ public class Utils {
      *    00 08 01 34 03 61 61 61  06 00 00 09 01 35 03 62     ...4.aaa.....5.b
      *    62 62 06 00 00 0A 01 36  03 63 63 63 05 00 00 0B     bb.....6.ccc....
      *    FE 00 00 22 00                                       ...".
+     *}
+     * </pre>
      *
      * @param maxQuerySizeToLog max log size
      * @param offset            offset of last byte array
@@ -640,11 +644,14 @@ public class Utils {
      * Write bytes/hexadecimal value of a byte array to a StringBuilder.
      *
      * String output example :
+     * <pre>
+     * {@code
      * 38 00 00 00 03 63 72 65  61 74 65 20 74 61 62 6C     8....create tabl
      * 65 20 42 6C 6F 62 54 65  73 74 63 6C 6F 62 74 65     e BlobTestclobte
      * 73 74 32 20 28 73 74 72  6D 20 74 65 78 74 29 20     st2 (strm text)
      * 43 48 41 52 53 45 54 20  75 74 66 38                 CHARSET utf8
-     *
+     *}
+     * </pre>
      * @param bytes             byte array
      * @param offset            offset
      * @param dataLength        byte length to write

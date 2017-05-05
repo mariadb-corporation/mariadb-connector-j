@@ -180,7 +180,8 @@ public class FetchSizeTest extends BaseTest {
         long start;
         long normalExecutionTime;
 
-        try (PreparedStatement stmt = sharedConnection.prepareStatement("select * from information_schema.columns as c1,  information_schema.tables")) {
+        try (PreparedStatement stmt = sharedConnection.prepareStatement(
+                "select * from information_schema.columns as c1,  information_schema.tables")) {
             start = System.currentTimeMillis();
             stmt.executeQuery();
             normalExecutionTime = System.currentTimeMillis() - start;

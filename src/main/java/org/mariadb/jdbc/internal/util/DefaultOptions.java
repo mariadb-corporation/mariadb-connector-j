@@ -437,7 +437,7 @@ public enum DefaultOptions {
     /**
      * Driver will save the last 16 MySQL packet exchanges (limited to first 1000 bytes).
      * Hexadecimal value of those packet will be added to stacktrace when an IOException occur.
-     * This options has no performance incidence (< 1 microseconds per query) but driver will then take 16kb more memory.
+     * This options has no performance incidence (&lt; 1 microseconds per query) but driver will then take 16kb more memory.
      */
     ENABLE_PACKET_DEBUG("enablePacketDebug", Boolean.FALSE, "1.6.0");
 

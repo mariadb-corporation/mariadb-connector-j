@@ -110,6 +110,9 @@ public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
         return sb.toString();
     }
 
+    /**
+     * Permit to clear array's of array, to help garbage.
+     */
     public void clearMemory() {
         Set<Map.Entry<Long, TraceObject>> set = entrySet();
         for (Map.Entry<Long, TraceObject> entry : set) {

@@ -186,17 +186,16 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                         if (logger.isTraceEnabled()) {
                             if (permitTrace) {
                                 if (remainingData.length != 0) {
-                                    logger.trace("send compress:"
-                                            + serverThreadLog
-                                            + Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11), 0, compressedLength, header, remainingData, subHeader, buf));
+                                    logger.trace("send compress:" + serverThreadLog
+                                            + Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),
+                                            0,
+                                            compressedLength, header, remainingData, subHeader, buf));
                                 } else {
-                                    logger.trace("send compress:"
-                                            + serverThreadLog
+                                    logger.trace("send compress:" + serverThreadLog
                                             + Utils.hexdump(maxQuerySizeToLog - 11, 0, compressedLength, header, subHeader, buf));
                                 }
                             } else {
-                                logger.trace("send compress:"
-                                        + serverThreadLog
+                                logger.trace("send compress:" + serverThreadLog
                                         + " packet:<hidden>");
                             }
                         }
