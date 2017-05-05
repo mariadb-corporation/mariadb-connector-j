@@ -48,68 +48,73 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.io.output;
+package org.mariadb.jdbc.internal.io;
 
-import org.mariadb.jdbc.internal.io.LruTraceCache;
+import org.mariadb.jdbc.internal.util.Utils;
 
-import java.io.*;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 
-public interface PacketOutputStream  {
+public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
 
-    void startPacket(int seqNo);
+    public LruTraceCache() {
+        super(16, 1.0f, false);
+    }
 
-    void writeEmptyPacket(int seqNo) throws IOException;
+    @Override
+    protected boolean removeEldestEntry(Map.Entry<Long, TraceObject> eldest) {
+        return size() > 10;
+    }
 
-    void writeEmptyPacket() throws IOException;
+    /**
+     * Value of trace cache in a readable format.
+     *
+     * @return trace cache value
+     */
+    public String printStack() {
+        StringBuilder sb = new StringBuilder();
+        Set<Map.Entry<Long, TraceObject>> set = entrySet();
+        for (Map.Entry<Long, TraceObject> entry : set) {
+            TraceObject traceObj = entry.getValue();
+            long millis = entry.getKey();
+            String indicator = "";
 
-    void write(int arr) throws IOException;
+            switch (traceObj.getIndicatorFlag()) {
+                case TraceObject.NOT_COMPRESSED:
+                    break;
 
-    void write(byte[] arr) throws IOException;
+                case TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET:
+                    indicator = " (compressed protocol - packet not compressed)";
+                    break;
 
-    void write(byte[] arr, int off, int len) throws IOException;
+                case TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET:
+                    indicator = " (compressed protocol - packet compressed)";
+                    break;
 
-    void write(String str) throws IOException;
+                default:
+                    break;
+            }
 
-    void write(String str, boolean escape, boolean noBackslashEscapes) throws IOException;
+            if (traceObj.isSend()) {
+                sb.append("\nsend at " + new Date(millis) + indicator);
+            } else {
+                sb.append("\nread at " + new Date(millis) + indicator);
+            }
+            sb.append(Utils.hexdump(traceObj.getBuf()));
 
-    void write(InputStream is, boolean escape, boolean noBackslashEscapes) throws IOException;
+            traceObj.remove();
+        }
+        this.clear();
+        return sb.toString();
+    }
 
-    void write(InputStream is, long length, boolean escape, boolean noBackslashEscapes) throws IOException;
-
-    void write(Reader reader, boolean escape, boolean noBackslashEscapes) throws IOException;
-
-    void write(Reader reader, long length, boolean escape, boolean noBackslashEscapes) throws IOException;
-
-    void writeBytesEscaped(byte[] bytes, int len, boolean noBackslashEscapes) throws IOException;
-
-    void flush() throws IOException;
-
-    void close() throws IOException;
-
-    boolean checkRemainingSize(int len);
-
-    boolean isAllowedCmdLength();
-
-    OutputStream getOutputStream();
-
-    void setMaxAllowedPacket(int maxAllowedPacket);
-
-    void writeShort(short value) throws IOException;
-
-    void writeInt(int value) throws IOException;
-
-    void writeLong(long value) throws IOException;
-
-    void writeBytes(byte value, int len) throws IOException;
-
-    void writeFieldLength(long length) throws IOException;
-
-    int getMaxAllowedPacket();
-
-    void permitTrace(boolean permitTrace);
-
-    void setServerThreadId(long serverThreadId, Boolean isMaster);
-
-    void setTraceCache(LruTraceCache traceCache);
-
+    public void clearMemory() {
+        Set<Map.Entry<Long, TraceObject>> set = entrySet();
+        for (Map.Entry<Long, TraceObject> entry : set) {
+            entry.getValue().remove();
+        }
+        this.clear();
+    }
 }

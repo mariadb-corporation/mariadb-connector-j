@@ -554,7 +554,7 @@ public class SelectResultSet implements ResultSet {
 
             } catch (IOException ioexception) {
                 ExceptionMapper.throwException(new SQLException(
-                        "Could not close resultSet : " + ioexception.getMessage(),
+                        "Could not close resultSet : " + ioexception.getMessage() + protocol.getTraces(),
                         CONNECTION_EXCEPTION.getSqlState(), ioexception), null, this.statement);
             } catch (SQLException queryException) {
                 ExceptionMapper.throwException(queryException, null, this.statement);

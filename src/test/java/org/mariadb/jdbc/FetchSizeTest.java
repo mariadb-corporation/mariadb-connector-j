@@ -152,16 +152,18 @@ public class FetchSizeTest extends BaseTest {
      */
     @Test
     public void fetchSizeClose() throws SQLException {
-        Assume.assumeTrue(sharedOptions().killFetchStmtOnClose);
-        Statement stmt = sharedConnection.createStatement();
+        Assume.assumeTrue(sharedOptions().killFetchStmtOnClose && !sharedOptions().profileSql);
         long start = System.currentTimeMillis();
-        stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables");
+        try (Statement stmt = sharedConnection.createStatement()) {
+            stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables");
+        }
         final long normalExecutionTime = System.currentTimeMillis() - start;
 
         start = System.currentTimeMillis();
-        stmt.setFetchSize(1);
-        stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables");
-        stmt.close();
+        try (Statement stmt = sharedConnection.createStatement()) {
+            stmt.setFetchSize(1);
+            stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables");
+        }
         long interruptedExecutionTime = System.currentTimeMillis() - start;
 
         //normalExecutionTime = 1500
@@ -173,17 +175,21 @@ public class FetchSizeTest extends BaseTest {
 
     @Test
     public void fetchSizePrepareClose() throws SQLException {
-        Assume.assumeTrue(sharedOptions().killFetchStmtOnClose);
-        PreparedStatement stmt = sharedConnection.prepareStatement("select * from information_schema.columns as c1,  information_schema.tables");
+        Assume.assumeTrue(sharedOptions().killFetchStmtOnClose && !sharedOptions().profileSql);
 
-        long start = System.currentTimeMillis();
-        stmt.executeQuery();
-        final long normalExecutionTime = System.currentTimeMillis() - start;
+        long start;
+        long normalExecutionTime;
 
-        start = System.currentTimeMillis();
-        stmt.setFetchSize(1);
-        stmt.executeQuery();
-        stmt.close();
+        try (PreparedStatement stmt = sharedConnection.prepareStatement("select * from information_schema.columns as c1,  information_schema.tables")) {
+            start = System.currentTimeMillis();
+            stmt.executeQuery();
+            normalExecutionTime = System.currentTimeMillis() - start;
+
+            start = System.currentTimeMillis();
+            stmt.setFetchSize(1);
+            stmt.executeQuery();
+        }
+
         long interruptedExecutionTime = System.currentTimeMillis() - start;
 
         //normalExecutionTime = 1500

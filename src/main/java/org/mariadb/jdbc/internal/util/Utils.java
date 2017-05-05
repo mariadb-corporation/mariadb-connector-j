@@ -561,59 +561,100 @@ public class Utils {
     /**
      * Hexdump.
      *
-     * @param bytes             byte array
+     * @param bytes             byte arrays
      * @return String
      */
-    public static String hexdump(byte[] bytes) {
-        return hexdump(bytes, Integer.MAX_VALUE, 0, bytes.length);
-    }
-
-
-    /**
-     * Hexdump.
-     *
-     * @param bytes             byte array
-     * @param maxQuerySizeToLog max log size
-     * @return String
-     */
-    public static String hexdump(byte[] bytes, int maxQuerySizeToLog) {
-        return hexdump(bytes, maxQuerySizeToLog, 0, bytes.length);
+    public static String hexdump(byte[]... bytes) {
+        return hexdump(Integer.MAX_VALUE, 0, Integer.MAX_VALUE, bytes);
     }
 
     /**
      * Hexdump.
      *
-     * @param bytes             byte array
      * @param maxQuerySizeToLog max log size
-     * @param offset            offset
+     * @param offset            offset of last byte array
+     * @param bytes             byte arrays
      * @return String
      */
-    public static String hexdump(byte[] bytes, int maxQuerySizeToLog, int offset) {
-        return hexdump(bytes, maxQuerySizeToLog, offset, bytes.length);
+    public static String hexdump(int maxQuerySizeToLog, int offset, byte[]... bytes) {
+        return hexdump(maxQuerySizeToLog, offset, Integer.MAX_VALUE, bytes);
     }
 
     /**
      * Hexdump.
      *
      * String output example :
-     * 38 00 00 00 03 63 72 65  61 74 65 20 74 61 62 6C     8....cre ate tabl
-     * 65 20 42 6C 6F 62 54 65  73 74 63 6C 6F 62 74 65     e BlobTe stclobte
-     * 73 74 32 20 28 73 74 72  6D 20 74 65 78 74 29 20     st2 (str m text)
-     * 43 48 41 52 53 45 54 20  75 74 66 38                 CHARSET  utf8
+     *    7D 00 00 01 C5 00 00                                 }......            <- first byte array
+     *    01 00 00 01 02 33 00 00  02 03 64 65 66 05 74 65     .....3....def.te   <- second byte array
+     *    73 74 6A 0A 74 65 73 74  5F 62 61 74 63 68 0A 74     stj.test_batch.t
+     *    65 73 74 5F 62 61 74 63  68 02 69 64 02 69 64 0C     est_batch.id.id.
+     *    3F 00 0B 00 00 00 03 03  42 00 00 00 37 00 00 03     ?.......B...7...
+     *    03 64 65 66 05 74 65 73  74 6A 0A 74 65 73 74 5F     .def.testj.test_
+     *    62 61 74 63 68 0A 74 65  73 74 5F 62 61 74 63 68     batch.test_batch
+     *    04 74 65 73 74 04 74 65  73 74 0C 21 00 1E 00 00     .test.test.!....
+     *    00 FD 00 00 00 00 00 05  00 00 04 FE 00 00 22 00     ..............".
+     *    06 00 00 05 01 31 03 61  61 61 06 00 00 06 01 32     .....1.aaa.....2
+     *    03 62 62 62 06 00 00 07  01 33 03 63 63 63 06 00     .bbb.....3.ccc..
+     *    00 08 01 34 03 61 61 61  06 00 00 09 01 35 03 62     ...4.aaa.....5.b
+     *    62 62 06 00 00 0A 01 36  03 63 63 63 05 00 00 0B     bb.....6.ccc....
+     *    FE 00 00 22 00                                       ...".
      *
-     * @param bytes             byte array
      * @param maxQuerySizeToLog max log size
-     * @param offset            offset
-     * @param length            length
+     * @param offset            offset of last byte array
+     * @param length            length of last byte array
+     * @param byteArr           byte arrays. if many, only the last may have offset and size limitation
+     *                          others will be displayed completely.
      * @return String
      */
-    public static String hexdump(byte[] bytes, int maxQuerySizeToLog, int offset, int length) {
-        if (bytes.length <= offset) return "";
-        int dataLength = Math.min(maxQuerySizeToLog, Math.min(bytes.length - offset, length));
+    public static String hexdump(int maxQuerySizeToLog, int offset, int length, byte[]... byteArr) {
+        switch (byteArr.length) {
+            case 0:
+                return "";
 
-        StringBuilder outputBuilder = new StringBuilder(dataLength * 5);
-        outputBuilder.append("\n");
-        char[] hexaValue = new char[17];
+            case 1:
+                byte[] bytes = byteArr[0];
+                if (bytes.length <= offset) return "";
+                int dataLength = Math.min(maxQuerySizeToLog, Math.min(bytes.length - offset, length));
+
+                StringBuilder outputBuilder = new StringBuilder(dataLength * 5);
+                outputBuilder.append("\n");
+                writeHex(bytes, offset, dataLength, outputBuilder);
+
+            default:
+                StringBuilder sb = new StringBuilder();
+                sb.append("\n");
+                byte[] arr;
+                for (int i = 0; i < byteArr.length - 1; i++) {
+                    arr = byteArr[i];
+                    writeHex(arr, 0, arr.length, sb);
+                }
+                arr = byteArr[byteArr.length - 1];
+                int dataLength2 = Math.min(maxQuerySizeToLog, Math.min(arr.length - offset, length));
+                writeHex(arr, offset, dataLength2, sb);
+                return sb.toString();
+
+        }
+    }
+
+    /**
+     * Write bytes/hexadecimal value of a byte array to a StringBuilder.
+     *
+     * String output example :
+     * 38 00 00 00 03 63 72 65  61 74 65 20 74 61 62 6C     8....create tabl
+     * 65 20 42 6C 6F 62 54 65  73 74 63 6C 6F 62 74 65     e BlobTestclobte
+     * 73 74 32 20 28 73 74 72  6D 20 74 65 78 74 29 20     st2 (strm text)
+     * 43 48 41 52 53 45 54 20  75 74 66 38                 CHARSET utf8
+     *
+     * @param bytes             byte array
+     * @param offset            offset
+     * @param dataLength        byte length to write
+     * @param outputBuilder     string builder
+     */
+    public static void writeHex(byte[] bytes, int offset, int dataLength, StringBuilder outputBuilder) {
+
+        if (bytes == null || bytes.length == 0) return;
+
+        char[] hexaValue = new char[16];
         hexaValue[8] = ' ';
 
         int pos = offset;
@@ -629,10 +670,9 @@ public class Utils {
 
             if (posHexa == 8) {
                 outputBuilder.append(" ");
-                posHexa++;
             }
 
-            if (posHexa == 17) {
+            if (posHexa == 16) {
                 outputBuilder.append("    ")
                         .append(hexaValue)
                         .append("\n");
@@ -643,17 +683,18 @@ public class Utils {
         }
 
         int remaining = posHexa;
-        if (remaining < 8) {
-            for (; remaining < 8; remaining++) outputBuilder.append("   ");
-            remaining++;
-            outputBuilder.append(" ");
+        if (remaining > 0) {
+            if (remaining < 8) {
+                for (; remaining < 8; remaining++) outputBuilder.append("   ");
+                outputBuilder.append(" ");
+            }
+
+            for (;remaining < 16; remaining++) outputBuilder.append("   ");
+
+            outputBuilder.append("    ")
+                    .append(hexaValue, 0, posHexa)
+                    .append("\n");
         }
-
-        for (;remaining < 17; remaining++) outputBuilder.append("   ");
-
-        outputBuilder.append("    ")
-                .append(hexaValue, 0, posHexa)
-                .append("\n");
-        return outputBuilder.toString();
     }
+
 }

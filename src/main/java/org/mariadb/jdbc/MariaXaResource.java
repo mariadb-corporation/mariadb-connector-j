@@ -70,9 +70,9 @@ public class MariaXaResource implements XAResource {
     static String xidToString(Xid xid) {
         StringBuffer sb = new StringBuffer(2 * Xid.MAXBQUALSIZE + 2 * Xid.MAXGTRIDSIZE + 16);
         sb.append("0x")
-                .append(Utils.hexdump(xid.getGlobalTransactionId(), Integer.MAX_VALUE, 0))
+                .append(Utils.hexdump(Integer.MAX_VALUE, 0, xid.getGlobalTransactionId()))
                 .append(",0x")
-                .append(Utils.hexdump(xid.getBranchQualifier(), Integer.MAX_VALUE, 0))
+                .append(Utils.hexdump(Integer.MAX_VALUE, 0, xid.getBranchQualifier()))
                 .append(",").append(xid.getFormatId());
         return sb.toString();
     }

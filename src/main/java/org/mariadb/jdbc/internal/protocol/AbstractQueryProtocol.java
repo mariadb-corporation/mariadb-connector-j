@@ -1001,7 +1001,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         try {
             buffer = reader.getPacket(true);
         } catch (IOException e) {
-            throw new SQLException("Could not read packet: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
+            throw handleIoException(e);
         }
 
         switch (buffer.getByteAt(0)) {
@@ -1263,7 +1263,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 Buffer bufferEof = reader.getPacket(true);
                 if (bufferEof.readByte() != EOF) {
                     throw new SQLException("Packets out of order when reading field packets, expected was EOF stream. "
-                            + "Packet contents (hex) = " + Utils.hexdump(bufferEof.buf, options.maxQuerySizeToLog, 0, bufferEof.position));
+                            + "Packet contents (hex) = " + Utils.hexdump(options.maxQuerySizeToLog, 0, bufferEof.position, bufferEof.buf));
                 }
                 bufferEof.skipBytes(2); //Skip warningCount
                 callableResult = (bufferEof.readShort() & ServerStatus.PS_OUT_PARAMETERS) != 0;
@@ -1410,21 +1410,21 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 connect();
             } catch (SQLException queryException) {
                 return new SQLNonTransientConnectionException("Could not send query: " + initialException.getMessage()
-                        + "\nError during reconnection", CONNECTION_EXCEPTION.getSqlState(), initialException);
+                        + "\nError during reconnection" + getTraces(), CONNECTION_EXCEPTION.getSqlState(), initialException);
             }
 
             try {
                 resetStateAfterFailover(getMaxRows(), getTransactionIsolationLevel(), getDatabase(), getAutocommit());
             } catch (SQLException queryException) {
                 return new SQLException("reconnection succeed, but resetting previous state failed",
-                        UNDEFINED_SQLSTATE.getSqlState(), initialException);
+                        UNDEFINED_SQLSTATE.getSqlState() + getTraces(), initialException);
             }
 
             return new SQLException("Could not send query: query size is >= to max_allowed_packet ("
-                    + writer.getMaxAllowedPacket() + ")", UNDEFINED_SQLSTATE.getSqlState(), initialException);
+                    + writer.getMaxAllowedPacket() + ")" + getTraces(), UNDEFINED_SQLSTATE.getSqlState(), initialException);
         }
 
-        return new SQLException("Could not send query: " + initialException.getMessage(),
+        return new SQLException("Could not send query: " + initialException.getMessage() + getTraces(),
                 driverPreventError ? UNDEFINED_SQLSTATE.getSqlState() : CONNECTION_EXCEPTION.getSqlState(), initialException);
 
     }

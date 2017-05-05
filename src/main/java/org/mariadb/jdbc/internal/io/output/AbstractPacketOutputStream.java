@@ -50,6 +50,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.io.output;
 
+import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
@@ -77,6 +78,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     protected boolean permitTrace;
     protected int seqNo = 0;
     protected String serverThreadLog = "";
+    protected LruTraceCache traceCache = null;
 
     /**
      * Common feature to write data into socket, creating MySQL Packet.
@@ -703,4 +705,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         this.serverThreadLog = " conn:" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
     }
 
+    public void setTraceCache(LruTraceCache traceCache) {
+        this.traceCache = traceCache;
+    }
 }

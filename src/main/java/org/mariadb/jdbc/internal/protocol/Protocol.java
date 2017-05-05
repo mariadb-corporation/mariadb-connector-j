@@ -267,4 +267,5 @@ public interface Protocol {
 
     boolean sessionStateAware();
 
+    String getTraces();
 }

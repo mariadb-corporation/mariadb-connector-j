@@ -58,6 +58,7 @@ import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.OkPacket;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.io.input.DecompressPacketInputStream;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
 import org.mariadb.jdbc.internal.io.output.CompressPacketOutputStream;
@@ -141,6 +142,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private int patchVersion;
     private Map<String, String> serverData;
     private TimeZone timeZone;
+    private LruTraceCache traceCache;
 
     /**
      * Get a protocol instance.
@@ -184,6 +186,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
             // socket is closed, so it is ok to ignore exception
         } finally {
             if (lock != null) lock.unlock();
+        }
+
+        if (options.enablePacketDebug) {
+            if (traceCache != null) traceCache.clearMemory();
+            traceCache = null;
         }
     }
 
@@ -433,6 +440,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             // Extract socketTimeout URL parameter
             if (options.socketTimeout != null) socket.setSoTimeout(options.socketTimeout);
+
+            if (options.enablePacketDebug) {
+                traceCache = new LruTraceCache();
+                writer.setTraceCache(traceCache);
+                reader.setTraceCache(traceCache);
+            }
+
+            reader.setServerThreadId(this.serverThreadId, isMasterConnection());
+            writer.setServerThreadId(this.serverThreadId, isMasterConnection());
 
             serverData = null;
             activeStreamingResult = null;
@@ -864,10 +880,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws SQLException if requesting infos for server fail.
      */
     public boolean checkIfMaster() throws SQLException {
-        boolean master = isMasterConnection();
-        reader.setServerThreadId(this.serverThreadId, master);
-        writer.setServerThreadId(this.serverThreadId, master);
-        return master;
+        return isMasterConnection();
     }
 
     private boolean isServerLanguageUtf8mb4(byte serverLanguage) {
@@ -1321,4 +1334,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return (serverCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) != 0;
     }
 
+    public String getTraces() {
+        if (options.enablePacketDebug) return traceCache.printStack();
+        return "";
+    }
 }

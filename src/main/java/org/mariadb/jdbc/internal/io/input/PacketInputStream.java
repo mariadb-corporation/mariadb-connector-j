@@ -50,6 +50,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.io.input;
 
 import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
 
 import java.io.IOException;
 
@@ -68,4 +69,6 @@ public interface PacketInputStream {
     void close() throws IOException;
 
     void setServerThreadId(long serverThreadId, Boolean isMaster);
+
+    void setTraceCache(LruTraceCache traceCache);
 }
