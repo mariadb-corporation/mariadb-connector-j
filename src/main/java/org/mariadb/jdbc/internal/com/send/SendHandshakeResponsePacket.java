@@ -187,8 +187,52 @@ public class SendHandshakeResponsePacket {
             writeConnectAttributes(pos, options.connectionAttributes);
         }
 
+        if ((serverCapabilities & MariaDbServerCapabilities.MARIADB_CLIENT_COM_IN_AUTH) != 0) {
+            writeAdditionalQueries(pos, serverCapabilities, options, haMode, database);
+        }
         pos.flush();
         pos.permitTrace(true);
+    }
+
+    private static void writeAdditionalQueries(PacketOutputStream pos, long serverCapabilities, Options options, HaMode haMode, String database)
+            throws IOException {
+
+        //reservation for authentication length
+        Buffer buffer = new Buffer(new byte[200]);
+
+        //send variables command
+        StringBuilder sessionOption = new StringBuilder("set autocommit=1");
+        if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) != 0) {
+            sessionOption.append(", session_track_schema=1");
+            if (options.rewriteBatchedStatements) {
+                sessionOption.append(", session_track_system_variables='auto_increment_increment' ");
+            }
+        }
+        if (options.jdbcCompliantTruncation) {
+            sessionOption.append(", sql_mode = concat(@@sql_mode,',STRICT_TRANS_TABLES')");
+        }
+        if (options.sessionVariables != null) sessionOption.append("," + options.sessionVariables);
+        buffer.writeBytes(COM_QUERY, sessionOption.toString().getBytes(StandardCharsets.UTF_8));
+
+        //ask for session variables
+        buffer.writeBytes(COM_QUERY, AbstractConnectProtocol.SESSION_QUERY);
+
+        //ask if server is read-only
+        if (haMode == HaMode.AURORA) {
+            buffer.writeBytes(COM_QUERY, AuroraProtocol.IS_MASTER_QUERY);
+        }
+
+        if (options.createDatabaseIfNotExist) {
+            // Try to create the database if it does not exist
+            String quotedDb = MariaDbConnection.quoteIdentifier(database);
+            buffer.writeBytes(COM_QUERY, ("CREATE DATABASE IF NOT EXISTS " + quotedDb).getBytes(StandardCharsets.UTF_8));
+            buffer.writeBytes(COM_QUERY, ("USE " + quotedDb).getBytes(StandardCharsets.UTF_8));
+        }
+
+        pos.write(buffer.position + 1); //COM_MULTI packet length
+        pos.write(COM_MULTI);
+        pos.write(buffer.buf, 0, buffer.position);
+
     }
 
     private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes) throws IOException {
