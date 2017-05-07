@@ -40,7 +40,7 @@ mvn clean test $urlString -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLE
     -Dkeystore2Path="/etc/mysql/fullclient-keystore.jks" -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
     -Dkeystore2PathP12="/etc/mysql/fullclient-keystore.p12"
 
-if [ -n "$AURORA" ]
+if [ ! -n "$AURORA" ]
 then
     sudo service mysql stop
 fi
