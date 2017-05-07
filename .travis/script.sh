@@ -34,7 +34,7 @@ else
     testSingleHost=true
 fi
 
-echo "Running coveralls for JDK version: $TRAVIS_JDK_VERSION with profile jdbc42"
+echo "Running coveralls for JDK version: $TRAVIS_JDK_VERSION"
 mvn clean test $urlString -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID  \
     -DkeystorePath="/etc/mysql/client-keystore.jks" -DkeystorePassword="kspass"  \
     -Dkeystore2Path="/etc/mysql/fullclient-keystore.jks" -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
