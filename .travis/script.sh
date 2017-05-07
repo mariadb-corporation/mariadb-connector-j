@@ -40,6 +40,12 @@ mvn clean test $urlString -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLE
     -Dkeystore2Path="/etc/mysql/fullclient-keystore.jks" -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
     -Dkeystore2PathP12="/etc/mysql/fullclient-keystore.p12"
 
+if [ "$TYPE" == "MAXSCALE" ]
+then
+sudo service maxscale stop
+fi
+
+
 if [ ! -n "$AURORA" ]
 then
     sudo service mysql stop
