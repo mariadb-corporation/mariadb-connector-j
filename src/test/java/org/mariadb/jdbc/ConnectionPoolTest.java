@@ -126,7 +126,7 @@ public class ConnectionPoolTest extends BaseTest {
             for (int j = 0; j < 50; j++) {
                 try {
                     PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test_pool_batch" + j + "(test) VALUES (?)");
-                    for (int i = 1; i < 10; i++) {
+                    for (int i = 1; i < 30; i++) {
                         preparedStatement.setString(1, i + "");
                         preparedStatement.addBatch();
                     }
@@ -144,7 +144,7 @@ public class ConnectionPoolTest extends BaseTest {
         ExecutorService exec = Executors.newFixedThreadPool(50);
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < 50; i++) {
-            exec.execute(new InsertThread(i, 10, ds));
+            exec.execute(new InsertThread(i, 30, ds));
         }
         exec.shutdown();
         try {
