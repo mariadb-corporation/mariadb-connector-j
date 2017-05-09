@@ -10,17 +10,20 @@ case "$TYPE" in
  "REWRITE" )
    urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&rewriteBatchedStatements=true'
    ;;
+ "PREPARE" )
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useServerPrepStmts=true'
+   ;;
  "MULTI" )
    urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&allowMultiQueries=true'
    ;;
- "BULK_CLIENT" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=true&useServerPrepStmts=false'
+ "BULK_SERVER" )
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=true&useServerPrepStmts=true'
    ;;
  "NO_BULK_CLIENT" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false&useServerPrepStmts=false'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false'
    ;;
  "NO_BULK_SERVER" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false&useServerPrepStmts=true'
    ;;
  "COMPRESSION" )
    urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useCompression=true'
