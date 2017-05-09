@@ -39,8 +39,8 @@ public class ErrorMessageTest extends BaseTest {
         } catch (SQLException sqle) {
             assertTrue("message : " + sqle.getCause().getCause().getMessage(),
                     sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values "
-                    + "('more than 10 characters to provoc error', 10)"));
+                            "INSERT INTO testErrorMessage(test, test2) values "
+                                    + "('more than 10 characters to provoc error', 10)"));
         }
     }
 
@@ -52,7 +52,7 @@ public class ErrorMessageTest extends BaseTest {
         } catch (SQLException sqle) {
             assertTrue(sqle.getCause().getCause().getMessage().contains(
                     "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
-                    + "parameters ['more than 10 characters to provoc error',10]"));
+                            + "parameters ['more than 10 characters to provoc error',10]"));
         }
     }
 
@@ -62,11 +62,24 @@ public class ErrorMessageTest extends BaseTest {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            String query = "INSERT INTO testErrorMessage(test, test2) values ("
-                    + (sharedUsePrepare() ? "?, ?)" : "'more than 10 characters to provoc error', 10)");
-            assertTrue(sqle.getCause().getCause().getMessage().contains(query));
+            assertTrue(sqle.getCause().getCause().getMessage().contains(
+                    "INSERT INTO testErrorMessage(test, test2) values "
+                            + "('more than 10 characters to provoc error', 10)"));
         }
     }
+
+    @Test
+    public void testSmallPrepareBulkErrorMessage() throws SQLException {
+        try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useServerPrepStmts=true")) {
+            executeBatchWithException(connection);
+            fail("Must Have thrown error");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getCause().getCause().getMessage().contains(
+                    "INSERT INTO testErrorMessage(test, test2) values "
+                            + "(?, ?)"));
+        }
+    }
+
 
     @Test
     public void testBigRewriteErrorMessage() throws SQLException {
@@ -86,8 +99,8 @@ public class ErrorMessageTest extends BaseTest {
         } catch (SQLException sqle) {
             assertTrue("message : " + sqle.getCause().getCause().getMessage(),
                     sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values "
-                    + "('more than 10 characters to provoc error', 200)"));
+                            "INSERT INTO testErrorMessage(test, test2) values "
+                                    + "('more than 10 characters to provoc error', 200)"));
         }
     }
 
@@ -99,8 +112,8 @@ public class ErrorMessageTest extends BaseTest {
         } catch (SQLException sqle) {
             assertTrue("message : " + sqle.getCause().getCause().getMessage(),
                     sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
-                            + "['more than 10 characters to provoc error',200]"));
+                            "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
+                                    + "['more than 10 characters to provoc error',200]"));
         }
     }
 
@@ -110,12 +123,24 @@ public class ErrorMessageTest extends BaseTest {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            String query = "INSERT INTO testErrorMessage(test, test2) values ("
-                    + (sharedUsePrepare() ? "?, ?)" : "'more than 10 characters to provoc error', 200)");
-            assertTrue(sqle.getCause().getCause().getMessage().contains(query));
+            assertTrue(sqle.getCause().getCause().getMessage().contains(
+                    "INSERT INTO testErrorMessage(test, test2) values ("
+                            + "'more than 10 characters to provoc error', 200)"
+            ));
         }
     }
 
+    @Test
+    public void testBigBulkErrorPrepareMessage() throws SQLException {
+        try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useServerPrepStmts=true")) {
+            executeBigBatchWithException(connection);
+            fail("Must Have thrown error");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getCause().getCause().getMessage().contains(
+                    "INSERT INTO testErrorMessage(test, test2) values (?, ?)"
+            ));
+        }
+    }
 
     private void executeBatchWithException(Connection connection) throws SQLException {
         connection.createStatement().execute("TRUNCATE testErrorMessage");
