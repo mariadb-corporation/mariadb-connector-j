@@ -296,9 +296,9 @@ public enum DefaultOptions {
     /**
      * useServerPrepStmts must prepared statements be prepared on server side, or just faked on client side.
      * if rewriteBatchedStatements is set to true, this options will be set to false.
-     * default to true.
+     * default to false.
      */
-    USESERVERPREPSTMTS("useServerPrepStmts", Boolean.TRUE, "1.3.0"),
+    USESERVERPREPSTMTS("useServerPrepStmts", Boolean.FALSE, "1.3.0"),
 
     /**
      * File path of the trustStore file (similar to java System property "javax.net.ssl.trustStore").
