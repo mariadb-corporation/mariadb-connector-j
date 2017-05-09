@@ -155,22 +155,22 @@ public class FetchSizeTest extends BaseTest {
         Assume.assumeTrue(sharedOptions().killFetchStmtOnClose && !sharedOptions().profileSql);
         long start = System.currentTimeMillis();
         try (Statement stmt = sharedConnection.createStatement()) {
-            stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables");
+            stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables LIMIT 50000");
         }
         final long normalExecutionTime = System.currentTimeMillis() - start;
 
         start = System.currentTimeMillis();
         try (Statement stmt = sharedConnection.createStatement()) {
             stmt.setFetchSize(1);
-            stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables");
+            stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables LIMIT 50000");
         }
         long interruptedExecutionTime = System.currentTimeMillis() - start;
 
         //normalExecutionTime = 1500
         //interruptedExecutionTime = 77
         assertTrue("interruptedExecutionTime:" + interruptedExecutionTime
-                + " normalExecutionTime:" + normalExecutionTime,
-                interruptedExecutionTime * 3 < normalExecutionTime);
+                        + " normalExecutionTime:" + normalExecutionTime,
+                interruptedExecutionTime < normalExecutionTime);
     }
 
     @Test
@@ -181,7 +181,7 @@ public class FetchSizeTest extends BaseTest {
         long normalExecutionTime;
 
         try (PreparedStatement stmt = sharedConnection.prepareStatement(
-                "select * from information_schema.columns as c1,  information_schema.tables")) {
+                "select * from information_schema.columns as c1,  information_schema.tables LIMIT 50000")) {
             start = System.currentTimeMillis();
             stmt.executeQuery();
             normalExecutionTime = System.currentTimeMillis() - start;
@@ -197,6 +197,6 @@ public class FetchSizeTest extends BaseTest {
         //interruptedExecutionTime = 77
         assertTrue("interruptedExecutionTime:" + interruptedExecutionTime
                         + " normalExecutionTime:" + normalExecutionTime,
-                interruptedExecutionTime * 3 < normalExecutionTime);
+                interruptedExecutionTime < normalExecutionTime);
     }
 }

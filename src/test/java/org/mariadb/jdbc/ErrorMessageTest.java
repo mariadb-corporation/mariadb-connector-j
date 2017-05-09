@@ -62,8 +62,9 @@ public class ErrorMessageTest extends BaseTest {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
+            String query = "INSERT INTO testErrorMessage(test, test2) values ("
+                    + (sharedUsePrepare() ? "?, ?)" : "'more than 10 characters to provoc error', 10)");
+            assertTrue(sqle.getCause().getCause().getMessage().contains(query));
         }
     }
 
@@ -109,8 +110,9 @@ public class ErrorMessageTest extends BaseTest {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
+            String query = "INSERT INTO testErrorMessage(test, test2) values ("
+                    + (sharedUsePrepare() ? "?, ?)" : "'more than 10 characters to provoc error', 200)");
+            assertTrue(sqle.getCause().getCause().getMessage().contains(query));
         }
     }
 
