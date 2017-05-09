@@ -124,20 +124,20 @@ public class ErrorMessageTest extends BaseTest {
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
             assertTrue(sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values (?, ?)"
+                    "INSERT INTO testErrorMessage(test, test2) values ("
+                            + "'more than 10 characters to provoc error', 200)"
             ));
         }
     }
 
     @Test
     public void testBigBulkErrorPrepareMessage() throws SQLException {
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useServerPrepStmts=false")) {
+        try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useServerPrepStmts=true")) {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
             assertTrue(sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values ("
-                            + "'more than 10 characters to provoc error', 200)"
+                    "INSERT INTO testErrorMessage(test, test2) values (?, ?)"
             ));
         }
     }
