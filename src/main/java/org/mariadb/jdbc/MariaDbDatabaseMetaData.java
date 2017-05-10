@@ -2545,7 +2545,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     @Override
     public int getJDBCMinorVersion() throws SQLException {
-        return 2;
+        return 1;
     }
 
     @Override
