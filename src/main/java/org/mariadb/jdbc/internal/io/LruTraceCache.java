@@ -1,7 +1,7 @@
 /*
 MariaDB Client for Java
 
-Copyright (c) 2012 Monty Program Ab.
+Copyright (c) 2012-2014 Monty Program Ab.
 Copyright (c) 2015-2016 MariaDB Ab.
 
 This library is free software; you can redistribute it and/or modify it under
@@ -48,12 +48,76 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-package org.mariadb.jdbc.internal.util.constant;
+package org.mariadb.jdbc.internal.io;
 
-public final class Version {
-    public static final String version = "2.0.1";
-    public static final int majorVersion = 2;
-    public static final int minorVersion = 0;
-    public static final int patchVersion = 1;
-    public static final String qualifier = "";
+import org.mariadb.jdbc.internal.util.Utils;
+
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+
+public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
+
+    public LruTraceCache() {
+        super(16, 1.0f, false);
+    }
+
+    @Override
+    protected boolean removeEldestEntry(Map.Entry<Long, TraceObject> eldest) {
+        return size() > 10;
+    }
+
+    /**
+     * Value of trace cache in a readable format.
+     *
+     * @return trace cache value
+     */
+    public String printStack() {
+        StringBuilder sb = new StringBuilder();
+        Set<Map.Entry<Long, TraceObject>> set = entrySet();
+        for (Map.Entry<Long, TraceObject> entry : set) {
+            TraceObject traceObj = entry.getValue();
+            long millis = entry.getKey();
+            String indicator = "";
+
+            switch (traceObj.getIndicatorFlag()) {
+                case TraceObject.NOT_COMPRESSED:
+                    break;
+
+                case TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET:
+                    indicator = " (compressed protocol - packet not compressed)";
+                    break;
+
+                case TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET:
+                    indicator = " (compressed protocol - packet compressed)";
+                    break;
+
+                default:
+                    break;
+            }
+
+            if (traceObj.isSend()) {
+                sb.append("\nsend at " + new Date(millis) + indicator);
+            } else {
+                sb.append("\nread at " + new Date(millis) + indicator);
+            }
+            sb.append(Utils.hexdump(traceObj.getBuf()));
+
+            traceObj.remove();
+        }
+        this.clear();
+        return sb.toString();
+    }
+
+    /**
+     * Permit to clear array's of array, to help garbage.
+     */
+    public void clearMemory() {
+        Set<Map.Entry<Long, TraceObject>> set = entrySet();
+        for (Map.Entry<Long, TraceObject> entry : set) {
+            entry.getValue().remove();
+        }
+        this.clear();
+    }
 }

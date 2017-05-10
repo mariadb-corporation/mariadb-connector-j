@@ -58,6 +58,7 @@ import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.OkPacket;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.io.input.DecompressPacketInputStream;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
 import org.mariadb.jdbc.internal.io.output.CompressPacketOutputStream;
@@ -103,10 +104,11 @@ import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public abstract class AbstractConnectProtocol implements Protocol {
     private static Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
-    public static final byte[] SESSION_QUERY = ("SELECT @@max_allowed_packet , "
-            + "@@system_time_zone, "
-            + "@@time_zone, "
-            + "@@sql_mode").getBytes(StandardCharsets.UTF_8);
+    public static final byte[] SESSION_QUERY = ("SELECT @@max_allowed_packet,"
+            + "@@system_time_zone,"
+            + "@@time_zone,"
+            + "@@sql_mode,"
+            + "@@auto_increment_increment").getBytes(StandardCharsets.UTF_8);
     public static final byte[] IS_MASTER_QUERY = "show global variables like 'innodb_read_only'".getBytes(StandardCharsets.UTF_8);
 
     protected final ReentrantLock lock;
@@ -118,6 +120,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public Results activeStreamingResult = null;
     public int dataTypeMappingFlags;
     public short serverStatus;
+    protected int autoIncrementIncrement;
     protected Socket socket;
     protected PacketOutputStream writer;
     protected boolean readOnly = false;
@@ -137,8 +140,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private int majorVersion;
     private int minorVersion;
     private int patchVersion;
-    protected Map<String, String> serverData;
+    private Map<String, String> serverData;
     private TimeZone timeZone;
+    private LruTraceCache traceCache;
 
     /**
      * Get a protocol instance.
@@ -182,6 +186,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
             // socket is closed, so it is ok to ignore exception
         } finally {
             if (lock != null) lock.unlock();
+        }
+
+        if (options.enablePacketDebug) {
+            if (traceCache != null) traceCache.clearMemory();
+            traceCache = null;
         }
     }
 
@@ -384,15 +393,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 }
             }
 
-            // Extract socketTimeout URL parameter
-            if (options.socketTimeout != null) {
-                socket.setSoTimeout(options.socketTimeout);
-            }
 
             handleConnectionPhases();
 
             connected = true;
-
             serverData = new TreeMap<>();
 
             if (options.useCompression) {
@@ -400,37 +404,35 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 reader = new DecompressPacketInputStream(((StandardPacketInputStream) reader).getBufferedInputStream(), options.maxQuerySizeToLog);
             }
 
-            if ((serverCapabilities & MariaDbServerCapabilities.MARIADB_CLIENT_COM_IN_AUTH) != 0) {
-
-                //read results
-                Results results = new Results();
-                getResult(results);
-                results.commandEnd();
-                results.getMoreResults(Statement.CLOSE_CURRENT_RESULT, this);
-                ResultSet resultSet = results.getResultSet();
-                resultSet.next();
-
-                serverData.put("max_allowed_packet", resultSet.getString(1));
-                serverData.put("system_time_zone", resultSet.getString(2));
-                serverData.put("time_zone", resultSet.getString(3));
-                serverData.put("sql_mode", resultSet.getString(4));
-
-            } else {
-                if (options.usePipelineAuth) {
-                    try {
-                        sendPipelineAdditionalData();
-                        readPipelineAdditionalData();
-                    } catch (NullPointerException npe) {
-                        //in case pipeline is not supported
-                        //(proxy flush socket after reading first packet)
-                        additionalData();
-                    }
-                } else additionalData();
-            }
+            if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
+                try {
+                    sendPipelineAdditionalData();
+                    readPipelineAdditionalData();
+                } catch (SQLException sqle) {
+                    //in case pipeline is not supported
+                    //(proxy flush socket after reading first packet)
+                    additionalData();
+                }
+            } else additionalData();
 
             writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
+            autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
+
             loadCalendar();
 
+            // Extract socketTimeout URL parameter
+            if (options.socketTimeout != null) socket.setSoTimeout(options.socketTimeout);
+
+            if (options.enablePacketDebug) {
+                traceCache = new LruTraceCache();
+                writer.setTraceCache(traceCache);
+                reader.setTraceCache(traceCache);
+            }
+
+            reader.setServerThreadId(this.serverThreadId, isMasterConnection());
+            writer.setServerThreadId(this.serverThreadId, isMasterConnection());
+
+            serverData = null;
             activeStreamingResult = null;
             hostFailed = false;
         } catch (IOException ioException) {
@@ -455,13 +457,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         sendRequestSessionVariables();
         //for aurora, check that connection is master
         sendPipelineCheckMaster();
-
-        if (options.createDatabaseIfNotExist) {
-            // Try to create the database if it does not exist
-            String quotedDb = MariaDbConnection.quoteIdentifier(this.database);
-            sendCreateDatabaseIfNotExist(quotedDb);
-            sendUseDatabaseIfNotExist(quotedDb);
-        }
     }
 
     private void sendSessionInfos() throws IOException {
@@ -504,12 +499,19 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         results.commandEnd();
         ResultSet resultSet = results.getResultSet();
-        resultSet.next();
+        if (resultSet != null) {
+            resultSet.next();
 
-        serverData.put("max_allowed_packet", resultSet.getString(1));
-        serverData.put("system_time_zone", resultSet.getString(2));
-        serverData.put("time_zone", resultSet.getString(3));
-        serverData.put("sql_mode", resultSet.getString(4));
+            serverData.put("max_allowed_packet", resultSet.getString(1));
+            serverData.put("system_time_zone", resultSet.getString(2));
+            serverData.put("time_zone", resultSet.getString(3));
+            serverData.put("sql_mode", resultSet.getString(4));
+            serverData.put("auto_increment_increment", resultSet.getString(5));
+
+        } else {
+            throw new SQLException("Error reading SessionVariables results. Socket is connected ? "
+                    + socket.isConnected());
+        }
     }
 
     private void sendCreateDatabaseIfNotExist(String quotedDb)  throws IOException {
@@ -541,7 +543,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
             readRequestSessionVariables();
             sessionDataRead = true;
-
         } catch (SQLException sqlException) {
             if (resultingException == null) {
                 resultingException = new SQLException("could not load system variables",
@@ -559,20 +560,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
         }
 
-        //read CREATE DATABASE and USE Query results
-        if (options.createDatabaseIfNotExist) {
-            try {
-                getResult(new Results());
-            } catch (SQLException sqlException) {
-                if (resultingException == null) resultingException = sqlException;
-            }
-            try {
-                getResult(new Results());
-            } catch (SQLException sqlException) {
-                if (resultingException == null) resultingException = sqlException;
-            }
-        }
-
         if (resultingException != null) throw resultingException;
         connected = true;
 
@@ -587,11 +574,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
             Results results = new Results();
             executeQuery(true, results, "SHOW VARIABLES WHERE Variable_name in ("
-                    + "'max_allowed_packet', "
-                    + "'system_time_zone', "
-                    + "'time_zone', "
-                    + "'sql_mode'"
-                    + ")");
+                    + "'max_allowed_packet',"
+                    + "'system_time_zone',"
+                    + "'time_zone',"
+                    + "'sql_mode',"
+                    + "'auto_increment_increment')");
             results.commandEnd();
             ResultSet resultSet = results.getResultSet();
 
@@ -790,8 +777,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 | MariaDbServerCapabilities.PLUGIN_AUTH
                 | MariaDbServerCapabilities.CONNECT_ATTRS
                 | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
-                | MariaDbServerCapabilities.CLIENT_SESSION_TRACK
-                | MariaDbServerCapabilities.MARIADB_CLIENT_COM_IN_AUTH;
+                | MariaDbServerCapabilities.CLIENT_SESSION_TRACK;
 
         if (options.allowMultiQueries || (options.rewriteBatchedStatements)) {
             capabilities |= MariaDbServerCapabilities.MULTI_STATEMENTS;
@@ -835,9 +821,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
 
             if (tz == null) {
-                tz = getServerData("time_zone");
+                tz = serverData.get("time_zone");
                 if ("SYSTEM".equals(tz)) {
-                    tz = getServerData("system_time_zone");
+                    tz = serverData.get("system_time_zone");
                 }
             }
             //handle custom timezone id
@@ -875,10 +861,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws SQLException if requesting infos for server fail.
      */
     public boolean checkIfMaster() throws SQLException {
-        boolean master = isMasterConnection();
-        reader.setServerThreadId(this.serverThreadId, master);
-        writer.setServerThreadId(this.serverThreadId, master);
-        return master;
+        return isMasterConnection();
     }
 
     private boolean isServerLanguageUtf8mb4(byte serverLanguage) {
@@ -1330,5 +1313,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public boolean sessionStateAware() {
         return (serverCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) != 0;
+    }
+
+    public String getTraces() {
+        if (options.enablePacketDebug) return traceCache.printStack();
+        return "";
     }
 }

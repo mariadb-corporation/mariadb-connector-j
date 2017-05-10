@@ -216,9 +216,6 @@ public interface Protocol {
 
     ServerPrepareStatementCache prepareStatementCache();
 
-
-    String getServerData(String code);
-
     TimeZone getTimeZone();
 
     void prolog(long maxRows, boolean hasProxy, MariaDbConnection connection,
@@ -269,4 +266,6 @@ public interface Protocol {
     int getAutoIncrementIncrement();
 
     boolean sessionStateAware();
+
+    String getTraces();
 }

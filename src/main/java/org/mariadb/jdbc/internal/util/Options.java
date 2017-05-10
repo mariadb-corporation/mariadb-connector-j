@@ -50,6 +50,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.util;
 
+import java.lang.reflect.Field;
+
 public class Options {
     //standard options
     public String user;
@@ -110,6 +112,7 @@ public class Options {
     public int useBatchMultiSendNumber;
     public boolean usePipelineAuth;
     public boolean killFetchStmtOnClose;
+    public boolean enablePacketDebug;
 
     //logging options
     public boolean log;
@@ -128,69 +131,27 @@ public class Options {
 
     @Override
     public String toString() {
-        return "Options{"
-                + "user='" + user + '\''
-                + ", assureReadOnly=" + assureReadOnly
-                + ", trustServerCertificate=" + trustServerCertificate
-                + ", serverSslCert='" + serverSslCert + '\''
-                + ", useFractionalSeconds=" + useFractionalSeconds
-                + ", pinGlobalTxToPhysicalConnection=" + pinGlobalTxToPhysicalConnection
-                + ", trustStore='" + trustStore + '\''
-                + ", keyStore='" + keyStore + '\''
-                + ", enabledSslProtocolSuites='" + enabledSslProtocolSuites + '\''
-                + ", socketFactory='" + socketFactory + '\''
-                + ", connectTimeout=" + connectTimeout
-                + ", pipe='" + pipe + '\''
-                + ", localSocket='" + localSocket + '\''
-                + ", sharedMemory='" + sharedMemory + '\''
-                + ", tcpNoDelay=" + tcpNoDelay
-                + ", tcpKeepAlive=" + tcpKeepAlive
-                + ", tcpRcvBuf=" + tcpRcvBuf
-                + ", tcpSndBuf=" + tcpSndBuf
-                + ", tcpAbortiveClose=" + tcpAbortiveClose
-                + ", localSocketAddress='" + localSocketAddress + '\''
-                + ", socketTimeout=" + socketTimeout
-                + ", allowMultiQueries=" + allowMultiQueries
-                + ", rewriteBatchedStatements=" + rewriteBatchedStatements
-                + ", useCompression=" + useCompression
-                + ", interactiveClient=" + interactiveClient
-                + ", useSsl=" + useSsl
-                + ", enabledSslCipherSuites='" + enabledSslCipherSuites + '\''
-                + ", sessionVariables='" + sessionVariables + '\''
-                + ", tinyInt1isBit=" + tinyInt1isBit
-                + ", yearIsDateType=" + yearIsDateType
-                + ", createDatabaseIfNotExist=" + createDatabaseIfNotExist
-                + ", serverTimezone='" + serverTimezone + '\''
-                + ", nullCatalogMeansCurrent=" + nullCatalogMeansCurrent
-                + ", dumpQueriesOnException=" + dumpQueriesOnException
-                + ", useOldAliasMetadataBehavior=" + useOldAliasMetadataBehavior
-                + ", allowLocalInfile=" + allowLocalInfile
-                + ", cachePrepStmts=" + cachePrepStmts
-                + ", prepStmtCacheSize=" + prepStmtCacheSize
-                + ", prepStmtCacheSqlLimit=" + prepStmtCacheSqlLimit
-                + ", autoReconnect=" + autoReconnect
-                + ", failOnReadOnly=" + failOnReadOnly
-                + ", retriesAllDown=" + retriesAllDown
-                + ", validConnectionTimeout=" + validConnectionTimeout
-                + ", loadBalanceBlacklistTimeout=" + loadBalanceBlacklistTimeout
-                + ", failoverLoopRetries=" + failoverLoopRetries
-                + ", useLegacyDatetimeCode=" + useLegacyDatetimeCode
-                + ", maximizeMysqlCompatibility=" + maximizeMysqlCompatibility
-                + ", continueBatchOnError=" + continueBatchOnError
-                + ", jdbcCompliantTruncation=" + jdbcCompliantTruncation
-                + ", cacheCallableStmts=" + cacheCallableStmts
-                + ", useBatchMultiSend=" + useBatchMultiSend
-                + ", useBatchMultiSendNumber=" + useBatchMultiSendNumber
-                + ", callableStmtCacheSize=" + callableStmtCacheSize
-                + ", connectionAttributes=" + connectionAttributes
-                + ", log=" + log
-                + ", profileSql=" + profileSql
-                + ", maxQuerySizeToLog=" + maxQuerySizeToLog
-                + ", slowQueryThresholdNanos=" + slowQueryThresholdNanos
-                + ", passwordCharacterEncoding=" + passwordCharacterEncoding
-                + ", usePipelineAuth=" + usePipelineAuth
-                + ", killFetchStmtOnClose=" + killFetchStmtOnClose
-                + "}";
+        StringBuilder result = new StringBuilder();
+        String newLine = System.getProperty("line.separator");
+        result.append( this.getClass().getName() );
+        result.append( " Options {" );
+        result.append(newLine);
+
+        Field[] fields = this.getClass().getDeclaredFields();
+        for (Field field : fields) {
+            result.append("  ");
+            try {
+                result.append( field.getName() );
+                result.append(": ");
+                //requires access to private field:
+                result.append( field.get(this) );
+            } catch ( IllegalAccessException ex ) {
+                //ignore error
+            }
+            result.append(newLine);
+        }
+        result.append("}");
+        return result.toString();
     }
 
     @Override
@@ -298,6 +259,7 @@ public class Options {
         if (useBatchMultiSend != options.useBatchMultiSend) return false;
         if (useBatchMultiSendNumber != options.useBatchMultiSendNumber) return false;
         if (usePipelineAuth != options.usePipelineAuth) return false;
+        if (enablePacketDebug != options.enablePacketDebug) return false;
         if (killFetchStmtOnClose != options.killFetchStmtOnClose) return false;
         return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)
                 : options.prepStmtCacheSqlLimit != null);

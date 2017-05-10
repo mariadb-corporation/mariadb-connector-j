@@ -50,6 +50,7 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.io.output;
 
+import org.mariadb.jdbc.internal.io.TraceObject;
 import org.mariadb.jdbc.internal.util.Utils;
 
 import java.io.ByteArrayOutputStream;
@@ -57,6 +58,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.zip.DeflaterOutputStream;
+
+import static org.mariadb.jdbc.internal.io.TraceObject.*;
 
 public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
@@ -147,47 +150,70 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                         deflater.write(buf, 0, uncompressSize - (remainingData.length + 4));
                         deflater.finish();
                     }
+
                     compressedBytes = baos.toByteArray();
-                    if (pos + remainingData.length + 4 - uncompressSize > 0) {
-                        remainingData = Arrays.copyOfRange(buf, uncompressSize - (remainingData.length + 4), pos);
-                    } else {
-                        remainingData = EMPTY_ARRAY;
-                    }
-                }
 
-                if (compressedBytes.length < (int) (MIN_COMPRESSION_RATIO * pos)) {
-                    int compressedLength = compressedBytes.length;
+                    if (compressedBytes.length < (int) (MIN_COMPRESSION_RATIO * pos)) {
+                        int compressedLength = compressedBytes.length;
 
-                    header[0] = (byte) (compressedLength >>> 0);
-                    header[1] = (byte) (compressedLength >>> 8);
-                    header[2] = (byte) (compressedLength >>> 16);
-                    header[3] = (byte) this.compressSeqNo++;
-                    header[4] = (byte) (uncompressSize >>> 0);
-                    header[5] = (byte) (uncompressSize >>> 8);
-                    header[6] = (byte) (uncompressSize >>> 16);
-                    out.write(header, 0, 7);
-                    out.write(compressedBytes, 0, compressedLength);
+                        header[0] = (byte) (compressedLength >>> 0);
+                        header[1] = (byte) (compressedLength >>> 8);
+                        header[2] = (byte) (compressedLength >>> 16);
+                        header[3] = (byte) this.compressSeqNo++;
+                        header[4] = (byte) (uncompressSize >>> 0);
+                        header[5] = (byte) (uncompressSize >>> 8);
+                        header[6] = (byte) (uncompressSize >>> 16);
+                        out.write(header, 0, 7);
+                        out.write(compressedBytes, 0, compressedLength);
 
-                    if (logger.isTraceEnabled()) {
-                        if (permitTrace) {
-                            logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + uncompressSize + ")"
-                                    + serverThreadLog
-                                    + " packet:0x"
-                                    + Utils.hexdump(header, maxQuerySizeToLog, 0, 7)
-                                    + Utils.hexdump(compressedBytes, maxQuerySizeToLog - 7, 0, compressedLength));
-                        } else {
-                            logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + uncompressSize + ")"
-                                    + serverThreadLog
-                                    + " packet:<hidden>");
+
+                        if (traceCache != null && permitTrace) {
+                            //trace last packets
+                            if (remainingData.length != 0) {
+                                traceCache.put(System.currentTimeMillis(), new TraceObject(true, COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
+                                        Arrays.copyOfRange(header, 0, 7),
+                                        Arrays.copyOfRange(remainingData, 0, remainingData.length),
+                                        Arrays.copyOfRange(subHeader, 0, 4),
+                                        Arrays.copyOfRange(buf, 0, (uncompressSize > 1000 ? 1000 : uncompressSize) - (remainingData.length + 4))));
+                            } else {
+                                traceCache.put(System.currentTimeMillis(), new TraceObject(true, COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
+                                        Arrays.copyOfRange(header, 0, 7),
+                                        Arrays.copyOfRange(subHeader, 0, 4),
+                                        Arrays.copyOfRange(buf, 0, (uncompressSize > 1000 ? 1000 : uncompressSize) - (remainingData.length + 4))));
+                            }
                         }
+
+                        if (logger.isTraceEnabled()) {
+                            if (permitTrace) {
+                                if (remainingData.length != 0) {
+                                    logger.trace("send compress:" + serverThreadLog
+                                            + Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),
+                                            0,
+                                            compressedLength, header, remainingData, subHeader, buf));
+                                } else {
+                                    logger.trace("send compress:" + serverThreadLog
+                                            + Utils.hexdump(maxQuerySizeToLog - 11, 0, compressedLength, header, subHeader, buf));
+                                }
+                            } else {
+                                logger.trace("send compress:" + serverThreadLog
+                                        + " packet:<hidden>");
+                            }
+                        }
+                        if (pos + remainingData.length + 4 - uncompressSize > 0) {
+                            remainingData = Arrays.copyOfRange(buf, uncompressSize - (remainingData.length + 4), pos);
+                        } else {
+                            remainingData = EMPTY_ARRAY;
+                        }
+
+                        //if last packet fill the max size, must send an empty packet to indicate command end.
+                        lastPacketExactMaxPacketLength = pos == MAX_PACKET_LENGTH;
+                        if (commandEnd && lastPacketExactMaxPacketLength) writeEmptyPacket();
+                        pos = 0;
+                        return;
                     }
 
-                    //if last packet fill the max size, must send an empty packet to indicate command end.
-                    lastPacketExactMaxPacketLength = pos == MAX_PACKET_LENGTH;
-                    if (commandEnd && lastPacketExactMaxPacketLength) writeEmptyPacket();
-                    pos = 0;
-                    return;
                 }
+
             }
 
             int uncompressSize = Math.min(MAX_PACKET_LENGTH, remainingData.length + 4 + pos);
@@ -210,27 +236,48 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             subHeader[3] = (byte) this.seqNo++;
             out.write(subHeader, 0, 4);
             out.write(buf, 0, uncompressSize - (remainingData.length + 4));
-            if (pos + remainingData.length + 4 - uncompressSize > 0) {
-                remainingData = Arrays.copyOfRange(buf, uncompressSize - (remainingData.length + 4), pos);
-            } else {
-                remainingData = EMPTY_ARRAY;
+
+            if (traceCache != null && permitTrace) {
+                //trace last packets
+                if (remainingData.length != 0) {
+                    traceCache.put(System.currentTimeMillis(), new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
+                            Arrays.copyOfRange(header, 0, 7),
+                            Arrays.copyOfRange(remainingData, 0, remainingData.length),
+                            Arrays.copyOfRange(subHeader, 0, 4),
+                            Arrays.copyOfRange(buf, 0, (uncompressSize > 1000 ? 1000 : uncompressSize) - (remainingData.length + 4))));
+                } else {
+                    traceCache.put(System.currentTimeMillis(), new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
+                            Arrays.copyOfRange(header, 0, 7),
+                            Arrays.copyOfRange(subHeader, 0, 4),
+                            Arrays.copyOfRange(buf, 0, (uncompressSize > 1000 ? 1000 : uncompressSize) - (remainingData.length + 4))));
+                }
             }
 
             if (logger.isTraceEnabled()) {
                 if (permitTrace) {
-                    logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
-                            + serverThreadLog
-                            + " packet:0x"
-                            + Utils.hexdump(header, maxQuerySizeToLog, 0, pos)
-                            + Utils.hexdump(remainingData, maxQuerySizeToLog - pos, 0, remainingData.length)
-                            + Utils.hexdump(subHeader, maxQuerySizeToLog - (pos + remainingData.length), 0, 4)
-                            + Utils.hexdump(buf, maxQuerySizeToLog - (pos + remainingData.length + 4), 0, pos));
+                    if (remainingData.length != 0) {
+                        logger.trace("send uncompress:"
+                                + serverThreadLog
+                                + Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),
+                                0, pos, header, remainingData, subHeader, buf));
+                    } else {
+                        logger.trace("send uncompress:"
+                                + serverThreadLog
+                                + Utils.hexdump(maxQuerySizeToLog - 11, 0, pos, header, subHeader, buf));
+                    }
                 } else {
                     logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
                             + serverThreadLog
                             + " packet:<hidden>");
                 }
             }
+
+            if (pos + remainingData.length + 4 - uncompressSize > 0) {
+                remainingData = Arrays.copyOfRange(buf, uncompressSize - (remainingData.length + 4), pos);
+            } else {
+                remainingData = EMPTY_ARRAY;
+            }
+
 
             //if last packet fill the max size, must send an empty packet to indicate command end.
             lastPacketExactMaxPacketLength = pos == MAX_PACKET_LENGTH;
@@ -265,15 +312,20 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                     out.write(header, 0, 7);
                     out.write(compressedBytes, 0, compressedLength);
 
+
+                    if (traceCache != null && permitTrace) {
+                        traceCache.put(System.currentTimeMillis(), new TraceObject(true, COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
+                                Arrays.copyOfRange(header, 0, 7),
+                                Arrays.copyOfRange(remainingData, 0, (uncompressSize > 1000 ? 1000 : uncompressSize))));
+                    }
+
                     if (logger.isTraceEnabled()) {
                         if (permitTrace) {
-                            logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + uncompressSize + ")"
+                            logger.trace("send compress:"
                                     + serverThreadLog
-                                    + " packet:0x"
-                                    + Utils.hexdump(header, maxQuerySizeToLog, 0, 7)
-                                    + Utils.hexdump(compressedBytes, maxQuerySizeToLog - 7, 0, compressedLength));
+                                    + Utils.hexdump(maxQuerySizeToLog - 7, 0, uncompressSize, header, remainingData));
                         } else {
-                            logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + uncompressSize + ")"
+                            logger.trace("send compress:"
                                     + serverThreadLog
                                     + " packet:<hidden>");
                         }
@@ -301,15 +353,19 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             out.write(remainingData);
             remainingData = EMPTY_ARRAY;
 
+            if (traceCache != null && permitTrace) {
+                traceCache.put(System.currentTimeMillis(), new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
+                        Arrays.copyOfRange(header, 0, 7),
+                        Arrays.copyOfRange(remainingData, 0, (remainingData.length > 1000 ? 1000 : remainingData.length))));
+            }
+
             if (logger.isTraceEnabled()) {
                 if (permitTrace) {
-                    logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
+                    logger.trace("send uncompress:"
                             + serverThreadLog
-                            + " packet:0x"
-                            + Utils.hexdump(header, maxQuerySizeToLog, 0, pos)
-                            + Utils.hexdump(remainingData, maxQuerySizeToLog - pos, 0, remainingData.length));
+                            + Utils.hexdump(maxQuerySizeToLog - 7, 0, remainingData.length, header, remainingData));
                 } else {
-                    logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
+                    logger.trace("send uncompress:"
                             + serverThreadLog
                             + " packet:<hidden>");
                 }
@@ -336,13 +392,20 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
         buf[9] = (byte) 0x00;
         buf[10] = (byte) this.seqNo++;
         out.write(buf, 0, 11);
+
+        if (traceCache != null && permitTrace) {
+            traceCache.put(System.currentTimeMillis(), new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
+                    Arrays.copyOfRange(buf, 0, 11)));
+        }
+
+
         if (logger.isTraceEnabled()) {
             if (permitTrace) {
-                logger.trace("send compress: length:(zlib:0,std:0)"
+                logger.trace("send compress:"
                         + serverThreadLog
-                        + " packet:0x" + Utils.hexdump(buf, maxQuerySizeToLog, 0, 11));
+                        + Utils.hexdump(maxQuerySizeToLog, 0, 11, buf));
             } else {
-                logger.trace("send compress: length:(zlib:0,std:0)"
+                logger.trace("send compress:"
                         + serverThreadLog
                         + " packet:<hidden>");
             }

@@ -296,9 +296,9 @@ public enum DefaultOptions {
     /**
      * useServerPrepStmts must prepared statements be prepared on server side, or just faked on client side.
      * if rewriteBatchedStatements is set to true, this options will be set to false.
-     * default to true.
+     * default to false.
      */
-    USESERVERPREPSTMTS("useServerPrepStmts", Boolean.TRUE, "1.3.0"),
+    USESERVERPREPSTMTS("useServerPrepStmts", Boolean.FALSE, "1.3.0"),
 
     /**
      * File path of the trustStore file (similar to java System property "javax.net.ssl.trustStore").
@@ -426,13 +426,20 @@ public enum DefaultOptions {
      * Fast connection creation (recommended if not using authentication plugins)
      * default to true.
      */
-    PIPELINE_AUTH("usePipelineAuth", Boolean.TRUE, "2.0.0"),
+    PIPELINE_AUTH("usePipelineAuth", Boolean.TRUE, "1.6.0"),
 
     /**
      * When closing a statement that is fetching result-set (using setFetchSize),
      * kill query to avoid having to read remaining rows.
      */
-    KILL_FETCH_STMT("killFetchStmtOnClose", Boolean.TRUE, "2.0.0");
+    KILL_FETCH_STMT("killFetchStmtOnClose", Boolean.TRUE, "1.6.0"),
+
+    /**
+     * Driver will save the last 16 MySQL packet exchanges (limited to first 1000 bytes).
+     * Hexadecimal value of those packet will be added to stacktrace when an IOException occur.
+     * This options has no performance incidence (&lt; 1 microseconds per query) but driver will then take 16kb more memory.
+     */
+    ENABLE_PACKET_DEBUG("enablePacketDebug", Boolean.FALSE, "1.6.0");
 
 
     protected final String name;
@@ -472,7 +479,7 @@ public enum DefaultOptions {
 
     DefaultOptions(String name, Long defaultValue, Long minValue, Long maxValue, String implementationVersion) {
         this.name = name;
-        this.objType = Integer.class;
+        this.objType = Long.class;
         this.defaultValue = defaultValue;
         this.minValue = minValue;
         this.maxValue = maxValue;
@@ -491,25 +498,6 @@ public enum DefaultOptions {
 
     public static Options defaultValues(HaMode haMode) {
         return parse(haMode, "", new Properties());
-    }
-
-    /**
-     * Add a property (name + value) to current session options
-     *
-     * @param haMode  current haMode.
-     * @param name    property name
-     * @param value   new property value
-     * @param options session options.
-     * @return new session options.
-     */
-    public static Options addProperty(HaMode haMode, String name, String value, Options options) {
-        Properties additionnalProperties = new Properties();
-        additionnalProperties.put(name, value);
-        return parse(haMode, additionnalProperties, options);
-    }
-
-    public static Options addProperty(HaMode haMode, Properties additionnalProperties, Options options) {
-        return parse(haMode, additionnalProperties, options);
     }
 
     public static Options parse(HaMode haMode, String urlParameters, Options options) {
@@ -594,17 +582,21 @@ public enum DefaultOptions {
                     if (o.objType.equals(String.class)) {
                         Options.class.getField(o.name).set(options, propertyValue);
                     } else if (o.objType.equals(Boolean.class)) {
-                        String value = propertyValue.toLowerCase();
-                        if ("1".equals(value)) {
-                            value = "true";
-                        } else if ("0".equals(value)) {
-                            value = "false";
+                        switch (propertyValue.toLowerCase()) {
+                            case "1":
+                            case "true":
+                                Options.class.getField(o.name).set(options, Boolean.TRUE);
+                                break;
+
+                            case "0":
+                            case "false":
+                                Options.class.getField(o.name).set(options, Boolean.FALSE);
+                                break;
+
+                            default:
+                                throw new IllegalArgumentException("Optional parameter " + o.name
+                                        + " must be boolean (true/false or 0/1) was \"" + propertyValue + "\"");
                         }
-                        if (!"true".equals(value) && !"false".equals(value)) {
-                            throw new IllegalArgumentException("Optional parameter " + o.name + " must be boolean (true/false or 0/1) was \""
-                                    + propertyValue + "\"");
-                        }
-                        Options.class.getField(o.name).set(options, Boolean.valueOf(value));
                     } else if (o.objType.equals(Integer.class)) {
                         try {
                             Integer value = Integer.parseInt(propertyValue);
@@ -662,109 +654,4 @@ public enum DefaultOptions {
         return options;
     }
 
-    /**
-     * Get properties from session options.
-     *
-     * @param options session options.
-     * @return properties
-     */
-    public static Properties getProperties(Options options) {
-        Properties prop = new Properties();
-        try {
-            for (DefaultOptions o : DefaultOptions.values()) {
-                try {
-                    Object obj = Options.class.getField(o.name).get(options);
-                    if (obj != null) {
-                        prop.put(o.name, String.valueOf(Options.class.getField(o.name).get(options)).toString());
-                    }
-                } catch (NoSuchFieldException exe) {
-                    //eat exception
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return prop;
-    }
-
-    /**
-     * Get properties value by name.
-     *
-     * @param optionName String name
-     * @param options    session options.
-     * @return string value of option if exists.
-     */
-    public static String getProperties(String optionName, Options options) {
-        try {
-            return String.valueOf(Options.class.getField(optionName).get(options));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    /**
-     * Set a int value.
-     *
-     * @param value int value to set.
-     */
-    private void setIntValue(Integer value) {
-        this.value = value;
-    }
-
-    /**
-     * Set a boolean value.
-     *
-     * @param value boolean value to set.
-     */
-    private void setBooleanValue(Boolean value) {
-        this.value = value;
-    }
-
-    /**
-     * Return an integer value.
-     *
-     * @return an integer
-     */
-    public int intValue() {
-        if (objType.equals(Integer.class)) {
-            if (value != null) {
-                return ((Integer) value).intValue();
-            } else {
-                return ((Integer) defaultValue).intValue();
-            }
-        } else {
-            throw new WrongMethodTypeException("Method " + name + " is of type " + objType + " intValue() does not apply");
-        }
-    }
-
-    /**
-     * Return boolean value.
-     *
-     * @return a boolean.
-     */
-    public boolean boolValue() {
-        if (objType.equals(Boolean.class)) {
-            if (value != null) {
-                return ((Boolean) value).booleanValue();
-            } else {
-                return ((Boolean) defaultValue).booleanValue();
-            }
-        } else {
-            throw new WrongMethodTypeException("Method " + name + " is of type " + objType + " intValue() does not apply");
-        }
-    }
-
-    /**
-     * Return String value.
-     *
-     * @return string
-     */
-    public String stringValue() {
-        if (objType.equals(String.class)) {
-            return ((String) value);
-        } else {
-            throw new WrongMethodTypeException("Method " + name + " is of type " + objType + " intValue() does not apply");
-        }
-    }
 }

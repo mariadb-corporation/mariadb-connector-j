@@ -50,6 +50,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.io.output;
 
+import org.mariadb.jdbc.internal.io.LruTraceCache;
+
 import java.io.*;
 
 public interface PacketOutputStream  {
@@ -107,4 +109,7 @@ public interface PacketOutputStream  {
     void permitTrace(boolean permitTrace);
 
     void setServerThreadId(long serverThreadId, Boolean isMaster);
+
+    void setTraceCache(LruTraceCache traceCache);
+
 }

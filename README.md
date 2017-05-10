@@ -20,20 +20,21 @@ The driver (jar) can be downloaded from [mariadb connector download](https://mar
 
 or maven : 
 
+Java 7 compatible version :
 ```script
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>1.5.9</version>
+	<version>1.6.0</version>
 </dependency>
 ```
 
-release candidate :
+Java 8 compatible version :
 ```script
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>2.0.0-RC</version>
+	<version>2.0.1</version>
 </dependency>
 ```
 

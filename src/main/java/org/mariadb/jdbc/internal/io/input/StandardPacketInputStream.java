@@ -51,6 +51,8 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.io.input;
 
 import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
+import org.mariadb.jdbc.internal.io.TraceObject;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.Utils;
@@ -60,6 +62,9 @@ import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
+
+import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
 
 public class StandardPacketInputStream implements PacketInputStream {
 
@@ -78,6 +83,7 @@ public class StandardPacketInputStream implements PacketInputStream {
     private int lastPacketLength;
     private String serverThreadLog = "";
 
+    private LruTraceCache traceCache = null;
 
     public StandardPacketInputStream(InputStream in, int maxQuerySizeToLog) {
         inputStream = new BufferedInputStream(in, 64 * 1024);
@@ -147,10 +153,15 @@ public class StandardPacketInputStream implements PacketInputStream {
             off += count;
         } while (remaining > 0);
 
+        if (traceCache != null) {
+            traceCache.put(System.currentTimeMillis(), new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
+                    Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
+        }
+
         if (logger.isTraceEnabled()) {
-            logger.trace("read packet : seq=" + packetSeq + " len:" + lastPacketLength
+            logger.trace("read:"
                     + serverThreadLog
-                    + " content:0x" + Utils.hexdump(rawBytes, maxQuerySizeToLog, 0, lastPacketLength));
+                    + Utils.hexdump(maxQuerySizeToLog - 4, 0, lastPacketLength, header, rawBytes));
         }
 
         //***************************************************
@@ -192,10 +203,15 @@ public class StandardPacketInputStream implements PacketInputStream {
                     off += count;
                 } while (remaining > 0);
 
+                if (traceCache != null) {
+                    traceCache.put(System.currentTimeMillis(), new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
+                            Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
+                }
+
                 if (logger.isTraceEnabled()) {
-                    logger.trace("read packet : seq=" + packetSeq + " len:" + packetLength
+                    logger.trace("read:"
                             + serverThreadLog
-                            + " content:0x" + Utils.hexdump(rawBytes, maxQuerySizeToLog, currentBufferLength, packetLength));
+                            + Utils.hexdump(maxQuerySizeToLog - 4, currentBufferLength, packetLength, header, rawBytes));
                 }
 
                 lastPacketLength += packetLength;
@@ -355,5 +371,10 @@ public class StandardPacketInputStream implements PacketInputStream {
      */
     public void setServerThreadId(long serverThreadId, Boolean isMaster) {
         this.serverThreadLog = " conn:" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
+    }
+
+
+    public void setTraceCache(LruTraceCache traceCache) {
+        this.traceCache = traceCache;
     }
 }

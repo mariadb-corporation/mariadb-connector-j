@@ -298,4 +298,16 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testLastInsertId() throws Exception {
+        checkParsing("INSERT INTO tt (tt, tt2) VALUES (LAST_INSERT_ID(), ?)",
+                1, false, true,
+                new String[]{
+                        "INSERT INTO tt (tt, tt2) VALUES",
+                        " (LAST_INSERT_ID(), ",
+                        ")",
+                        ""},
+                new String[]{"INSERT INTO tt (tt, tt2) VALUES (LAST_INSERT_ID(), ", ")"});
+    }
+
 }

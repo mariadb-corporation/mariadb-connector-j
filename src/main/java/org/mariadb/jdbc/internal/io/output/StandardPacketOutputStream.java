@@ -50,10 +50,14 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.io.output;
 
+import org.mariadb.jdbc.internal.io.TraceObject;
 import org.mariadb.jdbc.internal.util.Utils;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
+
+import static org.mariadb.jdbc.internal.io.TraceObject.*;
 
 public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
@@ -95,13 +99,20 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
             buf[3] = (byte) this.seqNo++;
             checkMaxAllowedLength(pos - 4);
             out.write(buf, 0, pos);
+
+            if (traceCache != null && permitTrace) {
+                //trace last packets
+                traceCache.put(System.currentTimeMillis(), new TraceObject(true, NOT_COMPRESSED,
+                        Arrays.copyOfRange(buf, 0, pos > 1000 ? 1000 : pos)));
+            }
+
             if (logger.isTraceEnabled()) {
                 if (permitTrace) {
-                    logger.trace("send com : content length:" + (pos - 4)
+                    logger.trace("send:"
                             + serverThreadLog
-                            + " com:0x" + Utils.hexdump(buf, maxQuerySizeToLog, 0, pos));
+                            + Utils.hexdump(maxQuerySizeToLog, 0, pos, buf));
                 } else {
-                    logger.trace("send com : content length:" + (pos - 4)
+                    logger.trace("send: content length:" + (pos - 4)
                             + serverThreadLog
                             + " com:<hidden>");
                 }
@@ -125,10 +136,16 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
         buf[2] = (byte) 0x00;
         buf[3] = (byte) this.seqNo++;
         out.write(buf, 0, 4);
+
+        if (traceCache != null) {
+            //trace last packets
+            traceCache.put(System.currentTimeMillis(), new TraceObject(true, NOT_COMPRESSED, Arrays.copyOfRange(buf, 0, 4)));
+        }
+
         if (logger.isTraceEnabled()) {
             logger.trace("send com : content length:0 "
                     + serverThreadLog
-                    + " com:0x" + Utils.hexdump(buf, maxQuerySizeToLog, 0, 4));
+                    + Utils.hexdump(maxQuerySizeToLog, 0, 4, buf));
         }
     }
 

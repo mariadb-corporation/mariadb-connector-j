@@ -6,7 +6,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.0.1</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
@@ -20,7 +20,7 @@
         <driver.version.major>2</driver.version.major>
         <driver.version.minor>0</driver.version.minor>
         <driver.version.patch>1</driver.version.patch>
-        <driver.version.qualifier>SNAPSHOT</driver.version.qualifier>
+        <driver.version.qualifier></driver.version.qualifier>
     </properties>
 
     <licenses>
@@ -152,7 +152,7 @@
                         </replacement>
                         <replacement>
                             <token>@version</token>
-                            <value>${driver.version}</value>
+                            <value>${project.version}</value>
                         </replacement>
                         <replacement>
                             <token>@majorVersion</token>
@@ -168,7 +168,7 @@
                         </replacement>
                         <replacement>
                             <token>@qualifier</token>
-                            <value>-${driver.version.qualifier}</value>
+                            <value>${driver.version.qualifier}</value>
                         </replacement>
                     </replacements>
                 </configuration>

@@ -50,6 +50,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.io.input;
 
+import org.mariadb.jdbc.internal.io.LruTraceCache;
+import org.mariadb.jdbc.internal.io.TraceObject;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.Utils;
@@ -58,9 +60,13 @@ import org.mariadb.jdbc.internal.com.read.Buffer;
 import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
+import java.util.Arrays;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
+
+import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET;
+import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET;
+import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
 
 public class DecompressPacketInputStream implements PacketInputStream {
 
@@ -84,6 +90,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
     private int maxQuerySizeToLog;
     private int lastPacketLength;
     private String serverThreadLog = "";
+    private LruTraceCache traceCache = null;
 
     public DecompressPacketInputStream(BufferedInputStream in, int maxQuerySizeToLog) {
         inputStream = in;
@@ -128,13 +135,20 @@ public class DecompressPacketInputStream implements PacketInputStream {
             }
 
             readCompressBlocking(rawBytes, compressedLength, decompressedLength);
+
+            if (traceCache != null) {
+                int length = decompressedLength != 0 ? decompressedLength : compressedLength;
+                traceCache.put(System.currentTimeMillis(), new TraceObject(false,
+                        decompressedLength == 0 ? COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET : COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
+                        Arrays.copyOfRange(header, 0, 7),
+                        Arrays.copyOfRange(rawBytes, 0, length > 1000 ? 1000 : length)));
+            }
+
             if (logger.isTraceEnabled()) {
-                logger.trace("send compress: length:(zlib:" + compressedLength + ",std:" + decompressedLength + ")"
-                        + " comp_seq:" + compressPacketSeq
+                int length = decompressedLength != 0 ? decompressedLength : compressedLength;
+                logger.trace("read " + (decompressedLength == 0 ? "uncompress" : "compress")
                         + serverThreadLog
-                        + " packet:0x"
-                        + Utils.hexdump(header, maxQuerySizeToLog, 0, 7)
-                        + Utils.hexdump(rawBytes, maxQuerySizeToLog - 7, 0, compressedLength));
+                        + Utils.hexdump(maxQuerySizeToLog - 7, 0, length, header, rawBytes));
             }
 
             cache(rawBytes, decompressedLength == 0 ? compressedLength : decompressedLength);
@@ -223,8 +237,8 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
                         if (logger.isTraceEnabled()) {
                             logger.trace("read packet : seq=" + packetSeq + " len:" + lastPacketLength
-                                    + serverThreadLog + " content:0x"
-                                    + Utils.hexdump(cacheData, maxQuerySizeToLog, cachePos + 4, lastPacketLength));
+                                    + serverThreadLog
+                                    + Utils.hexdump(maxQuerySizeToLog, cachePos + 4, lastPacketLength, cacheData));
                         }
 
                         cachePos += 4 + lastPacketLength;
@@ -243,8 +257,8 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
                         if (logger.isTraceEnabled()) {
                             logger.trace("read packet : seq=" + packetSeq + " len:" + lastPacketLength
-                                    + serverThreadLog + " content:0x"
-                                    + Utils.hexdump(cacheData, maxQuerySizeToLog, cachePos + 4, lastPacketLength));
+                                    + serverThreadLog
+                                    + Utils.hexdump(maxQuerySizeToLog, cachePos + 4, lastPacketLength, cacheData));
                         }
 
                         cachePos += 4 + lastPacketLength;
@@ -286,6 +300,10 @@ public class DecompressPacketInputStream implements PacketInputStream {
      */
     public void setServerThreadId(long serverThreadId, Boolean isMaster) {
         this.serverThreadLog = " conn:" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
+    }
+
+    public void setTraceCache(LruTraceCache traceCache) {
+        this.traceCache = traceCache;
     }
 
 }
