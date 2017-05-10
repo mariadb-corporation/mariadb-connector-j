@@ -1,9 +1,7 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
 import org.junit.Test;
 
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 

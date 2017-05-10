@@ -49,26 +49,19 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send;
 
-import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.protocol.AbstractConnectProtocol;
-import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.PidFactory;
 import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.Version;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.security.NoSuchAlgorithmException;
 import java.util.StringTokenizer;
-
-import static org.mariadb.jdbc.internal.com.Packet.*;
 
 /**
  * 4                            client_flags 4                            max_packet_size 1 charset_number 23 (filler)
@@ -109,7 +102,6 @@ public class SendHandshakeResponsePacket {
      * @param packetSeq                 packet sequence
      * @param plugin                    plugin name
      * @param options                   user options
-     * @param haMode                    High availability mode
      * @throws IOException if socket exception occur
      */
     public static void send(final PacketOutputStream pos,
@@ -122,8 +114,7 @@ public class SendHandshakeResponsePacket {
                             final byte[] seed,
                             final byte packetSeq,
                             final String plugin,
-                            final Options options,
-                            final HaMode haMode) throws IOException {
+                            final Options options) throws IOException {
 
         pos.startPacket(packetSeq);
 

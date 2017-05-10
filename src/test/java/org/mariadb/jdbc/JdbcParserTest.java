@@ -118,6 +118,19 @@ public class JdbcParserTest {
         assertTrue("root".equals(jdbc.getOptions().user));
     }
 
+
+    @Test
+    public void testWithoutDb() throws Throwable {
+        UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/?user=root&autoReconnect=true");
+        assertTrue(jdbc.getOptions().autoReconnect);
+        assertNull(jdbc.getDatabase());
+
+        UrlParser jdbc2 = UrlParser.parse("jdbc:mariadb://localhost?user=root&autoReconnect=true");
+        assertTrue(jdbc2.getOptions().autoReconnect);
+        assertNull(jdbc2.getDatabase());
+
+    }
+
     @Test(expected = SQLException.class)
     public void testOptionParseIntegerNotPossible() throws Throwable {
         UrlParser.parse("jdbc:mariadb://localhost/test?user=root&autoReconnect=true&validConnectionTimeout=-2"
@@ -183,21 +196,16 @@ public class JdbcParserTest {
     }
 
     @Test
-    public void testJdbcParserSimpleIpv4PropertiesReversedOrder() throws SQLException {
-        String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308?autoReconnect=true/database";
+    public void testJdbcParserBooleanOption() throws SQLException {
+        String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308?autoReconnect=truee";
         Properties prop = new Properties();
         prop.setProperty("user", "greg");
         prop.setProperty("password", "pass");
-
-        UrlParser urlParser = UrlParser.parse(url, prop);
-        assertTrue("database".equals(urlParser.getDatabase()));
-        assertTrue("greg".equals(urlParser.getUsername()));
-        assertTrue("pass".equals(urlParser.getPassword()));
-        assertTrue(urlParser.getOptions().autoReconnect);
-        assertTrue(urlParser.getHostAddresses().size() == 3);
-        assertTrue(new HostAddress("master", 3306).equals(urlParser.getHostAddresses().get(0)));
-        assertTrue(new HostAddress("slave1", 3307).equals(urlParser.getHostAddresses().get(1)));
-        assertTrue(new HostAddress("slave2", 3308).equals(urlParser.getHostAddresses().get(2)));
+        try {
+            UrlParser.parse(url, prop);
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Optional parameter autoReconnect must be boolean (true/false or 0/1) was \"truee\""));
+        }
     }
 
     @Test

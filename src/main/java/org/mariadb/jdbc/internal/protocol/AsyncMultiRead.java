@@ -23,7 +23,6 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
     private final AbstractMultiSend bulkSend;
     private final List<ParameterHolder[]> parametersList;
     private final List<String> queries;
-    private boolean binaryProtocol;
     private int paramCount;
     private AsyncMultiReadResult asyncMultiReadResult;
 
@@ -37,15 +36,13 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
      * @param readPrepareStmtResult must read prepare statement result
      * @param bulkSend              bulk sender object
      * @param paramCount            number of parameters
-     * @param binaryProtocol        using binary protocol
      * @param results               execution result
      * @param parametersList        parameter list
      * @param queries               queries
      * @param prepareResult         prepare result
      */
-    public AsyncMultiRead(ComStmtPrepare comStmtPrepare, BulkStatus status,
-                          Protocol protocol, boolean readPrepareStmtResult, AbstractMultiSend bulkSend, int paramCount,
-                          boolean binaryProtocol, Results results,
+    public AsyncMultiRead(ComStmtPrepare comStmtPrepare, BulkStatus status, Protocol protocol,
+                          boolean readPrepareStmtResult, AbstractMultiSend bulkSend, int paramCount, Results results,
                           List<ParameterHolder[]> parametersList, List<String> queries, PrepareResult prepareResult) {
         this.comStmtPrepare = comStmtPrepare;
         this.status = status;
@@ -54,7 +51,6 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
         this.readPrepareStmtResult = readPrepareStmtResult;
         this.bulkSend = bulkSend;
         this.paramCount = paramCount;
-        this.binaryProtocol = binaryProtocol;
         this.results = results;
         this.parametersList = parametersList;
         this.queries = queries;

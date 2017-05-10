@@ -54,10 +54,7 @@ import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.util.SqlStates;
 
-import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
-import java.sql.SQLTimeoutException;
-import java.sql.SQLWarning;
+import java.sql.*;
 
 
 public class ExceptionMapper {
@@ -145,19 +142,19 @@ public class ExceptionMapper {
         final SqlStates state = SqlStates.fromString(sqlState);
         switch (state) {
             case DATA_EXCEPTION:
-                return new java.sql.SQLDataException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLDataException(message, sqlState, exception.getErrorCode(), exception);
             case FEATURE_NOT_SUPPORTED:
-                return new java.sql.SQLFeatureNotSupportedException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLFeatureNotSupportedException(message, sqlState, exception.getErrorCode(), exception);
             case CONSTRAINT_VIOLATION:
-                return new java.sql.SQLIntegrityConstraintViolationException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLIntegrityConstraintViolationException(message, sqlState, exception.getErrorCode(), exception);
             case INVALID_AUTHORIZATION:
-                return new java.sql.SQLInvalidAuthorizationSpecException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLInvalidAuthorizationSpecException(message, sqlState, exception.getErrorCode(), exception);
             case CONNECTION_EXCEPTION:
-                return new java.sql.SQLNonTransientConnectionException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLNonTransientConnectionException(message, sqlState, exception.getErrorCode(), exception);
             case SYNTAX_ERROR_ACCESS_RULE:
-                return new java.sql.SQLSyntaxErrorException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLSyntaxErrorException(message, sqlState, exception.getErrorCode(), exception);
             case TRANSACTION_ROLLBACK:
-                return new java.sql.SQLTransactionRollbackException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLTransactionRollbackException(message, sqlState, exception.getErrorCode(), exception);
             case WARNING:
                 return new SQLWarning(message, sqlState, exception.getErrorCode(), exception);
             case INTERRUPTED_EXCEPTION:
@@ -167,7 +164,7 @@ public class ExceptionMapper {
                 if (exception instanceof SQLNonTransientConnectionException) {
                     return new SQLNonTransientConnectionException(message, exception.getSQLState(), exception.getErrorCode(), exception);
                 }
-                return new java.sql.SQLTransientException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLTransientException(message, sqlState, exception.getErrorCode(), exception);
             case TIMEOUT_EXCEPTION:
                 return new SQLTimeoutException(message, sqlState, exception.getErrorCode(), exception);
             case UNDEFINED_SQLSTATE:
@@ -193,7 +190,7 @@ public class ExceptionMapper {
     }
 
     public static SQLException getFeatureNotSupportedException(String message) {
-        return new java.sql.SQLFeatureNotSupportedException(message);
+        return new SQLFeatureNotSupportedException(message);
     }
 
     /**

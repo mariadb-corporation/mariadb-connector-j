@@ -67,14 +67,14 @@ public enum ColumnType {
     FLOAT(4, Types.REAL, "Types.REAL", Float.class.getName()),
     DOUBLE(5, Types.DOUBLE, "Types.DOUBLE", Double.class.getName()),
     NULL(6, Types.NULL, "Types.NULL", String.class.getName()),
-    TIMESTAMP(7, Types.TIMESTAMP, "Types.TIMESTAMP", java.sql.Timestamp.class.getName()),
+    TIMESTAMP(7, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName()),
     BIGINT(8, Types.BIGINT, "Types.BIGINT", Long.class.getName()),
     MEDIUMINT(9, Types.INTEGER, "Types.INTEGER", Integer.class.getName()),
-    DATE(10, Types.DATE, "Types.DATE", java.sql.Date.class.getName()),
-    TIME(11, Types.TIME, "Types.TIME", java.sql.Time.class.getName()),
-    DATETIME(12, Types.TIMESTAMP, "Types.TIMESTAMP", java.sql.Timestamp.class.getName()),
+    DATE(10, Types.DATE, "Types.DATE", Date.class.getName()),
+    TIME(11, Types.TIME, "Types.TIME", Time.class.getName()),
+    DATETIME(12, Types.TIMESTAMP, "Types.TIMESTAMP", Timestamp.class.getName()),
     YEAR(13, Types.SMALLINT, "Types.SMALLINT", Short.class.getName()),
-    NEWDATE(14, Types.DATE, "Types.DATE", java.sql.Date.class.getName()),
+    NEWDATE(14, Types.DATE, "Types.DATE", Date.class.getName()),
     VARCHAR(15, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
     BIT(16, Types.BIT, "Types.BIT", "[B"),
     DECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName()),
@@ -327,7 +327,7 @@ public enum ColumnType {
                 return (signed) ? Long.class.getName() : BigInteger.class.getName();
             case YEAR:
                 if ((flags & SelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
-                    return java.sql.Date.class.getName();
+                    return Date.class.getName();
                 }
                 return Short.class.getName();
             case BIT:

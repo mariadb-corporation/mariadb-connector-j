@@ -51,8 +51,6 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.util;
 
 import org.mariadb.jdbc.internal.util.constant.HaMode;
-
-import java.lang.invoke.WrongMethodTypeException;
 import java.util.Properties;
 
 public enum DefaultOptions {
@@ -519,7 +517,7 @@ public enum DefaultOptions {
      * @return options
      */
     public static Options parse(HaMode haMode, String urlParameters, Properties properties, Options options) {
-        if (!"".equals(urlParameters)) {
+        if (urlParameters != null && !urlParameters.isEmpty()) {
             String[] parameters = urlParameters.split("&");
             for (String parameter : parameters) {
                 int pos = parameter.indexOf('=');

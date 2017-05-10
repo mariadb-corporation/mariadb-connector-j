@@ -232,7 +232,7 @@ public abstract class AbstractMultiSend {
                     if (futureReadTask == null) {
                         futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, status,
                                 protocol, false, this, paramCount,
-                                binaryProtocol, results, parametersList, queries, prepareResult));
+                                results, parametersList, queries, prepareResult));
                         AbstractQueryProtocol.readScheduler.execute(futureReadTask);
                     }
                 }

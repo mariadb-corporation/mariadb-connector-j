@@ -66,7 +66,6 @@ import java.util.zip.Inflater;
 
 import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET;
 import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET;
-import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
 
 public class DecompressPacketInputStream implements PacketInputStream {
 
@@ -121,7 +120,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
         //loop until having the whole packet
         do {
             //Read 7 byte header
-            readBlocking(header, 0, 7, true);
+            readBlocking(header, 0, 7);
 
             int compressedLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
             compressPacketSeq = header[3] & 0xff;
@@ -163,7 +162,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
             byte[] compressedBuffer = new byte[compressedLength];
             //Read compress content
-            readBlocking(compressedBuffer, 0, compressedLength, false);
+            readBlocking(compressedBuffer, 0, compressedLength);
 
             Inflater inflater = new Inflater();
             inflater.setInput(compressedBuffer);
@@ -180,12 +179,12 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
         } else {
             //Read standard content
-            readBlocking(arr, 0, compressedLength, false);
+            readBlocking(arr, 0, compressedLength);
         }
 
     }
 
-    private void readBlocking(byte[] arr, int offset, int length, boolean isHeader) throws  IOException {
+    private void readBlocking(byte[] arr, int offset, int length) throws  IOException {
         int remaining = length;
         int off = offset;
         do {
@@ -218,13 +217,13 @@ public class DecompressPacketInputStream implements PacketInputStream {
         int packetOffset = 0;
 
         //if packet is not totally fetch, return null
-        while (cacheEnd > cachePos + 4  + packetOffset * (0xffffff + 4)) {
-            lastPacketLength = (cacheData[cachePos + packetOffset * (0xffffff + 4)] & 0xff)
-                    + ((cacheData[cachePos + packetOffset * (0xffffff + 4) + 1] & 0xff) << 8)
-                    + ((cacheData[cachePos + packetOffset * (0xffffff + 4) + 2] & 0xff) << 16);
-            if (lastPacketLength == 0xffffff) {
+        while (cacheEnd > cachePos + 4  + packetOffset * (MAX_PACKET_SIZE + 4)) {
+            lastPacketLength = (cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4)] & 0xff)
+                    + ((cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4) + 1] & 0xff) << 8)
+                    + ((cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4) + 2] & 0xff) << 16);
+            if (lastPacketLength == MAX_PACKET_SIZE) {
                 packetOffset += 1;
-            } else if (cacheEnd >= cachePos + 4 + packetOffset * (0xffffff + 4) + lastPacketLength) {
+            } else if (cacheEnd >= cachePos + 4 + packetOffset * (MAX_PACKET_SIZE + 4) + lastPacketLength) {
                 //packet is totally fetched.
 
                 //if packet was less than 16M
@@ -245,7 +244,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
                         return packet;
                     }
                 } else {
-                    byte[] packet = new byte[lastPacketLength + packetOffset * 0xffffff];
+                    byte[] packet = new byte[lastPacketLength + packetOffset * MAX_PACKET_SIZE];
                     int offset = 0;
                     do {
                         lastPacketLength = (cacheData[cachePos] & 0xff)
@@ -263,7 +262,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
                         cachePos += 4 + lastPacketLength;
 
-                    } while (lastPacketLength == 0xffffff);
+                    } while (lastPacketLength == MAX_PACKET_SIZE);
                     return packet;
 
                 }

@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -21,12 +20,12 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
 
         if (sharedIsRewrite()) {
             for (int i = 0; i < partsRewrite.length; i++) {
-                Assert.assertEquals(partsRewrite[i], new String(statement.getPrepareResult().getQueryParts().get(i)));
+                assertEquals(partsRewrite[i], new String(statement.getPrepareResult().getQueryParts().get(i)));
             }
             assertEquals(rewritable, statement.getPrepareResult().isQueryMultiValuesRewritable());
         } else {
             for (int i = 0; i < partsMulti.length; i++) {
-                Assert.assertEquals(partsMulti[i], new String(statement.getPrepareResult().getQueryParts().get(i)));
+                assertEquals(partsMulti[i], new String(statement.getPrepareResult().getQueryParts().get(i)));
             }
             assertEquals(allowMultiqueries, statement.getPrepareResult().isQueryMultipleRewritable());
 

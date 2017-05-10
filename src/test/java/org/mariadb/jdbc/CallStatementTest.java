@@ -2,18 +2,8 @@ package org.mariadb.jdbc;
 
 
 import org.junit.*;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.sql.*;
-import java.util.Properties;
-import java.util.Random;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.*;
 
 public class CallStatementTest extends BaseTest {

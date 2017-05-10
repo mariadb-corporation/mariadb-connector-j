@@ -51,12 +51,10 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
-import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
-import java.util.List;
 
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 

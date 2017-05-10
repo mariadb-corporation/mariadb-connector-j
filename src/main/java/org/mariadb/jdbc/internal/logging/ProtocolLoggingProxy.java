@@ -50,7 +50,6 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.logging;
 
-import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.Options;

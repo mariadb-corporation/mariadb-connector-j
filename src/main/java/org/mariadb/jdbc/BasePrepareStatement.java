@@ -698,7 +698,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
      *                                         this method is called on a closed <code>PreparedStatement</code>
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
-    public void setNClob(final int parameterIndex, final java.sql.NClob value) throws SQLException {
+    public void setNClob(final int parameterIndex, final NClob value) throws SQLException {
         setClob(parameterIndex, value);
     }
 

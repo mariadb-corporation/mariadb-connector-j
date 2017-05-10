@@ -1,6 +1,5 @@
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
 import org.junit.Test;
 
 import java.sql.*;
@@ -31,7 +30,7 @@ public class TimeoutTest extends BaseTest {
         for (int j = 0; j < 100; j++) {
             try (Connection connection = setConnection("&connectTimeout=5&socketTimeout=1")) {
                 boolean bugReproduced = false;
-                int exc = 0;
+
                 int repetition = 1000;
                 for (int i = 0; i < repetition && !connection.isClosed(); i++) {
                     try {
@@ -44,7 +43,7 @@ public class TimeoutTest extends BaseTest {
                         assertTrue(v1 == 1 && v2 == 2);
                         went++;
                     } catch (SQLNonTransientConnectionException e) {
-                        exc++;
+                        //error due to socketTimeout
                     } catch (SQLException e) {
                         e.printStackTrace();
                     }

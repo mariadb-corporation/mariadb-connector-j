@@ -1,7 +1,6 @@
 package org.mariadb.jdbc;
 
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -167,15 +166,15 @@ public class CollationTest extends BaseTest {
         final String selectSql = "select x from fooLatin1";
         ResultSet rs1 = preparedStatement.executeQuery(selectSql);
 
-        Assert.assertTrue(rs1.next());
-        Assert.assertEquals(latin1String, rs1.getString(1));
+        assertTrue(rs1.next());
+        assertEquals(latin1String, rs1.getString(1));
 
-        Assert.assertTrue(rs1.next());
-        Assert.assertEquals(latin1String, rs1.getString(1));
+        assertTrue(rs1.next());
+        assertEquals(latin1String, rs1.getString(1));
         Clob clob = rs1.getClob(1);
-        Assert.assertEquals(latin1String, clob.getSubString(1, (int) clob.length()));
+        assertEquals(latin1String, clob.getSubString(1, (int) clob.length()));
 
-        Assert.assertFalse(rs1.next());
+        assertFalse(rs1.next());
     }
 
 

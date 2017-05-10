@@ -53,7 +53,6 @@ package org.mariadb.jdbc.internal.com.read.resultset;
 
 import org.mariadb.jdbc.*;
 import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.EndOfFilePacket;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.RowProtocol;
@@ -61,7 +60,6 @@ import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtocol;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.com.read.dao.ColumnNameMap;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
@@ -130,8 +128,6 @@ public class SelectResultSet implements ResultSet {
 
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
-    private static final String zeroTimestamp = "0000-00-00 00:00:00";
-    private static final String zeroDate = "0000-00-00";
     private static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.0+$");
     private boolean callableResult;
     private Protocol protocol;

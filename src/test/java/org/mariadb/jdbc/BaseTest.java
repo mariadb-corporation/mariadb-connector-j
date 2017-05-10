@@ -67,7 +67,7 @@ public class BaseTest {
                     assertEquals(randInt, rs.getInt(1));
                 } catch (Exception e) {
                     e.printStackTrace();
-                    Assert.fail("Prepare after test fail for " + description.getClassName() + "." + description.getMethodName());
+                    fail("Prepare after test fail for " + description.getClassName() + "." + description.getMethodName());
                 }
             }
         }

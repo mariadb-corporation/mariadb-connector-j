@@ -93,7 +93,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -711,8 +710,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 seed,
                 packetSeq,
                 plugin,
-                options,
-                urlParser.getHaMode());
+                options);
 
         Buffer buffer = reader.getPacket(false);
 

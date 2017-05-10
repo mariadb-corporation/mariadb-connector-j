@@ -219,27 +219,30 @@ public class UrlParser {
                                                   String additionalParameters) {
 
         if (additionalParameters != null) {
-            String regex = "(\\/[^\\?]*)(\\?.+)*|(\\?[^\\/]*)(\\/.+)*";
+            String regex = "(\\/([^\\?]*))?(\\?(.+))*";
             Pattern pattern = Pattern.compile(regex, Pattern.DOTALL);
             Matcher matcher = pattern.matcher(additionalParameters);
-            if (matcher.find()) {
-                String db1 = (matcher.group(1) != null && !matcher.group(1).equals("/")) ? matcher.group(1).substring(1) : null;
-                String db2 = (matcher.group(4) != null && !matcher.group(4).equals("/")) ? matcher.group(4).substring(1) : null;
-                String options1 = (matcher.group(2) != null) ? matcher.group(2).substring(1) : "";
-                String options2 = (matcher.group(3) != null) ? matcher.group(3).substring(1) : "";
 
-                urlParser.database = (db1 != null) ? db1 : db2;
-                urlParser.options = DefaultOptions.parse(urlParser.haMode, (!options1.equals("")) ? options1 : options2,
-                        properties, urlParser.options);
+            if (matcher.find()) {
+
+                urlParser.database = matcher.group(2);
+                urlParser.options = DefaultOptions.parse(urlParser.haMode, matcher.group(4), properties, urlParser.options);
+                if (urlParser.database != null && urlParser.database.isEmpty()) urlParser.database = null;
 
             } else {
+
                 urlParser.database = null;
                 urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
+
             }
+
         } else {
+
             urlParser.database = null;
             urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
+
         }
+
         LoggerFactory.init(urlParser.options.log
                 || urlParser.options.profileSql
                 || urlParser.options.slowQueryThresholdNanos != null);
