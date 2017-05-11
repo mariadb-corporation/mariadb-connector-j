@@ -188,10 +188,9 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
         //valid parameters
         for (int i = 0; i < prepareResult.getParamCount(); i++) {
             if (parameters[i] == null) {
-                logger.error("You need to set exactly " + prepareResult.getParamCount()
-                        + " parameters on the prepared statement");
-                throw ExceptionMapper.getSqlException("You need to set exactly " + prepareResult.getParamCount()
-                        + " parameters on the prepared statement");
+                logger.error("Parameter at position " + (i + 1) + " is not set");
+                ExceptionMapper.throwException(new SQLException("Parameter at position " + (i + 1) + " is not set", "07004"),
+                        connection, this);
             }
         }
 

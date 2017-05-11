@@ -1,11 +1,12 @@
-# mariadb-connector-j
 <p align="center">
   <a href="http://mariadb.org/">
     <img height="129" width="413" src="http://badges.mariadb.org/logo/Mariadb-seal-shaded-browntext.png">
   </a>
 </p>
 
-MariaDB Connector/J is used to connect applications developed in Java to MariaDB and MySQL databases. MariaDB Connector/J is LGPL licensed.
+# MariaDB java connector
+
+MariaDB java connector is a JDBC 4.2 compatible driver, used to connect applications developed in Java to MariaDB and MySQL databases. MariaDB Connector/J is LGPL licensed.
 
 Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://jira.mariadb.org/projects/CONJ/issues/</a>
 
@@ -16,24 +17,20 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 [![License (LGPL version 2.1)](https://img.shields.io/badge/license-GNU%20LGPL%20version%202.1-green.svg?style=flat-square)](http://opensource.org/licenses/LGPL-2.1)
 
 ## Obtaining the driver
+
+| Java version | driver compatible version |
+|:------------:|:-------------------------:|
+| 6 | up to 1.1.10 |
+| 7 | up to 1.6.0 |
+| 8 | all version |
+
 The driver (jar) can be downloaded from [mariadb connector download](https://mariadb.com/products/connectors-plugins)
-
 or maven : 
-
 ```script
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>1.5.9</version>
-</dependency>
-```
-
-release candidate :
-```script
-<dependency>
-	<groupId>org.mariadb.jdbc</groupId>
-	<artifactId>mariadb-java-client</artifactId>
-	<version>2.0.0-RC</version>
+	<version>2.0.1</version>
 </dependency>
 ```
 
