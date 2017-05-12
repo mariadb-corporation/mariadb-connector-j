@@ -194,7 +194,7 @@
                         <argument>tar.gz</argument>
                         <argument>--output</argument>
                         <argument>${project.name}-${project.version}.tar.gz</argument>
-                        <argument>master</argument>
+                        <argument>${project.version}</argument>
                     </arguments>
                 </configuration>
             </plugin>
