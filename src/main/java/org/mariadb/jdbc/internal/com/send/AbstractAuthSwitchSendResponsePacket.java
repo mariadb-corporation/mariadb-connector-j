@@ -49,14 +49,14 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send;
 
+import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.com.read.Buffer;
 
 import java.io.IOException;
 import java.sql.SQLException;
 
-import static org.mariadb.jdbc.internal.com.Packet.*;
+import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 
 public abstract class AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
     protected int packSeq = 0;
@@ -84,7 +84,7 @@ public abstract class AbstractAuthSwitchSendResponsePacket implements InterfaceA
      *
      * @param reader packet fetcher
      * @throws SQLException if any functional error occur
-     * @throws IOException if any connection error occur
+     * @throws IOException  if any connection error occur
      */
     public void handleResultPacket(PacketInputStream reader) throws SQLException, IOException {
         Buffer buffer = reader.getPacket(true);

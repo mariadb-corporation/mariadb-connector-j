@@ -50,15 +50,16 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 
 public class CmdInformationMultiple implements CmdInformation {
-
 
 
     private ArrayList<Long> insertIds;
@@ -216,7 +217,7 @@ public class CmdInformationMultiple implements CmdInformation {
         Iterator<Long> idIterator = insertIds.iterator();
         Iterator<Long> updateIterator = updateCounts.iterator();
 
-        for (int element = 0 ; element <= moreResults; element++) {
+        for (int element = 0; element <= moreResults; element++) {
             long updateCount = updateIterator.next();
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE

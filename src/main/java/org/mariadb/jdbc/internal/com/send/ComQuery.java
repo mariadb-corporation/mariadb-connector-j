@@ -60,7 +60,8 @@ import java.util.List;
 
 public class ComQuery {
 
-    public ComQuery() { }
+    public ComQuery() {
+    }
 
     /**
      * Client-side PrepareStatement.execute() packet send.
@@ -152,7 +153,7 @@ public class ComQuery {
                     // - to resize buffer size if needed (to avoid resize test every write)
                     // - if this query will be separated in a new packet.
                     if (pos.checkRemainingSize(staticLength + parameterLength)) {
-                        pos.write((byte)';');
+                        pos.write((byte) ';');
                         pos.write(firstPart, 0, firstPart.length);
                         pos.write(secondPart, 0, secondPart.length);
                         for (int i = 0; i < paramCount; i++) {
@@ -274,9 +275,9 @@ public class ComQuery {
     /**
      * Send directly to socket the sql data.
      *
-     * @param pos       output stream
-     * @param sqlBytes  the query in UTF-8 bytes
-     * @throws IOException    if connection error occur
+     * @param pos      output stream
+     * @param sqlBytes the query in UTF-8 bytes
+     * @throws IOException  if connection error occur
      * @throws SQLException if packet max size is to big.
      */
     public static void sendDirect(final PacketOutputStream pos, byte[] sqlBytes) throws IOException, SQLException {

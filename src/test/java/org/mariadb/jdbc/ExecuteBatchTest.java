@@ -7,11 +7,7 @@ import org.junit.Test;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.sql.*;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -93,7 +89,7 @@ public class ExecuteBatchTest extends BaseTest {
         service.shutdownNow();
 
         assertTrue(
-            service.awaitTermination(1, TimeUnit.MINUTES)
+                service.awaitTermination(1, TimeUnit.MINUTES)
         );
 
         assertNotNull(exceptionRef.get());
@@ -107,8 +103,8 @@ public class ExecuteBatchTest extends BaseTest {
         exceptionRef.get().printStackTrace(new PrintWriter(writer));
 
         assertTrue(
-            "Exception should be a SQLException: \n" + writer.toString(),
-            exceptionRef.get() instanceof SQLException
+                "Exception should be a SQLException: \n" + writer.toString(),
+                exceptionRef.get() instanceof SQLException
         );
 
         assertTrue(wasInterrupted.get());

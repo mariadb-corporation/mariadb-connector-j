@@ -50,9 +50,9 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.com.send.parameters.NullParameter;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 
 import java.sql.ResultSet;
@@ -116,6 +116,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
 
     /**
      * Clone statement.
+     *
      * @param connection connection
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.

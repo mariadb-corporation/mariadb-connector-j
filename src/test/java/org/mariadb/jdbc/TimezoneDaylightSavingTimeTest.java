@@ -5,24 +5,26 @@ import org.junit.*;
 
 import java.io.InputStream;
 import java.sql.*;
-import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.time.*;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Locale;
+import java.util.Scanner;
+import java.util.TimeZone;
 
 import static org.junit.Assert.*;
 
 @SuppressWarnings("deprecation")
 public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
-    private static Locale previousFormatLocale;
-    private static TimeZone previousTimeZone;
-    private static TimeZone utcTimeZone;
     public static SimpleDateFormat formatter;
     public static SimpleDateFormat utcDateFormatISO8601;
     public static SimpleDateFormat utcDateFormatSimple;
     public static TimeZone parisTimeZone;
     public static TimeZone canadaTimeZone;
+    private static Locale previousFormatLocale;
+    private static TimeZone previousTimeZone;
+    private static TimeZone utcTimeZone;
 
     /**
      * Initialisation.
@@ -455,9 +457,9 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     /**
      * Check results are accurates.
      *
-     * @param legacy is in legacy mode
+     * @param legacy         is in legacy mode
      * @param binaryProtocol binary protocol
-     * @param connection connection
+     * @param connection     connection
      * @return current resultset
      * @throws SQLException if connection error occur.
      */
@@ -538,8 +540,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         assertEquals(rs.getString(5), "2015-03-29");
 
 
-
-
         rs.next();
         //test timestamp(6)
         assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getTimestamp(2)));
@@ -597,7 +597,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
         rs.next();
         //test timestamp(6)
-        for ( int i = 2; i < 6; i++) {
+        for (int i = 2; i < 6; i++) {
             assertNull(rs.getTimestamp(i));
             assertNull(rs.getTime(i));
             assertNull(rs.getDate(i));
@@ -639,7 +639,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
         rs.next();
         //test timestamp(6)
-        for ( int i = 2; i < 6; i++) {
+        for (int i = 2; i < 6; i++) {
             assertNull(rs.getObject(i, LocalDateTime.class));
             assertNull(rs.getObject(i, OffsetDateTime.class));
             assertNull(rs.getObject(i, ZonedDateTime.class));
@@ -830,8 +830,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
      * if using legacy, Driver use java default time zone (=canada).
      * if using !legacy, Driver use server time zone (=paris).
      *
-     * @param legacy flag indicator
-     * @param useBinaryFormat       use binary format
+     * @param legacy          flag indicator
+     * @param useBinaryFormat use binary format
      * @throws SQLException if connection error occur
      */
     public void checkSetLocalDateTime(boolean legacy, boolean useBinaryFormat, String timeZone) throws SQLException {
@@ -964,7 +964,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         }
     }
 
-    private  void catchException(ResultSet rs, int position, Class<?> clazz, String expectedMsg) {
+    private void catchException(ResultSet rs, int position, Class<?> clazz, String expectedMsg) {
         try {
             Object obj = rs.getObject(position, clazz).toString();
             fail("Error, must have thrown exception, but result object is : " + obj);

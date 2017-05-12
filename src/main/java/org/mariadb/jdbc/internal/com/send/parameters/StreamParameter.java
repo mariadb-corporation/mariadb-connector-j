@@ -62,8 +62,9 @@ public class StreamParameter implements Cloneable, ParameterHolder {
 
     /**
      * Constructor.
-     * @param is stream to write
-     * @param length max length to write (if null the whole stream will be send)
+     *
+     * @param is                 stream to write
+     * @param length             max length to write (if null the whole stream will be send)
      * @param noBackslashEscapes must backslash be escape
      */
     public StreamParameter(InputStream is, long length, boolean noBackslashEscapes) {

@@ -50,13 +50,13 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send;
 
+import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.send.gssapi.GssapiAuth;
 import org.mariadb.jdbc.internal.com.send.gssapi.StandardGssapiAuthentication;
 import org.mariadb.jdbc.internal.com.send.gssapi.WindowsNativeSspiAuthentication;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.com.read.Buffer;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -64,7 +64,7 @@ import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
-import static org.mariadb.jdbc.internal.com.Packet.*;
+import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 
 public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
     private PacketInputStream reader;

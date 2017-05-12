@@ -1,6 +1,9 @@
 package org.mariadb.jdbc.failover;
 
-import org.junit.*;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.mariadb.jdbc.MariaDbPreparedStatementServer;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
@@ -214,10 +217,10 @@ public class AuroraFailoverTest extends BaseReplication {
     @Test
     public void failoverPrepareStatementOnSlave() throws Throwable {
         try (Connection connection = getNewConnection("&validConnectionTimeout=120"
-                    + "&socketTimeout=1000"
-                    + "&failoverLoopRetries=120"
-                    + "&connectTimeout=250"
-                    + "&loadBalanceBlacklistTimeout=50", false)) {
+                + "&socketTimeout=1000"
+                + "&failoverLoopRetries=120"
+                + "&connectTimeout=250"
+                + "&loadBalanceBlacklistTimeout=50", false)) {
 
             connection.setReadOnly(true);
 
@@ -313,11 +316,11 @@ public class AuroraFailoverTest extends BaseReplication {
     @Test
     public void failoverPrepareStatementOnMasterWithException() throws Throwable {
         try (Connection connection = getNewConnection("&validConnectionTimeout=120"
-                    + "&socketTimeout=1000"
-                    + "&failoverLoopRetries=120"
-                    + "&connectTimeout=250"
-                    + "&loadBalanceBlacklistTimeout=50"
-                    + "&useBatchMultiSend=false", false)) {
+                + "&socketTimeout=1000"
+                + "&failoverLoopRetries=120"
+                + "&connectTimeout=250"
+                + "&loadBalanceBlacklistTimeout=50"
+                + "&useBatchMultiSend=false", false)) {
 
             int nbExceptionBeforeUp = 0;
             boolean failLaunched = false;
@@ -356,11 +359,11 @@ public class AuroraFailoverTest extends BaseReplication {
     @Test
     public void failoverPrepareStatementOnMaster() throws Throwable {
         try (Connection connection = getNewConnection("&validConnectionTimeout=120"
-                    + "&socketTimeout=1000"
-                    + "&failoverLoopRetries=120"
-                    + "&connectTimeout=250"
-                    + "&loadBalanceBlacklistTimeout=50"
-                    + "&useBatchMultiSend=false", false)) {
+                + "&socketTimeout=1000"
+                + "&failoverLoopRetries=120"
+                + "&connectTimeout=250"
+                + "&loadBalanceBlacklistTimeout=50"
+                + "&useBatchMultiSend=false", false)) {
 
             int nbExecutionBeforeRePrepared = 0;
             boolean failLaunched = false;

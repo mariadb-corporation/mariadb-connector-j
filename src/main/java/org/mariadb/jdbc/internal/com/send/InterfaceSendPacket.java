@@ -50,9 +50,9 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.com.send;
 
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import java.sql.SQLException;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 
 public interface InterfaceSendPacket {

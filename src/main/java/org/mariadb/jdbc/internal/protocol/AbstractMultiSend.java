@@ -51,9 +51,9 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.protocol;
 
 import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
@@ -62,12 +62,10 @@ import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.sql.SQLTransientConnectionException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
-import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
 
 public abstract class AbstractMultiSend {
@@ -130,10 +128,10 @@ public abstract class AbstractMultiSend {
     /**
      * Bulk execute for statement.executeBatch().
      *
-     * @param protocol            protocol
-     * @param writer              outputStream
-     * @param results             results
-     * @param queries             query list
+     * @param protocol protocol
+     * @param writer   outputStream
+     * @param results  results
+     * @param queries  query list
      */
     public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results, List<String> queries) {
         this.protocol = protocol;
@@ -149,8 +147,8 @@ public abstract class AbstractMultiSend {
                                  PrepareResult prepareResult) throws SQLException, IOException;
 
     public abstract SQLException handleResultException(SQLException qex, Results results,
-                                                         List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                         int sendCmdCounter, int paramCount, PrepareResult prepareResult)
+                                                       List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
+                                                       int sendCmdCounter, int paramCount, PrepareResult prepareResult)
             throws SQLException;
 
     public abstract int getParamCount();

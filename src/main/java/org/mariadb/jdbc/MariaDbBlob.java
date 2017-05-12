@@ -49,8 +49,8 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.io.*;
 import java.sql.Blob;

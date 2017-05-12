@@ -5,17 +5,15 @@ import org.junit.Test;
 
 import java.sql.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class StateChangeTest extends BaseTest {
 
     @Test
     public void databaseStateChange() throws SQLException {
-        Assume.assumeTrue((isMariadbServer() && minVersion(10,2))
-                || (!isMariadbServer() && minVersion(5,7)));
-        try (Connection connection = setConnection())  {
+        Assume.assumeTrue((isMariadbServer() && minVersion(10, 2))
+                || (!isMariadbServer() && minVersion(5, 7)));
+        try (Connection connection = setConnection()) {
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute("drop database if exists " + MariaDbConnection.quoteIdentifier("_test_db"));
                 stmt.execute("create database " + MariaDbConnection.quoteIdentifier("_test_db"));
@@ -28,9 +26,9 @@ public class StateChangeTest extends BaseTest {
 
     @Test
     public void timeZoneChange() throws SQLException {
-        Assume.assumeTrue((isMariadbServer() && minVersion(10,2))
-                || (!isMariadbServer() && minVersion(5,7)));
-        try (Connection connection = setConnection())  {
+        Assume.assumeTrue((isMariadbServer() && minVersion(10, 2))
+                || (!isMariadbServer() && minVersion(5, 7)));
+        try (Connection connection = setConnection()) {
             try (Statement stmt = connection.createStatement()) {
                 stmt.execute("drop database if exists " + MariaDbConnection.quoteIdentifier("_test_db"));
                 stmt.execute("create database " + MariaDbConnection.quoteIdentifier("_test_db"));
@@ -42,10 +40,9 @@ public class StateChangeTest extends BaseTest {
     }
 
 
-
     @Test
     public void autocommitChange() throws SQLException {
-        try (Connection connection = setConnection())  {
+        try (Connection connection = setConnection()) {
             try (Statement stmt = connection.createStatement()) {
                 assertTrue(connection.getAutoCommit());
                 stmt.execute("SET autocommit=false");
@@ -56,10 +53,10 @@ public class StateChangeTest extends BaseTest {
 
     @Test
     public void autoIncrementChange() throws SQLException {
-        Assume.assumeTrue((isMariadbServer() && minVersion(10,2))
-                || (!isMariadbServer() && minVersion(5,7)));
+        Assume.assumeTrue((isMariadbServer() && minVersion(10, 2))
+                || (!isMariadbServer() && minVersion(5, 7)));
         createTable("autoIncrementChange", "id int not null primary key auto_increment, name char(20)");
-        try (Connection connection = setConnection())  {
+        try (Connection connection = setConnection()) {
             try (Statement stmt = connection.createStatement()) {
                 try (PreparedStatement preparedStatement =
                              connection.prepareStatement("INSERT INTO autoIncrementChange(name) value (?)",
@@ -103,7 +100,6 @@ public class StateChangeTest extends BaseTest {
             }
         }
     }
-
 
 
 }

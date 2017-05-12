@@ -158,9 +158,9 @@ public class SchedulerServiceProviderHolder {
         /**
          * Request to get a scheduler with a minimum number of AVAILABLE threads.
          *
-         * @param minimumThreads    Minimum number of available threads for the returned scheduler
-         * @param poolName          name of pool to identify threads
-         * @param maximumPoolSize   maximum pool size
+         * @param minimumThreads  Minimum number of available threads for the returned scheduler
+         * @param poolName        name of pool to identify threads
+         * @param maximumPoolSize maximum pool size
          * @return A new scheduler that is ready to accept tasks
          */
         public DynamicSizedSchedulerInterface getScheduler(int minimumThreads, String poolName, int maximumPoolSize);

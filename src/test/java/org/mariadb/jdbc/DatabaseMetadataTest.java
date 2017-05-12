@@ -390,7 +390,7 @@ public class DatabaseMetadataTest extends BaseTest {
         ResultSet rs = dbmd.getColumns(null, null, "tablegetcolumns", null);
 
         assertTrue(rs.next());
-        assertEquals("testj",rs.getString(1)); //TABLE_CAT
+        assertEquals("testj", rs.getString(1)); //TABLE_CAT
         assertEquals(null, rs.getString(2)); //TABLE_SCHEM
         assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
         assertEquals("a", rs.getString(4)); //COLUMN_NAME
@@ -413,7 +413,7 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals("NO", rs.getString(24)); //IS_GENERATEDCOLUMN
 
         assertTrue(rs.next());
-        assertEquals("testj",rs.getString(1)); //TABLE_CAT
+        assertEquals("testj", rs.getString(1)); //TABLE_CAT
         assertEquals(null, rs.getString(2)); //TABLE_SCHEM
         assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
         assertEquals("b", rs.getString(4)); //COLUMN_NAME
@@ -436,7 +436,7 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals("NO", rs.getString(24)); //IS_GENERATEDCOLUMN
 
         assertTrue(rs.next());
-        assertEquals("testj",rs.getString(1)); //TABLE_CAT
+        assertEquals("testj", rs.getString(1)); //TABLE_CAT
         assertEquals(null, rs.getString(2)); //TABLE_SCHEM
         assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
         assertEquals("c", rs.getString(4)); //COLUMN_NAME
@@ -459,7 +459,7 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals("YES", rs.getString(24)); //IS_GENERATEDCOLUMN
 
         assertTrue(rs.next());
-        assertEquals("testj",rs.getString(1)); //TABLE_CAT
+        assertEquals("testj", rs.getString(1)); //TABLE_CAT
         assertEquals(null, rs.getString(2)); //TABLE_SCHEM
         assertEquals("tablegetcolumns", rs.getString(3)); //TABLE_NAME
         assertEquals("d", rs.getString(4)); //COLUMN_NAME

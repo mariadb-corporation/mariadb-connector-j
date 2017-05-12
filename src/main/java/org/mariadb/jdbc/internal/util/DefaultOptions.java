@@ -51,6 +51,7 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.util;
 
 import org.mariadb.jdbc.internal.util.constant.HaMode;
+
 import java.util.Properties;
 
 public enum DefaultOptions {

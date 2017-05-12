@@ -58,17 +58,9 @@ import java.util.concurrent.locks.LockSupport;
 
 public abstract class TerminableRunnable implements Runnable {
 
-    private enum State {
-        REMOVED,
-        IDLE,
-        ACTIVE
-    }
-
     private final AtomicReference<State> runState = new AtomicReference<>(State.IDLE);
     private final AtomicBoolean unschedule = new AtomicBoolean();
     private volatile ScheduledFuture<?> scheduledFuture = null;
-
-    protected abstract void doRun();
 
     public TerminableRunnable(ScheduledExecutorService scheduler,
                               long initialDelay,
@@ -76,6 +68,8 @@ public abstract class TerminableRunnable implements Runnable {
                               TimeUnit unit) {
         this.scheduledFuture = scheduler.scheduleWithFixedDelay(this, initialDelay, delay, unit);
     }
+
+    protected abstract void doRun();
 
     @Override
     public final void run() {
@@ -118,6 +112,12 @@ public abstract class TerminableRunnable implements Runnable {
             scheduledFuture = null;
         }
 
+    }
+
+    private enum State {
+        REMOVED,
+        IDLE,
+        ACTIVE
     }
 
 }

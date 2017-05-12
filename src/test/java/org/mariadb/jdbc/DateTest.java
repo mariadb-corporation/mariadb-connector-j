@@ -13,6 +13,9 @@ import java.util.TimeZone;
 import static org.junit.Assert.*;
 
 public class DateTest extends BaseTest {
+    private static final String TIMESTAMP_1 = "2015-05-13 08:15:14";
+    private static final String TIMESTAMP_YEAR_ZERO = "0000-11-15 10:15:22";
+
     /**
      * Initialization.
      *
@@ -35,7 +38,6 @@ public class DateTest extends BaseTest {
             createTable("timestampAsDate", "ts timestamp(6), dt datetime(6), dd date");
         }
     }
-
 
     @Test
     public void dateTestLegacy() throws SQLException {
@@ -338,7 +340,6 @@ public class DateTest extends BaseTest {
 
     }
 
-
     @Test
     public void javaUtilDateInPreparedStatementAsTimeStamp() throws Exception {
         java.util.Date currentDate = Calendar.getInstance(TimeZone.getDefault()).getTime();
@@ -395,7 +396,6 @@ public class DateTest extends BaseTest {
         /* Check that time is correct, up to seconds precision */
         assertTrue(Math.abs(calendar.getTimeInMillis() - rs.getTime(1).getTime()) <= 1000);
     }
-
 
     @Test
     public void serverTimezone() throws Exception {
@@ -489,7 +489,6 @@ public class DateTest extends BaseTest {
         }
     }
 
-
     @Test
     public void dateTestWhenServerDifferenceClient() throws Throwable {
         try (Connection connection = setConnection("&serverTimezone=UTC")) {
@@ -509,7 +508,6 @@ public class DateTest extends BaseTest {
             }
         }
     }
-
 
     /**
      * Conj-267 : null pointer exception getting zero date.
@@ -601,9 +599,6 @@ public class DateTest extends BaseTest {
             assertTrue(resultSet.getString(1).contains("0000-00-00 00:00:00"));
         }
     }
-
-    private static final String TIMESTAMP_1 = "2015-05-13 08:15:14";
-    private static final String TIMESTAMP_YEAR_ZERO = "0000-11-15 10:15:22";
 
     /**
      * CONJ-405 : Calendar instance not cleared before being used in ResultSet.getTimestamp.

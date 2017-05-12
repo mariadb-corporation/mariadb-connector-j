@@ -55,7 +55,6 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.sql.SQLException;
 
 
 public class SerializableParameter implements Cloneable, ParameterHolder {

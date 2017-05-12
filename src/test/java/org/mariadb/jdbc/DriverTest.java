@@ -229,7 +229,7 @@ public class DriverTest extends BaseTest {
         /* non-standard autoIncrementIncrement */
 
 
-        try ( Connection connection = setConnection("&sessionVariables=auto_increment_increment=2&allowMultiQueries=true")) {
+        try (Connection connection = setConnection("&sessionVariables=auto_increment_increment=2&allowMultiQueries=true")) {
             stmt = connection.createStatement();
             stmt.execute("INSERT INTO Drivert3 (test) values ('bb'),('cc');INSERT INTO Drivert3 (test) values ('dd'),('ee')",
                     Statement.RETURN_GENERATED_KEYS);
@@ -761,13 +761,13 @@ public class DriverTest extends BaseTest {
         try {
             try (Connection connection = setConnection("&profileSql=true")) {
                 try (PreparedStatement preparedStatement =
-                        connection.prepareStatement("insert into testString2(a) values(?)")) {
+                             connection.prepareStatement("insert into testString2(a) values(?)")) {
                     preparedStatement.setString(1, "'\\");
                     int affectedRows = preparedStatement.executeUpdate();
                     assertEquals(affectedRows, 1);
                 }
                 try (PreparedStatement preparedStatement =
-                        connection.prepareStatement("select * from testString2")) {
+                             connection.prepareStatement("select * from testString2")) {
                     rs = preparedStatement.executeQuery();
                     rs.next();
                     String out = rs.getString(1);
@@ -1002,6 +1002,7 @@ public class DriverTest extends BaseTest {
 
     /**
      * CONJ-435 : "All pipe instances are busy" exception on multiple connections to the same named pipe.
+     *
      * @throws Exception if any error occur.
      */
     @Test
@@ -1027,31 +1028,6 @@ public class DriverTest extends BaseTest {
             }
         } catch (SQLException e) {
             assertTrue(e.getMessage(), e.getMessage().contains("Unknown system variable 'named_pipe'"));
-        }
-    }
-
-
-    private static class ConnectWithPipeThread implements Runnable {
-        private final String url;
-
-        public ConnectWithPipeThread(String url) {
-            this.url = url;
-        }
-
-        @Override
-        public void run() {
-            try {
-
-                try (Connection connection = DriverManager.getConnection(url)) {
-                    Thread.sleep(1000);
-                }
-
-            } catch (SQLException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
         }
     }
 
@@ -1155,7 +1131,6 @@ public class DriverTest extends BaseTest {
         }
     }
 
-
     /* Test that CLOSE_CURSORS_ON_COMMIT is silently ignored, and HOLD_CURSORS_OVER_COMMIT is actually used*/
     @Test
     public void resultSetHoldability() throws Exception {
@@ -1207,6 +1182,30 @@ public class DriverTest extends BaseTest {
         ResultSet rs = pstmt.executeQuery();
         while (rs.next()) {
             fail("must not have result value");
+        }
+    }
+
+    private static class ConnectWithPipeThread implements Runnable {
+        private final String url;
+
+        public ConnectWithPipeThread(String url) {
+            this.url = url;
+        }
+
+        @Override
+        public void run() {
+            try {
+
+                try (Connection connection = DriverManager.getConnection(url)) {
+                    Thread.sleep(1000);
+                }
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 

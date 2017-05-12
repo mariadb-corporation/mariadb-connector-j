@@ -49,8 +49,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
-import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
 import java.sql.ResultSet;
 
@@ -75,12 +75,12 @@ public class CmdInformationSingle implements CmdInformation {
 
     @Override
     public int[] getUpdateCounts() {
-        return new int[] { (int) updateCount};
+        return new int[]{(int) updateCount};
     }
 
     @Override
     public long[] getLargeUpdateCounts() {
-        return new long[] {updateCount};
+        return new long[]{updateCount};
     }
 
 
@@ -124,7 +124,7 @@ public class CmdInformationSingle implements CmdInformation {
             return SelectResultSet.createGeneratedData(insertIds, protocol, true);
         }
 
-        return SelectResultSet.createGeneratedData(new long[] {insertId}, protocol, true);
+        return SelectResultSet.createGeneratedData(new long[]{insertId}, protocol, true);
     }
 
     @Override

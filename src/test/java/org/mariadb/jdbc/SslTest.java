@@ -1,7 +1,10 @@
 package org.mariadb.jdbc;
 
 import com.sun.jna.Platform;
-import org.junit.*;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.io.*;
 import java.lang.reflect.Field;

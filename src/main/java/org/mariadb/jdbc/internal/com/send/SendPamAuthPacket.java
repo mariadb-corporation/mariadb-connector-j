@@ -49,10 +49,10 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.com.send;
 
+import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.com.read.Buffer;
 
 import javax.swing.*;
 import javax.swing.event.AncestorEvent;

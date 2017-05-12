@@ -309,6 +309,7 @@ public class JdbcParserTest {
 
     /**
      * Conj-167 : Driver is throwing IllegalArgumentException instead of returning null.
+     *
      * @throws SQLException if any exception occur
      */
     @Test
@@ -319,6 +320,7 @@ public class JdbcParserTest {
 
     /**
      * CONJ-423] driver doesn't accept connection string with "disableMariaDbDriver".
+     *
      * @throws SQLException if any exception occur
      */
     @Test
@@ -329,6 +331,7 @@ public class JdbcParserTest {
 
     /**
      * CONJ-452 : correcting line break in connection url.
+     *
      * @throws SQLException if any exception occur
      */
     @Test
@@ -384,6 +387,7 @@ public class JdbcParserTest {
 
     /**
      * CONJ-464 : Using of "slowQueryThresholdNanos" option results in class cast exception.
+     *
      * @throws SQLException if any exception occur
      */
     @Test

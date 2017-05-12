@@ -67,7 +67,7 @@ public class TextRowProtocol extends RowProtocol {
                 pos = 0;
                 index = 0;
             } else {
-                index ++;
+                index++;
                 if (length != NULL_LENGTH) pos += length;
             }
 

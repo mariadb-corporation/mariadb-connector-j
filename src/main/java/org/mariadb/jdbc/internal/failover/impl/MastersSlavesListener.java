@@ -337,7 +337,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
     /**
      * Use the parameter newMasterProtocol as new current master connection.
-     *
+     * <p>
      * <i>Lock must be set</i>
      *
      * @param newMasterProtocol new master connection

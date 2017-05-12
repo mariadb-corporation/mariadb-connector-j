@@ -79,7 +79,8 @@ public class ZonedDateTimeParameter implements Cloneable, ParameterHolder {
      */
     public ZonedDateTimeParameter(ZonedDateTime tz, ZoneId serverZoneId, boolean fractionalSeconds, Options options) {
         ZoneId zoneId = options.useLegacyDatetimeCode ? ZoneOffset.systemDefault() : serverZoneId;
-        this.tz = tz.withZoneSameInstant(zoneId);;
+        this.tz = tz.withZoneSameInstant(zoneId);
+        ;
         this.fractionalSeconds = fractionalSeconds;
     }
 
@@ -90,7 +91,7 @@ public class ZonedDateTimeParameter implements Cloneable, ParameterHolder {
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
-                fractionalSeconds ? "yyyy-MM-dd HH:mm:ss.SSSSSS" : "yyyy-MM-dd HH:mm:ss", Locale.ENGLISH );
+                fractionalSeconds ? "yyyy-MM-dd HH:mm:ss.SSSSSS" : "yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
         pos.write(QUOTE);
         pos.write(formatter.format(tz).getBytes());
         pos.write(QUOTE);

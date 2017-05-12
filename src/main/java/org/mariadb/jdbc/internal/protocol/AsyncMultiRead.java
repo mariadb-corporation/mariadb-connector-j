@@ -1,8 +1,8 @@
 package org.mariadb.jdbc.internal.protocol;
 
+import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 
@@ -19,10 +19,10 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
     private final int sendCmdInitialCounter;
     private final Protocol protocol;
     private final boolean readPrepareStmtResult;
-    private Results results;
     private final AbstractMultiSend bulkSend;
     private final List<ParameterHolder[]> parametersList;
     private final List<String> queries;
+    private Results results;
     private int paramCount;
     private AsyncMultiReadResult asyncMultiReadResult;
 

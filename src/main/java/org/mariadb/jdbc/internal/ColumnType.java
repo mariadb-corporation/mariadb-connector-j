@@ -300,10 +300,6 @@ public enum ColumnType {
         return ColumnType.BLOB;
     }
 
-    public String getClassName() {
-        return className;
-    }
-
     /**
      * Get class name.
      *
@@ -340,6 +336,10 @@ public enum ColumnType {
                 break;
         }
         return type.getClassName();
+    }
+
+    public String getClassName() {
+        return className;
     }
 
     public int getSqlType() {

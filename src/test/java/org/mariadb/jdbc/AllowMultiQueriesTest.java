@@ -28,7 +28,6 @@ public class AllowMultiQueriesTest extends BaseTest {
     }
 
 
-
     @Test
     public void allowMultiQueriesSingleTest() throws SQLException {
         try (Connection connection = setConnection("&allowMultiQueries=true")) {

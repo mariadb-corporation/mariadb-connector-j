@@ -92,7 +92,7 @@ public class OffsetTimeParameter implements Cloneable, ParameterHolder {
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
-                fractionalSeconds ? "HH:mm:ss.SSSSSS" : "HH:mm:ss", Locale.ENGLISH );
+                fractionalSeconds ? "HH:mm:ss.SSSSSS" : "HH:mm:ss", Locale.ENGLISH);
         pos.write(QUOTE);
         pos.write(formatter.format(time).getBytes());
         pos.write(QUOTE);

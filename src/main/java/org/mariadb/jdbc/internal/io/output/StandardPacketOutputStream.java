@@ -57,7 +57,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 
-import static org.mariadb.jdbc.internal.io.TraceObject.*;
+import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
 
 public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 

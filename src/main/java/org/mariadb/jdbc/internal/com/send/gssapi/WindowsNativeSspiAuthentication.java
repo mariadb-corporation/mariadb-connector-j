@@ -51,9 +51,9 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.com.send.gssapi;
 
 import com.sun.jna.platform.win32.Sspi;
+import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.com.read.Buffer;
 import waffle.windows.auth.IWindowsSecurityContext;
 import waffle.windows.auth.impl.WindowsSecurityContextImpl;
 

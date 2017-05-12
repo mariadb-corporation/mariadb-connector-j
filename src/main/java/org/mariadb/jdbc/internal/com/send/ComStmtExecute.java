@@ -60,22 +60,23 @@ public class ComStmtExecute implements InterfaceSendPacket {
     private final int parameterCount;
     private final ParameterHolder[] parameters;
     private final int statementId;
-    private ColumnType[] parameterTypeHeader;
     private final byte cursorFlag;
+    private ColumnType[] parameterTypeHeader;
 
     /**
      * Initialize parameters.
      *
-     * @param statementId           prepareResult object received after preparation.
-     * @param parameters            parameters
-     * @param parameterCount        parameters number
-     * @param parameterTypeHeader   parameters header
-     * @param cursorFlag            cursor flag. Possible values : <ol>
-     *                              <li>CURSOR_TYPE_NO_CURSOR = fetch all</li>
-     *                              <li>CURSOR_TYPE_READ_ONLY = fetch by bunch</li>
-     *                              <li>CURSOR_TYPE_FOR_UPDATE = fetch by bunch with lock ?</li>
-     *                              <li>CURSOR_TYPE_SCROLLABLE = //reserved, but not working</li>
-     *                              </ol>     */
+     * @param statementId         prepareResult object received after preparation.
+     * @param parameters          parameters
+     * @param parameterCount      parameters number
+     * @param parameterTypeHeader parameters header
+     * @param cursorFlag          cursor flag. Possible values : <ol>
+     *                            <li>CURSOR_TYPE_NO_CURSOR = fetch all</li>
+     *                            <li>CURSOR_TYPE_READ_ONLY = fetch by bunch</li>
+     *                            <li>CURSOR_TYPE_FOR_UPDATE = fetch by bunch with lock ?</li>
+     *                            <li>CURSOR_TYPE_SCROLLABLE = //reserved, but not working</li>
+     *                            </ol>
+     */
     public ComStmtExecute(final int statementId, final ParameterHolder[] parameters, final int parameterCount,
                           ColumnType[] parameterTypeHeader, byte cursorFlag) {
         this.parameterCount = parameterCount;
@@ -88,17 +89,17 @@ public class ComStmtExecute implements InterfaceSendPacket {
     /**
      * Write COM_STMT_EXECUTE sub-command to output buffer.
      *
-     * @param statementId           prepareResult object received after preparation.
-     * @param parameters            parameters
-     * @param parameterCount        parameters number
-     * @param parameterTypeHeader   parameters header1
-     * @param pos                   outputStream
-     * @param cursorFlag            cursor flag. Possible values : <ol>
-     *                              <li>CURSOR_TYPE_NO_CURSOR = fetch all</li>
-     *                              <li>CURSOR_TYPE_READ_ONLY = fetch by bunch</li>
-     *                              <li>CURSOR_TYPE_FOR_UPDATE = fetch by bunch with lock ?</li>
-     *                              <li>CURSOR_TYPE_SCROLLABLE = //reserved, but not working</li>
-     *                              </ol>
+     * @param statementId         prepareResult object received after preparation.
+     * @param parameters          parameters
+     * @param parameterCount      parameters number
+     * @param parameterTypeHeader parameters header1
+     * @param pos                 outputStream
+     * @param cursorFlag          cursor flag. Possible values : <ol>
+     *                            <li>CURSOR_TYPE_NO_CURSOR = fetch all</li>
+     *                            <li>CURSOR_TYPE_READ_ONLY = fetch by bunch</li>
+     *                            <li>CURSOR_TYPE_FOR_UPDATE = fetch by bunch with lock ?</li>
+     *                            <li>CURSOR_TYPE_SCROLLABLE = //reserved, but not working</li>
+     *                            </ol>
      * @throws IOException if a connection error occur
      */
     public static void writeCmd(final int statementId, final ParameterHolder[] parameters, final int parameterCount,

@@ -1,8 +1,9 @@
 package org.mariadb.jdbc.internal.util.dao;
 
-import static org.junit.Assert.*;
-
 import org.junit.Test;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class ClientPrepareResultTest {
 

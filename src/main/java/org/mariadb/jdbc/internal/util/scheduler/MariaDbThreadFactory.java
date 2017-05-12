@@ -20,7 +20,7 @@ public class MariaDbThreadFactory implements ThreadFactory {
         Thread result = parentFactory.newThread(runnable);
         result.setName("MariaDb-" + poolName + "-" + threadId.incrementAndGet());
         result.setDaemon(true); // set as daemon so that mariaDb wont hold up shutdown
-        
+
         return result;
     }
 }

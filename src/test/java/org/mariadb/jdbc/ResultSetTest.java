@@ -534,34 +534,35 @@ public class ResultSetTest extends BaseTest {
 
     /**
      * [CONJ-437] getString on field with ZEROFILL doesn't have the '0' leading chars when using binary protocol.
+     *
      * @throws SQLException if any abnormal error occur
      */
     @Test
     public void leadingZeroTest() throws SQLException {
         createTable("leadingZero", "t1 TINYINT(3) unsigned zerofill"
-                        + ", t2 TINYINT(8) unsigned zerofill"
-                        + ", t3 TINYINT unsigned zerofill"
-                        + ", t4 smallint(3) unsigned zerofill"
-                        + ", t5 smallint(8) unsigned zerofill"
-                        + ", t6 smallint unsigned zerofill"
-                        + ", t7 MEDIUMINT(3) unsigned zerofill"
-                        + ", t8 MEDIUMINT(8) unsigned zerofill"
-                        + ", t9 MEDIUMINT unsigned zerofill"
-                        + ", t10 INT(3) unsigned zerofill"
-                        + ", t11 INT(8) unsigned zerofill"
-                        + ", t12 INT unsigned zerofill"
-                        + ", t13 BIGINT(3) unsigned zerofill"
-                        + ", t14 BIGINT(8) unsigned zerofill"
-                        + ", t15 BIGINT unsigned zerofill"
-                        + ", t16 DECIMAL(6,3) unsigned zerofill"
-                        + ", t17 DECIMAL(11,3) unsigned zerofill"
-                        + ", t18 DECIMAL unsigned zerofill"
-                        + ", t19 FLOAT(6,3) unsigned zerofill"
-                        + ", t20 FLOAT(11,3) unsigned zerofill"
-                        + ", t21 FLOAT unsigned zerofill"
-                        + ", t22 DOUBLE(6,3) unsigned zerofill"
-                        + ", t23 DOUBLE(11,3) unsigned zerofill"
-                        + ", t24 DOUBLE unsigned zerofill");
+                + ", t2 TINYINT(8) unsigned zerofill"
+                + ", t3 TINYINT unsigned zerofill"
+                + ", t4 smallint(3) unsigned zerofill"
+                + ", t5 smallint(8) unsigned zerofill"
+                + ", t6 smallint unsigned zerofill"
+                + ", t7 MEDIUMINT(3) unsigned zerofill"
+                + ", t8 MEDIUMINT(8) unsigned zerofill"
+                + ", t9 MEDIUMINT unsigned zerofill"
+                + ", t10 INT(3) unsigned zerofill"
+                + ", t11 INT(8) unsigned zerofill"
+                + ", t12 INT unsigned zerofill"
+                + ", t13 BIGINT(3) unsigned zerofill"
+                + ", t14 BIGINT(8) unsigned zerofill"
+                + ", t15 BIGINT unsigned zerofill"
+                + ", t16 DECIMAL(6,3) unsigned zerofill"
+                + ", t17 DECIMAL(11,3) unsigned zerofill"
+                + ", t18 DECIMAL unsigned zerofill"
+                + ", t19 FLOAT(6,3) unsigned zerofill"
+                + ", t20 FLOAT(11,3) unsigned zerofill"
+                + ", t21 FLOAT unsigned zerofill"
+                + ", t22 DOUBLE(6,3) unsigned zerofill"
+                + ", t23 DOUBLE(11,3) unsigned zerofill"
+                + ", t24 DOUBLE unsigned zerofill");
         Statement stmt = sharedConnection.createStatement();
         stmt.executeUpdate("insert into leadingZero values (1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1.1,1.1,1.1,1.1,1.1,1.1,1.1,1.1,1.1), "
                 + "(20,20,20,20,20,20,20,20,20,20,20,20,20,20,20,20.2,20.2,20.2,20.2,20.2,20.2,20.2,20.2,20.2)");

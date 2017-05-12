@@ -49,11 +49,9 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.com.send.parameters.*;
-import org.mariadb.jdbc.internal.com.send.parameters.OffsetTimeParameter;
-import org.mariadb.jdbc.internal.com.send.parameters.ZonedDateTimeParameter;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.send.parameters.*;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -502,7 +500,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setNull(parameterIndex, ColumnType.DATETIME);
             return;
         }
-        setParameter(parameterIndex, new TimestampParameter(timestamp,  protocol.getTimeZone(), useFractionalSeconds));
+        setParameter(parameterIndex, new TimestampParameter(timestamp, protocol.getTimeZone(), useFractionalSeconds));
 
     }
 

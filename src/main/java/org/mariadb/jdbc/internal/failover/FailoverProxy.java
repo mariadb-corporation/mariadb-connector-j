@@ -53,8 +53,8 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -92,6 +92,28 @@ public class FailoverProxy implements InvocationHandler {
         this.listener = listener;
         this.listener.setProxy(this);
         this.listener.initializeConnection();
+    }
+
+    /**
+     * Add Host information ("on HostAddress...") to exception.
+     * <p>
+     * example :
+     * <p>
+     * java.sql.SQLException: (conn:603) Cannot execute statement in a READ ONLY transaction.<br/>
+     * Query is: INSERT INTO TableX VALUES (21)<br/>
+     * on HostAddress{host='mydb.example.com', port=3306},master=true</p>
+     *
+     * @param exception current exception
+     * @param protocol  protocol to have hostname
+     */
+    private static SQLException addHostInformationToException(SQLException exception, Protocol protocol) {
+        if (protocol != null) {
+            return new SQLException(exception.getMessage()
+                    + "\non " + protocol.getHostAddress().toString() + ",master="
+                    + protocol.isMasterConnection(), exception.getSQLState(), exception.getErrorCode(), exception.getCause());
+
+        }
+        return exception;
     }
 
     /**
@@ -190,7 +212,6 @@ public class FailoverProxy implements InvocationHandler {
         return executeInvocation(method, args, false);
 
     }
-
 
     private Object executeInvocation(Method method, Object[] args, boolean isSecondExecution) throws Throwable {
 
@@ -306,27 +327,5 @@ public class FailoverProxy implements InvocationHandler {
 
     public Listener getListener() {
         return listener;
-    }
-
-    /**
-     * Add Host information ("on HostAddress...") to exception.
-     *
-     * example :
-     * <p>
-     * java.sql.SQLException: (conn:603) Cannot execute statement in a READ ONLY transaction.<br/>
-     * Query is: INSERT INTO TableX VALUES (21)<br/>
-     * on HostAddress{host='mydb.example.com', port=3306},master=true</p>
-     *
-     * @param exception     current exception
-     * @param protocol      protocol to have hostname
-     */
-    private static SQLException addHostInformationToException(SQLException exception, Protocol protocol) {
-        if (protocol != null) {
-            return new SQLException(exception.getMessage()
-                    + "\non " + protocol.getHostAddress().toString() + ",master="
-                    + protocol.isMasterConnection(), exception.getSQLState(), exception.getErrorCode(), exception.getCause());
-
-        }
-        return exception;
     }
 }

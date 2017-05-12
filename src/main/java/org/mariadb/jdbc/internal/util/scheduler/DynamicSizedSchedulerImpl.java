@@ -54,6 +54,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 public class DynamicSizedSchedulerImpl extends ScheduledThreadPoolExecutor implements DynamicSizedSchedulerInterface {
     /**
      * Initialize a scheduler with dynamic pool size.
+     *
      * @param corePoolSize    initial Core pool size
      * @param poolName        name of pool to identify threads
      * @param maximumPoolSize maximum pool size

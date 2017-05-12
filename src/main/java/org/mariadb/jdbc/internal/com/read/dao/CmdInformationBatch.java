@@ -75,7 +75,6 @@ public class CmdInformationBatch implements CmdInformation {
      * and batch is interrupted, will permit to reading thread to keep connection in a
      * correct state without any ConcurrentModificationException.
      *
-     *
      * @param expectedSize  expected batch size.
      * @param autoIncrement connection auto increment value.
      */
@@ -154,6 +153,7 @@ public class CmdInformationBatch implements CmdInformation {
 
     /**
      * Same than getRewriteUpdateCounts, returning long array.
+     *
      * @return update count array.
      */
     public long[] getRewriteLargeUpdateCounts() {
@@ -165,13 +165,13 @@ public class CmdInformationBatch implements CmdInformation {
     @Override
     public int getUpdateCount() {
         Long updateCount = updateCounts.peek();
-        return (updateCount == null) ? - 1 : updateCount.intValue();
+        return (updateCount == null) ? -1 : updateCount.intValue();
     }
 
     @Override
     public long getLargeUpdateCount() {
         Long updateCount = updateCounts.peek();
-        return (updateCount == null) ? - 1 : updateCount;
+        return (updateCount == null) ? -1 : updateCount;
     }
 
     @Override

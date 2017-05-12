@@ -52,9 +52,12 @@ package org.mariadb.jdbc.internal.io.output;
 
 import org.mariadb.jdbc.internal.io.LruTraceCache;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.Reader;
 
-public interface PacketOutputStream  {
+public interface PacketOutputStream {
 
     void startPacket(int seqNo);
 
@@ -92,8 +95,6 @@ public interface PacketOutputStream  {
 
     OutputStream getOutputStream();
 
-    void setMaxAllowedPacket(int maxAllowedPacket);
-
     void writeShort(short value) throws IOException;
 
     void writeInt(int value) throws IOException;
@@ -105,6 +106,8 @@ public interface PacketOutputStream  {
     void writeFieldLength(long length) throws IOException;
 
     int getMaxAllowedPacket();
+
+    void setMaxAllowedPacket(int maxAllowedPacket);
 
     void permitTrace(boolean permitTrace);
 

@@ -55,8 +55,8 @@ public class FixedSizedSchedulerImpl extends ScheduledThreadPoolExecutor {
     /**
      * Create scheduler with fixed size.
      *
-     * @param corePoolSize  core pool size
-     * @param poolName      name of pool to identify threads
+     * @param corePoolSize core pool size
+     * @param poolName     name of pool to identify threads
      */
     public FixedSizedSchedulerImpl(int corePoolSize, String poolName) {
         super(corePoolSize, new MariaDbThreadFactory(poolName));

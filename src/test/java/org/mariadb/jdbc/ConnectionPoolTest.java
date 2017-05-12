@@ -36,7 +36,7 @@ public class ConnectionPoolTest extends BaseTest {
         ds.setDriverClassName("org.mariadb.jdbc.Driver");
         ds.setJdbcUrl(connU);
         ds.addDataSourceProperty("user", username);
-        if (password != null ) ds.addDataSourceProperty("password", password);
+        if (password != null) ds.addDataSourceProperty("password", password);
         ds.setAutoCommit(false);
         validateDataSource(ds);
 
@@ -48,7 +48,7 @@ public class ConnectionPoolTest extends BaseTest {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(connU);
         config.setUsername(username);
-        if (password != null ) config.setPassword(password);
+        if (password != null) config.setPassword(password);
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
@@ -65,7 +65,7 @@ public class ConnectionPoolTest extends BaseTest {
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(connU);
         config.setUsername(username);
-        if (password != null ) config.addDataSourceProperty("password", password);
+        if (password != null) config.addDataSourceProperty("password", password);
 
         try (HikariDataSource ds = new HikariDataSource(config)) {
             ds.setAutoCommit(true);

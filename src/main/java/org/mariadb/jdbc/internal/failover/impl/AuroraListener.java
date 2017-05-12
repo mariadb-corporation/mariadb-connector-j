@@ -51,15 +51,18 @@ package org.mariadb.jdbc.internal.failover.impl;
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;

@@ -69,7 +69,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.UUID;
 
-import static org.mariadb.jdbc.internal.util.SqlStates.*;
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public class MariaDbX509TrustManager implements X509TrustManager {
     private X509TrustManager trustManager;

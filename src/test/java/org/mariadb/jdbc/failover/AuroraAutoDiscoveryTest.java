@@ -4,13 +4,7 @@ import com.amazonaws.services.rds.model.DBInstanceNotFoundException;
 import com.amazonaws.services.rds.model.InvalidDBClusterStateException;
 import com.amazonaws.services.rds.model.InvalidDBInstanceStateException;
 import com.amazonaws.services.rds.model.ModifyDBInstanceRequest;
-
-import org.junit.After;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
+import org.junit.*;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
@@ -298,7 +292,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
     @Test
     public void testTimeZoneDiscovery() throws Throwable {
 
-        try (Connection connection = getNewConnection("&sessionVariables=@@time_zone='US/Central'",false)) {
+        try (Connection connection = getNewConnection("&sessionVariables=@@time_zone='US/Central'", false)) {
             List<HostAddress> hostAddresses = getProtocolFromConnection(connection).getProxy().getListener().getUrlParser().getHostAddresses();
             for (HostAddress hostAddress : hostAddresses) {
                 System.out.println("hostAddress:" + hostAddress);

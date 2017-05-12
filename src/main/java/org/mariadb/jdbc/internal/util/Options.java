@@ -133,19 +133,19 @@ public class Options {
     public String toString() {
         StringBuilder result = new StringBuilder();
         String newLine = System.getProperty("line.separator");
-        result.append( this.getClass().getName() );
-        result.append( " Options {" );
+        result.append(this.getClass().getName());
+        result.append(" Options {");
         result.append(newLine);
 
         Field[] fields = this.getClass().getDeclaredFields();
         for (Field field : fields) {
             result.append("  ");
             try {
-                result.append( field.getName() );
+                result.append(field.getName());
                 result.append(": ");
                 //requires access to private field:
-                result.append( field.get(this) );
-            } catch ( IllegalAccessException ex ) {
+                result.append(field.get(this));
+            } catch (IllegalAccessException ex) {
                 //ignore error
             }
             result.append(newLine);

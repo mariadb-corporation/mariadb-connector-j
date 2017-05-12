@@ -250,7 +250,7 @@ public class BaseTest {
     /**
      * Create a view that will be detroyed a the end of tests.
      *
-     * @param viewName    table name
+     * @param viewName     table name
      * @param tableColumns table columns
      * @throws SQLException exception
      */
@@ -293,6 +293,17 @@ public class BaseTest {
             stmt.execute("create function " + name + body);
             if (!tempFunctionList.contains(name)) tempFunctionList.add(name);
         }
+    }
+
+    /**
+     * Check if current DB server is MariaDB.
+     *
+     * @return true if DB is mariadb
+     * @throws SQLException exception
+     */
+    static boolean isMariadbServer() throws SQLException {
+        DatabaseMetaData md = sharedConnection.getMetaData();
+        return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
     }
 
     /**
@@ -435,7 +446,6 @@ public class BaseTest {
     protected Connection setConnection(String parameters) throws SQLException {
         return openConnection(connUri + parameters, null);
     }
-
 
     protected Connection setConnection(String additionnallParameters, String database) throws SQLException {
         String connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
@@ -607,7 +617,6 @@ public class BaseTest {
         }
     }
 
-
     /**
      * Check if version if at minimum the version asked.
      *
@@ -669,17 +678,6 @@ public class BaseTest {
     void requireMinimumVersion(int major, int minor) throws SQLException {
         Assume.assumeTrue(minVersion(major, minor));
 
-    }
-
-    /**
-     * Check if current DB server is MariaDB.
-     *
-     * @return true if DB is mariadb
-     * @throws SQLException exception
-     */
-    static boolean isMariadbServer() throws SQLException {
-        DatabaseMetaData md = sharedConnection.getMetaData();
-        return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
     }
 
     /**

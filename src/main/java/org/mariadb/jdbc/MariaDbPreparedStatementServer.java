@@ -48,13 +48,12 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.com.read.dao.*;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.io.IOException;
 import java.sql.*;
@@ -240,7 +239,8 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
         try {
             executeQueryPrologue(serverPrepareResult);
 
-            results.reset(0, true, queryParameterSize, true,resultSetScrollType);;
+            results.reset(0, true, queryParameterSize, true, resultSetScrollType);
+            ;
 
             //if  multi send capacity
             if (options.useBatchMultiSend) {
@@ -343,7 +343,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
             executeQueryPrologue(serverPrepareResult);
             ParameterHolder[] parameterHolders = currentParameterHolder.values().toArray(new ParameterHolder[0]);
 
-            results.reset(fetchSize, false,1,  true,resultSetScrollType);
+            results.reset(fetchSize, false, 1, true, resultSetScrollType);
 
             if (serverPrepareResult != null) {
                 serverPrepareResult.resetParameterTypeHeader();
@@ -387,7 +387,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
                     try {
                         protocol.cancelCurrentQuery();
                         skipMoreResults();
-                    } catch (SQLException | IOException  sqle) {
+                    } catch (SQLException | IOException sqle) {
                         //eat exception
                     }
                 } else skipMoreResults();

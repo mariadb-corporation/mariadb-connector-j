@@ -67,6 +67,7 @@ public class LogQueryTool {
 
     /**
      * Get query, truncated if to big.
+     *
      * @param sql current query
      * @return possibly truncated query if too big
      */
@@ -79,6 +80,7 @@ public class LogQueryTool {
 
     /**
      * Get query, truncated if to big.
+     *
      * @param buffer current query buffer
      * @return possibly truncated query if too big
      */
@@ -98,7 +100,7 @@ public class LogQueryTool {
     /**
      * Return exception with query information's.
      *
-     * @param sql current sql command
+     * @param sql          current sql command
      * @param sqlException current exception
      * @return exception with query information
      */
@@ -114,7 +116,7 @@ public class LogQueryTool {
      * Return exception with query information's.
      *
      * @param buffer query buffer
-     * @param sqlEx current exception
+     * @param sqlEx  current exception
      * @return exception with query information
      */
     public SQLException exceptionWithQuery(ByteBuffer buffer, SQLException sqlEx) {
@@ -127,8 +129,8 @@ public class LogQueryTool {
     /**
      * Return exception with query information's.
      *
-     * @param parameters query parameters
-     * @param sqlEx current exception
+     * @param parameters          query parameters
+     * @param sqlEx               current exception
      * @param serverPrepareResult prepare results
      * @return exception with query information
      */
@@ -146,8 +148,8 @@ public class LogQueryTool {
     /**
      * Return exception with query information's.
      *
-     * @param sqlEx             current exception
-     * @param prepareResult     prepare results
+     * @param sqlEx         current exception
+     * @param prepareResult prepare results
      * @return exception with query information
      */
     public SQLException exceptionWithQuery(SQLException sqlEx, PrepareResult prepareResult) {
@@ -156,9 +158,9 @@ public class LogQueryTool {
 
             String message = sqlEx.getMessage();
             if (options.maxQuerySizeToLog != 0 && querySql.length() > options.maxQuerySizeToLog - 3) {
-                message += "\nQuery is: " +  querySql.substring(0, options.maxQuerySizeToLog - 3) + "...";
+                message += "\nQuery is: " + querySql.substring(0, options.maxQuerySizeToLog - 3) + "...";
             } else {
-                message += "\nQuery is: " +  querySql;
+                message += "\nQuery is: " + querySql;
             }
             return new SQLException(message, sqlEx.getSQLState(), sqlEx.getErrorCode(), sqlEx.getCause());
         }
@@ -168,9 +170,9 @@ public class LogQueryTool {
     /**
      * Return exception message with query.
      *
-     * @param message current exception message
+     * @param message             current exception message
      * @param serverPrepareResult prepare result
-     * @param parameters query parameters
+     * @param parameters          query parameters
      * @return exception message with query
      */
     public String exWithQuery(String message, PrepareResult serverPrepareResult, ParameterHolder[] parameters) {
@@ -195,5 +197,5 @@ public class LogQueryTool {
         }
         return message;
     }
-    
+
 }

@@ -50,12 +50,12 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc.internal.io.input;
 
+import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.io.TraceObject;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.com.read.Buffer;
 
 import java.io.BufferedInputStream;
 import java.io.EOFException;
@@ -69,11 +69,9 @@ import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_NOT_C
 
 public class DecompressPacketInputStream implements PacketInputStream {
 
-    private static Logger logger = LoggerFactory.getLogger(StandardPacketInputStream.class);
-
     private static final int REUSABLE_BUFFER_LENGTH = 1024;
     private static final int MAX_PACKET_SIZE = 0xffffff;
-
+    private static Logger logger = LoggerFactory.getLogger(StandardPacketInputStream.class);
     private byte[] header = new byte[7];
     private byte[] reusableArray = new byte[REUSABLE_BUFFER_LENGTH];
 
@@ -157,7 +155,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
         } while (true);
     }
 
-    private void readCompressBlocking(byte[] arr, int compressedLength, int decompressedLength) throws  IOException {
+    private void readCompressBlocking(byte[] arr, int compressedLength, int decompressedLength) throws IOException {
         if (decompressedLength != 0) {
 
             byte[] compressedBuffer = new byte[compressedLength];
@@ -184,7 +182,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
     }
 
-    private void readBlocking(byte[] arr, int offset, int length) throws  IOException {
+    private void readBlocking(byte[] arr, int offset, int length) throws IOException {
         int remaining = length;
         int off = offset;
         do {
@@ -217,7 +215,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
         int packetOffset = 0;
 
         //if packet is not totally fetch, return null
-        while (cacheEnd > cachePos + 4  + packetOffset * (MAX_PACKET_SIZE + 4)) {
+        while (cacheEnd > cachePos + 4 + packetOffset * (MAX_PACKET_SIZE + 4)) {
             lastPacketLength = (cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4)] & 0xff)
                     + ((cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4) + 1] & 0xff) << 8)
                     + ((cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4) + 2] & 0xff) << 16);

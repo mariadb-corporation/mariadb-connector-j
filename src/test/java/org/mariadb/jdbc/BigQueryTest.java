@@ -16,6 +16,7 @@ public class BigQueryTest extends BaseTest {
 
     /**
      * Initialize test data.
+     *
      * @throws SQLException id connection error occur
      */
     @BeforeClass()
@@ -106,7 +107,7 @@ public class BigQueryTest extends BaseTest {
         byte[] arr2 = new byte[(int) maxAllowedPacket - 1000];
         pos = 0;
         while (pos < maxAllowedPacket - 1000) {
-            arr2[pos] = (byte) (((pos + 5 ) % 127) + 40);
+            arr2[pos] = (byte) (((pos + 5) % 127) + 40);
             pos++;
         }
 
@@ -266,7 +267,7 @@ public class BigQueryTest extends BaseTest {
         rs.next();
         assertEquals(2, rs.getBytes(2).length);
         assertEquals(2, rs.getString(3).length());
-        assertArrayEquals(new byte[] {abyte, abyte}, rs.getBytes(2));
+        assertArrayEquals(new byte[]{abyte, abyte}, rs.getBytes(2));
         assertEquals("bb", rs.getString(3));
 
     }

@@ -57,7 +57,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
-import static org.mariadb.jdbc.internal.com.Packet.*;
+import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 
 public class ReadInitialHandShakePacket {
     /* MDEV-4088/CONJ-32 :  in 10.0, the real version string maybe prefixed with "5.5.5-",
@@ -78,7 +78,7 @@ public class ReadInitialHandShakePacket {
      * Read database initial stream.
      *
      * @param reader packetFetcher
-     * @throws IOException    if a connection error occur
+     * @throws IOException  if a connection error occur
      * @throws SQLException if received an error packet
      */
     public ReadInitialHandShakePacket(final PacketInputStream reader) throws IOException, SQLException {

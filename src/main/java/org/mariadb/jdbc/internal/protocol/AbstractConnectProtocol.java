@@ -55,61 +55,64 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
+import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.OkPacket;
+import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.com.send.*;
+import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.io.input.DecompressPacketInputStream;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
 import org.mariadb.jdbc.internal.io.output.CompressPacketOutputStream;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.io.output.StandardPacketOutputStream;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509KeyManager;
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509TrustManager;
-import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.com.send.*;
-import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 
 import javax.net.ssl.*;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.*;
+import java.security.GeneralSecurityException;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static org.mariadb.jdbc.internal.com.Packet.COM_QUERY;
-import static org.mariadb.jdbc.internal.com.Packet.EOF;
-import static org.mariadb.jdbc.internal.com.Packet.ERROR;
+import static org.mariadb.jdbc.internal.com.Packet.*;
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public abstract class AbstractConnectProtocol implements Protocol {
-    private static Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
     public static final byte[] SESSION_QUERY = ("SELECT @@max_allowed_packet,"
             + "@@system_time_zone,"
             + "@@time_zone,"
             + "@@sql_mode,"
             + "@@auto_increment_increment").getBytes(StandardCharsets.UTF_8);
     public static final byte[] IS_MASTER_QUERY = "show global variables like 'innodb_read_only'".getBytes(StandardCharsets.UTF_8);
-
+    private static Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
     protected final ReentrantLock lock;
     protected final UrlParser urlParser;
     protected final Options options;
@@ -164,6 +167,32 @@ public abstract class AbstractConnectProtocol implements Protocol {
         setDataTypeMappingFlags();
     }
 
+    protected static void close(PacketInputStream packetInputStream, PacketOutputStream packetOutputStream, Socket socket) throws SQLException {
+        SendClosePacket closePacket = new SendClosePacket();
+        try {
+            try {
+                closePacket.send(packetOutputStream);
+                socket.shutdownOutput();
+                socket.setSoTimeout(3);
+                InputStream is = socket.getInputStream();
+                while (is.read() != -1) {
+                }
+            } catch (Throwable t) {
+                //eat exception
+            }
+            packetOutputStream.close();
+            packetInputStream.close();
+        } catch (IOException e) {
+            throw new SQLException("Could not close connection: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
+        } finally {
+            try {
+                socket.close();
+            } catch (IOException e) {
+                //socket closed, if any error, so not throwing error
+            }
+        }
+    }
+
     /**
      * Closes socket and stream readers/writers Attempts graceful shutdown.
      */
@@ -193,38 +222,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    protected static void close(PacketInputStream packetInputStream, PacketOutputStream packetOutputStream, Socket socket) throws SQLException {
-        SendClosePacket closePacket = new SendClosePacket();
-        try {
-            try {
-                closePacket.send(packetOutputStream);
-                socket.shutdownOutput();
-                socket.setSoTimeout(3);
-                InputStream is = socket.getInputStream();
-                while (is.read() != -1) {
-                }
-            } catch (Throwable t) {
-                //eat exception
-            }
-            packetOutputStream.close();
-            packetInputStream.close();
-        } catch (IOException e) {
-            throw new SQLException("Could not close connection: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
-        } finally {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                //socket closed, if any error, so not throwing error
-            }
-        }
-    }
-
     /**
      * Skip packets not read that are not needed.
      * Packets are read according to needs.
      * If some data have not been read before next execution, skip it.
-     *
+     * <p>
      * <i>Lock must be set before using this method</i>
+     *
      * @throws SQLException exception
      */
     public void skip() throws SQLException {
@@ -366,8 +370,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
     /**
      * Connect the client and perform handshake.
      *
-     * @param host              host
-     * @param port              port
+     * @param host host
+     * @param port port
      * @throws SQLException handshake error, e.g wrong user or password
      * @throws IOException  connection error (host/port not available)
      */
@@ -448,7 +452,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * Command are send one after the other, assuming that command are less than 65k
      * (minimum hosts TCP/IP buffer size)
      *
-     * @throws IOException if socket exception occur
+     * @throws IOException  if socket exception occur
      * @throws SQLException if query exception occur
      */
     private void sendPipelineAdditionalData() throws IOException, SQLException {
@@ -513,14 +517,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void sendCreateDatabaseIfNotExist(String quotedDb)  throws IOException {
+    private void sendCreateDatabaseIfNotExist(String quotedDb) throws IOException {
         writer.startPacket(0);
         writer.write(COM_QUERY);
         writer.write("CREATE DATABASE IF NOT EXISTS " + quotedDb);
         writer.flush();
     }
 
-    private void sendUseDatabaseIfNotExist(String quotedDb)  throws IOException {
+    private void sendUseDatabaseIfNotExist(String quotedDb) throws IOException {
         writer.startPacket(0);
         writer.write(COM_QUERY);
         writer.write("USE " + quotedDb);
@@ -855,6 +859,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     /**
      * Check that current connection is a master connection (not read-only)
+     *
      * @return true if master
      * @throws SQLException if requesting infos for server fail.
      */
@@ -882,7 +887,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * Check that next read packet is a End-of-file packet.
      *
      * @throws SQLException if not a End-of-file packet
-     * @throws IOException    if connection error occur
+     * @throws IOException  if connection error occur
      */
     public void readEofPacket() throws SQLException, IOException {
         Buffer buffer = reader.getPacket(true);
@@ -907,7 +912,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * Check that next read packet is a End-of-file packet.
      *
      * @throws SQLException if not a End-of-file packet
-     * @throws IOException    if connection error occur
+     * @throws IOException  if connection error occur
      */
     public void skipEofPacket() throws SQLException, IOException {
         Buffer buffer = reader.getPacket(true);
@@ -1279,6 +1284,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     /**
      * Change Socket TcpNoDelay option.
+     *
      * @param setTcpNoDelay value to set.
      */
     public void changeSocketTcpNoDelay(boolean setTcpNoDelay) {

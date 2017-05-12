@@ -87,7 +87,7 @@ public class ByteArrayParameter implements Cloneable, ParameterHolder {
      * @param pos socket output stream
      * @throws IOException if socket error occur
      */
-    public void writeBinary(final PacketOutputStream pos) throws  IOException {
+    public void writeBinary(final PacketOutputStream pos) throws IOException {
         pos.writeFieldLength(bytes.length);
         pos.write(bytes);
     }

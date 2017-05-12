@@ -65,7 +65,7 @@ public abstract class BaseReplication extends BaseMonoServer {
                     break;
                 }
             }
-            assertTrue("Prepare statement has not return on Slave",hasReturnOnSlave);
+            assertTrue("Prepare statement has not return on Slave", hasReturnOnSlave);
         }
     }
 

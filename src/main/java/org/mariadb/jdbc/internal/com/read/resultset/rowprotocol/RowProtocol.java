@@ -55,8 +55,8 @@ public abstract class RowProtocol {
     public byte[] buf;
     public int pos;
     public int length;
-    protected int index;
     public int maxFieldSize;
+    protected int index;
 
     public RowProtocol(int maxFieldSize) {
         this.maxFieldSize = maxFieldSize;

@@ -2,6 +2,7 @@ package org.mariadb.jdbc;
 
 
 import org.junit.*;
+
 import java.sql.*;
 
 import static org.junit.Assert.*;

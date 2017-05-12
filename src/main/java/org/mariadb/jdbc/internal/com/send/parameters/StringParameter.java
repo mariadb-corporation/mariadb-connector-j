@@ -72,7 +72,7 @@ public class StringParameter implements Cloneable, ParameterHolder {
      * @param pos outpustream.
      */
     public void writeTo(final PacketOutputStream pos) throws IOException {
-        pos.write(stringValue,true, noBackslashEscapes);
+        pos.write(stringValue, true, noBackslashEscapes);
     }
 
     public long getApproximateTextProtocolLength() {

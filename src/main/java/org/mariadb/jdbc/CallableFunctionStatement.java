@@ -86,7 +86,7 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
     /**
      * Clone data.
      *
-     * @param connection  connection
+     * @param connection connection
      * @return Cloned .
      * @throws CloneNotSupportedException if any error occur.
      */

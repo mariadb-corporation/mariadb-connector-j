@@ -16,6 +16,7 @@ import static org.junit.Assert.*;
 public class DatatypeTest extends BaseTest {
 
     private ResultSet resultSet;
+    private String str = "\u4f60\u597d(hello in Chinese)";
 
     /**
      * Initialisation.
@@ -716,7 +717,6 @@ public class DatatypeTest extends BaseTest {
         }
     }
 
-
     @Test
     public void getUrlTest() throws SQLException {
         try (ResultSet rs = getResultSet("select 'http://mariadb.org' as url FROM dual", false)) {
@@ -738,7 +738,6 @@ public class DatatypeTest extends BaseTest {
             fail("must have result");
         }
     }
-
 
     @Test
     public void getUrlFailTest() throws SQLException {
@@ -874,11 +873,9 @@ public class DatatypeTest extends BaseTest {
         }
     }
 
-
-
     @Test
     public void testBinarySetter() throws Throwable {
-        createTable("LatinTable", "t1 varchar(30)","DEFAULT CHARSET=latin1");
+        createTable("LatinTable", "t1 varchar(30)", "DEFAULT CHARSET=latin1");
 
         try (Connection connection = DriverManager.getConnection(connU + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "") + "&useServerPrepStmts=true")) {
@@ -892,8 +889,6 @@ public class DatatypeTest extends BaseTest {
             checkCharactersInsert(connection);
         }
     }
-
-    private String str = "\u4f60\u597d(hello in Chinese)";
 
     private void checkCharactersInsert(Connection connection) throws Throwable {
         try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO LatinTable(t1)  values (?)")) {

@@ -185,7 +185,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
         String functionReturn;
         try (PreparedStatement preparedStatement = con.prepareStatement(
                 "select param_list, returns, db, type from mysql.proc where name=? and db="
-                + (database != null ? "?" : "DATABASE()"))) {
+                        + (database != null ? "?" : "DATABASE()"))) {
 
             preparedStatement.setString(1, name);
             if (database != null) preparedStatement.setString(2, database);

@@ -52,8 +52,8 @@ package org.mariadb.jdbc.internal.com.send;
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.PidFactory;
 import org.mariadb.jdbc.internal.util.Utils;
@@ -90,19 +90,19 @@ public class SendHandshakeResponsePacket {
     /**
      * Send handshake response packet.
      *
-     * @see <a href="https://mariadb.com/kb/en/mariadb/1-connecting-connecting/#handshake-response-packet">protocol documentation</a>
-     * @param pos                       output stream
-     * @param username                  user name
-     * @param password                  password
-     * @param database                  database name
-     * @param clientCapabilities        client capabilities
-     * @param serverCapabilities        server capabilities
-     * @param serverLanguage            server language (utf8 / utf8mb4 collation)
-     * @param seed                      seed
-     * @param packetSeq                 packet sequence
-     * @param plugin                    plugin name
-     * @param options                   user options
+     * @param pos                output stream
+     * @param username           user name
+     * @param password           password
+     * @param database           database name
+     * @param clientCapabilities client capabilities
+     * @param serverCapabilities server capabilities
+     * @param serverLanguage     server language (utf8 / utf8mb4 collation)
+     * @param seed               seed
+     * @param packetSeq          packet sequence
+     * @param plugin             plugin name
+     * @param options            user options
      * @throws IOException if socket exception occur
+     * @see <a href="https://mariadb.com/kb/en/mariadb/1-connecting-connecting/#handshake-response-packet">protocol documentation</a>
      */
     public static void send(final PacketOutputStream pos,
                             String username,

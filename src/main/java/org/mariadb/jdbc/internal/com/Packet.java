@@ -72,8 +72,8 @@ public class Packet {
     public static final byte COM_MULTI = (byte) 0xfe;
 
     //prepare statement cursor flag.
-    public static final byte CURSOR_TYPE_NO_CURSOR  = (byte) 0x00;
-    public static final byte CURSOR_TYPE_READ_ONLY  = (byte) 0x01;
+    public static final byte CURSOR_TYPE_NO_CURSOR = (byte) 0x00;
+    public static final byte CURSOR_TYPE_READ_ONLY = (byte) 0x01;
     public static final byte CURSOR_TYPE_FOR_UPDATE = (byte) 0x02;
     public static final byte CURSOR_TYPE_SCROLLABLE = (byte) 0x04; //reserved, but not implemented server side
 

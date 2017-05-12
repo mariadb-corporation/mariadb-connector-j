@@ -303,27 +303,30 @@ public class ClientPrepareResult implements PrepareResult {
     }
 
     /**
-     * Separate query in a String list and set flag isQueryMultiValuesRewritable
-     * The parameters "?" (not in comments) emplacements are to be known.
+     * <p>Separate query in a String list and set flag isQueryMultiValuesRewritable
+     * The parameters "?" (not in comments) emplacements are to be known.</p>
      * <p>
      * The only rewritten queries follow these notation:
      * INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE] [INTO] tbl_name [PARTITION (partition_list)] [(col,...)]
      * {VALUES | VALUE} (...) [ ON DUPLICATE KEY UPDATE col=expr [, col=expr] ... ]
-     * With expr without parameter.
+     * With expr without parameter.</p>
      * <p>Query with LAST_INSERT_ID() will not be rewritten</p>
-     *
-     * <p>
-     * INSERT ... SELECT will not be rewritten.
+     * <p>INSERT ... SELECT will not be rewritten.</p>
      * <p>
      * String list :
-     * <p>
-     * - pre value part
-     * - After value and first parameter part
-     * - for each parameters :
-     * - part after parameter and before last parenthesis
-     * - Last query part
+     * <ul>
+     * <li>pre value part</li>
+     * <li>After value and first parameter part</li>
+     * <li>for each parameters :
+     * <ul>
+     *      <li>part after parameter and before last parenthesis</li>
+     *      <li>Last query part</li>
+     * </ul>
+     * </li>
+     * </ul>
      * <p>
      * example : INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE col2=col2+10
+     * </p>
      * <p>
      * - pre value part : INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES
      * - after value part : " (9 "
@@ -331,6 +334,7 @@ public class ClientPrepareResult implements PrepareResult {
      * - ", 5,"
      * - ",8)"
      * - last part : ON DUPLICATE KEY UPDATE col2=col2+10
+     * </p>
      * <p>
      * With 2 series of parameters, this query will be rewritten like
      * [INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES][ (9, param0_1, 5, param0_2, 8)][, (9, param1_1, 5, param1_2, 8)][ ON DUPLICATE
@@ -514,20 +518,20 @@ public class ClientPrepareResult implements PrepareResult {
                     case 'L':
                         if (state == LexState.Normal) {
                             if (queryLength > i + 14
-                                && (query[i + 1] == 'a' || query[i + 1] == 'A')
-                                && (query[i + 2] == 's' || query[i + 2] == 'S')
-                                && (query[i + 3] == 't' || query[i + 3] == 'T')
-                                && query[i + 4] == '_'
-                                && (query[i + 5] == 'i' || query[i + 5] == 'I')
-                                && (query[i + 6] == 'n' || query[i + 6] == 'N')
-                                && (query[i + 7] == 's' || query[i + 7] == 'S')
-                                && (query[i + 8] == 'e' || query[i + 8] == 'E')
-                                && (query[i + 9] == 'r' || query[i + 9] == 'R')
-                                && (query[i + 10] == 't' || query[i + 10] == 'T')
-                                && query[i + 11] == '_'
-                                && (query[i + 12] == 'i' || query[i + 12] == 'I')
-                                && (query[i + 13] == 'd' || query[i + 13] == 'D')
-                                && query[i + 14] == '(') {
+                                    && (query[i + 1] == 'a' || query[i + 1] == 'A')
+                                    && (query[i + 2] == 's' || query[i + 2] == 'S')
+                                    && (query[i + 3] == 't' || query[i + 3] == 'T')
+                                    && query[i + 4] == '_'
+                                    && (query[i + 5] == 'i' || query[i + 5] == 'I')
+                                    && (query[i + 6] == 'n' || query[i + 6] == 'N')
+                                    && (query[i + 7] == 's' || query[i + 7] == 'S')
+                                    && (query[i + 8] == 'e' || query[i + 8] == 'E')
+                                    && (query[i + 9] == 'r' || query[i + 9] == 'R')
+                                    && (query[i + 10] == 't' || query[i + 10] == 'T')
+                                    && query[i + 11] == '_'
+                                    && (query[i + 12] == 'i' || query[i + 12] == 'I')
+                                    && (query[i + 13] == 'd' || query[i + 13] == 'D')
+                                    && query[i + 14] == '(') {
                                 sb.append(car);
                                 reWritablePrepare = false;
                                 skipChar = true;

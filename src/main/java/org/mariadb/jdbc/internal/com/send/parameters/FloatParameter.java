@@ -52,7 +52,6 @@ OF SUCH DAMAGE.
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-
 import java.io.IOException;
 
 public class FloatParameter implements Cloneable, ParameterHolder {

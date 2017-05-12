@@ -5,7 +5,7 @@ import org.junit.Test;
 import java.nio.charset.Charset;
 import java.sql.*;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 public class PasswordEncodingTest extends BaseTest {
     private static String exoticPwd = "abéï你好";
@@ -14,10 +14,10 @@ public class PasswordEncodingTest extends BaseTest {
     public void testPwdCharset() throws Exception {
         cancelForVersion(5, 6, 36); //has password charset issue
 
-        String[] charsets = new String[] {"UTF-8",
+        String[] charsets = new String[]{"UTF-8",
                 "windows-1252",
                 "Big5"};
-        String[] charsetsMysql = new String[] {"utf8",
+        String[] charsetsMysql = new String[]{"utf8",
                 "latin1",
                 "big5"};
         try {

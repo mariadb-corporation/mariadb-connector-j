@@ -60,16 +60,16 @@ public class FailoverLoop extends TerminableRunnable {
 
     private static final ConcurrentLinkedQueue<Listener> queue = new ConcurrentLinkedQueue<>();
 
+    public FailoverLoop(ScheduledExecutorService scheduler) {
+        super(scheduler, 1, 1, TimeUnit.SECONDS);
+    }
+
     public static void addListener(Listener listener) {
         queue.add(listener);
     }
 
     public static void removeListener(Listener listener) {
         queue.remove(listener);
-    }
-
-    public FailoverLoop(ScheduledExecutorService scheduler) {
-        super(scheduler, 1, 1, TimeUnit.SECONDS);
     }
 
     @Override

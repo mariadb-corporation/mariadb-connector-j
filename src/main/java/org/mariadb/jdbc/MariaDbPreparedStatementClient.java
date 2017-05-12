@@ -49,24 +49,25 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSI
 OF SUCH DAMAGE.
 */
 
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.com.read.dao.*;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class MariaDbPreparedStatementClient extends BasePrepareStatement {
     private static Logger logger = LoggerFactory.getLogger(MariaDbPreparedStatementClient.class);
-    private String sqlQuery;
     protected ClientPrepareResult prepareResult;
-    private ParameterHolder[] parameters;
     protected List<ParameterHolder[]> parameterList = new ArrayList<>();
+    private String sqlQuery;
+    private ParameterHolder[] parameters;
     private ResultSetMetaData resultSetMetaData = null;
     private ParameterMetaData parameterMetaData = null;
 
@@ -104,6 +105,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
 
     /**
      * Clone statement.
+     *
      * @param connection connection
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
@@ -318,7 +320,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
     /**
      * Choose better way to execute queries according to query and options.
      *
-     * @param size                    parameters number
+     * @param size parameters number
      * @throws SQLException if any error occur
      */
     protected void executeInternalBatch(int size) throws SQLException {

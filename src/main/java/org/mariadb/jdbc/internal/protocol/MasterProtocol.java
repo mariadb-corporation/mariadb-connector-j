@@ -55,8 +55,9 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.Listener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-import java.sql.SQLException;
+
 import java.io.Closeable;
+import java.sql.SQLException;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;

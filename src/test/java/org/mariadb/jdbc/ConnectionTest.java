@@ -40,16 +40,16 @@ public class ConnectionTest extends BaseTest {
             Assert.fail();
         } catch (SQLException e) {
             switch (e.getErrorCode()) {
-                case (1524) :
+                case (1524):
                     //GSSAPI plugin not loaded
                     Assert.assertTrue("HY000".equals(e.getSQLState()));
                     break;
 
-                case (1045) :
+                case (1045):
                     Assert.assertTrue("28000".equals(e.getSQLState()));
                     break;
 
-                case (1044) :
+                case (1044):
                     //mysql
                     Assert.assertTrue("42000".equals(e.getSQLState()));
                     break;

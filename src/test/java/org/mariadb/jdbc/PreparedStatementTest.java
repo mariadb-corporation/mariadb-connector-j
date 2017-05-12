@@ -91,7 +91,7 @@ public class PreparedStatementTest extends BaseTest {
      */
     @Test
     public void cannotPrepareMetadata() throws Exception {
-        Assume.assumeTrue(isMariadbServer() && !minVersion(10,2)); //corrected in 10.2
+        Assume.assumeTrue(isMariadbServer() && !minVersion(10, 2)); //corrected in 10.2
         PreparedStatement stmt = sharedConnection.prepareStatement(
                 "insert into test_insert_select ( field1) (select  TMP.field1 from (select ? `field1` from dual) TMP)");
         try {

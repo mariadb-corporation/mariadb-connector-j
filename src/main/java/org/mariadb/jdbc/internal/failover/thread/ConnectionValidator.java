@@ -84,7 +84,7 @@ public class ConnectionValidator {
             }
         } else {
             long frequency = currentScheduledFrequency.get();
-            if ( frequency > newFrequency) {
+            if (frequency > newFrequency) {
                 currentScheduledFrequency.compareAndSet(frequency, newFrequency);
             }
         }

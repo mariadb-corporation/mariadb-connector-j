@@ -51,6 +51,7 @@ OF SUCH DAMAGE.
 
 import org.mariadb.jdbc.internal.com.send.InterfaceAuthSwitchSendResponsePacket;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+
 import java.sql.SQLException;
 
 

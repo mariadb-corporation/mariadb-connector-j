@@ -8,9 +8,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class GeometryTest extends BaseTest {
+    private static final char[] hexCode = "0123456789ABCDEF".toCharArray();
+
     /**
      * Initialisation.
      *
@@ -74,8 +77,6 @@ public class GeometryTest extends BaseTest {
         String polygonString = "POLYGON((0 0,10 0,0 10,0 0))";
         geometryTest(polygonString, null);
     }
-
-    private static final char[] hexCode = "0123456789ABCDEF".toCharArray();
 
     private String printHexBinary(byte[] data) {
         StringBuilder builder = new StringBuilder(data.length * 2);

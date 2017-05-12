@@ -64,6 +64,7 @@ public class DefaultAuthenticationProvider {
 
     /**
      * Process AuthenticationSwitch.
+     *
      * @param reader                    packet fetcher
      * @param plugin                    plugin name
      * @param password                  password

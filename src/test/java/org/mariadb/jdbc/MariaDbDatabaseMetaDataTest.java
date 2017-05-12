@@ -1,14 +1,20 @@
 package org.mariadb.jdbc;
 
 import org.junit.Test;
-import java.sql.*;
 
-import static org.junit.Assert.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class MariaDbDatabaseMetaDataTest extends BaseTest {
 
     /**
      * CONJ-412: tinyInt1isBit and yearIsDateType is not applied in method columnTypeClause.
+     *
      * @throws Exception if exception occur
      */
     @Test
@@ -31,8 +37,8 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
         assertTrue(rs.next());
         assertEquals(tinyAsBit ? "BIT" : "TINYINT UNSIGNED", rs.getString(6));
         assertTrue(rs.next());
-        assertEquals(yearAsDate ? "YEAR" : "SMALLINT" , rs.getString(6));
-        assertEquals(yearAsDate ? null : "5" , rs.getString(7)); // column size
+        assertEquals(yearAsDate ? "YEAR" : "SMALLINT", rs.getString(6));
+        assertEquals(yearAsDate ? null : "5", rs.getString(7)); // column size
         assertEquals(yearAsDate ? null : "0", rs.getString(9)); // decimal digit
 
     }

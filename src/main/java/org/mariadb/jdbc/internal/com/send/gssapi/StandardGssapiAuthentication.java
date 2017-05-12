@@ -51,9 +51,9 @@ OF SUCH DAMAGE.
 package org.mariadb.jdbc.internal.com.send.gssapi;
 
 import org.ietf.jgss.*;
+import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.com.read.Buffer;
 
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginContext;

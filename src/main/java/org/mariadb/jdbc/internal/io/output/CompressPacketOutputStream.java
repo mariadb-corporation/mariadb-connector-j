@@ -59,16 +59,16 @@ import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.zip.DeflaterOutputStream;
 
-import static org.mariadb.jdbc.internal.io.TraceObject.*;
+import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET;
+import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET;
 
 public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;
     private static final byte[] EMPTY_ARRAY = new byte[0];
-
-    private int maxPacketLength = MAX_PACKET_LENGTH;
     private static final int MIN_COMPRESSION_SIZE = 100;
     private static final float MIN_COMPRESSION_RATIO = 0.9f;
+    private int maxPacketLength = MAX_PACKET_LENGTH;
     private int compressSeqNo;
     private byte[] header = new byte[7];
     private byte[] subHeader = new byte[4];
@@ -101,35 +101,35 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
     /**
      * Flush the internal buffer.
-     *
+     * <p>
      * Compression add a 7 header :
      * <ol>
-     *  <li>3 byte compression length</li>
-     *  <li>1 byte compress sequence number</li>
-     *  <li>3 bytes uncompress length</li>
+     * <li>3 byte compression length</li>
+     * <li>1 byte compress sequence number</li>
+     * <li>3 bytes uncompress length</li>
      * </ol>
-     *
+     * <p>
      * in case packet isn't compressed (last 3 bytes == 0):
      * <ol>
-     *  <li>3 byte uncompress length</li>
-     *  <li>1 byte compress sequence number</li>
-     *  <li>3 bytes with 0 value</li>
+     * <li>3 byte uncompress length</li>
+     * <li>1 byte compress sequence number</li>
+     * <li>3 bytes with 0 value</li>
      * </ol>
-     *
+     * <p>
      * Content correspond to standard content.
      * <ol>
-     *  <li>3 byte length</li>
-     *  <li>1 byte sequence number (!= than compress sequence number)</li>
-     *  <li>sub-content</li>
+     * <li>3 byte length</li>
+     * <li>1 byte sequence number (!= than compress sequence number)</li>
+     * <li>sub-content</li>
      * </ol>
-     *
+     * <p>
      * Problem is when standard content is bigger than 16mb :
      * content will not send 4byte standard header + 16mb content, since packet are limited to 16mb
      * then 4 bytes standard header + 16mb - 4 bytes content. the ending 4 bytes are waiting to be send.
      * next packet will then send the waiting data before next packet, putting more waiting data is needed.
      * if ending data is exactly MAX_PACKET_LENGTH length, then an empty packet must be send.
      *
-     * @param commandEnd  command end
+     * @param commandEnd command end
      * @throws IOException id connection error occur.
      */
     protected void flushBuffer(boolean commandEnd) throws IOException {

@@ -51,8 +51,8 @@ OF SUCH DAMAGE.
 
 
 import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.Options;
 
 import java.io.IOException;
 import java.sql.Date;

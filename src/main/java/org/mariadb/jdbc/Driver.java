@@ -49,10 +49,10 @@ OF SUCH DAMAGE.
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.constant.Version;
-import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.constant.Version;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.sql.*;
 import java.util.Properties;

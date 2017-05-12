@@ -67,6 +67,7 @@ public class Buffer {
 
     /**
      * Constructor with default limit and offset.
+     *
      * @param buf byte array
      */
     public Buffer(final byte[] buf) {
@@ -105,7 +106,7 @@ public class Buffer {
         position += length;
         return string;
     }
-    
+
     /**
      * Read a short (2 bytes) from the buffer.
      *
