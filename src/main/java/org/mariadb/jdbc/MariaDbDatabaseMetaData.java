@@ -500,11 +500,16 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     /**
      * Retrieves a description of the given table's primary key columns.  They are ordered by COLUMN_NAME.
-     * <P>Each primary key column description has the following columns: <OL> <LI><B>TABLE_CAT</B> String {@code =>} table catalog (may be
-     * <code>null</code>) <LI><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>) <LI><B>TABLE_NAME</B> String {@code =>}
-     * table name <LI><B>COLUMN_NAME</B> String {@code =>} column name <LI><B>KEY_SEQ</B> short {@code =>} sequence number within primary key( a value
-     * of 1 represents the first column of the primary key, a value of 2 would represent the second column within the primary key). <LI><B>PK_NAME</B>
-     * String {@code =>} primary key name (may be <code>null</code>) </OL>
+     * <P>Each primary key column description has the following columns:
+     * <OL>
+     * <li><B>TABLE_CAT</B> String {@code =>} table catalog </li>
+     * <li><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>)</li>
+     * <li><B>TABLE_NAME</B> String {@code =>} table name </li>
+     * <li><B>COLUMN_NAME</B> String {@code =>} column name </li>
+     * <li><B>KEY_SEQ</B> short {@code =>} sequence number within primary key( a value of 1 represents the first
+     * column of the primary key, a value of 2 would represent the second column within the primary key).</li>
+     * <li><B>PK_NAME</B> String {@code =>} primary key name </li>
+     * </OL>
      *
      * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those
      *                without a catalog;
@@ -518,7 +523,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      */
     public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
         String sql =
-                "SELECT A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, NULL PK_NAME "
+                "SELECT A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, B.INDEX_NAME PK_NAME "
                         + " FROM INFORMATION_SCHEMA.COLUMNS A, INFORMATION_SCHEMA.STATISTICS B"
                         + " WHERE A.COLUMN_KEY='pri' AND B.INDEX_NAME='PRIMARY' "
                         + " AND "

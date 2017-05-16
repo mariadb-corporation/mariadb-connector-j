@@ -84,7 +84,8 @@ public class DatabaseMetadataTest extends BaseTest {
             assertEquals(null, rs.getString("table_schem"));
             assertEquals("dbpk_test", rs.getString("table_name"));
             assertEquals("id" + counter, rs.getString("column_name"));
-            assertEquals(counter, rs.getShort("key_seq"));
+            assertEquals("id" + counter, rs.getString("column_name"));
+            assertEquals("PRIMARY" , rs.getString("PK_NAME"));
         }
         assertEquals(2, counter);
     }
