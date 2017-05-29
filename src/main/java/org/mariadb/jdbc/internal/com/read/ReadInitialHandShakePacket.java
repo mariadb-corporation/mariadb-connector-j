@@ -87,13 +87,13 @@ public class ReadInitialHandShakePacket {
             ErrorPacket errorPacket = new ErrorPacket(buffer);
             throw new SQLException(errorPacket.getMessage());
         }
-
+        pluginName = "";
         protocolVersion = buffer.readByte();
         serverVersion = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
         serverThreadId = buffer.readInt();
         final byte[] seed1 = buffer.readRawBytes(8);
         buffer.skipByte();
-        int serverCapabilities2FirstBytes = buffer.readShort();
+        int serverCapabilities2FirstBytes = buffer.readShort() & 0x0000ffff;
         serverLanguage = buffer.readByte();
         serverStatus = buffer.readShort();
         int serverCapabilities4FirstBytes = serverCapabilities2FirstBytes + (buffer.readShort() << 16);
