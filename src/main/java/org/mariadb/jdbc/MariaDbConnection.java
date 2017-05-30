@@ -1538,9 +1538,6 @@ public class MariaDbConnection implements Connection {
         if (securityManager != null && sqlPermission != null) {
             securityManager.checkPermission(sqlPermission);
         }
-        if (executor == null) {
-            throw ExceptionMapper.getSqlException("Cannot set the connection timeout: null executor passed");
-        }
         try {
             protocol.setTimeout(milliseconds);
         } catch (SocketException se) {
