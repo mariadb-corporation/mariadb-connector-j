@@ -74,13 +74,56 @@ public class JdbcParserTest {
 
     @Test
     public void testAuroraUseBatchMultiSend() throws Throwable {
-        UrlParser notAuroraDatas = UrlParser.parse("jdbc:mariadb://localhost/test?useBatchMultiSend=true");
-        assertTrue(notAuroraDatas.getOptions().useBatchMultiSend);
+        assertTrue(UrlParser.parse("jdbc:mariadb://localhost/test")
+                .auroraPipelineQuirks().getOptions().useBatchMultiSend);
+        assertTrue(UrlParser.parse("jdbc:mariadb://localhost/test?useBatchMultiSend=true")
+                .auroraPipelineQuirks().getOptions().useBatchMultiSend);
+        assertFalse(UrlParser.parse("jdbc:mariadb://localhost/test?useBatchMultiSend=false")
+                .auroraPipelineQuirks().getOptions().useBatchMultiSend);
 
-        UrlParser auroraDatas = UrlParser.parse("jdbc:mariadb:aurora://localhost/test?useBatchMultiSend=true");
-        assertFalse(auroraDatas.getOptions().useBatchMultiSend);
+        assertFalse(UrlParser.parse("jdbc:mariadb:aurora://localhost/test")
+                .auroraPipelineQuirks().getOptions().useBatchMultiSend);
+        assertTrue(UrlParser.parse("jdbc:mariadb:aurora://localhost/test?useBatchMultiSend=true")
+                .auroraPipelineQuirks().getOptions().useBatchMultiSend);
+
+        String hostAurora = "jdbc:mariadb://localhost,instance-1-cluster.cluster-cvz6gk5op1wk.us-east-1.rds.amazonaws.com:3306/test";
+        assertFalse(UrlParser.parse(hostAurora).auroraPipelineQuirks().getOptions().useBatchMultiSend);
+        assertTrue(UrlParser.parse(hostAurora + "?useBatchMultiSend=true")
+                .auroraPipelineQuirks().getOptions().useBatchMultiSend);
+
+        MariaDbDataSource datasource = new MariaDbDataSource();
+        assertNull(datasource.getUrlParser().getOptions().useBatchMultiSend);
+        datasource.setUrl(hostAurora);
+        assertFalse(datasource.getUrlParser().auroraPipelineQuirks().getOptions().useBatchMultiSend);
+        datasource.setProperties("useBatchMultiSend=true");
+        assertTrue(datasource.getUrlParser().auroraPipelineQuirks().getOptions().useBatchMultiSend);
     }
 
+    @Test
+    public void testAuroraUsePipelineAuth() throws Throwable {
+        assertTrue(UrlParser.parse("jdbc:mariadb://localhost/test")
+                .auroraPipelineQuirks().getOptions().usePipelineAuth);
+        assertTrue(UrlParser.parse("jdbc:mariadb://localhost/test?usePipelineAuth=true")
+                .auroraPipelineQuirks().getOptions().usePipelineAuth);
+        assertFalse(UrlParser.parse("jdbc:mariadb://localhost/test?usePipelineAuth=false")
+                .auroraPipelineQuirks().getOptions().usePipelineAuth);
+
+        assertFalse(UrlParser.parse("jdbc:mariadb:aurora://localhost/test")
+                .auroraPipelineQuirks().getOptions().usePipelineAuth);
+        assertTrue(UrlParser.parse("jdbc:mariadb:aurora://localhost/test?usePipelineAuth=true")
+                .auroraPipelineQuirks().getOptions().usePipelineAuth);
+
+        String hostAurora = "jdbc:mariadb://localhost,instance-1-cluster.cluster-cvz6gk5op1wk.us-east-1.rds.amazonaws.com:3306/test";
+        assertFalse(UrlParser.parse(hostAurora).auroraPipelineQuirks().getOptions().usePipelineAuth);
+        assertTrue(UrlParser.parse(hostAurora + "?usePipelineAuth=true").getOptions().usePipelineAuth);
+
+        MariaDbDataSource datasource = new MariaDbDataSource();
+        assertNull(datasource.getUrlParser().getOptions().usePipelineAuth);
+        datasource.setUrl(hostAurora);
+        assertFalse(datasource.getUrlParser().auroraPipelineQuirks().getOptions().usePipelineAuth);
+        datasource.setProperties("usePipelineAuth=true");
+        assertTrue(datasource.getUrlParser().auroraPipelineQuirks().getOptions().usePipelineAuth);
+    }
 
     @Test
     public void testAcceptsUrl() throws Throwable {

@@ -110,9 +110,9 @@ public class Options {
     public boolean cacheCallableStmts;
     public Integer callableStmtCacheSize;
     public String connectionAttributes;
-    public boolean useBatchMultiSend;
+    public Boolean useBatchMultiSend;
     public int useBatchMultiSendNumber;
-    public boolean usePipelineAuth;
+    public Boolean usePipelineAuth;
     public boolean killFetchStmtOnClose;
     public boolean enablePacketDebug;
 

@@ -188,7 +188,7 @@ public class BaseTest {
 
 
             setUri();
-
+            urlParser.auroraPipelineQuirks();
             sharedConnection = DriverManager.getConnection(url);
 
             String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();

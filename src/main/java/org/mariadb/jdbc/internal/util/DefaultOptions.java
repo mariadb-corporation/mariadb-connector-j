@@ -382,8 +382,9 @@ public enum DefaultOptions {
     /**
      * PreparedStatement.executeBatch() will send many QUERY before reading result packets.
      * default to true.
+     * (null is considered true. this permit to know if option was explicitly set)
      */
-    USE_BATCH_MULTI_SEND("useBatchMultiSend", Boolean.TRUE, "1.5.0"),
+    USE_BATCH_MULTI_SEND("useBatchMultiSend", (Boolean) null, "1.5.0"),
 
     /**
      * When using useBatchMultiSend, indicate maximum query that can be send at a time.
@@ -426,8 +427,9 @@ public enum DefaultOptions {
     /**
      * Fast connection creation (recommended if not using authentication plugins)
      * default to true.
+     * (null is considered true. this permit to know if option was explicitly set)
      */
-    PIPELINE_AUTH("usePipelineAuth", Boolean.TRUE, "1.6.0"),
+    PIPELINE_AUTH("usePipelineAuth", (Boolean) null, "1.6.0"),
 
     /**
      * When closing a statement that is fetching result-set (using setFetchSize),
@@ -649,8 +651,10 @@ public enum DefaultOptions {
         }
 
         //pipe cannot use read and write socket simultaneously
-        //CONJ-386 : Aurora isn't compatible with option useBatchMultiSend.
-        if (options.pipe != null || haMode == HaMode.AURORA) options.useBatchMultiSend = false;
+        if (options.pipe != null) {
+            options.useBatchMultiSend = false;
+            options.usePipelineAuth = false;
+        }
 
         return options;
     }

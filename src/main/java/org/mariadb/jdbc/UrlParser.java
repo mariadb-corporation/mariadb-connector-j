@@ -252,6 +252,36 @@ public class UrlParser {
         urlParser.addresses = HostAddress.parse(hostAddressesString, urlParser.haMode);
     }
 
+    /**
+     * Permit to set parameters not forced.
+     * if options useBatchMultiSend and usePipelineAuth are not explicitly set in connection string,
+     * value will default to true or false according if aurora detection.
+     *
+     * @return UrlParser for easy testing
+     */
+    public UrlParser auroraPipelineQuirks() {
+
+        //Aurora has issue with pipelining, depending on network speed.
+        //Driver must rely on information provided by user : hostname if dns, and HA mode.</p>
+        boolean disablePipeline = haMode == HaMode.AURORA;
+        if (!disablePipeline && addresses != null) {
+            Pattern clusterPattern = Pattern.compile("(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)");
+            for (HostAddress hostAddress : addresses) {
+                Matcher matcher = clusterPattern.matcher(hostAddress.host);
+                if (matcher.find()) disablePipeline = true;
+            }
+        }
+
+        if (options.useBatchMultiSend == null) {
+            options.useBatchMultiSend = disablePipeline ? Boolean.FALSE : Boolean.TRUE;
+        }
+
+        if (options.usePipelineAuth == null) {
+            options.usePipelineAuth = disablePipeline ? Boolean.FALSE : Boolean.TRUE;
+        }
+        return this;
+    }
+
     private static void setHaMode(UrlParser urlParser, String url, int separator) {
         String[] baseTokens = url.substring(0, separator).split(":");
 

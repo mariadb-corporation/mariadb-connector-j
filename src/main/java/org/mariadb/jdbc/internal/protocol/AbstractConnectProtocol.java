@@ -155,6 +155,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      */
 
     public AbstractConnectProtocol(final UrlParser urlParser, final ReentrantLock lock) {
+        urlParser.auroraPipelineQuirks();
         this.lock = lock;
         this.urlParser = urlParser;
         this.options = this.urlParser.getOptions();
@@ -350,26 +351,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     /**
-     * <p>Aurora has issue with pipelining, depending on network speed.
-     * disabled pipeline options if set</p>
-     * <ol>
-     *     <li>usePipelineAuth</li>
-     *     <li>useBatchMultiSend</li>
-     * </ol>
-     * <p>There is not specificity to identify AURORA server on connection.
-     * Driver must rely on information provided by user : hostname if dns, and HA mode.</p>
-     *
-     * @param host host name
-     */
-    private void auroraQuirks(String host) {
-        if (urlParser.getHaMode() == HaMode.AURORA || (host != null && host.contains("amazonaws"))) {
-            options.usePipelineAuth = false;
-            options.useBatchMultiSend = false;
-        }
-
-    }
-
-    /**
      * Connect to currentHost.
      *
      * @throws SQLException exception
@@ -400,7 +381,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
             socket = Utils.createSocket(urlParser, host);
 
-            auroraQuirks(host);
             initializeSocketOption();
 
             // Bind the socket to a particular interface if the connection property

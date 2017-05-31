@@ -440,4 +440,11 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
         return null;
     }
 
+    /**
+     * For testing purpose only.
+     * @return current url parser.
+     */
+    protected UrlParser getUrlParser() {
+        return urlParser;
+    }
 }
