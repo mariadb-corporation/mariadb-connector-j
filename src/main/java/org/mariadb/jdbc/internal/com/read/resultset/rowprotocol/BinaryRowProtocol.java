@@ -84,13 +84,14 @@ public class BinaryRowProtocol extends RowProtocol {
                 index = 0;
                 pos = 1 + (columnInformationLength + 9) / 8;
             } else {
-                index++;
-                if (length != NULL_LENGTH) pos += length;
+                if (length != NULL_LENGTH) {
+                    index++;
+                    pos += length;
+                }
             }
 
             if ((buf[1 + (newIndex + 2) / 8] & (1 << ((newIndex + 2) % 8))) != 0) {
                 length = NULL_LENGTH;
-                this.index = newIndex;
                 return true;
             }
 

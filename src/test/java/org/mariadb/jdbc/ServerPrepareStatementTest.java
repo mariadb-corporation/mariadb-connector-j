@@ -943,4 +943,27 @@ public class ServerPrepareStatementTest extends BaseTest {
         }
     }
 
+    /**
+     * Binary state reading control.
+     *
+     * @throws SQLException if connection error occur
+     */
+    @Test
+    public void ensureRowStateWithNullValues() throws SQLException {
+        createTable("ensureRowStateWithNullValues", "t1 varchar(20), t2 varchar(20), t3 varchar(20), t4 varchar(20), t5 varchar(20), t6 varchar(20)");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("INSERT INTO ensureRowStateWithNullValues VALUES ('12345678901234567890', null, 'otherString', '1234567890', null, '12345')");
+        try (PreparedStatement ps = sharedConnection.prepareStatement("SELECT * FROM ensureRowStateWithNullValues")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals("12345678901234567890", rs.getString(1));
+                assertNull(rs.getString(2));
+                assertNull(rs.getString(5));
+                assertEquals("12345", rs.getString(6));
+
+                assertFalse(rs.next());
+            }
+        }
+    }
+
 }
