@@ -350,25 +350,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     /**
-     * Connect to currentHost.
-     *
-     * @throws SQLException exception
-     */
-    public void connect() throws SQLException {
-        if (!isClosed()) close();
-
-        try {
-            connect((currentHost != null) ? currentHost.host : null,
-                    (currentHost != null) ? currentHost.port : 3306);
-            return;
-        } catch (SQLException sqle) {
-            throw sqle;
-        } catch (IOException e) {
-            throw new SQLException("Could not connect to " + currentHost + ". " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
-        }
-    }
-
-    /**
      * <p>Aurora has issue with pipelining, depending on network speed.
      * disabled pipeline options if set</p>
      * <ol>
@@ -386,6 +367,25 @@ public abstract class AbstractConnectProtocol implements Protocol {
             options.useBatchMultiSend = false;
         }
 
+    }
+
+    /**
+     * Connect to currentHost.
+     *
+     * @throws SQLException exception
+     */
+    public void connect() throws SQLException {
+        if (!isClosed()) close();
+
+        try {
+            connect((currentHost != null) ? currentHost.host : null,
+                    (currentHost != null) ? currentHost.port : 3306);
+            return;
+        } catch (SQLException sqle) {
+            throw sqle;
+        } catch (IOException e) {
+            throw new SQLException("Could not connect to " + currentHost + ". " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
+        }
     }
 
     /**
