@@ -85,6 +85,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         if (testSingleHost) {
             try (Statement st = sharedConnection.createStatement()) {
                 ResultSet rs = st.executeQuery("SELECT count(*) from mysql.time_zone_name "
