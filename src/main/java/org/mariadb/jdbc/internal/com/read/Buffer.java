@@ -98,6 +98,22 @@ public class Buffer {
     }
 
     /**
+     * Reads a byte array from the buffer, looks for a 0 to end the array.
+     *
+     * @return the read array
+     */
+    public byte[] readBytesNullEnd() {
+        int initialPosition = position;
+        int cnt = 0;
+        while (remaining() > 0 && (buf[position++] != 0)) {
+            cnt++;
+        }
+        final byte[] tmpArr = new byte[cnt];
+        System.arraycopy(buf, initialPosition, tmpArr, 0, cnt);
+        return tmpArr;
+    }
+
+    /**
      * Reads length-encoded string.
      *
      * @param charset the charset to use, for example ASCII
