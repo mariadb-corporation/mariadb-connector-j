@@ -131,7 +131,5 @@ then
     sudo sed -i 's|Listener]|Listener]\nssl=enabled\nssl_cert=/etc/mysql/server.crt\nssl_key=/etc/mysql/server.key\nssl_ca_cert=/etc/mysql/ca.crt|g' /etc/maxscale.cnf
 
     sudo service maxscale start
-    tail -n500 /var/log/maxscale/maxscale1.log
-    tail -n500 /etc/maxscale.cnf
 
 fi
