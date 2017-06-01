@@ -114,7 +114,13 @@ public class ReadInitialHandShakePacket {
         long mariaDbAdditionalCapacities = buffer.readInt();
 
         if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.SECURE_CONNECTION) != 0) {
-            final byte[] seed2 = buffer.readRawBytes(saltLength);
+            final byte[] seed2;
+            if (saltLength > 0) {
+                seed2 = buffer.readRawBytes(saltLength);
+            } else {
+                //for servers before 5.5 version
+                seed2 = buffer.readBytesNullEnd();
+            }
             seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
             System.arraycopy(seed2, 0, seed, seed1.length, seed2.length);
             //  reader.skipByte();
