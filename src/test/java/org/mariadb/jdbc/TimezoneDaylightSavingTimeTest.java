@@ -85,8 +85,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
-        if (testSingleHost) {
+        if (testSingleHost || !"true".equals(System.getenv("AURORA"))) {
             try (Statement st = sharedConnection.createStatement()) {
                 ResultSet rs = st.executeQuery("SELECT count(*) from mysql.time_zone_name "
                         + "where Name in ('Europe/Paris','Canada/Atlantic')");
@@ -141,7 +140,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
      */
     @AfterClass()
     public static void endClass() throws SQLException {
-        if (testSingleHost) {
+        if (testSingleHost || !"true".equals(System.getenv("AURORA"))) {
             TimeZone.setDefault(previousTimeZone);
             Locale.setDefault(previousFormatLocale);
         }
@@ -189,6 +188,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testTimeStamp() throws SQLException {
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         TimeZone.setDefault(parisTimeZone);
         try (Connection connection = setConnection("&serverTimezone=Europe/Paris&useServerPrepStmts=true")) {
             setSessionTimeZone(connection, "Europe/Paris");
@@ -221,6 +221,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testTimeStampUtcNow() throws SQLException {
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         TimeZone.setDefault(parisTimeZone);
         try (Connection connection = setConnection("&serverTimezone=UTC&useServerPrepStmts=true")) {
             TimeZone.setDefault(parisTimeZone);
@@ -302,6 +303,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testTimeUtc() throws SQLException {
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         Assume.assumeTrue(doPrecisionTest);
 
         TimeZone.setDefault(parisTimeZone);
@@ -334,6 +336,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testTimeUtcNow() throws SQLException {
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         TimeZone.setDefault(parisTimeZone);
         try (Connection connection = setConnection("&serverTimezone=UTC")) {
             setSessionTimeZone(connection, "+00:00");
@@ -351,6 +354,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testTimeOffsetNowUseServer() throws SQLException {
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         try (Connection connection = setConnection("&useLegacyDatetimeCode=false&serverTimezone=+5:00")) {
             setSessionTimeZone(connection, "+5:00");
             //timestamp timezone to parisTimeZone like server
@@ -366,6 +370,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testDifferentTimeZoneServer() throws SQLException {
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         try (Connection connection = setConnection("&serverTimezone=UTC")) {
             setSessionTimeZone(sharedConnection, "+00:00");
             //timestamp timezone to parisTimeZone like server
@@ -382,6 +387,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testTimeStampOffsetNowUseServer() throws SQLException {
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         try (Connection connection = setConnection("&serverTimezone=Europe/Paris")) {
             //timestamp timezone to parisTimeZone like server
             Timestamp currentTimeParis = new Timestamp(System.currentTimeMillis());
@@ -406,6 +412,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
 
     private void testDayLight(boolean legacy) throws SQLException {
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         Assume.assumeTrue(doPrecisionTest);
         Assume.assumeTrue(hasSuperPrivilege("testDayLight") && !sharedIsRewrite());
         TimeZone.setDefault(parisTimeZone);
@@ -708,6 +715,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testDayLightNotUtC() throws SQLException {
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         Assume.assumeTrue(doPrecisionTest && hasSuperPrivilege("testDayLight") && !sharedIsRewrite());
         TimeZone.setDefault(canadaTimeZone);
         try (Connection connection = setConnection("&serverTimezone=Europe/Paris")) {
@@ -774,6 +782,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testDayLightWithClientTimeZoneDifferent() throws SQLException {
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         Assume.assumeTrue(doPrecisionTest && !sharedIsRewrite());
         TimeZone.setDefault(parisTimeZone);
         try (Connection connection = setConnection("&serverTimezone=UTC")) {
@@ -829,6 +838,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void testNoMysqlDayLightCompatibility() throws SQLException {
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         Assume.assumeTrue(hasSuperPrivilege("testMysqlDayLightCompatibility"));
         TimeZone.setDefault(parisTimeZone);
         try (Connection connection = setConnection("&maximizeMysqlCompatibility=false&useLegacyDatetimeCode=false"
@@ -863,6 +873,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void checkSetLocalDateTimeNoOffset() throws SQLException {
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         checkSetLocalDateTime(true, true, "Europe/Paris");
         checkSetLocalDateTime(true, false, "Europe/Paris");
         checkSetLocalDateTime(false, true, "Europe/Paris");
@@ -871,6 +882,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     @Test
     public void checkSetLocalDateTimeOffset() throws SQLException {
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         checkSetLocalDateTime(true, true, "+2:00");
         checkSetLocalDateTime(true, false, "+2:00");
         checkSetLocalDateTime(false, true, "+2:00");
