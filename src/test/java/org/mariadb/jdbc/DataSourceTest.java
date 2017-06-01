@@ -145,9 +145,9 @@ public class DataSourceTest extends BaseTest {
      *
      * @throws SQLException exception
      */
-    @Test // unless port 3307 can be used
+    @Test(timeout = 20000) // unless port 3307 can be used
     public void setPortTest() throws SQLException {
-
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
         try (Connection connection2 = ds.getConnection(username, password)) {
             //delete blacklist, because can failover on 3306 is filled

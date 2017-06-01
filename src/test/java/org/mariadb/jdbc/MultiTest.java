@@ -806,6 +806,8 @@ public class MultiTest extends BaseTest {
                 + " rewrite:" + rewrite
                 + " batchMulti:" + batchMulti);
         createTable("MultiTestt9", "id int not null primary key, test varchar(10)");
+        Assume.assumeTrue(!batchMulti || (batchMulti && !sharedIsAurora()));
+
         try (Connection connection = setBlankConnection(
                 "&useServerPrepStmts=" + serverPrepare
                         + "&useBatchMultiSend=" + batchMulti

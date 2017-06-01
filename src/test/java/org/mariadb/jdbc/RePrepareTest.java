@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.sql.PreparedStatement;
@@ -88,6 +89,7 @@ public class RePrepareTest extends BaseTest {
 
     @Test
     public void rePrepareTestInsertError() throws SQLException {
+        Assume.assumeFalse(sharedIsAurora()); //Aurora has not "flush tables with read lock" right;
         createTable("rePrepareTestInsertError", "test int");
         try (Statement stmt = sharedConnection.createStatement()) {
             try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO rePrepareTestInsertError(test) values (?)")) {

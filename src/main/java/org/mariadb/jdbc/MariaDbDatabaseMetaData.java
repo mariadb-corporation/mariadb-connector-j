@@ -275,7 +275,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 row[10] = Integer.toString(onDeleteReferenceAction);
                 row[11] = constraintName.name;
                 row[12] = null;
-                row[13] = Integer.toString(DatabaseMetaData.importedKeyInitiallyImmediate);
+                row[13] = Integer.toString(DatabaseMetaData.importedKeyNotDeferrable);
                 data.add(row);
             }
         }
@@ -768,7 +768,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                         + " END DELETE_RULE,"
                         + " RC.CONSTRAINT_NAME FK_NAME,"
                         + " NULL PK_NAME,"
-                        + " 6 DEFERRABILITY"
+                        + importedKeyNotDeferrable + " DEFERRABILITY"
                         + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                         + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
                         + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
@@ -815,7 +815,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                         + " END DELETE_RULE,"
                         + " RC.CONSTRAINT_NAME FK_NAME,"
                         + " NULL PK_NAME,"
-                        + " 6 DEFERRABILITY"
+                        + importedKeyNotDeferrable + " DEFERRABILITY"
                         + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                         + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
                         + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
@@ -2046,7 +2046,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                         + " END DELETE_RULE,"
                         + " RC.CONSTRAINT_NAME FK_NAME,"
                         + " NULL PK_NAME,"
-                        + " 6 DEFERRABILITY"
+                        + importedKeyNotDeferrable + " DEFERRABILITY"
                         + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                         + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
                         + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"

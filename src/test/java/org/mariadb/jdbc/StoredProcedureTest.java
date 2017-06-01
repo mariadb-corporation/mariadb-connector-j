@@ -53,6 +53,7 @@
 package org.mariadb.jdbc;
 
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -103,6 +104,9 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testStoreProcedureStreaming() throws Exception {
+        // aurora doesn't send back output results parameter when having SELECT results, even with flag enabled
+        Assume.assumeFalse(sharedIsAurora());
+
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
         cancelForVersion(10, 2, 2);
         cancelForVersion(10, 2, 3);
@@ -147,6 +151,9 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testStoreProcedureStreamingWithAnotherQuery() throws Exception {
+        // aurora doesn't send back output results parameter when having SELECT results, even with flag enabled
+        Assume.assumeFalse(sharedIsAurora());
+
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
         cancelForVersion(10, 2, 2);
         cancelForVersion(10, 2, 3);

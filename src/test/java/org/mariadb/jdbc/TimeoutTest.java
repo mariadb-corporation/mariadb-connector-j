@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.sql.*;
@@ -78,6 +79,7 @@ public class TimeoutTest extends BaseTest {
      */
     @Test
     public void resultSetAfterSocketTimeoutTest() throws Throwable {
+        Assume.assumeFalse(sharedIsAurora());
         int went = 0;
         for (int j = 0; j < 100; j++) {
             try (Connection connection = setConnection("&connectTimeout=5&socketTimeout=1")) {
@@ -115,6 +117,7 @@ public class TimeoutTest extends BaseTest {
      */
     @Test
     public void socketTimeoutTest() throws SQLException {
+        Assume.assumeFalse(sharedIsAurora());
         // set a short connection timeout
         try (Connection connection = setConnection("&connectTimeout=500&socketTimeout=500")) {
             PreparedStatement ps = connection.prepareStatement("SELECT 1");
@@ -148,6 +151,7 @@ public class TimeoutTest extends BaseTest {
 
     @Test
     public void waitTimeoutStatementTest() throws SQLException, InterruptedException {
+        Assume.assumeFalse(sharedIsAurora());
         try (Connection connection = setConnection()) {
             try (Statement statement = connection.createStatement()) {
                 statement.execute("set session wait_timeout=1");
@@ -169,6 +173,7 @@ public class TimeoutTest extends BaseTest {
 
     @Test
     public void waitTimeoutResultSetTest() throws SQLException, InterruptedException {
+        Assume.assumeFalse(sharedIsAurora());
         try (Connection connection = setConnection()) {
             Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT 1");

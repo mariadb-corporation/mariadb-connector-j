@@ -67,6 +67,8 @@ import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.sql.*;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -99,12 +101,15 @@ public class BaseTest {
     private static Deque<String> tempFunctionList = new ArrayDeque<>();
     private static TcpProxy proxy = null;
     private static UrlParser urlParser;
+    private static final NumberFormat numberFormat = DecimalFormat.getInstance();
 
     @Rule
     public TestRule watcher = new TestWatcher() {
+        private long ttime;
         protected void starting(Description description) {
             if (testSingleHost) {
                 System.out.println("start test : " + description.getClassName() + "." + description.getMethodName());
+                ttime = System.nanoTime();
             }
         }
 
@@ -126,13 +131,15 @@ public class BaseTest {
 
         protected void succeeded(Description description) {
             if (testSingleHost) {
-                System.out.println("finished test success : " + description.getClassName() + "." + description.getMethodName());
+                System.out.println("finished test success : " + description.getClassName() + "." + description.getMethodName()
+                        + " after " + numberFormat.format(((double) System.nanoTime() - ttime) / 1000000) + " ms");
             }
         }
 
         protected void failed(Throwable throwable, Description description) {
             if (testSingleHost) {
-                System.out.println("finished test failed : " + description.getClassName() + "." + description.getMethodName());
+                System.out.println("finished test failed : " + description.getClassName() + "." + description.getMethodName()
+                        + " after " + numberFormat.format(((double) System.nanoTime() - ttime) / 1000000) + " ms");
             }
         }
     };
@@ -807,4 +814,7 @@ public class BaseTest {
         return urlParser.getOptions().useCompression;
     }
 
+    public boolean sharedIsAurora() {
+        return urlParser.isAurora();
+    }
 }

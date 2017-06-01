@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -90,10 +91,16 @@ public class ErrorMessageTest extends BaseTest {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                    sqle.getCause().getCause().getMessage().contains(
-                            "INSERT INTO testErrorMessage(test, test2) values "
-                                    + "('more than 10 characters to provoc error', 10)"));
+            if (sharedIsAurora()) {
+                assertTrue(sqle.getCause().getCause().getMessage().contains(
+                        "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
+                                + "parameters ['more than 10 characters to provoc error',10]"));
+            } else {
+                assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+                        sqle.getCause().getCause().getMessage().contains(
+                                "INSERT INTO testErrorMessage(test, test2) values "
+                                        + "('more than 10 characters to provoc error', 10)"));
+            }
         }
     }
 
@@ -111,6 +118,7 @@ public class ErrorMessageTest extends BaseTest {
 
     @Test
     public void testSmallBulkErrorMessage() throws SQLException {
+        Assume.assumeFalse(sharedIsAurora());
         try (Connection connection = setBlankConnection("&useBatchMultiSend=true")) {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
@@ -123,6 +131,7 @@ public class ErrorMessageTest extends BaseTest {
 
     @Test
     public void testSmallPrepareBulkErrorMessage() throws SQLException {
+        Assume.assumeFalse(sharedIsAurora());
         try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useServerPrepStmts=true")) {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
@@ -150,10 +159,17 @@ public class ErrorMessageTest extends BaseTest {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                    sqle.getCause().getCause().getMessage().contains(
-                            "INSERT INTO testErrorMessage(test, test2) values "
-                                    + "('more than 10 characters to provoc error', 200)"));
+            if (!sharedIsAurora()) {
+                assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+                        sqle.getCause().getCause().getMessage().contains(
+                                "INSERT INTO testErrorMessage(test, test2) values "
+                                        + "('more than 10 characters to provoc error', 200)"));
+            } else {
+                assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+                        sqle.getCause().getCause().getMessage().contains(
+                                "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
+                                        + "['more than 10 characters to provoc error',200]"));
+            }
         }
     }
 
@@ -172,6 +188,7 @@ public class ErrorMessageTest extends BaseTest {
 
     @Test
     public void testBigBulkErrorMessage() throws SQLException {
+        Assume.assumeFalse(sharedIsAurora());
         try (Connection connection = setBlankConnection("&useBatchMultiSend=true")) {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
@@ -185,6 +202,7 @@ public class ErrorMessageTest extends BaseTest {
 
     @Test
     public void testBigBulkErrorPrepareMessage() throws SQLException {
+        Assume.assumeFalse(sharedIsAurora());
         try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useServerPrepStmts=true")) {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");

@@ -304,6 +304,7 @@ public class ConnectionTest extends BaseTest {
      */
     @Test
     public void isValidConnectionThatTimesOutByServer() throws SQLException, InterruptedException {
+        Assume.assumeFalse(sharedIsAurora());
         try (Connection connection = setConnection()) {
             try (Statement statement = connection.createStatement()) {
                 statement.execute("set session wait_timeout=1");

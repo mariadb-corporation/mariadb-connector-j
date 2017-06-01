@@ -64,7 +64,7 @@ public class PasswordEncodingTest extends BaseTest {
 
     @Test
     public void testPwdCharset() throws Exception {
-        cancelForVersion(5, 6, 36); //has password charset issue
+        cancelForVersion(5, 6); //has password charset issue
 
         String[] charsets = new String[]{"UTF-8",
                 "windows-1252",

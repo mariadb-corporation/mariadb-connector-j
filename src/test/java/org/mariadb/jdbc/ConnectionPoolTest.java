@@ -79,7 +79,6 @@ public class ConnectionPoolTest extends BaseTest {
         }
     }
 
-
     @Test
     public void testBasicPool() throws SQLException {
 

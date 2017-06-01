@@ -263,14 +263,7 @@ public class UrlParser {
 
         //Aurora has issue with pipelining, depending on network speed.
         //Driver must rely on information provided by user : hostname if dns, and HA mode.</p>
-        boolean disablePipeline = haMode == HaMode.AURORA;
-        if (!disablePipeline && addresses != null) {
-            Pattern clusterPattern = Pattern.compile("(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)");
-            for (HostAddress hostAddress : addresses) {
-                Matcher matcher = clusterPattern.matcher(hostAddress.host);
-                if (matcher.find()) disablePipeline = true;
-            }
-        }
+        boolean disablePipeline = isAurora();
 
         if (options.useBatchMultiSend == null) {
             options.useBatchMultiSend = disablePipeline ? Boolean.FALSE : Boolean.TRUE;
@@ -280,6 +273,18 @@ public class UrlParser {
             options.usePipelineAuth = disablePipeline ? Boolean.FALSE : Boolean.TRUE;
         }
         return this;
+    }
+
+    public boolean isAurora() {
+        if (haMode == HaMode.AURORA) return true;
+        if (addresses != null) {
+            Pattern clusterPattern = Pattern.compile("(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)");
+            for (HostAddress hostAddress : addresses) {
+                Matcher matcher = clusterPattern.matcher(hostAddress.host);
+                if (matcher.find()) return true;
+            }
+        }
+        return false;
     }
 
     private static void setHaMode(UrlParser urlParser, String url, int separator) {

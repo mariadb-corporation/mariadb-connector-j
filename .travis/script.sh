@@ -32,7 +32,13 @@ esac;
 
 if [ -n "$AURORA" ]
 then
-    testSingleHost=false
+    if [ -n "$AURORA_STRING_URL" ]
+    then
+        urlString=-DdbUrl=$AURORA_STRING_URL
+        testSingleHost=true
+    else
+        testSingleHost=false
+    fi
 else
     testSingleHost=true
 fi

@@ -300,8 +300,9 @@ public class StatementTest extends BaseTest {
         }
     }
 
-    @Test
+    @Test(timeout = 10000)
     public void statementClose() throws SQLException {
+        Assume.assumeTrue(sharedOptions().socketTimeout == null);
         Properties infos = new Properties();
         infos.put("socketTimeout", 1000);
         try (Connection connection = createProxyConnection(infos)) {

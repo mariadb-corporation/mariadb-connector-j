@@ -167,6 +167,8 @@ public class ExecuteBatchTest extends BaseTest {
     public void serverBulk8mTest() throws SQLException {
         Assume.assumeTrue(checkMaxAllowedPacketMore8m("serverBulk8mTest"));
         Assume.assumeTrue(runLongTest);
+        Assume.assumeFalse(sharedIsAurora());
+
         sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
         try (Connection connection = setConnection("&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql)) {
@@ -180,6 +182,8 @@ public class ExecuteBatchTest extends BaseTest {
     public void serverBulk20mTest() throws SQLException {
         Assume.assumeTrue(checkMaxAllowedPacketMore20m("serverBulk20mTest"));
         Assume.assumeTrue(runLongTest);
+        Assume.assumeFalse(sharedIsAurora());
+
         sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
         try (Connection connection = setConnection("&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql)) {
@@ -206,6 +210,8 @@ public class ExecuteBatchTest extends BaseTest {
     public void clientBulkTest() throws SQLException {
         Assume.assumeTrue(checkMaxAllowedPacketMore8m("serverStd8mTest"));
         Assume.assumeTrue(runLongTest);
+        Assume.assumeFalse(sharedIsAurora());
+
         sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
 
         try (Connection connection = setConnection("&useComMulti=false&useBatchMultiSend=true&useServerPrepStmts=false&profileSql=" + profileSql)) {
@@ -293,6 +299,7 @@ public class ExecuteBatchTest extends BaseTest {
 
     @Test
     public void useBatchMultiSend() throws Exception {
+        Assume.assumeFalse(sharedIsAurora());
         try (Connection connection = setConnection("&useBatchMultiSend=true")) {
             String sql = "insert into ExecuteBatchUseBatchMultiSend (test) values (?)";
             try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
