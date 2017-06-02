@@ -369,8 +369,8 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
                 0, false, true,
                 new String[]{
                         "ALTER table test_partitioning PARTITION BY RANGE COLUMNS( created_at ) "
-                        + "(PARTITION test_p201605 ",
-                        "LESS THAN ('2016-06-01'))",
+                        + "(PARTITION test_p201605 VALUES",
+                        " LESS THAN ('2016-06-01'))",
                         ""},
                 new String[]{"ALTER table test_partitioning PARTITION BY RANGE COLUMNS( created_at ) "
                         + "(PARTITION test_p201605 VALUES LESS THAN ('2016-06-01'))"});
