@@ -7,9 +7,9 @@ set -e
 
 if [ -n "PROFILE" ]
 then
-    PROFILESQL=&profileSql=true
+    export PROFILESQL=&profileSql=true
 else
-    PROFILESQL=
+    export PROFILESQL=
 fi
 
 case "$TYPE" in
