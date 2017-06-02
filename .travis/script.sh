@@ -3,9 +3,13 @@
 set -x
 set -e
 
+
+
 if [ -n "PROFILE" ]
 then
     PROFILESQL=&profileSql=true
+else
+    PROFILESQL=
 fi
 
 case "$TYPE" in
@@ -32,6 +36,9 @@ case "$TYPE" in
    ;;
  "COMPRESSION" )
    urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useCompression=true$PROFILESQL'
+   ;;
+  *)
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root'
    ;;
 esac;
 
