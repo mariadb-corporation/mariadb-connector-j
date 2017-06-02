@@ -90,10 +90,7 @@ import java.net.SocketException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
+import java.sql.*;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.concurrent.ExecutionException;
@@ -114,6 +111,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     private volatile int statementIdToRelease = -1;
     private FutureTask activeFutureTask = null;
     private LogQueryTool logQuery;
+    private boolean interrupted;
 
     /**
      * Get a protocol instance.
@@ -229,6 +227,41 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     /**
+     * Execute a unique clientPrepareQuery.
+     *
+     * @param mustExecuteOnMaster was intended to be launched on master connection
+     * @param results             results
+     * @param clientPrepareResult clientPrepareResult
+     * @param parameters          parameters
+     * @param queryTimeout        if timeout is set and must use max_statement_time
+     * @throws SQLException exception
+     */
+    public void executeQuery(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
+                             ParameterHolder[] parameters, int queryTimeout) throws SQLException {
+        cmdPrologue();
+        try {
+
+            if (clientPrepareResult.getParamCount() == 0 && !clientPrepareResult.isQueryMultiValuesRewritable()) {
+                if (clientPrepareResult.getQueryParts().size() == 1) {
+                    ComQuery.sendDirect(writer, clientPrepareResult.getQueryParts().get(0), queryTimeout);
+                } else {
+                    ComQuery.sendMultiDirect(writer, clientPrepareResult.getQueryParts(), queryTimeout);
+                }
+            } else {
+                writer.startPacket(0);
+                ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
+                writer.flush();
+            }
+            getResult(results);
+
+        } catch (SQLException queryException) {
+            throw logQuery.exceptionWithQuery(parameters, queryException, clientPrepareResult);
+        } catch (IOException e) {
+            throw handleIoException(e);
+        }
+    }
+
+    /**
      * Execute clientPrepareQuery batch.
      *
      * @param mustExecuteOnMaster was intended to be launched on master connection
@@ -307,7 +340,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             String sql = null;
             SQLException exception = null;
 
-            for (int i = 0; i < queries.size(); i++) {
+            for (int i = 0; i < queries.size() && !isInterrupted(); i++) {
 
                 try {
 
@@ -330,6 +363,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     }
                 }
             }
+            stopIfinterrupted();
 
             if (exception != null) throw exception;
             return;
@@ -465,6 +499,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             } catch (IOException e) {
                 throw handleIoException(e);
             }
+            stopIfinterrupted();
 
         } while (currentIndex < totalQueries);
 
@@ -845,6 +880,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             //no lock, because there is already a query running that possessed the lock.
             copiedProtocol.executeQuery("KILL QUERY " + serverThreadId);
         }
+        interrupted = true;
     }
 
     /**
@@ -1354,6 +1390,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
 
         if (!this.connected) throw new SQLException("Connection is close", "08000", 1220);
+        interrupted = false;
 
     }
 
@@ -1439,4 +1476,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         this.activeFutureTask = activeFutureTask;
     }
 
+    public boolean isInterrupted() {
+        return interrupted;
+    }
+
+    private void stopIfinterrupted() throws SQLTimeoutException {
+        if (isInterrupted()) {
+            //interrupted during read, must throw an exception manually
+            throw new SQLTimeoutException("Timeout during batch execution");
+        }
+    }
 }

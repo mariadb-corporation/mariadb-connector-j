@@ -144,6 +144,9 @@ public interface Protocol {
     void executeQuery(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
                       ParameterHolder[] parameters) throws SQLException;
 
+    void executeQuery(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
+                      ParameterHolder[] parameters, int timeout) throws SQLException;
+
     void executeBatchMulti(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
                            List<ParameterHolder[]> parameterList) throws SQLException;
 
@@ -271,4 +274,6 @@ public interface Protocol {
     boolean sessionStateAware();
 
     String getTraces();
+
+    boolean isInterrupted();
 }

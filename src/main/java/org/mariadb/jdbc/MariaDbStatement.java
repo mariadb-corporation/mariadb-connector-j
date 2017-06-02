@@ -108,7 +108,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     protected int fetchSize;
     boolean isTimedout;
     volatile boolean executing;
-    private boolean canUseServerTimeout;
+    protected boolean canUseServerTimeout;
     private int maxFieldSize;
 
     /**
@@ -181,13 +181,24 @@ public class MariaDbStatement implements Statement, Cloneable {
         }, queryTimeout, TimeUnit.SECONDS);
     }
 
-    protected void executeQueryPrologue() throws SQLException {
+    /**
+     * Command prolog.
+     * <ol>
+     *     <li>clear previous query state</li>
+     *     <li>launch timeout timer if needed</li>
+     * </ol>
+     *
+     * @param forceUseOfTimer even if query timeout if possible on server using max_statement_time, force using timer
+     *                        (for batch)
+     * @throws SQLException if statement is closed
+     */
+    protected void executeQueryPrologue(boolean forceUseOfTimer) throws SQLException {
         executing = true;
         if (closed) {
             throw new SQLException("execute() is called on closed statement");
         }
         protocol.prolog(maxRows, protocol.getProxy() != null, connection, this);
-        if (queryTimeout != 0 && !canUseServerTimeout) {
+        if (queryTimeout != 0 && (!canUseServerTimeout || forceUseOfTimer)) {
             setTimerTask();
         }
     }
@@ -321,7 +332,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         lock.lock();
         try {
 
-            executeQueryPrologue();
+            executeQueryPrologue(false);
             results.reset(fetchSize, false, 1, false, resultSetScrollType);
             protocol.executeQuery(protocol.isMasterConnection(), results,
                     getTimeoutSql(Utils.nativeSql(sql, connection.noBackslashEscapes)));
@@ -357,7 +368,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         lock.lock();
         try {
 
-            executeQueryPrologue();
+            executeQueryPrologue(false);
             results.reset(fetchSize, false, 1, false, resultSetScrollType);
             protocol.executeQuery(protocol.isMasterConnection(), results,
                     getTimeoutSql(Utils.nativeSql(sql, connection.noBackslashEscapes)), charset);
@@ -1279,7 +1290,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     protected void internalBatchExecution(int size) throws SQLException {
 
-        executeQueryPrologue();
+        executeQueryPrologue(true);
 
         results.reset(0, true, size, false, resultSetScrollType);
         if (this.options.rewriteBatchedStatements) {
@@ -1291,6 +1302,11 @@ public class MariaDbStatement implements Statement, Cloneable {
                     batchQueryMultiRewritable = false;
                     break;
                 }
+            }
+
+            if (protocol.isInterrupted()) {
+                //interrupted by timeout, must throw an exception manually
+                throw new SQLTimeoutException("Timeout during batch execution");
             }
 
             if (batchQueryMultiRewritable) {

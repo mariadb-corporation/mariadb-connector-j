@@ -293,6 +293,23 @@ public class ComQuery {
     /**
      * Send directly to socket the sql data.
      *
+     * @param pos           output stream
+     * @param sqlBytes      the query in UTF-8 bytes
+     * @param queryTimeout  timeout using max_statement_time
+     * @throws IOException  if connection error occur
+     * @throws SQLException if packet max size is to big.
+     */
+    public static void sendDirect(final PacketOutputStream pos, byte[] sqlBytes, int queryTimeout) throws IOException, SQLException {
+        pos.startPacket(0);
+        pos.write(Packet.COM_QUERY);
+        if (queryTimeout > 0) pos.write(("SET STATEMENT max_statement_time=" + queryTimeout + " FOR ").getBytes());
+        pos.write(sqlBytes);
+        pos.flush();
+    }
+
+    /**
+     * Send directly to socket the sql data.
+     *
      * @param pos      output stream
      * @param sqlBytes the query in UTF-8 bytes
      * @throws IOException  if connection error occur
@@ -306,4 +323,24 @@ public class ComQuery {
         }
         pos.flush();
     }
+
+    /**
+     * Send directly to socket the sql data.
+     *
+     * @param pos           output stream
+     * @param sqlBytes      the query in UTF-8 bytes
+     * @param queryTimeout  timeout using max_statement_time
+     * @throws IOException  if connection error occur
+     * @throws SQLException if packet max size is to big.
+     */
+    public static void sendMultiDirect(final PacketOutputStream pos, List<byte[]> sqlBytes, int queryTimeout) throws IOException, SQLException {
+        pos.startPacket(0);
+        pos.write(Packet.COM_QUERY);
+        pos.write(("SET STATEMENT max_statement_time=" + queryTimeout + " FOR ").getBytes());
+        for (byte[] bytes : sqlBytes) {
+            pos.write(bytes);
+        }
+        pos.flush();
+    }
+
 }

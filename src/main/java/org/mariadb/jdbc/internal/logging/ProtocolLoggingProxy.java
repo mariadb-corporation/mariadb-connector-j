@@ -130,6 +130,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                         sql = (String) args[2];
                         break;
                     case 4:
+                    case 5:
                         if (Charset.class.isInstance(args[3])) {
                             sql = (String) args[2];
                             break;

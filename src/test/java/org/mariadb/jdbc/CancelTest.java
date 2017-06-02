@@ -58,6 +58,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.sql.*;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -92,12 +93,60 @@ public class CancelTest extends BaseTest {
 
     }
 
-    @Test(expected = SQLTimeoutException.class)
+    @Test(timeout = 2000, expected = SQLTimeoutException.class)
     public void timeoutSleep() throws Exception {
         try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
             Statement stmt = tmpConnection.createStatement();
             stmt.setQueryTimeout(1);
             stmt.execute("select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2");
+        }
+    }
+
+    @Test(timeout = 2000, expected = SQLTimeoutException.class)
+    public void timeoutPrepareSleep() throws Exception {
+        try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
+            try (PreparedStatement stmt = tmpConnection.prepareStatement(
+                    "select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2")) {
+                stmt.setQueryTimeout(1);
+                stmt.execute();
+            }
+        }
+    }
+
+    @Test(timeout = 10000, expected = BatchUpdateException.class)
+    public void timeoutBatch() throws Exception {
+        createTable("timeoutBatch", "aa text");
+        try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
+
+            Statement stmt = tmpConnection.createStatement();
+            char[] arr = new char[10000];
+            Arrays.fill(arr, 'a');
+            String str = String.valueOf(arr);
+            for (int i = 0; i < 100000; i++) {
+                stmt.addBatch("INSERT INTO timeoutBatch VALUES ('" + str + "')");
+            }
+            stmt.setQueryTimeout(1);
+            stmt.executeBatch();
+        }
+    }
+
+    @Test(timeout = 10000, expected = BatchUpdateException.class)
+    public void timeoutPrepareBatch() throws Exception {
+        createTable("timeoutBatch", "aa text");
+        try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
+
+            char[] arr = new char[10000];
+            Arrays.fill(arr, 'a');
+            String str = String.valueOf(arr);
+            try (PreparedStatement stmt = tmpConnection.prepareStatement("INSERT INTO timeoutBatch VALUES (?)")) {
+                stmt.setQueryTimeout(1);
+                for (int i = 0; i < 100000; i++) {
+                    stmt.setString(1, str);
+                    stmt.addBatch();
+                }
+                stmt.executeBatch();
+            }
+
         }
     }
 

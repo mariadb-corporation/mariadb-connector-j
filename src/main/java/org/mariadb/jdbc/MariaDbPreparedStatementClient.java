@@ -202,11 +202,15 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
 
         lock.lock();
         try {
-
-            executeQueryPrologue();
+            executeQueryPrologue(false);
             results = new Results(this, fetchSize, false, 1, false, resultSetScrollType,
                     protocol.getAutoIncrementIncrement());
-            protocol.executeQuery(protocol.isMasterConnection(), results, prepareResult, parameters);
+            if (queryTimeout != 0 && canUseServerTimeout) {
+                //timer will not be used for timeout to avoid having threads
+                protocol.executeQuery(protocol.isMasterConnection(), results, prepareResult, parameters, queryTimeout);
+            } else {
+                protocol.executeQuery(protocol.isMasterConnection(), results, prepareResult, parameters);
+            }
             results.commandEnd();
             return results.getResultSet() != null;
 
@@ -329,7 +333,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
      */
     protected void executeInternalBatch(int size) throws SQLException {
 
-        executeQueryPrologue();
+        executeQueryPrologue(true);
         results.reset(0, true, size, false, resultSetScrollType);
 
         if (options.rewriteBatchedStatements) {

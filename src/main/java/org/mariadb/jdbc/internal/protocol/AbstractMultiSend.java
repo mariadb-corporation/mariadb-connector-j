@@ -64,6 +64,7 @@ import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -236,6 +237,12 @@ public abstract class AbstractMultiSend {
                         AbstractQueryProtocol.readScheduler.execute(futureReadTask);
                     }
                 }
+
+                if (protocol.isInterrupted()) {
+                    //interrupted during read, must throw an exception manually
+                    throw new SQLTimeoutException("Timeout during batch execution");
+                }
+
                 status.sendEnded = true;
 
                 protocol.changeSocketTcpNoDelay(protocol.getOptions().tcpNoDelay);
