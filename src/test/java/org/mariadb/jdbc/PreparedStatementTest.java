@@ -451,6 +451,25 @@ public class PreparedStatementTest extends BaseTest {
     }
 
     /**
+     * CONJ-470: rewrite with query that contain "values" keyword.
+     *
+     * @throws Throwable exception
+     */
+    @Test
+    public void clientPrepareStatementValuesWithoutParameter() throws Throwable {
+        createTable("clientPrepareStatementValuesWithoutParameter", "created_at datetime primary key");
+
+        String query = "ALTER table clientPrepareStatementValuesWithoutParameter PARTITION BY RANGE COLUMNS( created_at ) "
+                + "(PARTITION test_p201605 VALUES LESS THAN ('2016-06-01'))";
+
+        try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
+            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+                preparedStatement.execute();
+            }
+        }
+    }
+
+    /**
      * CONJ-361: empty string test.
      *
      * @throws Throwable exception

@@ -209,7 +209,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         try {
 
             if (clientPrepareResult.getParamCount() == 0 && !clientPrepareResult.isQueryMultiValuesRewritable()) {
-                ComQuery.sendDirect(writer, clientPrepareResult.getQueryParts().get(0));
+                if (clientPrepareResult.getQueryParts().size() == 1) {
+                    ComQuery.sendDirect(writer, clientPrepareResult.getQueryParts().get(0));
+                } else {
+                    ComQuery.sendMultiDirect(writer, clientPrepareResult.getQueryParts());
+                }
             } else {
                 writer.startPacket(0);
                 ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);

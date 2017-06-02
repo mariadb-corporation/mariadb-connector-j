@@ -290,4 +290,20 @@ public class ComQuery {
         pos.flush();
     }
 
+    /**
+     * Send directly to socket the sql data.
+     *
+     * @param pos      output stream
+     * @param sqlBytes the query in UTF-8 bytes
+     * @throws IOException  if connection error occur
+     * @throws SQLException if packet max size is to big.
+     */
+    public static void sendMultiDirect(final PacketOutputStream pos, List<byte[]> sqlBytes) throws IOException, SQLException {
+        pos.startPacket(0);
+        pos.write(Packet.COM_QUERY);
+        for (byte[] bytes : sqlBytes) {
+            pos.write(bytes);
+        }
+        pos.flush();
+    }
 }
