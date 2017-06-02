@@ -113,34 +113,36 @@ public class CancelTest extends BaseTest {
         }
     }
 
-    @Test(timeout = 10000, expected = BatchUpdateException.class)
+    @Test(timeout = 5000, expected = BatchUpdateException.class)
     public void timeoutBatch() throws Exception {
+        Assume.assumeFalse(sharedIsAurora());
+        Assume.assumeTrue(!sharedOptions().allowMultiQueries && !sharedIsRewrite());
         createTable("timeoutBatch", "aa text");
-        try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
 
-            Statement stmt = tmpConnection.createStatement();
-            char[] arr = new char[10000];
-            Arrays.fill(arr, 'a');
-            String str = String.valueOf(arr);
-            for (int i = 0; i < 100000; i++) {
-                stmt.addBatch("INSERT INTO timeoutBatch VALUES ('" + str + "')");
-            }
-            stmt.setQueryTimeout(1);
-            stmt.executeBatch();
+        Statement stmt = sharedConnection.createStatement();
+        char[] arr = new char[1000];
+        Arrays.fill(arr, 'a');
+        String str = String.valueOf(arr);
+        for (int i = 0; i < 20000; i++) {
+            stmt.addBatch("INSERT INTO timeoutBatch VALUES ('" + str + "')");
         }
+        stmt.setQueryTimeout(1);
+        stmt.executeBatch();
     }
 
-    @Test(timeout = 10000, expected = BatchUpdateException.class)
+    @Test(timeout = 5000, expected = BatchUpdateException.class)
     public void timeoutPrepareBatch() throws Exception {
+        Assume.assumeFalse(sharedIsAurora());
+        Assume.assumeTrue(!sharedOptions().allowMultiQueries);
         createTable("timeoutBatch", "aa text");
         try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
 
-            char[] arr = new char[10000];
+            char[] arr = new char[1000];
             Arrays.fill(arr, 'a');
             String str = String.valueOf(arr);
             try (PreparedStatement stmt = tmpConnection.prepareStatement("INSERT INTO timeoutBatch VALUES (?)")) {
                 stmt.setQueryTimeout(1);
-                for (int i = 0; i < 100000; i++) {
+                for (int i = 0; i < 20000; i++) {
                     stmt.setString(1, str);
                     stmt.addBatch();
                 }

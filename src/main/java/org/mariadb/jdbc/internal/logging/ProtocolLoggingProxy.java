@@ -161,6 +161,15 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 List<String> multipleQueries = (List<String>) args[2];
                 if (multipleQueries.size() == 1) {
                     sql = multipleQueries.get(0);
+                } else {
+                    for (int counter = 0; counter < multipleQueries.size(); counter++) {
+                        if (maxQuerySizeToLog > 0 && (sql.length() + multipleQueries.get(counter).length() + 1) > maxQuerySizeToLog) {
+                            sql += multipleQueries.get(counter).substring(1, Math.max(1, maxQuerySizeToLog - sql.length()));
+                            break;
+                        }
+                        sql += multipleQueries.get(counter) + ";";
+                        if (maxQuerySizeToLog > 0 && sql.length() >= maxQuerySizeToLog) break;
+                    }
                 }
                 break;
 

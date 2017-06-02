@@ -3,30 +3,35 @@
 set -x
 set -e
 
+if [ -n "PROFILE" ]
+then
+    PROFILESQL=&profileSql=true
+fi
+
 case "$TYPE" in
  "MAXSCALE" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:4006/testj?user=root&killFetchStmtOnClose=false'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:4006/testj?user=root&killFetchStmtOnClose=false$PROFILESQL'
    ;;
  "REWRITE" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&rewriteBatchedStatements=true'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&rewriteBatchedStatements=true$PROFILESQL'
    ;;
  "PREPARE" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useServerPrepStmts=true'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useServerPrepStmts=true$PROFILESQL'
    ;;
  "MULTI" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&allowMultiQueries=true'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&allowMultiQueries=true$PROFILESQL'
    ;;
  "BULK_SERVER" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=true&useServerPrepStmts=true'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=true&useServerPrepStmts=true$PROFILESQL'
    ;;
  "NO_BULK_CLIENT" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false$PROFILESQL'
    ;;
  "NO_BULK_SERVER" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false&useServerPrepStmts=true'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false&useServerPrepStmts=true$PROFILESQL'
    ;;
  "COMPRESSION" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useCompression=true'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useCompression=true$PROFILESQL'
    ;;
 esac;
 

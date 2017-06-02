@@ -238,11 +238,6 @@ public abstract class AbstractMultiSend {
                     }
                 }
 
-                if (protocol.isInterrupted()) {
-                    //interrupted during read, must throw an exception manually
-                    throw new SQLTimeoutException("Timeout during batch execution");
-                }
-
                 status.sendEnded = true;
 
                 protocol.changeSocketTcpNoDelay(protocol.getOptions().tcpNoDelay);
@@ -278,6 +273,12 @@ public abstract class AbstractMultiSend {
                 }
 
                 futureReadTask = null;
+
+                if (protocol.isInterrupted()) {
+                    //interrupted during read, must throw an exception manually
+                    throw new SQLTimeoutException("Timeout during batch execution");
+                }
+
 
             } while (status.sendCmdCounter < totalExecutionNumber);
 

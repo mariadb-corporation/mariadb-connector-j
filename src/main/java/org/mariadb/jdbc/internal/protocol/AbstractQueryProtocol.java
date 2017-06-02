@@ -363,7 +363,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     }
                 }
             }
-            stopIfinterrupted();
+            stopIfInterrupted();
 
             if (exception != null) throw exception;
             return;
@@ -499,7 +499,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             } catch (IOException e) {
                 throw handleIoException(e);
             }
-            stopIfinterrupted();
+            stopIfInterrupted();
 
         } while (currentIndex < totalQueries);
 
@@ -1480,7 +1480,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         return interrupted;
     }
 
-    private void stopIfinterrupted() throws SQLTimeoutException {
+    private void stopIfInterrupted() throws SQLTimeoutException {
         if (isInterrupted()) {
             //interrupted during read, must throw an exception manually
             throw new SQLTimeoutException("Timeout during batch execution");
