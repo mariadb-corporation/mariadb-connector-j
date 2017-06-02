@@ -275,10 +275,20 @@ public class UrlParser {
         return this;
     }
 
+    /**
+     * Detection of Aurora.
+     * <p>
+     * Aurora rely on MySQL, then cannot be identified by protocol.
+     * But Aurora doesn't permit some behaviour normally working with MySQL : pipelining.
+     * So Driver must identified if server is Aurora to disable pipeline options that are enable by default.
+     * </p>
+     *
+     * @return true if aurora.
+     */
     public boolean isAurora() {
         if (haMode == HaMode.AURORA) return true;
         if (addresses != null) {
-            Pattern clusterPattern = Pattern.compile("(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)");
+            Pattern clusterPattern = Pattern.compile("(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)", Pattern.CASE_INSENSITIVE);
             for (HostAddress hostAddress : addresses) {
                 Matcher matcher = clusterPattern.matcher(hostAddress.host);
                 if (matcher.find()) return true;
