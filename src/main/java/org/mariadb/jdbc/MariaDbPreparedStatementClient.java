@@ -358,16 +358,31 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
         } else {
             //send query one by one, reading results for each query before sending another one
             SQLException exception = null;
-            for (int batchQueriesCount = 0; batchQueriesCount < size; batchQueriesCount++) {
-                try {
 
-                    protocol.executeQuery(protocol.isMasterConnection(), results, prepareResult, parameterList.get(batchQueriesCount));
+            if (queryTimeout > 0) {
+                for (int batchQueriesCount = 0; batchQueriesCount < size; batchQueriesCount++) {
+                    protocol.stopIfInterrupted();
+                    try {
+                        protocol.executeQuery(protocol.isMasterConnection(), results, prepareResult, parameterList.get(batchQueriesCount));
+                    } catch (SQLException e) {
+                        if (options.continueBatchOnError) {
+                            exception = e;
+                        } else {
+                            throw e;
+                        }
+                    }
+                }
 
-                } catch (SQLException e) {
-                    if (options.continueBatchOnError) {
-                        exception = e;
-                    } else {
-                        throw e;
+            } else {
+                for (int batchQueriesCount = 0; batchQueriesCount < size; batchQueriesCount++) {
+                    try {
+                        protocol.executeQuery(protocol.isMasterConnection(), results, prepareResult, parameterList.get(batchQueriesCount));
+                    } catch (SQLException e) {
+                        if (options.continueBatchOnError) {
+                            exception = e;
+                        } else {
+                            throw e;
+                        }
                     }
                 }
             }

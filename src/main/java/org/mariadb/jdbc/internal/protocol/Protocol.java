@@ -71,6 +71,7 @@ import java.io.InputStream;
 import java.net.SocketException;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.concurrent.FutureTask;
@@ -276,4 +277,6 @@ public interface Protocol {
     String getTraces();
 
     boolean isInterrupted();
+
+    void stopIfInterrupted() throws SQLTimeoutException;
 }

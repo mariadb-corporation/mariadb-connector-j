@@ -244,7 +244,6 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
             executeQueryPrologue(serverPrepareResult);
 
             results.reset(0, true, queryParameterSize, true, resultSetScrollType);
-            ;
 
             //if  multi send capacity
             if (options.useBatchMultiSend) {
@@ -256,16 +255,33 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
 
             //send query one by one, reading results for each query before sending another one
             SQLException exception = null;
-            for (int counter = 0; counter < queryParameterSize; counter++) {
-                ParameterHolder[] parameterHolder = queryParameters.get(counter);
-                try {
-                    serverPrepareResult.resetParameterTypeHeader();
-                    protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
-                } catch (SQLException queryException) {
-                    if (options.continueBatchOnError) {
-                        if (exception == null) exception = queryException;
-                    } else {
-                        throw queryException;
+            if (queryTimeout > 0) {
+                for (int counter = 0; counter < queryParameterSize; counter++) {
+                    ParameterHolder[] parameterHolder = queryParameters.get(counter);
+                    try {
+                        protocol.stopIfInterrupted();
+                        serverPrepareResult.resetParameterTypeHeader();
+                        protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
+                    } catch (SQLException queryException) {
+                        if (options.continueBatchOnError) {
+                            if (exception == null) exception = queryException;
+                        } else {
+                            throw queryException;
+                        }
+                    }
+                }
+            } else {
+                for (int counter = 0; counter < queryParameterSize; counter++) {
+                    ParameterHolder[] parameterHolder = queryParameters.get(counter);
+                    try {
+                        serverPrepareResult.resetParameterTypeHeader();
+                        protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, results, parameterHolder);
+                    } catch (SQLException queryException) {
+                        if (options.continueBatchOnError) {
+                            if (exception == null) exception = queryException;
+                        } else {
+                            throw queryException;
+                        }
                     }
                 }
             }

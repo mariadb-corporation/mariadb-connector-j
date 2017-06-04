@@ -1480,7 +1480,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         return interrupted;
     }
 
-    private void stopIfInterrupted() throws SQLTimeoutException {
+    public void stopIfInterrupted() throws SQLTimeoutException {
         if (isInterrupted()) {
             //interrupted during read, must throw an exception manually
             throw new SQLTimeoutException("Timeout during batch execution");
