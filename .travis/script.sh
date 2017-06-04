@@ -3,44 +3,44 @@
 set -x
 set -e
 
-
-
-if [ -n "PROFILE" ]
-then
-    export PROFILESQL=&profileSql=true
-else
-    export PROFILESQL=
-fi
-
 case "$TYPE" in
  "MAXSCALE" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:4006/testj?user=root&killFetchStmtOnClose=false$PROFILESQL'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:4006/testj?user=root&killFetchStmtOnClose=false'
    ;;
  "REWRITE" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&rewriteBatchedStatements=true$PROFILESQL'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&rewriteBatchedStatements=true'
    ;;
  "PREPARE" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useServerPrepStmts=true$PROFILESQL'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useServerPrepStmts=true'
    ;;
  "MULTI" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&allowMultiQueries=true$PROFILESQL'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&allowMultiQueries=true'
    ;;
  "BULK_SERVER" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=true&useServerPrepStmts=true$PROFILESQL'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=true&useServerPrepStmts=true'
    ;;
  "NO_BULK_CLIENT" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false$PROFILESQL'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false'
    ;;
  "NO_BULK_SERVER" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false&useServerPrepStmts=true$PROFILESQL'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false&useServerPrepStmts=true'
    ;;
  "COMPRESSION" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useCompression=true$PROFILESQL'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useCompression=true'
    ;;
   *)
    urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root'
    ;;
 esac;
+
+
+if [ -n "$PROFILE" ]
+then
+    export urlString="$urlString&profileSql=true"
+    pwd
+    rm src/test/resources/logback-test.xml
+    mv src/test/resources/logback-test-travis.xml src/test/resources/logback-test.xml
+fi
 
 if [ -n "$AURORA" ]
 then

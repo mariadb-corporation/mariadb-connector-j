@@ -133,7 +133,7 @@ public class CancelTest extends BaseTest {
     @Test(timeout = 5000, expected = BatchUpdateException.class)
     public void timeoutPrepareBatch() throws Exception {
         Assume.assumeFalse(sharedIsAurora());
-        Assume.assumeTrue(!sharedOptions().allowMultiQueries);
+        Assume.assumeTrue(!sharedOptions().allowMultiQueries && !sharedIsRewrite());
         createTable("timeoutBatch", "aa text");
         try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
 
