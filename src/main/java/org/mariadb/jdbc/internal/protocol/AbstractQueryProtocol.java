@@ -1480,6 +1480,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         return interrupted;
     }
 
+    /**
+     * Throw TimeoutException if timeout has been reached.
+     *
+     * @throws SQLTimeoutException to indicate timeout exception.
+     */
     public void stopIfInterrupted() throws SQLTimeoutException {
         if (isInterrupted()) {
             //interrupted during read, must throw an exception manually
