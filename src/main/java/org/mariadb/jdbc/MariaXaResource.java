@@ -68,11 +68,11 @@ public class MariaXaResource implements XAResource {
     }
 
     static String xidToString(Xid xid) {
-        StringBuffer sb = new StringBuffer(2 * Xid.MAXBQUALSIZE + 2 * Xid.MAXGTRIDSIZE + 16);
+        StringBuilder sb = new StringBuilder(2 * Xid.MAXBQUALSIZE + 2 * Xid.MAXGTRIDSIZE + 16);
         sb.append("0x")
-                .append(Utils.hexdump(Integer.MAX_VALUE, 0, xid.getGlobalTransactionId()))
+                .append(Utils.byteArrayToHexString(xid.getGlobalTransactionId()))
                 .append(",0x")
-                .append(Utils.hexdump(Integer.MAX_VALUE, 0, xid.getBranchQualifier()))
+                .append(Utils.byteArrayToHexString(xid.getBranchQualifier()))
                 .append(",").append(xid.getFormatId());
         return sb.toString();
     }

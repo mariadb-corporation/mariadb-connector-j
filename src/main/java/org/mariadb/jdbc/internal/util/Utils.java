@@ -704,4 +704,16 @@ public class Utils {
         }
     }
 
+    protected static String getHex(final byte[] raw) {
+        final StringBuilder hex = new StringBuilder(2 * raw.length);
+        for (final byte b : raw) {
+            hex.append(hexArray[(b & 0xF0) >> 4])
+                    .append(hexArray[(b & 0x0F)]);
+        }
+        return hex.toString();
+    }    
+    
+    public static String byteArrayToHexString(final byte[] bytes) {
+        return (bytes != null) ? getHex(bytes) : "";
+    }    
 }
