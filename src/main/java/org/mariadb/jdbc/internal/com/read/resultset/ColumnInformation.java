@@ -99,7 +99,7 @@ public class ColumnInformation {
             4, 4, 4, 4, 0, 4, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0
     };
-    static int lazyPositionFromEnd = 0;
+
     Buffer buffer;
     private short charsetNumber;
     private long length;
@@ -135,19 +135,13 @@ public class ColumnInformation {
         2              filler [00] [00]
 
          */
-        if (lazyPositionFromEnd == 0) {
-            buffer.skipLengthEncodedBytes();  /* catalog */
-            buffer.skipLengthEncodedBytes();  /* db */
-            buffer.skipLengthEncodedBytes();  /* table */
-            buffer.skipLengthEncodedBytes();  /* original table */
-            buffer.skipLengthEncodedBytes();  /* name */
-            buffer.skipLengthEncodedBytes();  /* org_name */
-            buffer.readByte(); //fixlength field
-            lazyPositionFromEnd = buffer.limit - buffer.position;
-        } else {
-            //permit to avoid reading the 6th String encode data, almost never needed
-            buffer.position = buffer.limit - lazyPositionFromEnd;
-        }
+        buffer.skipLengthEncodedBytes();  /* catalog */
+        buffer.skipLengthEncodedBytes();  /* db */
+        buffer.skipLengthEncodedBytes();  /* table */
+        buffer.skipLengthEncodedBytes();  /* original table */
+        buffer.skipLengthEncodedBytes();  /* name */
+        buffer.skipLengthEncodedBytes();  /* org_name */
+        buffer.readByte(); //fixlength field
 
         charsetNumber = buffer.readShort();
         length = buffer.readInt();
