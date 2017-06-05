@@ -28,6 +28,7 @@ report of 2.0.2 corrections for jre 1.7 compatible version.
 
 == 2.0.2
 Bug
+*[CONJ-490] - DataSource connectTimeout is in second, but was set on socket timeout that is in milliseconds
 *[CONJ-481] - Buffer overrun reading ResultSet when using option "useServerPrepStmts"
 *[CONJ-470] - Error when executing SQL contains "values" and rewriteBatchedStatements=true
 *[CONJ-471] - PK_NAME returned by DatabaseMetadata.getPrimaryKeys() should not be null

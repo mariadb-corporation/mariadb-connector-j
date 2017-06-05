@@ -330,7 +330,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @since 1.4
      */
     public int getLoginTimeout() throws SQLException {
-        return urlParser.getOptions().connectTimeout == null ? 0 : urlParser.getOptions().connectTimeout;
+        return urlParser.getOptions().connectTimeout == null ? 0 : urlParser.getOptions().connectTimeout / 1000;
     }
 
     /**
@@ -345,7 +345,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      */
     @Override
     public void setLoginTimeout(final int seconds) throws SQLException {
-        urlParser.getOptions().connectTimeout = seconds;
+        urlParser.getOptions().connectTimeout = seconds * 1000;
     }
 
     /**
