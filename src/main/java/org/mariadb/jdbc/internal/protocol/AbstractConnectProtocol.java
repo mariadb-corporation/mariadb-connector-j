@@ -92,6 +92,7 @@ import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
@@ -296,10 +297,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             char[] keyStorePasswordChars = keyStorePassword == null ? null : keyStorePassword.toCharArray();
 
-            //permit using "file:..." for compatibility
-            if (keyStoreUrl.startsWith("file://")) keyStoreUrl = keyStoreUrl.substring(7);
+            try {
+                inStream = new FileInputStream(keyStoreUrl);
+            } catch (IOException ioexception) {
+                inStream = new URL(keyStoreUrl).openStream();
+            }
 
-            inStream = new FileInputStream(keyStoreUrl);
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
             ks.load(inStream, keyStorePasswordChars);
             char[] keyStoreChars = (keyPassword == null) ? keyStorePasswordChars : keyPassword.toCharArray();

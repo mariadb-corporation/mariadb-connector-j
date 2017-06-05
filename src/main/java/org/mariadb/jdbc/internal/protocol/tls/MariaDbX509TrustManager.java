@@ -59,6 +59,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.*;
+import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
@@ -99,10 +100,11 @@ public class MariaDbX509TrustManager implements X509TrustManager {
                 try {
                     String trustStore = options.trustStore;
 
-                    //permit using "file:..." for compatibility
-                    if (trustStore.startsWith("file://")) trustStore = trustStore.substring(7);
-                    inStream = new FileInputStream(trustStore);
-
+                    try {
+                        inStream = new FileInputStream(trustStore);
+                    } catch (IOException ioexception) {
+                        inStream = new URL(trustStore).openStream();
+                    }
                     ks.load(inStream,
                             options.trustStorePassword == null ? null : options.trustStorePassword.toCharArray());
 
