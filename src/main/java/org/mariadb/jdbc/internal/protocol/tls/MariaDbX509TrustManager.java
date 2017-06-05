@@ -101,9 +101,9 @@ public class MariaDbX509TrustManager implements X509TrustManager {
                     String trustStore = options.trustStore;
 
                     try {
-                        inStream = new FileInputStream(trustStore);
-                    } catch (IOException ioexception) {
                         inStream = new URL(trustStore).openStream();
+                    } catch (IOException ioexception) {
+                        inStream = new FileInputStream(trustStore);
                     }
                     ks.load(inStream,
                             options.trustStorePassword == null ? null : options.trustStorePassword.toCharArray());

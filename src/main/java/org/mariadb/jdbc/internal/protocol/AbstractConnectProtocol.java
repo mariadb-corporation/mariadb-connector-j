@@ -298,9 +298,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
             char[] keyStorePasswordChars = keyStorePassword == null ? null : keyStorePassword.toCharArray();
 
             try {
-                inStream = new FileInputStream(keyStoreUrl);
-            } catch (IOException ioexception) {
                 inStream = new URL(keyStoreUrl).openStream();
+            } catch (IOException ioexception) {
+                inStream = new FileInputStream(keyStoreUrl);
             }
 
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
