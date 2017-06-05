@@ -1,74 +1,77 @@
 /*
-MariaDB Client for Java
-
-Copyright (c) 2012-2014 Monty Program Ab.
-Copyright (c) 2015-2016 MariaDB Ab.
-
-This library is free software; you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the Free
-Software Foundation; either version 2.1 of the License, or (at your option)
-any later version.
-
-This library is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
-for more details.
-
-You should have received a copy of the GNU Lesser General Public License along
-with this library; if not, write to Monty Program Ab info@montyprogram.com.
-
-This particular MariaDB Client for Java file is work
-derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
-the following copyright and notice provisions:
-
-Copyright (c) 2009-2011, Marcus Eriksson
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-Redistributions of source code must retain the above copyright notice, this list
-of conditions and the following disclaimer.
-
-Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-Neither the name of the driver nor the names of its contributors may not be
-used to endorse or promote products derived from this software without specific
-prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
-OF SUCH DAMAGE.
-*/
+ *
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2017 MariaDB Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ *
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ */
 
 
 package org.mariadb.jdbc.internal.com.read.resultset;
 
-import org.mariadb.jdbc.*;
+import org.mariadb.jdbc.MariaDbBlob;
+import org.mariadb.jdbc.MariaDbClob;
+import org.mariadb.jdbc.MariaDbResultSetMetaData;
+import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.EndOfFilePacket;
+import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
+import org.mariadb.jdbc.internal.com.read.dao.ColumnNameMap;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.BinaryRowProtocol;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.RowProtocol;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtocol;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.com.read.dao.ColumnNameMap;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.Options;
-import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -89,18 +92,23 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
+import static org.mariadb.jdbc.internal.com.Packet.EOF;
+import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
-import static org.mariadb.jdbc.internal.util.constant.ServerStatus.*;
-import static org.mariadb.jdbc.internal.com.Packet.*;
+import static org.mariadb.jdbc.internal.util.constant.ServerStatus.MORE_RESULTS_EXISTS;
+import static org.mariadb.jdbc.internal.util.constant.ServerStatus.PS_OUT_PARAMETERS;
 
 @SuppressWarnings("deprecation")
 public class SelectResultSet implements ResultSet {
-    private static Logger logger = LoggerFactory.getLogger(SelectResultSet.class);
-
-    private static final ColumnInformation[] INSERT_ID_COLUMNS;
     public static final DateTimeFormatter TEXT_LOCAL_DATE_TIME;
     public static final DateTimeFormatter TEXT_OFFSET_DATE_TIME;
     public static final DateTimeFormatter TEXT_ZONED_DATE_TIME;
+    public static final int TINYINT1_IS_BIT = 1;
+    public static final int YEAR_IS_DATE_TYPE = 2;
+    private static final ColumnInformation[] INSERT_ID_COLUMNS;
+    private static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.0+$");
+    private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+    private static Logger logger = LoggerFactory.getLogger(SelectResultSet.class);
 
     static {
         INSERT_ID_COLUMNS = new ColumnInformation[1];
@@ -128,21 +136,16 @@ public class SelectResultSet implements ResultSet {
                 .toFormatter();
     }
 
-    public static final int TINYINT1_IS_BIT = 1;
-    public static final int YEAR_IS_DATE_TYPE = 2;
-    private static final String zeroTimestamp = "0000-00-00 00:00:00";
-    private static final String zeroDate = "0000-00-00";
-    private static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.0+$");
+    protected boolean isBinaryEncoded;
+    protected TimeZone timeZone;
+    protected Options options;
     private boolean callableResult;
     private Protocol protocol;
     private PacketInputStream reader;
-
     private MariaDbStatement statement;
     private RowProtocol row;
     private ColumnInformation[] columnsInformation;
-
     private boolean isEof;
-    protected boolean isBinaryEncoded;
     private int dataFetchTime;
     private boolean streaming;
     private int columnInformationLength;
@@ -152,30 +155,29 @@ public class SelectResultSet implements ResultSet {
     private int resultSetScrollType;
     private int rowPointer;
     private ColumnNameMap columnNameMap;
-    protected TimeZone timeZone;
     private boolean lastGetWasNull;
     private boolean lastValueNull;
     private int lastRowPointer = -1;
     private int dataTypeMappingFlags;
-    protected Options options;
     private boolean returnTableAlias;
     private boolean isClosed;
     private boolean eofDeprecated;
 
+
     /**
      * Create Streaming resultSet.
      *
-     * @param columnInformation   column information
-     * @param results             results
-     * @param protocol            current protocol
-     * @param reader              stream fetcher
-     * @param callableResult      is it from a callableStatement ?
-     * @param eofDeprecated       is EOF deprecated
-     * @throws IOException if any connection error occur
+     * @param columnInformation column information
+     * @param results           results
+     * @param protocol          current protocol
+     * @param reader            stream fetcher
+     * @param callableResult    is it from a callableStatement ?
+     * @param eofDeprecated     is EOF deprecated
+     * @throws IOException  if any connection error occur
      * @throws SQLException if any connection error occur
      */
     public SelectResultSet(ColumnInformation[] columnInformation, Results results, Protocol protocol,
-                                PacketInputStream reader, boolean callableResult, boolean eofDeprecated)
+                           PacketInputStream reader, boolean callableResult, boolean eofDeprecated)
             throws IOException, SQLException {
         this.statement = results.getStatement();
         this.isClosed = false;
@@ -218,7 +220,6 @@ public class SelectResultSet implements ResultSet {
 
     }
 
-
     /**
      * Create filled result-set.
      *
@@ -229,7 +230,7 @@ public class SelectResultSet implements ResultSet {
      *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      */
     public SelectResultSet(ColumnInformation[] columnInformation, List<byte[]> resultSet, Protocol protocol,
-                                int resultSetScrollType) {
+                           int resultSetScrollType) {
         this.statement = null;
         this.isClosed = false;
         this.row = new TextRowProtocol(0);
@@ -290,7 +291,6 @@ public class SelectResultSet implements ResultSet {
         }
         return new SelectResultSet(columns, rows, protocol, TYPE_SCROLL_SENSITIVE);
     }
-
 
     /**
      * Create a result set from given data. Useful for creating "fake" resultSets for DatabaseMetaData, (one example is
@@ -391,11 +391,10 @@ public class SelectResultSet implements ResultSet {
         }
     }
 
-
     /**
      * This permit to replace current stream results by next ones.
      *
-     * @throws IOException if socket exception occur
+     * @throws IOException  if socket exception occur
      * @throws SQLException if server return an unexpected error
      */
     private void nextStreamingValue() throws IOException, SQLException {
@@ -411,7 +410,7 @@ public class SelectResultSet implements ResultSet {
     /**
      * This permit to add next streaming values to existing resultSet.
      *
-     * @throws IOException if socket exception occur
+     * @throws IOException  if socket exception occur
      * @throws SQLException if server return an unexpected error
      */
     private void addStreamingValue() throws IOException, SQLException {
@@ -428,7 +427,7 @@ public class SelectResultSet implements ResultSet {
      * Read next value.
      *
      * @return true if have a new value
-     * @throws IOException    exception
+     * @throws IOException  exception
      * @throws SQLException exception
      */
     public boolean readNextValue() throws IOException, SQLException {
@@ -526,8 +525,6 @@ public class SelectResultSet implements ResultSet {
         }
         return pos;
     }
-
-    private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
     /**
      * Grow data array.
@@ -693,7 +690,7 @@ public class SelectResultSet implements ResultSet {
             //has read all data and pointer is after last result
             //so result would have to always to be true,
             //but when result contain no row at all jdbc say that must return false
-            return dataSize > 0  || dataFetchTime > 1;
+            return dataSize > 0 || dataFetchTime > 1;
         }
     }
 
@@ -1035,7 +1032,7 @@ public class SelectResultSet implements ResultSet {
             case DECIMAL:
             case OLDDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
-                return (bigDecimal == null ) ? null : zeroFillingIfNeeded(bigDecimal.toString(), columnInfo);
+                return (bigDecimal == null) ? null : zeroFillingIfNeeded(bigDecimal.toString(), columnInfo);
             case GEOMETRY:
                 return new String(row.buf, row.pos, row.length);
             case NULL:
@@ -1792,8 +1789,8 @@ public class SelectResultSet implements ResultSet {
     /**
      * Get timeStamp from raw data.
      *
-     * @param columnInfo    current column information
-     * @param userCalendar  user calendar.
+     * @param columnInfo   current column information
+     * @param userCalendar user calendar.
      * @return timestamp.
      * @throws SQLException if text value cannot be parse
      */
@@ -4169,7 +4166,6 @@ public class SelectResultSet implements ResultSet {
 
         }
     }
-
 
 
     /**

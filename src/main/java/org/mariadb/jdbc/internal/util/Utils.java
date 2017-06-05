@@ -1,67 +1,70 @@
-package org.mariadb.jdbc.internal.util;
-
 /*
-MariaDB Client for Java
+ *
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2017 MariaDB Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ *
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ */
 
-Copyright (c) 2012-2014 Monty Program Ab.
-
-This library is free software; you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the Free
-Software Foundation; either version 2.1 of the License, or (at your option)
-any later version.
-
-This library is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
-for more details.
-
-You should have received a copy of the GNU Lesser General Public License along
-with this library; if not, write to Monty Program Ab info@montyprogram.com.
-
-This particular MariaDB Client for Java file is work
-derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
-the following copyright and notice provisions:
-
-
-Copyright (c) 2009-2011, Marcus Eriksson, Jay Pipes
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-Redistributions of source code must retain the above copyright notice, this list
-of conditions and the following disclaimer.
-
-Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-Neither the name of the driver nor the names of its contributors may not be
-used to endorse or promote products derived from this software without specific
-prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
-OF SUCH DAMAGE.
-*/
+package org.mariadb.jdbc.internal.util;
 
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
+import org.mariadb.jdbc.internal.io.socket.NamedPipeSocket;
+import org.mariadb.jdbc.internal.io.socket.SharedMemorySocket;
+import org.mariadb.jdbc.internal.io.socket.UnixDomainSocket;
 import org.mariadb.jdbc.internal.logging.ProtocolLoggingProxy;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
 import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.io.socket.NamedPipeSocket;
-import org.mariadb.jdbc.internal.io.socket.SharedMemorySocket;
-import org.mariadb.jdbc.internal.io.socket.UnixDomainSocket;
 
 import javax.net.SocketFactory;
 import java.io.IOException;
@@ -114,8 +117,7 @@ public class Utils {
      * @param seed                      the seed to use
      * @param passwordCharacterEncoding password character encoding
      * @return a scrambled password
-     *
-     * @throws NoSuchAlgorithmException if SHA1 is not available on the platform we are using
+     * @throws NoSuchAlgorithmException     if SHA1 is not available on the platform we are using
      * @throws UnsupportedEncodingException if passwordCharacterEncoding is not a valid charset name
      */
     public static byte[] encryptPassword(final String password, final byte[] seed, String passwordCharacterEncoding)
@@ -454,7 +456,7 @@ public class Utils {
      * @param urlParser urlParser corresponding to connection url string.
      * @param lock      lock to handle thread synchronisation
      * @return protocol
-     * @throws SQLException   if any error occur during connection
+     * @throws SQLException if any error occur during connection
      */
     public static Protocol retrieveProxy(final UrlParser urlParser, final ReentrantLock lock) throws SQLException {
         Protocol protocol;
@@ -561,7 +563,7 @@ public class Utils {
     /**
      * Hexdump.
      *
-     * @param bytes             byte arrays
+     * @param bytes byte arrays
      * @return String
      */
     public static String hexdump(byte[]... bytes) {
@@ -582,7 +584,7 @@ public class Utils {
 
     /**
      * Hexdump.
-     *
+     * <p>
      * String output example :
      * <pre>
      * {@code
@@ -600,7 +602,7 @@ public class Utils {
      *    00 08 01 34 03 61 61 61  06 00 00 09 01 35 03 62     ...4.aaa.....5.b
      *    62 62 06 00 00 0A 01 36  03 63 63 63 05 00 00 0B     bb.....6.ccc....
      *    FE 00 00 22 00                                       ...".
-     *}
+     * }
      * </pre>
      *
      * @param maxQuerySizeToLog max log size
@@ -642,7 +644,7 @@ public class Utils {
 
     /**
      * Write bytes/hexadecimal value of a byte array to a StringBuilder.
-     *
+     * <p>
      * String output example :
      * <pre>
      * {@code
@@ -650,12 +652,13 @@ public class Utils {
      * 65 20 42 6C 6F 62 54 65  73 74 63 6C 6F 62 74 65     e BlobTestclobte
      * 73 74 32 20 28 73 74 72  6D 20 74 65 78 74 29 20     st2 (strm text)
      * 43 48 41 52 53 45 54 20  75 74 66 38                 CHARSET utf8
-     *}
+     * }
      * </pre>
-     * @param bytes             byte array
-     * @param offset            offset
-     * @param dataLength        byte length to write
-     * @param outputBuilder     string builder
+     *
+     * @param bytes         byte array
+     * @param offset        offset
+     * @param dataLength    byte length to write
+     * @param outputBuilder string builder
      */
     public static void writeHex(byte[] bytes, int offset, int dataLength, StringBuilder outputBuilder) {
 
@@ -696,7 +699,7 @@ public class Utils {
                 outputBuilder.append(" ");
             }
 
-            for (;remaining < 16; remaining++) outputBuilder.append("   ");
+            for (; remaining < 16; remaining++) outputBuilder.append("   ");
 
             outputBuilder.append("    ")
                     .append(hexaValue, 0, posHexa)
@@ -704,4 +707,16 @@ public class Utils {
         }
     }
 
+    protected static String getHex(final byte[] raw) {
+        final StringBuilder hex = new StringBuilder(2 * raw.length);
+        for (final byte b : raw) {
+            hex.append(hexArray[(b & 0xF0) >> 4])
+                    .append(hexArray[(b & 0x0F)]);
+        }
+        return hex.toString();
+    }
+
+    public static String byteArrayToHexString(final byte[] bytes) {
+        return (bytes != null) ? getHex(bytes) : "";
+    }    
 }

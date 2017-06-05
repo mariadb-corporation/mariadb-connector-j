@@ -1,3 +1,55 @@
+/*
+ *
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2017 MariaDB Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ *
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ */
+
 package org.mariadb.jdbc;
 
 import org.junit.Test;
@@ -22,13 +74,67 @@ public class JdbcParserTest {
 
     @Test
     public void testAuroraUseBatchMultiSend() throws Throwable {
-        UrlParser notAuroraDatas = UrlParser.parse("jdbc:mariadb://localhost/test?useBatchMultiSend=true");
-        assertTrue(notAuroraDatas.getOptions().useBatchMultiSend);
+        assertTrue(UrlParser.parse("jdbc:mariadb://localhost/test")
+                .auroraPipelineQuirks().getOptions().useBatchMultiSend);
+        assertTrue(UrlParser.parse("jdbc:mariadb://localhost/test?useBatchMultiSend=true")
+                .auroraPipelineQuirks().getOptions().useBatchMultiSend);
+        assertFalse(UrlParser.parse("jdbc:mariadb://localhost/test?useBatchMultiSend=false")
+                .auroraPipelineQuirks().getOptions().useBatchMultiSend);
 
-        UrlParser auroraDatas = UrlParser.parse("jdbc:mariadb:aurora://localhost/test?useBatchMultiSend=true");
-        assertFalse(auroraDatas.getOptions().useBatchMultiSend);
+        assertFalse(UrlParser.parse("jdbc:mariadb:aurora://localhost/test")
+                .auroraPipelineQuirks().getOptions().useBatchMultiSend);
+        assertTrue(UrlParser.parse("jdbc:mariadb:aurora://localhost/test?useBatchMultiSend=true")
+                .auroraPipelineQuirks().getOptions().useBatchMultiSend);
+
+        String hostAurora = "jdbc:mariadb://localhost,instance-1-cluster.cluster-cvz6gk5op1wk.us-east-1.rds.amazonaws.com:3306/test";
+        assertFalse(UrlParser.parse(hostAurora).auroraPipelineQuirks().getOptions().useBatchMultiSend);
+        assertTrue(UrlParser.parse(hostAurora + "?useBatchMultiSend=true")
+                .auroraPipelineQuirks().getOptions().useBatchMultiSend);
+
+        String hostAuroraUpper = "jdbc:mariadb://localhost,instance-1-cluster.cluster-cvz6gk5op1wk.us-east-1.rds.AMAZONAWS.com:3306/test";
+        assertFalse(UrlParser.parse(hostAuroraUpper).auroraPipelineQuirks().getOptions().useBatchMultiSend);
+        assertTrue(UrlParser.parse(hostAuroraUpper + "?useBatchMultiSend=true")
+                .auroraPipelineQuirks().getOptions().useBatchMultiSend);
+
+        MariaDbDataSource datasource = new MariaDbDataSource();
+        assertNull(datasource.getUrlParser().getOptions().useBatchMultiSend);
+        datasource.setUrl(hostAurora);
+        assertFalse(datasource.getUrlParser().auroraPipelineQuirks().getOptions().useBatchMultiSend);
+        datasource.setProperties("useBatchMultiSend=true");
+        assertTrue(datasource.getUrlParser().auroraPipelineQuirks().getOptions().useBatchMultiSend);
     }
 
+    @Test
+    public void testAuroraUsePipelineAuth() throws Throwable {
+        assertTrue(UrlParser.parse("jdbc:mariadb://localhost/test")
+                .auroraPipelineQuirks().getOptions().usePipelineAuth);
+        assertTrue(UrlParser.parse("jdbc:mariadb://localhost/test?usePipelineAuth=true")
+                .auroraPipelineQuirks().getOptions().usePipelineAuth);
+        assertFalse(UrlParser.parse("jdbc:mariadb://localhost/test?usePipelineAuth=false")
+                .auroraPipelineQuirks().getOptions().usePipelineAuth);
+
+        assertFalse(UrlParser.parse("jdbc:mariadb:aurora://localhost/test")
+                .auroraPipelineQuirks().getOptions().usePipelineAuth);
+        assertTrue(UrlParser.parse("jdbc:mariadb:aurora://localhost/test?usePipelineAuth=true")
+                .auroraPipelineQuirks().getOptions().usePipelineAuth);
+
+        String hostAurora = "jdbc:mariadb://localhost,instance-1-cluster.cluster-cvz6gk5op1wk.us-east-1.rds.amazonaws.com:3306/test";
+        assertFalse(UrlParser.parse(hostAurora).auroraPipelineQuirks().getOptions().usePipelineAuth);
+        assertTrue(UrlParser.parse(hostAurora + "?usePipelineAuth=true").getOptions().usePipelineAuth);
+
+
+
+        String hostAuroraUpper = "jdbc:mariadb://localhost,instance-1-cluster.cluster-cvz6gk5op1wk.us-east-1.RDS.amazonaws.com:3306/test";
+        assertFalse(UrlParser.parse(hostAuroraUpper).auroraPipelineQuirks().getOptions().usePipelineAuth);
+        assertTrue(UrlParser.parse(hostAuroraUpper + "?usePipelineAuth=true").getOptions().usePipelineAuth);
+
+        MariaDbDataSource datasource = new MariaDbDataSource();
+        assertNull(datasource.getUrlParser().getOptions().usePipelineAuth);
+        datasource.setUrl(hostAurora);
+        assertFalse(datasource.getUrlParser().auroraPipelineQuirks().getOptions().usePipelineAuth);
+        datasource.setProperties("usePipelineAuth=true");
+        assertTrue(datasource.getUrlParser().auroraPipelineQuirks().getOptions().usePipelineAuth);
+    }
 
     @Test
     public void testAcceptsUrl() throws Throwable {
@@ -118,6 +224,19 @@ public class JdbcParserTest {
         assertTrue("root".equals(jdbc.getOptions().user));
     }
 
+
+    @Test
+    public void testWithoutDb() throws Throwable {
+        UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/?user=root&autoReconnect=true");
+        assertTrue(jdbc.getOptions().autoReconnect);
+        assertNull(jdbc.getDatabase());
+
+        UrlParser jdbc2 = UrlParser.parse("jdbc:mariadb://localhost?user=root&autoReconnect=true");
+        assertTrue(jdbc2.getOptions().autoReconnect);
+        assertNull(jdbc2.getDatabase());
+
+    }
+
     @Test(expected = SQLException.class)
     public void testOptionParseIntegerNotPossible() throws Throwable {
         UrlParser.parse("jdbc:mariadb://localhost/test?user=root&autoReconnect=true&validConnectionTimeout=-2"
@@ -183,21 +302,16 @@ public class JdbcParserTest {
     }
 
     @Test
-    public void testJdbcParserSimpleIpv4PropertiesReversedOrder() throws SQLException {
-        String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308?autoReconnect=true/database";
+    public void testJdbcParserBooleanOption() throws SQLException {
+        String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308?autoReconnect=truee";
         Properties prop = new Properties();
         prop.setProperty("user", "greg");
         prop.setProperty("password", "pass");
-
-        UrlParser urlParser = UrlParser.parse(url, prop);
-        assertTrue("database".equals(urlParser.getDatabase()));
-        assertTrue("greg".equals(urlParser.getUsername()));
-        assertTrue("pass".equals(urlParser.getPassword()));
-        assertTrue(urlParser.getOptions().autoReconnect);
-        assertTrue(urlParser.getHostAddresses().size() == 3);
-        assertTrue(new HostAddress("master", 3306).equals(urlParser.getHostAddresses().get(0)));
-        assertTrue(new HostAddress("slave1", 3307).equals(urlParser.getHostAddresses().get(1)));
-        assertTrue(new HostAddress("slave2", 3308).equals(urlParser.getHostAddresses().get(2)));
+        try {
+            UrlParser.parse(url, prop);
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Optional parameter autoReconnect must be boolean (true/false or 0/1) was \"truee\""));
+        }
     }
 
     @Test
@@ -301,6 +415,7 @@ public class JdbcParserTest {
 
     /**
      * Conj-167 : Driver is throwing IllegalArgumentException instead of returning null.
+     *
      * @throws SQLException if any exception occur
      */
     @Test
@@ -311,6 +426,7 @@ public class JdbcParserTest {
 
     /**
      * CONJ-423] driver doesn't accept connection string with "disableMariaDbDriver".
+     *
      * @throws SQLException if any exception occur
      */
     @Test
@@ -321,6 +437,7 @@ public class JdbcParserTest {
 
     /**
      * CONJ-452 : correcting line break in connection url.
+     *
      * @throws SQLException if any exception occur
      */
     @Test
@@ -376,6 +493,7 @@ public class JdbcParserTest {
 
     /**
      * CONJ-464 : Using of "slowQueryThresholdNanos" option results in class cast exception.
+     *
      * @throws SQLException if any exception occur
      */
     @Test

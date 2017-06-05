@@ -1,59 +1,64 @@
 /*
-MariaDB Client for Java
-
-Copyright (c) 2012-2014 Monty Program Ab.
-Copyright (c) 2012-2016 MariaDB Corporation AB
-
-This library is free software; you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the Free
-Software Foundation; either version 2.1 of the License, or (at your option)
-any later version.
-
-This library is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
-for more details.
-
-You should have received a copy of the GNU Lesser General Public License along
-with this library; if not, write to Monty Program Ab info@montyprogram.com.
-
-This particular MariaDB Client for Java file is work
-derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
-the following copyright and notice provisions:
-
-Copyright (c) 2009-2011, Marcus Eriksson
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-Redistributions of source code must retain the above copyright notice, this list
-of conditions and the following disclaimer.
-
-Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-Neither the name of the driver nor the names of its contributors may not be
-used to endorse or promote products derived from this software without specific
-prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
-OF SUCH DAMAGE.
-*/
+ *
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2017 MariaDB Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ *
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ */
 
 package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.CallableStatementCache;
+import org.mariadb.jdbc.internal.util.ClientPrepareStatementCache;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
@@ -116,9 +121,9 @@ public class MariaDbConnection implements Connection {
     /**
      * Creates a new connection with a given protocol and query factory.
      *
-     * @param initialUrl    initial url
-     * @param protocol      the protocol to use.
-     * @param lock          lock
+     * @param initialUrl initial url
+     * @param protocol   the protocol to use.
+     * @param lock       lock
      */
     private MariaDbConnection(String initialUrl, Protocol protocol, ReentrantLock lock) throws SQLException {
         this.protocol = protocol;
@@ -190,7 +195,7 @@ public class MariaDbConnection implements Connection {
      * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
      *                             <code>ResultSet.CONCUR_UPDATABLE</code>
      * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects with the given
-     *         type and concurrency
+     * type and concurrency
      * @throws SQLException if a database access error occurs, this method is called on a closed connection or the given
      *                      parameters are not <code>ResultSet</code> constants indicating type and concurrency
      */
@@ -925,7 +930,7 @@ public class MariaDbConnection implements Connection {
      * object.
      *
      * @return the holdability, one of <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
-     *         <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
+     * <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
      * @throws SQLException if a database access error occurs or this method is called on a closed connection
      * @see #setHoldability
      * @see DatabaseMetaData#getResultSetHoldability
@@ -1114,6 +1119,42 @@ public class MariaDbConnection implements Connection {
     }
 
     /**
+     * <p>Sets the value of the connection's client info properties.  The <code>Properties</code> object contains the
+     * names and values of the client info properties to be set.  The set of client info properties contained in the
+     * properties list replaces the current set of client info properties on the connection.  If a property that is
+     * currently set on the connection is not present in the properties list, that property is
+     * cleared. Specifying an empty properties list will clear all of the properties on the connection.  See
+     * <code>setClientInfo (String, String)</code> for more information.</p>
+     * <p>If an error occurs in setting any of the client info properties, a <code>SQLClientInfoException</code> is
+     * thrown. The <code>SQLClientInfoException</code> contains information indicating which client info properties
+     * were not set. The state of the client information is unknown because some databases do not allow multiple
+     * client info properties to be set atomically.  For those databases, one or
+     * more properties may have been set before the error occurred.</p>
+     *
+     * @param properties the list of client info properties to set
+     * @throws SQLClientInfoException if the database server returns an error while setting the clientInfo values on the
+     *                                database server or
+     *                                this method is called on a closed connection
+     * @see Connection#setClientInfo(String, String) setClientInfo(String, String)
+     * @since 1.6
+     */
+    public void setClientInfo(final Properties properties) throws SQLClientInfoException {
+        Map<String, ClientInfoStatus> propertiesExceptions = new HashMap<>();
+        for (String name : new String[]{"ApplicationName", "ClientUser", "ClientHostname"}) {
+            try {
+                setClientInfo(name, properties.getProperty(name));
+            } catch (SQLClientInfoException e) {
+                propertiesExceptions.putAll(e.getFailedProperties());
+            }
+        }
+
+        if (!propertiesExceptions.isEmpty()) {
+            String errorMsg = "setClientInfo errors : the following properties where not set : " + propertiesExceptions.keySet();
+            throw new SQLClientInfoException(errorMsg, propertiesExceptions);
+        }
+    }
+
+    /**
      * <p>Sets the value of the client info property specified by name to the value specified by value.</p>
      * <p>Applications may use the <code>DatabaseMetaData.getClientInfoProperties</code> method to determine the client info properties supported by
      * the driver and the maximum length that may be specified for each property.</p>
@@ -1207,41 +1248,34 @@ public class MariaDbConnection implements Connection {
         }
     }
 
-
     /**
-     * <p>Sets the value of the connection's client info properties.  The <code>Properties</code> object contains the
-     * names and values of the client info properties to be set.  The set of client info properties contained in the
-     * properties list replaces the current set of client info properties on the connection.  If a property that is
-     * currently set on the connection is not present in the properties list, that property is
-     * cleared. Specifying an empty properties list will clear all of the properties on the connection.  See
-     * <code>setClientInfo (String, String)</code> for more information.</p>
-     * <p>If an error occurs in setting any of the client info properties, a <code>SQLClientInfoException</code> is
-     * thrown. The <code>SQLClientInfoException</code> contains information indicating which client info properties
-     * were not set. The state of the client information is unknown because some databases do not allow multiple
-     * client info properties to be set atomically.  For those databases, one or
-     * more properties may have been set before the error occurred.</p>
+     * Returns a list containing the name and current value of each client info property supported by the driver.  The value of a client info property
+     * may be null if the property has not been set and does not have a default value.
      *
-     * @param properties the list of client info properties to set
-     * @throws SQLClientInfoException if the database server returns an error while setting the clientInfo values on the
-     *                                database server or
-     *                                this method is called on a closed connection
-     * @see Connection#setClientInfo(String, String) setClientInfo(String, String)
+     * @return A <code>Properties</code> object that contains the name and current value of each of the client info properties supported by the
+     * driver.
+     * @throws SQLException if the database server returns an error when fetching the client info values from the database or this method is
+     *                      called on a closed connection
      * @since 1.6
      */
-    public void setClientInfo(final Properties properties) throws SQLClientInfoException {
-        Map<String, ClientInfoStatus> propertiesExceptions = new HashMap<>();
-        for (String name : new String[]{"ApplicationName", "ClientUser", "ClientHostname"}) {
-            try {
-                setClientInfo(name, properties.getProperty(name));
-            } catch (SQLClientInfoException e) {
-                propertiesExceptions.putAll(e.getFailedProperties());
+    public Properties getClientInfo() throws SQLException {
+        checkConnection();
+        try (Statement statement = createStatement()) {
+            try (ResultSet rs = statement.executeQuery("SELECT @ApplicationName, @ClientUser, @ClientHostname")) {
+                if (rs.next()) {
+                    Properties properties = new Properties();
+                    if (rs.getString(1) != null) properties.setProperty("ApplicationName", rs.getString(1));
+                    if (rs.getString(2) != null) properties.setProperty("ClientUser", rs.getString(2));
+                    if (rs.getString(3) != null) properties.setProperty("ClientHostname", rs.getString(3));
+                    return properties;
+                }
             }
         }
-
-        if (!propertiesExceptions.isEmpty()) {
-            String errorMsg = "setClientInfo errors : the following properties where not set : " + propertiesExceptions.keySet();
-            throw new SQLClientInfoException(errorMsg, propertiesExceptions);
-        }
+        Properties properties = new Properties();
+        properties.setProperty("ApplicationName", null);
+        properties.setProperty("ClientUser", null);
+        properties.setProperty("ClientHostname", null);
+        return new Properties();
     }
 
     /**
@@ -1271,36 +1305,6 @@ public class MariaDbConnection implements Connection {
             }
         }
         return null;
-    }
-
-    /**
-     * Returns a list containing the name and current value of each client info property supported by the driver.  The value of a client info property
-     * may be null if the property has not been set and does not have a default value.
-     *
-     * @return A <code>Properties</code> object that contains the name and current value of each of the client info properties supported by the
-     * driver.
-     * @throws SQLException if the database server returns an error when fetching the client info values from the database or this method is
-     *                      called on a closed connection
-     * @since 1.6
-     */
-    public Properties getClientInfo() throws SQLException {
-        checkConnection();
-        try (Statement statement = createStatement()) {
-            try (ResultSet rs = statement.executeQuery("SELECT @ApplicationName, @ClientUser, @ClientHostname")) {
-                if (rs.next()) {
-                    Properties properties = new Properties();
-                    if (rs.getString(1) != null) properties.setProperty("ApplicationName", rs.getString(1));
-                    if (rs.getString(2) != null) properties.setProperty("ClientUser", rs.getString(2));
-                    if (rs.getString(3) != null) properties.setProperty("ClientHostname", rs.getString(3));
-                    return properties;
-                }
-            }
-        }
-        Properties properties = new Properties();
-        properties.setProperty("ApplicationName", null);
-        properties.setProperty("ClientUser", null);
-        properties.setProperty("ClientHostname", null);
-        return new Properties();
     }
 
     /**
@@ -1533,9 +1537,6 @@ public class MariaDbConnection implements Connection {
         SecurityManager securityManager = System.getSecurityManager();
         if (securityManager != null && sqlPermission != null) {
             securityManager.checkPermission(sqlPermission);
-        }
-        if (executor == null) {
-            throw ExceptionMapper.getSqlException("Cannot set the connection timeout: null executor passed");
         }
         try {
             protocol.setTimeout(milliseconds);

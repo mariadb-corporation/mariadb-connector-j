@@ -1,6 +1,58 @@
+/*
+ *
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2017 MariaDB Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ *
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ */
+
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
+
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -13,6 +65,9 @@ import java.util.TimeZone;
 import static org.junit.Assert.*;
 
 public class DateTest extends BaseTest {
+    private static final String TIMESTAMP_1 = "2015-05-13 08:15:14";
+    private static final String TIMESTAMP_YEAR_ZERO = "0000-11-15 10:15:22";
+
     /**
      * Initialization.
      *
@@ -35,7 +90,6 @@ public class DateTest extends BaseTest {
             createTable("timestampAsDate", "ts timestamp(6), dt datetime(6), dd date");
         }
     }
-
 
     @Test
     public void dateTestLegacy() throws SQLException {
@@ -303,29 +357,28 @@ public class DateTest extends BaseTest {
         preparedStatement1.execute();
 
         Date dateWithoutTime = new Date(cal.getTimeInMillis());
-        Time zeroTime = new Time(cal3.getTimeInMillis());
 
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from timestampAsDate");
-        checkResult(rs, currentTimeStamp, cal, dateWithoutTime, zeroTime);
+        checkResult(rs, currentTimeStamp, cal, dateWithoutTime);
 
         PreparedStatement pstmt = sharedConnection.prepareStatement("select * from timestampAsDate where 1 = ?");
         pstmt.setInt(1, 1);
         pstmt.addBatch();
         rs = pstmt.executeQuery();
-        checkResult(rs, currentTimeStamp, cal, dateWithoutTime, zeroTime);
+        checkResult(rs, currentTimeStamp, cal, dateWithoutTime);
     }
 
-    private void checkResult(ResultSet rs, Timestamp currentTimeStamp, Calendar cal, Date dateWithoutTime, Time zeroTime) throws SQLException {
+    private void checkResult(ResultSet rs, Timestamp currentTimeStamp, Calendar cal, Date dateWithoutTime) throws SQLException {
         if (rs.next()) {
-            Assert.assertEquals(rs.getTimestamp(1), currentTimeStamp);
-            Assert.assertEquals(rs.getTimestamp(2), currentTimeStamp);
-            Assert.assertEquals(rs.getTimestamp(3), new Timestamp(cal.getTimeInMillis()));
+            assertEquals(rs.getTimestamp(1), currentTimeStamp);
+            assertEquals(rs.getTimestamp(2), currentTimeStamp);
+            assertEquals(rs.getTimestamp(3), new Timestamp(cal.getTimeInMillis()));
 
-            Assert.assertEquals(rs.getDate(1), new Date(currentTimeStamp.getTime()));
-            Assert.assertEquals(rs.getDate(2), new Date(currentTimeStamp.getTime()));
-            Assert.assertEquals(rs.getDate(3), dateWithoutTime);
-            Assert.assertEquals(rs.getTime(1), new Time(currentTimeStamp.getTime()));
-            Assert.assertEquals(rs.getTime(2), new Time(currentTimeStamp.getTime()));
+            assertEquals(rs.getDate(1), new Date(currentTimeStamp.getTime()));
+            assertEquals(rs.getDate(2), new Date(currentTimeStamp.getTime()));
+            assertEquals(rs.getDate(3), dateWithoutTime);
+            assertEquals(rs.getTime(1), new Time(currentTimeStamp.getTime()));
+            assertEquals(rs.getTime(2), new Time(currentTimeStamp.getTime()));
             try {
                 rs.getTime(3);
                 fail();
@@ -339,7 +392,6 @@ public class DateTest extends BaseTest {
 
     }
 
-
     @Test
     public void javaUtilDateInPreparedStatementAsTimeStamp() throws Exception {
         java.util.Date currentDate = Calendar.getInstance(TimeZone.getDefault()).getTime();
@@ -349,7 +401,7 @@ public class DateTest extends BaseTest {
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from dtest");
         rs.next();
         /* Check that time is correct, up to seconds precision */
-        Assert.assertTrue(Math.abs((currentDate.getTime() - rs.getTimestamp(1).getTime())) <= 1000);
+        assertTrue(Math.abs((currentDate.getTime() - rs.getTimestamp(1).getTime())) <= 1000);
     }
 
     @Test
@@ -394,9 +446,8 @@ public class DateTest extends BaseTest {
         calendar.set(Calendar.DAY_OF_MONTH, 1);
 
         /* Check that time is correct, up to seconds precision */
-        Assert.assertTrue(Math.abs(calendar.getTimeInMillis() - rs.getTime(1).getTime()) <= 1000);
+        assertTrue(Math.abs(calendar.getTimeInMillis() - rs.getTime(1).getTime()) <= 1000);
     }
-
 
     @Test
     public void serverTimezone() throws Exception {
@@ -490,7 +541,6 @@ public class DateTest extends BaseTest {
         }
     }
 
-
     @Test
     public void dateTestWhenServerDifferenceClient() throws Throwable {
         try (Connection connection = setConnection("&serverTimezone=UTC")) {
@@ -511,7 +561,6 @@ public class DateTest extends BaseTest {
         }
     }
 
-
     /**
      * Conj-267 : null pointer exception getting zero date.
      */
@@ -525,13 +574,13 @@ public class DateTest extends BaseTest {
             PreparedStatement pst = sharedConnection.prepareStatement("SELECT * FROM date_test5 WHERE 1 = ?");
             pst.setInt(1, 1);
             ResultSet rs = pst.executeQuery();
-            Assert.assertTrue(rs.next());
+            assertTrue(rs.next());
             if (sharedUsePrepare()) {
-                Assert.assertNull(rs.getString(1));
-                Assert.assertNull(rs.getDate(1));
+                assertNull(rs.getString(1));
+                assertNull(rs.getDate(1));
             } else {
-                Assert.assertEquals("0000-00-00", rs.getString(1));
-                Assert.assertNull(rs.getDate(1));
+                assertEquals("0000-00-00", rs.getString(1));
+                assertNull(rs.getDate(1));
             }
         } catch (SQLDataException sqldataException) {
             //'0000-00-00' doesn't work anymore on mysql 5.7.
@@ -553,21 +602,21 @@ public class DateTest extends BaseTest {
             PreparedStatement pst = sharedConnection.prepareStatement("SELECT * FROM nulltimestamp WHERE 1 = ?");
             pst.setInt(1, 1);
             ResultSet rs = pst.executeQuery();
-            Assert.assertTrue(rs.next());
+            assertTrue(rs.next());
             if (sharedUsePrepare()) {
-                Assert.assertEquals(null, rs.getString(1));
+                assertEquals(null, rs.getString(1));
             } else {
-                Assert.assertTrue(rs.getString(1).contains("0000-00-00 00:00:00"));
+                assertTrue(rs.getString(1).contains("0000-00-00 00:00:00"));
             }
-            Assert.assertNull(rs.getDate(1));
-            Assert.assertNull(rs.getTimestamp(1));
-            Assert.assertNull(rs.getTime(1));
+            assertNull(rs.getDate(1));
+            assertNull(rs.getTimestamp(1));
+            assertNull(rs.getTime(1));
 
-            Assert.assertTrue(rs.next());
-            Assert.assertNull(rs.getString(1));
-            Assert.assertNull(rs.getDate(1));
-            Assert.assertNull(rs.getTimestamp(1));
-            Assert.assertNull(rs.getTime(1));
+            assertTrue(rs.next());
+            assertNull(rs.getString(1));
+            assertNull(rs.getDate(1));
+            assertNull(rs.getTimestamp(1));
+            assertNull(rs.getTime(1));
 
         } catch (SQLDataException sqldataException) {
             //'0000-00-00' doesn't work anymore on mysql 5.7.
@@ -587,24 +636,21 @@ public class DateTest extends BaseTest {
             statement.execute("INSERT INTO zeroTimestamp values ('0000-00-00 00:00:00')");
             try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT * from zeroTimestamp")) {
                 ResultSet resultSet = preparedStatement.executeQuery();
-                Assert.assertTrue(resultSet.next());
-                Assert.assertEquals(null, resultSet.getDate(1));
+                assertTrue(resultSet.next());
+                assertEquals(null, resultSet.getDate(1));
                 if (sharedUsePrepare()) {
-                    Assert.assertEquals(null, resultSet.getString(1));
+                    assertEquals(null, resultSet.getString(1));
                 } else {
-                    Assert.assertTrue(resultSet.getString(1).contains("0000-00-00 00:00:00"));
+                    assertTrue(resultSet.getString(1).contains("0000-00-00 00:00:00"));
                 }
             }
 
             ResultSet resultSet = statement.executeQuery("SELECT * from zeroTimestamp");
-            Assert.assertTrue(resultSet.next());
-            Assert.assertEquals(null, resultSet.getDate(1));
-            Assert.assertTrue(resultSet.getString(1).contains("0000-00-00 00:00:00"));
+            assertTrue(resultSet.next());
+            assertEquals(null, resultSet.getDate(1));
+            assertTrue(resultSet.getString(1).contains("0000-00-00 00:00:00"));
         }
     }
-
-    private static final String TIMESTAMP_1 = "2015-05-13 08:15:14";
-    private static final String TIMESTAMP_YEAR_ZERO = "0000-11-15 10:15:22";
 
     /**
      * CONJ-405 : Calendar instance not cleared before being used in ResultSet.getTimestamp.
@@ -642,8 +688,8 @@ public class DateTest extends BaseTest {
         Timestamp timestamp3 = resultSet.getTimestamp(3, calendar);
         Date date3 = resultSet.getDate(3, calendar);
 
-        Assert.assertEquals(date1.getTime(), date3.getTime());
-        Assert.assertEquals(timestamp1.getTime(), timestamp3.getTime());
+        assertEquals(date1.getTime(), date3.getTime());
+        assertEquals(timestamp1.getTime(), timestamp3.getTime());
 
     }
 }

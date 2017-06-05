@@ -1,61 +1,64 @@
 /*
-MariaDB Client for Java
-
-Copyright (c) 2012-2014 Monty Program Ab.
-
-This library is free software; you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the Free
-Software Foundation; either version 2.1 of the License, or (at your option)
-any later version.
-
-This library is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
-for more details.
-
-You should have received a copy of the GNU Lesser General Public License along
-with this library; if not, write to Monty Program Ab info@montyprogram.com.
-
-This particular MariaDB Client for Java file is work
-derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
-the following copyright and notice provisions:
-
-Copyright (c) 2009-2011, Marcus Eriksson
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-Redistributions of source code must retain the above copyright notice, this list
-of conditions and the following disclaimer.
-
-Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-Neither the name of the driver nor the names of its contributors may not be
-used to endorse or promote products derived from this software without specific
-prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
-OF SUCH DAMAGE.
-*/
+ *
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2017 MariaDB Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ *
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ */
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.dao.Identifier;
-import org.mariadb.jdbc.internal.ColumnType;
 
 import java.sql.*;
 import java.text.ParseException;
@@ -87,7 +90,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     static String columnTypeClause(int dataTypeMappingFlags) {
-        String upperCaseWithoutSize =  " UCASE(IF( COLUMN_TYPE LIKE '%(%)%', CONCAT(SUBSTRING( COLUMN_TYPE,1, LOCATE('(',"
+        String upperCaseWithoutSize = " UCASE(IF( COLUMN_TYPE LIKE '%(%)%', CONCAT(SUBSTRING( COLUMN_TYPE,1, LOCATE('(',"
                 + "COLUMN_TYPE) - 1 ), SUBSTRING(COLUMN_TYPE ,1+locate(')', COLUMN_TYPE))), "
                 + "COLUMN_TYPE))";
 
@@ -102,6 +105,91 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         return upperCaseWithoutSize;
     }
 
+
+    /**
+     * Retrieves a description of the primary key columns that are referenced by the given table's foreign key columns
+     * (the primary keys imported by a table).  They are ordered by PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME,
+     * and KEY_SEQ.
+     * <P>Each primary key column description has the following columns:
+     * <OL>
+     * <LI><B>PKTABLE_CAT</B> String {@code =>} primary key table catalog being imported (may be <code>null</code>)
+     * <LI><B>PKTABLE_SCHEM</B> String {@code =>} primary key table schema being imported (may be <code>null</code>)
+     * <LI><B>PKTABLE_NAME</B> String {@code =>} primary key table name being imported
+     * <LI><B>PKCOLUMN_NAME</B> String {@code =>} primary key column name being imported
+     * <LI><B>FKTABLE_CAT</B> String {@code =>} foreign key table catalog (may be <code>null</code>)
+     * <LI><B>FKTABLE_SCHEM</B> String {@code =>} foreign key table schema (may be <code>null</code>)
+     * <LI><B>FKTABLE_NAME</B> String {@code =>} foreign key table name
+     * <LI><B>FKCOLUMN_NAME</B> String {@code =>} foreign key column name
+     * <LI><B>KEY_SEQ</B> short {@code =>} sequence number within a foreign key( a value of 1 represents the first
+     * column of the foreign key, a value of 2 would represent the second column within the foreign key).
+     * <LI><B>UPDATE_RULE</B> short {@code =>} What happens to a foreign key when the primary key is updated:
+     * <UL>
+     * <LI> importedNoAction - do not allow update of primary key if it has been imported
+     * <LI> importedKeyCascade - change imported key to agree with primary key update
+     * <LI> importedKeySetNull - change imported key to <code>NULL</code> if its primary key has been updated
+     * <LI> importedKeySetDefault - change imported key to default values if its primary key has been updated
+     * <LI> importedKeyRestrict - same as importedKeyNoAction (for ODBC 2.x compatibility)
+     * </UL>
+     * <LI><B>DELETE_RULE</B> short {@code =>} What happens to the foreign key when primary is deleted.
+     * <UL>
+     * <LI> importedKeyNoAction - do not allow delete of primary key if it has been imported
+     * <LI> importedKeyCascade - delete rows that import a deleted key
+     * <LI> importedKeySetNull - change imported key to NULL if its primary key has been deleted
+     * <LI> importedKeyRestrict - same as importedKeyNoAction (for ODBC 2.x compatibility)
+     * <LI> importedKeySetDefault - change imported key to default if its primary key has been deleted
+     * </UL>
+     * <LI><B>FK_NAME</B> String {@code =>} foreign key name (may be <code>null</code>)
+     * <LI><B>PK_NAME</B> String {@code =>} primary key name (may be <code>null</code>)
+     * <LI><B>DEFERRABILITY</B> short {@code =>} can the evaluation of foreign key constraints be deferred until
+     * commit
+     * <UL>
+     * <LI> importedKeyInitiallyDeferred - see SQL92 for definition
+     * <LI> importedKeyInitiallyImmediate - see SQL92 for definition
+     * <LI> importedKeyNotDeferrable - see SQL92 for definition
+     * </UL>
+     * </OL>
+     *
+     * @param catalog a catalog name; must match the catalog name as it is stored in the database;
+     *                "" retrieves those without a catalog;
+     *                <code>null</code> means that the catalog name should not be used to narrow the search
+     * @param schema  a schema name; must match the schema name as it is stored in the database;
+     *                "" retrieves those without a schema; <code>null</code>
+     *                means that the schema name should not be used to narrow the search
+     * @param table   a table name; must match the table name as it is stored in the database
+     * @return <code>ResultSet</code> - each row is a primary key column description
+     * @throws SQLException if a database access error occurs
+     * @see #getExportedKeys
+     */
+    public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
+
+        // We avoid using information schema queries by default, because this appears to be an expensive
+        // query (CONJ-41).
+        if (table == null) {
+            throw new SQLException("'table' parameter in getImportedKeys cannot be null");
+        }
+
+        if (catalog == null && connection.nullCatalogMeansCurrent) {
+            /* Treat null catalog as current */
+            catalog = "";
+        }
+        if (catalog == null) {
+            return getImportedKeysUsingInformationSchema(catalog, schema, table);
+        }
+
+        if (catalog.equals("")) {
+            catalog = connection.getCatalog();
+            if (catalog == null || catalog.equals("")) {
+                return getImportedKeysUsingInformationSchema(catalog, schema, table);
+            }
+        }
+
+        try {
+            return getImportedKeysUsingShowCreateTable(catalog, schema, table);
+        } catch (Exception e) {
+            // Likely, parsing failed, try out I_S query.
+            return getImportedKeysUsingInformationSchema(catalog, schema, table);
+        }
+    }
 
     /**
      * Get imported keys.
@@ -187,7 +275,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 row[10] = Integer.toString(onDeleteReferenceAction);
                 row[11] = constraintName.name;
                 row[12] = null;
-                row[13] = Integer.toString(DatabaseMetaData.importedKeyInitiallyImmediate);
+                row[13] = Integer.toString(DatabaseMetaData.importedKeyNotDeferrable);
                 data.add(row);
             }
         }
@@ -212,91 +300,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         });
         ResultSet ret = SelectResultSet.createResultSet(columnNames, columnTypes, arr, connection.getProtocol());
         return ret;
-    }
-
-    /**
-     * Retrieves a description of the primary key columns that are referenced by the given table's foreign key columns
-     * (the primary keys imported by a table).  They are ordered by PKTABLE_CAT, PKTABLE_SCHEM, PKTABLE_NAME,
-     * and KEY_SEQ.
-     * <P>Each primary key column description has the following columns:
-     * <OL>
-     *     <LI><B>PKTABLE_CAT</B> String {@code =>} primary key table catalog being imported (may be <code>null</code>)
-     *     <LI><B>PKTABLE_SCHEM</B> String {@code =>} primary key table schema being imported (may be <code>null</code>)
-     *     <LI><B>PKTABLE_NAME</B> String {@code =>} primary key table name being imported
-     *     <LI><B>PKCOLUMN_NAME</B> String {@code =>} primary key column name being imported
-     *     <LI><B>FKTABLE_CAT</B> String {@code =>} foreign key table catalog (may be <code>null</code>)
-     *     <LI><B>FKTABLE_SCHEM</B> String {@code =>} foreign key table schema (may be <code>null</code>)
-     *     <LI><B>FKTABLE_NAME</B> String {@code =>} foreign key table name
-     *     <LI><B>FKCOLUMN_NAME</B> String {@code =>} foreign key column name
-     *     <LI><B>KEY_SEQ</B> short {@code =>} sequence number within a foreign key( a value of 1 represents the first
-     *     column of the foreign key, a value of 2 would represent the second column within the foreign key).
-     *     <LI><B>UPDATE_RULE</B> short {@code =>} What happens to a foreign key when the primary key is updated:
-     *     <UL>
-     *         <LI> importedNoAction - do not allow update of primary key if it has been imported
-     *         <LI> importedKeyCascade - change imported key to agree with primary key update
-     *         <LI> importedKeySetNull - change imported key to <code>NULL</code> if its primary key has been updated
-     *         <LI> importedKeySetDefault - change imported key to default values if its primary key has been updated
-     *         <LI> importedKeyRestrict - same as importedKeyNoAction (for ODBC 2.x compatibility)
-     *     </UL>
-     *     <LI><B>DELETE_RULE</B> short {@code =>} What happens to the foreign key when primary is deleted.
-     *     <UL>
-     *         <LI> importedKeyNoAction - do not allow delete of primary key if it has been imported
-     *         <LI> importedKeyCascade - delete rows that import a deleted key
-     *         <LI> importedKeySetNull - change imported key to NULL if its primary key has been deleted
-     *         <LI> importedKeyRestrict - same as importedKeyNoAction (for ODBC 2.x compatibility)
-     *         <LI> importedKeySetDefault - change imported key to default if its primary key has been deleted
-     *     </UL>
-     *     <LI><B>FK_NAME</B> String {@code =>} foreign key name (may be <code>null</code>)
-     *     <LI><B>PK_NAME</B> String {@code =>} primary key name (may be <code>null</code>)
-     *     <LI><B>DEFERRABILITY</B> short {@code =>} can the evaluation of foreign key constraints be deferred until
-     *     commit
-     *     <UL>
-     *         <LI> importedKeyInitiallyDeferred - see SQL92 for definition
-     *         <LI> importedKeyInitiallyImmediate - see SQL92 for definition
-     *         <LI> importedKeyNotDeferrable - see SQL92 for definition
-     *     </UL>
-     * </OL>
-     *
-     * @param catalog a catalog name; must match the catalog name as it is stored in the database;
-     *                "" retrieves those without a catalog;
-     *                <code>null</code> means that the catalog name should not be used to narrow the search
-     * @param schema  a schema name; must match the schema name as it is stored in the database;
-     *                "" retrieves those without a schema; <code>null</code>
-     *                means that the schema name should not be used to narrow the search
-     * @param table   a table name; must match the table name as it is stored in the database
-     * @return <code>ResultSet</code> - each row is a primary key column description
-     * @throws SQLException if a database access error occurs
-     * @see #getExportedKeys
-     */
-    public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
-
-        // We avoid using information schema queries by default, because this appears to be an expensive
-        // query (CONJ-41).
-        if (table == null) {
-            throw new SQLException("'table' parameter in getImportedKeys cannot be null");
-        }
-
-        if (catalog == null && connection.nullCatalogMeansCurrent) {
-            /* Treat null catalog as current */
-            catalog = "";
-        }
-        if (catalog == null) {
-            return getImportedKeysUsingInformationSchema(catalog, schema, table);
-        }
-
-        if (catalog.equals("")) {
-            catalog = connection.getCatalog();
-            if (catalog == null || catalog.equals("")) {
-                return getImportedKeysUsingInformationSchema(catalog, schema, table);
-            }
-        }
-
-        try {
-            return getImportedKeysUsingShowCreateTable(catalog, schema, table);
-        } catch (Exception e) {
-            // Likely, parsing failed, try out I_S query.
-            return getImportedKeysUsingInformationSchema(catalog, schema, table);
-        }
     }
 
     // Extract identifier quoted string from input String.
@@ -500,11 +503,16 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
     /**
      * Retrieves a description of the given table's primary key columns.  They are ordered by COLUMN_NAME.
-     * <P>Each primary key column description has the following columns: <OL> <LI><B>TABLE_CAT</B> String {@code =>} table catalog (may be
-     * <code>null</code>) <LI><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>) <LI><B>TABLE_NAME</B> String {@code =>}
-     * table name <LI><B>COLUMN_NAME</B> String {@code =>} column name <LI><B>KEY_SEQ</B> short {@code =>} sequence number within primary key( a value
-     * of 1 represents the first column of the primary key, a value of 2 would represent the second column within the primary key). <LI><B>PK_NAME</B>
-     * String {@code =>} primary key name (may be <code>null</code>) </OL>
+     * <P>Each primary key column description has the following columns:
+     * <OL>
+     * <li><B>TABLE_CAT</B> String {@code =>} table catalog </li>
+     * <li><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>)</li>
+     * <li><B>TABLE_NAME</B> String {@code =>} table name </li>
+     * <li><B>COLUMN_NAME</B> String {@code =>} column name </li>
+     * <li><B>KEY_SEQ</B> short {@code =>} sequence number within primary key( a value of 1 represents the first
+     * column of the primary key, a value of 2 would represent the second column within the primary key).</li>
+     * <li><B>PK_NAME</B> String {@code =>} primary key name </li>
+     * </OL>
      *
      * @param catalog a catalog name; must match the catalog name as it is stored in the database; "" retrieves those
      *                without a catalog;
@@ -518,7 +526,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      */
     public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
         String sql =
-                "SELECT A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, NULL PK_NAME "
+                "SELECT A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, B.INDEX_NAME PK_NAME "
                         + " FROM INFORMATION_SCHEMA.COLUMNS A, INFORMATION_SCHEMA.STATISTICS B"
                         + " WHERE A.COLUMN_KEY='pri' AND B.INDEX_NAME='PRIMARY' "
                         + " AND "
@@ -659,12 +667,12 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + columnTypeClause(dataType) + " TYPE_NAME, "
                 + " CASE DATA_TYPE"
                 + "  WHEN 'time' THEN "
-                +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
+                + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
                 + "  WHEN 'date' THEN 10"
                 + "  WHEN 'datetime' THEN "
-                +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                 + "  WHEN 'timestamp' THEN "
-                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                 + (((dataType & SelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? " WHEN 'year' THEN 5" : "")
                 + "  ELSE "
                 + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
@@ -760,7 +768,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                         + " END DELETE_RULE,"
                         + " RC.CONSTRAINT_NAME FK_NAME,"
                         + " NULL PK_NAME,"
-                        + " 6 DEFERRABILITY"
+                        + importedKeyNotDeferrable + " DEFERRABILITY"
                         + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                         + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
                         + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
@@ -807,7 +815,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                         + " END DELETE_RULE,"
                         + " RC.CONSTRAINT_NAME FK_NAME,"
                         + " NULL PK_NAME,"
-                        + " 6 DEFERRABILITY"
+                        + importedKeyNotDeferrable + " DEFERRABILITY"
                         + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                         + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
                         + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
@@ -1698,24 +1706,24 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                     + "DATA_TYPE TYPE_NAME,"
                     + " CASE DATA_TYPE"
                     + "  WHEN 'time' THEN "
-                    +        (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
+                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
                     + "  WHEN 'date' THEN 10"
                     + "  WHEN 'datetime' THEN "
-                    +        (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                     + "  WHEN 'timestamp' THEN "
-                    +        (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                     + "  ELSE "
                     + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
                     + " END `PRECISION`,"
 
                     + " CASE DATA_TYPE"
                     + "  WHEN 'time' THEN "
-                    +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
+                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
                     + "  WHEN 'date' THEN 10"
                     + "  WHEN 'datetime' THEN "
-                    +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                     + "  WHEN 'timestamp' THEN "
-                    +       (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
+                    + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                     + "  ELSE "
                     + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
                     + " END `LENGTH`,"
@@ -2038,7 +2046,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                         + " END DELETE_RULE,"
                         + " RC.CONSTRAINT_NAME FK_NAME,"
                         + " NULL PK_NAME,"
-                        + " 6 DEFERRABILITY"
+                        + importedKeyNotDeferrable + " DEFERRABILITY"
                         + " FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU"
                         + " INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS RC"
                         + " ON KCU.CONSTRAINT_SCHEMA = RC.CONSTRAINT_SCHEMA"
@@ -2066,8 +2074,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * from the getUDTs() method.
      * <P>Each type description has the following columns:
      * <OL>
-     *     <LI><B>TYPE_NAME</B> String {@code =>} Type name
-     *     <LI><B>DATA_TYPE</B> int {@code =>}
+     * <LI><B>TYPE_NAME</B> String {@code =>} Type name
+     * <LI><B>DATA_TYPE</B> int {@code =>}
      * SQL data type from java.sql.Types
      * <LI><B>PRECISION</B> int {@code =>} maximum precision
      * <LI><B>LITERAL_PREFIX</B> String {@code =>} prefix used to quote a literal (may be <code>null</code>)
@@ -2075,17 +2083,17 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * <LI><B>CREATE_PARAMS</B> String {@code =>} parameters used in creating the type (may be <code>null</code>)
      * <LI><B>NULLABLE</B> short {@code =>} can you use NULL for this type.
      * <UL>
-     *     <LI> typeNoNulls - does not allow NULL values
-     *     <LI> typeNullable - allows NULL values
-     *     <LI> typeNullableUnknown - nullability unknown
+     * <LI> typeNoNulls - does not allow NULL values
+     * <LI> typeNullable - allows NULL values
+     * <LI> typeNullableUnknown - nullability unknown
      * </UL>
      * <LI><B>CASE_SENSITIVE</B> boolean{@code =>} is it case sensitive.
      * <LI><B>SEARCHABLE</B> short {@code =>} can you use "WHERE" based on this type:
      * <UL>
-     *     <LI> typePredNone - No support
-     *     <LI> typePredChar - Only supported with WHERE .. LIKE
-     *     <LI> typePredBasic - Supported except for WHERE .. LIKE
-     *     <LI> typeSearchable - Supported for all WHERE ..
+     * <LI> typePredNone - No support
+     * <LI> typePredChar - Only supported with WHERE .. LIKE
+     * <LI> typePredBasic - Supported except for WHERE .. LIKE
+     * <LI> typeSearchable - Supported for all WHERE ..
      * </UL>
      * <LI><B>UNSIGNED_ATTRIBUTE</B> boolean {@code =>} is it unsigned.
      * <LI><B>FIXED_PREC_SCALE</B> boolean {@code =>} can it be a money value.
@@ -2203,21 +2211,21 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * TYPE, INDEX_NAME, and ORDINAL_POSITION.<p>
      * Each index column description has the following columns:
      * <ol>
-     *     <li><B>TABLE_CAT</B> String {@code =>} table catalog (may be <code>null</code>)</li>
-     *     <li><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>)</li>
-     *     <li><B>TABLE_NAME</B> String {@code =>} table name</li>
-     *     <li><B>NON_UNIQUE</B> boolean {@code =>} Can index values be non-unique. false when TYPE is
-     *     tableIndexStatistic</li>
+     * <li><B>TABLE_CAT</B> String {@code =>} table catalog (may be <code>null</code>)</li>
+     * <li><B>TABLE_SCHEM</B> String {@code =>} table schema (may be <code>null</code>)</li>
+     * <li><B>TABLE_NAME</B> String {@code =>} table name</li>
+     * <li><B>NON_UNIQUE</B> boolean {@code =>} Can index values be non-unique. false when TYPE is
+     * tableIndexStatistic</li>
      * <li><B>INDEX_QUALIFIER</B> String {@code =>} index catalog (may be <code>null</code>); <code>null</code>
      * when TYPE is tableIndexStatistic</li>
      * <li><B>INDEX_NAME</B> String {@code =>} index name; <code>null</code> when TYPE is tableIndexStatistic</li>
      * <li><B>TYPE</B> short {@code =>} index type:
      * <ul>
-     *     <li> tableIndexStatistic - this identifies table statistics that are returned in conjuction with a
-     *     table's index descriptions
-     *     <li> tableIndexClustered - this is a clustered index
-     *     <li> tableIndexHashed - this is a hashed index
-     *     <li> tableIndexOther - this is some other style of index
+     * <li> tableIndexStatistic - this identifies table statistics that are returned in conjuction with a
+     * table's index descriptions
+     * <li> tableIndexClustered - this is a clustered index
+     * <li> tableIndexHashed - this is a hashed index
+     * <li> tableIndexOther - this is some other style of index
      * </ul>
      * </li>
      * <li><B>ORDINAL_POSITION</B> short {@code =>} column sequence number within index; zero when TYPE is
@@ -2324,7 +2332,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * In this case, the catalog and schemaPattern parameters are ignored.<p>
      * Each type description has the following columns:
      * <ol>
-     *     <li><B>TYPE_CAT</B> String {@code =>} the type's catalog (may be <code>null</code>)</li>
+     * <li><B>TYPE_CAT</B> String {@code =>} the type's catalog (may be <code>null</code>)</li>
      * <li><B>TYPE_SCHEM</B> String {@code =>} type's schema (may be <code>null</code>)</li>
      * <li><B>TYPE_NAME</B> String {@code =>} type name</li>
      * <li><B>CLASS_NAME</B> String {@code =>} Java class name</li>
@@ -2393,7 +2401,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * A row of the <code>ResultSet</code> object returned by this method describes
      * the designated UDT and a direct supertype. A row has the following columns:
      * <OL>
-     *     <li><B>TYPE_CAT</B> String {@code =>} the UDT's catalog (may
+     * <li><B>TYPE_CAT</B> String {@code =>} the UDT's catalog (may
      * be <code>null</code>) <li><B>TYPE_SCHEM</B> String {@code =>} UDT's schema (may be <code>null</code>)
      * <li><B>TYPE_NAME</B> String {@code =>} type name of the UDT <li><B>SUPERTYPE_CAT</B>
      * String {@code =>} the direct super type's catalog (may be <code>null</code>)
@@ -2478,9 +2486,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * <li><B>ORDINAL_POSITION</B> int {@code =>} index of the attribute in the UDT (starting at 1)
      * <li><B>IS_NULLABLE</B> String  {@code =>} ISO rules are used to determine the nullability for a attribute.
      * <UL>
-     *     <li> YES --- if the attribute can include NULLs
-     *     <li> NO  --- if the attribute cannot include NULLs
-     *     <li> empty string  --- if the nullability for the attribute is unknown
+     * <li> YES --- if the attribute can include NULLs
+     * <li> NO  --- if the attribute cannot include NULLs
+     * <li> empty string  --- if the nullability for the attribute is unknown
      * </UL>
      * <li><B>SCOPE_CATALOG</B> String {@code =>} catalog of table that is the scope of a reference attribute
      * (<code>null</code> if DATA_TYPE isn't REF)
@@ -2594,22 +2602,22 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         columns[2] = ColumnInformation.create("DEFAULT_VALUE", ColumnType.STRING);
         columns[3] = ColumnInformation.create("DESCRIPTION", ColumnType.STRING);
 
-        byte[] sixteenMb = new byte[] {(byte) 49, (byte) 54, (byte) 55, (byte) 55, (byte) 55, (byte) 50, (byte) 49, (byte) 53};
+        byte[] sixteenMb = new byte[]{(byte) 49, (byte) 54, (byte) 55, (byte) 55, (byte) 55, (byte) 50, (byte) 49, (byte) 53};
         byte[] empty = new byte[0];
 
-        ColumnType[] types = new ColumnType[] {ColumnType.STRING, ColumnType.INTEGER, ColumnType.STRING, ColumnType.STRING};
+        ColumnType[] types = new ColumnType[]{ColumnType.STRING, ColumnType.INTEGER, ColumnType.STRING, ColumnType.STRING};
         List<byte[]> rows = new ArrayList<>(3);
 
-        rows.add(StandardPacketInputStream.create(new byte[][] {
+        rows.add(StandardPacketInputStream.create(new byte[][]{
                 "ApplicationName".getBytes(), sixteenMb, empty,
                 "The name of the application currently utilizing the connection".getBytes()}, types));
 
-        rows.add(StandardPacketInputStream.create(new byte[][] {
+        rows.add(StandardPacketInputStream.create(new byte[][]{
                 "ClientUser".getBytes(), sixteenMb, empty,
                 ("The name of the user that the application using the connection is performing work for. "
                         + "This may not be the same as the user name that was used in establishing the connection.").getBytes()}, types));
 
-        rows.add(StandardPacketInputStream.create(new byte[][] {
+        rows.add(StandardPacketInputStream.create(new byte[][]{
                 "ClientHostname".getBytes(), sixteenMb, empty,
                 "The hostname of the computer the application using the connection is running on".getBytes()}, types));
 

@@ -1,3 +1,55 @@
+/*
+ *
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2017 MariaDB Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ *
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ */
+
 package org.mariadb.jdbc;
 
 
@@ -13,11 +65,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.Properties;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.function.Supplier;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -57,10 +104,13 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testStoreProcedureStreaming() throws Exception {
+        // aurora doesn't send back output results parameter when having SELECT results, even with flag enabled
+        Assume.assumeFalse(sharedIsAurora());
+
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10,2,2);
-        cancelForVersion(10,2,3);
-        cancelForVersion(10,2,4);
+        cancelForVersion(10, 2, 2);
+        cancelForVersion(10, 2, 3);
+        cancelForVersion(10, 2, 4);
 
         createProcedure("StoredWithOutput", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
                 + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5;end");
@@ -101,10 +151,13 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void testStoreProcedureStreamingWithAnotherQuery() throws Exception {
+        // aurora doesn't send back output results parameter when having SELECT results, even with flag enabled
+        Assume.assumeFalse(sharedIsAurora());
+
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10,2,2);
-        cancelForVersion(10,2,3);
-        cancelForVersion(10,2,4);
+        cancelForVersion(10, 2, 2);
+        cancelForVersion(10, 2, 3);
+        cancelForVersion(10, 2, 4);
 
         createProcedure("StreamInterrupted", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
                 + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5;end");
@@ -204,9 +257,9 @@ public class StoredProcedureTest extends BaseTest {
     @Test
     public void callWithOutParameter() throws SQLException {
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10,2,2);
-        cancelForVersion(10,2,3);
-        cancelForVersion(10,2,4);
+        cancelForVersion(10, 2, 2);
+        cancelForVersion(10, 2, 3);
+        cancelForVersion(10, 2, 4);
 
         createProcedure("prepareStmtWithOutParameter", "(x int, INOUT y int)\n"
                 + "BEGIN\n"
@@ -275,9 +328,9 @@ public class StoredProcedureTest extends BaseTest {
     @Test
     public void callInoutParam() throws SQLException {
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10,2,2);
-        cancelForVersion(10,2,3);
-        cancelForVersion(10,2,4);
+        cancelForVersion(10, 2, 2);
+        cancelForVersion(10, 2, 3);
+        cancelForVersion(10, 2, 4);
 
         CallableStatement storedProc = sharedConnection.prepareCall("{call inOutParam(?)}");
         storedProc.registerOutParameter(1, Types.INTEGER);
@@ -320,9 +373,9 @@ public class StoredProcedureTest extends BaseTest {
     @Test
     public void testMetaCatalogNoAccessToProcedureBodies() throws Exception {
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10,2,2);
-        cancelForVersion(10,2,3);
-        cancelForVersion(10,2,4);
+        cancelForVersion(10, 2, 2);
+        cancelForVersion(10, 2, 3);
+        cancelForVersion(10, 2, 4);
 
         Statement statement = sharedConnection.createStatement();
         try {
@@ -368,7 +421,7 @@ public class StoredProcedureTest extends BaseTest {
             } else {
                 fail();
             }
-        } catch (SQLInvalidAuthorizationSpecException authentication ) {
+        } catch (SQLInvalidAuthorizationSpecException authentication) {
             //MySQL 5.5 doesn't permit 'test_jdbc'@'localhost'
         }
         statement.execute("DROP USER 'test_jdbc'@'%'");
@@ -537,9 +590,9 @@ public class StoredProcedureTest extends BaseTest {
     @Test
     public void testMultiResultset() throws Exception {
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10,2,2);
-        cancelForVersion(10,2,3);
-        cancelForVersion(10,2,4);
+        cancelForVersion(10, 2, 2);
+        cancelForVersion(10, 2, 3);
+        cancelForVersion(10, 2, 4);
 
         createProcedure("testInOutParam", "(IN p1 VARCHAR(255), INOUT p2 INT)\n"
                 + "begin\n"
@@ -613,9 +666,9 @@ public class StoredProcedureTest extends BaseTest {
     @Test
     public void testResultsetWithInoutParameter() throws Exception {
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10,2,2);
-        cancelForVersion(10,2,3);
-        cancelForVersion(10,2,4);
+        cancelForVersion(10, 2, 2);
+        cancelForVersion(10, 2, 3);
+        cancelForVersion(10, 2, 4);
 
         createTable("testResultsetWithInoutParameterTb", "test VARCHAR(10)");
         createProcedure("testResultsetWithInoutParameter", "(INOUT testValue VARCHAR(10))\n"
@@ -648,9 +701,9 @@ public class StoredProcedureTest extends BaseTest {
     @Test
     public void testSettingFixedParameter() throws SQLException {
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10,2,2);
-        cancelForVersion(10,2,3);
-        cancelForVersion(10,2,4);
+        cancelForVersion(10, 2, 2);
+        cancelForVersion(10, 2, 3);
+        cancelForVersion(10, 2, 4);
 
         try (Connection connection = setConnection()) {
             createProcedure("simpleproc", "(IN inParam CHAR(20), INOUT inOutParam CHAR(20), OUT outParam CHAR(50))"
@@ -723,9 +776,9 @@ public class StoredProcedureTest extends BaseTest {
     @Test
     public void testStreamInOutWithName() throws Exception {
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10,2,2);
-        cancelForVersion(10,2,3);
-        cancelForVersion(10,2,4);
+        cancelForVersion(10, 2, 2);
+        cancelForVersion(10, 2, 3);
+        cancelForVersion(10, 2, 4);
 
         createProcedure("testStreamInOutWithName", "(INOUT mblob MEDIUMBLOB) BEGIN SELECT 1 FROM DUAL WHERE 1=0;\nEND");
         try (CallableStatement cstmt = sharedConnection.prepareCall("{call testStreamInOutWithName(?)}")) {
@@ -886,9 +939,9 @@ public class StoredProcedureTest extends BaseTest {
     @Test
     public void testCallableNullSetters() throws Throwable {
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10,2,2);
-        cancelForVersion(10,2,3);
-        cancelForVersion(10,2,4);
+        cancelForVersion(10, 2, 2);
+        cancelForVersion(10, 2, 3);
+        cancelForVersion(10, 2, 4);
 
         createTable("testCallableNullSettersTable", "value_1 BIGINT PRIMARY KEY,value_2 VARCHAR(20)");
         createFunction("testCallableNullSetters", "(value_1_v BIGINT, value_2_v VARCHAR(20)) RETURNS BIGINT "
@@ -1095,9 +1148,9 @@ public class StoredProcedureTest extends BaseTest {
     @Test
     public void testParameterNumber() throws Exception {
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10,2,2);
-        cancelForVersion(10,2,3);
-        cancelForVersion(10,2,4);
+        cancelForVersion(10, 2, 2);
+        cancelForVersion(10, 2, 3);
+        cancelForVersion(10, 2, 4);
 
         createTable("TMIX91P", "F01SMALLINT         SMALLINT NOT NULL, F02INTEGER          INTEGER,F03REAL             REAL,"
                 + "F04FLOAT            FLOAT,F05NUMERIC31X4      NUMERIC(31,4), F06NUMERIC16X16     NUMERIC(16,16), F07CHAR_10          CHAR(10),"
@@ -1181,9 +1234,9 @@ public class StoredProcedureTest extends BaseTest {
     @Test
     public void testProcMultiDb() throws Exception {
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10,2,2);
-        cancelForVersion(10,2,3);
-        cancelForVersion(10,2,4);
+        cancelForVersion(10, 2, 2);
+        cancelForVersion(10, 2, 3);
+        cancelForVersion(10, 2, 4);
 
         String originalCatalog = sharedConnection.getCatalog();
 
@@ -1231,9 +1284,9 @@ public class StoredProcedureTest extends BaseTest {
     @Test
     public void callProcSendNullInOut() throws Exception {
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10,2,2);
-        cancelForVersion(10,2,3);
-        cancelForVersion(10,2,4);
+        cancelForVersion(10, 2, 2);
+        cancelForVersion(10, 2, 3);
+        cancelForVersion(10, 2, 4);
 
         createProcedure("testProcSendNullInOut_1", "(INOUT x INTEGER)\nBEGIN\nSET x = x + 1;\nEND");
         createProcedure("testProcSendNullInOut_2", "(x INTEGER, OUT y INTEGER)\nBEGIN\nSET y = x + 1;\nEND");
@@ -1308,14 +1361,15 @@ public class StoredProcedureTest extends BaseTest {
 
     /**
      * CONJ-425 : take care of registerOutParameter type.
+     *
      * @throws Exception if connection error occur
      */
     @Test
     public void testOutputObjectType() throws Exception {
         //cancel for version 10.2 beta before fix https://jira.mariadb.org/browse/MDEV-11761
-        cancelForVersion(10,2,2);
-        cancelForVersion(10,2,3);
-        cancelForVersion(10,2,4);
+        cancelForVersion(10, 2, 2);
+        cancelForVersion(10, 2, 3);
+        cancelForVersion(10, 2, 4);
 
         createProcedure("issue425", "(IN inValue TEXT, OUT testValue TEXT)\n"
                 + "BEGIN\n"
