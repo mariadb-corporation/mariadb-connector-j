@@ -89,9 +89,12 @@ public class BinaryRowProtocol extends RowProtocol {
         if (index != newIndex) {
             int internalPos = this.pos;
             if (index == -1 || index > newIndex) {
+                //if there wasn't previous non-null read field, or if last field was after searched index,
+                // position is set on first field position.
                 index = 0;
-                internalPos = 1 + (columnInformationLength + 9) / 8;
+                internalPos = 1 + (columnInformationLength + 9) / 8; // 0x00 header + NULL-Bitmap length
             } else {
+                //start at previous non-null field position if was before searched index
                 index++;
                 internalPos += length;
             }
@@ -150,7 +153,7 @@ public class BinaryRowProtocol extends RowProtocol {
                                 break;
                         }
                     } else {
-                        //read real pos
+                        //read asked field position and length
                         switch (columnInformation[index].getColumnType()) {
                             case BIGINT:
                             case DOUBLE:
@@ -177,24 +180,32 @@ public class BinaryRowProtocol extends RowProtocol {
                                 return false;
 
                             default:
+                                //field with variable length
                                 int type = this.buf[internalPos++] & 0xff;
                                 switch (type) {
                                     case 251:
+                                        //null length field
                                         //must never occur
-                                        //null value are set in nullbuffer.
+                                        //null value are set in NULL-Bitmap, not send with a null length indicator.
                                         throw new IllegalStateException("null data is encoded in binary protocol but NULL-Bitmap is not set");
+
                                     case 252:
+                                        //length is encoded on 3 bytes (0xfc header + 2 bytes indicating length)
                                         length = 0xffff & ((buf[internalPos++] & 0xff)
                                                 + ((buf[internalPos++] & 0xff) << 8));
                                         this.pos = internalPos;
                                         return false;
+
                                     case 253:
+                                        //length is encoded on 4 bytes (0xfd header + 3 bytes indicating length)
                                         length = 0xffffff & ((buf[internalPos++] & 0xff)
                                                 + ((buf[internalPos++] & 0xff) << 8)
                                                 + ((buf[internalPos++] & 0xff) << 16));
                                         this.pos = internalPos;
                                         return false;
+
                                     case 254:
+                                        //length is encoded on 9 bytes (0xfe header + 8 bytes indicating length)
                                         length = (int) ((buf[internalPos++] & 0xff)
                                                 + ((long) (buf[internalPos++] & 0xff) << 8)
                                                 + ((long) (buf[internalPos++] & 0xff) << 16)
@@ -205,10 +216,13 @@ public class BinaryRowProtocol extends RowProtocol {
                                                 + ((long) (buf[internalPos++] & 0xff) << 56));
                                         this.pos = internalPos;
                                         return false;
+
                                     default:
+                                        //length is encoded on 1 bytes (is then less than 251)
                                         length = type;
                                         this.pos = internalPos;
                                         return false;
+
                                 }
                         }
                     }
