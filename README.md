@@ -15,6 +15,7 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 [![Build status](https://ci.appveyor.com/api/projects/status/7hpe3wmbu57r8noa/branch/master?svg=true)](https://ci.appveyor.com/project/rusher/mariadb-connector-j/branch/master)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client)
 [![License (LGPL version 2.1)](https://img.shields.io/badge/license-GNU%20LGPL%20version%202.1-green.svg?style=flat-square)](http://opensource.org/licenses/LGPL-2.1)
+[![Known Vulnerabilities](https://snyk.io/test/github/mariadb/mariadb-connector-j/badge.svg)](https://snyk.io/test/github/mariadb/mariadb-connector-j)
 
 ## Obtaining the driver
 
@@ -65,4 +66,3 @@ For a Getting started guide, API docs, recipes,  etc. see the
 ## Contributing
 To get started with a development installation and learn more about contributing, please follow the instructions at our 
 [Developers Guide.](/documentation/developers-guide.creole)
-
