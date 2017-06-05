@@ -76,23 +76,24 @@ public class BinaryRowProtocol extends RowProtocol {
      *
      * @param newIndex index (0 is first).
      * @return true if value is null
+     * @see <a href="https://mariadb.com/kb/en/mariadb/resultset-row/">Resultset row protocol documentation</a>
      */
     public boolean setPosition(int newIndex) {
 
+        //check NULL-Bitmap that indicate if field is null
+        if ((buf[1 + (newIndex + 2) / 8] & (1 << ((newIndex + 2) % 8))) != 0) {
+            return true;
+        }
+
+        //if not must parse data until reading the desired field
         if (index != newIndex) {
+            int internalPos = this.pos;
             if (index == -1 || index > newIndex) {
                 index = 0;
-                pos = 1 + (columnInformationLength + 9) / 8;
+                internalPos = 1 + (columnInformationLength + 9) / 8;
             } else {
-                if (length != NULL_LENGTH) {
-                    index++;
-                    pos += length;
-                }
-            }
-
-            if ((buf[1 + (newIndex + 2) / 8] & (1 << ((newIndex + 2) % 8))) != 0) {
-                length = NULL_LENGTH;
-                return true;
+                index++;
+                internalPos += length;
             }
 
             for (; index <= newIndex; index++) {
@@ -102,49 +103,49 @@ public class BinaryRowProtocol extends RowProtocol {
                         switch (columnInformation[index].getColumnType()) {
                             case BIGINT:
                             case DOUBLE:
-                                pos += 8;
+                                internalPos += 8;
                                 break;
 
                             case INTEGER:
                             case MEDIUMINT:
                             case FLOAT:
-                                pos += 4;
+                                internalPos += 4;
                                 break;
 
                             case SMALLINT:
                             case YEAR:
-                                pos += 2;
+                                internalPos += 2;
                                 break;
 
                             case TINYINT:
-                                pos += 1;
+                                internalPos += 1;
                                 break;
 
                             default:
-                                int type = this.buf[this.pos++] & 0xff;
+                                int type = this.buf[internalPos++] & 0xff;
                                 switch (type) {
                                     case 251:
                                         break;
                                     case 252:
-                                        pos += 2 + (0xffff & (((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8))));
+                                        internalPos += 2 + (0xffff & (((buf[internalPos] & 0xff) + ((buf[internalPos + 1] & 0xff) << 8))));
                                         break;
                                     case 253:
-                                        pos += 3 + (0xffffff & ((buf[pos] & 0xff)
-                                                + ((buf[pos + 1] & 0xff) << 8)
-                                                + ((buf[pos + 2] & 0xff) << 16)));
+                                        internalPos += 3 + (0xffffff & ((buf[internalPos] & 0xff)
+                                                + ((buf[internalPos + 1] & 0xff) << 8)
+                                                + ((buf[internalPos + 2] & 0xff) << 16)));
                                         break;
                                     case 254:
-                                        pos += 8 + ((buf[pos] & 0xff)
-                                                + ((long) (buf[pos + 1] & 0xff) << 8)
-                                                + ((long) (buf[pos + 2] & 0xff) << 16)
-                                                + ((long) (buf[pos + 3] & 0xff) << 24)
-                                                + ((long) (buf[pos + 4] & 0xff) << 32)
-                                                + ((long) (buf[pos + 5] & 0xff) << 40)
-                                                + ((long) (buf[pos + 6] & 0xff) << 48)
-                                                + ((long) (buf[pos + 7] & 0xff) << 56));
+                                        internalPos += 8 + ((buf[internalPos] & 0xff)
+                                                + ((long) (buf[internalPos + 1] & 0xff) << 8)
+                                                + ((long) (buf[internalPos + 2] & 0xff) << 16)
+                                                + ((long) (buf[internalPos + 3] & 0xff) << 24)
+                                                + ((long) (buf[internalPos + 4] & 0xff) << 32)
+                                                + ((long) (buf[internalPos + 5] & 0xff) << 40)
+                                                + ((long) (buf[internalPos + 6] & 0xff) << 48)
+                                                + ((long) (buf[internalPos + 7] & 0xff) << 56));
                                         break;
                                     default:
-                                        pos += type;
+                                        internalPos += type;
                                 }
                                 break;
                         }
@@ -153,55 +154,63 @@ public class BinaryRowProtocol extends RowProtocol {
                         switch (columnInformation[index].getColumnType()) {
                             case BIGINT:
                             case DOUBLE:
+                                this.pos = internalPos;
                                 length = 8;
-                                break;
+                                return false;
 
                             case INTEGER:
                             case MEDIUMINT:
                             case FLOAT:
+                                this.pos = internalPos;
                                 length = 4;
-                                break;
+                                return false;
 
                             case SMALLINT:
                             case YEAR:
+                                this.pos = internalPos;
                                 length = 2;
-                                break;
+                                return false;
 
                             case TINYINT:
+                                this.pos = internalPos;
                                 length = 1;
-                                break;
+                                return false;
 
                             default:
-                                int type = this.buf[this.pos++] & 0xff;
+                                int type = this.buf[internalPos++] & 0xff;
                                 switch (type) {
                                     case 251:
-                                        length = NULL_LENGTH;
-                                        return true;
+                                        //must never occur
+                                        //null value are set in nullbuffer.
+                                        throw new IllegalStateException("null data is encoded in binary protocol but NULL-Bitmap is not set");
                                     case 252:
-                                        length = 0xffff & ((buf[pos++] & 0xff)
-                                                + ((buf[pos++] & 0xff) << 8));
-                                        break;
+                                        length = 0xffff & ((buf[internalPos++] & 0xff)
+                                                + ((buf[internalPos++] & 0xff) << 8));
+                                        this.pos = internalPos;
+                                        return false;
                                     case 253:
-                                        length = 0xffffff & ((buf[pos++] & 0xff)
-                                                + ((buf[pos++] & 0xff) << 8)
-                                                + ((buf[pos++] & 0xff) << 16));
-                                        break;
+                                        length = 0xffffff & ((buf[internalPos++] & 0xff)
+                                                + ((buf[internalPos++] & 0xff) << 8)
+                                                + ((buf[internalPos++] & 0xff) << 16));
+                                        this.pos = internalPos;
+                                        return false;
                                     case 254:
-                                        length = (int) ((buf[pos++] & 0xff)
-                                                + ((long) (buf[pos++] & 0xff) << 8)
-                                                + ((long) (buf[pos++] & 0xff) << 16)
-                                                + ((long) (buf[pos++] & 0xff) << 24)
-                                                + ((long) (buf[pos++] & 0xff) << 32)
-                                                + ((long) (buf[pos++] & 0xff) << 40)
-                                                + ((long) (buf[pos++] & 0xff) << 48)
-                                                + ((long) (buf[pos++] & 0xff) << 56));
-                                        break;
+                                        length = (int) ((buf[internalPos++] & 0xff)
+                                                + ((long) (buf[internalPos++] & 0xff) << 8)
+                                                + ((long) (buf[internalPos++] & 0xff) << 16)
+                                                + ((long) (buf[internalPos++] & 0xff) << 24)
+                                                + ((long) (buf[internalPos++] & 0xff) << 32)
+                                                + ((long) (buf[internalPos++] & 0xff) << 40)
+                                                + ((long) (buf[internalPos++] & 0xff) << 48)
+                                                + ((long) (buf[internalPos++] & 0xff) << 56));
+                                        this.pos = internalPos;
+                                        return false;
                                     default:
                                         length = type;
+                                        this.pos = internalPos;
+                                        return false;
                                 }
                         }
-                        return false;
-
                     }
                 }
             }

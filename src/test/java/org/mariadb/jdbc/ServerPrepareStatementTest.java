@@ -966,4 +966,65 @@ public class ServerPrepareStatementTest extends BaseTest {
         }
     }
 
+
+    /**
+     * Binary state reading control - second part.
+     *
+     * @throws SQLException if connection error occur
+     */
+    @Test
+    public void ensureRowStateWithNullValuesSecond() throws Exception {
+        createTable("ensureRowStateWithNullValuesSecond",
+                " ID int(11) NOT NULL,"
+                        + " COLUMN_1 varchar(11) COLLATE utf8_bin DEFAULT NULL,"
+                        + " COLUMN_2 varchar(11) COLLATE utf8_bin DEFAULT NULL,"
+                        + " COLUMN_3 varchar(11) COLLATE utf8_bin DEFAULT NULL,"
+                        + " PRIMARY KEY (ID)",
+                "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin");
+        if (testSingleHost) {
+            Statement st = sharedConnection.createStatement();
+            st.execute("INSERT INTO ensureRowStateWithNullValuesSecond VALUES(1,'col 1 value', 'col 2 value', null)");
+        }
+
+        String sql = "SELECT ID, COLUMN_2, COLUMN_1, COLUMN_3 FROM ensureRowStateWithNullValuesSecond";
+        try (Connection tmpConnection = setConnection("&profileSql=true&useServerPrepStmts=true")) {
+            Statement stmt = tmpConnection.createStatement();
+            stmt.setQueryTimeout(1);
+            stmt.execute(sql);
+
+            try (final PreparedStatement preparedStatement = tmpConnection.prepareStatement(sql)) {
+                ResultSet rs = preparedStatement.executeQuery();
+                rs.next();
+
+                String columnOne = rs.getString("COLUMN_1");
+                String columnTwo = rs.getString("COLUMN_2");
+                String columnThree = rs.getString("COLUMN_3");
+
+                assertEquals("col 2 value", columnTwo);
+                assertNull(columnThree);
+                assertNotNull(columnOne);
+                assertEquals("col 1 value", columnOne);
+
+                columnThree = rs.getString("COLUMN_3");
+                columnTwo = rs.getString("COLUMN_2");
+                columnOne = rs.getString("COLUMN_1");
+
+                assertEquals("col 2 value", columnTwo);
+                assertNull(columnThree);
+                assertNotNull(columnOne);
+                assertEquals("col 1 value", columnOne);
+
+                columnTwo = rs.getString("COLUMN_2");
+                columnThree = rs.getString("COLUMN_3");
+                columnOne = rs.getString("COLUMN_1");
+
+                assertEquals("col 2 value", columnTwo);
+                assertNull(columnThree);
+                assertNotNull(columnOne);
+                assertEquals("col 1 value", columnOne);
+            }
+        }
+    }
+
+
 }
