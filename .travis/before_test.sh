@@ -13,8 +13,8 @@ remove_mysql(){
 if [ "$TYPE" == "MAXSCALE" ]
 then
     #install maxscale
-    wget "https://downloads.mariadb.com/MaxScale/${MAXSCALE_VERSION}/ubuntu/dists/trusty/main/binary-amd64/maxscale-2.0.2-1.ubuntu.trusty.x86_64.deb"
-    sudo dpkg -i maxscale-2.0.2-1.ubuntu.trusty.x86_64.deb
+    wget "https://downloads.mariadb.com/MaxScale/${MAXSCALE_VERSION}/ubuntu/dists/trusty/main/binary-amd64/maxscale-${MAXSCALE_VERSION}-1.ubuntu.trusty.x86_64.deb"
+    sudo dpkg -i maxscale-${MAXSCALE_VERSION}-1.ubuntu.trusty.x86_64.deb
     sudo apt-get install -f
     sudo sed -i 's/user=myuser/user=root/g' /etc/maxscale.cnf
     sudo sed -i 's/passwd=mypwd/passwd=/g' /etc/maxscale.cnf
@@ -59,12 +59,12 @@ END
         if [ "$MARIA" != "5.5" ]
         then
             sudo apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
-            sudo add-apt-repository "deb [arch=amd64,i386,ppc64el] http://nyc2.mirrors.digitalocean.com/mariadb/repo/${MARIA}/ubuntu trusty main"
+            sudo add-apt-repository "deb [arch=amd64,i386,ppc64el] http://mirrors.digitalocean.com/mariadb/repo/${MARIA}/ubuntu trusty main"
 
             #Force using MariaDB repo in place of System repo
             sudo tee /etc/apt/preferences.d/MariaDB.pref << END
 Package: *
-Pin: origin nyc2.mirrors.digitalocean.com
+Pin: origin mirrors.digitalocean.com
 Pin-Priority: 1000
 END
 
@@ -131,7 +131,5 @@ then
     sudo sed -i 's|Listener]|Listener]\nssl=enabled\nssl_cert=/etc/mysql/server.crt\nssl_key=/etc/mysql/server.key\nssl_ca_cert=/etc/mysql/ca.crt|g' /etc/maxscale.cnf
 
     sudo service maxscale start
-    tail -n500 /var/log/maxscale/maxscale1.log
-    tail -n500 /etc/maxscale.cnf
 
 fi

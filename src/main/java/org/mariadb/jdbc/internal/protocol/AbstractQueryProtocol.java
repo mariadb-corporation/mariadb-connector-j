@@ -1,84 +1,91 @@
 /*
-MariaDB Client for Java
-
-Copyright (c) 2012-2014 Monty Program Ab.
-Copyright (c) 2015-2016 MariaDB Ab.
-
-This library is free software; you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the Free
-Software Foundation; either version 2.1 of the License, or (at your option)
-any later version.
-
-This library is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
-for more details.
-
-You should have received a copy of the GNU Lesser General Public License along
-with this library; if not, write to Monty Program Ab info@montyprogram.com.
-
-This particular MariaDB Client for Java file is work
-derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
-the following copyright and notice provisions:
-
-Copyright (c) 2009-2011, Marcus Eriksson
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-Redistributions of source code must retain the above copyright notice, this list
-of conditions and the following disclaimer.
-
-Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-Neither the name of the driver nor the names of its contributors may not be
-used to endorse or promote products derived from this software without specific
-prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
-OF SUCH DAMAGE.
-*/
+ *
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2017 MariaDB Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ *
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ */
 
 package org.mariadb.jdbc.internal.protocol;
 
+import org.mariadb.jdbc.LocalInfileInterceptor;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.ColumnType;
-
+import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.com.send.*;
-import org.mariadb.jdbc.internal.com.read.dao.*;
+import org.mariadb.jdbc.internal.com.send.ComQuery;
+import org.mariadb.jdbc.internal.com.send.ComStmtExecute;
+import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
+import org.mariadb.jdbc.internal.com.send.SendChangeDbPacket;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.LogQueryTool;
-import org.mariadb.jdbc.internal.util.constant.StateChange;
-import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.BulkStatus;
+import org.mariadb.jdbc.internal.util.LogQueryTool;
 import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
+import org.mariadb.jdbc.internal.util.constant.StateChange;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
-import org.mariadb.jdbc.LocalInfileInterceptor;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
-import java.io.*;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.SocketException;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -91,23 +98,20 @@ import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static org.mariadb.jdbc.internal.util.SqlStates.*;
 import static org.mariadb.jdbc.internal.com.Packet.*;
+import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
+    public static ThreadPoolExecutor readScheduler = null;
     private static Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
-
     private int transactionIsolationLevel = 0;
-
     private InputStream localInfileInputStream;
     private long maxRows;  /* max rows returned by a statement */
-
     private volatile int statementIdToRelease = -1;
     private FutureTask activeFutureTask = null;
-    public static ThreadPoolExecutor readScheduler = null;
-
     private LogQueryTool logQuery;
+    private boolean interrupted;
 
     /**
      * Get a protocol instance.
@@ -130,11 +134,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     /**
      * Execute internal query.
-     *
+     * <p>
      * !! will not support multi values queries !!
      *
-     * @param   sql sql
-     * @throws  SQLException in any exception occur
+     * @param sql sql
+     * @throws SQLException in any exception occur
      */
     public void executeQuery(final String sql) throws SQLException {
         executeQuery(isMasterConnection(), new Results(), sql);
@@ -203,7 +207,46 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         try {
 
             if (clientPrepareResult.getParamCount() == 0 && !clientPrepareResult.isQueryMultiValuesRewritable()) {
-                ComQuery.sendDirect(writer, clientPrepareResult.getQueryParts().get(0));
+                if (clientPrepareResult.getQueryParts().size() == 1) {
+                    ComQuery.sendDirect(writer, clientPrepareResult.getQueryParts().get(0));
+                } else {
+                    ComQuery.sendMultiDirect(writer, clientPrepareResult.getQueryParts());
+                }
+            } else {
+                writer.startPacket(0);
+                ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
+                writer.flush();
+            }
+            getResult(results);
+
+        } catch (SQLException queryException) {
+            throw logQuery.exceptionWithQuery(parameters, queryException, clientPrepareResult);
+        } catch (IOException e) {
+            throw handleIoException(e);
+        }
+    }
+
+    /**
+     * Execute a unique clientPrepareQuery.
+     *
+     * @param mustExecuteOnMaster was intended to be launched on master connection
+     * @param results             results
+     * @param clientPrepareResult clientPrepareResult
+     * @param parameters          parameters
+     * @param queryTimeout        if timeout is set and must use max_statement_time
+     * @throws SQLException exception
+     */
+    public void executeQuery(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
+                             ParameterHolder[] parameters, int queryTimeout) throws SQLException {
+        cmdPrologue();
+        try {
+
+            if (clientPrepareResult.getParamCount() == 0 && !clientPrepareResult.isQueryMultiValuesRewritable()) {
+                if (clientPrepareResult.getQueryParts().size() == 1) {
+                    ComQuery.sendDirect(writer, clientPrepareResult.getQueryParts().get(0), queryTimeout);
+                } else {
+                    ComQuery.sendMultiDirect(writer, clientPrepareResult.getQueryParts(), queryTimeout);
+                }
             } else {
                 writer.startPacket(0);
                 ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
@@ -248,8 +291,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             @Override
             public SQLException handleResultException(SQLException qex, Results results,
-                                                        List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                        int sendCmdCounter, int paramCount, PrepareResult prepareResult)
+                                                      List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
+                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult)
                     throws SQLException {
 
                 int counter = results.getCurrentStatNumber() - 1;
@@ -297,7 +340,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             String sql = null;
             SQLException exception = null;
 
-            for (int i = 0; i < queries.size(); i++) {
+            for (int i = 0; i < queries.size() && !isInterrupted(); i++) {
 
                 try {
 
@@ -320,6 +363,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     }
                 }
             }
+            stopIfInterrupted();
 
             if (exception != null) throw exception;
             return;
@@ -342,8 +386,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             @Override
             public SQLException handleResultException(SQLException qex, Results results,
-                                                        List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                        int sendCmdCounter, int paramCount, PrepareResult prepareResult)
+                                                      List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
+                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult)
                     throws SQLException {
 
                 String sql = queries.get(currentCounter + sendCmdCounter);
@@ -455,6 +499,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             } catch (IOException e) {
                 throw handleIoException(e);
             }
+            stopIfInterrupted();
 
         } while (currentIndex < totalQueries);
 
@@ -519,7 +564,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
         cmdPrologue();
 
-        return (ServerPrepareResult) new AbstractMultiSend(this, writer, results, serverPrepareResult, parametersList,true, sql) {
+        return (ServerPrepareResult) new AbstractMultiSend(this, writer, results, serverPrepareResult, parametersList, true, sql) {
             @Override
             public void sendCmd(PacketOutputStream writer, Results results,
                                 List<ParameterHolder[]> parametersList, List<String> queries, int paramCount, BulkStatus status,
@@ -552,8 +597,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             @Override
             public SQLException handleResultException(SQLException qex, Results results,
-                                                        List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                        int sendCmdCounter, int paramCount, PrepareResult prepareResult)
+                                                      List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
+                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult)
                     throws SQLException {
                 return logQuery.exceptionWithQuery(qex, prepareResult);
             }
@@ -584,7 +629,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @throws SQLException if parameter error or connection error occur.
      */
     public ServerPrepareResult prepareAndExecute(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                                                  Results results, String sql, final ParameterHolder[] parameters)
+                                                 Results results, String sql, final ParameterHolder[] parameters)
             throws SQLException {
 
         cmdPrologue();
@@ -825,7 +870,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Cancels the current query - clones the current protocol and executes a query using the new connection.
      *
      * @throws SQLException never thrown
-     * @throws IOException    if Host is not responding
+     * @throws IOException  if Host is not responding
      */
     @Override
     public void cancelCurrentQuery() throws SQLException, IOException {
@@ -835,6 +880,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             //no lock, because there is already a query running that possessed the lock.
             copiedProtocol.executeQuery("KILL QUERY " + serverThreadId);
         }
+        interrupted = true;
     }
 
     /**
@@ -991,10 +1037,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     /**
      * Read server response packet.
      *
-     * @see <a href="https://mariadb.com/kb/en/mariadb/4-server-response-packets/">server response packets</a>
-     *
      * @param results result object
      * @throws SQLException if sub-result connection fail
+     * @see <a href="https://mariadb.com/kb/en/mariadb/4-server-response-packets/">server response packets</a>
      */
     public void readPacket(Results results) throws SQLException {
         Buffer buffer;
@@ -1019,9 +1064,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             case ERROR:
                 throw readErrorPacket(buffer, results);
 
-            //*********************************************************************************************************
-            //* LOCAL INFILE response
-            //*********************************************************************************************************
+                //*********************************************************************************************************
+                //* LOCAL INFILE response
+                //*********************************************************************************************************
             case LOCAL_INFILE:
                 readLocalInfilePacket(buffer, results);
                 break;
@@ -1040,11 +1085,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     /**
      * Read OK_Packet.
      *
-     * @see <a href="https://mariadb.com/kb/en/mariadb/ok_packet/">OK_Packet</a>
-     *
-     * @param buffer current buffer
+     * @param buffer  current buffer
      * @param results result object
      * @throws SQLException if sub-result connection fail
+     * @see <a href="https://mariadb.com/kb/en/mariadb/ok_packet/">OK_Packet</a>
      */
     public void readOkPacket(Buffer buffer, Results results) throws SQLException {
         buffer.skipByte(); //fieldCount
@@ -1123,11 +1167,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     /**
      * Read ERR_Packet.
      *
-     * @see <a href="https://mariadb.com/kb/en/mariadb/err_packet/">ERR_Packet</a>
-     *
-     * @param buffer current buffer
+     * @param buffer  current buffer
      * @param results result object
      * @return SQLException if sub-result connection fail
+     * @see <a href="https://mariadb.com/kb/en/mariadb/err_packet/">ERR_Packet</a>
      */
     public SQLException readErrorPacket(Buffer buffer, Results results) {
         removeHasMoreResults();
@@ -1153,11 +1196,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     /**
      * Read Local_infile Packet.
      *
-     * @see <a href="https://mariadb.com/kb/en/mariadb/local_infile-packet/">local_infile packet</a>
-     *
-     * @param buffer current buffer
+     * @param buffer  current buffer
      * @param results result object
      * @throws SQLException if sub-result connection fail
+     * @see <a href="https://mariadb.com/kb/en/mariadb/local_infile-packet/">local_infile packet</a>
      */
     public void readLocalInfilePacket(Buffer buffer, Results results) throws SQLException {
 
@@ -1236,11 +1278,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     /**
      * Read ResultSet Packet.
      *
-     * @see <a href="https://mariadb.com/kb/en/mariadb/resultset/">resultSet packets</a>
-     *
-     * @param buffer current buffer
+     * @param buffer  current buffer
      * @param results result object
      * @throws SQLException if sub-result connection fail
+     * @see <a href="https://mariadb.com/kb/en/mariadb/resultset/">resultSet packets</a>
      */
     public void readResultSet(Buffer buffer, Results results) throws SQLException {
         long fieldCount = buffer.getLengthEncodedNumeric();
@@ -1286,10 +1327,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     /**
      * Preparation before command.
      *
-     * @param maxRows         query max rows
-     * @param hasProxy        has proxy
-     * @param connection      current connection
-     * @param statement       current statement
+     * @param maxRows    query max rows
+     * @param hasProxy   has proxy
+     * @param connection current connection
+     * @param statement  current statement
      * @throws SQLException if any error occur.
      */
     public void prolog(long maxRows, boolean hasProxy, MariaDbConnection connection, MariaDbStatement statement)
@@ -1349,16 +1390,17 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
 
         if (!this.connected) throw new SQLException("Connection is close", "08000", 1220);
+        interrupted = false;
 
     }
 
     /**
      * Set current state after a failover.
      *
-     * @param maxRows current Max rows
+     * @param maxRows                   current Max rows
      * @param transactionIsolationLevel current transactionIsolationLevel
-     * @param database current database
-     * @param autocommit current autocommit state
+     * @param database                  current database
+     * @param autocommit                current autocommit state
      * @throws SQLException if any error occur.
      */
     //TODO set all client affected variables when implementing CONJ-319
@@ -1381,15 +1423,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     /**
      * Handle IoException (reconnect if Exception is due to having send too much data,
      * making server close the connection.
-     *
+     * <p>
      * There is 3 kind of IOException :
      * <ol>
      * <li> MaxAllowedPacketException :
-     *      without need of reconnect : thrown when driver don't send packet that would have been too big
-     *      then error is not a CONNECTION_EXCEPTION</li>
+     * without need of reconnect : thrown when driver don't send packet that would have been too big
+     * then error is not a CONNECTION_EXCEPTION</li>
      * <li>packets size is greater than max_allowed_packet (can be checked with writer.isAllowedCmdLength()). Need to reconnect</li>
      * <li>unknown IO error throw a CONNECTION_EXCEPTION</li>
      * </ol>
+     *
      * @param initialException initial Io error
      * @return the resulting error to return to client.
      */
@@ -1433,4 +1476,19 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         this.activeFutureTask = activeFutureTask;
     }
 
+    public boolean isInterrupted() {
+        return interrupted;
+    }
+
+    /**
+     * Throw TimeoutException if timeout has been reached.
+     *
+     * @throws SQLTimeoutException to indicate timeout exception.
+     */
+    public void stopIfInterrupted() throws SQLTimeoutException {
+        if (isInterrupted()) {
+            //interrupted during read, must throw an exception manually
+            throw new SQLTimeoutException("Timeout during batch execution");
+        }
+    }
 }

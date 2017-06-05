@@ -28,11 +28,29 @@ case "$TYPE" in
  "COMPRESSION" )
    urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useCompression=true'
    ;;
+  *)
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root'
+   ;;
 esac;
+
+
+if [ -n "$PROFILE" ]
+then
+    export urlString="$urlString&profileSql=true"
+    pwd
+    rm src/test/resources/logback-test.xml
+    mv src/test/resources/logback-test-travis.xml src/test/resources/logback-test.xml
+fi
 
 if [ -n "$AURORA" ]
 then
-    testSingleHost=false
+    if [ -n "$AURORA_STRING_URL" ]
+    then
+        urlString=-DdbUrl=$AURORA_STRING_URL
+        testSingleHost=true
+    else
+        testSingleHost=false
+    fi
 else
     testSingleHost=true
 fi

@@ -1,50 +1,53 @@
 /*
-MariaDB Client for Java
-
-Copyright (c) 2012-2014 Monty Program Ab.
-
-This library is free software; you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the Free
-Software Foundation; either version 2.1 of the License, or (at your option)
-any later version.
-
-This library is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
-for more details.
-
-You should have received a copy of the GNU Lesser General Public License along
-with this library; if not, write to Monty Program Ab info@montyprogram.com.
-
-This particular MariaDB Client for Java file is work
-derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
-the following copyright and notice provisions:
-
-Copyright (c) 2009-2011, Marcus Eriksson
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-Redistributions of source code must retain the above copyright notice, this list
-of conditions and the following disclaimer.
-
-Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-Neither the name of the driver nor the names of its contributors may not be
-used to endorse or promote products derived from this software without specific
-prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
-OF SUCH DAMAGE.
+ *
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2017 MariaDB Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ *
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
  */
 
 package org.mariadb.jdbc;
@@ -219,31 +222,79 @@ public class UrlParser {
                                                   String additionalParameters) {
 
         if (additionalParameters != null) {
-            String regex = "(\\/[^\\?]*)(\\?.+)*|(\\?[^\\/]*)(\\/.+)*";
+            String regex = "(\\/([^\\?]*))?(\\?(.+))*";
             Pattern pattern = Pattern.compile(regex, Pattern.DOTALL);
             Matcher matcher = pattern.matcher(additionalParameters);
-            if (matcher.find()) {
-                String db1 = (matcher.group(1) != null && !matcher.group(1).equals("/")) ? matcher.group(1).substring(1) : null;
-                String db2 = (matcher.group(4) != null && !matcher.group(4).equals("/")) ? matcher.group(4).substring(1) : null;
-                String options1 = (matcher.group(2) != null) ? matcher.group(2).substring(1) : "";
-                String options2 = (matcher.group(3) != null) ? matcher.group(3).substring(1) : "";
 
-                urlParser.database = (db1 != null) ? db1 : db2;
-                urlParser.options = DefaultOptions.parse(urlParser.haMode, (!options1.equals("")) ? options1 : options2,
-                        properties, urlParser.options);
+            if (matcher.find()) {
+
+                urlParser.database = matcher.group(2);
+                urlParser.options = DefaultOptions.parse(urlParser.haMode, matcher.group(4), properties, urlParser.options);
+                if (urlParser.database != null && urlParser.database.isEmpty()) urlParser.database = null;
 
             } else {
+
                 urlParser.database = null;
                 urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
+
             }
+
         } else {
+
             urlParser.database = null;
             urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
+
         }
+
         LoggerFactory.init(urlParser.options.log
                 || urlParser.options.profileSql
                 || urlParser.options.slowQueryThresholdNanos != null);
         urlParser.addresses = HostAddress.parse(hostAddressesString, urlParser.haMode);
+    }
+
+    /**
+     * Permit to set parameters not forced.
+     * if options useBatchMultiSend and usePipelineAuth are not explicitly set in connection string,
+     * value will default to true or false according if aurora detection.
+     *
+     * @return UrlParser for easy testing
+     */
+    public UrlParser auroraPipelineQuirks() {
+
+        //Aurora has issue with pipelining, depending on network speed.
+        //Driver must rely on information provided by user : hostname if dns, and HA mode.</p>
+        boolean disablePipeline = isAurora();
+
+        if (options.useBatchMultiSend == null) {
+            options.useBatchMultiSend = disablePipeline ? Boolean.FALSE : Boolean.TRUE;
+        }
+
+        if (options.usePipelineAuth == null) {
+            options.usePipelineAuth = disablePipeline ? Boolean.FALSE : Boolean.TRUE;
+        }
+        return this;
+    }
+
+    /**
+     * Detection of Aurora.
+     * <p>
+     * Aurora rely on MySQL, then cannot be identified by protocol.
+     * But Aurora doesn't permit some behaviour normally working with MySQL : pipelining.
+     * So Driver must identified if server is Aurora to disable pipeline options that are enable by default.
+     * </p>
+     *
+     * @return true if aurora.
+     */
+    public boolean isAurora() {
+        if (haMode == HaMode.AURORA) return true;
+        if (addresses != null) {
+            Pattern clusterPattern = Pattern.compile("(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)", Pattern.CASE_INSENSITIVE);
+            for (HostAddress hostAddress : addresses) {
+                Matcher matcher = clusterPattern.matcher(hostAddress.host);
+                if (matcher.find()) return true;
+            }
+        }
+        return false;
     }
 
     private static void setHaMode(UrlParser urlParser, String url, int separator) {

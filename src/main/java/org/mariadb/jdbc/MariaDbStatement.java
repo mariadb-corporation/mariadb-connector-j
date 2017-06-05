@@ -1,63 +1,67 @@
 /*
-MariaDB Client for Java
-
-Copyright (c) 2012-2014 Monty Program Ab.
-
-This library is free software; you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the Free
-Software Foundation; either version 2.1 of the License, or (at your option)
-any later version.
-
-This library is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
-for more details.
-
-You should have received a copy of the GNU Lesser General Public License along
-with this library; if not, write to Monty Program Ab info@montyprogram.com.
-
-This particular MariaDB Client for Java file is work
-derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
-the following copyright and notice provisions:
-
-Copyright (c) 2009-2011, Marcus Eriksson
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-Redistributions of source code must retain the above copyright notice, this list
-of conditions and the following disclaimer.
-
-Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-Neither the name of the driver nor the names of its contributors may not be
-used to endorse or promote products derived from this software without specific
-prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
-OF SUCH DAMAGE.
-*/
+ *
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2017 MariaDB Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ *
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ */
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.com.read.dao.CmdInformation;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.com.read.dao.*;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.IOException;
@@ -99,12 +103,12 @@ public class MariaDbStatement implements Statement, Cloneable {
     protected int resultSetScrollType;
     protected boolean mustCloseOnCompletion = false;
     protected Options options;
-    boolean isTimedout;
-    volatile boolean executing;
     //are warnings cleared?
     protected boolean warningsCleared;
     protected int fetchSize;
-    private boolean canUseServerTimeout;
+    boolean isTimedout;
+    volatile boolean executing;
+    protected boolean canUseServerTimeout;
     private int maxFieldSize;
 
     /**
@@ -133,6 +137,7 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     /**
      * Clone statement.
+     *
      * @param connection connection
      * @return Clone statement.
      * @throws CloneNotSupportedException if any error occur.
@@ -176,13 +181,24 @@ public class MariaDbStatement implements Statement, Cloneable {
         }, queryTimeout, TimeUnit.SECONDS);
     }
 
-    protected void executeQueryPrologue() throws SQLException {
+    /**
+     * Command prolog.
+     * <ol>
+     *     <li>clear previous query state</li>
+     *     <li>launch timeout timer if needed</li>
+     * </ol>
+     *
+     * @param forceUseOfTimer even if query timeout if possible on server using max_statement_time, force using timer
+     *                        (for batch)
+     * @throws SQLException if statement is closed
+     */
+    protected void executeQueryPrologue(boolean forceUseOfTimer) throws SQLException {
         executing = true;
         if (closed) {
             throw new SQLException("execute() is called on closed statement");
         }
         protocol.prolog(maxRows, protocol.getProxy() != null, connection, this);
-        if (queryTimeout != 0 && !canUseServerTimeout) {
+        if (queryTimeout != 0 && (!canUseServerTimeout || forceUseOfTimer)) {
             setTimerTask();
         }
     }
@@ -236,8 +252,6 @@ public class MariaDbStatement implements Statement, Cloneable {
         isTimedout = false;
         executing = false;
     }
-
-
 
 
     protected void executeBatchEpilogue() {
@@ -295,7 +309,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         lock.lock();
         try {
 
-            executeQueryPrologue();
+            executeQueryPrologue(false);
             results.reset(fetchSize, false, 1, false, resultSetScrollType);
             protocol.executeQuery(protocol.isMasterConnection(), results,
                     getTimeoutSql(Utils.nativeSql(sql, connection.noBackslashEscapes)));
@@ -331,10 +345,10 @@ public class MariaDbStatement implements Statement, Cloneable {
         lock.lock();
         try {
 
-            executeQueryPrologue();
+            executeQueryPrologue(false);
             results.reset(fetchSize, false, 1, false, resultSetScrollType);
             protocol.executeQuery(protocol.isMasterConnection(), results,
-                    getTimeoutSql(Utils.nativeSql(sql, connection.noBackslashEscapes)),charset);
+                    getTimeoutSql(Utils.nativeSql(sql, connection.noBackslashEscapes)), charset);
             results.commandEnd();
             return results.getResultSet() != null;
 
@@ -540,9 +554,10 @@ public class MariaDbStatement implements Statement, Cloneable {
      *                      inserted row
      * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0 for SQL statements
      * that return nothing
-     * @throws SQLException if a database access error occurs, this method is called on a closed
-     * <code>Statement</code>, the SQL statement returns a <code>ResultSet</code> object, or the second argument
-     * supplied to this method is not an <code>int</code> array whose elements are valid column indexes
+     * @throws SQLException                    if a database access error occurs, this method is called on a closed
+     *                                         <code>Statement</code>, the SQL statement returns a <code>ResultSet</code>
+     *                                         object, or the second argument supplied to this method is not an <code>int</code>
+     *                                         array whose elements are valid column indexes
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
@@ -563,16 +578,16 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @param columnNames an array of the names of the columns that should be returned from the inserted row
      * @return either the row count for <code>INSERT</code>, <code>UPDATE</code>, or <code>DELETE</code> statements,
      * or 0 for SQL statements that return nothing
-     * @throws SQLException  if a database access error occurs, this method is called on a closed
-     * <code>Statement</code>, the SQL statement returns a <code>ResultSet</code> object, or the second argument
-     * supplied to this method is not a <code>String</code> array whose elements are valid column names
+     * @throws SQLException                    if a database access error occurs, this method is called on a closed
+     *                                         <code>Statement</code>, the SQL statement returns a <code>ResultSet</code>
+     *                                         object, or the second argument supplied to this method is not a <code>String</code>
+     *                                         array whose elements are valid column names
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      * @since 1.4
      */
     public int executeUpdate(final String sql, final String[] columnNames) throws SQLException {
         return executeUpdate(sql);
     }
-
 
 
     /**
@@ -594,7 +609,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     /**
      * Identical to executeLargeUpdate(String sql), with a flag that indicate that autoGeneratedKeys (primary key fields with "auto_increment")
      * generated id's must be retrieved.
-     *
+     * <p>
      * Those id's will be available using getGeneratedKeys() method.
      *
      * @param sql               sql command
@@ -613,8 +628,8 @@ public class MariaDbStatement implements Statement, Cloneable {
     /**
      * Identical to executeLargeUpdate(String sql, int autoGeneratedKeys) with autoGeneratedKeys = Statement.RETURN_GENERATED_KEYS set.
      *
-     * @param sql               sql command
-     * @param columnIndexes     column Indexes
+     * @param sql           sql command
+     * @param columnIndexes column Indexes
      * @return update counts
      * @throws SQLException if any error occur during execution
      */
@@ -626,8 +641,8 @@ public class MariaDbStatement implements Statement, Cloneable {
     /**
      * Identical to executeLargeUpdate(String sql, int autoGeneratedKeys) with autoGeneratedKeys = Statement.RETURN_GENERATED_KEYS set.
      *
-     * @param sql               sql command
-     * @param columnNames       columns names
+     * @param sql         sql command
+     * @param columnNames columns names
      * @return update counts
      * @throws SQLException if any error occur during execution
      */
@@ -654,7 +669,9 @@ public class MariaDbStatement implements Statement, Cloneable {
                     try {
                         protocol.cancelCurrentQuery();
                         skipMoreResults();
-                    } catch (SQLException | IOException  sqle) {
+                    } catch (SQLException sqle) {
+                        //eat exception
+                    } catch (IOException sqle) {
                         //eat exception
                     }
                 } else skipMoreResults();
@@ -725,8 +742,24 @@ public class MariaDbStatement implements Statement, Cloneable {
     }
 
     /**
+     * Sets the limit for the maximum number of rows that any <code>ResultSet</code> object  generated by this <code>Statement</code> object can
+     * contain to the given number. If the limit is exceeded, the excess rows are silently dropped.
+     *
+     * @param max the new max rows limit; zero means there is no limit
+     * @throws SQLException if the condition max &gt;= 0 is not satisfied
+     * @see #getMaxRows
+     */
+    public void setMaxRows(final int max) throws SQLException {
+        if (max < 0) {
+            throw new SQLException("max rows cannot be negative : asked for " + max);
+        }
+        maxRows = max;
+    }
+
+    /**
      * Retrieves the maximum number of rows that a ResultSet object produced by this Statement object can contain.
      * If this limit is exceeded, the excess rows are silently dropped.
+     *
      * @return the current maximum number of rows for a ResultSet object produced by this Statement object; zero means there is no limit
      */
     public long getLargeMaxRows() {
@@ -743,20 +776,6 @@ public class MariaDbStatement implements Statement, Cloneable {
     public void setLargeMaxRows(long max) throws SQLException {
         if (max < 0) {
             throw new SQLException("max rows cannot be negative : setLargeMaxRows value is " + max);
-        }
-        maxRows = max;
-    }
-    /**
-     * Sets the limit for the maximum number of rows that any <code>ResultSet</code> object  generated by this <code>Statement</code> object can
-     * contain to the given number. If the limit is exceeded, the excess rows are silently dropped.
-     *
-     * @param max the new max rows limit; zero means there is no limit
-     * @throws SQLException if the condition max &gt;= 0 is not satisfied
-     * @see #getMaxRows
-     */
-    public void setMaxRows(final int max) throws SQLException {
-        if (max < 0) {
-            throw new SQLException("max rows cannot be negative : asked for " + max);
         }
         maxRows = max;
     }
@@ -1015,7 +1034,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @return <code>true</code> if the next result is a <code>ResultSet</code> object; <code>false</code> if it is an
      * update count or there are no more results
      * @throws SQLException if a database access error occurs or this method is called on a closed
-     * <code>Statement</code>
+     *                      <code>Statement</code>
      * @see #execute
      */
     public boolean getMoreResults() throws SQLException {
@@ -1035,12 +1054,12 @@ public class MariaDbStatement implements Statement, Cloneable {
      *                or <code>Statement.CLOSE_ALL_RESULTS</code>
      * @return <code>true</code> if the next result is a <code>ResultSet</code> object; <code>false</code> if it is an
      * update count or there are no more results
-     * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>
-     * or the argument supplied is not one of the following: <code>Statement.CLOSE_CURRENT_RESULT</code>,
-     * <code>Statement.KEEP_CURRENT_RESULT</code> or <code>Statement.CLOSE_ALL_RESULTS</code>
+     * @throws SQLException                    if a database access error occurs, this method is called on a closed <code>Statement</code>
+     *                                         or the argument supplied is not one of the following: <code>Statement.CLOSE_CURRENT_RESULT</code>,
+     *                                         <code>Statement.KEEP_CURRENT_RESULT</code> or <code>Statement.CLOSE_ALL_RESULTS</code>
      * @throws SQLFeatureNotSupportedException if <code>DatabaseMetaData.supportsMultipleOpenResults</code> returns
-     * <code>false</code> and either <code>Statement.KEEP_CURRENT_RESULT</code>
-     * or <code>Statement.CLOSE_ALL_RESULTS</code> are supplied as the argument.
+     *                                         <code>false</code> and either <code>Statement.KEEP_CURRENT_RESULT</code>
+     *                                         or <code>Statement.CLOSE_ALL_RESULTS</code> are supplied as the argument.
      * @see #execute
      * @since 1.4
      */
@@ -1074,13 +1093,15 @@ public class MariaDbStatement implements Statement, Cloneable {
      *
      * @param direction the initial direction for processing rows
      * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>
-     * or the given direction is not one of <code>ResultSet.FETCH_FORWARD</code>,
-     * <code>ResultSet.FETCH_REVERSE</code>, or <code>ResultSet.FETCH_UNKNOWN</code>
+     *                      or the given direction is not one of
+     *                      <code>ResultSet.FETCH_FORWARD</code>,
+     *                      <code>ResultSet.FETCH_REVERSE</code>,
+     *                      or <code>ResultSet.FETCH_UNKNOWN</code>
      * @see #getFetchDirection
      * @since 1.2
      */
     public void setFetchDirection(final int direction) throws SQLException {
-        return;
+        //not implemented
     }
 
     /**
@@ -1182,9 +1203,9 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @return an array of update counts containing one element for each command in the batch.  The elements of the
      * array are ordered according to the order in which send were added to the batch.
      * @throws SQLException if a database access error occurs, this method is called on a closed <code>Statement</code>
-     * or the driver does not support batch statements. Throws {@link BatchUpdateException}
-     * (a subclass of <code>SQLException</code>) if one of the send
-     * sent to the database fails to execute properly or attempts to return a result set.
+     *                      or the driver does not support batch statements. Throws {@link BatchUpdateException}
+     *                      (a subclass of <code>SQLException</code>) if one of the send
+     *                      sent to the database fails to execute properly or attempts to return a result set.
      * @see #addBatch
      * @see DatabaseMetaData#supportsBatchUpdates
      * @since 1.3
@@ -1209,12 +1230,13 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     /**
      * Internal batch execution.
+     *
      * @param size expected result-set size
      * @throws SQLException throw exception if batch error occur
      */
     protected void internalBatchExecution(int size) throws SQLException {
 
-        executeQueryPrologue();
+        executeQueryPrologue(true);
 
         results.reset(0, true, size, false, resultSetScrollType);
         if (this.options.rewriteBatchedStatements) {
@@ -1226,6 +1248,11 @@ public class MariaDbStatement implements Statement, Cloneable {
                     batchQueryMultiRewritable = false;
                     break;
                 }
+            }
+
+            if (protocol.isInterrupted()) {
+                //interrupted by timeout, must throw an exception manually
+                throw new SQLTimeoutException("Timeout during batch execution");
             }
 
             if (batchQueryMultiRewritable) {

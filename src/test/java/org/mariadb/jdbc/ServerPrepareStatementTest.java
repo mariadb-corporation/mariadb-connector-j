@@ -1,3 +1,55 @@
+/*
+ *
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2017 MariaDB Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ *
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ */
+
 package org.mariadb.jdbc;
 
 import org.junit.Assume;
@@ -890,5 +942,89 @@ public class ServerPrepareStatementTest extends BaseTest {
             }
         }
     }
+
+    /**
+     * Binary state reading control.
+     *
+     * @throws SQLException if connection error occur
+     */
+    @Test
+    public void ensureRowStateWithNullValues() throws SQLException {
+        createTable("ensureRowStateWithNullValues", "t1 varchar(20), t2 varchar(20), t3 varchar(20), t4 varchar(20), t5 varchar(20), t6 varchar(20)");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("INSERT INTO ensureRowStateWithNullValues VALUES ('12345678901234567890', null, 'otherString', '1234567890', null, '12345')");
+        try (PreparedStatement ps = sharedConnection.prepareStatement("SELECT * FROM ensureRowStateWithNullValues")) {
+            try (ResultSet rs = ps.executeQuery()) {
+                assertTrue(rs.next());
+                assertEquals("12345678901234567890", rs.getString(1));
+                assertNull(rs.getString(2));
+                assertNull(rs.getString(5));
+                assertEquals("12345", rs.getString(6));
+
+                assertFalse(rs.next());
+            }
+        }
+    }
+
+
+    /**
+     * Binary state reading control - second part.
+     *
+     * @throws SQLException if connection error occur
+     */
+    @Test
+    public void ensureRowStateWithNullValuesSecond() throws Exception {
+        createTable("ensureRowStateWithNullValuesSecond",
+                " ID int(11) NOT NULL,"
+                        + " COLUMN_1 varchar(11) COLLATE utf8_bin DEFAULT NULL,"
+                        + " COLUMN_2 varchar(11) COLLATE utf8_bin DEFAULT NULL,"
+                        + " COLUMN_3 varchar(11) COLLATE utf8_bin DEFAULT NULL,"
+                        + " PRIMARY KEY (ID)",
+                "ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin");
+        if (testSingleHost) {
+            Statement st = sharedConnection.createStatement();
+            st.execute("INSERT INTO ensureRowStateWithNullValuesSecond VALUES(1,'col 1 value', 'col 2 value', null)");
+        }
+
+        String sql = "SELECT ID, COLUMN_2, COLUMN_1, COLUMN_3 FROM ensureRowStateWithNullValuesSecond";
+        try (Connection tmpConnection = setConnection("&profileSql=true&useServerPrepStmts=true")) {
+            Statement stmt = tmpConnection.createStatement();
+            stmt.setQueryTimeout(1);
+            stmt.execute(sql);
+
+            try (final PreparedStatement preparedStatement = tmpConnection.prepareStatement(sql)) {
+                ResultSet rs = preparedStatement.executeQuery();
+                rs.next();
+
+                String columnOne = rs.getString("COLUMN_1");
+                String columnTwo = rs.getString("COLUMN_2");
+                String columnThree = rs.getString("COLUMN_3");
+
+                assertEquals("col 2 value", columnTwo);
+                assertNull(columnThree);
+                assertNotNull(columnOne);
+                assertEquals("col 1 value", columnOne);
+
+                columnThree = rs.getString("COLUMN_3");
+                columnTwo = rs.getString("COLUMN_2");
+                columnOne = rs.getString("COLUMN_1");
+
+                assertEquals("col 2 value", columnTwo);
+                assertNull(columnThree);
+                assertNotNull(columnOne);
+                assertEquals("col 1 value", columnOne);
+
+                columnTwo = rs.getString("COLUMN_2");
+                columnThree = rs.getString("COLUMN_3");
+                columnOne = rs.getString("COLUMN_1");
+
+                assertEquals("col 2 value", columnTwo);
+                assertNull(columnThree);
+                assertNotNull(columnOne);
+                assertEquals("col 1 value", columnOne);
+            }
+        }
+    }
+
 
 }

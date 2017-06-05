@@ -1,4 +1,8 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#202|2.0.2]] Released on 05 Jun. 2017
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#161|1.6.1]] Released on 05 Jun. 2017
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#201|2.0.1]] Released on 10 May  2017
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#160|1.6.0]] Released on 10 May  2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#200|2.0.0]] Released on 11 Apr. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#158|1.5.9]] Released on 09 Mar. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#158|1.5.8]] Released on 10 Fev  2017
@@ -19,6 +23,45 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+== 1.6.1
+report of 2.0.2 corrections for jre 1.7 compatible version.
+
+== 2.0.2
+Bug
+*[CONJ-490] - DataSource connectTimeout is in second, but was set on socket timeout that is in milliseconds
+*[CONJ-481] - Buffer overrun reading ResultSet when using option "useServerPrepStmts"
+*[CONJ-470] - Error when executing SQL contains "values" and rewriteBatchedStatements=true
+*[CONJ-471] - PK_NAME returned by DatabaseMetadata.getPrimaryKeys() should not be null
+*[CONJ-477] - Aurora not compatible with option usePipelineAuth. Now automatically disabled when aurora is detected
+*[CONJ-479] - ArrayIndexOutOfBoundsException on connect to MySQL 5.1.73
+*[CONJ-480] - Access denied error on connect to MySQL 5.1.73
+*[CONJ-483] - Wrong content of DEFERRABILITY column in MariaDbDatabaseMetaData
+*[CONJ-487] - No timeout exception on Client PrepareStatement
+*[CONJ-489] - javax.transaction.xa.XAException message error truncated ( near '0x )
+
+Task
+*[CONJ-478] - Change CI tests to use maxscale 2.1 version
+*[CONJ-482] - Connection.setNetworkTimeout don't throw exception if no executor
+*[CONJ-488] - Use java.net.URL to read keyStore and trustStore again
+
+== 2.0.1
+* CONJ-467 - changing database metadata to 4.2
+* CONJ-460 - Query that contain multiqueries with fetch and EOF deprecation failed
+* CONJ-464 - Using of "slowQueryThresholdNanos" option with value > Integer.MAX_VALUE results in class cast exception
+* CONJ-452 - correcting inline ssl server certificate parsing
+* CONJ-461 - LAST_INSERT_ID() validation check correction for rewrite statement
+* CONJ-465 - new option "enablePacketDebug"
+
+New Options :
+ |=enablePacketDebug|Driver will save the last 16 MySQL packet exchanges (limited to first 1000 bytes).\\Hexadecimal value of those packet will be added to stacktrace when an IOException occur.\\This options has no performance incidence (< 1 microseconds per query) but driver will then take 16kb more memory.//Default: true. Since 1.6.0//|
+
+* CONJ-468 - autoIncrementIncrement value loaded during connection, avoiding a query for first statement for rewrite
+
+
+== 1.6.0
+version contain 2.0.0/2.0.1 evolutions, without the Java 8 part with java 8 temporal temporal object
+
+
 == 2.0.0-RC
 
 Release candidate version.

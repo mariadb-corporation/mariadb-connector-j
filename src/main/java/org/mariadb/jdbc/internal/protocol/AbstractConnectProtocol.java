@@ -1,116 +1,120 @@
-package org.mariadb.jdbc.internal.protocol;
-
 /*
-MariaDB Client for Java
+ *
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2017 MariaDB Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ * This particular MariaDB Client for Java file is work
+ * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
+ * the following copyright and notice provisions:
+ *
+ * Copyright (c) 2009-2011, Marcus Eriksson
+ *
+ * Redistribution and use in source and binary forms, with or without modification,
+ * are permitted provided that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list
+ * of conditions and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this
+ * list of conditions and the following disclaimer in the documentation and/or
+ * other materials provided with the distribution.
+ *
+ * Neither the name of the driver nor the names of its contributors may not be
+ * used to endorse or promote products derived from this software without specific
+ * prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+ * OF SUCH DAMAGE.
+ *
+ */
 
-Copyright (c) 2012-2014 Monty Program Ab.
-Copyright (c) 2015 Avaya Inc.
-Copyright (c) 2015-2016 MariaDB Ab.
-
-This library is free software; you can redistribute it and/or modify it under
-the terms of the GNU Lesser General Public License as published by the Free
-Software Foundation; either version 2.1 of the License, or (at your option)
-any later version.
-
-This library is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
-FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
-for more details.
-
-You should have received a copy of the GNU Lesser General Public License along
-with this library; if not, write to Monty Program Ab info@montyprogram.com.
-
-This particular MariaDB Client for Java file is work
-derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
-the following copyright and notice provisions:
-
-Copyright (c) 2009-2011, Marcus Eriksson
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-Redistributions of source code must retain the above copyright notice, this list
-of conditions and the following disclaimer.
-
-Redistributions in binary form must reproduce the above copyright notice, this
-list of conditions and the following disclaimer in the documentation and/or
-other materials provided with the distribution.
-
-Neither the name of the driver nor the names of its contributors may not be
-used to endorse or promote products derived from this software without specific
-prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
-NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
-OF SUCH DAMAGE.
-*/
+package org.mariadb.jdbc.internal.protocol;
 
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
+import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.OkPacket;
+import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.com.send.*;
+import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.io.input.DecompressPacketInputStream;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
 import org.mariadb.jdbc.internal.io.output.CompressPacketOutputStream;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.io.output.StandardPacketOutputStream;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509KeyManager;
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509TrustManager;
-import org.mariadb.jdbc.internal.failover.FailoverProxy;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.com.send.*;
-import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 
 import javax.net.ssl.*;
-
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.*;
+import java.security.GeneralSecurityException;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static org.mariadb.jdbc.internal.com.Packet.COM_QUERY;
-import static org.mariadb.jdbc.internal.com.Packet.EOF;
-import static org.mariadb.jdbc.internal.com.Packet.ERROR;
+import static org.mariadb.jdbc.internal.com.Packet.*;
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public abstract class AbstractConnectProtocol implements Protocol {
-    private static Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
     public static final byte[] SESSION_QUERY = ("SELECT @@max_allowed_packet,"
             + "@@system_time_zone,"
             + "@@time_zone,"
             + "@@sql_mode,"
             + "@@auto_increment_increment").getBytes(StandardCharsets.UTF_8);
     public static final byte[] IS_MASTER_QUERY = "show global variables like 'innodb_read_only'".getBytes(StandardCharsets.UTF_8);
-
+    private static Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
     protected final ReentrantLock lock;
     protected final UrlParser urlParser;
     protected final Options options;
@@ -152,6 +156,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      */
 
     public AbstractConnectProtocol(final UrlParser urlParser, final ReentrantLock lock) {
+        urlParser.auroraPipelineQuirks();
         this.lock = lock;
         this.urlParser = urlParser;
         this.options = this.urlParser.getOptions();
@@ -163,6 +168,32 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
 
         setDataTypeMappingFlags();
+    }
+
+    protected static void close(PacketInputStream packetInputStream, PacketOutputStream packetOutputStream, Socket socket) throws SQLException {
+        SendClosePacket closePacket = new SendClosePacket();
+        try {
+            try {
+                closePacket.send(packetOutputStream);
+                socket.shutdownOutput();
+                socket.setSoTimeout(3);
+                InputStream is = socket.getInputStream();
+                while (is.read() != -1) {
+                }
+            } catch (Throwable t) {
+                //eat exception
+            }
+            packetOutputStream.close();
+            packetInputStream.close();
+        } catch (IOException e) {
+            throw new SQLException("Could not close connection: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
+        } finally {
+            try {
+                socket.close();
+            } catch (IOException e) {
+                //socket closed, if any error, so not throwing error
+            }
+        }
     }
 
     /**
@@ -194,38 +225,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    protected static void close(PacketInputStream packetInputStream, PacketOutputStream packetOutputStream, Socket socket) throws SQLException {
-        SendClosePacket closePacket = new SendClosePacket();
-        try {
-            try {
-                closePacket.send(packetOutputStream);
-                socket.shutdownOutput();
-                socket.setSoTimeout(3);
-                InputStream is = socket.getInputStream();
-                while (is.read() != -1) {
-                }
-            } catch (Throwable t) {
-                //eat exception
-            }
-            packetOutputStream.close();
-            packetInputStream.close();
-        } catch (IOException e) {
-            throw new SQLException("Could not close connection: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
-        } finally {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                //socket closed, if any error, so not throwing error
-            }
-        }
-    }
-
     /**
      * Skip packets not read that are not needed.
      * Packets are read according to needs.
      * If some data have not been read before next execution, skip it.
-     *
+     * <p>
      * <i>Lock must be set before using this method</i>
+     *
      * @throws SQLException exception
      */
     public void skip() throws SQLException {
@@ -291,10 +297,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             char[] keyStorePasswordChars = keyStorePassword == null ? null : keyStorePassword.toCharArray();
 
-            //permit using "file:..." for compatibility
-            if (keyStoreUrl.startsWith("file://")) keyStoreUrl = keyStoreUrl.substring(7);
+            try {
+                inStream = new URL(keyStoreUrl).openStream();
+            } catch (IOException ioexception) {
+                inStream = new FileInputStream(keyStoreUrl);
+            }
 
-            inStream = new FileInputStream(keyStoreUrl);
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
             ks.load(inStream, keyStorePasswordChars);
             char[] keyStoreChars = (keyPassword == null) ? keyStorePasswordChars : keyPassword.toCharArray();
@@ -367,14 +375,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
     /**
      * Connect the client and perform handshake.
      *
-     * @param host              host
-     * @param port              port
+     * @param host host
+     * @param port port
      * @throws SQLException handshake error, e.g wrong user or password
      * @throws IOException  connection error (host/port not available)
      */
     private void connect(String host, int port) throws SQLException, IOException {
         try {
             socket = Utils.createSocket(urlParser, host);
+
             initializeSocketOption();
 
             // Bind the socket to a particular interface if the connection property
@@ -449,7 +458,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * Command are send one after the other, assuming that command are less than 65k
      * (minimum hosts TCP/IP buffer size)
      *
-     * @throws IOException if socket exception occur
+     * @throws IOException  if socket exception occur
      * @throws SQLException if query exception occur
      */
     private void sendPipelineAdditionalData() throws IOException, SQLException {
@@ -514,14 +523,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void sendCreateDatabaseIfNotExist(String quotedDb)  throws IOException {
+    private void sendCreateDatabaseIfNotExist(String quotedDb) throws IOException {
         writer.startPacket(0);
         writer.write(COM_QUERY);
         writer.write("CREATE DATABASE IF NOT EXISTS " + quotedDb);
         writer.flush();
     }
 
-    private void sendUseDatabaseIfNotExist(String quotedDb)  throws IOException {
+    private void sendUseDatabaseIfNotExist(String quotedDb) throws IOException {
         writer.startPacket(0);
         writer.write(COM_QUERY);
         writer.write("USE " + quotedDb);
@@ -711,8 +720,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 seed,
                 packetSeq,
                 plugin,
-                options,
-                urlParser.getHaMode());
+                options);
 
         Buffer buffer = reader.getPacket(false);
 
@@ -857,6 +865,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     /**
      * Check that current connection is a master connection (not read-only)
+     *
      * @return true if master
      * @throws SQLException if requesting infos for server fail.
      */
@@ -884,7 +893,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * Check that next read packet is a End-of-file packet.
      *
      * @throws SQLException if not a End-of-file packet
-     * @throws IOException    if connection error occur
+     * @throws IOException  if connection error occur
      */
     public void readEofPacket() throws SQLException, IOException {
         Buffer buffer = reader.getPacket(true);
@@ -909,7 +918,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * Check that next read packet is a End-of-file packet.
      *
      * @throws SQLException if not a End-of-file packet
-     * @throws IOException    if connection error occur
+     * @throws IOException  if connection error occur
      */
     public void skipEofPacket() throws SQLException, IOException {
         Buffer buffer = reader.getPacket(true);
@@ -1281,6 +1290,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     /**
      * Change Socket TcpNoDelay option.
+     *
      * @param setTcpNoDelay value to set.
      */
     public void changeSocketTcpNoDelay(boolean setTcpNoDelay) {
