@@ -714,8 +714,8 @@ public class Utils {
                     .append(hexArray[(b & 0x0F)]);
         }
         return hex.toString();
-    }    
-    
+    }
+
     public static String byteArrayToHexString(final byte[] bytes) {
         return (bytes != null) ? getHex(bytes) : "";
     }    
