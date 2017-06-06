@@ -71,7 +71,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     public static final String DRIVER_NAME = "MariaDB connector/J";
     private String url;
     private MariaDbConnection connection;
-    private String databaseProductName = "MySQL";
+    private String databaseProductName = "Mariadb";
     private String username;
     private boolean datePrecisionColumnExist = true;
 
