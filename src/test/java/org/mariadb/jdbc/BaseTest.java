@@ -129,7 +129,7 @@ public class BaseTest {
                     fail("Prepare after test fail for " + description.getClassName() + "." + description.getMethodName());
                 } finally {
                     try {
-                        preparedStatement.close();
+                        if (preparedStatement != null) preparedStatement.close();
                     } catch (SQLException sqle) {
                         //eat
                     }

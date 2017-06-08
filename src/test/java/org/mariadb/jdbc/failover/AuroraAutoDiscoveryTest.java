@@ -280,7 +280,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             assertTrue("Connected to new writer", !initialHost.equals(newHost));
             assertEquals(System.getProperty("newlyCreatedInstance"), newHost.substring(0, newHost.indexOf(".")));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -339,7 +339,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             boolean connectionBlacklisted = foundHostInList(hostAddresses, initialHost);
             assertTrue("Connection has been blacklisted", connectionBlacklisted);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -369,7 +369,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             }
             assertTrue(hostAddresses.size() > 1);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 }

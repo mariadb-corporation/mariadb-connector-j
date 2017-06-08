@@ -74,7 +74,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
             stmt.execute("create table auroraMultiNode" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
             stmt.execute("drop table  if exists auroraMultiNode" + jobId);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -96,7 +96,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
                 fail("must not have thrown error");
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -123,7 +123,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
             }
             st.execute("drop table if exists baseReplicationTransaction" + jobId);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -155,7 +155,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
                 assertEquals("error type not normal", "25S03", e.getSQLState());
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -192,7 +192,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
                 assertEquals("error type not normal", "25S03", e.getSQLState());
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -230,7 +230,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
                 Thread.sleep(250);
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 }

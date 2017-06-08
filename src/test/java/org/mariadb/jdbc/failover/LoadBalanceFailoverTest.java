@@ -96,7 +96,7 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
             stopProxy(master1ServerId);
             connection.createStatement().execute("SELECT 1");
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -117,7 +117,7 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
                     count.increment();
                 }
             } finally {
-                connection.close();
+                if (connection != null) connection.close();
             }
         }
 
@@ -142,7 +142,7 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
         } catch (SQLException sqle) {
             //normal exception
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

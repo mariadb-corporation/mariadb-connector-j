@@ -134,7 +134,7 @@ public class BasicBatchTest extends BaseTest {
             connection = setConnection("&useBatchMultiSend=false");
             batchTestStmt(connection);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -322,7 +322,7 @@ public class BasicBatchTest extends BaseTest {
             assertEquals(9, resultSet.getInt(1));
             assertFalse(resultSet.next());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

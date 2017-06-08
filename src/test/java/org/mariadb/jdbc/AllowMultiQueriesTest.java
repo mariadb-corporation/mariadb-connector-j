@@ -95,7 +95,7 @@ public class AllowMultiQueriesTest extends BaseTest {
             } while (statement.getMoreResults());
             assertEquals(4, counter);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -118,7 +118,7 @@ public class AllowMultiQueriesTest extends BaseTest {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -139,7 +139,7 @@ public class AllowMultiQueriesTest extends BaseTest {
             assertTrue(rs.next());
             assertEquals(3, rs.getInt(1));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -171,10 +171,10 @@ public class AllowMultiQueriesTest extends BaseTest {
                 assertTrue(rs.next());
                 assertEquals(3, rs.getInt(1));
             } finally {
-                statement.close();
+                if (statement != null) statement.close();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -190,10 +190,10 @@ public class AllowMultiQueriesTest extends BaseTest {
                 statement.setFetchSize(1);
                 statement.execute("INSERT INTO AllowMultiQueriesTest2(test) VALUES ('a'), ('b');SELECT * from AllowMultiQueriesTest;SELECT 3;");
             } finally {
-                statement.close();
+                if (statement != null) statement.close();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

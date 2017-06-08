@@ -125,7 +125,7 @@ public class ReplicationFailoverTest extends BaseReplication {
                 //normal exception
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

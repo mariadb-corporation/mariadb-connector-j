@@ -121,7 +121,7 @@ public abstract class BaseReplication extends BaseMonoServer {
             }
             assertTrue("Prepare statement has not return on Slave", hasReturnOnSlave);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -152,7 +152,7 @@ public abstract class BaseReplication extends BaseMonoServer {
                 fail();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -172,7 +172,7 @@ public abstract class BaseReplication extends BaseMonoServer {
             assertTrue(masterServerId == currentServerId);
             assertFalse(connection.isReadOnly());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -191,7 +191,7 @@ public abstract class BaseReplication extends BaseMonoServer {
             assertFalse(slaveServerId == masterServerId);
             assertFalse(connection.isReadOnly());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
         Thread.sleep(2500); //for not interfering with other tests
     }
@@ -216,7 +216,7 @@ public abstract class BaseReplication extends BaseMonoServer {
                 fail();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -242,7 +242,7 @@ public abstract class BaseReplication extends BaseMonoServer {
             assertTrue(currentSlaveId != firstSlaveId);
             assertTrue(currentSlaveId != masterServerId);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -262,7 +262,7 @@ public abstract class BaseReplication extends BaseMonoServer {
             assertTrue(currentServerId == masterServerId);
             assertFalse(connection.isReadOnly());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
         Thread.sleep(500); //for not interfering with other tests
     }
@@ -292,7 +292,7 @@ public abstract class BaseReplication extends BaseMonoServer {
                 st.execute("drop table if exists writeToSlave" + jobId);
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -318,7 +318,7 @@ public abstract class BaseReplication extends BaseMonoServer {
                     count.increment();
                 }
             } finally {
-                connection.close();
+                if (connection != null) connection.close();
             }
         }
 
@@ -347,7 +347,7 @@ public abstract class BaseReplication extends BaseMonoServer {
             //launch connection close during failover must not throw error
             Thread.sleep(200);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -372,7 +372,7 @@ public abstract class BaseReplication extends BaseMonoServer {
             }
             restartProxy(masterServerId);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -394,7 +394,7 @@ public abstract class BaseReplication extends BaseMonoServer {
             assertTrue(connection.isReadOnly());
             restartProxy(masterServerId);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

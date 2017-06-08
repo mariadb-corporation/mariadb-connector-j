@@ -444,7 +444,7 @@ public class StoredProcedureTest extends BaseTest {
         } catch (SQLInvalidAuthorizationSpecException authentication) {
             //MySQL 5.5 doesn't permit 'test_jdbc'@'localhost'
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
         statement.execute("DROP USER 'test_jdbc'@'%'");
     }

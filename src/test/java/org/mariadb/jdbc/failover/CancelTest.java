@@ -96,7 +96,7 @@ public class CancelTest extends BaseMultiHostTest {
             stmt.setQueryTimeout(1);
             stmt.execute();
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -109,7 +109,7 @@ public class CancelTest extends BaseMultiHostTest {
             stmt.setQueryTimeout(1);
             stmt.execute("select sleep(0.5)");
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
 
     }
@@ -125,7 +125,7 @@ public class CancelTest extends BaseMultiHostTest {
             rs.next();
             assertEquals(rs.getInt(1), 1);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 }

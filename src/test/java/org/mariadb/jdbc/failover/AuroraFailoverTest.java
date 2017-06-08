@@ -120,7 +120,7 @@ public class AuroraFailoverTest extends BaseReplication {
                 stmt.execute("drop table if exists auroraDelete" + jobId);
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -142,7 +142,7 @@ public class AuroraFailoverTest extends BaseReplication {
             connection.setReadOnly(false);
             stmt.execute("drop table  if exists auroraReadSlave" + jobId);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -150,6 +150,7 @@ public class AuroraFailoverTest extends BaseReplication {
     public void testFailMaster() throws Throwable {
         Connection connection = null;
         try {
+            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000", true);
             int previousPort = getProtocolFromConnection(connection).getPort();
             Statement stmt = connection.createStatement();
             int masterServerId = getServerId(connection);
@@ -168,7 +169,7 @@ public class AuroraFailoverTest extends BaseReplication {
             long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stopTime);
             assertTrue(duration < 25 * 1000);
         } finally {
-            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000", true);
+            if (connection != null) connection.close();
         }
     }
 
@@ -214,7 +215,7 @@ public class AuroraFailoverTest extends BaseReplication {
             // the connection should not be closed
             assertTrue(!connection.isClosed());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -258,7 +259,7 @@ public class AuroraFailoverTest extends BaseReplication {
             assureBlackList();
             assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -276,7 +277,7 @@ public class AuroraFailoverTest extends BaseReplication {
                     protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
             stopProxy(current);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
         //check that after error connection have not been put to blacklist
         assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
@@ -379,7 +380,7 @@ public class AuroraFailoverTest extends BaseReplication {
 
             Thread.sleep(2000); //sleep because failover may not be completely finished
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -427,7 +428,7 @@ public class AuroraFailoverTest extends BaseReplication {
             }
             assertTrue(nbExceptionBeforeUp < 50);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -471,7 +472,7 @@ public class AuroraFailoverTest extends BaseReplication {
             assertEquals(1, currentPrepareId);
             assertTrue(nbExecutionBeforeRePrepared < 200);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 }

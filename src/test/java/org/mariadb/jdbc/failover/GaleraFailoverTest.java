@@ -109,7 +109,7 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
                     count.increment();
                 }
             } finally {
-                connection.close();
+                if (connection != null) connection.close();
             }
         }
 

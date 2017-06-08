@@ -112,7 +112,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
                 serverNb = getServerId(connection);
                 assertTrue(serverNb == i + 1);
             } finally {
-                connection.close();
+                if (connection != null) connection.close();
             }
             stopProxy(serverNb);
         }
@@ -160,7 +160,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             // deterministically execute CheckBlacklists
             scheduler.tick();
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -176,7 +176,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
         } catch (SQLException sqle) {
             fail("must have worked");
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -208,7 +208,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
                 Thread.sleep(250);
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -236,7 +236,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
                 fail();
             } finally {
                 try {
-                    connection2.close();
+                    if (connection2 != null) connection2.close();
                 } catch (SQLException sqle) {
                     sqle.printStackTrace();
                 }

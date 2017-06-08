@@ -113,7 +113,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
                 fail();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
 
     }
@@ -142,7 +142,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
             }
             assertTrue(connection.isClosed());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -172,7 +172,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
             }
             assertFalse(connection.isClosed());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
 
     }
@@ -198,10 +198,10 @@ public class MonoServerFailoverTest extends BaseMonoServer {
                 boolean isValid = connection.isValid(0);
                 assertFalse(isValid);
             } finally {
-                killerConnection.close();
+                if (killerConnection != null) killerConnection.close();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -231,7 +231,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
             }
             restartProxy(masterServerId);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
