@@ -120,7 +120,6 @@ public class StateChangeTest extends BaseTest {
         Connection connection = null;
         try {
             connection = setConnection();
-            Statement stmt = connection.createStatement();
             PreparedStatement preparedStatement =
                          connection.prepareStatement("INSERT INTO autoIncrementChange(name) value (?)",
                                  Statement.RETURN_GENERATED_KEYS);
@@ -137,6 +136,7 @@ public class StateChangeTest extends BaseTest {
             assertTrue(rs.next());
             assertEquals(2, rs.getInt(1));
 
+            Statement stmt = connection.createStatement();
             stmt.execute("SET @@session.auto_increment_increment=10");
             ResultSet rs2 = stmt.executeQuery("SHOW VARIABLES WHERE Variable_name like 'auto_increment_increment'");
             assertTrue(rs2.next());

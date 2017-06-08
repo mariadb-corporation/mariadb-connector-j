@@ -101,14 +101,14 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                 || "executeBatchMultiple".equals(method.getName())
                 || "prepareAndExecutes".equals(method.getName())
                 || "prepareAndExecute".equals(method.getName())) {
-                    Object returnObj = method.invoke(protocol, args);
-                    if (logger.isInfoEnabled() && (profileSql
-                            || (slowQueryThresholdNanos != null && System.nanoTime() - startTime > slowQueryThresholdNanos.longValue()))) {
-                        logger.info("Query - conn:" + protocol.getServerThreadId() + "(" + (protocol.isMasterConnection() ? "M" : "S") + ")"
-                                + " - " + numberFormat.format(((double) System.nanoTime() - startTime) / 1000000) + " ms"
-                                + logQuery(method.getName(), args, returnObj));
-                    }
-                    return returnObj;
+                Object returnObj = method.invoke(protocol, args);
+                if (logger.isInfoEnabled() && (profileSql
+                        || (slowQueryThresholdNanos != null && System.nanoTime() - startTime > slowQueryThresholdNanos.longValue()))) {
+                    logger.info("Query - conn:" + protocol.getServerThreadId() + "(" + (protocol.isMasterConnection() ? "M" : "S") + ")"
+                            + " - " + numberFormat.format(((double) System.nanoTime() - startTime) / 1000000) + " ms"
+                            + logQuery(method.getName(), args, returnObj));
+                }
+                return returnObj;
             }
             return method.invoke(protocol, args);
         } catch (InvocationTargetException e) {

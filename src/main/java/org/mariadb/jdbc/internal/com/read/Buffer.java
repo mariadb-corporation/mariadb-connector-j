@@ -57,7 +57,7 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 
 public class Buffer {
-    public final static Charset UTF_8 = Charset.forName("UTF-8");
+    public static final Charset UTF_8 = Charset.forName("UTF-8");
     public byte[] buf;
     public int position;
     public int limit;

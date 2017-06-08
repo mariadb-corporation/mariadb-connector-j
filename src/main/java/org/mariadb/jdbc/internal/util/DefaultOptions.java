@@ -556,7 +556,7 @@ public enum DefaultOptions {
                     } else if ("useSsl".equals(o.name)) {
                         propertyValue = properties.getProperty("useSSL");
                     } else if ("profileSql".equals(o.name)) {
-                            propertyValue = properties.getProperty("profileSQL");
+                        propertyValue = properties.getProperty("profileSQL");
                     } else if ("enabledSslCipherSuites".equals(o.name)) {
                         propertyValue = properties.getProperty("enabledSSLCipherSuites");
                     } else if ("trustStorePassword".equals(o.name)) {

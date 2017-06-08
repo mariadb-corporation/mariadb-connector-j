@@ -262,7 +262,7 @@
                         <argument>tar.gz</argument>
                         <argument>--output</argument>
                         <argument>${project.name}-jre6.tar.gz</argument>
-                        <argument>${git.branch}</argument>
+                        <argument>develop-jre6</argument>
                     </arguments>
                 </configuration>
             </plugin>
