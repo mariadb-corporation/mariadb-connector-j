@@ -190,8 +190,9 @@ public class BigQueryTest extends BaseTest {
     public void testError() throws SQLException {
         // check that maxAllowedPacket is big enough for the test
         Assume.assumeTrue(checkMaxAllowedPacketMore20m("testError"));
-
-        try (Connection connection = setConnection()) {
+        Connection connection = null;
+        try {
+            connection = setConnection();
             int selectSize = 9;
             char[] arr = new char[16 * 1024 * 1024 - selectSize];
             Arrays.fill(arr, 'a');
@@ -199,6 +200,8 @@ public class BigQueryTest extends BaseTest {
             ResultSet rs = connection.createStatement().executeQuery(request);
             rs.next();
             assertEquals(arr.length, rs.getString(1).length());
+        } finally {
+            connection.close();
         }
     }
 
@@ -209,21 +212,31 @@ public class BigQueryTest extends BaseTest {
 
         File tmpFile = File.createTempFile("temp-file-name", ".tmp");
         byte[] bb = new byte[11000];
-        for (int i = 0; i < 11_000; i++) {
+        for (int i = 0; i < 11000; i++) {
             bb[i] = (byte) (i % 110 + 40);
         }
 
-        try (FileOutputStream fos = new FileOutputStream(tmpFile)) {
-            for (int i = 0; i < 2_000; i++) {
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(tmpFile);
+            for (int i = 0; i < 2000; i++) {
                 fos.write(bb);
             }
+        } finally {
+            fos.close();
         }
-
-        try (FileInputStream fis = new FileInputStream(tmpFile)) {
-            try (FileInputStream fis2 = new FileInputStream(tmpFile)) {
-                try (FileInputStream fis3 = new FileInputStream(tmpFile)) {
-                    try (PreparedStatement ps = sharedConnection.prepareStatement("insert into bigblob4 values(?)")) {
-
+        FileInputStream fis = null;
+        try {
+            fis = new FileInputStream(tmpFile);
+            FileInputStream fis2 = null;
+            try {
+                fis2 = new FileInputStream(tmpFile);
+                FileInputStream fis3 = null;
+                try {
+                    fis3 = new FileInputStream(tmpFile);
+                    PreparedStatement ps = null;
+                    try {
+                        ps = sharedConnection.prepareStatement("insert into bigblob4 values(?)");
                         //testing char stream
                         ps.setCharacterStream(1, new InputStreamReader(fis, "UTF-8"));
                         ps.executeUpdate();
@@ -233,27 +246,37 @@ public class BigQueryTest extends BaseTest {
                         ps.executeUpdate();
 
                         //testing char stream with length
-                        ps.setCharacterStream(1, new InputStreamReader(fis3, "UTF-8"), 10_000_000);
+                        ps.setCharacterStream(1, new InputStreamReader(fis3, "UTF-8"), 10000000);
                         ps.executeUpdate();
+                    } finally {
+                        ps.close();
                     }
+                } finally {
+                    fis3.close();
                 }
+            } finally {
+                fis2.close();
             }
+        } finally {
+            fis.close();
         }
 
         //test using binary resultSet
         PreparedStatement ps = sharedConnection.prepareStatement("select * from bigblob4");
-        checkResult(tmpFile, ps.executeQuery(), 10_000_000);
+        checkResult(tmpFile, ps.executeQuery(), 10000000);
 
         //test using text resultSet
         Statement stmt = sharedConnection.createStatement();
-        checkResult(tmpFile, stmt.executeQuery("select * from bigblob4"), 10_000_000);
+        checkResult(tmpFile, stmt.executeQuery("select * from bigblob4"), 10000000);
 
     }
 
     private void checkResult(File tmpFile, ResultSet rs, int length) throws Exception {
         assertTrue(rs.next());
         String res = rs.getString(1);
-        try (Reader initialReader = new InputStreamReader(new FileInputStream(tmpFile), "UTF-8")) {
+        Reader initialReader = null;
+        try {
+            initialReader = new InputStreamReader(new FileInputStream(tmpFile), "UTF-8");
             char[] bb = new char[64 * 1024];
             int len;
             int pos = 0;
@@ -262,11 +285,15 @@ public class BigQueryTest extends BaseTest {
                     assertEquals(bb[i], res.charAt(pos++));
                 }
             }
+        } finally {
+            initialReader.close();
         }
 
         assertTrue(rs.next());
         byte[] results = rs.getBytes(1);
-        try (FileInputStream fis2 = new FileInputStream(tmpFile)) {
+        FileInputStream fis2 = null;
+        try {
+            fis2 = new FileInputStream(tmpFile);
             byte[] byteBuffer = new byte[64 * 1024];
             int len;
             int pos = 0;
@@ -275,12 +302,16 @@ public class BigQueryTest extends BaseTest {
                     assertEquals(byteBuffer[i], results[pos++]);
                 }
             }
+        } finally {
+            fis2.close();
         }
 
         assertTrue(rs.next());
         res = rs.getString(1);
         assertEquals(length, res.length());
-        try (Reader initialReader = new InputStreamReader(new FileInputStream(tmpFile), "UTF-8")) {
+
+        try {
+            initialReader = new InputStreamReader(new FileInputStream(tmpFile), "UTF-8");
             char[] bb = new char[64 * 1024];
             int len;
             int pos = 0;
@@ -290,6 +321,8 @@ public class BigQueryTest extends BaseTest {
                 }
             }
             assertEquals(length, pos);
+        } finally {
+            initialReader = null;
         }
 
         assertFalse(rs.next());

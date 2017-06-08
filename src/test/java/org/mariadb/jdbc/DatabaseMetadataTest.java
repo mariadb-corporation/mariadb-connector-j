@@ -549,42 +549,31 @@ public class DatabaseMetadataTest extends BaseTest {
             int col = i + 1;
             assertEquals(label, rsmd.getColumnLabel(col));
             int columnType = rsmd.getColumnType(col);
-            switch (type) {
-                case "String":
-                    assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected String",
-                            columnType == Types.VARCHAR
-                                    || columnType == Types.NULL
-                                    || columnType == Types.LONGVARCHAR);
-                    break;
-                case "decimal":
-                    assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
-                                    + rsmd.getColumnLabel(col) + ",expected decimal",
-                            columnType == Types.DECIMAL);
-                    break;
-                case "int":
-                case "short":
-
-                    assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
-                                    + rsmd.getColumnLabel(col) + ",expected numeric",
-                            columnType == Types.BIGINT
-                                    || columnType == Types.INTEGER
-                                    || columnType == Types.SMALLINT
-                                    || columnType == Types.TINYINT);
-
-                    break;
-                case "boolean":
-                    assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
-                                    + rsmd.getColumnLabel(col) + ",expected boolean",
-                            columnType == Types.BOOLEAN || columnType == Types.BIT);
-
-                    break;
-                case "null":
-                    assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected null",
-                            columnType == Types.NULL);
-                    break;
-                default:
-                    assertTrue("invalid type '" + type + "'", false);
-                    break;
+            if ("String".equals(type)) {
+                assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected String",
+                        columnType == Types.VARCHAR
+                                || columnType == Types.NULL
+                                || columnType == Types.LONGVARCHAR);
+            } else if ("decimal".equals(type)) {
+                assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
+                                + rsmd.getColumnLabel(col) + ",expected decimal",
+                        columnType == Types.DECIMAL);
+            } else if ("int".equals(type) || "short".equals(type)) {
+                assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
+                                + rsmd.getColumnLabel(col) + ",expected numeric",
+                        columnType == Types.BIGINT
+                                || columnType == Types.INTEGER
+                                || columnType == Types.SMALLINT
+                                || columnType == Types.TINYINT);
+            } else if ("boolean".equals(type)) {
+                assertTrue("invalid type  " + columnType + "( " + rsmd.getColumnTypeName(col) + " ) for "
+                                + rsmd.getColumnLabel(col) + ",expected boolean",
+                        columnType == Types.BOOLEAN || columnType == Types.BIT);
+            } else if ("null".equals(type)) {
+                assertTrue("invalid type  " + columnType + " for " + rsmd.getColumnLabel(col) + ",expected null",
+                        columnType == Types.NULL);
+            } else {
+                assertTrue("invalid type '" + type + "'", false);
             }
         }
     }
@@ -879,7 +868,9 @@ public class DatabaseMetadataTest extends BaseTest {
     /* Verify that "nullCatalogMeansCurrent=false" works (i.e information_schema columns are returned)*/
     @Test
     public void nullCatalogMeansCurrent2() throws Exception {
-        try (Connection connection = setConnection("&nullCatalogMeansCurrent=false")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&nullCatalogMeansCurrent=false");
             boolean haveInformationSchema = false;
             ResultSet rs = connection.getMetaData().getColumns(null, null, null, null);
             while (rs.next()) {
@@ -889,6 +880,8 @@ public class DatabaseMetadataTest extends BaseTest {
                 }
             }
             assertTrue(haveInformationSchema);
+        } finally {
+            connection.close();
         }
 
     }
@@ -953,19 +946,21 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void yearIsShortType() throws Exception {
-        try (Connection connection = setConnection("&yearIsDateType=false")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&yearIsDateType=false");
             connection.createStatement().execute("insert into ytab values(72)");
-            try (ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null)) {
-                assertTrue(rs.next());
-                assertEquals(rs.getInt("DATA_TYPE"), Types.SMALLINT);
-            }
+            ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null);
+            assertTrue(rs.next());
+            assertEquals(rs.getInt("DATA_TYPE"), Types.SMALLINT);
 
-            try (ResultSet rs1 = connection.createStatement().executeQuery("select * from ytab")) {
-                assertEquals(rs1.getMetaData().getColumnType(1), Types.SMALLINT);
-                assertTrue(rs1.next());
-                assertTrue(rs1.getObject(1) instanceof Short);
-                assertEquals(rs1.getShort(1), 1972);
-            }
+            ResultSet rs1 = connection.createStatement().executeQuery("select * from ytab");
+            assertEquals(rs1.getMetaData().getColumnType(1), Types.SMALLINT);
+            assertTrue(rs1.next());
+            assertTrue(rs1.getObject(1) instanceof Short);
+            assertEquals(rs1.getShort(1), 1972);
+        } finally {
+            connection.close();
         }
     }
 
@@ -980,13 +975,17 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void conj72() throws Exception {
-        try (Connection connection = setConnection("&tinyInt1isBit=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&tinyInt1isBit=true");
             connection.createStatement().execute("insert into conj72 values(1)");
             ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "conj72", null);
             assertTrue(rs.next());
             assertEquals(rs.getInt("DATA_TYPE"), Types.BIT);
             ResultSet rs1 = connection.createStatement().executeQuery("select * from conj72");
             assertEquals(rs1.getMetaData().getColumnType(1), Types.BIT);
+        } finally {
+            connection.close();
         }
     }
 

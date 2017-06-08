@@ -141,8 +141,12 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                 byte[] compressedBytes;
                 int uncompressSize = Math.min(MAX_PACKET_LENGTH, remainingData.length + 4 + pos);
                 checkMaxAllowedLength(uncompressSize);
-                try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-                    try (DeflaterOutputStream deflater = new DeflaterOutputStream(baos)) {
+                ByteArrayOutputStream baos = null;
+                try {
+                    baos = new ByteArrayOutputStream();
+                    DeflaterOutputStream deflater = null;
+                    try {
+                        deflater = new DeflaterOutputStream(baos);
                         if (remainingData.length != 0) deflater.write(remainingData);
                         subHeader[0] = (byte) (pos >>> 0);
                         subHeader[1] = (byte) (pos >>> 8);
@@ -151,6 +155,8 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                         deflater.write(subHeader, 0, 4);
                         deflater.write(buf, 0, uncompressSize - (remainingData.length + 4));
                         deflater.finish();
+                    } finally {
+                        if (deflater != null) deflater.close();
                     }
 
                     compressedBytes = baos.toByteArray();
@@ -214,6 +220,8 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                         return;
                     }
 
+                } finally {
+                    if (baos != null) baos.close();
                 }
 
             }
@@ -292,13 +300,21 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                 byte[] compressedBytes;
                 int uncompressSize = Math.min(MAX_PACKET_LENGTH, remainingData.length);
                 checkMaxAllowedLength(uncompressSize);
-                try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-                    try (DeflaterOutputStream deflater = new DeflaterOutputStream(baos)) {
+                ByteArrayOutputStream baos = null;
+                try {
+                    baos = new ByteArrayOutputStream();
+                    DeflaterOutputStream deflater = null;
+                    try {
+                        deflater = new DeflaterOutputStream(baos);
                         deflater.write(remainingData);
                         deflater.finish();
+                    } finally {
+                        if (deflater != null) deflater.close();
                     }
                     compressedBytes = baos.toByteArray();
                     remainingData = EMPTY_ARRAY;
+                } finally {
+                    if (baos != null) baos.close();
                 }
 
                 if (compressedBytes.length < (int) (MIN_COMPRESSION_RATIO * pos)) {

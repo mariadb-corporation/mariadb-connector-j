@@ -106,9 +106,13 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
         UrlParser urlParser = UrlParser.parse(initialGaleraUrl);
         for (int i = 0; i < urlParser.getHostAddresses().size(); i++) {
             int serverNb;
-            try (Connection connection = getNewConnection(true)) {
+            Connection connection = null;
+            try {
+                connection = getNewConnection(true);
                 serverNb = getServerId(connection);
                 assertTrue(serverNb == i + 1);
+            } finally {
+                connection.close();
             }
             stopProxy(serverNb);
         }
@@ -117,7 +121,9 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
     @Test
     public void checkStaticBlacklist() throws Throwable {
         assureProxy();
-        try (Connection connection = getNewConnection("&loadBalanceBlacklistTimeout=500", true)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&loadBalanceBlacklistTimeout=500", true);
             Statement st = connection.createStatement();
 
             int firstServerId = getServerId(connection);
@@ -153,24 +159,32 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
             // deterministically execute CheckBlacklists
             scheduler.tick();
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void testMultiHostWriteOnMaster() throws Throwable {
         Assume.assumeTrue(initialGaleraUrl != null);
-        try (Connection connection = getNewConnection()) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection();
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists multinode");
             stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
         } catch (SQLException sqle) {
             fail("must have worked");
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void pingReconnectAfterRestart() throws Throwable {
-        try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&retriesAllDown=6", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -193,6 +207,8 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
                 }
                 Thread.sleep(250);
             }
+        } finally {
+            connection.close();
         }
     }
 
@@ -206,7 +222,9 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
         }
 
         public void run() {
-            try (Connection connection2 = getNewConnection()) {
+            Connection connection2 = null;
+            try {
+                connection2 = getNewConnection();
                 int otherServerId = getServerId(connection2);
                 assertTrue(otherServerId != firstServerId);
                 Protocol protocol = getProtocolFromConnection(connection2);
@@ -216,6 +234,12 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             } catch (Throwable e) {
                 e.printStackTrace();
                 fail();
+            } finally {
+                try {
+                    connection2.close();
+                } catch (SQLException sqle) {
+                    sqle.printStackTrace();
+                }
             }
         }
     }

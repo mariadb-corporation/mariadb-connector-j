@@ -95,10 +95,10 @@ public class BaseTest {
     protected static Connection sharedConnection;
     protected static boolean runLongTest = false;
     protected static boolean doPrecisionTest = true;
-    private static Deque<String> tempTableList = new ArrayDeque<>();
-    private static Deque<String> tempViewList = new ArrayDeque<>();
-    private static Deque<String> tempProcedureList = new ArrayDeque<>();
-    private static Deque<String> tempFunctionList = new ArrayDeque<>();
+    private static Deque<String> tempTableList = new ArrayDeque<String>();
+    private static Deque<String> tempViewList = new ArrayDeque<String>();
+    private static Deque<String> tempProcedureList = new ArrayDeque<String>();
+    private static Deque<String> tempFunctionList = new ArrayDeque<String>();
     private static TcpProxy proxy = null;
     private static UrlParser urlParser;
     private static final NumberFormat numberFormat = DecimalFormat.getInstance();
@@ -118,13 +118,21 @@ public class BaseTest {
             if (testSingleHost) {
                 Random random = new Random();
                 int randInt = random.nextInt();
-                try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT " + randInt)) {
+                PreparedStatement preparedStatement = null;
+                try {
+                    preparedStatement = sharedConnection.prepareStatement("SELECT " + randInt);
                     ResultSet rs = preparedStatement.executeQuery();
                     assertTrue(rs.next());
                     assertEquals(randInt, rs.getInt(1));
                 } catch (Exception e) {
                     e.printStackTrace();
                     fail("Prepare after test fail for " + description.getClassName() + "." + description.getMethodName());
+                } finally {
+                    try {
+                        preparedStatement.close();
+                    } catch (SQLException sqle) {
+                        //eat
+                    }
                 }
             }
         }
@@ -624,18 +632,15 @@ public class BaseTest {
     //does the user have super privileges or not?
     boolean hasSuperPrivilege(String testName) throws SQLException {
         boolean superPrivilege = false;
-        try (Statement st = sharedConnection.createStatement()) {
-            // first test for specific user and host combination
-            try (ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '" + hostname + "'")) {
-                if (rs.next()) {
-                    superPrivilege = (rs.getString(1).equals("Y"));
-                } else {
-                    // then check for user on whatever (%) host
-                    try (ResultSet rs2 = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'")) {
-                        if (rs2.next()) superPrivilege = (rs2.getString(1).equals("Y"));
-                    }
-                }
-            }
+        Statement st = sharedConnection.createStatement();
+        // first test for specific user and host combination
+        ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '" + hostname + "'");
+        if (rs.next()) {
+            superPrivilege = (rs.getString(1).equals("Y"));
+        } else {
+            // then check for user on whatever (%) host
+            ResultSet rs2 = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'");
+            if (rs2.next()) superPrivilege = (rs2.getString(1).equals("Y"));
         }
 
         if (!superPrivilege) {
@@ -747,9 +752,8 @@ public class BaseTest {
      * @throws SQLException exception
      */
     public void setSessionTimeZone(Connection connection, String timeZone) throws SQLException {
-        try (Statement statement = connection.createStatement()) {
-            statement.execute("set @@session.time_zone = '" + timeZone + "'");
-        }
+        Statement statement = connection.createStatement();
+        statement.execute("set @@session.time_zone = '" + timeZone + "'");
     }
 
     /**

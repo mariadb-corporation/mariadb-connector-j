@@ -122,26 +122,23 @@ public class SendHandshakeResponsePacket {
         pos.startPacket(packetSeq);
 
         final byte[] authData;
-        switch (plugin) {
-            case "": //CONJ-274 : permit connection mysql 5.1 db
-            case DefaultAuthenticationProvider.MYSQL_NATIVE_PASSWORD:
-                pos.permitTrace(false);
-                try {
-                    authData = Utils.encryptPassword(password, seed, options.passwordCharacterEncoding);
-                    break;
-                } catch (NoSuchAlgorithmException e) {
-                    throw new RuntimeException("Could not use SHA-1, failing", e);
-                }
-            case DefaultAuthenticationProvider.MYSQL_CLEAR_PASSWORD:
-                pos.permitTrace(false);
-                if (options.passwordCharacterEncoding != null && !options.passwordCharacterEncoding.isEmpty()) {
-                    authData = password.getBytes(options.passwordCharacterEncoding);
-                } else {
-                    authData = password.getBytes();
-                }
-                break;
-            default:
-                authData = new byte[0];
+        if (DefaultAuthenticationProvider.MYSQL_NATIVE_PASSWORD.equals(plugin)
+                || "".equals(plugin)) {//CONJ-274 : permit connection mysql 5.1 db
+            pos.permitTrace(false);
+            try {
+                authData = Utils.encryptPassword(password, seed, options.passwordCharacterEncoding);
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException("Could not use SHA-1, failing", e);
+            }
+        } else if (DefaultAuthenticationProvider.MYSQL_CLEAR_PASSWORD.equals(plugin)) {
+            pos.permitTrace(false);
+            if (options.passwordCharacterEncoding != null && !options.passwordCharacterEncoding.isEmpty()) {
+                authData = password.getBytes(options.passwordCharacterEncoding);
+            } else {
+                authData = password.getBytes();
+            }
+        } else {
+            authData = new byte[0];
         }
 
         pos.writeInt((int) clientCapabilities);

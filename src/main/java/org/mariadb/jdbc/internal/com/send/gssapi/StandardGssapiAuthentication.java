@@ -82,7 +82,9 @@ public class StandardGssapiAuthentication extends GssapiAuth {
             final File jaasConfFile;
             try {
                 jaasConfFile = File.createTempFile("jaas.conf", null);
-                try (PrintStream bos = new PrintStream(new FileOutputStream(jaasConfFile))) {
+                PrintStream bos = null;
+                try {
+                    bos = new PrintStream(new FileOutputStream(jaasConfFile));
                     bos.print(String.format(
                             "Krb5ConnectorContext {\n"
                                     + "com.sun.security.auth.module.Krb5LoginModule required "
@@ -91,6 +93,8 @@ public class StandardGssapiAuthentication extends GssapiAuth {
                                     + "renewTGT=true "
                                     + "doNotPrompt=true; };"
                     ));
+                } finally {
+                    if (bos != null) bos.close();
                 }
                 jaasConfFile.deleteOnExit();
             } catch (final IOException ex) {

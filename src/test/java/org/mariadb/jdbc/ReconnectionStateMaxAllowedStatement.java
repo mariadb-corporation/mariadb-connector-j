@@ -66,7 +66,9 @@ public class ReconnectionStateMaxAllowedStatement extends BaseTest {
 
     @Test
     public void isolationLevelResets() throws SQLException {
-        try (Connection connection = setConnection()) {
+        Connection connection = null;
+        try {
+            connection = setConnection();
             long max = maxPacket(connection);
             if (max > Integer.MAX_VALUE - 10) {
                 fail("max_allowed_packet too high for this test");
@@ -75,7 +77,8 @@ public class ReconnectionStateMaxAllowedStatement extends BaseTest {
             connection.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
 
             assertEquals("READ-UNCOMMITTED", level(connection));
-            try (PreparedStatement st = connection.prepareStatement("insert into foo (?)")) {
+            PreparedStatement st = connection.prepareStatement("insert into foo (?)");
+            try {
                 st.setBytes(1, data((int) (max + 10)));
                 st.execute();
                 fail();
@@ -86,21 +89,22 @@ public class ReconnectionStateMaxAllowedStatement extends BaseTest {
                 // our isolation level must have stay the same
                 assertEquals("READ-UNCOMMITTED", level(connection));
             }
+        } finally {
+            connection.close();
         }
     }
 
     private String level(Connection connection) throws SQLException {
-        try (ResultSet rs = connection.prepareStatement("select @@tx_isolation").executeQuery()) {
-            rs.next();
-            return rs.getString(1);
-        }
+        ResultSet rs = connection.prepareStatement("select @@tx_isolation").executeQuery();
+        rs.next();
+        return rs.getString(1);
+
     }
 
     private long maxPacket(Connection connection) throws SQLException {
-        try (ResultSet rs = connection.prepareStatement("select @@max_allowed_packet").executeQuery()) {
-            rs.next();
-            return rs.getLong(1);
-        }
+        ResultSet rs = connection.prepareStatement("select @@max_allowed_packet").executeQuery();
+        rs.next();
+        return rs.getLong(1);
     }
 
     private byte[] data(int size) {

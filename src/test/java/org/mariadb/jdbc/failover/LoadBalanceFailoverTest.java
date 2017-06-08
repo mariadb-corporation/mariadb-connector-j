@@ -89,10 +89,14 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
 
     @Test(expected = SQLException.class)
     public void failover() throws Throwable {
-        try (Connection connection = getNewConnection("&autoReconnect=true&retriesAllDown=6", true)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&autoReconnect=true&retriesAllDown=6", true);
             int master1ServerId = getServerId(connection);
             stopProxy(master1ServerId);
             connection.createStatement().execute("SELECT 1");
+        } finally {
+            connection.close();
         }
     }
 
@@ -100,9 +104,11 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
     @Test
     public void randomConnection() throws Throwable {
         Assume.assumeTrue(initialLoadbalanceUrl.contains("loadbalance"));
-        Map<String, MutableInt> connectionMap = new HashMap<>();
+        Map<String, MutableInt> connectionMap = new HashMap<String, MutableInt>();
         for (int i = 0; i < 20; i++) {
-            try (Connection connection = getNewConnection(false)) {
+            Connection connection = null;
+            try {
+                connection = getNewConnection(false);
                 int serverId = getServerId(connection);
                 MutableInt count = connectionMap.get(String.valueOf(serverId));
                 if (count == null) {
@@ -110,6 +116,8 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
                 } else {
                     count.increment();
                 }
+            } finally {
+                connection.close();
             }
         }
 
@@ -123,7 +131,9 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
 
     @Test
     public void testReadonly() throws SQLException {
-        try (Connection connection = getNewConnection(false)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(false);
             connection.setReadOnly(true);
 
             Statement stmt = connection.createStatement();
@@ -131,6 +141,8 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
             stmt.execute("create table multinode (id int not null primary key auto_increment, test VARCHAR(10))");
         } catch (SQLException sqle) {
             //normal exception
+        } finally {
+            connection.close();
         }
     }
 

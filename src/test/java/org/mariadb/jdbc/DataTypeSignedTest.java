@@ -87,13 +87,11 @@ public class DataTypeSignedTest extends BaseTest {
         sharedConnection.createStatement().execute("insert into signedTinyIntTest values (1)");
         sharedConnection.createStatement().execute("insert into signedTinyIntTest values (null)");
         sharedConnection.createStatement().execute("insert into signedTinyIntTest values (-1)");
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedTinyIntTest", false)) {
-            signedTinyIntTestResult(rs);
-        }
+        ResultSet rs = DatatypeTest.getResultSet("select * from signedTinyIntTest", false);
+        signedTinyIntTestResult(rs);
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedTinyIntTest", true)) {
-            signedTinyIntTestResult(rs);
-        }
+        rs = DatatypeTest.getResultSet("select * from signedTinyIntTest", true);
+        signedTinyIntTestResult(rs);
     }
 
     private void signedTinyIntTestResult(ResultSet rs) throws SQLException {
@@ -124,13 +122,11 @@ public class DataTypeSignedTest extends BaseTest {
         sharedConnection.createStatement().execute("insert into signedSmallIntTest values (null)");
         sharedConnection.createStatement().execute("insert into signedSmallIntTest values (-1)");
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedSmallIntTest", false)) {
-            signedSmallIntTestResult(rs);
-        }
+        ResultSet rs = DatatypeTest.getResultSet("select * from signedSmallIntTest", false);
+        signedSmallIntTestResult(rs);
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedSmallIntTest", true)) {
-            signedSmallIntTestResult(rs);
-        }
+        rs = DatatypeTest.getResultSet("select * from signedSmallIntTest", true);
+        signedSmallIntTestResult(rs);
     }
 
     private void signedSmallIntTestResult(ResultSet rs) throws SQLException {
@@ -161,13 +157,11 @@ public class DataTypeSignedTest extends BaseTest {
         sharedConnection.createStatement().execute("insert into signedMediumIntTest values (null)");
         sharedConnection.createStatement().execute("insert into signedMediumIntTest values (-1)");
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedMediumIntTest", false)) {
-            signedMediumIntTestResult(rs);
-        }
+        ResultSet rs = DatatypeTest.getResultSet("select * from signedMediumIntTest", false);
+        signedMediumIntTestResult(rs);
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedMediumIntTest", true)) {
-            signedMediumIntTestResult(rs);
-        }
+        rs = DatatypeTest.getResultSet("select * from signedMediumIntTest", true);
+        signedMediumIntTestResult(rs);
     }
 
     private void signedMediumIntTestResult(ResultSet rs) throws SQLException {
@@ -196,13 +190,11 @@ public class DataTypeSignedTest extends BaseTest {
         sharedConnection.createStatement().execute("insert into signedIntTest values (1)");
         sharedConnection.createStatement().execute("insert into signedIntTest values (null)");
         sharedConnection.createStatement().execute("insert into signedIntTest values (-1)");
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedIntTest", false)) {
-            signedIntTestResult(rs);
-        }
+        ResultSet rs = DatatypeTest.getResultSet("select * from signedIntTest", false);
+        signedIntTestResult(rs);
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedIntTest", true)) {
-            signedIntTestResult(rs);
-        }
+        rs = DatatypeTest.getResultSet("select * from signedIntTest", true);
+        signedIntTestResult(rs);
     }
 
     private void signedIntTestResult(ResultSet rs) throws SQLException {
@@ -233,13 +225,11 @@ public class DataTypeSignedTest extends BaseTest {
         sharedConnection.createStatement().execute("insert into signedBigIntTest values (null)");
         sharedConnection.createStatement().execute("insert into signedBigIntTest values (-1)");
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedBigIntTest", false)) {
-            signedBigIntTestResult(rs);
-        }
+        ResultSet rs = DatatypeTest.getResultSet("select * from signedBigIntTest", false);
+        signedBigIntTestResult(rs);
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedBigIntTest", true)) {
-            signedBigIntTestResult(rs);
-        }
+        rs = DatatypeTest.getResultSet("select * from signedBigIntTest", true);
+        signedBigIntTestResult(rs);
     }
 
     private void signedBigIntTestResult(ResultSet rs) throws SQLException {
@@ -265,22 +255,19 @@ public class DataTypeSignedTest extends BaseTest {
 
     @Test
     public void signedDecimalTest() throws SQLException {
-        try (Statement statement = sharedConnection.createStatement()) {
-            statement.execute("insert into signedDecimalTest values (123456789012345678901234567890.12345678901234567890)");
-            statement.execute("insert into signedDecimalTest values (9223372036854775806)");
-            statement.execute("insert into signedDecimalTest values (1.1)");
-            statement.execute("insert into signedDecimalTest values (1.0)");
-            statement.execute("insert into signedDecimalTest values (null)");
-            statement.execute("insert into signedDecimalTest values (-1)");
-        }
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("insert into signedDecimalTest values (123456789012345678901234567890.12345678901234567890)");
+        statement.execute("insert into signedDecimalTest values (9223372036854775806)");
+        statement.execute("insert into signedDecimalTest values (1.1)");
+        statement.execute("insert into signedDecimalTest values (1.0)");
+        statement.execute("insert into signedDecimalTest values (null)");
+        statement.execute("insert into signedDecimalTest values (-1)");
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedDecimalTest", false)) {
-            signedDecimalTestResult(rs);
-        }
+        ResultSet rs = DatatypeTest.getResultSet("select * from signedDecimalTest", false);
+        signedDecimalTestResult(rs);
 
-        try (ResultSet rs = DatatypeTest.getResultSet("select * from signedDecimalTest", true)) {
-            signedDecimalTestResult(rs);
-        }
+        rs = DatatypeTest.getResultSet("select * from signedDecimalTest", true);
+        signedDecimalTestResult(rs);
     }
 
     private void signedDecimalTestResult(ResultSet rs) throws SQLException {

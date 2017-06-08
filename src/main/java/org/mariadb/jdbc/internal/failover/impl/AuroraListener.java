@@ -155,10 +155,10 @@ public class AuroraListener extends MastersSlavesListener {
         // - random order not connected host and not blacklisted
         // - random blacklisted host
         // - connected host at end.
-        List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+        List<HostAddress> loopAddress = new LinkedList<HostAddress>(urlParser.getHostAddresses());
         loopAddress.removeAll(getBlacklistKeys());
         Collections.shuffle(loopAddress);
-        List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
+        List<HostAddress> blacklistShuffle = new LinkedList<HostAddress>(getBlacklistKeys());
         Collections.shuffle(blacklistShuffle);
         loopAddress.addAll(blacklistShuffle);
 
@@ -229,7 +229,7 @@ public class AuroraListener extends MastersSlavesListener {
      * @throws SQLException if connection error occur
      */
     private List<String> getCurrentEndpointIdentifiers(Protocol protocol) throws SQLException {
-        List<String> endpoints = new ArrayList<>();
+        List<String> endpoints = new ArrayList<String>();
         try {
             proxy.lock.lock();
             try {
@@ -275,7 +275,7 @@ public class AuroraListener extends MastersSlavesListener {
      * @param port      port that is common to all endpoints
      */
     private void setUrlParserFromEndpoints(List<String> endpoints, int port) {
-        List<HostAddress> addresses = new ArrayList<>();
+        List<HostAddress> addresses = new ArrayList<HostAddress>();
         for (String endpoint : endpoints) {
             HostAddress newHostAddress = new HostAddress(endpoint, port, null);
             addresses.add(newHostAddress);

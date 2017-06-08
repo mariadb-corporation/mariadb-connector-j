@@ -57,7 +57,6 @@ import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.sql.Types;
 
 public class ColumnInformation {
@@ -213,7 +212,7 @@ public class ColumnInformation {
             for (int i = 0; i < idx; i++) {
                 buffer.skipLengthEncodedBytes();
             }
-            return new String(buffer.getLengthEncodedBytes(), StandardCharsets.UTF_8);
+            return new String(buffer.getLengthEncodedBytes(), Buffer.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException("this does not happen", e);
         }

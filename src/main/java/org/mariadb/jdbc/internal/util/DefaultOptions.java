@@ -551,33 +551,22 @@ public enum DefaultOptions {
 
                 //Handle alias
                 if (propertyValue == null) {
-                    switch (o.name) {
-                        case "createDatabaseIfNotExist":
-                            propertyValue = properties.getProperty("createDB");
-                            break;
-                        case "useSsl":
-                            propertyValue = properties.getProperty("useSSL");
-                            break;
-                        case "profileSql":
+                    if ("createDatabaseIfNotExist".equals(o.name)) {
+                        propertyValue = properties.getProperty("createDB");
+                    } else if ("useSsl".equals(o.name)) {
+                        propertyValue = properties.getProperty("useSSL");
+                    } else if ("profileSql".equals(o.name)) {
                             propertyValue = properties.getProperty("profileSQL");
-                            break;
-                        case "enabledSslCipherSuites":
-                            propertyValue = properties.getProperty("enabledSSLCipherSuites");
-                            break;
-                        case "trustStorePassword":
-                            propertyValue = properties.getProperty("trustCertificateKeyStorePassword");
-                            break;
-                        case "trustStore":
-                            propertyValue = properties.getProperty("trustCertificateKeyStoreUrl");
-                            break;
-                        case "keyStorePassword":
-                            propertyValue = properties.getProperty("clientCertificateKeyStorePassword");
-                            break;
-                        case "keyStore":
-                            propertyValue = properties.getProperty("clientCertificateKeyStoreUrl");
-                            break;
-                        default:
-                            //no alias
+                    } else if ("enabledSslCipherSuites".equals(o.name)) {
+                        propertyValue = properties.getProperty("enabledSSLCipherSuites");
+                    } else if ("trustStorePassword".equals(o.name)) {
+                        propertyValue = properties.getProperty("trustCertificateKeyStorePassword");
+                    } else if ("trustStore".equals(o.name)) {
+                        propertyValue = properties.getProperty("trustCertificateKeyStoreUrl");
+                    } else if ("keyStorePassword".equals(o.name)) {
+                        propertyValue = properties.getProperty("clientCertificateKeyStorePassword");
+                    } else if ("keyStore".equals(o.name)) {
+                        propertyValue = properties.getProperty("clientCertificateKeyStoreUrl");
                     }
                 }
 
@@ -585,19 +574,13 @@ public enum DefaultOptions {
                     if (o.objType.equals(String.class)) {
                         Options.class.getField(o.name).set(options, propertyValue);
                     } else if (o.objType.equals(Boolean.class)) {
-                        switch (propertyValue.toLowerCase()) {
-                            case "1":
-                            case "true":
-                                Options.class.getField(o.name).set(options, Boolean.TRUE);
-                                break;
-
-                            case "0":
-                            case "false":
-                                Options.class.getField(o.name).set(options, Boolean.FALSE);
-                                break;
-
-                            default:
-                                throw new IllegalArgumentException("Optional parameter " + o.name
+                        String lower = propertyValue.toLowerCase();
+                        if ("1".equals(lower) || "true".equals(lower)) {
+                            Options.class.getField(o.name).set(options, Boolean.TRUE);
+                        } else if ("0".equals(lower) || "false".equals(lower)) {
+                            Options.class.getField(o.name).set(options, Boolean.FALSE);
+                        } else {
+                            throw new IllegalArgumentException("Optional parameter " + o.name
                                         + " must be boolean (true/false or 0/1) was \"" + propertyValue + "\"");
                         }
                     } else if (o.objType.equals(Integer.class)) {
@@ -635,7 +618,9 @@ public enum DefaultOptions {
                     }
                 }
             }
-        } catch (NoSuchFieldException | IllegalAccessException n) {
+        } catch (NoSuchFieldException n) {
+            n.printStackTrace();
+        } catch (IllegalAccessException n) {
             n.printStackTrace();
         } catch (SecurityException s) {
             //only for jws, so never thrown

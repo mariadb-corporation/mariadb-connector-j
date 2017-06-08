@@ -105,7 +105,8 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
      */
     private Connection tableSetup(String insertEntryQuery) throws Throwable {
         Connection connection = getNewConnection(true);
-        try (Statement statement = connection.createStatement()) {
+        try {
+            Statement statement = connection.createStatement();
             statement.executeQuery("DROP TABLE IF EXISTS replica_host_status");
             statement.executeQuery("CREATE TABLE replica_host_status (SERVER_ID VARCHAR(255), SESSION_ID VARCHAR(255), "
                     + "LAST_UPDATE_TIMESTAMP TIMESTAMP DEFAULT NOW())");
@@ -137,9 +138,9 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
             int serverId = getServerId(connection);
             stopProxy(serverId, 1);
-            try (Statement statement2 = connection.createStatement()) {
-                statement2.executeQuery("select 1");
-            }
+            Statement statement2 = connection.createStatement();
+            statement2.executeQuery("select 1");
+            statement2.close();
 
         } catch (SQLException se) {
             fail("Unable to execute queries to set up table: " + se);
@@ -155,10 +156,13 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
      */
     @After
     public void after() throws SQLException {
-        try (Connection connection = getNewConnection(true)) {
-            try (Statement statement = connection.createStatement()) {
-                statement.executeQuery("DROP TABLE IF EXISTS replica_host_status");
-            }
+        Connection connection = null;
+        try {
+            connection = getNewConnection(true);
+            Statement statement = connection.createStatement();
+            statement.executeQuery("DROP TABLE IF EXISTS replica_host_status");
+        } finally {
+            connection.close();
         }
     }
 
@@ -169,24 +173,26 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
      */
     @Test
     public void testDiscoverCreatedInstanceOnFailover() throws Throwable {
-
-        try (Connection connection = tableSetup(null)) {
+        Connection connection = null;
+        try {
+            connection = tableSetup(null);
             int masterServerId = getServerId(connection);
             final int initialSize = getProtocolFromConnection(connection).getUrlParser().getHostAddresses().size();
 
-            try (Statement statement = connection.createStatement()) {
-                statement.executeQuery("INSERT INTO replica_host_status (SERVER_ID, SESSION_ID) "
-                        + "VALUES ('test-discovery-on-creation', 'mock-new-endpoint')");
+            Statement statement = connection.createStatement();
+            statement.executeQuery("INSERT INTO replica_host_status (SERVER_ID, SESSION_ID) "
+                    + "VALUES ('test-discovery-on-creation', 'mock-new-endpoint')");
 
-                stopProxy(masterServerId, 1);
-                statement.executeQuery("select 1");
+            stopProxy(masterServerId, 1);
+            statement.executeQuery("select 1");
 
-                List<HostAddress> finalEndpoints = getProtocolFromConnection(connection).getUrlParser().getHostAddresses();
-                boolean newEndpointFound = foundHostInList(finalEndpoints, "test-discovery-on-creation");
+            List<HostAddress> finalEndpoints = getProtocolFromConnection(connection).getUrlParser().getHostAddresses();
+            boolean newEndpointFound = foundHostInList(finalEndpoints, "test-discovery-on-creation");
 
-                assertTrue("Discovered new endpoint on failover", newEndpointFound);
-                assertEquals(initialSize + 1, finalEndpoints.size());
-            }
+            assertTrue("Discovered new endpoint on failover", newEndpointFound);
+            assertEquals(initialSize + 1, finalEndpoints.size());
+        } finally {
+            connection.close();
         }
     }
 
@@ -197,25 +203,28 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
      */
     @Test
     public void testRemoveDeletedInstanceOnFailover() throws Throwable {
-        try (Connection connection = tableSetup("INSERT INTO replica_host_status (SERVER_ID, SESSION_ID) "
-                + "VALUES ('test-instance-deleted-detection', 'mock-delete-endpoint')")) {
+        Connection connection = null;
+        try {
+            connection = tableSetup("INSERT INTO replica_host_status (SERVER_ID, SESSION_ID) "
+                    + "VALUES ('test-instance-deleted-detection', 'mock-delete-endpoint')");
             Protocol protocol = getProtocolFromConnection(connection);
             final int initialSize = protocol.getUrlParser().getHostAddresses().size();
             int serverId = getServerId(connection);
 
-            try (Statement statement = connection.createStatement()) {
-                statement.executeQuery("UPDATE replica_host_status "
-                        + "SET LAST_UPDATE_TIMESTAMP = DATE_SUB(LAST_UPDATE_TIMESTAMP, INTERVAL 4 MINUTE) "
-                        + "WHERE SERVER_ID = 'test-instance-deleted-detection'");
-                stopProxy(serverId, 1);
-                statement.executeQuery("select 1");
-            }
+            Statement statement = connection.createStatement();
+            statement.executeQuery("UPDATE replica_host_status "
+                    + "SET LAST_UPDATE_TIMESTAMP = DATE_SUB(LAST_UPDATE_TIMESTAMP, INTERVAL 4 MINUTE) "
+                    + "WHERE SERVER_ID = 'test-instance-deleted-detection'");
+            stopProxy(serverId, 1);
+            statement.executeQuery("select 1");
 
             List<HostAddress> finalEndpoints = protocol.getUrlParser().getHostAddresses();
             boolean deletedInstanceGone = !foundHostInList(finalEndpoints, "test-instance-deleted-detection");
 
             assertTrue("Removed deleted endpoint from urlParser", deletedInstanceGone);
             assertEquals(initialSize - 1, finalEndpoints.size());
+        } finally {
+            connection.close();
         }
     }
 
@@ -230,8 +239,9 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
     @Test
     public void testNewInstanceAsWriterDetection() throws Throwable {
         Assume.assumeTrue("System property newlyCreatedInstance is set", System.getProperty("newlyCreatedInstance") != null);
-
-        try (Connection connection = getNewConnection(false)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(false);
             final String initialHost = getProtocolFromConnection(connection).getHost();
 
             ModifyDBInstanceRequest request1 = new ModifyDBInstanceRequest();
@@ -243,7 +253,9 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
                 try {
                     amazonRDSClient.modifyDBInstance(request1);
                     promotionTierChanged = true;
-                } catch (InvalidDBInstanceStateException | DBInstanceNotFoundException e) {
+                } catch (InvalidDBInstanceStateException e) {
+                    promotionTierChanged = false;
+                } catch ( DBInstanceNotFoundException e) {
                     promotionTierChanged = false;
                 }
             } while (!promotionTierChanged);
@@ -261,19 +273,22 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
                 fail("Thread sleep was interrupted");
             }
 
-            try (Statement statement = connection.createStatement()) {
-                statement.executeQuery("select 1");
-            }
+            Statement statement = connection.createStatement();
+            statement.executeQuery("select 1");
 
             String newHost = getProtocolFromConnection(connection).getHost();
             assertTrue("Connected to new writer", !initialHost.equals(newHost));
             assertEquals(System.getProperty("newlyCreatedInstance"), newHost.substring(0, newHost.indexOf(".")));
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void testExceptionHandlingWhenDataFromTable() throws Throwable {
-        try (Connection connection = getNewConnection(false)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(false);
             final String initialHost = getProtocolFromConnection(connection).getHost();
 
             final Statement statement = connection.createStatement();
@@ -323,6 +338,8 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             Set<HostAddress> hostAddresses = getProtocolFromConnection(connection).getProxy().getListener().getBlacklistKeys();
             boolean connectionBlacklisted = foundHostInList(hostAddresses, initialHost);
             assertTrue("Connection has been blacklisted", connectionBlacklisted);
+        } finally {
+            connection.close();
         }
     }
 
@@ -343,13 +360,16 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
      */
     @Test
     public void testTimeZoneDiscovery() throws Throwable {
-
-        try (Connection connection = getNewConnection("&sessionVariables=@@time_zone='US/Central'", false)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&sessionVariables=@@time_zone='US/Central'", false);
             List<HostAddress> hostAddresses = getProtocolFromConnection(connection).getProxy().getListener().getUrlParser().getHostAddresses();
             for (HostAddress hostAddress : hostAddresses) {
                 System.out.println("hostAddress:" + hostAddress);
             }
             assertTrue(hostAddresses.size() > 1);
+        } finally {
+            connection.close();
         }
     }
 }

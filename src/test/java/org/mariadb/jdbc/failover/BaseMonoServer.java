@@ -66,17 +66,23 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
 
     @Test
     public void testWriteOnMaster() throws SQLException {
-        try (Connection connection = getNewConnection(false)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(false);
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists auroraMultiNode" + jobId);
             stmt.execute("create table auroraMultiNode" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
             stmt.execute("drop table  if exists auroraMultiNode" + jobId);
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void relaunchWithoutError() throws Throwable {
-        try (Connection connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000", true)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             long startTime = System.currentTimeMillis();
@@ -89,12 +95,16 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
             } catch (SQLException e) {
                 fail("must not have thrown error");
             }
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void relaunchWithErrorWhenInTransaction() throws Throwable {
-        try (Connection connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000", true)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000", true);
             Statement st = connection.createStatement();
             st.execute("drop table if exists baseReplicationTransaction" + jobId);
             st.execute("create table baseReplicationTransaction" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
@@ -112,12 +122,16 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
                 assertEquals("error type not normal after " + (System.currentTimeMillis() - startTime) + "ms", "25S03", e.getSQLState());
             }
             st.execute("drop table if exists baseReplicationTransaction" + jobId);
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void failoverRelaunchedWhenSelect() throws Throwable {
-        try (Connection connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true);
             Statement st = connection.createStatement();
 
             final int masterServerId = getServerId(connection);
@@ -140,14 +154,18 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
                 restartProxy(masterServerId);
                 assertEquals("error type not normal", "25S03", e.getSQLState());
             }
+        } finally {
+            connection.close();
         }
     }
 
 
     @Test
     public void failoverRelaunchedWhenInTransaction() throws Throwable {
-        try (Connection connection = getNewConnection(
-                "&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(
+                    "&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true);
             Statement st = connection.createStatement();
 
             final int masterServerId = getServerId(connection);
@@ -173,12 +191,16 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
                 st.execute("drop table if exists selectFailoverTrans" + jobId);
                 assertEquals("error type not normal", "25S03", e.getSQLState());
             }
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void pingReconnectAfterRestart() throws Throwable {
-        try (Connection connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -207,6 +229,8 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
                 }
                 Thread.sleep(250);
             }
+        } finally {
+            connection.close();
         }
     }
 }

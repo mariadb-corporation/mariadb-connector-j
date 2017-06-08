@@ -69,7 +69,7 @@ import java.util.List;
 public class MariaDbPreparedStatementClient extends BasePrepareStatement {
     private static Logger logger = LoggerFactory.getLogger(MariaDbPreparedStatementClient.class);
     protected ClientPrepareResult prepareResult;
-    protected List<ParameterHolder[]> parameterList = new ArrayList<>();
+    protected List<ParameterHolder[]> parameterList = new ArrayList<ParameterHolder[]>();
     private String sqlQuery;
     private ParameterHolder[] parameters;
     private ResultSetMetaData resultSetMetaData = null;

@@ -81,7 +81,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @throws SQLException exception if connection failed
      */
     public MariaDbDataSource(String hostname, int port, String database) throws SQLException {
-        ArrayList<HostAddress> hostAddresses = new ArrayList<>();
+        ArrayList<HostAddress> hostAddresses = new ArrayList<HostAddress>();
         hostAddresses.add(new HostAddress(hostname, port));
         urlParser = new UrlParser(database, hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
     }
@@ -94,7 +94,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * Default constructor. hostname will be localhost, port 3306.
      */
     public MariaDbDataSource() {
-        ArrayList<HostAddress> hostAddresses = new ArrayList<>();
+        ArrayList<HostAddress> hostAddresses = new ArrayList<HostAddress>();
         hostAddresses.add(new HostAddress("localhost", 3306));
         urlParser = new UrlParser("", hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
     }

@@ -131,85 +131,79 @@ public class FailoverProxy implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         String methodName = method.getName();
-        switch (methodName) {
-            case METHOD_IS_EXPLICIT_CLOSED:
-                return listener.isExplicitClosed();
-            case METHOD_GET_OPTIONS:
-                return listener.getUrlParser().getOptions();
-            case METHOD_GET_PROXY:
-                return this;
-            case METHOD_IS_CLOSED:
-                return listener.isClosed();
-            case METHOD_EXECUTE_QUERY:
-                try {
-                    this.listener.preExecute();
-                } catch (SQLException e) {
-                    //handle failover only if connection error
-                    //normal error can be thrown upon reconnection if there was a transaction in progress.
-                    if (hasToHandleFailover(e)) {
-                        return handleFailOver(e, method, args, listener.getCurrentProtocol());
-                    }
+        if (METHOD_IS_EXPLICIT_CLOSED.equals(methodName)) {
+            return listener.isExplicitClosed();
+        } else if (METHOD_GET_OPTIONS.equals(methodName)) {
+            return listener.getUrlParser().getOptions();
+        } else if (METHOD_GET_PROXY.equals(methodName)) {
+            return this;
+        } else if (METHOD_IS_CLOSED.equals(methodName)) {
+            return listener.isClosed();
+        } else if (METHOD_EXECUTE_QUERY.equals(methodName)) {
+            try {
+                this.listener.preExecute();
+            } catch (SQLException e) {
+                //handle failover only if connection error
+                //normal error can be thrown upon reconnection if there was a transaction in progress.
+                if (hasToHandleFailover(e)) {
+                    return handleFailOver(e, method, args, listener.getCurrentProtocol());
                 }
-                break;
-            case METHOD_SET_READ_ONLY:
-                this.listener.switchReadOnlyConnection((Boolean) args[0]);
-                return null;
-            case METHOD_IS_READ_ONLY:
-                return this.listener.isReadOnly();
-            case METHOD_CLOSED_EXPLICIT:
-                this.listener.preClose();
-                return null;
-            case METHOD_COM_MULTI_PREPARE_EXECUTES:
-            case METHOD_EXECUTE_PREPARED_QUERY:
-                boolean mustBeOnMaster = (Boolean) args[0];
-                ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
-                if (serverPrepareResult != null) {
-                    if (!mustBeOnMaster && serverPrepareResult.getUnProxiedProtocol().isMasterConnection() && !this.listener.hasHostFail()) {
-                        //PrepareStatement was to be executed on slave, but since a failover was running on master connection. Slave connection is up
-                        // again, so has to be re-prepared on slave
-                        try {
-                            logger.trace("re-prepare query \"" + serverPrepareResult.getSql() + "\" on slave (was "
-                                    + "temporary on master since failover)");
-                            this.listener.rePrepareOnSlave(serverPrepareResult, mustBeOnMaster);
-                        } catch (SQLException q) {
-                            //error during re-prepare, will do executed on master.
-                        }
-                    }
+            }
+        } else if (METHOD_SET_READ_ONLY.equals(methodName)) {
+            this.listener.switchReadOnlyConnection((Boolean) args[0]);
+            return null;
+        } else if (METHOD_IS_READ_ONLY.equals(methodName)) {
+            return this.listener.isReadOnly();
+        } else if (METHOD_CLOSED_EXPLICIT.equals(methodName)) {
+            this.listener.preClose();
+            return null;
+        } else if (METHOD_COM_MULTI_PREPARE_EXECUTES.equals(methodName) || METHOD_EXECUTE_PREPARED_QUERY.equals(methodName)) {
+            boolean mustBeOnMaster = (Boolean) args[0];
+            ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
+            if (serverPrepareResult != null) {
+                if (!mustBeOnMaster && serverPrepareResult.getUnProxiedProtocol().isMasterConnection() && !this.listener.hasHostFail()) {
+                    //PrepareStatement was to be executed on slave, but since a failover was running on master connection. Slave connection is up
+                    // again, so has to be re-prepared on slave
                     try {
-                        return listener.invoke(method, args, serverPrepareResult.getUnProxiedProtocol());
-                    } catch (InvocationTargetException e) {
-                        if (e.getTargetException() != null) {
-                            if (e.getTargetException() instanceof SQLException) {
-                                if (hasToHandleFailover((SQLException) e.getTargetException())) {
-                                    return handleFailOver((SQLException) e.getTargetException(), method, args,
-                                            serverPrepareResult.getUnProxiedProtocol());
-                                }
-                            }
-                            throw e.getTargetException();
-                        }
-                        throw e;
+                        logger.trace("re-prepare query \"" + serverPrepareResult.getSql() + "\" on slave (was "
+                                + "temporary on master since failover)");
+                        this.listener.rePrepareOnSlave(serverPrepareResult, mustBeOnMaster);
+                    } catch (SQLException q) {
+                        //error during re-prepare, will do executed on master.
                     }
                 }
-                break;
-            case METHOD_PROLOG_PROXY:
                 try {
-                    if (args[0] != null) {
-                        return listener.invoke(method, args, ((ServerPrepareResult) args[0]).getUnProxiedProtocol());
-                    }
+                    return listener.invoke(method, args, serverPrepareResult.getUnProxiedProtocol());
                 } catch (InvocationTargetException e) {
                     if (e.getTargetException() != null) {
                         if (e.getTargetException() instanceof SQLException) {
                             if (hasToHandleFailover((SQLException) e.getTargetException())) {
                                 return handleFailOver((SQLException) e.getTargetException(), method, args,
-                                        ((ServerPrepareResult) args[0]).getUnProxiedProtocol());
+                                        serverPrepareResult.getUnProxiedProtocol());
                             }
                         }
                         throw e.getTargetException();
                     }
                     throw e;
                 }
-
-            default:
+            }
+        } else if (METHOD_PROLOG_PROXY.equals(methodName)) {
+            try {
+                if (args[0] != null) {
+                    return listener.invoke(method, args, ((ServerPrepareResult) args[0]).getUnProxiedProtocol());
+                }
+            } catch (InvocationTargetException e) {
+                if (e.getTargetException() != null) {
+                    if (e.getTargetException() instanceof SQLException) {
+                        if (hasToHandleFailover((SQLException) e.getTargetException())) {
+                            return handleFailOver((SQLException) e.getTargetException(), method, args,
+                                    ((ServerPrepareResult) args[0]).getUnProxiedProtocol());
+                        }
+                    }
+                    throw e.getTargetException();
+                }
+                throw e;
+            }
         }
 
         return executeInvocation(method, args, false);

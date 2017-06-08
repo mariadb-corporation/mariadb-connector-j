@@ -236,13 +236,17 @@ public class BufferTest extends BaseTest {
      * @throws SQLException if anything wrong append
      */
     private void sendByteBufferData(boolean compression, char[] arr) throws SQLException {
-        try (Connection connection = setConnection("&useCompression=" + compression)) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&useCompression=" + compression);
             Statement stmt = connection.createStatement();
             stmt.execute("TRUNCATE BufferTest");
             PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO BufferTest VALUES (?)");
             preparedStatement.setString(1, new String(arr));
             preparedStatement.execute();
             checkResult(arr);
+        } finally {
+            connection.close();
         }
     }
 
@@ -254,11 +258,15 @@ public class BufferTest extends BaseTest {
      * @throws SQLException if anything wrong append
      */
     private void sendSqlData(boolean compression, char[] arr) throws SQLException {
-        try (Connection connection = setConnection("&useCompression=" + compression)) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&useCompression=" + compression);
             Statement stmt = connection.createStatement();
             stmt.execute("TRUNCATE BufferTest");
             stmt.execute("INSERT INTO BufferTest VALUES ('" + new String(arr) + "')");
             checkResult(arr);
+        } finally {
+            connection.close();
         }
     }
 

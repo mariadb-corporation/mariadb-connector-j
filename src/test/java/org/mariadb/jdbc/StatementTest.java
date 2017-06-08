@@ -103,18 +103,17 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void wrapperTest() throws SQLException {
-        try (Statement statement = sharedConnection.createStatement()) {
-            assertTrue(statement.isWrapperFor(Statement.class));
-            assertFalse(statement.isWrapperFor(SQLException.class));
-            assertThat(statement.unwrap(Statement.class), equalTo(statement));
-            try {
-                statement.unwrap(SQLException.class);
-                fail("MariaDbStatement class unwrapped as SQLException class");
-            } catch (SQLException sqle) {
-                //normal exception
-            } catch (Exception e) {
-                fail();
-            }
+        Statement statement = sharedConnection.createStatement();
+        assertTrue(statement.isWrapperFor(Statement.class));
+        assertFalse(statement.isWrapperFor(SQLException.class));
+        assertThat(statement.unwrap(Statement.class), equalTo(statement));
+        try {
+            statement.unwrap(SQLException.class);
+            fail("MariaDbStatement class unwrapped as SQLException class");
+        } catch (SQLException sqle) {
+            //normal exception
+        } catch (Exception e) {
+            fail();
         }
     }
 
@@ -125,13 +124,21 @@ public class StatementTest extends BaseTest {
      */
     @Test
     public void reexecuteStatementTest() throws SQLException {
-        try (Connection connection = setConnection("&allowMultiQueries=true")) {
-            try (PreparedStatement stmt = connection.prepareStatement("SELECT 1")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&allowMultiQueries=true");
+            PreparedStatement stmt = null;
+            try {
+                stmt = connection.prepareStatement("SELECT 1");
                 stmt.setFetchSize(Integer.MIN_VALUE);
                 ResultSet rs = stmt.executeQuery();
                 rs.next();
                 rs = stmt.executeQuery();
+            } finally {
+                stmt.close();
             }
+        } finally {
+            connection.close();
         }
     }
 
@@ -305,7 +312,9 @@ public class StatementTest extends BaseTest {
         Assume.assumeTrue(sharedOptions().socketTimeout == null);
         Properties infos = new Properties();
         infos.put("socketTimeout", 1000);
-        try (Connection connection = createProxyConnection(infos)) {
+        Connection connection = null;
+        try {
+            connection = createProxyConnection(infos);
             Statement statement = connection.createStatement();
             Statement otherStatement = null;
             try {
@@ -322,18 +331,21 @@ public class StatementTest extends BaseTest {
                     assertEquals("must be an SQLState 08000 exception", "08000", ee.getSQLState());
                 }
             }
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void closeOnCompletion() throws SQLException {
-        Statement statement = sharedConnection.createStatement();
+        Statement st = sharedConnection.createStatement();
+        MariaDbStatement statement = (MariaDbStatement) st;
         assertFalse(statement.isCloseOnCompletion());
-        try (ResultSet rs = statement.executeQuery("SELECT 1")) {
-            statement.closeOnCompletion();
-            assertTrue(statement.isCloseOnCompletion());
-            assertFalse(statement.isClosed());
-        }
+        ResultSet rs = statement.executeQuery("SELECT 1");
+        statement.closeOnCompletion();
+        assertTrue(statement.isCloseOnCompletion());
+        assertFalse(statement.isClosed());
+        rs.close();
         assertTrue(statement.isClosed());
     }
 
@@ -343,20 +355,17 @@ public class StatementTest extends BaseTest {
 
         createTable("testFractionalTimeBatch", "tt TIMESTAMP(6)");
         Timestamp currTime = new Timestamp(System.currentTimeMillis());
-        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-                "INSERT INTO testFractionalTimeBatch (tt) values (?)")) {
-            for (int i = 0; i < 2; i++) {
-                preparedStatement.setTimestamp(1, currTime);
-                preparedStatement.addBatch();
-            }
-            preparedStatement.executeBatch();
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                "INSERT INTO testFractionalTimeBatch (tt) values (?)");
+        for (int i = 0; i < 2; i++) {
+            preparedStatement.setTimestamp(1, currTime);
+            preparedStatement.addBatch();
         }
+        preparedStatement.executeBatch();
 
-        try (Statement statement = sharedConnection.createStatement()) {
-            try (ResultSet resultSet = statement.executeQuery("SELECT * from testFractionalTimeBatch")) {
-                assertTrue(resultSet.next());
-                assertEquals(resultSet.getTimestamp(1).getNanos(), currTime.getNanos());
-            }
-        }
+        Statement statement = sharedConnection.createStatement();
+        ResultSet resultSet = statement.executeQuery("SELECT * from testFractionalTimeBatch");
+        assertTrue(resultSet.next());
+        assertEquals(resultSet.getTimestamp(1).getNanos(), currTime.getNanos());
     }
 }

@@ -63,13 +63,11 @@ public class TimeoutTest extends BaseTest {
 
     private static int selectValue(Connection conn, int value)
             throws SQLException {
-        try (Statement stmt = conn.createStatement()) {
-            try (ResultSet rs = stmt.executeQuery("select " + value)) {
-                rs.next();
-                return rs.getInt(1);
 
-            }
-        }
+        Statement stmt = conn.createStatement();
+        ResultSet rs = stmt.executeQuery("select " + value);
+        rs.next();
+        return rs.getInt(1);
     }
 
     /**
@@ -82,7 +80,9 @@ public class TimeoutTest extends BaseTest {
         Assume.assumeFalse(sharedIsAurora());
         int went = 0;
         for (int j = 0; j < 100; j++) {
-            try (Connection connection = setConnection("&connectTimeout=5&socketTimeout=1")) {
+            Connection connection = null;
+            try {
+                connection = setConnection("&connectTimeout=5&socketTimeout=1");
                 boolean bugReproduced = false;
 
                 int repetition = 1000;
@@ -105,6 +105,8 @@ public class TimeoutTest extends BaseTest {
                 assertFalse(bugReproduced); // either Exception or fine
             } catch (SQLException e) {
                 //SQLNonTransientConnectionException error
+            } finally {
+                connection.close();
             }
         }
         assertTrue(went > 0);
@@ -119,7 +121,9 @@ public class TimeoutTest extends BaseTest {
     public void socketTimeoutTest() throws SQLException {
         Assume.assumeFalse(sharedIsAurora());
         // set a short connection timeout
-        try (Connection connection = setConnection("&connectTimeout=500&socketTimeout=500")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&connectTimeout=500&socketTimeout=500");
             PreparedStatement ps = connection.prepareStatement("SELECT 1");
             ResultSet rs = ps.executeQuery();
             rs.next();
@@ -146,14 +150,20 @@ public class TimeoutTest extends BaseTest {
 
             // the connection should  be closed
             assertTrue(connection.isClosed());
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void waitTimeoutStatementTest() throws SQLException, InterruptedException {
         Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setConnection()) {
-            try (Statement statement = connection.createStatement()) {
+        Connection connection = null;
+        try {
+            connection = setConnection();
+            Statement statement = null;
+            try {
+                statement = connection.createStatement();
                 statement.execute("set session wait_timeout=1");
                 Thread.sleep(2000); // Wait for the server to kill the connection
 
@@ -167,14 +177,20 @@ public class TimeoutTest extends BaseTest {
                 } catch (SQLException e) {
                     //normal exception
                 }
+            } finally {
+                statement.close();
             }
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void waitTimeoutResultSetTest() throws SQLException, InterruptedException {
         Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setConnection()) {
+        Connection connection = null;
+        try {
+            connection = setConnection();
             Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT 1");
 
@@ -192,6 +208,8 @@ public class TimeoutTest extends BaseTest {
             } catch (SQLException e) {
                 //normal exception
             }
+        } finally {
+            connection.close();
         }
     }
 

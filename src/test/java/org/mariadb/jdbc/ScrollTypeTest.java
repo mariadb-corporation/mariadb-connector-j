@@ -80,50 +80,82 @@ public class ScrollTypeTest extends BaseTest {
 
     @Test
     public void scrollInsensitivePrepareStmt() throws SQLException {
-        try (PreparedStatement stmt = sharedConnection.prepareStatement("SELECT * FROM resultsSetReadingTest",
-                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+        PreparedStatement stmt = null;
+        try {
+            stmt = sharedConnection.prepareStatement("SELECT * FROM resultsSetReadingTest",
+                    ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             stmt.setFetchSize(2);
-            try (ResultSet rs = stmt.executeQuery()) {
+            ResultSet rs = null;
+            try {
+                rs = stmt.executeQuery();
                 rs.beforeFirst();
             } catch (SQLException sqle) {
                 fail("beforeFirst() should work on a TYPE_SCROLL_INSENSITIVE result set");
+            } finally {
+                rs.close();
             }
+        } finally {
+            stmt.close();
         }
     }
 
     @Test
     public void scrollInsensitiveStmt() throws SQLException {
-        try (Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+        Statement stmt = null;
+        try {
+            stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             stmt.setFetchSize(2);
-            try (ResultSet rs = stmt.executeQuery("SELECT * FROM resultsSetReadingTest")) {
+            ResultSet rs = null;
+            try {
+                rs = stmt.executeQuery("SELECT * FROM resultsSetReadingTest");
                 rs.beforeFirst();
             } catch (SQLException sqle) {
                 fail("beforeFirst() should work on a TYPE_SCROLL_INSENSITIVE result set");
+            } finally {
+                rs.close();
             }
+        } finally {
+            stmt.close();
         }
     }
 
     @Test(expected = SQLException.class)
     public void scrollForwardOnlyPrepareStmt() throws SQLException {
         Assume.assumeFalse(sharedIsRewrite());
-        try (PreparedStatement stmt = sharedConnection.prepareStatement("SELECT * FROM resultsSetReadingTest",
-                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+        PreparedStatement stmt = null;
+        try {
+            stmt = sharedConnection.prepareStatement("SELECT * FROM resultsSetReadingTest",
+                    ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             stmt.setFetchSize(2);
-            try (ResultSet rs = stmt.executeQuery()) {
+            ResultSet rs = null;
+            try {
+                rs = stmt.executeQuery();
                 rs.beforeFirst();
                 fail("beforeFirst() shouldn't work on a TYPE_FORWARD_ONLY result set");
+            } finally {
+                rs.close();
             }
+        } finally {
+            stmt.close();
         }
     }
 
     @Test(expected = SQLException.class)
     public void scrollForwardOnlyStmt() throws SQLException {
-        try (Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+        Statement stmt = null;
+        try {
+            stmt = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             stmt.setFetchSize(2);
-            try (ResultSet rs = stmt.executeQuery("SELECT * FROM resultsSetReadingTest")) {
+            ResultSet rs = null;
+            try {
+                rs = stmt.executeQuery("SELECT * FROM resultsSetReadingTest");
                 rs.beforeFirst();
                 fail("beforeFirst() shouldn't work on a TYPE_FORWARD_ONLY result set");
+            } finally {
+                rs.close();
             }
+        } finally {
+            stmt.close();
         }
     }
 }

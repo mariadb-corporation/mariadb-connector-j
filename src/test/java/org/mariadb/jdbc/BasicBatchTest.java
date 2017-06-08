@@ -129,8 +129,12 @@ public class BasicBatchTest extends BaseTest {
 
     @Test
     public void batchTestStmtWithoutPipeline() throws SQLException {
-        try (Connection connection = setConnection("&useBatchMultiSend=false")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&useBatchMultiSend=false");
             batchTestStmt(connection);
+        } finally {
+            connection.close();
         }
     }
 
@@ -282,7 +286,9 @@ public class BasicBatchTest extends BaseTest {
 
     @Test
     public void testMultipleStatementBatch() throws SQLException {
-        try (Connection connection = setConnection("&sessionVariables=auto_increment_increment=2&allowMultiQueries=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&sessionVariables=auto_increment_increment=2&allowMultiQueries=true");
             Statement stmt = connection.createStatement();
             stmt.addBatch("INSERT INTO test_batch3(test) value ('a')");
             stmt.addBatch("INSERT INTO test_batch3(test) value ('b')");
@@ -315,6 +321,8 @@ public class BasicBatchTest extends BaseTest {
             assertTrue(resultSet.next());
             assertEquals(9, resultSet.getInt(1));
             assertFalse(resultSet.next());
+        } finally {
+            connection.close();
         }
     }
 

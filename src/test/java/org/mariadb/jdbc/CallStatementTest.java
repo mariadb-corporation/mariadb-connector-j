@@ -292,16 +292,24 @@ public class CallStatementTest extends BaseTest {
     @Test
     public void testCallWithFetchSize() throws SQLException {
         createProcedure("testCallWithFetchSize", "()\nBEGIN\nSELECT 1;SELECT 2;\nEND");
-        try (Statement statement = sharedConnection.createStatement()) {
+        Statement statement = null;
+        try {
+            statement = sharedConnection.createStatement();
             statement.setFetchSize(1);
-            try (ResultSet resultSet = statement.executeQuery("CALL testCallWithFetchSize()")) {
+            ResultSet resultSet = null;
+            try {
+                resultSet = statement.executeQuery("CALL testCallWithFetchSize()");
                 int rowCount = 0;
                 while (resultSet.next()) {
                     rowCount++;
                 }
                 Assert.assertEquals(1, rowCount);
+            } finally {
+                resultSet.close();
             }
             statement.execute("SELECT 1");
+        } finally {
+            statement.close();
         }
     }
 

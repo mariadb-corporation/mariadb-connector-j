@@ -80,21 +80,20 @@ public class DefaultAuthenticationProvider {
     public static InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
                                                                           byte[] authData, int seqNo, String passwordCharacterEncoding)
             throws SQLException {
-        switch (plugin) {
-            case MYSQL_NATIVE_PASSWORD:
-                return new SendNativePasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
-            case MYSQL_OLD_PASSWORD:
-                return new SendOldPasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
-            case MYSQL_CLEAR_PASSWORD:
-                return new SendClearPasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
-            case DIALOG:
-                return new SendPamAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
-            case GSSAPI_CLIENT:
-                return new SendGssApiAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
-            default:
-                throw new SQLException("Client does not support authentication protocol requested by server. "
-                        + "Consider upgrading MariaDB client. plugin was = " + plugin, "08004", 1251);
+
+        if (MYSQL_NATIVE_PASSWORD.equals(plugin)) {
+            return new SendNativePasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
+        } else if (MYSQL_OLD_PASSWORD.equals(plugin)) {
+            return new SendOldPasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
+        } else if (MYSQL_CLEAR_PASSWORD.equals(plugin)) {
+            return new SendClearPasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
+        } else if (DIALOG.equals(plugin)) {
+            return new SendPamAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
+        } else if (GSSAPI_CLIENT.equals(plugin)) {
+            return new SendGssApiAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
         }
+        throw new SQLException("Client does not support authentication protocol requested by server. "
+                + "Consider upgrading MariaDB client. plugin was = " + plugin, "08004", 1251);
     }
 
 }

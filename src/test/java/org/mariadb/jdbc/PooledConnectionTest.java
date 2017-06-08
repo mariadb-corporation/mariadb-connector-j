@@ -118,7 +118,9 @@ public class PooledConnectionTest extends BaseTest {
         MyEventListener listener = new MyEventListener();
         pc.addStatementEventListener(listener);
         MariaDbConnection connection = (MariaDbConnection) pc.getConnection();
-        try (PreparedStatement ps = connection.prepareStatement("SELECT ?")) {
+        PreparedStatement ps = null;
+        try {
+            ps = connection.prepareStatement("SELECT ?");
             ps.execute();
             assertTrue("should never get there", false);
         } catch (Exception e) {
@@ -130,6 +132,8 @@ public class PooledConnectionTest extends BaseTest {
                 //HY000 if server >= 10.2 ( send prepare and query in a row), 07004 otherwise
                 assertTrue("07004".equals(listener.sqlException.getSQLState()) || "HY000".equals(listener.sqlException.getSQLState()));
             }
+        } finally {
+            ps.close();
         }
         assertTrue(listener.statementClosed);
         pc.close();

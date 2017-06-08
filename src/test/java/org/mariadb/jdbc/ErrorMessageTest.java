@@ -77,17 +77,23 @@ public class ErrorMessageTest extends BaseTest {
 
     @Test
     public void testSmallRewriteErrorMessage() throws SQLException {
-        try (Connection connection = setBlankConnection("&rewriteBatchedStatements=true")) {
+        Connection connection = null;
+        try {
+            connection = setBlankConnection("&rewriteBatchedStatements=true");
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
             assertTrue(sqle.getCause().getCause().getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void testSmallMultiBatchErrorMessage() throws SQLException {
-        try (Connection connection = setBlankConnection("&allowMultiQueries=true&useServerPrepStmts=false")) {
+        Connection connection = null;
+        try {
+            connection = setBlankConnection("&allowMultiQueries=true&useServerPrepStmts=false");
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -101,61 +107,81 @@ public class ErrorMessageTest extends BaseTest {
                                 "INSERT INTO testErrorMessage(test, test2) values "
                                         + "('more than 10 characters to provoc error', 10)"));
             }
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void testSmallPrepareErrorMessage() throws SQLException {
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=false")) {
+        Connection connection = null;
+        try {
+            connection = setBlankConnection("&useBatchMultiSend=false");
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
             assertTrue(sqle.getCause().getCause().getMessage().contains(
                     "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
                             + "parameters ['more than 10 characters to provoc error',10]"));
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void testSmallBulkErrorMessage() throws SQLException {
         Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=true")) {
+        Connection connection = null;
+        try {
+            connection = setBlankConnection("&useBatchMultiSend=true");
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
             assertTrue(sqle.getCause().getCause().getMessage().contains(
                     "INSERT INTO testErrorMessage(test, test2) values "
                             + "('more than 10 characters to provoc error', 10)"));
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void testSmallPrepareBulkErrorMessage() throws SQLException {
         Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useServerPrepStmts=true")) {
+        Connection connection = null;
+        try {
+            connection = setBlankConnection("&useBatchMultiSend=true&useServerPrepStmts=true");
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
             assertTrue(sqle.getCause().getCause().getMessage().contains(
                     "INSERT INTO testErrorMessage(test, test2) values "
                             + "(?, ?)"));
+        } finally {
+            connection.close();
         }
     }
 
 
     @Test
     public void testBigRewriteErrorMessage() throws SQLException {
-        try (Connection connection = setBlankConnection("&rewriteBatchedStatements=true")) {
+        Connection connection = null;
+        try {
+            connection = setBlankConnection("&rewriteBatchedStatements=true");
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
             assertTrue(sqle.getCause().getCause().getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void testBigMultiErrorMessage() throws SQLException {
-        try (Connection connection = setBlankConnection("&allowMultiQueries=true&useServerPrepStmts=false")) {
+        Connection connection = null;
+        try {
+            connection = setBlankConnection("&allowMultiQueries=true&useServerPrepStmts=false");
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -170,12 +196,16 @@ public class ErrorMessageTest extends BaseTest {
                                 "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
                                         + "['more than 10 characters to provoc error',200]"));
             }
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void testBigPrepareErrorMessage() throws SQLException {
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=false")) {
+        Connection connection = null;
+        try {
+            connection = setBlankConnection("&useBatchMultiSend=false");
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -183,13 +213,17 @@ public class ErrorMessageTest extends BaseTest {
                     sqle.getCause().getCause().getMessage().contains(
                             "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
                                     + "['more than 10 characters to provoc error',200]"));
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void testBigBulkErrorMessage() throws SQLException {
         Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=true")) {
+        Connection connection = null;
+        try {
+            connection = setBlankConnection("&useBatchMultiSend=true");
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -197,25 +231,33 @@ public class ErrorMessageTest extends BaseTest {
                     "INSERT INTO testErrorMessage(test, test2) values ("
                             + "'more than 10 characters to provoc error', 200)"
             ));
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void testBigBulkErrorPrepareMessage() throws SQLException {
         Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useServerPrepStmts=true")) {
+        Connection connection = null;
+        try {
+            connection = setBlankConnection("&useBatchMultiSend=true&useServerPrepStmts=true");
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
             assertTrue(sqle.getCause().getCause().getMessage().contains(
                     "INSERT INTO testErrorMessage(test, test2) values (?, ?)"
             ));
+        } finally {
+            connection.close();
         }
     }
 
     private void executeBatchWithException(Connection connection) throws SQLException {
         connection.createStatement().execute("TRUNCATE testErrorMessage");
-        try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO testErrorMessage(test, test2) values (?, ?)")) {
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = connection.prepareStatement("INSERT INTO testErrorMessage(test, test2) values (?, ?)");
             for (int i = 0; i < 10; i++) {
                 preparedStatement.setString(1, "whoua" + i);
                 preparedStatement.setInt(2, i);
@@ -230,12 +272,16 @@ public class ErrorMessageTest extends BaseTest {
             //to be sure that packets are ok
             connection.createStatement().execute("SELECT 1");
             throw e;
+        } finally {
+            preparedStatement.close();
         }
     }
 
     private void executeBigBatchWithException(Connection connection) throws SQLException {
         connection.createStatement().execute("TRUNCATE testErrorMessage");
-        try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO testErrorMessage(test, test2) values (?, ?)")) {
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = connection.prepareStatement("INSERT INTO testErrorMessage(test, test2) values (?, ?)");
             for (int i = 0; i < 200; i++) {
                 preparedStatement.setString(1, "whoua" + i);
                 preparedStatement.setInt(2, i);
@@ -249,6 +295,8 @@ public class ErrorMessageTest extends BaseTest {
             //to be sure that packets are ok
             connection.createStatement().execute("SELECT 1");
             throw e;
+        } finally {
+            preparedStatement.close();
         }
     }
 

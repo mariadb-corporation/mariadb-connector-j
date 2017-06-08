@@ -94,10 +94,9 @@ public class StoredProcedureTest extends BaseTest {
         createTable("table_10", "val int");
         createTable("table_5", "val int");
         if (testSingleHost) {
-            try (Statement stmt = sharedConnection.createStatement()) {
-                stmt.execute("INSERT INTO table_10 VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
-                stmt.execute("INSERT INTO table_5 VALUES (1),(2),(3),(4),(5)");
-            }
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("INSERT INTO table_10 VALUES (1),(2),(3),(4),(5),(6),(7),(8),(9),(10)");
+            stmt.execute("INSERT INTO table_5 VALUES (1),(2),(3),(4),(5)");
         }
     }
 
@@ -114,8 +113,9 @@ public class StoredProcedureTest extends BaseTest {
 
         createProcedure("StoredWithOutput", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
                 + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5;end");
-
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StoredWithOutput(?,?,?)}")) {
+        CallableStatement callableStatement = null;
+        try {
+            callableStatement = sharedConnection.prepareCall("{call StoredWithOutput(?,?,?)}");
             //indicate to stream results
             callableStatement.setFetchSize(1);
 
@@ -145,6 +145,8 @@ public class StoredProcedureTest extends BaseTest {
                 assertEquals(i, rs.getInt(1));
             }
             assertFalse(rs.next());
+        } finally {
+            callableStatement.close();
         }
 
     }
@@ -161,8 +163,9 @@ public class StoredProcedureTest extends BaseTest {
 
         createProcedure("StreamInterrupted", "(out MAX_PARAM TINYINT, out MIN_PARAM TINYINT, out NULL_PARAM TINYINT)"
                 + "begin select 1,0,null into MAX_PARAM, MIN_PARAM, NULL_PARAM from dual; SELECT * from table_10; SELECT * from table_5;end");
-
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StreamInterrupted(?,?,?)}")) {
+        CallableStatement callableStatement = null;
+        try {
+            callableStatement = sharedConnection.prepareCall("{call StreamInterrupted(?,?,?)}");
             //indicate to stream results
             callableStatement.setFetchSize(1);
 
@@ -180,10 +183,14 @@ public class StoredProcedureTest extends BaseTest {
 
             //execute another query on same connection must force loading of
             //existing streaming result-set
-            try (Statement stmt = sharedConnection.createStatement()) {
+            Statement stmt = null;
+            try {
+                stmt = sharedConnection.createStatement();
                 ResultSet otherRs = stmt.executeQuery("SELECT 'test'");
                 assertTrue(otherRs.next());
                 assertEquals("test", otherRs.getString(1));
+            } finally {
+                stmt.close();
             }
 
             for (int i = 2; i <= 10; i++) {
@@ -205,6 +212,8 @@ public class StoredProcedureTest extends BaseTest {
                 assertEquals(i, rs.getInt(1));
             }
             assertFalse(rs.next());
+        } finally {
+            callableStatement.close();
         }
 
     }
@@ -213,8 +222,9 @@ public class StoredProcedureTest extends BaseTest {
     public void testStoreProcedureStreamingWithoutOutput() throws Exception {
         createProcedure("StreamWithoutOutput", "(IN MAX_PARAM TINYINT)"
                 + "begin SELECT * from table_10; SELECT * from table_5;end");
-
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call StreamWithoutOutput(?)}")) {
+        CallableStatement callableStatement = null;
+        try {
+            callableStatement = sharedConnection.prepareCall("{call StreamWithoutOutput(?)}");
             //indicate to stream results
             callableStatement.setFetchSize(1);
             callableStatement.setInt(1, 100);
@@ -235,6 +245,8 @@ public class StoredProcedureTest extends BaseTest {
                 assertEquals(i, rs.getInt(1));
             }
             assertFalse(rs.next());
+        } finally {
+            callableStatement.close();
         }
 
     }
@@ -341,21 +353,28 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void callWithStrangeParameter() throws SQLException {
-        try (CallableStatement stmt = sharedConnection.prepareCall("{call withStrangeParameter(?)}")) {
+        CallableStatement stmt = null;
+        try {
+            stmt = sharedConnection.prepareCall("{call withStrangeParameter(?)}");
             double expected = 5.43;
             stmt.setDouble("a", expected);
-            try (ResultSet rs = stmt.executeQuery()) {
+            ResultSet rs = null;
+            try {
+                rs = stmt.executeQuery();
                 assertTrue(rs.next());
                 double res = rs.getDouble(1);
                 assertEquals(expected, res, 0);
                 // now fail due to three decimals
                 double tooMuch = 34.987;
                 stmt.setDouble("a", tooMuch);
-                try (ResultSet rs2 = stmt.executeQuery()) {
-                    assertTrue(rs2.next());
-                    assertThat(rs2.getDouble(1), is(not(tooMuch)));
-                }
+                ResultSet rs2 = stmt.executeQuery();
+                assertTrue(rs2.next());
+                assertThat(rs2.getDouble(1), is(not(tooMuch)));
+            } finally {
+                rs.close();
             }
+        } finally {
+            stmt.close();
         }
     }
 
@@ -390,8 +409,9 @@ public class StoredProcedureTest extends BaseTest {
         properties.put("password", "test_jdbc");
 
         createProcedure("testMetaCatalog", "(x int, out y int)\nBEGIN\nSET y = 2;\n end\n");
-
-        try (Connection connection = openConnection(connU, properties)) {
+        Connection connection = null;
+        try {
+            connection = openConnection(connU, properties);
             CallableStatement callableStatement = connection.prepareCall("{call testMetaCatalog(?, ?)}");
             callableStatement.registerOutParameter(2, Types.INTEGER);
             try {
@@ -423,6 +443,8 @@ public class StoredProcedureTest extends BaseTest {
             }
         } catch (SQLInvalidAuthorizationSpecException authentication) {
             //MySQL 5.5 doesn't permit 'test_jdbc'@'localhost'
+        } finally {
+            connection.close();
         }
         statement.execute("DROP USER 'test_jdbc'@'%'");
     }
@@ -440,14 +462,18 @@ public class StoredProcedureTest extends BaseTest {
                 "(OUT p1 VARCHAR(10))\nBEGIN"
                         + "\nselect 2;"
                         + "\nEND");
-
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?, ?) }")) {
+        CallableStatement callableStatement = null;
+        try {
+            callableStatement = sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?, ?) }");
             callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.setString(2, "mike");
             callableStatement.execute();
+        } finally {
+            callableStatement.close();
         }
         sharedConnection.setCatalog("testj2");
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?, ?) }")) {
+        try {
+            callableStatement = sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?, ?) }");
             callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.setString(2, "mike");
             try {
@@ -456,11 +482,16 @@ public class StoredProcedureTest extends BaseTest {
             } catch (SQLException sqlEx) {
                 assertEquals("42000", sqlEx.getSQLState());
             }
+        } finally {
+            callableStatement.close();
         }
 
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?) }")) {
+        try {
+            callableStatement = sharedConnection.prepareCall("{ call testSameProcedureWithDifferentParameters(?) }");
             callableStatement.registerOutParameter(1, Types.VARCHAR);
             callableStatement.execute();
+        } finally {
+            callableStatement.close();
         }
         sharedConnection.setCatalog("testj");
         sharedConnection.createStatement().executeUpdate("DROP DATABASE testj2");
@@ -472,9 +503,13 @@ public class StoredProcedureTest extends BaseTest {
                 + "BEGIN\n"
                 + "   SELECT 1;\n"
                 + "END");
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("Call testProcDecimalComa(?)")) {
+        CallableStatement callableStatement = null;
+        try {
+            callableStatement = sharedConnection.prepareCall("Call testProcDecimalComa(?)");
             callableStatement.setDouble(1, 18.0);
             callableStatement.execute();
+        } finally {
+            callableStatement.close();
         }
     }
 
@@ -580,9 +615,12 @@ public class StoredProcedureTest extends BaseTest {
     public void testCallOtherDb() throws Exception {
         sharedConnection.createStatement().executeUpdate("CREATE DATABASE IF NOT EXISTS testj2");
         createProcedure("testj2.otherDbProcedure", "()\nBEGIN\nSELECT 1;\nEND ");
-
-        try (Connection noDbConn = setConnection()) {
+        Connection noDbConn = null;
+        try {
+            noDbConn = setConnection();
             noDbConn.prepareCall("{call `testj2`.otherDbProcedure()}").execute();
+        } finally {
+            noDbConn.close();
         }
         sharedConnection.createStatement().executeUpdate("DROP DATABASE testj2");
     }
@@ -602,7 +640,9 @@ public class StoredProcedureTest extends BaseTest {
                 + " SELECT p1;\n"
                 + " SELECT CONCAT('todo ', p1);\n"
                 + "end");
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{call testInOutParam(?, ?)}")) {
+        CallableStatement callableStatement = null;
+        try {
+            callableStatement = sharedConnection.prepareCall("{call testInOutParam(?, ?)}");
             callableStatement.registerOutParameter(2, Types.INTEGER);
             callableStatement.setString(1, "test");
             callableStatement.setInt(2, 1);
@@ -621,6 +661,8 @@ public class StoredProcedureTest extends BaseTest {
             } else {
                 fail("must have resultset");
             }
+        } finally {
+            callableStatement.close();
         }
     }
 
@@ -705,7 +747,9 @@ public class StoredProcedureTest extends BaseTest {
         cancelForVersion(10, 2, 3);
         cancelForVersion(10, 2, 4);
 
-        try (Connection connection = setConnection()) {
+        Connection connection = null;
+        try {
+            connection = setConnection();
             createProcedure("simpleproc", "(IN inParam CHAR(20), INOUT inOutParam CHAR(20), OUT outParam CHAR(50))"
                     + "     BEGIN\n"
                     + "         SET inOutParam = UPPER(inOutParam);\n"
@@ -724,6 +768,8 @@ public class StoredProcedureTest extends BaseTest {
                 fail();
             }
             callableStatement.close();
+        } finally {
+            connection.close();
         }
     }
 
@@ -765,11 +811,14 @@ public class StoredProcedureTest extends BaseTest {
 
         procDef.append(")\nBEGIN\nSELECT 1;\nEND");
         createProcedure("testHugeNumberOfParameters", procDef.toString());
-
-        try (CallableStatement callableStatement = sharedConnection.prepareCall(
-                "{call testHugeNumberOfParameters(" + param.toString() + ")}")) {
+        CallableStatement callableStatement = null;
+        try {
+            callableStatement = sharedConnection.prepareCall(
+                    "{call testHugeNumberOfParameters(" + param.toString() + ")}");
             callableStatement.registerOutParameter(274, Types.VARCHAR);
             callableStatement.execute();
+        } finally {
+            callableStatement.close();
         }
     }
 
@@ -781,7 +830,9 @@ public class StoredProcedureTest extends BaseTest {
         cancelForVersion(10, 2, 4);
 
         createProcedure("testStreamInOutWithName", "(INOUT mblob MEDIUMBLOB) BEGIN SELECT 1 FROM DUAL WHERE 1=0;\nEND");
-        try (CallableStatement cstmt = sharedConnection.prepareCall("{call testStreamInOutWithName(?)}")) {
+        CallableStatement cstmt = null;
+        try {
+            cstmt = sharedConnection.prepareCall("{call testStreamInOutWithName(?)}");
             byte[] buffer = new byte[65];
             for (int i = 0; i < 65; i++) {
                 buffer[i] = 1;
@@ -808,7 +859,7 @@ public class StoredProcedureTest extends BaseTest {
                 int ol = fromSelectBuf.length;
                 assertEquals(il, ol);
             }
-
+        } finally {
             cstmt.close();
         }
     }
@@ -824,9 +875,10 @@ public class StoredProcedureTest extends BaseTest {
     @Test
     public void testProcedureComment() throws Exception {
         createProcedure("testProcedureComment", "(a INT, b VARCHAR(32)) BEGIN SELECT CONCAT(CONVERT(a, CHAR(50)), b); END");
-
-        try (CallableStatement callableStatement = sharedConnection.prepareCall("{ call /*comment ? */ testj.testProcedureComment(?, "
-                + "/*comment ? */?) #comment ? }")) {
+        CallableStatement callableStatement = null;
+        try {
+            callableStatement = sharedConnection.prepareCall("{ call /*comment ? */ testj.testProcedureComment(?, "
+                    + "/*comment ? */?) #comment ? }");
             assertTrue(callableStatement.toString().indexOf("/*") != -1);
             callableStatement.setInt(1, 1);
             callableStatement.setString(2, " a");
@@ -836,6 +888,8 @@ public class StoredProcedureTest extends BaseTest {
             } else {
                 fail("must have a result !");
             }
+        } finally {
+            callableStatement.close();
         }
     }
 
@@ -955,13 +1009,20 @@ public class StoredProcedureTest extends BaseTest {
                 + "SET value_1_v = value_2_v; "
                 + "END;");
         // Prepare the function call
-        try (CallableStatement callable = sharedConnection.prepareCall("{? = call testCallableNullSetters(?,?)}")) {
+        CallableStatement callable = null;
+        try {
+            callable = sharedConnection.prepareCall("{? = call testCallableNullSetters(?,?)}");
             testSetter(callable);
+        } finally {
+            callable.close();
         }
         sharedConnection.createStatement().execute("TRUNCATE testCallableNullSettersTable");
         // Prepare the procedure call
-        try (CallableStatement callable = sharedConnection.prepareCall("{call testCallableNullSettersProc(?,?,?)}")) {
+        try {
+            callable = sharedConnection.prepareCall("{call testCallableNullSettersProc(?,?,?)}");
             testSetter(callable);
+        } finally {
+            callable.close();
         }
     }
 
@@ -1088,8 +1149,9 @@ public class StoredProcedureTest extends BaseTest {
         createFunction("test_function", "() RETURNS BIGINT DETERMINISTIC MODIFIES SQL DATA BEGIN DECLARE max_value BIGINT; "
                 + "SELECT MAX(value_1) INTO max_value FROM testCallableThrowException2; RETURN max_value; END;");
 
-        try (CallableStatement callable = sharedConnection.prepareCall("{? = call test_function()}")) {
-
+        CallableStatement callable = null;
+        try {
+            callable = sharedConnection.prepareCall("{? = call test_function()}");
             callable.registerOutParameter(1, Types.BIGINT);
 
             try {
@@ -1098,6 +1160,8 @@ public class StoredProcedureTest extends BaseTest {
             } catch (SQLException sqlEx) {
                 assertEquals("42S22", sqlEx.getSQLState());
             }
+        } finally {
+            callable.close();
         }
 
         sharedConnection.createStatement().execute("DROP TABLE IF EXISTS testCallableThrowException4");
@@ -1107,8 +1171,8 @@ public class StoredProcedureTest extends BaseTest {
                 + " FOREIGN KEY (value_2) REFERENCES testCallableThrowException3 (value_1) ON DELETE CASCADE", "ENGINE=InnoDB");
         createFunction("test_function", "(value BIGINT) RETURNS BIGINT DETERMINISTIC MODIFIES SQL DATA BEGIN "
                 + "INSERT INTO testCallableThrowException4 VALUES (value); RETURN value; END;");
-
-        try (CallableStatement callable = sharedConnection.prepareCall("{? = call test_function(?)}")) {
+        try {
+            callable = sharedConnection.prepareCall("{? = call test_function(?)}");
             callable.registerOutParameter(1, Types.BIGINT);
             callable.setLong(2, 1);
             callable.executeUpdate();
@@ -1119,6 +1183,8 @@ public class StoredProcedureTest extends BaseTest {
             } catch (SQLException sqlEx) {
                 assertEquals("23000", sqlEx.getSQLState());
             }
+        } finally {
+            callable.close();
         }
     }
 
@@ -1135,12 +1201,15 @@ public class StoredProcedureTest extends BaseTest {
     public void testFunctionWithFixedParameter() throws Exception {
         createFunction("testFunctionWithFixedParameter", "(a varchar(40), b bigint(20), c varchar(80)) RETURNS bigint(20) LANGUAGE SQL DETERMINISTIC "
                 + "MODIFIES SQL DATA COMMENT 'bbb' BEGIN RETURN 1; END; ");
-
-        try (CallableStatement callable = sharedConnection.prepareCall("{? = call testFunctionWithFixedParameter(?,101,?)}")) {
+        CallableStatement callable = null;
+        try {
+            callable = sharedConnection.prepareCall("{? = call testFunctionWithFixedParameter(?,101,?)}");
             callable.registerOutParameter(1, Types.BIGINT);
             callable.setString(2, "FOO");
             callable.setString(3, "BAR");
             callable.executeUpdate();
+        } finally {
+            callable.close();
         }
     }
 
@@ -1193,7 +1262,9 @@ public class StoredProcedureTest extends BaseTest {
         Properties props = new Properties();
         props.put("jdbcCompliantTruncation", "true");
         props.put("useInformationSchema", "true");
-        try (Connection conn1 = setConnection(props)) {
+        Connection conn1 = null;
+        try {
+            conn1 = setConnection(props);
             CallableStatement callSt = conn1.prepareCall("{ call testParameterNumber_1(?, ?, ?, ?) }");
             callSt.setString(2, "xxx");
             callSt.registerOutParameter(1, Types.VARCHAR);
@@ -1228,6 +1299,8 @@ public class StoredProcedureTest extends BaseTest {
             assertEquals("ncfact string", callSt3.getString(2));
             assertEquals("ffact string", callSt3.getString(3));
             assertEquals("fdoc string", callSt3.getString(4));
+        } finally {
+            conn1.close();
         }
     }
 
@@ -1377,7 +1450,7 @@ public class StoredProcedureTest extends BaseTest {
                 + "END");
 
         //registering with VARCHAR Type
-        CallableStatement cstmt = sharedConnection.prepareCall("{call issue425(?, ?)}");
+        CallableProcedureStatement cstmt = (CallableProcedureStatement) sharedConnection.prepareCall("{call issue425(?, ?)}");
         cstmt.registerOutParameter(2, Types.VARCHAR);
         cstmt.setString(1, "x");
         cstmt.execute();
@@ -1388,7 +1461,7 @@ public class StoredProcedureTest extends BaseTest {
         assertEquals("ox", cstmt.getObject("testValue"));
 
         //registering with Binary Type
-        CallableStatement cstmt2 = sharedConnection.prepareCall("{call issue425(?, ?)}");
+        CallableProcedureStatement cstmt2 = (CallableProcedureStatement) sharedConnection.prepareCall("{call issue425(?, ?)}");
         cstmt2.registerOutParameter(2, Types.BINARY);
         cstmt2.setString(1, "x");
         cstmt2.execute();
@@ -1406,7 +1479,7 @@ public class StoredProcedureTest extends BaseTest {
         createFunction("issue425f", "(a TEXT, b TEXT) RETURNS TEXT NO SQL\nBEGIN\nRETURN CONCAT(a, b);\nEND");
 
         //registering with VARCHAR Type
-        CallableStatement cstmt = sharedConnection.prepareCall("{? = call issue425f(?, ?)}");
+        MariaDbFunctionStatement cstmt = (MariaDbFunctionStatement) sharedConnection.prepareCall("{? = call issue425f(?, ?)}");
         cstmt.registerOutParameter(1, Types.VARCHAR);
         cstmt.setString(2, "o");
         cstmt.setString(3, "x");
@@ -1417,7 +1490,7 @@ public class StoredProcedureTest extends BaseTest {
         assertEquals("ox", cstmt.getObject(1));
 
         //registering with Binary Type
-        CallableStatement cstmt2 = sharedConnection.prepareCall("{? = call issue425f(?, ?)}");
+        MariaDbFunctionStatement cstmt2 = (MariaDbFunctionStatement) sharedConnection.prepareCall("{? = call issue425f(?, ?)}");
         cstmt2.registerOutParameter(1, Types.BINARY);
         cstmt2.setString(2, "o");
         cstmt2.setString(3, "x");
@@ -1441,22 +1514,33 @@ public class StoredProcedureTest extends BaseTest {
         st.setInt(1, 2);
         st.execute();
 
-        try (CallableStatement st2 = sharedConnection.prepareCall("{call testj.cacheCall(?)}")) {
+        CallableStatement st2 = null;
+        try {
+            st2 = sharedConnection.prepareCall("{call testj.cacheCall(?)}");
             st2.setInt(1, 2);
             st2.execute();
             st.close();
-
-            try (CallableStatement st3 = sharedConnection.prepareCall("{call testj.cacheCall(?)}")) {
+            CallableStatement st3 = null;
+            try {
+                st3 = sharedConnection.prepareCall("{call testj.cacheCall(?)}");
                 st3.setInt(1, 2);
                 st3.execute();
                 st3.execute();
+            } finally {
+                st3.close();
             }
+        } finally {
+            st2.close();
         }
 
-        try (CallableStatement st3 = sharedConnection.prepareCall("{?=call pow(?,?)}")) {
+        CallableStatement st3 = null;
+        try {
+            st3 = sharedConnection.prepareCall("{?=call pow(?,?)}");
             st3.setInt(2, 2);
             st3.setInt(3, 2);
             st3.execute();
+        } finally {
+            st3.close();
         }
     }
 
@@ -1469,21 +1553,32 @@ public class StoredProcedureTest extends BaseTest {
         st.registerOutParameter(1, Types.INTEGER);
         assertFalse(st.execute());
 
-        try (CallableStatement st2 = sharedConnection.prepareCall("{? = call hello2()}")) {
+        CallableStatement st2 = null;
+        try {
+            st2 = sharedConnection.prepareCall("{? = call hello2()}");
             st2.registerOutParameter(1, Types.INTEGER);
             assertFalse(st2.execute());
 
             st.close();
-
-            try (CallableStatement st3 = sharedConnection.prepareCall("{? = call hello2()}")) {
+            CallableStatement st3 = null;
+            try {
+                st3 = sharedConnection.prepareCall("{? = call hello2()}");
                 st3.registerOutParameter(1, Types.INTEGER);
                 assertFalse(st3.execute());
+            } finally {
+                st3.close();
             }
+        } finally {
+            st2.close();
         }
 
-        try (CallableStatement st3 = sharedConnection.prepareCall("{? = call hello2()}")) {
+        CallableStatement st3 = null;
+        try {
+            st3 = sharedConnection.prepareCall("{? = call hello2()}");
             st3.registerOutParameter(1, Types.INTEGER);
             assertFalse(st3.execute());
+        } finally {
+            st3.close();
         }
     }
 }

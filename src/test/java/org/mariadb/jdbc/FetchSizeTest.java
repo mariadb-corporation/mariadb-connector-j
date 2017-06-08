@@ -206,15 +206,22 @@ public class FetchSizeTest extends BaseTest {
     public void fetchSizeClose() throws SQLException {
         Assume.assumeTrue(sharedOptions().killFetchStmtOnClose && !sharedOptions().profileSql);
         long start = System.currentTimeMillis();
-        try (Statement stmt = sharedConnection.createStatement()) {
+        Statement stmt = null;
+        try {
+            stmt = sharedConnection.createStatement();
             stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables LIMIT 50000");
+        } finally {
+            stmt.close();
         }
         final long normalExecutionTime = System.currentTimeMillis() - start;
 
         start = System.currentTimeMillis();
-        try (Statement stmt = sharedConnection.createStatement()) {
+        try {
+            stmt = sharedConnection.createStatement();
             stmt.setFetchSize(1);
             stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables LIMIT 50000");
+        } finally {
+            stmt.close();
         }
         long interruptedExecutionTime = System.currentTimeMillis() - start;
 
@@ -231,9 +238,10 @@ public class FetchSizeTest extends BaseTest {
 
         long start;
         long normalExecutionTime;
-
-        try (PreparedStatement stmt = sharedConnection.prepareStatement(
-                "select * from information_schema.columns as c1,  information_schema.tables LIMIT 50000")) {
+        PreparedStatement stmt = null;
+        try {
+            stmt = sharedConnection.prepareStatement(
+                    "select * from information_schema.columns as c1,  information_schema.tables LIMIT 50000");
             start = System.currentTimeMillis();
             stmt.executeQuery();
             normalExecutionTime = System.currentTimeMillis() - start;
@@ -241,6 +249,8 @@ public class FetchSizeTest extends BaseTest {
             start = System.currentTimeMillis();
             stmt.setFetchSize(1);
             stmt.executeQuery();
+        } finally {
+            stmt.close();
         }
 
         long interruptedExecutionTime = System.currentTimeMillis() - start;

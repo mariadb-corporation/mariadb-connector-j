@@ -80,8 +80,8 @@ public class CmdInformationMultiple implements CmdInformation {
      */
     public CmdInformationMultiple(int expectedSize, int autoIncrement) {
         this.expectedSize = expectedSize;
-        this.insertIds = new ArrayList<>(expectedSize);
-        this.updateCounts = new ArrayList<>(expectedSize);
+        this.insertIds = new ArrayList<Long>(expectedSize);
+        this.updateCounts = new ArrayList<Long>(expectedSize);
         this.autoIncrement = autoIncrement;
     }
 

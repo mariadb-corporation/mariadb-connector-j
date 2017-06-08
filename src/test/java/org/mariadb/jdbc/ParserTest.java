@@ -79,7 +79,7 @@ public class ParserTest extends BaseTest {
 
     @Test
     public void poolVerification() throws Exception {
-        ArrayList<HostAddress> hostAddresses = new ArrayList<>();
+        ArrayList<HostAddress> hostAddresses = new ArrayList<HostAddress>();
         hostAddresses.add(new HostAddress(hostname, port));
         UrlParser urlParser = new UrlParser(database, hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
         urlParser.setUsername("USER");
@@ -100,8 +100,12 @@ public class ParserTest extends BaseTest {
         datasource.setUser(username);
         datasource.setPassword(password);
         datasource.setUrl("jdbc:mysql://" + hostname + ":" + port + "/" + database);
-        try (Connection connection = datasource.getConnection()) {
+        Connection connection = null;
+        try {
+            connection = datasource.getConnection();
             //ok
+        } finally {
+            connection.close();
         }
     }
 

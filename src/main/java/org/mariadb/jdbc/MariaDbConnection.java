@@ -618,10 +618,7 @@ public class MariaDbConnection implements Connection {
      */
     public void setAutoCommit(boolean autoCommit) throws SQLException {
         if (autoCommit == getAutoCommit()) return;
-
-        try (Statement stmt = createStatement()) {
-            stmt.executeUpdate("set autocommit=" + ((autoCommit) ? "1" : "0"));
-        }
+        createStatement().executeUpdate("set autocommit=" + ((autoCommit) ? "1" : "0"));
     }
 
     /**
@@ -634,9 +631,7 @@ public class MariaDbConnection implements Connection {
             lock.lock();
             try {
                 if (!getAutoCommit() && protocol.inTransaction()) {
-                    try (Statement st = createStatement()) {
-                        st.execute("COMMIT");
-                    }
+                    createStatement().execute("COMMIT");
                 }
             } finally {
                 lock.unlock();
@@ -650,9 +645,7 @@ public class MariaDbConnection implements Connection {
      * @throws SQLException if there is an error rolling back.
      */
     public void rollback() throws SQLException {
-        try (Statement st = createStatement()) {
-            st.execute("ROLLBACK");
-        }
+        createStatement().execute("ROLLBACK");
     }
 
     /**
@@ -671,9 +664,7 @@ public class MariaDbConnection implements Connection {
      * @since 1.4
      */
     public void rollback(final Savepoint savepoint) throws SQLException {
-        try (Statement st = createStatement()) {
-            st.execute("ROLLBACK TO SAVEPOINT " + savepoint.toString());
-        }
+        createStatement().execute("ROLLBACK TO SAVEPOINT " + savepoint.toString());
     }
 
     /**
@@ -751,12 +742,10 @@ public class MariaDbConnection implements Connection {
      * @see #setCatalog
      */
     public String getCatalog() throws SQLException {
-        try (Statement st = createStatement()) {
-            try (ResultSet rs = st.executeQuery("select database()")) {
-                rs.next();
-                return rs.getString(1);
-            }
-        }
+        Statement st = createStatement();
+        ResultSet rs = st.executeQuery("select database()");
+        rs.next();
+        return rs.getString(1);
     }
 
     /**
@@ -790,23 +779,21 @@ public class MariaDbConnection implements Connection {
      * @see #setTransactionIsolation
      */
     public int getTransactionIsolation() throws SQLException {
-        try (Statement stmt = createStatement()) {
-            try (ResultSet rs = stmt.executeQuery("SELECT @@tx_isolation")) {
-                rs.next();
-                final String response = rs.getString(1);
-                if (response.equals("REPEATABLE-READ")) {
-                    return Connection.TRANSACTION_REPEATABLE_READ;
-                }
-                if (response.equals("READ-UNCOMMITTED")) {
-                    return Connection.TRANSACTION_READ_UNCOMMITTED;
-                }
-                if (response.equals("READ-COMMITTED")) {
-                    return Connection.TRANSACTION_READ_COMMITTED;
-                }
-                if (response.equals("SERIALIZABLE")) {
-                    return Connection.TRANSACTION_SERIALIZABLE;
-                }
-            }
+        Statement stmt = createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT @@tx_isolation");
+        rs.next();
+        final String response = rs.getString(1);
+        if (response.equals("REPEATABLE-READ")) {
+            return Connection.TRANSACTION_REPEATABLE_READ;
+        }
+        if (response.equals("READ-UNCOMMITTED")) {
+            return Connection.TRANSACTION_READ_UNCOMMITTED;
+        }
+        if (response.equals("READ-COMMITTED")) {
+            return Connection.TRANSACTION_READ_COMMITTED;
+        }
+        if (response.equals("SERIALIZABLE")) {
+            return Connection.TRANSACTION_SERIALIZABLE;
         }
         throw ExceptionMapper.getSqlException("Could not get transaction isolation level");
     }
@@ -854,21 +841,20 @@ public class MariaDbConnection implements Connection {
         SQLWarning last = null;
         SQLWarning first = null;
 
-        try (Statement st = this.createStatement()) {
-            try (ResultSet rs = st.executeQuery("show warnings")) {
-                // returned result set has 'level', 'code' and 'message' columns, in this order.
-                while (rs.next()) {
-                    int code = rs.getInt(2);
-                    String message = rs.getString(3);
-                    SQLWarning warning = new SQLWarning(message, ExceptionMapper.mapCodeToSqlState(code), code);
-                    if (first == null) {
-                        first = warning;
-                        last = warning;
-                    } else {
-                        last.setNextWarning(warning);
-                        last = warning;
-                    }
-                }
+        Statement st = this.createStatement();
+        ResultSet rs = st.executeQuery("show warnings");
+
+        // returned result set has 'level', 'code' and 'message' columns, in this order.
+        while (rs.next()) {
+            int code = rs.getInt(2);
+            String message = rs.getString(3);
+            SQLWarning warning = new SQLWarning(message, ExceptionMapper.mapCodeToSqlState(code), code);
+            if (first == null) {
+                first = warning;
+                last = warning;
+            } else {
+                last.setNextWarning(warning);
+                last = warning;
             }
         }
         return first;
@@ -999,9 +985,8 @@ public class MariaDbConnection implements Connection {
      */
     public Savepoint setSavepoint(final String name) throws SQLException {
         Savepoint savepoint = new MariaDbSavepoint(name, savepointCount++);
-        try (Statement st = createStatement()) {
-            st.execute("SAVEPOINT " + savepoint.toString());
-        }
+        Statement st = createStatement();
+        st.execute("SAVEPOINT " + savepoint.toString());
         return savepoint;
 
     }
@@ -1020,9 +1005,8 @@ public class MariaDbConnection implements Connection {
      * @since 1.4
      */
     public void releaseSavepoint(final Savepoint savepoint) throws SQLException {
-        try (Statement st = createStatement()) {
-            st.execute("RELEASE SAVEPOINT " + savepoint.toString());
-        }
+        Statement st = createStatement();
+        st.execute("RELEASE SAVEPOINT " + savepoint.toString());
     }
 
     /**
@@ -1139,7 +1123,7 @@ public class MariaDbConnection implements Connection {
      * @since 1.6
      */
     public void setClientInfo(final Properties properties) throws SQLClientInfoException {
-        Map<String, ClientInfoStatus> propertiesExceptions = new HashMap<>();
+        Map<String, ClientInfoStatus> propertiesExceptions = new HashMap<String, ClientInfoStatus>();
         for (String name : new String[]{"ApplicationName", "ClientUser", "ClientHostname"}) {
             try {
                 setClientInfo(name, properties.getProperty(name));
@@ -1181,7 +1165,7 @@ public class MariaDbConnection implements Connection {
      */
     public void setClientInfo(final String name, final String value) throws SQLClientInfoException {
         if (protocol.isExplicitClosed()) {
-            Map<String, ClientInfoStatus> failures = new HashMap<>();
+            Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
             failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
             throw new SQLClientInfoException("setClientInfo() is called on closed connection", failures);
         }
@@ -1191,7 +1175,7 @@ public class MariaDbConnection implements Connection {
             try {
                 protocol.getProxy().reconnect();
             } catch (SQLException sqle) {
-                Map<String, ClientInfoStatus> failures = new HashMap<>();
+                Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
                 failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
                 throw new SQLClientInfoException("Connection closed", failures, sqle);
             } finally {
@@ -1202,7 +1186,7 @@ public class MariaDbConnection implements Connection {
         if (name == null || (!"ApplicationName".equals(name)
                 && !"ClientUser".equals(name)
                 && !"ClientHostname".equals(name))) {
-            Map<String, ClientInfoStatus> failures = new HashMap<>();
+            Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
             failures.put(name, ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
             throw new SQLClientInfoException("setClientInfo() parameters can only be \"ApplicationName\",\"ClientUser\" or \"ClientHostname\", "
                     + "but was : " + name, failures);
@@ -1241,7 +1225,7 @@ public class MariaDbConnection implements Connection {
             Statement statement = createStatement();
             statement.execute(escapeQuery.toString());
         } catch (SQLException sqle) {
-            Map<String, ClientInfoStatus> failures = new HashMap<>();
+            Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
             failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
             throw new SQLClientInfoException("unexpected error during setClientInfo", failures, sqle);
 
@@ -1260,16 +1244,14 @@ public class MariaDbConnection implements Connection {
      */
     public Properties getClientInfo() throws SQLException {
         checkConnection();
-        try (Statement statement = createStatement()) {
-            try (ResultSet rs = statement.executeQuery("SELECT @ApplicationName, @ClientUser, @ClientHostname")) {
-                if (rs.next()) {
-                    Properties properties = new Properties();
-                    if (rs.getString(1) != null) properties.setProperty("ApplicationName", rs.getString(1));
-                    if (rs.getString(2) != null) properties.setProperty("ClientUser", rs.getString(2));
-                    if (rs.getString(3) != null) properties.setProperty("ClientHostname", rs.getString(3));
-                    return properties;
-                }
-            }
+        Statement statement = createStatement();
+        ResultSet rs = statement.executeQuery("SELECT @ApplicationName, @ClientUser, @ClientHostname");
+        if (rs.next()) {
+            Properties properties = new Properties();
+            if (rs.getString(1) != null) properties.setProperty("ApplicationName", rs.getString(1));
+            if (rs.getString(2) != null) properties.setProperty("ClientUser", rs.getString(2));
+            if (rs.getString(3) != null) properties.setProperty("ClientHostname", rs.getString(3));
+            return properties;
         }
         Properties properties = new Properties();
         properties.setProperty("ApplicationName", null);
@@ -1297,12 +1279,10 @@ public class MariaDbConnection implements Connection {
         if (!"ApplicationName".equals(name) && !"ClientUser".equals(name) && !"ClientHostname".equals(name)) {
             throw new SQLException("name must be \"ApplicationName\", \"ClientUser\" or \"ClientHostname\", but was \"" + name + "\"");
         }
-        try (Statement statement = createStatement()) {
-            try (ResultSet rs = statement.executeQuery("SELECT @" + name)) {
-                if (rs.next()) {
-                    return rs.getString(1);
-                }
-            }
+        Statement statement = createStatement();
+        ResultSet rs = statement.executeQuery("SELECT @" + name);
+        if (rs.next()) {
+            return rs.getString(1);
         }
         return null;
     }
@@ -1454,12 +1434,10 @@ public class MariaDbConnection implements Connection {
      */
     public int getLowercaseTableNames() throws SQLException {
         if (lowercaseTableNames == -1) {
-            try (Statement st = createStatement()) {
-                try (ResultSet rs = st.executeQuery("select @@lower_case_table_names")) {
-                    rs.next();
-                    lowercaseTableNames = rs.getInt(1);
-                }
-            }
+            Statement st = createStatement();
+            ResultSet rs = st.executeQuery("select @@lower_case_table_names");
+            rs.next();
+            lowercaseTableNames = rs.getInt(1);
         }
         return lowercaseTableNames;
     }

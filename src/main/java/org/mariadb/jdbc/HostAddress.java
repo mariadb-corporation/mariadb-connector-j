@@ -112,10 +112,10 @@ public class HostAddress {
             throw new IllegalArgumentException("Invalid connection URL, host address must not be empty ");
         }
         if ("".equals(spec)) {
-            return new ArrayList<>(0);
+            return new ArrayList<HostAddress>(0);
         }
         String[] tokens = spec.trim().split(",");
-        List<HostAddress> arr = new ArrayList<>(tokens.length);
+        List<HostAddress> arr = new ArrayList<HostAddress>(tokens.length);
 
         // Aurora using cluster end point mustn't have any other host
         if (haMode == HaMode.AURORA) {

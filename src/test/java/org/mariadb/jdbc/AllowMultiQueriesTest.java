@@ -73,73 +73,84 @@ public class AllowMultiQueriesTest extends BaseTest {
         createTable("AllowMultiQueriesTest", "id int not null primary key auto_increment, test varchar(10)");
         createTable("AllowMultiQueriesTest2", "id int not null primary key auto_increment, test varchar(10)");
         if (testSingleHost) {
-            try (Statement stmt = sharedConnection.createStatement()) {
-                stmt.execute("INSERT INTO AllowMultiQueriesTest(test) VALUES ('a'), ('b')");
-            }
+            Statement stmt = sharedConnection.createStatement();
+            stmt.execute("INSERT INTO AllowMultiQueriesTest(test) VALUES ('a'), ('b')");
         }
     }
 
 
     @Test
     public void allowMultiQueriesSingleTest() throws SQLException {
-        try (Connection connection = setConnection("&allowMultiQueries=true")) {
-            try (Statement statement = connection.createStatement()) {
-                statement.execute("SELECT 1; SELECT 2; SELECT 3;");
-                int counter = 1;
-                do {
-                    ResultSet resultSet = statement.getResultSet();
-                    assertEquals(-1, statement.getUpdateCount());
-                    assertTrue(resultSet.next());
-                    assertEquals(counter++, resultSet.getInt(1));
-                } while (statement.getMoreResults());
-                assertEquals(4, counter);
-            }
+        Connection connection = null;
+        try {
+            connection = setConnection("&allowMultiQueries=true");
+            Statement statement = connection.createStatement();
+            statement.execute("SELECT 1; SELECT 2; SELECT 3;");
+            int counter = 1;
+            do {
+                ResultSet resultSet = statement.getResultSet();
+                assertEquals(-1, statement.getUpdateCount());
+                assertTrue(resultSet.next());
+                assertEquals(counter++, resultSet.getInt(1));
+            } while (statement.getMoreResults());
+            assertEquals(4, counter);
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void allowMultiQueriesFetchTest() throws SQLException {
-        try (Connection connection = setConnection("&allowMultiQueries=true")) {
-            try (Statement statement = connection.createStatement()) {
-                statement.setFetchSize(1);
-                statement.execute("SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;");
-                do {
-                    ResultSet resultSet = statement.getResultSet();
-                    assertEquals(-1, statement.getUpdateCount());
-                    assertTrue(resultSet.next());
-                    assertEquals("a", resultSet.getString(2));
-                } while (statement.getMoreResults());
-            }
-            try (Statement statement = connection.createStatement()) {
-                statement.execute("SELECT 1");
-            }
+        Connection connection = null;
+        try {
+            connection = setConnection("&allowMultiQueries=true");
+            Statement statement = connection.createStatement();
+            statement.setFetchSize(1);
+            statement.execute("SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;");
+            do {
+                ResultSet resultSet = statement.getResultSet();
+                assertEquals(-1, statement.getUpdateCount());
+                assertTrue(resultSet.next());
+                assertEquals("a", resultSet.getString(2));
+            } while (statement.getMoreResults());
+
+            statement.execute("SELECT 1");
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void allowMultiQueriesFetchKeepTest() throws SQLException {
-        try (Connection connection = setConnection("&allowMultiQueries=true")) {
-            try (Statement statement = connection.createStatement()) {
-                statement.setFetchSize(1);
-                statement.execute("SELECT * from AllowMultiQueriesTest;SELECT 3;");
-                ResultSet rs1 = statement.getResultSet();
-                assertTrue(statement.getMoreResults(Statement.KEEP_CURRENT_RESULT));
-                assertTrue(rs1.next());
-                assertEquals("a", rs1.getString(2));
+        Connection connection = null;
+        try {
+            connection = setConnection("&allowMultiQueries=true");
+            Statement statement = connection.createStatement();
+            statement.setFetchSize(1);
+            statement.execute("SELECT * from AllowMultiQueriesTest;SELECT 3;");
+            ResultSet rs1 = statement.getResultSet();
+            assertTrue(statement.getMoreResults(Statement.KEEP_CURRENT_RESULT));
+            assertTrue(rs1.next());
+            assertEquals("a", rs1.getString(2));
 
-                ResultSet rs = statement.getResultSet();
-                assertTrue(rs.next());
-                assertEquals(3, rs.getInt(1));
-            }
+            ResultSet rs = statement.getResultSet();
+            assertTrue(rs.next());
+            assertEquals(3, rs.getInt(1));
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void allowMultiQueriesFetchCloseTest() throws SQLException {
-        try (Connection connection = setConnection("&allowMultiQueries=true")) {
-            try (Statement statement = connection.createStatement()) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&allowMultiQueries=true");
+            Statement statement = null;
+            try {
+                statement = connection.createStatement();
                 statement.setFetchSize(1);
                 statement.execute("SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;SELECT 3;");
                 ResultSet rs1 = statement.getResultSet();
@@ -159,18 +170,30 @@ public class AllowMultiQueriesTest extends BaseTest {
                 ResultSet rs = statement.getResultSet();
                 assertTrue(rs.next());
                 assertEquals(3, rs.getInt(1));
+            } finally {
+                statement.close();
             }
+        } finally {
+            connection.close();
         }
     }
 
 
     @Test
     public void allowMultiQueriesFetchInsertSelectTest() throws SQLException {
-        try (Connection connection = setConnection("&allowMultiQueries=true")) {
-            try (Statement statement = connection.createStatement()) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&allowMultiQueries=true");
+            Statement statement = null;
+            try {
+                statement = connection.createStatement();
                 statement.setFetchSize(1);
                 statement.execute("INSERT INTO AllowMultiQueriesTest2(test) VALUES ('a'), ('b');SELECT * from AllowMultiQueriesTest;SELECT 3;");
+            } finally {
+                statement.close();
             }
+        } finally {
+            connection.close();
         }
     }
 

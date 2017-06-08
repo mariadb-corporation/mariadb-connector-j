@@ -73,11 +73,17 @@ public class MariaDbCompatibilityTest extends BaseTest {
      */
     @Test
     public void datatypesTest() throws SQLException {
-        try (Statement stmt = sharedConnection.createStatement()) {
-            try (PreparedStatement preparedStmt = sharedConnection.prepareStatement(
-                    "INSERT INTO `datatypesTest` (`type_longvarchar`) VALUES ( ? )")) {
+        Statement stmt = null;
+        try {
+            stmt = sharedConnection.createStatement();
+            PreparedStatement preparedStmt = null;
+            try {
+                preparedStmt = sharedConnection.prepareStatement(
+                        "INSERT INTO `datatypesTest` (`type_longvarchar`) VALUES ( ? )");
                 preparedStmt.setObject(1, "longvarcharTest", Types.LONGVARCHAR);
                 preparedStmt.executeUpdate();
+            } finally {
+                preparedStmt.close();
             }
 
             ResultSet rs = stmt.executeQuery("SELECT * FROM datatypesTest");
@@ -87,6 +93,8 @@ public class MariaDbCompatibilityTest extends BaseTest {
             } else {
                 fail();
             }
+        } finally {
+            stmt.close();
         }
     }
 

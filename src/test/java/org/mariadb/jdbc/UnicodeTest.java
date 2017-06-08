@@ -123,15 +123,22 @@ public class UnicodeTest extends BaseTest {
         unicodeString += "\uD83E\uDD42"; // 🥂 unicode 9 clinking glasses
 
         //test binary protocol
-        try (Connection connection = setConnection("")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("");
             connection.createStatement().execute("SET NAMES utf8mb4");
             checkSendAndRetrieve(connection, unicodeString);
+        } finally {
+            connection.close();
         }
 
         //test prepare text protocol
-        try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
+        try {
+            connection = setConnection("&rewriteBatchedStatements=true");
             connection.createStatement().execute("SET NAMES utf8mb4");
             checkSendAndRetrieve(connection, unicodeString);
+        } finally {
+            connection.close();
         }
 
     }

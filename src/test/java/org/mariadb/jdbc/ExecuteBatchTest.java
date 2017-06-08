@@ -99,7 +99,7 @@ public class ExecuteBatchTest extends BaseTest {
 
         final CyclicBarrier barrier = new CyclicBarrier(2);
         final AtomicBoolean wasInterrupted = new AtomicBoolean(false);
-        final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
+        final AtomicReference<Exception> exceptionRef = new AtomicReference<Exception>();
 
         service.submit(new Runnable() {
             @Override
@@ -109,7 +109,7 @@ public class ExecuteBatchTest extends BaseTest {
                             "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
 
                     // Send a large enough batch that will take long enough to allow us to interrupt it
-                    for (int i = 0; i < 1_000_000; i++) {
+                    for (int i = 0; i < 1000000; i++) {
                         preparedStatement.setString(1, String.valueOf(System.nanoTime()));
                         preparedStatement.setInt(2, i);
                         preparedStatement.addBatch();
@@ -170,11 +170,14 @@ public class ExecuteBatchTest extends BaseTest {
         Assume.assumeFalse(sharedIsAurora());
 
         sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
-
-        try (Connection connection = setConnection("&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql)) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql);
             PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
             //packet size : 7 200 068 kb
             addBatchData(preparedStatement, 60000, connection);
+        } finally {
+            connection.close();
         }
     }
 
@@ -185,11 +188,14 @@ public class ExecuteBatchTest extends BaseTest {
         Assume.assumeFalse(sharedIsAurora());
 
         sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
-
-        try (Connection connection = setConnection("&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql)) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&useComMulti=false&useBatchMultiSend=true&profileSql=" + profileSql);
             PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
             //packet size : 7 200 068 kb
             addBatchData(preparedStatement, 160000, connection);
+        } finally {
+            connection.close();
         }
     }
 
@@ -199,10 +205,13 @@ public class ExecuteBatchTest extends BaseTest {
         Assume.assumeTrue(checkMaxAllowedPacketMore8m("serverStd8mTest"));
         Assume.assumeTrue(runLongTest);
         sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
-
-        try (Connection connection = setConnection("&useComMulti=false&useBatchMultiSend=false&profileSql=" + profileSql)) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&useComMulti=false&useBatchMultiSend=false&profileSql=" + profileSql);
             PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
             addBatchData(preparedStatement, 60000, connection);
+        } finally {
+            connection.close();
         }
     }
 
@@ -213,10 +222,13 @@ public class ExecuteBatchTest extends BaseTest {
         Assume.assumeFalse(sharedIsAurora());
 
         sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
-
-        try (Connection connection = setConnection("&useComMulti=false&useBatchMultiSend=true&useServerPrepStmts=false&profileSql=" + profileSql)) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&useComMulti=false&useBatchMultiSend=true&useServerPrepStmts=false&profileSql=" + profileSql);
             PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
             addBatchData(preparedStatement, 60000, connection);
+        } finally {
+            connection.close();
         }
     }
 
@@ -225,10 +237,14 @@ public class ExecuteBatchTest extends BaseTest {
         Assume.assumeTrue(checkMaxAllowedPacketMore8m("clientRewriteValuesNotPossibleTest"));
         Assume.assumeTrue(runLongTest);
         sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
-        try (Connection connection = setConnection("&rewriteBatchedStatements=true&profileSql=" + profileSql)) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&rewriteBatchedStatements=true&profileSql=" + profileSql);
             PreparedStatement preparedStatement = connection.prepareStatement(
                     "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?) ON DUPLICATE KEY UPDATE id=?");
             addBatchData(preparedStatement, 60000, connection, true);
+        } finally {
+            connection.close();
         }
     }
 
@@ -238,10 +254,14 @@ public class ExecuteBatchTest extends BaseTest {
         Assume.assumeTrue(checkMaxAllowedPacketMore8m("clientRewriteValuesNotPossibleTest"));
         Assume.assumeTrue(runLongTest);
         sharedConnection.createStatement().execute("TRUNCATE TABLE ExecuteBatchTest");
-        try (Connection connection = setConnection("&rewriteBatchedStatements=true&profileSql=" + profileSql)) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&rewriteBatchedStatements=true&profileSql=" + profileSql);
             PreparedStatement preparedStatement = connection.prepareStatement(
                     "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?) ON DUPLICATE KEY UPDATE id=?");
             addBatchData(preparedStatement, 160000, connection, true);
+        } finally {
+            connection.close();
         }
     }
 
@@ -300,9 +320,13 @@ public class ExecuteBatchTest extends BaseTest {
     @Test
     public void useBatchMultiSend() throws Exception {
         Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setConnection("&useBatchMultiSend=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&useBatchMultiSend=true");
             String sql = "insert into ExecuteBatchUseBatchMultiSend (test) values (?)";
-            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            PreparedStatement pstmt = null;
+            try {
+                pstmt = connection.prepareStatement(sql);
                 for (int i = 0; i < 10; i++) {
                     pstmt.setInt(1, i);
                     pstmt.addBatch();
@@ -312,7 +336,11 @@ public class ExecuteBatchTest extends BaseTest {
                 for (int i = 0; i < updateCounts.length; i++) {
                     assertEquals(sharedIsRewrite() ? Statement.SUCCESS_NO_INFO : 1, updateCounts[i]);
                 }
+            } finally {
+                pstmt.close();
             }
+        } finally {
+            connection.close();
         }
     }
 }

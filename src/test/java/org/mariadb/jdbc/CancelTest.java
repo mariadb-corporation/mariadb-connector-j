@@ -76,7 +76,9 @@ public class CancelTest extends BaseTest {
 
     @Test
     public void cancelTest() throws SQLException {
-        try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connUri, new Properties());
 
             Statement stmt = tmpConnection.createStatement();
             ExecutorService exec = Executors.newFixedThreadPool(1);
@@ -89,27 +91,36 @@ public class CancelTest extends BaseTest {
             Assert.fail();
         } catch (SQLException e) {
             //normal exception
+        } finally {
+            tmpConnection.close();
         }
 
     }
 
     @Test(timeout = 2000, expected = SQLTimeoutException.class)
     public void timeoutSleep() throws Exception {
-        try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connUri, new Properties());
             Statement stmt = tmpConnection.createStatement();
             stmt.setQueryTimeout(1);
             stmt.execute("select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2");
+        } finally {
+            tmpConnection.close();
         }
     }
 
     @Test(timeout = 2000, expected = SQLTimeoutException.class)
     public void timeoutPrepareSleep() throws Exception {
-        try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
-            try (PreparedStatement stmt = tmpConnection.prepareStatement(
-                    "select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2")) {
-                stmt.setQueryTimeout(1);
-                stmt.execute();
-            }
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connUri, new Properties());
+            PreparedStatement stmt = tmpConnection.prepareStatement(
+                "select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2");
+            stmt.setQueryTimeout(1);
+            stmt.execute();
+        } finally {
+            tmpConnection.close();
         }
     }
 
@@ -135,20 +146,24 @@ public class CancelTest extends BaseTest {
         Assume.assumeFalse(sharedIsAurora());
         Assume.assumeTrue(!sharedOptions().allowMultiQueries && !sharedIsRewrite());
         createTable("timeoutBatch", "aa text");
-        try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
+        Connection tmpConnection = null;
+        try {
+            tmpConnection = openNewConnection(connUri, new Properties());
+
 
             char[] arr = new char[1000];
             Arrays.fill(arr, 'a');
             String str = String.valueOf(arr);
-            try (PreparedStatement stmt = tmpConnection.prepareStatement("INSERT INTO timeoutBatch VALUES (?)")) {
-                stmt.setQueryTimeout(1);
-                for (int i = 0; i < 20000; i++) {
-                    stmt.setString(1, str);
-                    stmt.addBatch();
-                }
-                stmt.executeBatch();
+            PreparedStatement stmt = tmpConnection.prepareStatement("INSERT INTO timeoutBatch VALUES (?)");
+            stmt.setQueryTimeout(1);
+            for (int i = 0; i < 20000; i++) {
+                stmt.setString(1, str);
+                stmt.addBatch();
             }
+            stmt.executeBatch();
 
+        } finally {
+            tmpConnection.close();
         }
     }
 

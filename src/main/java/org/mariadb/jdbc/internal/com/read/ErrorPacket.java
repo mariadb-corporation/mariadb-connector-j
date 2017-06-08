@@ -52,9 +52,6 @@
 
 package org.mariadb.jdbc.internal.com.read;
 
-import java.nio.charset.StandardCharsets;
-
-
 public class ErrorPacket {
     private final short errorNumber;
     private final byte sqlStateMarker;
@@ -72,11 +69,11 @@ public class ErrorPacket {
         this.sqlStateMarker = buffer.readByte();
         if (sqlStateMarker == '#') {
             this.sqlState = buffer.readRawBytes(5);
-            this.message = buffer.readStringNullEnd(StandardCharsets.UTF_8);
+            this.message = buffer.readStringNullEnd(Buffer.UTF_8);
         } else {
             // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
             buffer.position -= 1;
-            this.message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position, StandardCharsets.UTF_8);
+            this.message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position, Buffer.UTF_8);
             this.sqlState = "HY000".getBytes();
         }
     }

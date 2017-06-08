@@ -333,7 +333,9 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
 
     @Test
     public void rewriteBatchedError() throws Exception {
-        try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&rewriteBatchedStatements=true");
             PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO errorTable (a, b) VALUES (?, ?, ?)");
 
             preparedStatement.setString(1, "1");
@@ -346,6 +348,8 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
             } catch (SQLException e) {
                 assertTrue(e.getCause().getCause().getMessage().contains("Query is: INSERT INTO errorTable (a, b) VALUES (?, ?, ?)"));
             }
+        } finally {
+            connection.close();
         }
     }
 

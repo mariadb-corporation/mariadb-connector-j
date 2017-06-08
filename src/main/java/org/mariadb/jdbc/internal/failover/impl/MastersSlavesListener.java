@@ -87,7 +87,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
         // fail loop scaling happens async and only from a single thread
         dynamicSizedScheduler.scheduleWithFixedDelay(new Runnable() {
-            private final ArrayDeque<FailoverLoop> failoverLoops = new ArrayDeque<>(8);
+            private final ArrayDeque<FailoverLoop> failoverLoops = new ArrayDeque<FailoverLoop>(8);
 
             @Override
             public void run() {
@@ -105,7 +105,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                         }
                     } else {
                         // block on all removed loops after finished unscheduling to reduce blocking
-                        List<FailoverLoop> removedLoops = new ArrayList<>(-countChange);
+                        List<FailoverLoop> removedLoops = new ArrayList<FailoverLoop>(-countChange);
                         // terminate fail loops
                         for (; countChange < 0; countChange++) {
                             FailoverLoop failoverLoop = failoverLoops.remove();
@@ -280,10 +280,10 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         // - random order not blacklist and not connected host
         // - random order blacklist host
         // - connected host
-        List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+        List<HostAddress> loopAddress = new LinkedList<HostAddress>(urlParser.getHostAddresses());
         loopAddress.removeAll(getBlacklistKeys());
         Collections.shuffle(loopAddress);
-        List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
+        List<HostAddress> blacklistShuffle = new LinkedList<HostAddress>(getBlacklistKeys());
         Collections.shuffle(blacklistShuffle);
         loopAddress.addAll(blacklistShuffle);
 

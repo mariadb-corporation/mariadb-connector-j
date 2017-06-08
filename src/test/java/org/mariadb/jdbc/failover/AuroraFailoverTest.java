@@ -102,7 +102,9 @@ public class AuroraFailoverTest extends BaseReplication {
 
     @Test
     public void testErrorWriteOnReplica() throws SQLException {
-        try (Connection connection = getNewConnection(false)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(false);
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists auroraDelete" + jobId);
             stmt.execute("create table auroraDelete" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
@@ -117,12 +119,16 @@ public class AuroraFailoverTest extends BaseReplication {
                 connection.setReadOnly(false);
                 stmt.execute("drop table if exists auroraDelete" + jobId);
             }
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void testReplication() throws SQLException, InterruptedException {
-        try (Connection connection = getNewConnection(false)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(false);
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists auroraReadSlave" + jobId);
             stmt.execute("create table auroraReadSlave" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
@@ -135,12 +141,15 @@ public class AuroraFailoverTest extends BaseReplication {
             assertTrue(rs.next());
             connection.setReadOnly(false);
             stmt.execute("drop table  if exists auroraReadSlave" + jobId);
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void testFailMaster() throws Throwable {
-        try (Connection connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000", true)) {
+        Connection connection = null;
+        try {
             int previousPort = getProtocolFromConnection(connection).getPort();
             Statement stmt = connection.createStatement();
             int masterServerId = getServerId(connection);
@@ -158,6 +167,8 @@ public class AuroraFailoverTest extends BaseReplication {
             assertFalse(connection.isReadOnly());
             long duration = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - stopTime);
             assertTrue(duration < 25 * 1000);
+        } finally {
+            connection = getNewConnection("&retriesAllDown=3&connectTimeout=1000", true);
         }
     }
 
@@ -169,8 +180,9 @@ public class AuroraFailoverTest extends BaseReplication {
     @Test
     public void socketTimeoutTest() throws SQLException {
         // set a short connection timeout
-        try (Connection connection = getNewConnection("&socketTimeout=4000", false)) {
-
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&socketTimeout=4000", false);
             PreparedStatement ps = connection.prepareStatement("SELECT 1");
             ResultSet rs = ps.executeQuery();
             rs.next();
@@ -201,6 +213,8 @@ public class AuroraFailoverTest extends BaseReplication {
 
             // the connection should not be closed
             assertTrue(!connection.isClosed());
+        } finally {
+            connection.close();
         }
     }
 
@@ -225,7 +239,9 @@ public class AuroraFailoverTest extends BaseReplication {
 
     @Test
     public void testClearBlacklist() throws Throwable {
-        try (Connection connection = getNewConnection(true)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(true);
             connection.setReadOnly(true);
             int current = getServerId(connection);
             stopProxy(current);
@@ -241,6 +257,8 @@ public class AuroraFailoverTest extends BaseReplication {
             assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 1);
             assureBlackList();
             assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
+        } finally {
+            connection.close();
         }
     }
 
@@ -248,13 +266,17 @@ public class AuroraFailoverTest extends BaseReplication {
     public void testCloseFail() throws Throwable {
         assureBlackList();
         Protocol protocol = null;
-        try (Connection connection = getNewConnection(true)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(true);
             connection.setReadOnly(true);
             int current = getServerId(connection);
             protocol = getProtocolFromConnection(connection);
             assertTrue("Blacklist would normally be zero, but was " + protocol.getProxy().getListener().getBlacklistKeys().size(),
                     protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
             stopProxy(current);
+        } finally {
+            connection.close();
         }
         //check that after error connection have not been put to blacklist
         assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 0);
@@ -268,12 +290,13 @@ public class AuroraFailoverTest extends BaseReplication {
      */
     @Test
     public void failoverPrepareStatementOnSlave() throws Throwable {
-        try (Connection connection = getNewConnection("&validConnectionTimeout=120"
-                + "&socketTimeout=1000"
-                + "&failoverLoopRetries=120"
-                + "&connectTimeout=250"
-                + "&loadBalanceBlacklistTimeout=50", false)) {
-
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&validConnectionTimeout=120"
+                    + "&socketTimeout=1000"
+                    + "&failoverLoopRetries=120"
+                    + "&connectTimeout=250"
+                    + "&loadBalanceBlacklistTimeout=50", false);
             connection.setReadOnly(true);
 
             //prepareStatement on slave connection
@@ -355,6 +378,8 @@ public class AuroraFailoverTest extends BaseReplication {
             assertTrue("prepare never get back on slave", nbExecutionOnSlave + nbExecutionOnMasterSecondFailover < 500);
 
             Thread.sleep(2000); //sleep because failover may not be completely finished
+        } finally {
+            connection.close();
         }
     }
 
@@ -367,13 +392,14 @@ public class AuroraFailoverTest extends BaseReplication {
      */
     @Test
     public void failoverPrepareStatementOnMasterWithException() throws Throwable {
-        try (Connection connection = getNewConnection("&validConnectionTimeout=120"
-                + "&socketTimeout=1000"
-                + "&failoverLoopRetries=120"
-                + "&connectTimeout=250"
-                + "&loadBalanceBlacklistTimeout=50"
-                + "&useBatchMultiSend=false", false)) {
-
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&validConnectionTimeout=120"
+                    + "&socketTimeout=1000"
+                    + "&failoverLoopRetries=120"
+                    + "&connectTimeout=250"
+                    + "&loadBalanceBlacklistTimeout=50"
+                    + "&useBatchMultiSend=false", false);
             int nbExceptionBeforeUp = 0;
             boolean failLaunched = false;
             PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
@@ -400,6 +426,8 @@ public class AuroraFailoverTest extends BaseReplication {
                 }
             }
             assertTrue(nbExceptionBeforeUp < 50);
+        } finally {
+            connection.close();
         }
     }
 
@@ -410,13 +438,14 @@ public class AuroraFailoverTest extends BaseReplication {
      */
     @Test
     public void failoverPrepareStatementOnMaster() throws Throwable {
-        try (Connection connection = getNewConnection("&validConnectionTimeout=120"
-                + "&socketTimeout=1000"
-                + "&failoverLoopRetries=120"
-                + "&connectTimeout=250"
-                + "&loadBalanceBlacklistTimeout=50"
-                + "&useBatchMultiSend=false", false)) {
-
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&validConnectionTimeout=120"
+                    + "&socketTimeout=1000"
+                    + "&failoverLoopRetries=120"
+                    + "&connectTimeout=250"
+                    + "&loadBalanceBlacklistTimeout=50"
+                    + "&useBatchMultiSend=false", false);
             int nbExecutionBeforeRePrepared = 0;
             boolean failLaunched = false;
             PreparedStatement preparedStatement1 = connection.prepareStatement("select ?");
@@ -441,6 +470,8 @@ public class AuroraFailoverTest extends BaseReplication {
             }
             assertEquals(1, currentPrepareId);
             assertTrue(nbExecutionBeforeRePrepared < 200);
+        } finally {
+            connection.close();
         }
     }
 }

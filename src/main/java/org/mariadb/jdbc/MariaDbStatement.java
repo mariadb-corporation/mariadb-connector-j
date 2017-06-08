@@ -71,17 +71,14 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 
 public class MariaDbStatement implements Statement, Cloneable {
 
     //timeout scheduler
-    private static final ScheduledExecutorService timeoutScheduler = SchedulerServiceProviderHolder.getTimeoutScheduler();
+    private static final ScheduledThreadPoolExecutor timeoutScheduler = SchedulerServiceProviderHolder.getTimeoutScheduler();
     protected static Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
     protected final ReentrantLock lock;
 
@@ -95,6 +92,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     protected MariaDbConnection connection;
     protected Future<?> timerTaskFuture;
+    protected Runnable timerTaskRunnable;
     protected volatile boolean closed = false;
     protected List<String> batchQueries;
     protected int queryTimeout;
@@ -147,7 +145,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         clone.connection = connection;
         clone.protocol = connection.getProtocol();
         clone.timerTaskFuture = null;
-        clone.batchQueries = new ArrayList<>();
+        clone.batchQueries = new ArrayList<String>();
         clone.results = new Results(clone, clone.protocol.getAutoIncrementIncrement());
         clone.closed = false;
         clone.warningsCleared = true;
@@ -168,8 +166,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     // Part of query prolog - setup timeout timer
     protected void setTimerTask() {
         assert (timerTaskFuture == null);
-
-        timerTaskFuture = timeoutScheduler.schedule(new Runnable() {
+        timerTaskRunnable = new Runnable() {
             @Override
             public void run() {
                 try {
@@ -178,7 +175,9 @@ public class MariaDbStatement implements Statement, Cloneable {
                 } catch (Throwable e) {
                 }
             }
-        }, queryTimeout, TimeUnit.SECONDS);
+        };
+        timerTaskFuture = timeoutScheduler.schedule(timerTaskRunnable, queryTimeout, TimeUnit.SECONDS);
+
     }
 
     /**
@@ -205,6 +204,9 @@ public class MariaDbStatement implements Statement, Cloneable {
 
     protected void stopTimeoutTask() {
         if (timerTaskFuture != null) {
+            //java 6 doesn't permit removeOnCancel, so must do ourself
+            timeoutScheduler.remove(timerTaskRunnable);
+
             if (!timerTaskFuture.cancel(true)) {
                 // could not cancel, task either started or already finished
                 // we must now wait for task to finish to ensure state modifications are done
@@ -1175,7 +1177,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @since 1.2
      */
     public void addBatch(final String sql) throws SQLException {
-        if (batchQueries == null) batchQueries = new ArrayList<>();
+        if (batchQueries == null) batchQueries = new ArrayList<String>();
         if (sql == null) throw ExceptionMapper.getSqlException("null cannot be set to addBatch( String sql)");
         batchQueries.add(sql);
     }

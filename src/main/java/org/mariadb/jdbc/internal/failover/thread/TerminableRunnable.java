@@ -61,7 +61,7 @@ import java.util.concurrent.locks.LockSupport;
 
 public abstract class TerminableRunnable implements Runnable {
 
-    private final AtomicReference<State> runState = new AtomicReference<>(State.IDLE);
+    private final AtomicReference<State> runState = new AtomicReference<State>(State.IDLE);
     private final AtomicBoolean unschedule = new AtomicBoolean();
     private volatile ScheduledFuture<?> scheduledFuture = null;
 

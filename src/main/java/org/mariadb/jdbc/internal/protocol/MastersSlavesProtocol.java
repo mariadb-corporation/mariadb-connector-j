@@ -84,7 +84,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
                             SearchFilter searchFilter) throws SQLException {
 
         MastersSlavesProtocol protocol;
-        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
+        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<HostAddress>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
         if (loopAddresses.isEmpty()) {
             loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
         }
@@ -139,7 +139,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
 
             //loop is set so
             if (loopAddresses.isEmpty() && !searchFilter.isFailoverLoop() && maxConnectionTry > 0) {
-                loopAddresses = new ArrayDeque<>(listener.getBlacklistKeys());
+                loopAddresses = new ArrayDeque<HostAddress>(listener.getBlacklistKeys());
             }
         }
 

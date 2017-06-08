@@ -84,7 +84,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
     }
 
     private void setParamsAccordingToSetArguments() throws SQLException {
-        params = new ArrayList<>(this.parameterCount);
+        params = new ArrayList<CallParameter>(this.parameterCount);
         for (int index = 0; index < this.parameterCount; index++) {
             params.add(new CallParameter());
         }

@@ -129,7 +129,9 @@ public class BooleanTest extends BaseTest {
      */
     @Test
     public void testBooleanAllField() throws Exception {
-        try (Connection connection = setConnection("&maxPerformance=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&maxPerformance=true");
             Statement stmt = connection.createStatement();
             stmt.execute("INSERT INTO booleanAllField VALUES (null, null, null, null, null, null, null, null, null, null, null, null, null, null)");
             stmt.execute("INSERT INTO booleanAllField VALUES (0, 0, 0, 0, 0, 0, 0, 0, 0, '0', '0', '0', '0', '0')");
@@ -149,6 +151,8 @@ public class BooleanTest extends BaseTest {
             checkBooleanValue(rs, false, false);
             checkBooleanValue(rs, true, true);
             checkBooleanValue(rs, true, true);
+        } finally {
+            connection.close();
         }
     }
 

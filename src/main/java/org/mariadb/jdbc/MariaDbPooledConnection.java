@@ -75,8 +75,8 @@ public class MariaDbPooledConnection implements PooledConnection {
     public MariaDbPooledConnection(MariaDbConnection connection) {
         this.connection = connection;
         connection.pooledConnection = this;
-        statementEventListeners = new CopyOnWriteArrayList<>();
-        connectionEventListeners = new CopyOnWriteArrayList<>();
+        statementEventListeners = new CopyOnWriteArrayList<StatementEventListener>();
+        connectionEventListeners = new CopyOnWriteArrayList<ConnectionEventListener>();
     }
 
     /**

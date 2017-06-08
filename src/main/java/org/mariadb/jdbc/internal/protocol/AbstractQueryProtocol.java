@@ -89,7 +89,6 @@ import java.io.InputStream;
 import java.net.SocketException;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.List;
 import java.util.ServiceLoader;
@@ -874,11 +873,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      */
     @Override
     public void cancelCurrentQuery() throws SQLException, IOException {
-        try (MasterProtocol copiedProtocol = new MasterProtocol(urlParser, new ReentrantLock())) {
+        MasterProtocol copiedProtocol = null;
+        try {
+            copiedProtocol = new MasterProtocol(urlParser, new ReentrantLock());
             copiedProtocol.setHostAddress(getHostAddress());
             copiedProtocol.connect();
             //no lock, because there is already a query running that possessed the lock.
             copiedProtocol.executeQuery("KILL QUERY " + serverThreadId);
+        } finally {
+            if (copiedProtocol != null) copiedProtocol.close();
         }
         interrupted = true;
     }
@@ -1114,23 +1117,20 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                     case StateChange.SESSION_TRACK_SYSTEM_VARIABLES:
                         Buffer sessionVariableBuf = stateInfo.getLengthEncodedBuffer();
-                        String variable = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
-                        String value = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
+                        String variable = sessionVariableBuf.readStringLengthEncoded(Buffer.UTF_8);
+                        String value = sessionVariableBuf.readStringLengthEncoded(Buffer.UTF_8);
                         logger.debug("System variable change : " + variable + "=" + value);
 
                         //only variable use by
-                        switch (variable) {
-                            case "auto_increment_increment":
-                                autoIncrementIncrement = Integer.parseInt(value);
-                                results.setAutoIncrement(autoIncrementIncrement);
-                            default:
-                                //variable not used by driver
+                        if ("auto_increment_increment".equals(variable)) {
+                            autoIncrementIncrement = Integer.parseInt(value);
+                            results.setAutoIncrement(autoIncrementIncrement);
                         }
                         break;
 
                     case StateChange.SESSION_TRACK_SCHEMA:
                         Buffer sessionSchemaBuf = stateInfo.getLengthEncodedBuffer();
-                        database = sessionSchemaBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
+                        database = sessionSchemaBuf.readStringLengthEncoded(Buffer.UTF_8);
                         logger.debug("default database change. is now '" + database + "'");
                         break;
 
@@ -1181,11 +1181,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         String sqlState;
         if (buffer.readByte() == '#') {
             sqlState = new String(buffer.readRawBytes(5));
-            message = buffer.readStringNullEnd(StandardCharsets.UTF_8);
+            message = buffer.readStringNullEnd(Buffer.UTF_8);
         } else {
             // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
             buffer.position -= 1;
-            message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position, StandardCharsets.UTF_8);
+            message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position, Buffer.UTF_8);
             sqlState = "HY000";
         }
         results.addStatsError(false);
@@ -1205,7 +1205,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
         int seq = 2;
         buffer.getLengthEncodedNumeric(); //field pos
-        String fileName = buffer.readStringNullEnd(StandardCharsets.UTF_8);
+        String fileName = buffer.readStringNullEnd(Buffer.UTF_8);
         try {
             // Server request the local file (LOCAL DATA LOCAL INFILE)
             // We do accept general URLs, too. If the localInfileStream is

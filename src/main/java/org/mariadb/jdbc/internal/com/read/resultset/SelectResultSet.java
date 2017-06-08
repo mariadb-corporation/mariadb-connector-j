@@ -78,7 +78,6 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Date;
 import java.text.DateFormat;
@@ -247,7 +246,7 @@ public class SelectResultSet implements ResultSet {
         ColumnInformation[] columns = new ColumnInformation[1];
         columns[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
 
-        List<byte[]> rows = new ArrayList<>();
+        List<byte[]> rows = new ArrayList<byte[]>();
         for (long rowData : data) {
             if (rowData != 0) {
                 rows.add(StandardPacketInputStream.create(String.valueOf(rowData).getBytes()));
@@ -284,7 +283,7 @@ public class SelectResultSet implements ResultSet {
             columns[i] = ColumnInformation.create(columnNames[i], columnTypes[i]);
         }
 
-        List<byte[]> rows = new ArrayList<>();
+        List<byte[]> rows = new ArrayList<byte[]>();
 
         for (String[] rowData : data) {
             if (rowData.length != columnNameLength) {
@@ -908,7 +907,7 @@ public class SelectResultSet implements ResultSet {
     public InputStream getAsciiStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (lastValueNull) return null;
-        return new ByteArrayInputStream(new String(row.buf, row.pos, row.getLengthMaxFieldSize(), StandardCharsets.UTF_8).getBytes());
+        return new ByteArrayInputStream(new String(row.buf, row.pos, row.getLengthMaxFieldSize(), Buffer.UTF_8).getBytes());
     }
 
     /**
@@ -936,10 +935,10 @@ public class SelectResultSet implements ResultSet {
         switch (columnInfo.getColumnType()) {
             case STRING:
                 if (row.getMaxFieldSize() > 0) {
-                    return new String(row.buf, row.pos, Math.max(row.getMaxFieldSize() * 3, row.length), StandardCharsets.UTF_8)
+                    return new String(row.buf, row.pos, Math.max(row.getMaxFieldSize() * 3, row.length), Buffer.UTF_8)
                             .substring(0, row.getMaxFieldSize());
                 }
-                return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+                return new String(row.buf, row.pos, row.length, Buffer.UTF_8);
 
             case BIT:
                 if (options.tinyInt1isBit && columnInfo.getLength() == 1) {
@@ -996,7 +995,7 @@ public class SelectResultSet implements ResultSet {
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal);
                 if (timestamp == null) {
                     if (!lastValueNull && !this.isBinaryEncoded) {
-                        return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+                        return new String(row.buf, row.pos, row.length, Buffer.UTF_8);
                     }
                     return null;
                 }
@@ -1011,13 +1010,13 @@ public class SelectResultSet implements ResultSet {
                 return null;
             default:
                 if (row.getMaxFieldSize() > 0) {
-                    return new String(row.buf, row.pos, Math.max(row.getMaxFieldSize() * 3, row.length), StandardCharsets.UTF_8)
+                    return new String(row.buf, row.pos, Math.max(row.getMaxFieldSize() * 3, row.length), Buffer.UTF_8)
                             .substring(0, row.getMaxFieldSize());
                 }
-                return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+                return new String(row.buf, row.pos, row.length, Buffer.UTF_8);
         }
 
-        return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+        return new String(row.buf, row.pos, row.length, Buffer.UTF_8);
     }
 
     private String zeroFillingIfNeeded(String value, ColumnInformation columnInformation) {
@@ -1244,10 +1243,10 @@ public class SelectResultSet implements ResultSet {
                 case OLDDECIMAL:
                 case BIGINT:
                     try {
-                        return Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                        return Float.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
                     } catch (NumberFormatException nfe) {
                         SQLException sqlException = new SQLException("Incorrect format \""
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
+                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
                                 + "\" for getFloat for data field with type " + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
                         sqlException.initCause(nfe);
                         throw sqlException;
@@ -1302,7 +1301,7 @@ public class SelectResultSet implements ResultSet {
                 case STRING:
                 case OLDDECIMAL:
                     try {
-                        return Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                        return Float.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
                     } catch (NumberFormatException nfe) {
                         SQLException sqlException = new SQLException("Incorrect format for getFloat for data field with type "
                                 + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
@@ -1367,10 +1366,10 @@ public class SelectResultSet implements ResultSet {
                 case OLDDECIMAL:
                 case BIGINT:
                     try {
-                        return Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                        return Double.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
                     } catch (NumberFormatException nfe) {
                         SQLException sqlException = new SQLException("Incorrect format \""
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
+                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
                                 + "\" for getDouble for data field with type " + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
                         sqlException.initCause(nfe);
                         throw sqlException;
@@ -1426,7 +1425,7 @@ public class SelectResultSet implements ResultSet {
                 case STRING:
                 case OLDDECIMAL:
                     try {
-                        return Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                        return Double.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
                     } catch (NumberFormatException nfe) {
                         SQLException sqlException = new SQLException("Incorrect format for getDouble for data field with type "
                                 + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
@@ -1482,7 +1481,7 @@ public class SelectResultSet implements ResultSet {
         if (lastValueNull) return null;
 
         if (!this.isBinaryEncoded) {
-            return new BigDecimal(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+            return new BigDecimal(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
         } else {
             switch (columnInfo.getColumnType()) {
                 case BIT:
@@ -1518,7 +1517,7 @@ public class SelectResultSet implements ResultSet {
                 case DOUBLE:
                     return BigDecimal.valueOf(getInternalDouble(columnInfo));
                 default:
-                    return new BigDecimal(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                    return new BigDecimal(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
             }
         }
 
@@ -1585,7 +1584,7 @@ public class SelectResultSet implements ResultSet {
         if (lastValueNull) return null;
 
         if (!this.isBinaryEncoded) {
-            String rawValue = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+            String rawValue = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
             if ("0000-00-00".equals(rawValue)) {
                 lastGetWasNull = true;
                 return null;
@@ -1691,7 +1690,7 @@ public class SelectResultSet implements ResultSet {
                 throw new SQLException("Cannot read Time using a Types.DATE field");
 
             } else {
-                String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+                String raw = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
                 if ("0000-00-00".equals(raw)) {
                     lastGetWasNull = true;
                     return null;
@@ -1770,7 +1769,7 @@ public class SelectResultSet implements ResultSet {
         if (lastValueNull) return null;
 
         if (!this.isBinaryEncoded) {
-            String rawValue = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+            String rawValue = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
             if (rawValue.startsWith("0000-00-00 00:00:00")) {
                 lastGetWasNull = true;
                 return null;
@@ -1846,7 +1845,7 @@ public class SelectResultSet implements ResultSet {
     public InputStream getUnicodeStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (lastValueNull) return null;
-        return new ByteArrayInputStream(new String(row.buf, row.pos, row.getLengthMaxFieldSize(), StandardCharsets.UTF_8).getBytes());
+        return new ByteArrayInputStream(new String(row.buf, row.pos, row.getLengthMaxFieldSize(), Buffer.UTF_8).getBytes());
     }
 
     /**
@@ -2968,7 +2967,7 @@ public class SelectResultSet implements ResultSet {
             if (row.length == 1 && row.buf[row.pos] == 0) {
                 return false;
             }
-            final String rawVal = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+            final String rawVal = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
             return !("false".equals(rawVal) || "0".equals(rawVal));
         } else {
             switch (columnInfo.getColumnType()) {
@@ -2989,7 +2988,7 @@ public class SelectResultSet implements ResultSet {
                 case DOUBLE:
                     return getInternalDouble(columnInfo) != 0;
                 default:
-                    final String rawVal = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+                    final String rawVal = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
                     return !("false".equals(rawVal) || "0".equals(rawVal));
             }
         }
@@ -3161,7 +3160,7 @@ public class SelectResultSet implements ResultSet {
                 return value;
             }
         }
-        String rawValue = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+        String rawValue = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
         if ("0000-00-00".equals(rawValue)) return null;
 
         if (!this.isBinaryEncoded) {
@@ -3261,18 +3260,18 @@ public class SelectResultSet implements ResultSet {
         try {
             switch (columnInfo.getColumnType()) {
                 case FLOAT:
-                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
                     if (floatValue.compareTo((float) Byte.MAX_VALUE) >= 1) {
                         throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
+                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
                                 + " is not in Byte range", "22003", 1264);
                     }
                     return floatValue.byteValue();
                 case DOUBLE:
-                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
                     if (doubleValue.compareTo((double) Byte.MAX_VALUE) >= 1) {
                         throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
+                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
                                 + " is not in Byte range", "22003", 1264);
                     }
                     return doubleValue.byteValue();
@@ -3296,13 +3295,13 @@ public class SelectResultSet implements ResultSet {
                     rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, result, columnInfo);
                     return (byte) result;
                 default:
-                    return Byte.parseByte(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                    return Byte.parseByte(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
             }
         } catch (NumberFormatException nfe) {
             //parse error.
             //if this is a decimal with only "0" in decimal, like "1.0000" (can be the case if trying to getByte with a database decimal value
             //retrying without the decimal part.
-            String value = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+            String value = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
             if (isIntegerRegex.matcher(value).find()) {
                 try {
                     return Byte.parseByte(value.substring(0, value.indexOf(".")));
@@ -3321,18 +3320,18 @@ public class SelectResultSet implements ResultSet {
         try {
             switch (columnInfo.getColumnType()) {
                 case FLOAT:
-                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
                     if (floatValue.compareTo((float) Short.MAX_VALUE) >= 1) {
                         throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
+                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
                                 + " is not in Short range", "22003", 1264);
                     }
                     return floatValue.shortValue();
                 case DOUBLE:
-                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
                     if (doubleValue.compareTo((double) Short.MAX_VALUE) >= 1) {
                         throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
+                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
                                 + " is not in Short range", "22003", 1264);
                     }
                     return doubleValue.shortValue();
@@ -3357,13 +3356,13 @@ public class SelectResultSet implements ResultSet {
                     rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, result, columnInfo);
                     return (short) result;
                 default:
-                    return Short.parseShort(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                    return Short.parseShort(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
             }
         } catch (NumberFormatException nfe) {
             //parse error.
             //if this is a decimal with only "0" in decimal, like "1.0000" (can be the case if trying to getInt with a database decimal value
             //retrying without the decimal part.
-            String value = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+            String value = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
             if (isIntegerRegex.matcher(value).find()) {
                 try {
                     return Short.parseShort(value.substring(0, value.indexOf(".")));
@@ -3381,18 +3380,18 @@ public class SelectResultSet implements ResultSet {
         try {
             switch (columnInfo.getColumnType()) {
                 case FLOAT:
-                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
                     if (floatValue.compareTo((float) Integer.MAX_VALUE) >= 1) {
                         throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
+                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
                                 + " is not in Integer range", "22003", 1264);
                     }
                     return floatValue.intValue();
                 case DOUBLE:
-                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
                     if (doubleValue.compareTo((double) Integer.MAX_VALUE) >= 1) {
                         throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
+                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
                                 + " is not in Integer range", "22003", 1264);
                     }
                     return doubleValue.intValue();
@@ -3416,20 +3415,20 @@ public class SelectResultSet implements ResultSet {
                     //specific for BIGINT : if value > Long.MAX_VALUE will become negative.
                     if (result < 0) {
                         throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
+                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
                                 + " is not in Integer range", "22003", 1264);
                     }
                     result = (negate ? -1 * result : result);
                     rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, result, columnInfo);
                     return (int) result;
                 default:
-                    return Integer.parseInt(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                    return Integer.parseInt(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
             }
         } catch (NumberFormatException nfe) {
             //parse error.
             //if this is a decimal with only "0" in decimal, like "1.0000" (can be the case if trying to getInt with a database decimal value
             //retrying without the decimal part.
-            String value = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+            String value = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
             if (isIntegerRegex.matcher(value).find()) {
                 try {
                     return Integer.parseInt(value.substring(0, value.indexOf(".")));
@@ -3446,18 +3445,18 @@ public class SelectResultSet implements ResultSet {
         try {
             switch (columnInfo.getColumnType()) {
                 case FLOAT:
-                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
                     if (floatValue.compareTo((float) Long.MAX_VALUE) >= 1) {
                         throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
+                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
                                 + " is not in Long range", "22003", 1264);
                     }
                     return floatValue.longValue();
                 case DOUBLE:
-                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
                     if (doubleValue.compareTo((double) Long.MAX_VALUE) >= 1) {
                         throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
+                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
                                 + " is not in Long range", "22003", 1264);
                     }
                     return doubleValue.longValue();
@@ -3484,19 +3483,19 @@ public class SelectResultSet implements ResultSet {
                         //CONJ-399 : handle specifically Long.MIN_VALUE that has absolute value +1 compare to LONG.MAX_VALUE
                         if (result == Long.MIN_VALUE && negate) return Long.MIN_VALUE;
                         throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
+                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
                                 + " is not in Long range", "22003", 1264);
                     }
                     return (negate ? -1 * result : result);
                 default:
-                    return Long.parseLong(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                    return Long.parseLong(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
             }
 
         } catch (NumberFormatException nfe) {
             //parse error.
             //if this is a decimal with only "0" in decimal, like "1.0000" (can be the case if trying to getlong with a database decimal value
             //retrying without the decimal part.
-            String value = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+            String value = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
             if (isIntegerRegex.matcher(value).find()) {
                 try {
                     return Long.parseLong(value.substring(0, value.indexOf(".")));
@@ -3519,7 +3518,7 @@ public class SelectResultSet implements ResultSet {
     private BigInteger getInternalBigInteger(ColumnInformation columnInfo) throws SQLException {
         if (lastValueNull) return null;
         if (!this.isBinaryEncoded) {
-            return new BigInteger(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+            return new BigInteger(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
         } else {
             switch (columnInfo.getColumnType()) {
                 case BIT:
@@ -3561,7 +3560,7 @@ public class SelectResultSet implements ResultSet {
                 case DOUBLE:
                     return BigInteger.valueOf((long) getInternalDouble(columnInfo));
                 default:
-                    return new BigInteger(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
+                    return new BigInteger(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
             }
         }
 

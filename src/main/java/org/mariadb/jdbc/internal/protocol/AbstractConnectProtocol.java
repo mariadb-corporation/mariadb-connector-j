@@ -94,7 +94,6 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -112,8 +111,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
             + "@@system_time_zone,"
             + "@@time_zone,"
             + "@@sql_mode,"
-            + "@@auto_increment_increment").getBytes(StandardCharsets.UTF_8);
-    public static final byte[] IS_MASTER_QUERY = "show global variables like 'innodb_read_only'".getBytes(StandardCharsets.UTF_8);
+            + "@@auto_increment_increment").getBytes(Buffer.UTF_8);
+    public static final byte[] IS_MASTER_QUERY = "show global variables like 'innodb_read_only'".getBytes(Buffer.UTF_8);
     private static Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
     protected final ReentrantLock lock;
     protected final UrlParser urlParser;
@@ -406,7 +405,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             handleConnectionPhases();
 
             connected = true;
-            serverData = new TreeMap<>();
+            serverData = new TreeMap<String, String>();
 
             if (options.useCompression) {
                 writer = new CompressPacketOutputStream(writer.getOutputStream(), options.maxQuerySizeToLog);
@@ -991,7 +990,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
         Random rand = new Random();
         List<HostAddress> addrs = urlParser.getHostAddresses();
-        List<HostAddress> hosts = new LinkedList<>(addrs);
+        List<HostAddress> hosts = new LinkedList<HostAddress>(addrs);
 
         //CONJ-293 : handle name-pipe without host
         if (hosts.isEmpty() && options.pipe != null) {

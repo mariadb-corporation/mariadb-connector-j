@@ -78,8 +78,10 @@ public class PasswordEncodingTest extends BaseTest {
             }
 
             for (String currentCharsetName : charsets) {
-                try (Connection connection = DriverManager.getConnection("jdbc:mariadb://" + ((hostname != null) ? hostname : "localhost")
-                        + ":" + port + "/" + database + "?user=test" + currentCharsetName + "&password=" + exoticPwd)) {
+                Connection connection = null;
+                try {
+                    connection = DriverManager.getConnection("jdbc:mariadb://" + ((hostname != null) ? hostname : "localhost")
+                            + ":" + port + "/" + database + "?user=test" + currentCharsetName + "&password=" + exoticPwd);
                     //windows-1252 and windows-1250 will work have the same conversion for this password
                     if (!currentCharsetName.equals(Charset.defaultCharset().name())
                             && (!"windows-1252".equals(currentCharsetName) || !Charset.defaultCharset().name().startsWith("windows-125"))) {
@@ -90,6 +92,8 @@ public class PasswordEncodingTest extends BaseTest {
                     if (currentCharsetName.equals(Charset.defaultCharset().name())) {
                         fail("must have not have failed for charsetName=" + currentCharsetName + " which is java default");
                     }
+                } finally {
+                    if (connection != null) connection.close();
                 }
             }
 
@@ -109,23 +113,28 @@ public class PasswordEncodingTest extends BaseTest {
     }
 
     private void createUser(String charsetName, String serverCharset) throws Exception {
-        try (Connection connection = setConnection()) {
-
+        Connection connection = null;
+        try {
+            connection = setConnection();
             MariaDbStatement stmt = connection.createStatement().unwrap(MariaDbStatement.class);
             stmt.execute("set @@character_set_client='" + serverCharset + "'");
             stmt.execute("CREATE USER 'test" + charsetName + "'@'%'");
 
             //non jdbc method that send query according to charset
             stmt.testExecute("GRANT ALL on *.* to 'test" + charsetName + "' identified by '" + exoticPwd + "'", Charset.forName(charsetName));
+        } finally {
+            connection.close();
         }
     }
 
     private void checkConnection(String charsetName, String[] charsets) throws Exception {
 
         for (String currentCharsetName : charsets) {
-            try (Connection connection = DriverManager.getConnection("jdbc:mariadb://" + ((hostname != null) ? hostname : "localhost")
-                    + ":" + port + "/" + database + "?user=test" + charsetName + "&password="
-                    + exoticPwd + "&passwordCharacterEncoding=" + currentCharsetName)) {
+            Connection connection = null;
+            try {
+                connection = DriverManager.getConnection("jdbc:mariadb://" + ((hostname != null) ? hostname : "localhost")
+                        + ":" + port + "/" + database + "?user=test" + charsetName + "&password="
+                        + exoticPwd + "&passwordCharacterEncoding=" + currentCharsetName);
                 if (!currentCharsetName.equals(charsetName)) {
                     fail("must have failed for charsetName=" + charsetName + " using passwordCharacterEncoding=" + currentCharsetName);
                 }
@@ -134,6 +143,8 @@ public class PasswordEncodingTest extends BaseTest {
                 if (currentCharsetName.equals(charsetName)) {
                     fail("must not have failed for charsetName=" + charsetName + " using passwordCharacterEncoding=" + currentCharsetName);
                 }
+            } finally {
+                if (connection != null) connection.close();
             }
         }
     }

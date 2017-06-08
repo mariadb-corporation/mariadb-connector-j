@@ -77,7 +77,6 @@ public class SchedulerServiceProviderHolder {
         @Override
         public ScheduledThreadPoolExecutor getTimeoutScheduler() {
             ScheduledThreadPoolExecutor timeoutScheduler = new ScheduledThreadPoolExecutor(1, new MariaDbThreadFactory("timeout"));
-            timeoutScheduler.setRemoveOnCancelPolicy(true);
             return timeoutScheduler;
         }
 
@@ -145,7 +144,7 @@ public class SchedulerServiceProviderHolder {
      *
      * @return Scheduler capable of providing the needed thread count
      */
-    public static ScheduledExecutorService getTimeoutScheduler() {
+    public static ScheduledThreadPoolExecutor getTimeoutScheduler() {
         return getSchedulerProvider().getTimeoutScheduler();
     }
 

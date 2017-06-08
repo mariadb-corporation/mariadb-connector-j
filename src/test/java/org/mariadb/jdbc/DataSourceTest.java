@@ -78,17 +78,24 @@ public class DataSourceTest extends BaseTest {
     @Test
     public void testDataSource() throws SQLException {
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
-
-        try (Connection connection = ds.getConnection(username, password)) {
+        Connection connection = null;
+        try {
+            connection = ds.getConnection(username, password);
             assertEquals(connection.isValid(0), true);
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void testDataSource2() throws SQLException {
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
-        try (Connection connection = ds.getConnection(username, password)) {
+        Connection connection = null;
+        try {
+            connection = ds.getConnection(username, password);
             assertEquals(connection.isValid(0), true);
+        } finally {
+            connection.close();
         }
     }
 
@@ -98,8 +105,12 @@ public class DataSourceTest extends BaseTest {
         ds.setDatabaseName(database);
         ds.setPort(port);
         ds.setServerName(hostname == null ? "localhost" : hostname);
-        try (Connection connection = ds.getConnection(username, password)) {
+        Connection connection = null;
+        try {
+            connection = ds.getConnection(username, password);
             assertEquals(connection.isValid(0), true);
+        } finally {
+            connection.close();
         }
     }
 
@@ -111,15 +122,22 @@ public class DataSourceTest extends BaseTest {
     @Test
     public void setDatabaseNameTest() throws SQLException {
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
-        try (Connection connection = ds.getConnection(username, password)) {
+        Connection connection = null;
+        try {
+            connection = ds.getConnection(username, password);
             connection.createStatement().execute("CREATE DATABASE IF NOT EXISTS test2");
             ds.setDatabaseName("test2");
-
-            try (Connection connection2 = ds.getConnection(username, password)) {
+            Connection connection2 = null;
+            try {
+                connection2 = ds.getConnection(username, password);
                 assertEquals("test2", ds.getDatabaseName());
                 assertEquals(ds.getDatabaseName(), connection2.getCatalog());
                 connection2.createStatement().execute("DROP DATABASE IF EXISTS test2");
+            } finally {
+                connection2.close();
             }
+        } finally {
+            connection.close();
         }
     }
 
@@ -132,11 +150,19 @@ public class DataSourceTest extends BaseTest {
     public void setServerNameTest() throws SQLException {
         Assume.assumeTrue(connectToIP != null);
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
-        try (Connection connection = ds.getConnection(username, password)) {
+        Connection connection = null;
+        try {
+            connection = ds.getConnection(username, password);
             ds.setServerName(connectToIP);
-            try (Connection connection2 = ds.getConnection(username, password)) {
+            Connection connection2 = null;
+            try {
+                connection2 = ds.getConnection(username, password);
                 //do nothing
+            } finally {
+                connection2.close();
             }
+        } finally {
+            connection.close();
         }
     }
 
@@ -149,9 +175,12 @@ public class DataSourceTest extends BaseTest {
     public void setPortTest() throws SQLException {
         Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
-        try (Connection connection2 = ds.getConnection(username, password)) {
+        Connection connection2 = null;
+        try {
+            connection2 = ds.getConnection(username, password);
             //delete blacklist, because can failover on 3306 is filled
             assureBlackList(connection2);
+        } finally {
             connection2.close();
         }
 
@@ -175,19 +204,27 @@ public class DataSourceTest extends BaseTest {
     public void setPropertiesTest() throws SQLException {
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
         ds.setProperties("sessionVariables=sql_mode='PIPES_AS_CONCAT'");
-        try (Connection connection = ds.getConnection(username, password)) {
+        Connection connection = null;
+        try {
+            connection = ds.getConnection(username, password);
             ResultSet rs = connection.createStatement().executeQuery("SELECT @@sql_mode");
             if (rs.next()) {
                 assertEquals("PIPES_AS_CONCAT", rs.getString(1));
                 ds.setUrl(connUri + "&sessionVariables=sql_mode='ALLOW_INVALID_DATES'");
-                try (Connection connection2 = ds.getConnection()) {
+                Connection connection2 = null;
+                try {
+                    connection2 = ds.getConnection();
                     rs = connection2.createStatement().executeQuery("SELECT @@sql_mode");
                     assertTrue(rs.next());
                     assertEquals("ALLOW_INVALID_DATES", rs.getString(1));
+                } finally {
+                    connection2.close();
                 }
             } else {
                 fail();
             }
+        } finally {
+            connection.close();
         }
 
     }

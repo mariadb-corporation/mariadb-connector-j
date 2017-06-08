@@ -178,9 +178,8 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void preparedTest() throws SQLException {
-        try (Statement stmt = sharedConnection.createStatement()) {
-            stmt.execute("insert into DriverTestt4 (test) values ('hej1')");
-        }
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("insert into DriverTestt4 (test) values ('hej1')");
 
         String query = "SELECT * FROM DriverTestt4 WHERE test = ? and id = ?";
         PreparedStatement prepStmt = sharedConnection.prepareStatement(query);
@@ -280,8 +279,9 @@ public class DriverTest extends BaseTest {
         requireMinimumVersion(5, 0);
         /* non-standard autoIncrementIncrement */
 
-
-        try (Connection connection = setConnection("&sessionVariables=auto_increment_increment=2&allowMultiQueries=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&sessionVariables=auto_increment_increment=2&allowMultiQueries=true");
             stmt = connection.createStatement();
             stmt.execute("INSERT INTO Drivert3 (test) values ('bb'),('cc');INSERT INTO Drivert3 (test) values ('dd'),('ee')",
                     Statement.RETURN_GENERATED_KEYS);
@@ -303,6 +303,8 @@ public class DriverTest extends BaseTest {
             assertTrue(rs.next());
             assertEquals(13, rs.getInt(1));
             assertFalse(rs.next());
+        } finally {
+            connection.close();
         }
     }
 
@@ -364,7 +366,9 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void isolationLevel() throws SQLException {
-        try (Connection connection = setConnection()) {
+        Connection connection = null;
+        try {
+            connection = setConnection();
             int[] levels = new int[]{
                     Connection.TRANSACTION_READ_UNCOMMITTED,
                     Connection.TRANSACTION_READ_COMMITTED,
@@ -375,6 +379,8 @@ public class DriverTest extends BaseTest {
                 connection.setTransactionIsolation(level);
                 assertEquals(level, connection.getTransactionIsolation());
             }
+        } finally {
+            connection.close();
         }
     }
 
@@ -411,7 +417,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testAliasDataSource() throws SQLException {
-        ArrayList<HostAddress> hostAddresses = new ArrayList<>();
+        ArrayList<HostAddress> hostAddresses = new ArrayList<HostAddress>();
         hostAddresses.add(new HostAddress(hostname, port));
         UrlParser urlParser = new UrlParser(database, hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
         UrlParser urlParser2 = new UrlParser(database, hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
@@ -453,7 +459,10 @@ public class DriverTest extends BaseTest {
         String hosts = hostname + ":" + port + "," + hostname + ":" + (port + 1);
         String url = "jdbc:mariadb://" + hosts + "/" + database + "?user=" + username;
         url += (password != null && !"".equals(password) ? "&password=" + password : "");
-        try (Connection connection = openNewConnection(url)) {
+
+        Connection connection = null;
+        try {
+            connection = openNewConnection(url);
             MariaDbConnection my = (MariaDbConnection) connection;
             assertTrue(my.getPort() == port);
             ResultSet rs = connection.createStatement().executeQuery("select 1");
@@ -462,6 +471,8 @@ public class DriverTest extends BaseTest {
             } else {
                 fail();
             }
+        } finally {
+            connection.close();
         }
     }
 
@@ -681,9 +692,13 @@ public class DriverTest extends BaseTest {
         assertTrue(sharedConnection.getAutoCommit());
         
         /* Use session variable to set autocommit to 0 */
-        try (Connection connection = setConnection("&sessionVariables=autocommit=0")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&sessionVariables=autocommit=0");
             assertFalse(connection.getAutoCommit());
             sharedConnection.setAutoCommit(true);
+        } finally {
+            connection.close();
         }
     }
 
@@ -696,12 +711,16 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testUpdateCountMulti() throws SQLException {
-        try (Connection connection = setConnection("&allowMultiQueries=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&allowMultiQueries=true");
             Statement stmt = connection.createStatement();
             stmt.execute("select 1;select 1");
             assertTrue(-1 == stmt.getUpdateCount());
             stmt.getMoreResults();
             assertTrue(-1 == stmt.getUpdateCount());
+        } finally {
+            connection.close();
         }
     }
 
@@ -731,8 +750,9 @@ public class DriverTest extends BaseTest {
         } catch (Exception e) {
             //eat exception
         }
-
-        try (Connection connection = setConnection("&createDatabaseIfNotExist=true&profileSql=true", "test_testdrop")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&createDatabaseIfNotExist=true&profileSql=true", "test_testdrop");
             DatabaseMetaData dbmd = connection.getMetaData();
             ResultSet rs = dbmd.getCatalogs();
             boolean foundDb = false;
@@ -743,6 +763,8 @@ public class DriverTest extends BaseTest {
             }
             assertTrue(foundDb);
             sharedConnection.createStatement().executeUpdate("drop database test_testdrop");
+        } finally {
+            connection.close();
         }
     }
 
@@ -755,12 +777,20 @@ public class DriverTest extends BaseTest {
             st.execute("insert into streamingtest values('aaaaaaaaaaaaaaaaaa')");
         }
         st.setFetchSize(Integer.MIN_VALUE);
-        try (ResultSet rs = st.executeQuery("select * from streamingtest")) {
+        ResultSet rs = null;
+        try {
+            rs = st.executeQuery("select * from streamingtest");
             rs.next();
             Statement st2 = sharedConnection.createStatement();
-            try (ResultSet rs2 = st2.executeQuery("select * from streamingtest")) {
+            ResultSet rs2 = null;
+            try {
+                rs2 = st2.executeQuery("select * from streamingtest");
                 rs2.next();
+            } finally {
+                rs2.close();
             }
+        } finally {
+            rs.close();
         }
     }
 
@@ -779,7 +809,9 @@ public class DriverTest extends BaseTest {
         st.execute("set @@global.sql_mode = '" + originalSqlMode + ",NO_BACKSLASH_ESCAPES'");
 
         try {
-            try (Connection connection = setConnection("&profileSql=true")) {
+            Connection connection = null;
+            try {
+                connection = setConnection("&profileSql=true");
                 PreparedStatement preparedStatement =
                         connection.prepareStatement("insert into testBlob2(a) values(?)");
                 byte[] bytes = new byte[255];
@@ -790,6 +822,8 @@ public class DriverTest extends BaseTest {
                 preparedStatement.setBlob(1, blob);
                 int affectedRows = preparedStatement.executeUpdate();
                 assertEquals(affectedRows, 1);
+            } finally {
+                connection.close();
             }
         } finally {
             st.execute("set @@global.sql_mode='" + originalSqlMode + "'");
@@ -811,25 +845,27 @@ public class DriverTest extends BaseTest {
         st.execute("set @@global.sql_mode = '" + originalSqlMode + ",NO_BACKSLASH_ESCAPES'");
 
         try {
-            try (Connection connection = setConnection("&profileSql=true")) {
-                try (PreparedStatement preparedStatement =
-                             connection.prepareStatement("insert into testString2(a) values(?)")) {
-                    preparedStatement.setString(1, "'\\");
-                    int affectedRows = preparedStatement.executeUpdate();
-                    assertEquals(affectedRows, 1);
-                }
-                try (PreparedStatement preparedStatement =
-                             connection.prepareStatement("select * from testString2")) {
-                    rs = preparedStatement.executeQuery();
-                    rs.next();
-                    String out = rs.getString(1);
-                    assertEquals(out, "'\\");
+            Connection connection = null;
+            try {
+                connection = setConnection("&profileSql=true");
+                PreparedStatement preparedStatement =
+                             connection.prepareStatement("insert into testString2(a) values(?)");
+                preparedStatement.setString(1, "'\\");
+                int affectedRows = preparedStatement.executeUpdate();
+                assertEquals(affectedRows, 1);
 
-                    Statement st2 = connection.createStatement();
-                    rs = st2.executeQuery("select 'a\\b\\c'");
-                    rs.next();
-                    assertEquals("a\\b\\c", rs.getString(1));
-                }
+                preparedStatement = connection.prepareStatement("select * from testString2");
+                rs = preparedStatement.executeQuery();
+                rs.next();
+                String out = rs.getString(1);
+                assertEquals(out, "'\\");
+
+                Statement st2 = connection.createStatement();
+                rs = st2.executeQuery("select 'a\\b\\c'");
+                rs.next();
+                assertEquals("a\\b\\c", rs.getString(1));
+            } finally {
+                connection.close();
             }
         } finally {
             st.execute("set @@global.sql_mode='" + originalSqlMode + "'");
@@ -850,7 +886,9 @@ public class DriverTest extends BaseTest {
         st.execute("set @@global.sql_mode = '" + originalSqlMode + ",ANSI_QUOTES'");
 
         try {
-            try (Connection connection = setConnection("&profileSql=true")) {
+            Connection connection = null;
+            try {
+                connection = setConnection("&profileSql=true");
                 PreparedStatement preparedStatement =
                         connection.prepareStatement("insert into testBlob2(a) values(?)");
                 byte[] bytes = new byte[255];
@@ -861,6 +899,8 @@ public class DriverTest extends BaseTest {
                 preparedStatement.setBlob(1, blob);
                 int affectedRows = preparedStatement.executeUpdate();
                 assertEquals(affectedRows, 1);
+            } finally {
+                connection.close();
             }
         } finally {
             st.execute("set @@global.sql_mode='" + originalSqlMode + "'");
@@ -895,8 +935,9 @@ public class DriverTest extends BaseTest {
         Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
 
         requireMinimumVersion(5, 0);
-
-        try (Connection connection = setConnection("&profileSql=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&profileSql=true");
             Statement st = connection.createStatement();
             st.setQueryTimeout(1);
             st.execute("select sleep(0.5)");
@@ -920,6 +961,8 @@ public class DriverTest extends BaseTest {
             assertTrue(rs.next());
             assertEquals(0, rs.getInt(1));
             assertEquals(st3.getQueryTimeout(), 1);
+        } finally {
+            connection.close();
         }
     }
 
@@ -938,7 +981,9 @@ public class DriverTest extends BaseTest {
     /* Check that query contains SQL statement, if dumpQueryOnException is true */
     @Test
     public void dumpQueryOnException() throws Exception {
-        try (Connection connection = setConnection("&profileSql=true&dumpQueriesOnException=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&profileSql=true&dumpQueriesOnException=true");
             String selectFromNonExistingTable = "select * from banana";
             try {
                 Statement st = connection.createStatement();
@@ -946,6 +991,8 @@ public class DriverTest extends BaseTest {
             } catch (SQLException sqle) {
                 assertTrue(sqle.getCause().getMessage().contains("Query is: " + selectFromNonExistingTable));
             }
+        } finally {
+            connection.close();
         }
     }
 
@@ -977,7 +1024,9 @@ public class DriverTest extends BaseTest {
         assertEquals(null, st.getResultSet());
         
         /* Test batch  */
-        try (Connection connection = setConnection("&profileSql=true&allowMultiQueries=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&profileSql=true&allowMultiQueries=true");
             st = connection.createStatement();
             
             /* 3. Batch with two SELECTs */
@@ -1015,12 +1064,16 @@ public class DriverTest extends BaseTest {
             assertFalse(st.getMoreResults());
             assertEquals(-1, st.getUpdateCount());
             assertEquals(null, st.getResultSet());
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void conj25() throws Exception {
-        try (Statement stmt = sharedConnection.createStatement()) {
+        Statement stmt = null;
+        try {
+            stmt = sharedConnection.createStatement();
             String st = "INSERT INTO conj25 VALUES (REPEAT('a',1024))";
             for (int i = 1; i <= 100; i++) {
                 st = st + ",(REPEAT('a',1024))";
@@ -1028,23 +1081,30 @@ public class DriverTest extends BaseTest {
             stmt.setFetchSize(Integer.MIN_VALUE);
             stmt.execute(st);
             stmt.executeQuery("SELECT * FROM conj25 a, conj25 b");
+        } finally {
+            stmt.close();
         }
 
     }
 
     @Test
     public void namedPipe() throws Exception {
-        try (ResultSet rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket")) {
+        ResultSet rs = null;
+        try {
+            rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket");
             rs.next();
             if (rs.getBoolean(1)) {
                 String namedPipeName = rs.getString(2);
                 //skip test if no namedPipeName was obtained because then we do not use a socket connection
                 Assume.assumeTrue(namedPipeName != null);
-                try (Connection connection = setConnection("&pipe=" + namedPipeName)) {
+                Connection connection = null;
+                try {
+                    connection = setConnection("&pipe=" + namedPipeName);
                     Statement stmt = connection.createStatement();
-                    try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
-                        assertTrue(rs2.next());
-                    }
+                    ResultSet rs2 = stmt.executeQuery("SELECT 1");
+                    assertTrue(rs2.next());
+                } finally {
+                    connection.close();
                 }
             }
         } catch (SQLException e) {
@@ -1090,18 +1150,23 @@ public class DriverTest extends BaseTest {
      */
     @Test
     public void namedPipeWithoutHost() throws Exception {
-        try (ResultSet rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket")) {
+        ResultSet rs = null;
+        try {
+            rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket");
             rs.next();
             if (rs.getBoolean(1)) {
                 String namedPipeName = rs.getString(2);
                 //skip test if no namedPipeName was obtained because then we do not use a socket connection
                 Assume.assumeTrue(namedPipeName != null);
-                try (Connection connection = DriverManager.getConnection("jdbc:mariadb:///testj?user="
-                        + username + "&pipe=" + namedPipeName)) {
+                Connection connection = null;
+                try {
+                    connection = DriverManager.getConnection("jdbc:mariadb:///testj?user="
+                            + username + "&pipe=" + namedPipeName);
                     Statement stmt = connection.createStatement();
-                    try (ResultSet rs2 = stmt.executeQuery("SELECT 1")) {
-                        assertTrue(rs2.next());
-                    }
+                    ResultSet rs2 = stmt.executeQuery("SELECT 1");
+                    assertTrue(rs2.next());
+                } finally {
+                    connection.close();
                 }
             }
         } catch (SQLException e) {
@@ -1127,9 +1192,13 @@ public class DriverTest extends BaseTest {
         }
 
         String path = rs.getString(2);
-        try (Connection connection = setConnection("&localSocket=" + path + "&profileSql=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&localSocket=" + path + "&profileSql=true");
             rs = connection.createStatement().executeQuery("select 1");
             rs.next();
+        } finally {
+            connection.close();
         }
     }
 
@@ -1157,7 +1226,9 @@ public class DriverTest extends BaseTest {
         }
 
         String shmBaseName = rs.getString(2);
-        try (Connection connection = setConnection("&sharedMemory=" + shmBaseName + "&profileSql=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&sharedMemory=" + shmBaseName + "&profileSql=true");
             rs = connection.createStatement().executeQuery("select repeat('a',100000)");
             rs.next();
             assertEquals(100000, rs.getString(1).length());
@@ -1166,12 +1237,16 @@ public class DriverTest extends BaseTest {
             rs = connection.createStatement().executeQuery("select '" + new String(arr) + "'");
             rs.next();
             assertEquals(100000, rs.getString(1).length());
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void preparedStatementToString() throws Exception {
-        try (PreparedStatement ps = sharedConnection.prepareStatement("SELECT ?,?,?,?,?,?")) {
+        PreparedStatement ps = null;
+        try {
+            ps = sharedConnection.prepareStatement("SELECT ?,?,?,?,?,?");
             ps.setInt(1, 1);
             ps.setBigDecimal(2, new BigDecimal("1"));
             ps.setString(3, "one");
@@ -1180,6 +1255,8 @@ public class DriverTest extends BaseTest {
             ps.setDate(5, new Date(calendar.getTime().getTime()));
             ps.setDouble(6, 1.5);
             assertEquals("sql : 'SELECT ?,?,?,?,?,?', parameters : [1,1,'one',1,'1972-04-22',1.5]", ps.toString());
+        } finally {
+            ps.close();
         }
     }
 
@@ -1207,7 +1284,9 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void createDbWithSpacesTest() throws SQLException {
-        try (Connection connection = setConnection("&createDatabaseIfNotExist=true&profileSql=true", "test with spaces")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&createDatabaseIfNotExist=true&profileSql=true", "test with spaces");
             DatabaseMetaData dbmd = connection.getMetaData();
             ResultSet rs = dbmd.getCatalogs();
             boolean foundDb = false;
@@ -1218,6 +1297,8 @@ public class DriverTest extends BaseTest {
             }
             assertTrue("database \"test with spaces\" not created !?", foundDb);
             connection.createStatement().execute("drop database `test with spaces`");
+        } finally {
+            connection.close();
         }
     }
 
@@ -1247,9 +1328,12 @@ public class DriverTest extends BaseTest {
         @Override
         public void run() {
             try {
-
-                try (Connection connection = DriverManager.getConnection(url)) {
+                Connection connection = null;
+                try {
+                    connection = DriverManager.getConnection(url);
                     Thread.sleep(1000);
+                } finally {
+                    connection.close();
                 }
 
             } catch (SQLException e) {

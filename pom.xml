@@ -55,11 +55,11 @@
 
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.mariadb.jdbc</groupId>
-    <artifactId>mariadb-java-client</artifactId>
+    <artifactId>mariadb-java-client-jre6</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
     <version>1.6.1</version>
-    <description>JDBC driver for MariaDB and MySQL</description>
+    <description>JDBC driver for MariaDB and MySQL for java 6</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
     <properties>
@@ -128,8 +128,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.6.0</version>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>1.6</source>
+                    <target>1.6</target>
                     <compilerArgs>
                         <arg>-Xlint:all,-options,-path</arg>
                     </compilerArgs>
@@ -225,23 +225,23 @@
                     </replacements>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>pl.project13.maven</groupId>
-                <artifactId>git-commit-id-plugin</artifactId>
-                <version>2.2.1</version>
-                <executions>
-                    <execution>
-                        <id>get-the-git-infos</id>
-                        <goals>
-                            <goal>revision</goal>
-                        </goals>
-                    </execution>
-                </executions>
+            <!--<plugin>-->
+                <!--<groupId>pl.project13.maven</groupId>-->
+                <!--<artifactId>git-commit-id-plugin</artifactId>-->
+                <!--<version>2.2.1</version>-->
+                <!--<executions>-->
+                    <!--<execution>-->
+                        <!--<id>get-the-git-infos</id>-->
+                        <!--<goals>-->
+                            <!--<goal>revision</goal>-->
+                        <!--</goals>-->
+                    <!--</execution>-->
+                <!--</executions>-->
 
-                <configuration>
-                    <prefix>git</prefix>
-                </configuration>
-            </plugin>
+                <!--<configuration>-->
+                    <!--<prefix>git</prefix>-->
+                <!--</configuration>-->
+            <!--</plugin>-->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -261,7 +261,7 @@
                         <argument>--format</argument>
                         <argument>tar.gz</argument>
                         <argument>--output</argument>
-                        <argument>${project.name}-${git.commit.id.describe}.tar.gz</argument>
+                        <argument>${project.name}-jre6.tar.gz</argument>
                         <argument>${git.branch}</argument>
                     </arguments>
                 </configuration>
@@ -365,8 +365,8 @@
         </dependency>
         <dependency>
             <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-            <version>2.4.7</version>
+            <artifactId>HikariCP-java6</artifactId>
+            <version>2.3.13</version>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -92,15 +92,15 @@ public class ProtocolLoggingProxy implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         long startTime = System.nanoTime();
         try {
-            switch (method.getName()) {
-                case "executeQuery":
-                case "executePreparedQuery":
-                case "executeBatch":
-                case "executeBatchMulti":
-                case "executeBatchRewrite":
-                case "executeBatchMultiple":
-                case "prepareAndExecutes":
-                case "prepareAndExecute":
+
+            if ("executeQuery".equals(method.getName())
+                || "executePreparedQuery".equals(method.getName())
+                || "executeBatch".equals(method.getName())
+                || "executeBatchMulti".equals(method.getName())
+                || "executeBatchRewrite".equals(method.getName())
+                || "executeBatchMultiple".equals(method.getName())
+                || "prepareAndExecutes".equals(method.getName())
+                || "prepareAndExecute".equals(method.getName())) {
                     Object returnObj = method.invoke(protocol, args);
                     if (logger.isInfoEnabled() && (profileSql
                             || (slowQueryThresholdNanos != null && System.nanoTime() - startTime > slowQueryThresholdNanos.longValue()))) {
@@ -109,9 +109,8 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                                 + logQuery(method.getName(), args, returnObj));
                     }
                     return returnObj;
-                default:
-                    return method.invoke(protocol, args);
             }
+            return method.invoke(protocol, args);
         } catch (InvocationTargetException e) {
             throw e.getCause();
         }
@@ -120,90 +119,77 @@ public class ProtocolLoggingProxy implements InvocationHandler {
     @SuppressWarnings("unchecked")
     private String logQuery(String methodName, Object[] args, Object returnObj) {
         String sql = "";
-        switch (methodName) {
-            case "executeQuery":
-                switch (args.length) {
-                    case 1:
-                        sql = (String) args[0];
-                        break;
-                    case 3:
+        if ("executeQuery".equals(methodName)) {
+            switch (args.length) {
+                case 1:
+                    sql = (String) args[0];
+                    break;
+                case 3:
+                    sql = (String) args[2];
+                    break;
+                case 4:
+                case 5:
+                    if (Charset.class.isInstance(args[3])) {
                         sql = (String) args[2];
                         break;
-                    case 4:
-                    case 5:
-                        if (Charset.class.isInstance(args[3])) {
-                            sql = (String) args[2];
-                            break;
-                        }
-                        ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
-                        sql = getQueryFromPrepareParameters(clientPrepareResult, (ParameterHolder[]) args[3], clientPrepareResult.getParamCount());
-                        break;
-                    default:
-                        //no default
-                }
-                break;
-
-            case "executeBatchMulti":
-                ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
-                sql = getQueryFromPrepareParameters(clientPrepareResult.getSql(), (List<ParameterHolder[]>) args[3],
-                        clientPrepareResult.getParamCount());
-                break;
-
-            case "executeBatch":
-                List<String> queries = (List<String>) args[2];
-                for (int counter = 0; counter < queries.size(); counter++) {
-                    sql += queries.get(counter) + ";";
-                    if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog) break;
-                }
-                break;
-
-            case "executeBatchMultiple":
-                List<String> multipleQueries = (List<String>) args[2];
-                if (multipleQueries.size() == 1) {
-                    sql = multipleQueries.get(0);
-                } else {
-                    for (int counter = 0; counter < multipleQueries.size(); counter++) {
-                        if (maxQuerySizeToLog > 0 && (sql.length() + multipleQueries.get(counter).length() + 1) > maxQuerySizeToLog) {
-                            sql += multipleQueries.get(counter).substring(1, Math.max(1, maxQuerySizeToLog - sql.length()));
-                            break;
-                        }
-                        sql += multipleQueries.get(counter) + ";";
-                        if (maxQuerySizeToLog > 0 && sql.length() >= maxQuerySizeToLog) break;
                     }
+                    ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
+                    sql = getQueryFromPrepareParameters(clientPrepareResult, (ParameterHolder[]) args[3], clientPrepareResult.getParamCount());
+                    break;
+                default:
+                    //no default
+            }
+        } else if ("executeBatchMulti".equals(methodName)) {
+            ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
+            sql = getQueryFromPrepareParameters(clientPrepareResult.getSql(), (List<ParameterHolder[]>) args[3],
+                    clientPrepareResult.getParamCount());
+
+        } else if ("executeBatch".equals(methodName)) {
+            List<String> queries = (List<String>) args[2];
+            for (int counter = 0; counter < queries.size(); counter++) {
+                sql += queries.get(counter) + ";";
+                if (maxQuerySizeToLog > 0 && sql.length() > maxQuerySizeToLog) break;
+            }
+
+        } else if ("executeBatchMultiple".equals(methodName)) {
+            List<String> multipleQueries = (List<String>) args[2];
+            if (multipleQueries.size() == 1) {
+                sql = multipleQueries.get(0);
+            } else {
+                for (int counter = 0; counter < multipleQueries.size(); counter++) {
+                    if (maxQuerySizeToLog > 0 && (sql.length() + multipleQueries.get(counter).length() + 1) > maxQuerySizeToLog) {
+                        sql += multipleQueries.get(counter).substring(1, Math.max(1, maxQuerySizeToLog - sql.length()));
+                        break;
+                    }
+                    sql += multipleQueries.get(counter) + ";";
+                    if (maxQuerySizeToLog > 0 && sql.length() >= maxQuerySizeToLog) break;
                 }
-                break;
+            }
+        } else if ("prepareAndExecute".equals(methodName)) {
+            ParameterHolder[] parameters = (ParameterHolder[]) args[4];
+            ServerPrepareResult serverPrepareResult1 = (ServerPrepareResult) returnObj;
+            sql = getQueryFromPrepareParameters(serverPrepareResult1, parameters, serverPrepareResult1.getParamCount());
 
-            case "prepareAndExecute":
-                ParameterHolder[] parameters = (ParameterHolder[]) args[4];
-                ServerPrepareResult serverPrepareResult1 = (ServerPrepareResult) returnObj;
-                sql = getQueryFromPrepareParameters(serverPrepareResult1, parameters, serverPrepareResult1.getParamCount());
-                break;
+        } else if ("prepareAndExecutes".equals(methodName)) {
+            List<ParameterHolder[]> parameterList = (List<ParameterHolder[]>) args[4];
+            ServerPrepareResult serverPrepareResult = (ServerPrepareResult) returnObj;
+            sql = getQueryFromPrepareParameters(serverPrepareResult.getSql(), parameterList, serverPrepareResult.getParamCount());
 
-            case "prepareAndExecutes":
-                List<ParameterHolder[]> parameterList = (List<ParameterHolder[]>) args[4];
-                ServerPrepareResult serverPrepareResult = (ServerPrepareResult) returnObj;
-                sql = getQueryFromPrepareParameters(serverPrepareResult.getSql(), parameterList, serverPrepareResult.getParamCount());
-                break;
+        } else if ("executeBatchRewrite".equals(methodName)) {
+            ClientPrepareResult prepareResultRewrite = (ClientPrepareResult) args[2];
+            List<ParameterHolder[]> parameterListRewrite = (List<ParameterHolder[]>) args[3];
+            sql = getQueryFromPrepareParameters(prepareResultRewrite.getSql(), parameterListRewrite, prepareResultRewrite.getParamCount());
 
-            case "executeBatchRewrite":
-                ClientPrepareResult prepareResultRewrite = (ClientPrepareResult) args[2];
-                List<ParameterHolder[]> parameterListRewrite = (List<ParameterHolder[]>) args[3];
-                sql = getQueryFromPrepareParameters(prepareResultRewrite.getSql(), parameterListRewrite, prepareResultRewrite.getParamCount());
-                break;
-
-            case "executePreparedQuery":
-                ServerPrepareResult prepareResult = (ServerPrepareResult) args[1];
-                if (args[3] instanceof ParameterHolder[]) {
-                    sql = getQueryFromPrepareParameters(prepareResult, (ParameterHolder[]) args[3], prepareResult.getParamCount());
-                } else {
-                    sql = getQueryFromPrepareParameters(prepareResult.getSql(), (List<ParameterHolder[]>) args[3],
-                            prepareResult.getParameters().length);
-                }
-                break;
-
-            default:
-                //no default
+        } else if ("executePreparedQuery".equals(methodName)) {
+            ServerPrepareResult prepareResult = (ServerPrepareResult) args[1];
+            if (args[3] instanceof ParameterHolder[]) {
+                sql = getQueryFromPrepareParameters(prepareResult, (ParameterHolder[]) args[3], prepareResult.getParamCount());
+            } else {
+                sql = getQueryFromPrepareParameters(prepareResult.getSql(), (List<ParameterHolder[]>) args[3],
+                        prepareResult.getParameters().length);
+            }
         }
+
         if (maxQuerySizeToLog > 0) {
             return " - \"" + ((sql.length() < maxQuerySizeToLog) ? sql : sql.substring(0, maxQuerySizeToLog) + "...") + "\"";
         } else {

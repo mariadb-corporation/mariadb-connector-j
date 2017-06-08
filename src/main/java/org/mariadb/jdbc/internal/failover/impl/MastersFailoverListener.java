@@ -187,7 +187,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
             currentConnectionAttempts.incrementAndGet();
             resetOldsBlackListHosts();
 
-            List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+            List<HostAddress> loopAddress = new LinkedList<HostAddress>(urlParser.getHostAddresses());
             if (HaMode.FAILOVER.equals(mode)) {
                 //put the list in the following order
                 // - random order not connected host
@@ -195,7 +195,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 // - random order connected host
                 loopAddress.removeAll(getBlacklistKeys());
                 Collections.shuffle(loopAddress);
-                List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
+                List<HostAddress> blacklistShuffle = new LinkedList<HostAddress>(getBlacklistKeys());
                 Collections.shuffle(blacklistShuffle);
                 loopAddress.addAll(blacklistShuffle);
             } else {

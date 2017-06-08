@@ -100,17 +100,16 @@ public class SslTest extends BaseTest {
      */
     @Before
     public void checkSsl() throws SQLException {
-        boolean isJava7 = System.getProperty("java.version").contains("1.7.");
+        //Skip SSL test on java 7 since SSL stream size JDK-6521495).
+        Assume.assumeFalse(System.getProperty("java.version").contains("1.7.")
+                || System.getProperty("java.version").contains("1.6."));
         cancelForVersion(5, 6, 36); //has SSL issues with client authentication.
         Assume.assumeTrue(haveSsl(sharedConnection));
-        //Skip SSL test on java 7 since SSL stream size JDK-6521495).
-        Assume.assumeFalse(isJava7);
 
         if (System.getProperty("serverCertificatePath") == null) {
-            try (ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert")) {
-                rs.next();
-                serverCertificatePath = rs.getString(1);
-            }
+            ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert");
+            rs.next();
+            serverCertificatePath = rs.getString(1);
         } else {
             serverCertificatePath = System.getProperty("serverCertificatePath");
         }
@@ -129,9 +128,14 @@ public class SslTest extends BaseTest {
     public void useSsl() throws Exception {
         Assume.assumeTrue(haveSsl(sharedConnection));
         //Skip SSL test on java 7 since SSL stream size JDK-6521495).
-        Assume.assumeFalse(System.getProperty("java.version").contains("1.7."));
-        try (Connection connection = setConnection("&useSSL=true&trustServerCertificate=true")) {
+        Assume.assumeFalse(System.getProperty("java.version").contains("1.7.")
+                || System.getProperty("java.version").contains("1.6."));
+        Connection connection = null;
+        try {
+            connection = setConnection("&useSSL=true&trustServerCertificate=true");
             connection.createStatement().execute("select 1");
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
@@ -145,15 +149,20 @@ public class SslTest extends BaseTest {
     protected void useSslForceTls(String tls, String ciphers) throws Exception {
         Assume.assumeTrue(haveSsl(sharedConnection));
         //Skip SSL test on java 7 since SSL stream size JDK-6521495).
-        Assume.assumeFalse(System.getProperty("java.version").contains("1.7."));
+        Assume.assumeFalse(System.getProperty("java.version").contains("1.7.")
+                || System.getProperty("java.version").contains("1.6."));
         Properties info = new Properties();
         info.setProperty("useSSL", "true");
         info.setProperty("trustServerCertificate", "true");
         info.setProperty("enabledSslProtocolSuites", tls);
         if (ciphers != null) info.setProperty("enabledSslCipherSuites", ciphers);
 
-        try (Connection connection = setConnection(info)) {
+        Connection connection = null;
+        try {
+            connection = setConnection(info);
             connection.createStatement().execute("select 1");
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
@@ -249,7 +258,8 @@ public class SslTest extends BaseTest {
             if (isMariadbServer()) {
                 Assume.assumeTrue(haveSsl(sharedConnection));
                 //Skip SSL test on java 7 since SSL stream size JDK-6521495).
-                Assume.assumeFalse(System.getProperty("java.version").contains("1.7."));
+                Assume.assumeFalse(System.getProperty("java.version").contains("1.7.")
+                        || System.getProperty("java.version").contains("1.6."));
                 Properties info = new Properties();
                 info.setProperty("useSSL", "true");
                 info.setProperty("trustServerCertificate", "true");
@@ -257,9 +267,13 @@ public class SslTest extends BaseTest {
                 //enabledSSLCipherSuites, not enabledSslCipherSuites (different case)
                 info.setProperty("enabledSSLCipherSuites", "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256");
 
-                try (Connection connection = setConnection(info)) {
+                Connection connection = null;
+                try {
+                    connection = setConnection(info);
                     connection.createStatement().execute("select 1");
                     fail("Must have thrown error since cipher aren't TLSv1.1 ciphers");
+                } finally {
+                    if (connection != null) connection.close();
                 }
             }
         } catch (SQLException e) {
@@ -297,7 +311,9 @@ public class SslTest extends BaseTest {
     }
 
     private String getServerCertificate() {
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(serverCertificatePath)))) {
+        BufferedReader br = null;
+        try {
+            br = new BufferedReader(new InputStreamReader(new FileInputStream(serverCertificatePath)));
             StringBuilder sb = new StringBuilder();
             String line = null;
             while ((line = br.readLine()) != null) {
@@ -307,14 +323,24 @@ public class SslTest extends BaseTest {
             return sb.toString();
         } catch (Exception e) {
             throw new RuntimeException(e);
+        } finally {
+            try {
+                br.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
     private void saveToFile(String path, String contents) {
-        try (PrintWriter out = new PrintWriter(new FileOutputStream(path))) {
+        PrintWriter out = null;
+        try {
+            out = new PrintWriter(new FileOutputStream(path));
             out.print(contents);
         } catch (Exception e) {
             throw new RuntimeException(e);
+        } finally {
+            out.close();
         }
     }
 
@@ -353,23 +379,23 @@ public class SslTest extends BaseTest {
      * @throws SQLException if exception occur
      */
     public void testConnect(Properties info, boolean sslExpected, String user, String pwd) throws SQLException {
-
-        try (Connection conn = createConnection(info, user, pwd)) {
+        Connection conn = null;
+        try {
+            conn = createConnection(info, user, pwd);
             // First do a basic select test:
-            try (Statement stmt = conn.createStatement()) {
-                try (ResultSet rs = stmt.executeQuery("SELECT 1")) {
-                    assertTrue(rs.next());
-                    assertTrue(rs.getInt(1) == 1);
-                }
+            Statement stmt = conn.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT 1");
+            assertTrue(rs.next());
+            assertTrue(rs.getInt(1) == 1);
 
-                // Then check if SSL matches what is expected
-                try (ResultSet rs = stmt.executeQuery("SHOW STATUS LIKE 'Ssl_cipher'")) {
-                    assertTrue(rs.next());
-                    String sslCipher = rs.getString(2);
-                    boolean sslActual = sslCipher != null && sslCipher.length() > 0;
-                    assertEquals("sslExpected does not match", sslExpected, sslActual);
-                }
-            }
+            // Then check if SSL matches what is expected
+            rs = stmt.executeQuery("SHOW STATUS LIKE 'Ssl_cipher'");
+            assertTrue(rs.next());
+            String sslCipher = rs.getString(2);
+            boolean sslActual = sslCipher != null && sslCipher.length() > 0;
+            assertEquals("sslExpected does not match", sslExpected, sslActual);
+        } finally {
+            if (conn != null) conn.close();
         }
 
     }
@@ -443,8 +469,12 @@ public class SslTest extends BaseTest {
             Properties info = new Properties();
             info.setProperty("serverSslCert", getServerCertificate());
             info.setProperty("useSSL", "true");
-            try (Connection conn = createConnection(info)) {
+            Connection conn = null;
+            try {
+                conn = createConnection(info);
                 assertEquals("testj", conn.getCatalog());
+            } finally {
+                if (conn != null) conn.close();
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -943,14 +973,21 @@ public class SslTest extends BaseTest {
             ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
         }
 
-        try (ByteArrayOutputStream keyStoreOut = new ByteArrayOutputStream()) {
-
+        ByteArrayOutputStream keyStoreOut = null;
+        try {
+            keyStoreOut = new ByteArrayOutputStream();
             ks.store(keyStoreOut, password == null ? new char[0] : password.toCharArray());
 
             // write the key to the file system
-            try (FileOutputStream keyStoreStream = new FileOutputStream(keystoreFile)) {
+            FileOutputStream keyStoreStream = null;
+            try {
+                keyStoreStream = new FileOutputStream(keystoreFile);
                 keyStoreStream.write(keyStoreOut.toByteArray());
+            } finally {
+                keyStoreStream.close();
             }
+        } finally {
+            keyStoreOut.close();
         }
     }
 

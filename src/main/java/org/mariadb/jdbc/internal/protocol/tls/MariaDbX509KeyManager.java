@@ -67,7 +67,7 @@ import java.util.*;
  */
 public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
 
-    private final Hashtable<String, KeyStore.PrivateKeyEntry> privateKeyHash = new Hashtable<>();
+    private final Hashtable<String, KeyStore.PrivateKeyEntry> privateKeyHash = new Hashtable<String, KeyStore.PrivateKeyEntry>();
 
     /**
      * Creates Key manager.
@@ -141,7 +141,7 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
     private ArrayList<String> searchAccurateAliases(String[] keyTypes, Principal[] issuers) {
         if (keyTypes == null || keyTypes.length == 0) return null;
 
-        ArrayList<String> accurateAliases = new ArrayList<>();
+        ArrayList<String> accurateAliases = new ArrayList<String>();
         for (Map.Entry<String, KeyStore.PrivateKeyEntry> mapEntry : privateKeyHash.entrySet()) {
 
             Certificate[] certs = mapEntry.getValue().getCertificateChain();

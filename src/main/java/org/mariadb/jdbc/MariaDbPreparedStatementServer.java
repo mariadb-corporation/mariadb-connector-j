@@ -74,7 +74,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
     MariaDbResultSetMetaData metadata;
     MariaDbParameterMetaData parameterMetaData;
     Map<Integer, ParameterHolder> currentParameterHolder;
-    List<ParameterHolder[]> queryParameters = new ArrayList<>();
+    List<ParameterHolder[]> queryParameters = new ArrayList<ParameterHolder[]>();
     boolean mustExecuteOnMaster;
 
     /**
@@ -108,7 +108,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
         MariaDbPreparedStatementServer clone = (MariaDbPreparedStatementServer) super.clone(connection);
         clone.metadata = metadata;
         clone.parameterMetaData = parameterMetaData;
-        clone.queryParameters = new ArrayList<>();
+        clone.queryParameters = new ArrayList<ParameterHolder[]>();
         clone.mustExecuteOnMaster = mustExecuteOnMaster;
         //force prepare
         try {
@@ -406,7 +406,9 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
                     try {
                         protocol.cancelCurrentQuery();
                         skipMoreResults();
-                    } catch (SQLException | IOException sqle) {
+                    } catch (SQLException sqle) {
+                        //eat exception
+                    } catch (IOException ioe) {
                         //eat exception
                     }
                 } else skipMoreResults();

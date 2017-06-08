@@ -214,7 +214,7 @@ public class Results {
             callableResultSet = resultSet;
             return;
         }
-        if (executionResults == null) executionResults = new ArrayDeque<>();
+        if (executionResults == null) executionResults = new ArrayDeque<SelectResultSet>();
         executionResults.add(resultSet);
         if (cmdInformation == null) {
             if (batch) {

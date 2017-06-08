@@ -218,7 +218,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
         String[] parts = tableDef.split("\n");
 
-        List<String[]> data = new ArrayList<>();
+        List<String[]> data = new ArrayList<String[]>();
 
         for (String part : parts) {
             part = part.trim();
@@ -233,12 +233,12 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             int pos = skipKeyword(partChar, 0, "CONSTRAINT");
             pos = parseIdentifier(partChar, pos, constraintName);
             pos = skipKeyword(partChar, pos, "FOREIGN KEY");
-            List<Identifier> foreignKeyCols = new ArrayList<>();
+            List<Identifier> foreignKeyCols = new ArrayList<Identifier>();
             pos = parseIdentifierList(partChar, pos, foreignKeyCols);
             pos = skipKeyword(partChar, pos, "REFERENCES");
             Identifier pkTable = new Identifier();
             pos = parseIdentifier(partChar, pos, pkTable);
-            List<Identifier> primaryKeyCols = new ArrayList<>();
+            List<Identifier> primaryKeyCols = new ArrayList<Identifier>();
             parseIdentifierList(partChar, pos, primaryKeyCols);
             if (primaryKeyCols.size() != foreignKeyCols.size()) {
                 throw new ParseException(tableDef, 0);
@@ -2606,7 +2606,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         byte[] empty = new byte[0];
 
         ColumnType[] types = new ColumnType[]{ColumnType.STRING, ColumnType.INTEGER, ColumnType.STRING, ColumnType.STRING};
-        List<byte[]> rows = new ArrayList<>(3);
+        List<byte[]> rows = new ArrayList<byte[]>(3);
 
         rows.add(StandardPacketInputStream.create(new byte[][]{
                 "ApplicationName".getBytes(), sixteenMb, empty,

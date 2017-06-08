@@ -96,9 +96,11 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
     @Override
     public void connectionOrder() throws Throwable {
         Assume.assumeTrue(initialGaleraUrl.contains("failover"));
-        Map<String, MutableInt> connectionMap = new HashMap<>();
+        Map<String, MutableInt> connectionMap = new HashMap<String, MutableInt>();
         for (int i = 0; i < 20; i++) {
-            try (Connection connection = getNewConnection(false)) {
+            Connection connection = null;
+            try {
+                connection = getNewConnection(false);
                 int serverId = getServerId(connection);
                 MutableInt count = connectionMap.get(String.valueOf(serverId));
                 if (count == null) {
@@ -106,6 +108,8 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
                 } else {
                     count.increment();
                 }
+            } finally {
+                connection.close();
             }
         }
 

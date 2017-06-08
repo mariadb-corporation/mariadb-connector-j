@@ -52,8 +52,9 @@
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.com.read.Buffer;
+
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
@@ -76,7 +77,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
      */
     public String toString() {
         try {
-            return new String(blobContent, StandardCharsets.UTF_8);
+            return new String(blobContent, Buffer.UTF_8);
         } catch (Exception e) {
             throw new AssertionError(e);
         }
@@ -117,7 +118,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     public Writer setCharacterStream(long pos) throws SQLException {
         int bytePosition = utf8Position((int) pos - 1);
         OutputStream stream = setBinaryStream(bytePosition + 1);
-        return new OutputStreamWriter(stream, StandardCharsets.UTF_8);
+        return new OutputStreamWriter(stream, Buffer.UTF_8);
     }
 
     public InputStream getAsciiStream() throws SQLException {

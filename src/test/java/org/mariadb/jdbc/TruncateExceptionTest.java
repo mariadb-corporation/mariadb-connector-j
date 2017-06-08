@@ -105,17 +105,22 @@ public class TruncateExceptionTest extends BaseTest {
      * @throws SQLException if SQLException occur
      */
     public void queryTruncation(boolean truncation) throws SQLException {
-        try (Connection connection = setConnection("&jdbcCompliantTruncation=" + truncation)) {
-            try (Statement stmt = connection.createStatement()) {
-                stmt.execute("INSERT INTO TruncateExceptionTest (id) VALUES (999)");
-            }
+        Connection connection = null;
+        try {
+            connection = setConnection("&jdbcCompliantTruncation=" + truncation);
+            Statement stmt = connection.createStatement();
+            stmt.execute("INSERT INTO TruncateExceptionTest (id) VALUES (999)");
+        } finally {
+            connection.close();
         }
     }
 
 
     @Test
     public void queryTruncationFetch() throws SQLException {
-        try (Connection connection = setConnection("&jdbcCompliantTruncation=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&jdbcCompliantTruncation=true");
             Statement stmt = connection.createStatement();
             stmt.execute("TRUNCATE TABLE TruncateExceptionTest2");
             stmt.setFetchSize(1);
@@ -142,12 +147,16 @@ public class TruncateExceptionTest extends BaseTest {
                 Assert.assertEquals(2, rs.getInt(1));
                 assertFalse(rs.next());
             }
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void queryTruncationBatch() throws SQLException {
-        try (Connection connection = setConnection("&jdbcCompliantTruncation=true&useBatchMultiSendNumber=3&profileSql=true&log=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&jdbcCompliantTruncation=true&useBatchMultiSendNumber=3&profileSql=true&log=true");
             Statement stmt = connection.createStatement();
             stmt.execute("TRUNCATE TABLE TruncateExceptionTest2");
             PreparedStatement pstmt = connection.prepareStatement("INSERT INTO TruncateExceptionTest2 (id2) VALUES (?)");
@@ -181,6 +190,8 @@ public class TruncateExceptionTest extends BaseTest {
                 }
                 assertFalse(rs.next());
             }
+        } finally {
+            connection.close();
         }
     }
 

@@ -372,39 +372,41 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void conj77() throws Exception {
-        try (Statement sta1 = sharedConnection.createStatement()) {
-            try (PreparedStatement pre = sharedConnection.prepareStatement("INSERT INTO conj77_test (Name,Archive) VALUES (?,?)")) {
-                pre.setString(1, "Empty String");
-                pre.setBytes(2, "".getBytes());
-                pre.addBatch();
+        Statement sta1 = sharedConnection.createStatement();
+        PreparedStatement pre = sharedConnection.prepareStatement("INSERT INTO conj77_test (Name,Archive) VALUES (?,?)");
+        pre.setString(1, "Empty String");
+        pre.setBytes(2, "".getBytes());
+        pre.addBatch();
 
-                pre.setString(1, "Data Hello");
-                pre.setBytes(2, "hello".getBytes());
-                pre.addBatch();
+        pre.setString(1, "Data Hello");
+        pre.setBytes(2, "hello".getBytes());
+        pre.addBatch();
 
-                pre.setString(1, "Empty Data null");
-                pre.setBytes(2, null);
-                pre.addBatch();
+        pre.setString(1, "Empty Data null");
+        pre.setBytes(2, null);
+        pre.addBatch();
 
-                pre.executeBatch();
-            }
-        }
+        pre.executeBatch();
 
-        try (Statement sta2 = sharedConnection.createStatement()) {
-            try (ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test")) {
-                while (set.next()) {
-                    final Blob blob = set.getBlob("text");
-                    if (blob != null) {
-
-                        try (ByteArrayOutputStream bout = new ByteArrayOutputStream((int) blob.length())) {
-                            try (InputStream bin = blob.getBinaryStream()) {
-                                final byte[] buffer = new byte[1024 * 4];
-                                for (int read = bin.read(buffer); read != -1; read = bin.read(buffer)) {
-                                    bout.write(buffer, 0, read);
-                                }
-                            }
+        ResultSet set = sta1.executeQuery("Select name,archive as text FROM conj77_test");
+        while (set.next()) {
+            final Blob blob = set.getBlob("text");
+            if (blob != null) {
+                ByteArrayOutputStream bout = null;
+                try {
+                    bout = new ByteArrayOutputStream((int) blob.length());
+                    InputStream bin = null;
+                    try {
+                        bin = blob.getBinaryStream();
+                        final byte[] buffer = new byte[1024 * 4];
+                        for (int read = bin.read(buffer); read != -1; read = bin.read(buffer)) {
+                            bout.write(buffer, 0, read);
                         }
+                    } finally {
+                        bin.close();
                     }
+                } finally {
+                    bout.close();
                 }
             }
         }
@@ -413,7 +415,9 @@ public class BlobTest extends BaseTest {
     @Test
     public void sendEmptyBlobPreparedQuery() throws SQLException {
         createTable("emptyBlob", "test longblob, test2 text, test3 text");
-        try (Connection conn = setConnection()) {
+        Connection conn = null;
+        try {
+            conn = setConnection();
             PreparedStatement ps = conn.prepareStatement("insert into emptyBlob values(?,?,?)");
             ps.setBlob(1, new MariaDbBlob(new byte[0]));
             ps.setString(2, "a 'a ");
@@ -427,6 +431,8 @@ public class BlobTest extends BaseTest {
             assertEquals(0, rs.getBytes(1).length);
             assertEquals("a 'a ", rs.getString(2));
             assertNull(rs.getBytes(3));
+        } finally {
+            conn.close();
         }
 
     }

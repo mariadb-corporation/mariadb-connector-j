@@ -396,12 +396,10 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
         return getOutputResult().getObject(nameToOutputIndex(parameterName), map);
     }
 
-    @Override
     public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
         return getOutputResult().getObject(indexToOutputIndex(parameterIndex), type);
     }
 
-    @Override
     public <T> T getObject(String parameterName, Class<T> type) throws SQLException {
         return getOutputResult().getObject(nameToOutputIndex(parameterName), type);
     }

@@ -179,24 +179,22 @@ public class DatatypeCompatibilityTest extends BaseTest {
         assertNotNull(expectedObjectValue);
         assertSame("bad test spec: ", expectedClass, expectedObjectValue.getClass());
 
-        try (Statement statement = sharedConnection.createStatement()) {
-            createTable("my_table", "my_col " + columnType);
-            statement.execute("INSERT INTO my_table(my_col) VALUES (" + strValue + ")");
-            statement.execute("SELECT * FROM my_table");
+        Statement statement = sharedConnection.createStatement();
+        createTable("my_table", "my_col " + columnType);
+        statement.execute("INSERT INTO my_table(my_col) VALUES (" + strValue + ")");
+        statement.execute("SELECT * FROM my_table");
 
-            try (ResultSet resultSet = statement.getResultSet()) {
-                ResultSetMetaData metaData = resultSet.getMetaData();
-                assertEquals("class name  for " + columnType, expectedClass.getName(), metaData.getColumnClassName(1));
-                assertEquals("java.sql.Types code for " + columnType, expectedJdbcType, metaData.getColumnType(1));
-                resultSet.next();
-                Object objectValue = resultSet.getObject(1);
-                assertEquals(expectedClass, objectValue.getClass());
-                if (expectedClass.isArray()) {
-                    assertTrue(Arrays.equals((byte[]) expectedObjectValue, (byte[]) objectValue));
-                } else {
-                    assertEquals(expectedObjectValue, objectValue);
-                }
-            }
+        ResultSet resultSet = statement.getResultSet();
+        ResultSetMetaData metaData = resultSet.getMetaData();
+        assertEquals("class name  for " + columnType, expectedClass.getName(), metaData.getColumnClassName(1));
+        assertEquals("java.sql.Types code for " + columnType, expectedJdbcType, metaData.getColumnType(1));
+        resultSet.next();
+        Object objectValue = resultSet.getObject(1);
+        assertEquals(expectedClass, objectValue.getClass());
+        if (expectedClass.isArray()) {
+            assertTrue(Arrays.equals((byte[]) expectedObjectValue, (byte[]) objectValue));
+        } else {
+            assertEquals(expectedObjectValue, objectValue);
         }
     }
 
@@ -222,17 +220,15 @@ public class DatatypeCompatibilityTest extends BaseTest {
      */
     public void testStatementGetTime(Connection connection) throws SQLException {
         Assume.assumeTrue(doPrecisionTest);
-        try (Statement statement = connection.createStatement()) {
-            try (ResultSet resultSet = statement.executeQuery(sql)) {
-                assertTrue(resultSet.next());
-                assertEquals("00:00:00", "" + resultSet.getTime(2));
-                assertTrue(resultSet.next());
-                assertEquals("00:00:00", "" + resultSet.getTime(2));
-                assertTrue(resultSet.next());
-                assertNull(resultSet.getTime(2));
-                assertFalse(resultSet.next());
-            }
-        }
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(sql);
+        assertTrue(resultSet.next());
+        assertEquals("00:00:00", "" + resultSet.getTime(2));
+        assertTrue(resultSet.next());
+        assertEquals("00:00:00", "" + resultSet.getTime(2));
+        assertTrue(resultSet.next());
+        assertNull(resultSet.getTime(2));
+        assertFalse(resultSet.next());
     }
 
     /**
@@ -243,17 +239,15 @@ public class DatatypeCompatibilityTest extends BaseTest {
      */
     public void testStatementGetString(Connection connection) throws SQLException {
         Assume.assumeTrue(doPrecisionTest);
-        try (Statement statement = connection.createStatement()) {
-            try (ResultSet resultSet = statement.executeQuery(sql)) {
-                assertTrue(resultSet.next());
-                assertEquals("00:00:00.000000", resultSet.getString(2));
-                assertTrue(resultSet.next());
-                assertEquals("00:00:00.123000", resultSet.getString(2));
-                assertTrue(resultSet.next());
-                assertNull(resultSet.getString(2));
-                assertFalse(resultSet.next());
-            }
-        }
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(sql);
+        assertTrue(resultSet.next());
+        assertEquals("00:00:00.000000", resultSet.getString(2));
+        assertTrue(resultSet.next());
+        assertEquals("00:00:00.123000", resultSet.getString(2));
+        assertTrue(resultSet.next());
+        assertNull(resultSet.getString(2));
+        assertFalse(resultSet.next());
     }
 
     /**
@@ -264,17 +258,15 @@ public class DatatypeCompatibilityTest extends BaseTest {
      */
     public void testPreparedStatementGetTime(Connection connection) throws SQLException {
         Assume.assumeTrue(doPrecisionTest);
-        try (Statement statement = connection.createStatement()) {
-            try (ResultSet resultSet = statement.executeQuery(sql)) {
-                assertTrue(resultSet.next());
-                assertEquals("00:00:00", "" + resultSet.getTime(2));
-                assertTrue(resultSet.next());
-                assertEquals("00:00:00", "" + resultSet.getTime(2));
-                assertTrue(resultSet.next());
-                assertNull(resultSet.getTime(2));
-                assertFalse(resultSet.next());
-            }
-        }
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(sql);
+        assertTrue(resultSet.next());
+        assertEquals("00:00:00", "" + resultSet.getTime(2));
+        assertTrue(resultSet.next());
+        assertEquals("00:00:00", "" + resultSet.getTime(2));
+        assertTrue(resultSet.next());
+        assertNull(resultSet.getTime(2));
+        assertFalse(resultSet.next());
     }
 
     /**
@@ -285,36 +277,42 @@ public class DatatypeCompatibilityTest extends BaseTest {
      */
     public void testPreparedStatementGetString(Connection connection) throws SQLException {
         Assume.assumeTrue(doPrecisionTest);
-        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                assertTrue(resultSet.next());
-                assertEquals("00:00:00.000000", resultSet.getString(2));
-                assertTrue(resultSet.next());
-                assertEquals("00:00:00.123000", resultSet.getString(2));
-                assertTrue(resultSet.next());
-                assertNull(resultSet.getString(2));
-                assertFalse(resultSet.next());
-            }
-        }
+        Statement statement = connection.createStatement();
+        ResultSet resultSet = statement.executeQuery(sql);
+        assertTrue(resultSet.next());
+        assertEquals("00:00:00.000000", resultSet.getString(2));
+        assertTrue(resultSet.next());
+        assertEquals("00:00:00.123000", resultSet.getString(2));
+        assertTrue(resultSet.next());
+        assertNull(resultSet.getString(2));
+        assertFalse(resultSet.next());
     }
 
     @Test
     public void testTimePrepareStatement() throws SQLException {
-        try (Connection connection = setConnection("&useServerPrepStmts=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&useServerPrepStmts=true");
             testStatementGetTime(connection);
             testPreparedStatementGetTime(connection);
             testStatementGetString(connection);
             testPreparedStatementGetString(connection);
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void testTimeNotPrepareStatement() throws SQLException {
-        try (Connection connection = setConnection("&useServerPrepStmts=false")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&useServerPrepStmts=false");
             testStatementGetTime(connection);
             testPreparedStatementGetTime(connection);
             testStatementGetString(connection);
             testPreparedStatementGetString(connection);
+        } finally {
+            connection.close();
         }
     }
 }

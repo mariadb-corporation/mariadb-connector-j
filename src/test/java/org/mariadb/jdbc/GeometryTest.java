@@ -77,19 +77,27 @@ public class GeometryTest extends BaseTest {
     }
 
     private void geometryTest(String geometryString, String geometryBinary) throws SQLException {
-        try (Statement stmt = sharedConnection.createStatement()) {
+        Statement stmt = null;
+        try {
+            stmt = sharedConnection.createStatement();
             stmt.execute("TRUNCATE geom_test");
 
             String tmpGeometryBinary = geometryBinary;
             if (tmpGeometryBinary == null) {
-                try (ResultSet rs = stmt.executeQuery("SELECT AsWKB(GeomFromText('" + geometryString + "'))")) {
+                ResultSet rs = null;
+                try {
+                    rs = stmt.executeQuery("SELECT AsWKB(GeomFromText('" + geometryString + "'))");
                     rs.next();
                     tmpGeometryBinary = printHexBinary(rs.getBytes(1));
+                } finally {
+                    rs.close();
                 }
             }
             String sql = "INSERT INTO geom_test VALUES (GeomFromText('" + geometryString + "'))";
             stmt.execute(sql);
-            try (ResultSet rs = stmt.executeQuery("SELECT AsText(g), AsBinary(g), g FROM geom_test")) {
+            ResultSet rs = null;
+            try {
+                rs = stmt.executeQuery("SELECT AsText(g), AsBinary(g), g FROM geom_test");
                 rs.next();
                 // as text
                 assertEquals(geometryString, rs.getString(1));
@@ -107,7 +115,11 @@ public class GeometryTest extends BaseTest {
                 BigInteger returnNumber = new BigInteger(returnGeometry, 16);
                 BigInteger geometryNumber = new BigInteger(tmpGeometryBinary, 16);
                 assertEquals(geometryNumber, returnNumber);
+            } finally {
+                rs.close();
             }
+        } finally {
+            stmt.close();
         }
     }
 

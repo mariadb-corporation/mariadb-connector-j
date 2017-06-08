@@ -89,31 +89,43 @@ public class CancelTest extends BaseMultiHostTest {
 
     @Test(expected = SQLTimeoutException.class)
     public void timeoutSleep() throws Exception {
-        try (Connection connection = getNewConnection(false)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(false);
             PreparedStatement stmt = connection.prepareStatement("select sleep(100)");
             stmt.setQueryTimeout(1);
             stmt.execute();
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void noTimeoutSleep() throws Exception {
-        try (Connection connection = getNewConnection(false)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(false);
             Statement stmt = connection.createStatement();
             stmt.setQueryTimeout(1);
             stmt.execute("select sleep(0.5)");
+        } finally {
+            connection.close();
         }
 
     }
 
     @Test
     public void cancelIdleStatement() throws Exception {
-        try (Connection connection = getNewConnection(false)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection(false);
             Statement stmt = connection.createStatement();
             stmt.cancel();
             ResultSet rs = stmt.executeQuery("select 1");
             rs.next();
             assertEquals(rs.getInt(1), 1);
+        } finally {
+            connection.close();
         }
     }
 }

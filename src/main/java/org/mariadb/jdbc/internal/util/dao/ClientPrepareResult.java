@@ -95,7 +95,7 @@ public class ClientPrepareResult implements PrepareResult {
         try {
             boolean reWritablePrepare = false;
             boolean multipleQueriesPrepare = true;
-            List<byte[]> partList = new ArrayList<>();
+            List<byte[]> partList = new ArrayList<byte[]>();
             LexState state = LexState.Normal;
             char lastChar = '\0';
             boolean endingSemicolon = false;
@@ -351,7 +351,7 @@ public class ClientPrepareResult implements PrepareResult {
         try {
             boolean reWritablePrepare = true;
             boolean multipleQueriesPrepare = true;
-            List<byte[]> partList = new ArrayList<>();
+            List<byte[]> partList = new ArrayList<byte[]>();
             LexState state = LexState.Normal;
             char lastChar = '\0';
 

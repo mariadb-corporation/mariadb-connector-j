@@ -57,7 +57,7 @@ import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.util.Utils;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+import java.nio.charset.Charset;
 import java.sql.SQLException;
 
 import static org.mariadb.jdbc.internal.com.Packet.ERROR;
@@ -92,7 +92,7 @@ public class ReadInitialHandShakePacket {
         }
         pluginName = "";
         protocolVersion = buffer.readByte();
-        serverVersion = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
+        serverVersion = buffer.readStringNullEnd(Charset.forName("US-ASCII"));
         serverThreadId = buffer.readInt();
         final byte[] seed1 = buffer.readRawBytes(8);
         buffer.skipByte();
@@ -149,7 +149,7 @@ public class ReadInitialHandShakePacket {
         }
 
         if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-            pluginName = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
+            pluginName = buffer.readStringNullEnd(Charset.forName("US-ASCII"));
         }
     }
 

@@ -105,7 +105,7 @@ public class BaseMultiHostTest {
     private static String auroraClusterIdentifier;
     private static String hostname;
     //hosts
-    private static HashMap<HaMode, TcpProxy[]> proxySet = new HashMap<>();
+    private static HashMap<HaMode, TcpProxy[]> proxySet = new HashMap<HaMode, TcpProxy[]>();
     public HaMode currentType;
     @Rule
     public TestRule watcher = new TestWatcher() {
@@ -377,18 +377,17 @@ public class BaseMultiHostTest {
         Statement st = connection.createStatement();
 
         // first test for specific user and host combination
-        try (ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '"
-                + hostname + "'")) {
-            if (rs.next()) {
-                superPrivilege = (rs.getString(1).equals("Y"));
-            } else {
-                // then check for user on whatever (%) host
-                try (ResultSet rs2 = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'")) {
-                    if (rs2.next()) {
-                        superPrivilege = (rs2.getString(1).equals("Y"));
-                    }
-                }
+        ResultSet rs = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '"
+                + hostname + "'");
+        if (rs.next()) {
+            superPrivilege = (rs.getString(1).equals("Y"));
+        } else {
+            // then check for user on whatever (%) host
+            ResultSet rs2 = st.executeQuery("SELECT Super_Priv FROM mysql.user WHERE user = '" + username + "' AND host = '%'");
+            if (rs2.next()) {
+                superPrivilege = (rs2.getString(1).equals("Y"));
             }
+
         }
 
         if (superPrivilege) {

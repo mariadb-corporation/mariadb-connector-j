@@ -72,8 +72,8 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
     //another thread (query in progress), so switching the connection wait for the query to be finish.
     //next query will reconnect those during preExecute method, or if actual used connection failed
     //during reconnection phase.
-    protected AtomicReference<Protocol> waitNewSecondaryProtocol = new AtomicReference<>();
-    protected AtomicReference<Protocol> waitNewMasterProtocol = new AtomicReference<>();
+    protected AtomicReference<Protocol> waitNewSecondaryProtocol = new AtomicReference<Protocol>();
+    protected AtomicReference<Protocol> waitNewMasterProtocol = new AtomicReference<Protocol>();
     /* =========================== Failover variables ========================================= */
     private volatile long secondaryHostFailNanos = 0;
     private AtomicBoolean secondaryHostFail = new AtomicBoolean();

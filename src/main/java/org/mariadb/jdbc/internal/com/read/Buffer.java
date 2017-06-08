@@ -54,11 +54,10 @@ package org.mariadb.jdbc.internal.com.read;
 
 
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class Buffer {
-
+    public final static Charset UTF_8 = Charset.forName("UTF-8");
     public byte[] buf;
     public int position;
     public int limit;
@@ -313,7 +312,7 @@ public class Buffer {
      * @param value value to write
      */
     public void writeStringLength(String value) {
-        byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+        byte[] bytes = value.getBytes(Buffer.UTF_8);
         int length = bytes.length;
         while (remaining() < length + 9) grow();
         writeLength(length);

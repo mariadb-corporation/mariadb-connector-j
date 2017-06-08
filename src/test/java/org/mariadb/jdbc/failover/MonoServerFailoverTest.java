@@ -92,8 +92,9 @@ public class MonoServerFailoverTest extends BaseMonoServer {
 
     @Test
     public void checkClosedConnectionAfterFailover() throws Throwable {
-        try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
-
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&retriesAllDown=6", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -111,14 +112,17 @@ public class MonoServerFailoverTest extends BaseMonoServer {
             } catch (SQLException e) {
                 fail();
             }
+        } finally {
+            connection.close();
         }
 
     }
 
     @Test
     public void checkErrorAfterDeconnection() throws Throwable {
-        try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
-
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&retriesAllDown=6", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -137,14 +141,17 @@ public class MonoServerFailoverTest extends BaseMonoServer {
                 //statement must be closed -> error
             }
             assertTrue(connection.isClosed());
+        } finally {
+            connection.close();
         }
     }
 
 
     @Test
     public void checkAutoReconnectDeconnection() throws Throwable {
-        try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
-
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&retriesAllDown=6", true);
             Statement st = connection.createStatement();
             int masterServerId = getServerId(connection);
             stopProxy(masterServerId);
@@ -164,6 +171,8 @@ public class MonoServerFailoverTest extends BaseMonoServer {
                 fail();
             }
             assertFalse(connection.isClosed());
+        } finally {
+            connection.close();
         }
 
     }
@@ -175,22 +184,32 @@ public class MonoServerFailoverTest extends BaseMonoServer {
      */
     @Test
     public void isValidConnectionThatIsKilledExternally() throws Throwable {
-        try (Connection connection = getNewConnection()) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection();
             connection.setCatalog("mysql");
             Protocol protocol = getProtocolFromConnection(connection);
-            try (Connection killerConnection = getNewConnection()) {
+            Connection killerConnection = null;
+            try {
+                killerConnection = getNewConnection();
                 Statement killerStatement = killerConnection.createStatement();
                 long threadId = protocol.getServerThreadId();
                 killerStatement.execute("KILL CONNECTION " + threadId);
                 boolean isValid = connection.isValid(0);
                 assertFalse(isValid);
+            } finally {
+                killerConnection.close();
             }
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void checkPrepareStatement() throws Throwable {
-        try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&retriesAllDown=6", true);
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists failt1");
             stmt.execute("create table failt1 (id int not null primary key auto_increment, tt int)");
@@ -211,6 +230,8 @@ public class MonoServerFailoverTest extends BaseMonoServer {
                 //normal exception
             }
             restartProxy(masterServerId);
+        } finally {
+            connection.close();
         }
     }
 

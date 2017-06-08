@@ -84,7 +84,9 @@ public class CollationTest extends BaseTest {
      */
     @Test
     public void emoji() throws SQLException {
-        try (Connection connection = setConnection()) {
+        Connection connection = null;
+        try {
+            connection = setConnection();
             String sqlForCharset = "select @@character_set_server";
             ResultSet rs = connection.createStatement().executeQuery(sqlForCharset);
             assertTrue(rs.next());
@@ -108,6 +110,8 @@ public class CollationTest extends BaseTest {
             assertTrue(rs.next());
             // compare to the Java representation of UTF32
             assertEquals("\uD83D\uDE04", rs.getString(1));
+        } finally {
+            connection.close();
         }
     }
 
@@ -156,16 +160,16 @@ public class CollationTest extends BaseTest {
     @Test
     public void testText() throws SQLException {
         String str = "\u4f60\u597d(hello in Chinese)";
-        try (PreparedStatement ps = sharedConnection.prepareStatement("insert into textUtf8 values (?)")) {
-            ps.setString(1, str);
-            ps.executeUpdate();
-        }
-        try (PreparedStatement ps = sharedConnection.prepareStatement("select * from textUtf8");
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                String tmp = rs.getString(1);
-                assertEquals(tmp, str);
-            }
+
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into textUtf8 values (?)");
+        ps.setString(1, str);
+        ps.executeUpdate();
+
+        ps = sharedConnection.prepareStatement("select * from textUtf8");
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            String tmp = rs.getString(1);
+            assertEquals(tmp, str);
         }
     }
 
@@ -173,26 +177,25 @@ public class CollationTest extends BaseTest {
     public void testBinary() throws SQLException {
         String str = "\u4f60\u597d(hello in Chinese)";
         byte[] strBytes = str.getBytes(Charset.forName("UTF-8"));
-        try (PreparedStatement ps = sharedConnection.prepareStatement("insert into blobUtf8 values (?)")) {
-            ps.setBytes(1, strBytes);
-            ps.executeUpdate();
-        }
-        try (PreparedStatement ps = sharedConnection.prepareStatement("select * from blobUtf8");
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) {
-                byte[] tmp = rs.getBytes(1);
-                for (int i = 0; i < tmp.length; i++) {
-                    assertEquals(strBytes[i], tmp[i]);
-                }
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into blobUtf8 values (?)");
+        ps.setBytes(1, strBytes);
+        ps.executeUpdate();
 
+        ps = sharedConnection.prepareStatement("select * from blobUtf8");
+        ResultSet rs = ps.executeQuery();
+        while (rs.next()) {
+            byte[] tmp = rs.getBytes(1);
+            for (int i = 0; i < tmp.length; i++) {
+                assertEquals(strBytes[i], tmp[i]);
             }
+
         }
     }
 
     /**
      * CONJ-369 : Writes and reads a clob (longtext) of a latin1 table.
      *
-     * @throws java.sql.SQLException if connection error occur.
+     * @throws SQLException if connection error occur.
      */
     @Test
     public void insertAndSelectShouldBothUseLatin1Encoding() throws SQLException {

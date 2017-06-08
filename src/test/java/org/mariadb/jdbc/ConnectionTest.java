@@ -113,96 +113,6 @@ public class ConnectionTest extends BaseTest {
     }
 
     /**
-     * Conj-75 (corrected with CONJ-156)
-     * Needs permission java.sql.SQLPermission "abort" or will be skipped.
-     *
-     * @throws SQLException exception
-     */
-    @Test
-    public void abortTest() throws SQLException {
-        try (Connection connection = setConnection()) {
-
-            try (Statement stmt = connection.createStatement()) {
-
-                SQLPermission sqlPermission = new SQLPermission("callAbort");
-                SecurityManager securityManager = System.getSecurityManager();
-                if (securityManager != null && sqlPermission != null) {
-                    try {
-                        securityManager.checkPermission(sqlPermission);
-                    } catch (SecurityException se) {
-                        System.out.println("test 'abortTest' skipped  due to missing policy");
-                        return;
-                    }
-                }
-
-                Executor executor = new Executor() {
-                    @Override
-                    public void execute(Runnable command) {
-                        command.run();
-                    }
-                };
-
-                connection.abort(executor);
-                assertTrue(connection.isClosed());
-                try {
-                    stmt.executeQuery("SELECT 1");
-                    fail();
-                } catch (SQLException sqle) {
-                    //normal exception
-                }
-            }
-        }
-    }
-
-    /**
-     * Conj-121: implemented Connection.getNetworkTimeout and Connection.setNetworkTimeout.
-     *
-     * @throws SQLException exception
-     */
-    @Test
-    public void networkTimeoutTest() throws SQLException {
-        try (Connection connection = setConnection()) {
-
-            int timeout = 1000;
-            SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
-            SecurityManager securityManager = System.getSecurityManager();
-            if (securityManager != null && sqlPermission != null) {
-                try {
-                    securityManager.checkPermission(sqlPermission);
-                } catch (SecurityException se) {
-                    System.out.println("test 'setNetworkTimeout' skipped  due to missing policy");
-                    return;
-                }
-            }
-            Executor executor = new Executor() {
-                @Override
-                public void execute(Runnable command) {
-                    command.run();
-                }
-            };
-            try {
-                connection.setNetworkTimeout(executor, timeout);
-            } catch (SQLException sqlex) {
-                sqlex.printStackTrace();
-                fail(sqlex.getMessage());
-            }
-            try {
-                int networkTimeout = connection.getNetworkTimeout();
-                assertEquals(timeout, networkTimeout);
-            } catch (SQLException sqlex) {
-                sqlex.printStackTrace();
-                fail(sqlex.getMessage());
-            }
-            try {
-                connection.createStatement().execute("select sleep(2)");
-                fail("Network timeout is " + timeout / 1000 + "sec, but slept for 2sec");
-            } catch (SQLException sqlex) {
-                assertTrue(connection.isClosed());
-            }
-        }
-    }
-
-    /**
      * Conj-120 Fix Connection.isValid method.
      *
      * @throws SQLException exception
@@ -289,10 +199,14 @@ public class ConnectionTest extends BaseTest {
      */
     @Test
     public void isValidClosedConnection() throws SQLException {
-        try (Connection connection = setConnection()) {
+        Connection connection = null;
+        try {
+            connection = setConnection();
             connection.close();
             boolean isValid = connection.isValid(0);
             assertFalse(isValid);
+        } finally {
+            connection.close();
         }
     }
 
@@ -305,13 +219,21 @@ public class ConnectionTest extends BaseTest {
     @Test
     public void isValidConnectionThatTimesOutByServer() throws SQLException, InterruptedException {
         Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setConnection()) {
-            try (Statement statement = connection.createStatement()) {
+        Connection connection = null;
+        try {
+            connection = setConnection();
+            Statement statement = null;
+            try {
+                statement = connection.createStatement();
                 statement.execute("set session wait_timeout=1");
                 Thread.sleep(3000); // Wait for the server to kill the connection
                 boolean isValid = connection.isValid(0);
                 assertFalse(isValid);
+            } finally {
+                statement.close();
             }
+        } finally {
+            connection.close();
         }
     }
 

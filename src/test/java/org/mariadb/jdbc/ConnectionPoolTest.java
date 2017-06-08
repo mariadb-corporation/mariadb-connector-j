@@ -103,8 +103,12 @@ public class ConnectionPoolTest extends BaseTest {
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-        try (HikariDataSource ds = new HikariDataSource(config)) {
+        HikariDataSource ds = null;
+        try {
+            ds = new HikariDataSource(config);
             validateDataSource(ds);
+        } finally {
+            ds.close();
         }
 
     }
@@ -117,8 +121,9 @@ public class ConnectionPoolTest extends BaseTest {
         config.setJdbcUrl(connU);
         config.setUsername(username);
         if (password != null) config.addDataSourceProperty("password", password);
-
-        try (HikariDataSource ds = new HikariDataSource(config)) {
+        HikariDataSource ds = null;
+        try {
+            ds = new HikariDataSource(config);
             ds.setAutoCommit(true);
 
             //force pool loading
@@ -137,6 +142,8 @@ public class ConnectionPoolTest extends BaseTest {
             if (!sharedIsRewrite() && !sharedOptions().allowMultiQueries) {
                 Assert.assertTrue(monoConnectionExecutionTime > poolExecutionTime);
             }
+        } finally {
+            ds.close();
         }
     }
 
@@ -161,19 +168,23 @@ public class ConnectionPoolTest extends BaseTest {
 
 
     private void validateDataSource(DataSource ds) throws SQLException {
-        try (Connection connection = ds.getConnection()) {
-            try (Statement statement = connection.createStatement()) {
-                try (ResultSet rs = statement.executeQuery("SELECT 1")) {
-                    Assert.assertTrue(rs.next());
-                    Assert.assertEquals(1, rs.getInt(1));
-                }
-            }
+        Connection connection = null;
+        try {
+            connection = ds.getConnection();
+            Statement statement = connection.createStatement();
+            ResultSet rs = statement.executeQuery("SELECT 1");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+        } finally {
+            connection.close();
         }
     }
 
     private long insert500WithOneConnection(DataSource ds) throws SQLException {
         long startTime = System.currentTimeMillis();
-        try (Connection connection = ds.getConnection()) {
+        Connection connection = null;
+        try {
+            connection = ds.getConnection();
             for (int j = 0; j < 50; j++) {
                 try {
                     PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test_pool_batch" + j + "(test) VALUES (?)");
@@ -186,6 +197,8 @@ public class ConnectionPoolTest extends BaseTest {
                     Assert.fail("ERROR insert : " + e.getMessage());
                 }
             }
+        } finally {
+            connection.close();
         }
         return System.currentTimeMillis() - startTime;
     }
@@ -215,10 +228,18 @@ public class ConnectionPoolTest extends BaseTest {
         }
 
         public void run() {
-            try (Connection connection = dataSource.getConnection()) {
+            Connection connection = null;
+            try {
+                connection = dataSource.getConnection();
                 connection.createStatement().execute("SELECT 1");
             } catch (SQLException e) {
                 Assert.fail("ERROR insert : " + e.getMessage());
+            } finally {
+                try {
+                    connection.close();
+                } catch (SQLException sqle) {
+                    //eat
+                }
             }
         }
 
@@ -237,7 +258,9 @@ public class ConnectionPoolTest extends BaseTest {
 
         public void run() {
 
-            try (Connection connection = dataSource.getConnection()) {
+            Connection connection = null;
+            try {
+                connection = dataSource.getConnection();
                 PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test_pool_batch"
                         + tableNumber + "(test) VALUES (?)");
                 for (int i = 1; i < insertNumber; i++) {
@@ -247,6 +270,12 @@ public class ConnectionPoolTest extends BaseTest {
                 preparedStatement.executeBatch();
             } catch (SQLException e) {
                 Assert.fail("ERROR insert : " + e.getMessage());
+            } finally {
+                try {
+                    connection.close();
+                } catch (SQLException sqle) {
+                    //eat
+                }
             }
         }
     }

@@ -376,12 +376,10 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
         return getResult().getObject(nameToOutputIndex(parameterName), map);
     }
 
-    @Override
     public <T> T getObject(int parameterIndex, Class<T> type) throws SQLException {
         return getResult().getObject(indexToOutputIndex(parameterIndex), type);
     }
 
-    @Override
     public <T> T getObject(String parameterName, Class<T> type) throws SQLException {
         return getResult().getObject(nameToOutputIndex(parameterName), type);
     }

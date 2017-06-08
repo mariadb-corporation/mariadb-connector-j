@@ -162,16 +162,27 @@ public class PreparedStatementTest extends BaseTest {
     @Test
     public void reexecuteStatementTest() throws SQLException {
         // set the allowMultiQueries parameter
-        try (Connection connection = setConnection("&allowMultiQueries=true")) {
-            try (PreparedStatement stmt = connection.prepareStatement("SELECT 1")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&allowMultiQueries=true");
+            PreparedStatement stmt = null;
+            try {
+                stmt = connection.prepareStatement("SELECT 1");
                 stmt.setFetchSize(Integer.MIN_VALUE);
                 ResultSet rs = stmt.executeQuery();
                 rs.next();
-
-                try (ResultSet rs2 = stmt.executeQuery()) {
+                ResultSet rs2 = null;
+                try {
+                    rs2 = stmt.executeQuery();
                     assertTrue(rs2.next());
+                } finally {
+                    rs2.close();
                 }
+            } finally {
+                stmt.close();
             }
+        } finally {
+            connection.close();
         }
     }
 
@@ -277,18 +288,25 @@ public class PreparedStatementTest extends BaseTest {
     public void testFallbackPrepare() throws SQLException {
         createTable("testFallbackPrepare", "`test` varchar(500) COLLATE utf8mb4_unicode_ci NOT NULL",
                 "ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-        try (Connection connection = setConnection()) {
+        Connection connection = null;
+        try {
+            connection = setConnection();
             Statement stmt = connection.createStatement();
             stmt.execute("SET @@character_set_connection = 'utf8mb4'");
             stmt.execute("SELECT * FROM `testFallbackPrepare` WHERE `test` LIKE 'jj' COLLATE utf8mb4_unicode_ci");
-
-            try (PreparedStatement preparedStatement = connection.prepareStatement(
-                    "SELECT * FROM `testFallbackPrepare` WHERE `test` LIKE ? COLLATE utf8mb4_unicode_ci")) {
+            PreparedStatement preparedStatement = null;
+            try {
+                preparedStatement = connection.prepareStatement(
+                        "SELECT * FROM `testFallbackPrepare` WHERE `test` LIKE ? COLLATE utf8mb4_unicode_ci");
                 preparedStatement.setString(1, "jj");
                 preparedStatement.execute();
             } catch (SQLException sqle) {
                 fail("Must not have issue, because must fallback on client prepare");
+            } finally {
+                preparedStatement.close();
             }
+        } finally {
+            connection.close();
         }
     }
 
@@ -326,7 +344,7 @@ public class PreparedStatementTest extends BaseTest {
         ResultSet rs = statement.executeQuery("select @@max_allowed_packet");
         rs.next();
         int maxAllowedPacket = rs.getInt(1);
-        if (maxAllowedPacket < 21_000_000) { //to avoid OutOfMemory
+        if (maxAllowedPacket < 21000000) { //to avoid OutOfMemory
             String query = "INSERT INTO PreparedStatementTest1 VALUES (null, ?)"
                     + (notRewritable ? " ON DUPLICATE KEY UPDATE id=?" : "");
             //to have query exacting maxAllowedPacket size :
@@ -339,8 +357,9 @@ public class PreparedStatementTest extends BaseTest {
             for (int i = 0; i < arr.length; i++) {
                 arr[i] = (char) ('a' + (i % 10));
             }
-
-            try (Connection connection = setConnection("&rewriteBatchedStatements=true&profileSql=true")) {
+            Connection connection = null;
+            try {
+                connection = setConnection("&rewriteBatchedStatements=true&profileSql=true");
                 PreparedStatement pstmt = connection.prepareStatement(query);
                 for (int i = 0; i < 2; i++) {
                     pstmt.setString(1, new String(arr));
@@ -354,6 +373,8 @@ public class PreparedStatementTest extends BaseTest {
                 } else {
                     for (int result : results) assertEquals(Statement.SUCCESS_NO_INFO, result);
                 }
+            } finally {
+                connection.close();
             }
 
             rs = statement.executeQuery("select * from PreparedStatementTest1");
@@ -403,7 +424,9 @@ public class PreparedStatementTest extends BaseTest {
                 arr[i] = (char) ('a' + (i % 10));
             }
 
-            try (Connection connection = setConnection("&rewriteBatchedStatements=true&profileSql=true")) {
+            Connection connection = null;
+            try {
+                connection = setConnection("&rewriteBatchedStatements=true&profileSql=true");
                 PreparedStatement pstmt = connection.prepareStatement(query);
                 for (int i = 0; i < 4; i++) {
                     pstmt.setString(1, new String(arr));
@@ -417,6 +440,8 @@ public class PreparedStatementTest extends BaseTest {
                 } else {
                     for (int result : results) assertEquals(1, result);
                 }
+            } finally {
+                connection.close();
             }
 
             rs = statement.executeQuery("select * from PreparedStatementTest1");
@@ -440,13 +465,17 @@ public class PreparedStatementTest extends BaseTest {
      */
     @Test
     public void clientPrepareStatementWithoutParameter() throws Throwable {
-        try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&rewriteBatchedStatements=true");
             PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO PreparedStatementTest2 (my_col) VALUES ('my_val')");
             preparedStatement.execute();
 
             PreparedStatement preparedStatementMulti = connection.prepareStatement(
                     "INSERT INTO PreparedStatementTest2 (my_col) VALUES ('my_val1'),('my_val2')");
             preparedStatementMulti.execute();
+        } finally {
+            connection.close();
         }
     }
 
@@ -461,11 +490,18 @@ public class PreparedStatementTest extends BaseTest {
 
         String query = "ALTER table clientPrepareStatementValuesWithoutParameter PARTITION BY RANGE COLUMNS( created_at ) "
                 + "(PARTITION test_p201605 VALUES LESS THAN ('2016-06-01'))";
-
-        try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
-            try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&rewriteBatchedStatements=true");
+            PreparedStatement preparedStatement = null;
+            try {
+                preparedStatement = connection.prepareStatement(query);
                 preparedStatement.execute();
+            } finally {
+                preparedStatement.close();
             }
+        } finally {
+            connection.close();
         }
     }
 
@@ -476,17 +512,25 @@ public class PreparedStatementTest extends BaseTest {
      */
     @Test
     public void emptyStringParameter() throws Throwable {
-        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO PreparedStatementTest3 (my_col) VALUES (?)")) {
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = sharedConnection.prepareStatement("INSERT INTO PreparedStatementTest3 (my_col) VALUES (?)");
             preparedStatement.setString(1, "");
             preparedStatement.execute();
+        } finally {
+            preparedStatement.close();
         }
     }
 
     @Test
     public void nullStringParameter() throws Throwable {
-        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO PreparedStatementTest3 (my_col) VALUES (?)")) {
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = sharedConnection.prepareStatement("INSERT INTO PreparedStatementTest3 (my_col) VALUES (?)");
             preparedStatement.setString(1, null);
             preparedStatement.execute();
+        } finally {
+            preparedStatement.close();
         }
     }
 

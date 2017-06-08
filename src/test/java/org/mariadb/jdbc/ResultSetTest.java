@@ -104,16 +104,17 @@ public class ResultSetTest extends BaseTest {
         String sql = "INSERT INTO gen_key_test_resultset (name, xml) VALUES (?, ?)";
 
         for (int i = 0; i < 2; i++) {
-            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-
+            PreparedStatement preparedStatement = null;
+            try {
+                preparedStatement = sharedConnection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
                 preparedStatement.setString(1, "John");
                 preparedStatement.setString(2, "<xml/>");
                 preparedStatement.executeUpdate();
 
-                try (ResultSet generatedKeysResultSet = preparedStatement.getGeneratedKeys()) {
-                    assertFalse(generatedKeysResultSet.next());
-                }
-
+                ResultSet generatedKeysResultSet = preparedStatement.getGeneratedKeys();
+                assertFalse(generatedKeysResultSet.next());
+            } finally {
+                preparedStatement.close();
             }
         }
     }
@@ -123,7 +124,9 @@ public class ResultSetTest extends BaseTest {
         insertRows(2);
         Statement statement = sharedConnection.createStatement();
         statement.setFetchSize(1);
-        try (ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test")) {
+        ResultSet resultSet = null;
+        try {
+            resultSet = statement.executeQuery("SELECT * FROM result_set_test");
             assertTrue(resultSet.isBeforeFirst());
             assertTrue(resultSet.next());
             assertFalse(resultSet.isBeforeFirst());
@@ -135,6 +138,8 @@ public class ResultSetTest extends BaseTest {
                 //Make sure an exception has been thrown informing us that the ResultSet was closed
                 assertTrue(e.getMessage().contains("closed"));
             }
+        } finally {
+            resultSet.close();
         }
     }
 
@@ -300,7 +305,9 @@ public class ResultSetTest extends BaseTest {
     public void previousTest() throws SQLException {
         insertRows(2);
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-        try (ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test")) {
+        ResultSet rs = null;
+        try {
+            rs = stmt.executeQuery("SELECT * FROM result_set_test");
             assertFalse(rs.previous());
             assertTrue(rs.next());
             assertEquals(1, rs.getInt(1));
@@ -313,6 +320,8 @@ public class ResultSetTest extends BaseTest {
             assertEquals(1, rs.getInt(1));
             assertTrue(rs.last());
             assertEquals(2, rs.getInt(1));
+        } finally {
+            rs.close();
         }
     }
 
@@ -370,17 +379,20 @@ public class ResultSetTest extends BaseTest {
         createTable("generatedKeyNpe", "id int not null primary key auto_increment, val int");
         Statement statement = sharedConnection.createStatement();
         statement.execute("INSERT INTO generatedKeyNpe(val) values (0)");
-        try (ResultSet rs = statement.getGeneratedKeys()) {
-            assertTrue(rs.next());
-        }
+        ResultSet rs = statement.getGeneratedKeys();
+        assertTrue(rs.next());
     }
 
     @Test
     public void testResultSetAbsolute() throws Exception {
         insertRows(50);
-        try (Statement statement = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+        Statement statement = null;
+        try {
+            statement = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             statement.setFetchSize(10);
-            try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+            ResultSet rs = null;
+            try {
+                rs = statement.executeQuery("SELECT * FROM result_set_test");
                 assertFalse(rs.absolute(52));
                 assertFalse(rs.absolute(-52));
 
@@ -401,16 +413,24 @@ public class ResultSetTest extends BaseTest {
 
                 assertTrue(rs.absolute(-50));
                 assertEquals("row1", rs.getString(2));
+            } finally {
+                rs.close();
             }
+        } finally {
+            statement.close();
         }
     }
 
     @Test
     public void testResultSetIsAfterLast() throws Exception {
         insertRows(2);
-        try (Statement statement = sharedConnection.createStatement()) {
+        Statement statement = null;
+        try {
+            statement = sharedConnection.createStatement();
             statement.setFetchSize(1);
-            try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+            ResultSet rs = null;
+            try {
+                rs = statement.executeQuery("SELECT * FROM result_set_test");
                 assertFalse(rs.isLast());
                 assertFalse(rs.isAfterLast());
                 assertTrue(rs.next());
@@ -422,34 +442,47 @@ public class ResultSetTest extends BaseTest {
                 assertFalse(rs.next());
                 assertFalse(rs.isLast());
                 assertTrue(rs.isAfterLast());
+            } finally {
+                rs.close();
             }
 
             insertRows(0);
-            try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+
+            try {
+                rs = statement.executeQuery("SELECT * FROM result_set_test");
                 assertFalse(rs.isAfterLast());
                 assertFalse(rs.isLast());
                 assertFalse(rs.next());
                 assertFalse(rs.isLast());
                 assertFalse(rs.isAfterLast()); //jdbc indicate that results with no rows return false.
+            } finally {
+                rs.close();
             }
+        } finally {
+            statement.close();
         }
     }
 
 
     @Test
     public void testResultSetAfterLast() throws Exception {
-        try (Statement statement = sharedConnection.createStatement()) {
+        Statement statement = null;
+        try {
+            statement = sharedConnection.createStatement();
             checkLastResultSet(statement);
             statement.setFetchSize(1);
             checkLastResultSet(statement);
-
+        } finally {
+            statement.close();
         }
     }
 
     private void checkLastResultSet(Statement statement) throws SQLException {
 
         insertRows(10);
-        try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
+        ResultSet rs = null;
+        try {
+            rs = statement.executeQuery("SELECT * FROM result_set_test");
 
             assertTrue(rs.last());
             assertFalse(rs.isAfterLast());
@@ -458,12 +491,13 @@ public class ResultSetTest extends BaseTest {
             rs.afterLast();
             assertTrue(rs.isAfterLast());
             assertFalse(rs.isLast());
-
+        } finally {
+            rs.close();
         }
 
         insertRows(0);
-        try (ResultSet rs = statement.executeQuery("SELECT * FROM result_set_test")) {
-
+        try {
+            rs = statement.executeQuery("SELECT * FROM result_set_test");
             assertFalse(rs.last());
             assertFalse(rs.isAfterLast());
             assertFalse(rs.isLast());
@@ -471,6 +505,8 @@ public class ResultSetTest extends BaseTest {
             rs.afterLast();
             assertFalse(rs.isAfterLast()); //jdbc indicate that results with no rows return false.
             assertFalse(rs.isLast());
+        } finally {
+            rs.close();
         }
 
     }
@@ -750,20 +786,29 @@ public class ResultSetTest extends BaseTest {
                         + "t15 text,"
                         + "t16 blob,"
                         + "t17 date");
-
-        try (Statement stmt = sharedConnection.createStatement()) {
+        Statement stmt = null;
+        try {
+            stmt = sharedConnection.createStatement();
             stmt.execute("INSERT into numericTypeTable values (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 'a', 'a', 'a', 'a', 'a', 'a', now())");
-            try (ResultSet rs = stmt.executeQuery("select * from numericTypeTable")) {
+            ResultSet rs = null;
+            try {
+                rs = stmt.executeQuery("select * from numericTypeTable");
                 rs.next();
                 floatDoubleCheckResult(rs);
+            } finally {
+                rs.close();
             }
+        } finally {
+            stmt.close();
         }
-        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("select * from numericTypeTable")) {
-            try (ResultSet rs = preparedStatement.executeQuery()) {
-                rs.next();
-                floatDoubleCheckResult(rs);
-            }
-
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = sharedConnection.prepareStatement("select * from numericTypeTable");
+            ResultSet rs = preparedStatement.executeQuery();
+            rs.next();
+            floatDoubleCheckResult(rs);
+        } finally {
+            preparedStatement.close();
         }
     }
 

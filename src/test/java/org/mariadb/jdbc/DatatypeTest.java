@@ -272,22 +272,34 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void datatypes2() throws Exception {
-        try (Connection connection = setConnection("&tinyInt1isBit=0&yearIsDateType=0")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&tinyInt1isBit=0&yearIsDateType=0");
             datatypes(connection, false, false);
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void datatypes3() throws Exception {
-        try (Connection connection = setConnection("&tinyInt1isBit=1&yearIsDateType=0")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&tinyInt1isBit=1&yearIsDateType=0");
             datatypes(connection, true, false);
+        } finally {
+            connection.close();
         }
     }
 
     @Test
     public void datatypes4() throws Exception {
-        try (Connection connection = setConnection("&tinyInt1isBit=0&yearIsDateType=1")) {
+        Connection connection = null;
+        try {
+            connection = setConnection("&tinyInt1isBit=0&yearIsDateType=1");
             datatypes(connection, false, true);
+        } finally {
+            connection.close();
         }
     }
 
@@ -377,19 +389,17 @@ public class DatatypeTest extends BaseTest {
         createTable("longcol", str + " int not null primary key");
         sharedConnection.createStatement().execute("insert into longcol values (1)");
 
-        try (ResultSet rs = getResultSet("select * from longcol", false)) {
-            assertEquals(true, rs.next());
-            assertEquals(1, rs.getInt(1));
-            assertEquals(1, rs.getInt(str));
-            assertEquals("1", rs.getString(1));
-        }
+        ResultSet rs = getResultSet("select * from longcol", false);
+        assertEquals(true, rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertEquals(1, rs.getInt(str));
+        assertEquals("1", rs.getString(1));
 
-        try (ResultSet rs = getResultSet("select * from longcol", true)) {
-            assertEquals(true, rs.next());
-            assertEquals(1, rs.getInt(1));
-            assertEquals(1, rs.getInt(str));
-            assertEquals("1", rs.getString(1));
-        }
+        rs = getResultSet("select * from longcol", true);
+        assertEquals(true, rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertEquals(1, rs.getInt(str));
+        assertEquals("1", rs.getString(1));
     }
 
     @Test(expected = SQLException.class)
@@ -436,16 +446,15 @@ public class DatatypeTest extends BaseTest {
 
         ps.executeBatch();
 
-        try (ResultSet rs = sharedConnection.createStatement().executeQuery("select * from bitBoolTest")) {
-            assertValue(rs, false);
-            assertValue(rs, true);
-            assertValue(rs, false);
-            assertValue(rs, true);
-            assertValue(rs, true);
-            assertValue(rs, true);
-            assertValue(rs, false);
-            assertFalse(rs.next());
-        }
+        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from bitBoolTest");
+        assertValue(rs, false);
+        assertValue(rs, true);
+        assertValue(rs, false);
+        assertValue(rs, true);
+        assertValue(rs, true);
+        assertValue(rs, true);
+        assertValue(rs, false);
+        assertFalse(rs.next());
     }
 
     private void assertValue(ResultSet rs, boolean bool) throws SQLException {
@@ -468,19 +477,17 @@ public class DatatypeTest extends BaseTest {
         ps.setObject(4, new SerializableClass("testing", 8));
         ps.execute();
 
-        try (ResultSet rs = getResultSet("select * from objecttest", false)) {
-            if (rs.next()) {
-                setObjectTestResult(rs);
-            } else {
-                fail();
-            }
+        ResultSet rs = getResultSet("select * from objecttest", false);
+        if (rs.next()) {
+            setObjectTestResult(rs);
+        } else {
+            fail();
         }
-        try (ResultSet rs = getResultSet("select * from objecttest", true)) {
-            if (rs.next()) {
-                setObjectTestResult(rs);
-            } else {
-                fail();
-            }
+        rs = getResultSet("select * from objecttest", true);
+        if (rs.next()) {
+            setObjectTestResult(rs);
+        } else {
+            fail();
         }
     }
 
@@ -532,13 +539,11 @@ public class DatatypeTest extends BaseTest {
         preparedStatement.setObject(4, maxValue);
         preparedStatement.executeUpdate();
 
-        try (ResultSet rs = getResultSet("select * from TestBigIntType", false)) {
-            validateResultBigIntType(valueLong, maxValue, rs);
-        }
+        ResultSet rs = getResultSet("select * from TestBigIntType", false);
+        validateResultBigIntType(valueLong, maxValue, rs);
 
-        try (ResultSet rs = getResultSet("select * from TestBigIntType", true)) {
-            validateResultBigIntType(valueLong, maxValue, rs);
-        }
+        rs = getResultSet("select * from TestBigIntType", true);
+        validateResultBigIntType(valueLong, maxValue, rs);
 
     }
 
@@ -569,13 +574,11 @@ public class DatatypeTest extends BaseTest {
         ps.setBinaryStream(2, bais);
         ps.execute();
 
-        try (ResultSet rs = getResultSet("select bin1,bin2 from bintest", false)) {
-            binTestResult(rs, allBytes);
-        }
+        ResultSet rs = getResultSet("select bin1,bin2 from bintest", false);
+        binTestResult(rs, allBytes);
 
-        try (ResultSet rs = getResultSet("select bin1,bin2 from bintest", true)) {
-            binTestResult(rs, allBytes);
-        }
+        rs = getResultSet("select bin1,bin2 from bintest", true);
+        binTestResult(rs, allBytes);
     }
 
     private void binTestResult(ResultSet rs, byte[] allBytes) throws SQLException, IOException {
@@ -619,13 +622,11 @@ public class DatatypeTest extends BaseTest {
         ps.setBinaryStream(1, is);
         ps.execute();
 
-        try (ResultSet rs = getResultSet("select bin1 from bintest2", false)) {
-            binTest2Result(rs, buf);
-        }
+        ResultSet rs = getResultSet("select bin1 from bintest2", false);
+        binTest2Result(rs, buf);
 
-        try (ResultSet rs = getResultSet("select bin1 from bintest2", true)) {
-            binTest2Result(rs, buf);
-        }
+        rs = getResultSet("select bin1 from bintest2", true);
+        binTest2Result(rs, buf);
     }
 
     private void binTest2Result(ResultSet rs, byte[] buf) throws SQLException, IOException {
@@ -661,12 +662,11 @@ public class DatatypeTest extends BaseTest {
         ps.setBigDecimal(1, bd);
         ps.execute();
 
-        try (ResultSet rs = getResultSet("select bd from bigdectest", false)) {
-            bigDecimalTestResult(rs, bd);
-        }
-        try (ResultSet rs = getResultSet("select bd from bigdectest", true)) {
-            bigDecimalTestResult(rs, bd);
-        }
+        ResultSet rs = getResultSet("select bd from bigdectest", false);
+        bigDecimalTestResult(rs, bd);
+
+        rs = getResultSet("select bd from bigdectest", true);
+        bigDecimalTestResult(rs, bd);
 
     }
 
@@ -692,13 +692,11 @@ public class DatatypeTest extends BaseTest {
         PreparedStatement ps = sharedConnection.prepareStatement("insert into bytetest (a) values (?)");
         ps.setByte(1, Byte.MAX_VALUE);
         ps.execute();
-        try (ResultSet rs = getResultSet("select a from bytetest", false)) {
-            byteTestResult(rs);
-        }
+        ResultSet rs = getResultSet("select a from bytetest", false);
+        byteTestResult(rs);
 
-        try (ResultSet rs = getResultSet("select a from bytetest", true)) {
-            byteTestResult(rs);
-        }
+        rs = getResultSet("select a from bytetest", true);
+        byteTestResult(rs);
     }
 
     private void byteTestResult(ResultSet rs) throws SQLException {
@@ -719,12 +717,10 @@ public class DatatypeTest extends BaseTest {
         PreparedStatement ps = sharedConnection.prepareStatement("insert into shorttest (a) values (?)");
         ps.setShort(1, Short.MAX_VALUE);
         ps.execute();
-        try (ResultSet rs = getResultSet("select a from shorttest", false)) {
-            shortTestResult(rs);
-        }
-        try (ResultSet rs = getResultSet("select a from shorttest", true)) {
-            shortTestResult(rs);
-        }
+        ResultSet rs = getResultSet("select a from shorttest", false);
+        shortTestResult(rs);
+        rs = getResultSet("select a from shorttest", true);
+        shortTestResult(rs);
     }
 
     private void shortTestResult(ResultSet rs) throws SQLException {
@@ -746,12 +742,11 @@ public class DatatypeTest extends BaseTest {
         double sendDoubleValue = 1.5;
         ps.setDouble(1, sendDoubleValue);
         ps.execute();
-        try (ResultSet rs = getResultSet("select a from doubletest", false)) {
-            doubleTestResult(rs, sendDoubleValue);
-        }
-        try (ResultSet rs = getResultSet("select a from doubletest", true)) {
-            doubleTestResult(rs, sendDoubleValue);
-        }
+        ResultSet rs = getResultSet("select a from doubletest", false);
+        doubleTestResult(rs, sendDoubleValue);
+
+        rs = getResultSet("select a from doubletest", true);
+        doubleTestResult(rs, sendDoubleValue);
     }
 
     private void doubleTestResult(ResultSet rs, Double sendDoubleValue) throws SQLException {
@@ -771,12 +766,10 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void getUrlTest() throws SQLException {
-        try (ResultSet rs = getResultSet("select 'http://mariadb.org' as url FROM dual", false)) {
-            getUrlTestResult(rs);
-        }
-        try (ResultSet rs = getResultSet("select 'http://mariadb.org' as url FROM dual", true)) {
-            getUrlTestResult(rs);
-        }
+        ResultSet rs = getResultSet("select 'http://mariadb.org' as url FROM dual", false);
+        getUrlTestResult(rs);
+        rs = getResultSet("select 'http://mariadb.org' as url FROM dual", true);
+        getUrlTestResult(rs);
     }
 
     private void getUrlTestResult(ResultSet rs) throws SQLException {
@@ -793,12 +786,11 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void getUrlFailTest() throws SQLException {
-        try (ResultSet rs = getResultSet("select 'asdf' as url FROM dual", false)) {
-            getUrlFailTestResult(rs);
-        }
-        try (ResultSet rs = getResultSet("select 'asdf' as url FROM dual", true)) {
-            getUrlFailTestResult(rs);
-        }
+        ResultSet rs = getResultSet("select 'asdf' as url FROM dual", false);
+        getUrlFailTestResult(rs);
+
+        rs = getResultSet("select 'asdf' as url FROM dual", true);
+        getUrlFailTestResult(rs);
     }
 
     private void getUrlFailTestResult(ResultSet rs) throws SQLException {
@@ -822,12 +814,11 @@ public class DatatypeTest extends BaseTest {
         PreparedStatement ps = sharedConnection.prepareStatement("insert blabla VALUE (?)");
         ps.setString(1, null);
         ps.executeQuery();
-        try (ResultSet rs = getResultSet("select * from blabla", false)) {
-            setNullResult(rs);
-        }
-        try (ResultSet rs = getResultSet("select * from blabla", true)) {
-            setNullResult(rs);
-        }
+        ResultSet rs = getResultSet("select * from blabla", false);
+        setNullResult(rs);
+
+        rs = getResultSet("select * from blabla", true);
+        setNullResult(rs);
     }
 
     private void setNullResult(ResultSet rs) throws SQLException {
@@ -855,12 +846,12 @@ public class DatatypeTest extends BaseTest {
         stmt.setBoolean(1, false);
         stmt.execute();
 
-        try (ResultSet rs = getResultSet("select * from bittest", false)) {
-            testBitResult(rs);
-        }
-        try (ResultSet rs = getResultSet("select * from bittest", true)) {
-            testBitResult(rs);
-        }
+        ResultSet rs = getResultSet("select * from bittest", false);
+        testBitResult(rs);
+
+        rs = getResultSet("select * from bittest", true);
+        testBitResult(rs);
+
     }
 
     private void testBitResult(ResultSet rs) throws SQLException {
@@ -885,65 +876,78 @@ public class DatatypeTest extends BaseTest {
         final String sql = "SELECT id, start, end FROM time_period WHERE id=?";
         PreparedStatement preparedStatement = sharedConnection.prepareStatement(sql);
         preparedStatement.setInt(1, 1);
-        try (ResultSet resultSet = preparedStatement.executeQuery()) {
-            if (resultSet.next()) {
-                Time timeStart = resultSet.getTime(2);
-                Time timeEnd = resultSet.getTime(3);
-                assertEquals(timeStart, new Time(0, 0, 0));
-                assertEquals(timeEnd, new Time(8, 0, 0));
-            }
+        ResultSet resultSet = preparedStatement.executeQuery();
+        if (resultSet.next()) {
+            Time timeStart = resultSet.getTime(2);
+            Time timeEnd = resultSet.getTime(3);
+            assertEquals(timeStart, new Time(0, 0, 0));
+            assertEquals(timeEnd, new Time(8, 0, 0));
         }
+
     }
 
     @Test
     public void longMinValueSpecificity() throws SQLException {
         createTable("longMinValueSpecificity", "ii BIGINT");
-        try (Statement statement = sharedConnection.createStatement()) {
+        Statement statement = sharedConnection.createStatement();
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = sharedConnection.prepareStatement(
+                    "INSERT INTO longMinValueSpecificity values (?)");
+            preparedStatement.setLong(1, Long.MAX_VALUE);
+            preparedStatement.executeQuery();
+            preparedStatement.setLong(1, Long.MIN_VALUE);
+            preparedStatement.executeQuery();
+        } finally {
+            preparedStatement.close();
+        }
 
-            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-                    "INSERT INTO longMinValueSpecificity values (?)")) {
-                preparedStatement.setLong(1, Long.MAX_VALUE);
-                preparedStatement.executeQuery();
-                preparedStatement.setLong(1, Long.MIN_VALUE);
-                preparedStatement.executeQuery();
-            }
-
-            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-                    "SELECT * from longMinValueSpecificity")) {
-                ResultSet resultSet = preparedStatement.executeQuery();
-                assertTrue(resultSet.next());
-                assertEquals(Long.MAX_VALUE, resultSet.getLong(1));
-                assertTrue(resultSet.next());
-                assertEquals(Long.MIN_VALUE, resultSet.getLong(1));
-            }
-
-            ResultSet resultSet = statement.executeQuery("SELECT * from longMinValueSpecificity");
+        try {
+            preparedStatement = sharedConnection.prepareStatement(
+                    "SELECT * from longMinValueSpecificity");
+            ResultSet resultSet = preparedStatement.executeQuery();
             assertTrue(resultSet.next());
             assertEquals(Long.MAX_VALUE, resultSet.getLong(1));
             assertTrue(resultSet.next());
             assertEquals(Long.MIN_VALUE, resultSet.getLong(1));
+        } finally {
+            preparedStatement.close();
         }
+
+        ResultSet resultSet = statement.executeQuery("SELECT * from longMinValueSpecificity");
+        assertTrue(resultSet.next());
+        assertEquals(Long.MAX_VALUE, resultSet.getLong(1));
+        assertTrue(resultSet.next());
+        assertEquals(Long.MIN_VALUE, resultSet.getLong(1));
     }
 
     @Test
     public void testBinarySetter() throws Throwable {
         createTable("LatinTable", "t1 varchar(30)", "DEFAULT CHARSET=latin1");
-
-        try (Connection connection = DriverManager.getConnection(connU + "?user=" + username
-                + (password != null && !"".equals(password) ? "&password=" + password : "") + "&useServerPrepStmts=true")) {
+        Connection connection = null;
+        try {
+            connection = DriverManager.getConnection(connU + "?user=" + username
+                    + (password != null && !"".equals(password) ? "&password=" + password : "") + "&useServerPrepStmts=true");
             checkCharactersInsert(connection);
+        } finally {
+            connection.close();
         }
 
         sharedConnection.createStatement().execute("truncate LatinTable");
 
-        try (Connection connection = DriverManager.getConnection(connU + "?user=" + username
-                + (password != null && !"".equals(password) ? "&password=" + password : "") + "&useServerPrepStmts=false")) {
+        try {
+            connection = DriverManager.getConnection(connU + "?user=" + username
+                    + (password != null && !"".equals(password) ? "&password=" + password : "") + "&useServerPrepStmts=false");
             checkCharactersInsert(connection);
+        } finally {
+            connection.close();
         }
     }
 
     private void checkCharactersInsert(Connection connection) throws Throwable {
-        try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO LatinTable(t1)  values (?)")) {
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = connection.prepareStatement("INSERT INTO LatinTable(t1)  values (?)");
             try {
                 preparedStatement.setString(1, str);
                 preparedStatement.execute();
@@ -962,6 +966,8 @@ public class DatatypeTest extends BaseTest {
             ByteArrayInputStream bais = new ByteArrayInputStream(str.getBytes("UTF-8"));
             preparedStatement.setBinaryStream(1, bais);
             preparedStatement.execute();
+        } finally {
+            preparedStatement.close();
         }
 
     }

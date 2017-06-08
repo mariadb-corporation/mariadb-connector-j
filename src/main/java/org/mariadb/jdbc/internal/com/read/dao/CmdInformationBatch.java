@@ -83,8 +83,8 @@ public class CmdInformationBatch implements CmdInformation {
      */
     public CmdInformationBatch(int expectedSize, int autoIncrement) {
         this.expectedSize = expectedSize;
-        this.insertIds = new ConcurrentLinkedQueue<>();
-        this.updateCounts = new ConcurrentLinkedQueue<>();
+        this.insertIds = new ConcurrentLinkedQueue<Long>();
+        this.updateCounts = new ConcurrentLinkedQueue<Long>();
         this.autoIncrement = autoIncrement;
     }
 

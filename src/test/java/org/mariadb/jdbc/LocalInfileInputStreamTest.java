@@ -81,7 +81,9 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
     @Test
     public void testLocalInfileInputStream() throws SQLException {
-        try (Statement st = sharedConnection.createStatement()) {
+        Statement st = null;
+        try {
+            st = sharedConnection.createStatement();
             // Build a tab-separated record file
             StringBuilder builder = new StringBuilder();
             builder.append("1\thello\n");
@@ -103,6 +105,8 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
             validateRecord(rs, 1, "hello");
             validateRecord(rs, 2, "world");
+        } finally {
+            st.close();
         }
     }
 
@@ -112,8 +116,12 @@ public class LocalInfileInputStreamTest extends BaseTest {
         StringBuilder builder = new StringBuilder();
         builder.append("1,hello\n");
         builder.append("2,world\n");
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
+        BufferedWriter bw = null;
+        try {
+            bw = new BufferedWriter(new FileWriter(temp));
             bw.write(builder.toString());
+        } finally {
+            bw.close();
         }
         testLocalInfile(temp.getAbsolutePath().replace("\\", "/"));
     }
@@ -124,8 +132,12 @@ public class LocalInfileInputStreamTest extends BaseTest {
         StringBuilder builder = new StringBuilder();
         builder.append("1,hello\n");
         builder.append("2,world\n");
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(temp))) {
+        BufferedWriter bw = null;
+        try {
+            bw = new BufferedWriter(new FileWriter(temp));
             bw.write(builder.toString());
+        } finally {
+            bw.close();
         }
         try {
             testLocalInfile(temp.getAbsolutePath().replace("\\", "/"));
@@ -143,7 +155,9 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
 
     private void testLocalInfile(String file) throws SQLException {
-        try (Statement st = sharedConnection.createStatement()) {
+        Statement st = null;
+        try {
+            st = sharedConnection.createStatement();
             st.executeUpdate("LOAD DATA LOCAL INFILE '" + file
                     + "' INTO TABLE ttlocal "
                     + "  FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '\"'"
@@ -159,6 +173,8 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
             validateRecord(rs, 1, "hello");
             validateRecord(rs, 2, "world");
+        } finally {
+            st.close();
         }
     }
 
@@ -170,9 +186,8 @@ public class LocalInfileInputStreamTest extends BaseTest {
             Statement st = sharedConnection.createStatement();
             st.execute("LOAD DATA LOCAL INFILE '" + temp.getAbsolutePath().replace('\\', '/')
                     + "' INTO TABLE ldinfile");
-            try (ResultSet rs = st.executeQuery("SELECT * FROM ldinfile")) {
-                assertFalse(rs.next());
-            }
+            ResultSet rs = st.executeQuery("SELECT * FROM ldinfile");
+            assertFalse(rs.next());
         } finally {
             temp.delete();
         }
@@ -212,12 +227,16 @@ public class LocalInfileInputStreamTest extends BaseTest {
         File file = File.createTempFile("./infile" + recordNumber, ".tmp");
 
         //write it
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+        BufferedWriter writer = null;
+        try {
+            writer = new BufferedWriter(new FileWriter(file));
             // Every row is 8 bytes to make counting easier
             for (long i = 0; i < recordNumber; i++) {
                 writer.write("\"a\",\"b\"");
                 writer.write("\n");
             }
+        } finally {
+            writer.close();
         }
 
         return file;
@@ -225,12 +244,14 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
     private void checkBigLocalInfile(long fileSize) throws Exception {
         long recordNumber = fileSize / 8;
-
-        try (Statement statement = sharedConnection.createStatement()) {
+        Statement statement = null;
+        try {
+            statement = sharedConnection.createStatement();
             statement.execute("truncate `infile`");
             File file = createTmpData(recordNumber);
-
-            try (InputStream is = new BufferedInputStream(new FileInputStream(file))) {
+            InputStream is = null;
+            try {
+                is = new BufferedInputStream(new FileInputStream(file));
                 MariaDbStatement stmt = statement.unwrap(MariaDbStatement.class);
                 stmt.setLocalInfileInputStream(is);
                 int insertNumber = stmt.executeUpdate("LOAD DATA LOCAL INFILE 'ignoredFileName' "
@@ -238,18 +259,26 @@ public class LocalInfileInputStreamTest extends BaseTest {
                         + "COLUMNS TERMINATED BY ',' ENCLOSED BY '\\\"' ESCAPED BY '\\\\' "
                         + "LINES TERMINATED BY '\\n' (`a`, `b`)");
                 assertEquals(insertNumber, recordNumber);
+            } finally {
+                is.close();
             }
 
             statement.setFetchSize(1000); //to avoid using too much memory for tests
-            try (ResultSet rs = statement.executeQuery("SELECT * FROM `infile`")) {
+            ResultSet rs = null;
+            try {
+                rs = statement.executeQuery("SELECT * FROM `infile`");
                 for (int i = 0; i < recordNumber; i++) {
                     assertTrue("record " + i + " doesn't exist", rs.next());
                     assertEquals("a", rs.getString(1));
                     assertEquals("b", rs.getString(2));
                 }
                 assertFalse(rs.next());
+            } finally {
+                rs.close();
             }
 
+        } finally {
+            statement.close();
         }
     }
 

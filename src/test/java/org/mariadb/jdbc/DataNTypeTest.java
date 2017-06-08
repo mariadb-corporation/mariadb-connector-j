@@ -53,6 +53,7 @@
 package org.mariadb.jdbc;
 
 import org.junit.Test;
+import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 
 import java.io.OutputStream;
 import java.io.Reader;
@@ -198,7 +199,7 @@ public class DataNTypeTest extends BaseTest {
         stmt.setObject(2, new StringReader(toInsert), Types.LONGNVARCHAR, 3);
         stmt.execute();
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from testSetObjectNCharacter");
+        SelectResultSet rs = (SelectResultSet) sharedConnection.createStatement().executeQuery("select * from testSetObjectNCharacter");
         assertTrue(rs.next());
         Reader reader1 = rs.getObject(2, Reader.class);
         assertNotNull(reader1);
