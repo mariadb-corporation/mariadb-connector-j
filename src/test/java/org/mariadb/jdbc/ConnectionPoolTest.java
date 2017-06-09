@@ -176,7 +176,7 @@ public class ConnectionPoolTest extends BaseTest {
             Assert.assertTrue(rs.next());
             Assert.assertEquals(1, rs.getInt(1));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -198,7 +198,7 @@ public class ConnectionPoolTest extends BaseTest {
                 }
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
         return System.currentTimeMillis() - startTime;
     }
@@ -236,7 +236,7 @@ public class ConnectionPoolTest extends BaseTest {
                 Assert.fail("ERROR insert : " + e.getMessage());
             } finally {
                 try {
-                    connection.close();
+                    if (connection != null) connection.close();
                 } catch (SQLException sqle) {
                     //eat
                 }
@@ -272,7 +272,7 @@ public class ConnectionPoolTest extends BaseTest {
                 Assert.fail("ERROR insert : " + e.getMessage());
             } finally {
                 try {
-                    connection.close();
+                    if (connection != null) connection.close();
                 } catch (SQLException sqle) {
                     //eat
                 }

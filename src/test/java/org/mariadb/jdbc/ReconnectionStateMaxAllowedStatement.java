@@ -90,7 +90,7 @@ public class ReconnectionStateMaxAllowedStatement extends BaseTest {
                 assertEquals("READ-UNCOMMITTED", level(connection));
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

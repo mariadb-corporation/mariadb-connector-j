@@ -106,7 +106,7 @@ public class TimeoutTest extends BaseTest {
             } catch (SQLException e) {
                 //SQLNonTransientConnectionException error
             } finally {
-                connection.close();
+                if (connection != null) connection.close();
             }
         }
         assertTrue(went > 0);
@@ -151,7 +151,7 @@ public class TimeoutTest extends BaseTest {
             // the connection should  be closed
             assertTrue(connection.isClosed());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -178,10 +178,10 @@ public class TimeoutTest extends BaseTest {
                     //normal exception
                 }
             } finally {
-                statement.close();
+                if (statement != null) statement.close();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -209,7 +209,7 @@ public class TimeoutTest extends BaseTest {
                 //normal exception
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

@@ -75,7 +75,7 @@ public class StateChangeTest extends BaseTest {
             stmt.execute("USE " + MariaDbConnection.quoteIdentifier("_test_db"));
             assertEquals("_test_db", connection.getCatalog());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -93,7 +93,7 @@ public class StateChangeTest extends BaseTest {
             stmt.execute("USE " + MariaDbConnection.quoteIdentifier("_test_db"));
             assertEquals("_test_db", connection.getCatalog());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -108,7 +108,7 @@ public class StateChangeTest extends BaseTest {
             stmt.execute("SET autocommit=false");
             assertFalse(connection.getAutoCommit());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -160,7 +160,7 @@ public class StateChangeTest extends BaseTest {
             assertEquals(11, rs2.getInt(1));
             assertFalse(rs2.next());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
 
     }

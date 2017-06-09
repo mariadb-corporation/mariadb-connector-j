@@ -162,7 +162,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             Statement statement = connection.createStatement();
             statement.executeQuery("DROP TABLE IF EXISTS replica_host_status");
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -192,7 +192,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             assertTrue("Discovered new endpoint on failover", newEndpointFound);
             assertEquals(initialSize + 1, finalEndpoints.size());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -224,7 +224,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             assertTrue("Removed deleted endpoint from urlParser", deletedInstanceGone);
             assertEquals(initialSize - 1, finalEndpoints.size());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

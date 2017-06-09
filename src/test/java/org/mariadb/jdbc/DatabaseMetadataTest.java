@@ -881,7 +881,7 @@ public class DatabaseMetadataTest extends BaseTest {
             }
             assertTrue(haveInformationSchema);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
 
     }
@@ -960,7 +960,7 @@ public class DatabaseMetadataTest extends BaseTest {
             assertTrue(rs1.getObject(1) instanceof Short);
             assertEquals(rs1.getShort(1), 1972);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -985,7 +985,7 @@ public class DatabaseMetadataTest extends BaseTest {
             ResultSet rs1 = connection.createStatement().executeQuery("select * from conj72");
             assertEquals(rs1.getMetaData().getColumnType(1), Types.BIT);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

@@ -154,7 +154,7 @@ public class MultiTest extends BaseTest {
             assertTrue(count > 0);
             assertFalse(statement.getMoreResults());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -183,7 +183,7 @@ public class MultiTest extends BaseTest {
             assertNull(statement.getResultSet());
             assertFalse(statement.getMoreResults());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -206,7 +206,7 @@ public class MultiTest extends BaseTest {
             int updateNb = statement.getUpdateCount();
             assertEquals(2, updateNb);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -230,7 +230,7 @@ public class MultiTest extends BaseTest {
             }
             assertTrue(count > 0);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -267,7 +267,7 @@ public class MultiTest extends BaseTest {
             rs.close();
             assertEquals(1, cnt);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -318,7 +318,7 @@ public class MultiTest extends BaseTest {
             rs.next();
             assertEquals(100, rs.getInt(1));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -340,7 +340,7 @@ public class MultiTest extends BaseTest {
                 statement.close();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -380,7 +380,7 @@ public class MultiTest extends BaseTest {
                 statement.close();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -411,7 +411,7 @@ public class MultiTest extends BaseTest {
             ps.addBatch();
             ps.executeBatch();
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -486,7 +486,7 @@ public class MultiTest extends BaseTest {
             sqlInsert.addBatch();
             sqlInsert.executeBatch();
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
 
     }
@@ -989,7 +989,7 @@ public class MultiTest extends BaseTest {
                 assertFalse(rs.next());
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

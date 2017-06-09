@@ -277,7 +277,7 @@ public class DatatypeTest extends BaseTest {
             connection = setConnection("&tinyInt1isBit=0&yearIsDateType=0");
             datatypes(connection, false, false);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -288,7 +288,7 @@ public class DatatypeTest extends BaseTest {
             connection = setConnection("&tinyInt1isBit=1&yearIsDateType=0");
             datatypes(connection, true, false);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -299,7 +299,7 @@ public class DatatypeTest extends BaseTest {
             connection = setConnection("&tinyInt1isBit=0&yearIsDateType=1");
             datatypes(connection, false, true);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -930,7 +930,7 @@ public class DatatypeTest extends BaseTest {
                     + (password != null && !"".equals(password) ? "&password=" + password : "") + "&useServerPrepStmts=true");
             checkCharactersInsert(connection);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
 
         sharedConnection.createStatement().execute("truncate LatinTable");
@@ -940,7 +940,7 @@ public class DatatypeTest extends BaseTest {
                     + (password != null && !"".equals(password) ? "&password=" + password : "") + "&useServerPrepStmts=false");
             checkCharactersInsert(connection);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

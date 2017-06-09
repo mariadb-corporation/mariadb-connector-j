@@ -85,7 +85,7 @@ public class ErrorMessageTest extends BaseTest {
         } catch (SQLException sqle) {
             assertTrue(sqle.getCause().getCause().getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -108,7 +108,7 @@ public class ErrorMessageTest extends BaseTest {
                                         + "('more than 10 characters to provoc error', 10)"));
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -124,7 +124,7 @@ public class ErrorMessageTest extends BaseTest {
                     "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
                             + "parameters ['more than 10 characters to provoc error',10]"));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -141,7 +141,7 @@ public class ErrorMessageTest extends BaseTest {
                     "INSERT INTO testErrorMessage(test, test2) values "
                             + "('more than 10 characters to provoc error', 10)"));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -158,7 +158,7 @@ public class ErrorMessageTest extends BaseTest {
                     "INSERT INTO testErrorMessage(test, test2) values "
                             + "(?, ?)"));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -173,7 +173,7 @@ public class ErrorMessageTest extends BaseTest {
         } catch (SQLException sqle) {
             assertTrue(sqle.getCause().getCause().getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -197,7 +197,7 @@ public class ErrorMessageTest extends BaseTest {
                                         + "['more than 10 characters to provoc error',200]"));
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -214,7 +214,7 @@ public class ErrorMessageTest extends BaseTest {
                             "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
                                     + "['more than 10 characters to provoc error',200]"));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -232,7 +232,7 @@ public class ErrorMessageTest extends BaseTest {
                             + "'more than 10 characters to provoc error', 200)"
             ));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -249,7 +249,7 @@ public class ErrorMessageTest extends BaseTest {
                     "INSERT INTO testErrorMessage(test, test2) values (?, ?)"
             ));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

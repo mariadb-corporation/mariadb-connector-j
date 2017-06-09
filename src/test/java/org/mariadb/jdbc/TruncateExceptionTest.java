@@ -111,7 +111,7 @@ public class TruncateExceptionTest extends BaseTest {
             Statement stmt = connection.createStatement();
             stmt.execute("INSERT INTO TruncateExceptionTest (id) VALUES (999)");
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -148,7 +148,7 @@ public class TruncateExceptionTest extends BaseTest {
                 assertFalse(rs.next());
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -191,7 +191,7 @@ public class TruncateExceptionTest extends BaseTest {
                 assertFalse(rs.next());
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

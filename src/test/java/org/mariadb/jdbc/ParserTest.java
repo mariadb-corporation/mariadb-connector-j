@@ -105,7 +105,7 @@ public class ParserTest extends BaseTest {
             connection = datasource.getConnection();
             //ok
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

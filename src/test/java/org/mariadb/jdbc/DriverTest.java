@@ -304,7 +304,7 @@ public class DriverTest extends BaseTest {
             assertEquals(13, rs.getInt(1));
             assertFalse(rs.next());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -380,7 +380,7 @@ public class DriverTest extends BaseTest {
                 assertEquals(level, connection.getTransactionIsolation());
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -472,7 +472,7 @@ public class DriverTest extends BaseTest {
                 fail();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -698,7 +698,7 @@ public class DriverTest extends BaseTest {
             assertFalse(connection.getAutoCommit());
             sharedConnection.setAutoCommit(true);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -720,7 +720,7 @@ public class DriverTest extends BaseTest {
             stmt.getMoreResults();
             assertTrue(-1 == stmt.getUpdateCount());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -764,7 +764,7 @@ public class DriverTest extends BaseTest {
             assertTrue(foundDb);
             sharedConnection.createStatement().executeUpdate("drop database test_testdrop");
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -823,7 +823,7 @@ public class DriverTest extends BaseTest {
                 int affectedRows = preparedStatement.executeUpdate();
                 assertEquals(affectedRows, 1);
             } finally {
-                connection.close();
+                if (connection != null) connection.close();
             }
         } finally {
             st.execute("set @@global.sql_mode='" + originalSqlMode + "'");
@@ -865,7 +865,7 @@ public class DriverTest extends BaseTest {
                 rs.next();
                 assertEquals("a\\b\\c", rs.getString(1));
             } finally {
-                connection.close();
+                if (connection != null) connection.close();
             }
         } finally {
             st.execute("set @@global.sql_mode='" + originalSqlMode + "'");
@@ -900,7 +900,7 @@ public class DriverTest extends BaseTest {
                 int affectedRows = preparedStatement.executeUpdate();
                 assertEquals(affectedRows, 1);
             } finally {
-                connection.close();
+                if (connection != null) connection.close();
             }
         } finally {
             st.execute("set @@global.sql_mode='" + originalSqlMode + "'");
@@ -962,7 +962,7 @@ public class DriverTest extends BaseTest {
             assertEquals(0, rs.getInt(1));
             assertEquals(st3.getQueryTimeout(), 1);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -992,7 +992,7 @@ public class DriverTest extends BaseTest {
                 assertTrue(sqle.getCause().getMessage().contains("Query is: " + selectFromNonExistingTable));
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -1065,7 +1065,7 @@ public class DriverTest extends BaseTest {
             assertEquals(-1, st.getUpdateCount());
             assertEquals(null, st.getResultSet());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -1104,7 +1104,7 @@ public class DriverTest extends BaseTest {
                     ResultSet rs2 = stmt.executeQuery("SELECT 1");
                     assertTrue(rs2.next());
                 } finally {
-                    connection.close();
+                    if (connection != null) connection.close();
                 }
             }
         } catch (SQLException e) {
@@ -1166,7 +1166,7 @@ public class DriverTest extends BaseTest {
                     ResultSet rs2 = stmt.executeQuery("SELECT 1");
                     assertTrue(rs2.next());
                 } finally {
-                    connection.close();
+                    if (connection != null) connection.close();
                 }
             }
         } catch (SQLException e) {
@@ -1198,7 +1198,7 @@ public class DriverTest extends BaseTest {
             rs = connection.createStatement().executeQuery("select 1");
             rs.next();
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -1238,7 +1238,7 @@ public class DriverTest extends BaseTest {
             rs.next();
             assertEquals(100000, rs.getString(1).length());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -1298,7 +1298,7 @@ public class DriverTest extends BaseTest {
             assertTrue("database \"test with spaces\" not created !?", foundDb);
             connection.createStatement().execute("drop database `test with spaces`");
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -1333,7 +1333,7 @@ public class DriverTest extends BaseTest {
                     connection = DriverManager.getConnection(url);
                     Thread.sleep(1000);
                 } finally {
-                    connection.close();
+                    if (connection != null) connection.close();
                 }
 
             } catch (SQLException e) {

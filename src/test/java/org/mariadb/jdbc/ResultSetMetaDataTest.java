@@ -174,7 +174,7 @@ public class ResultSetMetaDataTest extends BaseTest {
             assertEquals(rsmd.getColumnLabel(1), "id_alias");
             assertEquals(rsmd.getColumnName(1), "id_alias");
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

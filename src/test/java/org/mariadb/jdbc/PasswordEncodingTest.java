@@ -123,7 +123,7 @@ public class PasswordEncodingTest extends BaseTest {
             //non jdbc method that send query according to charset
             stmt.testExecute("GRANT ALL on *.* to 'test" + charsetName + "' identified by '" + exoticPwd + "'", Charset.forName(charsetName));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

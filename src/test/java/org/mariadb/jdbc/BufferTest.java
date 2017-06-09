@@ -246,7 +246,7 @@ public class BufferTest extends BaseTest {
             preparedStatement.execute();
             checkResult(arr);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -266,7 +266,7 @@ public class BufferTest extends BaseTest {
             stmt.execute("INSERT INTO BufferTest VALUES ('" + new String(arr) + "')");
             checkResult(arr);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

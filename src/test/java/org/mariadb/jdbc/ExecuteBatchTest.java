@@ -177,7 +177,7 @@ public class ExecuteBatchTest extends BaseTest {
             //packet size : 7 200 068 kb
             addBatchData(preparedStatement, 60000, connection);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -195,7 +195,7 @@ public class ExecuteBatchTest extends BaseTest {
             //packet size : 7 200 068 kb
             addBatchData(preparedStatement, 160000, connection);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -211,7 +211,7 @@ public class ExecuteBatchTest extends BaseTest {
             PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
             addBatchData(preparedStatement, 60000, connection);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -228,7 +228,7 @@ public class ExecuteBatchTest extends BaseTest {
             PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
             addBatchData(preparedStatement, 60000, connection);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -244,7 +244,7 @@ public class ExecuteBatchTest extends BaseTest {
                     "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?) ON DUPLICATE KEY UPDATE id=?");
             addBatchData(preparedStatement, 60000, connection, true);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -261,7 +261,7 @@ public class ExecuteBatchTest extends BaseTest {
                     "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?) ON DUPLICATE KEY UPDATE id=?");
             addBatchData(preparedStatement, 160000, connection, true);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -340,7 +340,7 @@ public class ExecuteBatchTest extends BaseTest {
                 pstmt.close();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 }

@@ -111,7 +111,7 @@ public class CollationTest extends BaseTest {
             // compare to the Java representation of UTF32
             assertEquals("\uD83D\uDE04", rs.getString(1));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

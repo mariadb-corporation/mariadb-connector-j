@@ -234,7 +234,7 @@ public class DataTypeUnsignedTest extends BaseTest {
             rs = DatatypeTest.getResultSet("select * from yearTest", true, connection);
             yearTestResult(rs, sharedOptions().useServerPrepStmts ? true : false);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

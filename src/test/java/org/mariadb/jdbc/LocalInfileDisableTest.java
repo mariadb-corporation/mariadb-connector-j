@@ -94,7 +94,7 @@ public class LocalInfileDisableTest extends BaseTest {
             String expectedMessage = "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true";
             assertTrue(message.contains(expectedMessage));
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

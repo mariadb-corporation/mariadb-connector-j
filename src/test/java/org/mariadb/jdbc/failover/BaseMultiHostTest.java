@@ -226,7 +226,7 @@ public class BaseMultiHostTest {
                 UrlParser urlParser = protocol.getUrlParser();
                 return urlParser;
             } catch (Throwable throwable) {
-                connection.close();
+                if (connection != null) connection.close();
                 return UrlParser.parse(tmpUrl);
             }
         } catch (SQLException se) {

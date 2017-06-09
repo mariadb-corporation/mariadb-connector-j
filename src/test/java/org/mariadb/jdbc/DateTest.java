@@ -141,7 +141,7 @@ public class DateTest extends BaseTest {
             Timestamp timestamp3 = rs.getTimestamp("dt_test");
             assertEquals(timestamp.toString(), timestamp3.toString());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
 
     }
@@ -251,7 +251,7 @@ public class DateTest extends BaseTest {
             rs = pstmt2.executeQuery();
             testTime11(rs);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -279,7 +279,7 @@ public class DateTest extends BaseTest {
             rs = pstmt2.executeQuery();
             testTime11(rs);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -483,7 +483,7 @@ public class DateTest extends BaseTest {
             long diff2 = Math.abs(ts.getTime() - ts2.getTime()) - clientOffset;
             assertTrue(diff2 < 5000); /* query take less than a second */
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -543,7 +543,7 @@ public class DateTest extends BaseTest {
             Date dd = rs.getDate(1);
             assertEquals(dd, date);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -564,7 +564,7 @@ public class DateTest extends BaseTest {
             Date dd = rs.getDate(1);
             assertEquals(dd, date);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -678,7 +678,7 @@ public class DateTest extends BaseTest {
                             + "STR_TO_DATE('" + TIMESTAMP_1 + "', '%Y-%m-%d %H:%i:%s')");
             testResults(preparedStatement.executeQuery());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

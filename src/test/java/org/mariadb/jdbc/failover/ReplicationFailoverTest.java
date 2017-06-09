@@ -154,7 +154,7 @@ public class ReplicationFailoverTest extends BaseReplication {
                 fail();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -170,7 +170,7 @@ public class ReplicationFailoverTest extends BaseReplication {
             assertFalse(slaveServerId == masterServerId);
             assertTrue(connection.isReadOnly());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -194,7 +194,7 @@ public class ReplicationFailoverTest extends BaseReplication {
                 assertTrue(true);
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -232,7 +232,7 @@ public class ReplicationFailoverTest extends BaseReplication {
                 }
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -253,7 +253,7 @@ public class ReplicationFailoverTest extends BaseReplication {
             }
             assertTrue(!connection.isReadOnly());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

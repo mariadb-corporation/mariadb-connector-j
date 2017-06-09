@@ -135,10 +135,10 @@ public class StatementTest extends BaseTest {
                 rs.next();
                 rs = stmt.executeQuery();
             } finally {
-                stmt.close();
+                if (stmt != null) stmt.close();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -332,7 +332,7 @@ public class StatementTest extends BaseTest {
                 }
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

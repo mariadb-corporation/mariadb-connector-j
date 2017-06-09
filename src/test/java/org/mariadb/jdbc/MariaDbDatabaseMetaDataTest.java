@@ -77,14 +77,14 @@ public class MariaDbDatabaseMetaDataTest extends BaseTest {
             connection = setConnection();
             checkResults(connection, true, true);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
 
         try {
             connection = setConnection("&yearIsDateType=false&tinyInt1isBit=false");
             checkResults(connection, false, false);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

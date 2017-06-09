@@ -182,7 +182,7 @@ public class PreparedStatementTest extends BaseTest {
                 stmt.close();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -306,7 +306,7 @@ public class PreparedStatementTest extends BaseTest {
                 preparedStatement.close();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -374,7 +374,7 @@ public class PreparedStatementTest extends BaseTest {
                     for (int result : results) assertEquals(Statement.SUCCESS_NO_INFO, result);
                 }
             } finally {
-                connection.close();
+                if (connection != null) connection.close();
             }
 
             rs = statement.executeQuery("select * from PreparedStatementTest1");
@@ -441,7 +441,7 @@ public class PreparedStatementTest extends BaseTest {
                     for (int result : results) assertEquals(1, result);
                 }
             } finally {
-                connection.close();
+                if (connection != null) connection.close();
             }
 
             rs = statement.executeQuery("select * from PreparedStatementTest1");
@@ -475,7 +475,7 @@ public class PreparedStatementTest extends BaseTest {
                     "INSERT INTO PreparedStatementTest2 (my_col) VALUES ('my_val1'),('my_val2')");
             preparedStatementMulti.execute();
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -501,7 +501,7 @@ public class PreparedStatementTest extends BaseTest {
                 preparedStatement.close();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

@@ -206,7 +206,7 @@ public class ConnectionTest extends BaseTest {
             boolean isValid = connection.isValid(0);
             assertFalse(isValid);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -230,10 +230,10 @@ public class ConnectionTest extends BaseTest {
                 boolean isValid = connection.isValid(0);
                 assertFalse(isValid);
             } finally {
-                statement.close();
+                if (statement != null) statement.close();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

@@ -298,7 +298,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
             testStatementGetString(connection);
             testPreparedStatementGetString(connection);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -312,7 +312,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
             testStatementGetString(connection);
             testPreparedStatementGetString(connection);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 }

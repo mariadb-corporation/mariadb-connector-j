@@ -129,7 +129,7 @@ public class UnicodeTest extends BaseTest {
             connection.createStatement().execute("SET NAMES utf8mb4");
             checkSendAndRetrieve(connection, unicodeString);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
 
         //test prepare text protocol
@@ -138,7 +138,7 @@ public class UnicodeTest extends BaseTest {
             connection.createStatement().execute("SET NAMES utf8mb4");
             checkSendAndRetrieve(connection, unicodeString);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
 
     }

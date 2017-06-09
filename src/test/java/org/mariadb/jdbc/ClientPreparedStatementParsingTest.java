@@ -349,7 +349,7 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
                 assertTrue(e.getCause().getCause().getMessage().contains("Query is: INSERT INTO errorTable (a, b) VALUES (?, ?, ?)"));
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

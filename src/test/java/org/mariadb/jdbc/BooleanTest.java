@@ -152,7 +152,7 @@ public class BooleanTest extends BaseTest {
             checkBooleanValue(rs, true, true);
             checkBooleanValue(rs, true, true);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

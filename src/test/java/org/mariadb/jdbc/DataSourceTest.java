@@ -83,7 +83,7 @@ public class DataSourceTest extends BaseTest {
             connection = ds.getConnection(username, password);
             assertEquals(connection.isValid(0), true);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -95,7 +95,7 @@ public class DataSourceTest extends BaseTest {
             connection = ds.getConnection(username, password);
             assertEquals(connection.isValid(0), true);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -110,7 +110,7 @@ public class DataSourceTest extends BaseTest {
             connection = ds.getConnection(username, password);
             assertEquals(connection.isValid(0), true);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -137,7 +137,7 @@ public class DataSourceTest extends BaseTest {
                 connection2.close();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -162,7 +162,7 @@ public class DataSourceTest extends BaseTest {
                 connection2.close();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -218,13 +218,13 @@ public class DataSourceTest extends BaseTest {
                     assertTrue(rs.next());
                     assertEquals("ALLOW_INVALID_DATES", rs.getString(1));
                 } finally {
-                    connection2.close();
+                    if (connection2 != null) connection2.close();
                 }
             } else {
                 fail();
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
 
     }

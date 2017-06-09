@@ -367,7 +367,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         } catch (SQLException sqle) {
             throw sqle;
         } catch (IOException e) {
-            throw new SQLException("Could not connect to " + currentHost + ". " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new SQLException("Could not connect to " + currentHost + ". " + e.getMessage() + getTraces(), CONNECTION_EXCEPTION.getSqlState(), e);
         }
     }
 

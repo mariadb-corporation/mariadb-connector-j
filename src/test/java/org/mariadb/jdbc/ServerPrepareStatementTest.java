@@ -125,7 +125,7 @@ public class ServerPrepareStatementTest extends BaseTest {
             assertTrue(rs.next());
             assertTrue(rs.getInt(2) == nbStatementCount + 1);
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -140,7 +140,7 @@ public class ServerPrepareStatementTest extends BaseTest {
             ps.addBatch();
             ps.executeBatch();
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
 
         Protocol protocol = getProtocolFromConnection(sharedConnection);
@@ -283,7 +283,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                     + "testj-SELECT 28-0\n"
                     + "testj-SELECT 29-0]", protocol.prepareStatementCache().toString());
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -330,7 +330,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                 fail("Error in query");
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
 
     }
@@ -549,7 +549,7 @@ public class ServerPrepareStatementTest extends BaseTest {
             ps.addBatch();
             ps.executeBatch();
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -567,7 +567,7 @@ public class ServerPrepareStatementTest extends BaseTest {
             ps.addBatch();
             ps.executeBatch();
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
@@ -832,7 +832,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                 }
             }
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 

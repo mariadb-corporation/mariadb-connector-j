@@ -769,7 +769,7 @@ public class StoredProcedureTest extends BaseTest {
             }
             callableStatement.close();
         } finally {
-            connection.close();
+            if (connection != null) connection.close();
         }
     }
 
