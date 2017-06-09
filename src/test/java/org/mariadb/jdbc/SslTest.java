@@ -480,7 +480,7 @@ public class SslTest extends BaseTest {
 
             Properties info = new Properties();
             info.setProperty("useSSL", "true");
-            info.setProperty("trustStore", "file://" + keystorePath);
+            info.setProperty("trustStore", keystorePath);
             info.setProperty("trustStorePassword", "mysecret");
             testConnect(info, true);
         } finally {
