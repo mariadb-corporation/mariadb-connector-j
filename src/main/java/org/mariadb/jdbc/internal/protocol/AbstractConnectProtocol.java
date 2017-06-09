@@ -410,6 +410,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
             if (options.useCompression) {
                 writer = new CompressPacketOutputStream(writer.getOutputStream(), options.maxQuerySizeToLog);
                 reader = new DecompressPacketInputStream(((StandardPacketInputStream) reader).getBufferedInputStream(), options.maxQuerySizeToLog);
+                if (options.enablePacketDebug) {
+                    writer.setTraceCache(traceCache);
+                    reader.setTraceCache(traceCache);
+                }
             }
 
             if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
@@ -430,12 +434,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             // Extract socketTimeout URL parameter
             if (options.socketTimeout != null) socket.setSoTimeout(options.socketTimeout);
-
-            if (options.enablePacketDebug) {
-                traceCache = new LruTraceCache();
-                writer.setTraceCache(traceCache);
-                reader.setTraceCache(traceCache);
-            }
 
             reader.setServerThreadId(this.serverThreadId, isMasterConnection());
             writer.setServerThreadId(this.serverThreadId, isMasterConnection());
@@ -653,6 +651,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
             reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
             writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
 
+            if (options.enablePacketDebug) {
+                traceCache = new LruTraceCache();
+                writer.setTraceCache(traceCache);
+                reader.setTraceCache(traceCache);
+            }
+
             final ReadInitialHandShakePacket greetingPacket = new ReadInitialHandShakePacket(reader);
             this.serverThreadId = greetingPacket.getServerThreadId();
             reader.setServerThreadId(this.serverThreadId, null);
@@ -685,6 +689,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
                 reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
 
+                if (options.enablePacketDebug) {
+                    writer.setTraceCache(traceCache);
+                    reader.setTraceCache(traceCache);
+                }
                 packetSeq++;
             } else if (options.useSsl) {
                 throw new SQLException("Trying to connect with ssl, but ssl not enabled in the server");
