@@ -69,12 +69,20 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
         this.parametersInformation = parametersInformation;
     }
 
+    private void checkAvailable() throws SQLException {
+        if(this.parametersInformation == null) {
+            throw new SQLException("Parameter metadata not available for these statement", "S1C00");
+        }
+    }
+
     @Override
     public int getParameterCount() throws SQLException {
+        checkAvailable();
         return parametersInformation.length;
     }
 
     private ColumnInformation getParameterInformation(int param) throws SQLException {
+        checkAvailable();
         if (param >= 1 && param <= parametersInformation.length) {
             return parametersInformation[param - 1];
         }

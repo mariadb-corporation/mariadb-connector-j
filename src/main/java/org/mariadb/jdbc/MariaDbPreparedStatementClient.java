@@ -456,11 +456,14 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
     }
 
     private void setParametersData() throws SQLException {
-        MariaDbPreparedStatementServer ssps = new MariaDbPreparedStatementServer(connection, this.sqlQuery,
-                ResultSet.TYPE_SCROLL_INSENSITIVE, true);
-        resultSetMetaData = ssps.getMetaData();
-        parameterMetaData = ssps.getParameterMetaData();
-        ssps.close();
+        try (MariaDbPreparedStatementServer ssps = new MariaDbPreparedStatementServer(connection, this.sqlQuery,
+                ResultSet.TYPE_SCROLL_INSENSITIVE, true)) {
+            resultSetMetaData = ssps.getMetaData();
+            parameterMetaData = ssps.getParameterMetaData();
+        } catch (SQLException sqle) {
+            //if statement cannot be prepared
+            parameterMetaData = new MariaDbParameterMetaData(null);
+        }
     }
 
 
