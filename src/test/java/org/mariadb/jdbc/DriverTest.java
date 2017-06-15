@@ -195,6 +195,38 @@ public class DriverTest extends BaseTest {
         assertEquals(2, prepStmt.getParameterMetaData().getParameterCount());
     }
 
+    @Test
+    public void parameterMetaDataNotPreparable() throws SQLException {
+        Assume.assumeFalse(sharedUsePrepare());
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SHOW SESSION STATUS WHERE Variable_name in ('Prepared_stmt_count','Com_stmt_prepare',  'Com_stmt_close')");
+        rs.next();
+        int preparedStmtCount = rs.getInt(2);
+        rs.next();
+        int comStmtPrepare = rs.getInt(2);
+        rs.next();
+        int comStmtClose = rs.getInt(2);
+
+        //statement that cannot be prepared
+        try (PreparedStatement pstmt = sharedConnection.prepareStatement(
+                "select  TMP.field1 from (select ? from dual) TMP")) {
+            ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
+            try {
+                parameterMetaData.getParameterCount();
+                fail();
+            } catch (SQLException sqle) {
+                assertEquals("S1C00", sqle.getSQLState());
+            }
+            rs = stmt.executeQuery("SHOW SESSION STATUS WHERE Variable_name in ('Prepared_stmt_count','Com_stmt_prepare',  'Com_stmt_close')");
+            rs.next();
+            assertEquals(preparedStmtCount, rs.getInt(2));
+            rs.next();
+            assertEquals(comStmtPrepare + 1, rs.getInt(2));
+            rs.next();
+            assertEquals(comStmtClose, rs.getInt(2));
+        }
+    }
+
 
     @Test
     public void streamingResultSet() throws Exception {
