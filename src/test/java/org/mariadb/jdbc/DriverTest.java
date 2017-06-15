@@ -60,10 +60,8 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.math.BigDecimal;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
+import java.sql.Date;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -199,13 +197,7 @@ public class DriverTest extends BaseTest {
     public void parameterMetaDataNotPreparable() throws SQLException {
         Assume.assumeFalse(sharedUsePrepare());
         Statement stmt = sharedConnection.createStatement();
-        ResultSet rs = stmt.executeQuery("SHOW SESSION STATUS WHERE Variable_name in ('Prepared_stmt_count','Com_stmt_prepare',  'Com_stmt_close')");
-        rs.next();
-        int preparedStmtCount = rs.getInt(2);
-        rs.next();
-        int comStmtPrepare = rs.getInt(2);
-        rs.next();
-        int comStmtClose = rs.getInt(2);
+        Map<String, Integer> initValues = loadVariables(stmt);
 
         //statement that cannot be prepared
         try (PreparedStatement pstmt = sharedConnection.prepareStatement(
@@ -217,16 +209,43 @@ public class DriverTest extends BaseTest {
             } catch (SQLException sqle) {
                 assertEquals("S1C00", sqle.getSQLState());
             }
-            rs = stmt.executeQuery("SHOW SESSION STATUS WHERE Variable_name in ('Prepared_stmt_count','Com_stmt_prepare',  'Com_stmt_close')");
-            rs.next();
-            assertEquals(preparedStmtCount, rs.getInt(2));
-            rs.next();
-            assertEquals(comStmtPrepare + 1, rs.getInt(2));
-            rs.next();
-            assertEquals(comStmtClose, rs.getInt(2));
         }
+        Map<String, Integer> endingValues = loadVariables(stmt);
+        assertEquals(initValues.get("Prepared_stmt_count"), endingValues.get("Prepared_stmt_count"));
+        assertEquals((Integer) (initValues.get("Com_stmt_prepare") + 1), endingValues.get("Com_stmt_prepare"));
+        assertEquals(initValues.get("Com_stmt_close"), endingValues.get("Com_stmt_close"));
     }
 
+    private Map<String, Integer> loadVariables(Statement stmt) throws SQLException {
+        Map<String, Integer> variables = new HashMap<String, Integer>();
+        ResultSet rs = stmt.executeQuery("SHOW SESSION STATUS WHERE Variable_name in ('Prepared_stmt_count','Com_stmt_prepare', 'Com_stmt_close')");
+        rs.next();
+        variables.put(rs.getString(1), rs.getInt(2));
+        rs.next();
+        variables.put(rs.getString(1), rs.getInt(2));
+        rs.next();
+        variables.put(rs.getString(1), rs.getInt(2));
+        return variables;
+    }
+
+    @Test
+    public void parameterMetaDataPreparable() throws SQLException {
+        Assume.assumeFalse(sharedUsePrepare());
+        Statement stmt = sharedConnection.createStatement();
+        Map<String, Integer> initValues = loadVariables(stmt);
+
+        //statement that cannot be prepared
+        try (PreparedStatement pstmt = sharedConnection.prepareStatement(
+                "select  ?")) {
+            ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
+            parameterMetaData.getParameterCount();
+        }
+        Map<String, Integer> endingValues = loadVariables(stmt);
+        assertEquals(initValues.get("Prepared_stmt_count"), endingValues.get("Prepared_stmt_count"));
+        assertEquals((Integer) (initValues.get("Com_stmt_prepare") + 1), endingValues.get("Com_stmt_prepare"));
+        assertEquals((Integer) (initValues.get("Com_stmt_close") + 1), endingValues.get("Com_stmt_close"));
+
+    }
 
     @Test
     public void streamingResultSet() throws Exception {
