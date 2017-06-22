@@ -812,11 +812,10 @@ public class ResultSetTest extends BaseTest {
     }
 
     /**
-     * CONJ-496 : Driver not dealing with non zero decimal values
+     * CONJ-496 : Driver not dealing with non zero decimal values.
      *
      * @throws SQLException if any abnormal error occur
      */
-
     @Test
     public void numericTestWithDecimal() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
