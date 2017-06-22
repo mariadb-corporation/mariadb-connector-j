@@ -658,7 +658,6 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                                 || bytes[i] == SLASH
                                 || bytes[i] == DBL_QUOTE
                                 || bytes[i] == ZERO_BYTE) {
-                            len -= 1;
                             buf[pos++] = '\\';
                             if (buf.length <= pos) flushBuffer(false);
                         }
