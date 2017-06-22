@@ -55,13 +55,17 @@ package org.mariadb.jdbc;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
-import static org.junit.Assert.*;
 
 
 public class DataTypeUnsignedTest extends BaseTest {
@@ -459,14 +463,11 @@ public class DataTypeUnsignedTest extends BaseTest {
                 assertEquals(new BigDecimal("9223372036854775806.00000000000000000000"), rs.getBigDecimal(1));
                 assertEquals("9223372036854775806.00000000000000000000", rs.getString(1));
                 if (rs.next()) {
-                    byteMustFail(rs);
-                    shortMustFail(rs);
-                    intMustFail(rs);
-                    longMustFail(rs);
                     assertEquals(1.1F, rs.getFloat(1), .000001);
                     assertEquals(1.1D, rs.getDouble(1), .000001);
                     assertEquals("1.10000000000000000000", rs.getString(1));
                     assertEquals(new BigDecimal("1.10000000000000000000"), rs.getBigDecimal(1));
+                    assertEquals(1, rs.getInt(1));
                     if (rs.next()) {
                         oneNullTest(rs, true, false);
                     } else {
