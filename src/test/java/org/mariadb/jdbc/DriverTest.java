@@ -1320,7 +1320,8 @@ public class DriverTest extends BaseTest {
      */
     @Test
     public void testLongEscapes() throws SQLException {
-        Assume.assumeTrue(checkMaxAllowedPacketMore20m("testLongEscapes"));
+        //40m, because escaping will double the send byte numbers
+        Assume.assumeTrue(checkMaxAllowedPacketMore40m("testLongEscapes"));
         createTable("testLongEscapes", "t1 longtext");
 
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
