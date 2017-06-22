@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -1309,6 +1310,38 @@ public class DriverTest extends BaseTest {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    /**
+     * CONJ-497 - Long escapable string.
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void testLongEscapes() throws SQLException {
+        Assume.assumeTrue(checkMaxAllowedPacketMore20m("testLongEscapes"));
+        createTable("testLongEscapes", "t1 longtext");
+
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                "INSERT into testLongEscapes values (?)")) {
+            byte[] arr = new byte[20_000_000];
+            Arrays.fill(arr, (byte) '\'');
+            preparedStatement.setBytes(1, arr);
+            preparedStatement.execute();
+
+            Arrays.fill(arr, (byte) '\"');
+            preparedStatement.setBytes(1, arr);
+            preparedStatement.execute();
+        }
+
+        Statement stmt = sharedConnection.createStatement();
+        try (ResultSet rs = stmt.executeQuery("select length(t1) from testLongEscapes")) {
+            assertTrue(rs.next());
+            assertEquals(20_000_000, rs.getInt(1));
+            assertTrue(rs.next());
+            assertEquals(20_000_000, rs.getInt(1));
+            assertFalse(rs.next());
         }
     }
 
