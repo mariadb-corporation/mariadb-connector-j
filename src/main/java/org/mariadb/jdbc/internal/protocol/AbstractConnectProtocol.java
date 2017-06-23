@@ -75,6 +75,7 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
+import org.mariadb.jdbc.internal.protocol.tls.HostnameVerifierImpl;
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509KeyManager;
 import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509TrustManager;
 import org.mariadb.jdbc.internal.util.Options;
@@ -101,6 +102,7 @@ import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -404,7 +406,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
 
 
-            handleConnectionPhases();
+            handleConnectionPhases(host);
 
             connected = true;
             serverData = new TreeMap<>();
@@ -648,7 +650,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return !this.connected;
     }
 
-    private void handleConnectionPhases() throws SQLException {
+    private void handleConnectionPhases(String host) throws SQLException {
         try {
             reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
             writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
@@ -687,6 +689,22 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
                 sslSocket.setUseClientMode(true);
                 sslSocket.startHandshake();
+
+
+                // perform hostname verification
+                // (rfc2818 indicate that if "client has external information as to the expected identity of the server,
+                // the hostname check MAY be omitted")
+                if (!options.disableSslHostnameVerification) {
+                    HostnameVerifier hostnameVerifier = new HostnameVerifierImpl();
+                    SSLSession session = sslSocket.getSession();
+                    if (!hostnameVerifier.verify(host, session)) {
+                        String message = "hostname \"" + host + "\" doesn't match TLS certificate host \"" + session.getPeerPrincipal() + "\".\n"
+                                + "This verification can be disable using option \"disableSslHostnameVerification\" "
+                                + "but won't prevent man-in-the-middle attacks anymore";
+                        throw new SQLNonTransientConnectionException(message, "08006");
+                    }
+                }
+
                 socket = sslSocket;
                 writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
                 reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);

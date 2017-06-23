@@ -442,8 +442,15 @@ public enum DefaultOptions {
      * Hexadecimal value of those packet will be added to stacktrace when an IOException occur.
      * This options has no performance incidence (&lt; 1 microseconds per query) but driver will then take 16kb more memory.
      */
-    ENABLE_PACKET_DEBUG("enablePacketDebug", Boolean.FALSE, "1.6.0");
+    ENABLE_PACKET_DEBUG("enablePacketDebug", Boolean.FALSE, "1.6.0"),
 
+    /**
+     * Since 2.1.0, the client check hostname against the server's identity as presented in the server's Certificate
+     * message, in order to prevent man-in-the-middle attack.
+     *
+     * This option permit to deactivate this validation.
+     */
+    SSL_HOSTNAME_VERIFICATION("disableSslHostnameVerification", Boolean.FALSE, "2.1.0");
 
     protected final String name;
     protected final Object objType;
@@ -527,10 +534,14 @@ public enum DefaultOptions {
             for (String parameter : parameters) {
                 int pos = parameter.indexOf('=');
                 if (pos == -1) {
-                    throw new IllegalArgumentException("Invalid connection URL, expected key=value pairs, found " + parameter);
-                }
-                if (!properties.containsKey(parameter.substring(0, pos))) {
-                    properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+                    if (!properties.containsKey(parameter)) {
+                        properties.setProperty(parameter, "");
+                    }
+                } else {
+                    if (!properties.containsKey(parameter.substring(0, pos))) {
+                        properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+                    }
+
                 }
             }
         }
@@ -586,6 +597,7 @@ public enum DefaultOptions {
                         Options.class.getField(o.name).set(options, propertyValue);
                     } else if (o.objType.equals(Boolean.class)) {
                         switch (propertyValue.toLowerCase()) {
+                            case "":
                             case "1":
                             case "true":
                                 Options.class.getField(o.name).set(options, Boolean.TRUE);

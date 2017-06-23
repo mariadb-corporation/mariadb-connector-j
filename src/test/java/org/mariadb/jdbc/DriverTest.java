@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
