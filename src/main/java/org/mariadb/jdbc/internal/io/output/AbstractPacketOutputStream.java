@@ -639,9 +639,12 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     public void writeBytesEscaped(byte[] bytes, int len, boolean noBackslashEscapes)
             throws IOException {
         if (len * 2 > buf.length - pos) {
+
+            //makes buffer bigger (up to 16M)
             if (buf.length != getMaxPacketLength()) growBuffer(len * 2);
 
-            //max buffer size
+            //data may be bigger than buffer.
+            //must flush buffer when full (and reset position to 0)
             if (len * 2 > buf.length - pos) {
                 if (noBackslashEscapes) {
                     for (int i = 0; i < len; i++) {
@@ -658,7 +661,6 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                                 || bytes[i] == SLASH
                                 || bytes[i] == DBL_QUOTE
                                 || bytes[i] == ZERO_BYTE) {
-                            len -= 1;
                             buf[pos++] = '\\';
                             if (buf.length <= pos) flushBuffer(false);
                         }
@@ -670,7 +672,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
             }
         }
 
-        //sure to have enough place
+        //sure to have enough place filling buffer directly
         if (noBackslashEscapes) {
             for (int i = 0; i < len; i++) {
                 if (QUOTE == bytes[i]) buf[pos++] = QUOTE;

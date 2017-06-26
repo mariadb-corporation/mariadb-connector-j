@@ -367,7 +367,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         } catch (SQLException sqle) {
             throw sqle;
         } catch (IOException e) {
-            throw new SQLException("Could not connect to " + currentHost + ". " + e.getMessage() + getTraces(), CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new SQLException("Could not connect to " + currentHost + ". " + e.getMessage() + getTraces(),
+                    CONNECTION_EXCEPTION.getSqlState(), e);
         }
     }
 
@@ -482,8 +483,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
             sessionOption.append(", sql_mode = concat(@@sql_mode,',STRICT_TRANS_TABLES')");
         }
 
-        if (options.sessionVariables != null) {
-            sessionOption.append("," + options.sessionVariables);
+        if (options.sessionVariables != null && !options.sessionVariables.isEmpty()) {
+            sessionOption.append("," + Utils.parseSessionVariables(options.sessionVariables));
         }
 
         writer.startPacket(0);
@@ -1010,7 +1011,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             } catch (IOException e) {
                 if (hosts.isEmpty()) {
                     throw new SQLException("Could not connect to named pipe '" + options.pipe + "' : "
-                            + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
+                            + e.getMessage() + getTraces(), CONNECTION_EXCEPTION.getSqlState(), e);
                 }
             }
         }
@@ -1032,7 +1033,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 throw sqle;
             } catch (IOException e) {
                 if (hosts.isEmpty()) {
-                    throw new SQLException("Could not connect to " + HostAddress.toString(addrs) + " : " + e.getMessage(),
+                    throw new SQLException("Could not connect to " + HostAddress.toString(addrs) + " : " + e.getMessage() + getTraces(),
                             CONNECTION_EXCEPTION.getSqlState(), e);
                 }
             }

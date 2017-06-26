@@ -17,7 +17,7 @@ To use GSSAPI authentication, a user must be set to use GSSAPI :
 CREATE USER one IDENTIFIED VIA gssapi AS 'userOne@EXAMPLE.COM';
 ```
 
-When connecting to database useing for example for example using jdbc url : 
+When connecting to database using for example for example using jdbc url :
 DriverManager.getConnection("jdbc:mariadb://db.example.com:3306/db?user=one");
 These user is send to database and GSSAPI authentication will be use. 
 The principal (userOne@EXAMPLE.COM in example) must be the one defined on the user definition.

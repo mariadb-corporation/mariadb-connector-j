@@ -1303,8 +1303,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 // - after a callable resultSet, a OK packet is send, but mysql does send the  a bad "more result flag"
                 Buffer bufferEof = reader.getPacket(true);
                 if (bufferEof.readByte() != EOF) {
-                    throw new SQLException("Packets out of order when reading field packets, expected was EOF stream. "
-                            + "Packet contents (hex) = " + Utils.hexdump(options.maxQuerySizeToLog, 0, bufferEof.position, bufferEof.buf));
+                    throw new SQLException("Packets out of order when reading field packets, expected was EOF stream."
+                            + ((options.enablePacketDebug) ? getTraces() : "Packet contents (hex) = "
+                                + Utils.hexdump(options.maxQuerySizeToLog, 0, bufferEof.position, bufferEof.buf)));
                 }
                 bufferEof.skipBytes(2); //Skip warningCount
                 callableResult = (bufferEof.readShort() & ServerStatus.PS_OUT_PARAMETERS) != 0;

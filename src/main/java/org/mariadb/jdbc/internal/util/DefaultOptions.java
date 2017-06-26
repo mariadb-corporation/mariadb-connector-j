@@ -632,6 +632,9 @@ public enum DefaultOptions {
         //disable use server prepare id using client rewrite
         if (options.rewriteBatchedStatements) {
             options.useServerPrepStmts = false;
+        }
+
+        if (!options.useServerPrepStmts) {
             options.cachePrepStmts = false;
         }
 

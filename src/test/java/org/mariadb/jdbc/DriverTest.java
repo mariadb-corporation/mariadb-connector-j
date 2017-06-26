@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -60,10 +61,8 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.math.BigDecimal;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
+import java.sql.Date;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -194,6 +193,59 @@ public class DriverTest extends BaseTest {
         assertEquals(2, prepStmt.getParameterMetaData().getParameterCount());
     }
 
+    @Test
+    public void parameterMetaDataNotPreparable() throws SQLException {
+        Assume.assumeFalse(sharedUsePrepare());
+        Statement stmt = sharedConnection.createStatement();
+        Map<String, Integer> initValues = loadVariables(stmt);
+
+        //statement that cannot be prepared
+        try (PreparedStatement pstmt = sharedConnection.prepareStatement(
+                "select  TMP.field1 from (select ? from dual) TMP")) {
+            ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
+            try {
+                parameterMetaData.getParameterCount();
+                fail();
+            } catch (SQLException sqle) {
+                assertEquals("S1C00", sqle.getSQLState());
+            }
+        }
+        Map<String, Integer> endingValues = loadVariables(stmt);
+        assertEquals(initValues.get("Prepared_stmt_count"), endingValues.get("Prepared_stmt_count"));
+        assertEquals((Integer) (initValues.get("Com_stmt_prepare") + 1), endingValues.get("Com_stmt_prepare"));
+        assertEquals(initValues.get("Com_stmt_close"), endingValues.get("Com_stmt_close"));
+    }
+
+    private Map<String, Integer> loadVariables(Statement stmt) throws SQLException {
+        Map<String, Integer> variables = new HashMap<String, Integer>();
+        ResultSet rs = stmt.executeQuery("SHOW SESSION STATUS WHERE Variable_name in ('Prepared_stmt_count','Com_stmt_prepare', 'Com_stmt_close')");
+        rs.next();
+        variables.put(rs.getString(1), rs.getInt(2));
+        rs.next();
+        variables.put(rs.getString(1), rs.getInt(2));
+        rs.next();
+        variables.put(rs.getString(1), rs.getInt(2));
+        return variables;
+    }
+
+    @Test
+    public void parameterMetaDataPreparable() throws SQLException {
+        Assume.assumeFalse(sharedUsePrepare());
+        Statement stmt = sharedConnection.createStatement();
+        Map<String, Integer> initValues = loadVariables(stmt);
+
+        //statement that cannot be prepared
+        try (PreparedStatement pstmt = sharedConnection.prepareStatement(
+                "select  ?")) {
+            ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
+            parameterMetaData.getParameterCount();
+        }
+        Map<String, Integer> endingValues = loadVariables(stmt);
+        assertEquals(initValues.get("Prepared_stmt_count"), endingValues.get("Prepared_stmt_count"));
+        assertEquals((Integer) (initValues.get("Com_stmt_prepare") + 1), endingValues.get("Com_stmt_prepare"));
+        assertEquals((Integer) (initValues.get("Com_stmt_close") + 1), endingValues.get("Com_stmt_close"));
+
+    }
 
     @Test
     public void streamingResultSet() throws Exception {
@@ -1342,6 +1394,39 @@ public class DriverTest extends BaseTest {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    /**
+     * CONJ-497 - Long escapable string.
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void testLongEscapes() throws SQLException {
+        //40m, because escaping will double the send byte numbers
+        Assume.assumeTrue(checkMaxAllowedPacketMore40m("testLongEscapes"));
+        createTable("testLongEscapes", "t1 longtext");
+
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                "INSERT into testLongEscapes values (?)")) {
+            byte[] arr = new byte[20_000_000];
+            Arrays.fill(arr, (byte) '\'');
+            preparedStatement.setBytes(1, arr);
+            preparedStatement.execute();
+
+            Arrays.fill(arr, (byte) '\"');
+            preparedStatement.setBytes(1, arr);
+            preparedStatement.execute();
+        }
+
+        Statement stmt = sharedConnection.createStatement();
+        try (ResultSet rs = stmt.executeQuery("select length(t1) from testLongEscapes")) {
+            assertTrue(rs.next());
+            assertEquals(20_000_000, rs.getInt(1));
+            assertTrue(rs.next());
+            assertEquals(20_000_000, rs.getInt(1));
+            assertFalse(rs.next());
         }
     }
 

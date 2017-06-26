@@ -55,6 +55,8 @@ package org.mariadb.jdbc.internal.util;
 import org.junit.Assert;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+
 public class UtilsTest {
 
     @Test
@@ -78,4 +80,18 @@ public class UtilsTest {
                 + "6E 65 2C 20 40 40 73 71  6C 5F 6D 6F 64 65           ne, @@sql_mode\n";
         Assert.assertEquals(result, Utils.hexdump(bb));
     }
+
+    @Test
+    public void sessionVariableParsing() {
+        assertEquals("net_write_timeout=3600", Utils.parseSessionVariables("net_write_timeout=3600"));
+        assertEquals("net_write,_timeout=3600", Utils.parseSessionVariables("net_write,_timeout=3600"));
+
+        assertEquals("net_write_timeout=3600", Utils.parseSessionVariables(",;net_write_timeout=3600,"));
+        assertEquals("net_write_timeout=3600,INSERT INTO USER",
+                Utils.parseSessionVariables("net_write_timeout=3600;INSERT INTO USER"));
+        assertEquals("net_write_timeout=3600,init_connect='SELECT 1;SELECT 2'",
+                Utils.parseSessionVariables("net_write_timeout=3600;init_connect='SELECT 1;SELECT 2'"));
+
+    }
+
 }
