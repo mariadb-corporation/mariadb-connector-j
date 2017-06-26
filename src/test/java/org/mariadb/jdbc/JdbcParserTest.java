@@ -157,9 +157,16 @@ public class JdbcParserTest {
     }
 
     @Test
-    public void testNAmePipeUrl() throws Throwable {
+    public void testNamePipeUrl() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb:///test?useSSL=true");
         assertTrue(jdbc.getOptions().useSsl);
+    }
+
+    @Test
+    public void testBooleanDefault() throws Throwable {
+        assertFalse(UrlParser.parse("jdbc:mariadb:///test").getOptions().useSsl);
+        assertTrue(UrlParser.parse("jdbc:mariadb:///test?useSSL=true").getOptions().useSsl);
+        assertTrue(UrlParser.parse("jdbc:mariadb:///test?useSSL").getOptions().useSsl);
     }
 
     @Test

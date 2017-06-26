@@ -100,6 +100,8 @@ import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
@@ -695,13 +697,18 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 // (rfc2818 indicate that if "client has external information as to the expected identity of the server,
                 // the hostname check MAY be omitted")
                 if (!options.disableSslHostnameVerification) {
-                    HostnameVerifier hostnameVerifier = new HostnameVerifierImpl();
+                    HostnameVerifierImpl hostnameVerifier = new HostnameVerifierImpl();
                     SSLSession session = sslSocket.getSession();
                     if (!hostnameVerifier.verify(host, session)) {
-                        String message = "hostname \"" + host + "\" doesn't match TLS certificate host \"" + session.getPeerPrincipal() + "\".\n"
-                                + "This verification can be disable using option \"disableSslHostnameVerification\" "
-                                + "but won't prevent man-in-the-middle attacks anymore";
-                        throw new SQLNonTransientConnectionException(message, "08006");
+
+                        //Use proprietary verify method in order to have an exception with a better description of error.
+                        try {
+                            Certificate[] certs = session.getPeerCertificates();
+                            X509Certificate cert = (X509Certificate) certs[0];
+                            hostnameVerifier.verify(host, cert);
+                        } catch (SSLException ex) {
+                            throw new SQLNonTransientConnectionException(ex.getMessage(), "08006");
+                        }
                     }
                 }
 
