@@ -121,7 +121,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
             rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             assertTrue(rs.next());
-            assertTrue(rs.getInt(2) == nbStatementCount + 1);
+            assertEquals(nbStatementCount + 1, rs.getInt(2));
         }
     }
 
