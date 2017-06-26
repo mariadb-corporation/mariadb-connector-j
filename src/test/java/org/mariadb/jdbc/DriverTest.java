@@ -200,8 +200,9 @@ public class DriverTest extends BaseTest {
         Map<String, Integer> initValues = loadVariables(stmt);
 
         //statement that cannot be prepared
-        try (PreparedStatement pstmt = sharedConnection.prepareStatement(
-                "select  TMP.field1 from (select ? from dual) TMP")) {
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = sharedConnection.prepareStatement("select  TMP.field1 from (select ? from dual) TMP");
             ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
             try {
                 parameterMetaData.getParameterCount();
@@ -209,6 +210,8 @@ public class DriverTest extends BaseTest {
             } catch (SQLException sqle) {
                 assertEquals("S1C00", sqle.getSQLState());
             }
+        } finally {
+            if (pstmt != null) pstmt.close();
         }
         Map<String, Integer> endingValues = loadVariables(stmt);
         assertEquals(initValues.get("Prepared_stmt_count"), endingValues.get("Prepared_stmt_count"));
@@ -235,11 +238,15 @@ public class DriverTest extends BaseTest {
         Map<String, Integer> initValues = loadVariables(stmt);
 
         //statement that cannot be prepared
-        try (PreparedStatement pstmt = sharedConnection.prepareStatement(
-                "select  ?")) {
+        PreparedStatement pstmt = null;
+        try {
+            pstmt = sharedConnection.prepareStatement("select  ?");
             ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
             parameterMetaData.getParameterCount();
+        } finally {
+            if (pstmt == null) pstmt.close();
         }
+
         Map<String, Integer> endingValues = loadVariables(stmt);
         assertEquals(initValues.get("Prepared_stmt_count"), endingValues.get("Prepared_stmt_count"));
         assertEquals((Integer) (initValues.get("Com_stmt_prepare") + 1), endingValues.get("Com_stmt_prepare"));
@@ -1407,10 +1414,10 @@ public class DriverTest extends BaseTest {
         //40m, because escaping will double the send byte numbers
         Assume.assumeTrue(checkMaxAllowedPacketMore40m("testLongEscapes"));
         createTable("testLongEscapes", "t1 longtext");
-
-        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-                "INSERT into testLongEscapes values (?)")) {
-            byte[] arr = new byte[20_000_000];
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = sharedConnection.prepareStatement("INSERT into testLongEscapes values (?)");
+            byte[] arr = new byte[20000000];
             Arrays.fill(arr, (byte) '\'');
             preparedStatement.setBytes(1, arr);
             preparedStatement.execute();
@@ -1418,16 +1425,17 @@ public class DriverTest extends BaseTest {
             Arrays.fill(arr, (byte) '\"');
             preparedStatement.setBytes(1, arr);
             preparedStatement.execute();
+        } finally {
+            if (preparedStatement != null) preparedStatement.close();
         }
 
         Statement stmt = sharedConnection.createStatement();
-        try (ResultSet rs = stmt.executeQuery("select length(t1) from testLongEscapes")) {
-            assertTrue(rs.next());
-            assertEquals(20_000_000, rs.getInt(1));
-            assertTrue(rs.next());
-            assertEquals(20_000_000, rs.getInt(1));
-            assertFalse(rs.next());
-        }
+        ResultSet rs = stmt.executeQuery("select length(t1) from testLongEscapes");
+        assertTrue(rs.next());
+        assertEquals(20000000, rs.getInt(1));
+        assertTrue(rs.next());
+        assertEquals(20000000, rs.getInt(1));
+        assertFalse(rs.next());
     }
 
 }
