@@ -70,7 +70,7 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
     }
 
     private void checkAvailable() throws SQLException {
-        if(this.parametersInformation == null) {
+        if (this.parametersInformation == null) {
             throw new SQLException("Parameter metadata not available for these statement", "S1C00");
         }
     }

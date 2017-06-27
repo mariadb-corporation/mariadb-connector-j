@@ -101,6 +101,8 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
         CallableProcedureStatement clone = (CallableProcedureStatement) super.clone(connection);
         clone.params = params;
         clone.parameterMetadata = parameterMetadata;
+        clone.hasInOutParameters = hasInOutParameters;
+        clone.outputParameterMapper = outputParameterMapper;
         return clone;
     }
 

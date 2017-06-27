@@ -146,7 +146,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private int patchVersion;
     private Map<String, String> serverData;
     private TimeZone timeZone;
-    private LruTraceCache traceCache;
+    private LruTraceCache traceCache = new LruTraceCache();
 
     /**
      * Get a protocol instance.
@@ -220,8 +220,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
 
         if (options.enablePacketDebug) {
-            if (traceCache != null) traceCache.clearMemory();
-            traceCache = null;
+            traceCache.clearMemory();
         }
     }
 
@@ -368,7 +367,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         } catch (SQLException sqle) {
             throw sqle;
         } catch (IOException e) {
-            throw new SQLException("Could not connect to " + currentHost + ". " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
+            throw new SQLException("Could not connect to " + currentHost + ". " + e.getMessage() + getTraces(),
+                    CONNECTION_EXCEPTION.getSqlState(), e);
         }
     }
 
@@ -411,6 +411,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
             if (options.useCompression) {
                 writer = new CompressPacketOutputStream(writer.getOutputStream(), options.maxQuerySizeToLog);
                 reader = new DecompressPacketInputStream(((StandardPacketInputStream) reader).getBufferedInputStream(), options.maxQuerySizeToLog);
+                if (options.enablePacketDebug) {
+                    writer.setTraceCache(traceCache);
+                    reader.setTraceCache(traceCache);
+                }
             }
 
             if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
@@ -431,12 +435,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             // Extract socketTimeout URL parameter
             if (options.socketTimeout != null) socket.setSoTimeout(options.socketTimeout);
-
-            if (options.enablePacketDebug) {
-                traceCache = new LruTraceCache();
-                writer.setTraceCache(traceCache);
-                reader.setTraceCache(traceCache);
-            }
 
             reader.setServerThreadId(this.serverThreadId, isMasterConnection());
             writer.setServerThreadId(this.serverThreadId, isMasterConnection());
@@ -485,8 +483,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
             sessionOption.append(", sql_mode = concat(@@sql_mode,',STRICT_TRANS_TABLES')");
         }
 
-        if (options.sessionVariables != null) {
-            sessionOption.append("," + options.sessionVariables);
+        if (options.sessionVariables != null && !options.sessionVariables.isEmpty()) {
+            sessionOption.append("," + Utils.parseSessionVariables(options.sessionVariables));
         }
 
         writer.startPacket(0);
@@ -654,6 +652,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
             reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
             writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
 
+            if (options.enablePacketDebug) {
+                writer.setTraceCache(traceCache);
+                reader.setTraceCache(traceCache);
+            }
+
             final ReadInitialHandShakePacket greetingPacket = new ReadInitialHandShakePacket(reader);
             this.serverThreadId = greetingPacket.getServerThreadId();
             reader.setServerThreadId(this.serverThreadId, null);
@@ -686,6 +689,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
                 reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
 
+                if (options.enablePacketDebug) {
+                    writer.setTraceCache(traceCache);
+                    reader.setTraceCache(traceCache);
+                }
                 packetSeq++;
             } else if (options.useSsl) {
                 throw new SQLException("Trying to connect with ssl, but ssl not enabled in the server");
@@ -1003,7 +1010,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             } catch (IOException e) {
                 if (hosts.isEmpty()) {
                     throw new SQLException("Could not connect to named pipe '" + options.pipe + "' : "
-                            + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
+                            + e.getMessage() + getTraces(), CONNECTION_EXCEPTION.getSqlState(), e);
                 }
             }
         }
@@ -1025,7 +1032,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 throw sqle;
             } catch (IOException e) {
                 if (hosts.isEmpty()) {
-                    throw new SQLException("Could not connect to " + HostAddress.toString(addrs) + " : " + e.getMessage(),
+                    throw new SQLException("Could not connect to " + HostAddress.toString(addrs) + " : " + e.getMessage() + getTraces(),
                             CONNECTION_EXCEPTION.getSqlState(), e);
                 }
             }

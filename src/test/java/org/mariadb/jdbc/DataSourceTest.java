@@ -110,6 +110,7 @@ public class DataSourceTest extends BaseTest {
      */
     @Test
     public void setDatabaseNameTest() throws SQLException {
+        Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
         try (Connection connection = ds.getConnection(username, password)) {
             connection.createStatement().execute("CREATE DATABASE IF NOT EXISTS test2");
