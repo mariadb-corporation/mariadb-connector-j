@@ -501,26 +501,6 @@ public class ServerPrepareStatementTest extends BaseTest {
     }
 
     @Test
-    public void checkReusability() throws Throwable {
-        Assume.assumeTrue(!sharedIsRewrite());
-        setConnection("&prepStmtCacheSize=10");
-        ExecutorService exec = Executors.newFixedThreadPool(2);
-
-        //check blacklist shared
-        exec.execute(new CreatePrepareDouble("INSERT INTO ServerPrepareStatementCacheSize2( test) VALUES (?)",
-                sharedConnection, 100, 100));
-        exec.execute(new CreatePrepareDouble("INSERT INTO ServerPrepareStatementCacheSize2( test) VALUES (?)",
-                sharedConnection, 500, 100));
-        //wait for thread endings
-        exec.shutdown();
-        try {
-            exec.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException e) {
-            //eat exception
-        }
-    }
-
-    @Test
     public void blobTest() throws Throwable {
         try (Connection connection = setConnection("&prepStmtCacheSize=10")) {
             PreparedStatement ps = connection.prepareStatement(
@@ -899,46 +879,6 @@ public class ServerPrepareStatementTest extends BaseTest {
                 preparedStatement.executeBatch();
             } catch (SQLException e) {
                 e.printStackTrace();
-            }
-        }
-    }
-
-    protected class CreatePrepareDouble implements Runnable {
-        private String sql;
-        private Connection connection;
-        private long firstWaitTime;
-        private long secondWaitTime;
-
-
-        public CreatePrepareDouble(String sql, Connection connection, long firstWaitTime, long secondWaitTime) {
-            this.sql = sql;
-            this.connection = connection;
-            this.firstWaitTime = firstWaitTime;
-            this.secondWaitTime = secondWaitTime;
-        }
-
-        public void run() {
-            try {
-                Protocol protocol = getProtocolFromConnection(connection);
-                if (protocol.prepareStatementCache().containsKey(sql)) {
-                    protocol.prepareStatementCache().get(sql);
-                }
-                if (protocol.prepareStatementCache().containsKey(sql)) {
-                    protocol.prepareStatementCache().get(sql);
-                }
-                PreparedStatement ps = connection.prepareStatement(sql);
-                Thread.sleep(firstWaitTime);
-                ps.setBoolean(1, true);
-                ps.addBatch();
-                ps.executeBatch();
-                Thread.sleep(secondWaitTime);
-                ps.close();
-                if (protocol.prepareStatementCache().containsKey(sql)) {
-                    protocol.prepareStatementCache().get(sql);
-                }
-            } catch (Throwable e) {
-                e.printStackTrace();
-                fail();
             }
         }
     }
