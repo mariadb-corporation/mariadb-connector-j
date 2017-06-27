@@ -308,11 +308,14 @@ public class DataTypeSignedTest extends BaseTest {
                 assertEquals(new BigDecimal("9223372036854775806.00000000000000000000"), rs.getBigDecimal(1));
                 assertEquals("9223372036854775806.00000000000000000000", rs.getString(1));
                 if (rs.next()) {
+                    assertEquals(1, rs.getByte(1));
+                    assertEquals(1, rs.getShort(1));
+                    assertEquals(1, rs.getInt(1));
+                    assertEquals(1, rs.getLong(1));
                     assertEquals(1.1F, rs.getFloat(1), .000001);
                     assertEquals(1.1D, rs.getDouble(1), .000001);
                     assertEquals("1.10000000000000000000", rs.getString(1));
                     assertEquals(new BigDecimal("1.10000000000000000000"), rs.getBigDecimal(1));
-                    assertEquals(1, rs.getInt(1));
 
                     if (rs.next()) {
                         oneNullNegativeTest(rs, true, false);
@@ -351,7 +354,7 @@ public class DataTypeSignedTest extends BaseTest {
     private void intMustFail(ResultSet rs) {
         try {
             rs.getInt(1);
-            //fail("getInt must have thrown error !");
+            fail("getInt must have thrown error !");
         } catch (SQLException e) {
             assertEquals("22003", e.getSQLState());
         }
