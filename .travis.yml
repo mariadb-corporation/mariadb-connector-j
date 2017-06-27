@@ -3,15 +3,19 @@ language: java
 before_install:
     - chmod +x .travis/before_test.sh
     - chmod +x .travis/script.sh
+    # java 6 require maven 3.2.5
+    - wget http://mirrors.sonic.net/apache/maven/maven-3/3.2.5/binaries/apache-maven-3.2.5-bin.tar.gz
+    - tar -zxf apache-maven-3.2.5-bin.tar.gz
+    - sudo cp -R apache-maven-3.2.5 /usr/local
+    - ls -lrt /usr/local/apache-maven-3.2.5/bin/
+    - sudo ln -fs /usr/local/apache-maven-3.2.5/bin/mvn /usr/local/bin/mvn
+    - mvn --version
     - echo "MAVEN_OPTS='-Xmx384m'" > ~/.mavenrc
 install: .travis/before_test.sh
 dist: trusty
-cache:
-  directories:
-    - $HOME/.m2
 jdk:
     - openjdk6
-    - oraclejdk7
+    - openjdk7
     - oraclejdk8
 env:
     - AURORA=true

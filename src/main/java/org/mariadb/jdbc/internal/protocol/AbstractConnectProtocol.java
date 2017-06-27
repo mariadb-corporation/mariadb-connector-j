@@ -1334,7 +1334,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     public String getTraces() {
-        if (options.enablePacketDebug && traceCache != null) return traceCache.printStack();
+        synchronized(traceCache) {
+            if (options.enablePacketDebug && traceCache != null) return traceCache.printStack();
+        }
         return "";
     }
 }
