@@ -146,7 +146,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private int patchVersion;
     private Map<String, String> serverData;
     private TimeZone timeZone;
-    private LruTraceCache traceCache;
+    private LruTraceCache traceCache = new LruTraceCache();
 
     /**
      * Get a protocol instance.
@@ -220,8 +220,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
 
         if (options.enablePacketDebug) {
-            if (traceCache != null) traceCache.clearMemory();
-            traceCache = null;
+            traceCache.clearMemory();
         }
     }
 
@@ -654,7 +653,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
             writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
 
             if (options.enablePacketDebug) {
-                traceCache = new LruTraceCache();
                 writer.setTraceCache(traceCache);
                 reader.setTraceCache(traceCache);
             }
@@ -1335,7 +1333,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     public String getTraces() {
-        if (options.enablePacketDebug && traceCache != null) return traceCache.printStack();
+        if (options.enablePacketDebug) return traceCache.printStack();
         return "";
     }
 }
