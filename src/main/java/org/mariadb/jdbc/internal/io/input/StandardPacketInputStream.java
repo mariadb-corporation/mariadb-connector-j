@@ -243,7 +243,7 @@ public class StandardPacketInputStream implements PacketInputStream {
         do {
             int count = inputStream.read(header, off, remaining);
             if (count < 0) {
-                throw new EOFException("unexpected end of exception, read " + off + " bytes from 4");
+                throw new EOFException("unexpected end of stream, read " + off + " bytes from 4");
             }
             remaining -= count;
             off += count;
@@ -266,7 +266,7 @@ public class StandardPacketInputStream implements PacketInputStream {
         do {
             int count = inputStream.read(rawBytes, off, remaining);
             if (count < 0) {
-                throw new EOFException("unexpected end of exception, read " + (lastPacketLength - remaining) + " bytes from " + lastPacketLength);
+                throw new EOFException("unexpected end of stream, read " + (lastPacketLength - remaining) + " bytes from " + lastPacketLength);
             }
             remaining -= count;
             off += count;
@@ -294,7 +294,7 @@ public class StandardPacketInputStream implements PacketInputStream {
                 do {
                     int count = inputStream.read(header, off, remaining);
                     if (count < 0) {
-                        throw new EOFException("unexpected end of exception, read " + off + " bytes from 4");
+                        throw new EOFException("unexpected end of stream, read " + off + " bytes from 4");
                     }
                     remaining -= count;
                     off += count;
@@ -316,7 +316,7 @@ public class StandardPacketInputStream implements PacketInputStream {
                 do {
                     int count = inputStream.read(rawBytes, off, remaining);
                     if (count < 0) {
-                        throw new EOFException("unexpected end of exception, read " + (packetLength - remaining) + " bytes from " + packetLength);
+                        throw new EOFException("unexpected end of stream, read " + (packetLength - remaining) + " bytes from " + packetLength);
                     }
                     remaining -= count;
                     off += count;

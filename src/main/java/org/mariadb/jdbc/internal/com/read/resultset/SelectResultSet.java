@@ -73,25 +73,48 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
-import java.io.*;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.sql.*;
-import java.sql.Date;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
-
 import static org.mariadb.jdbc.internal.com.Packet.EOF;
 import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 import static org.mariadb.jdbc.internal.util.constant.ServerStatus.MORE_RESULTS_EXISTS;
 import static org.mariadb.jdbc.internal.util.constant.ServerStatus.PS_OUT_PARAMETERS;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.Date;
+import java.sql.NClob;
+import java.sql.Ref;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.RowId;
+import java.sql.SQLDataException;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 
 @SuppressWarnings("deprecation")
 public class SelectResultSet implements ResultSet {
@@ -99,7 +122,7 @@ public class SelectResultSet implements ResultSet {
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
     private static final ColumnInformation[] INSERT_ID_COLUMNS;
-    private static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.0+$");
+    private static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.[0-9]+$");
     private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
     static {
