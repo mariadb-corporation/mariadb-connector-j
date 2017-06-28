@@ -445,8 +445,8 @@ public enum DefaultOptions {
     ENABLE_PACKET_DEBUG("enablePacketDebug", Boolean.FALSE, "1.6.0"),
 
     /**
-     * Since 2.1.0, the client check hostname against the server's identity as presented in the server's Certificate
-     * message, in order to prevent man-in-the-middle attack.
+     * When using ssl, driver check hostname against the server's identity as presented in the server's Certificate
+     * (checking alternative names or certificate CN) to prevent man-in-the-middle attack.
      *
      * This option permit to deactivate this validation.
      */
