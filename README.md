@@ -1,6 +1,6 @@
 <p align="center">
   <a href="http://mariadb.org/">
-    <img height="129" width="413" src="http://badges.mariadb.org/logo/Mariadb-seal-shaded-browntext.png">
+    <img src="https://mariadb.com/themes/custom/mariadb/logo.svg">
   </a>
 </p>
 
