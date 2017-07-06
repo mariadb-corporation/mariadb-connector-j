@@ -3,33 +3,39 @@
 set -x
 set -e
 
+###################################################################################################################
+# test different type of configuration
+###################################################################################################################
 case "$TYPE" in
- "MAXSCALE" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:4006/testj?user=root&killFetchStmtOnClose=false&enablePacketDebug=true'
-   ;;
  "REWRITE" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&rewriteBatchedStatements=true&enablePacketDebug=true'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&rewriteBatchedStatements=true&enablePacketDebug=true'
    ;;
  "PREPARE" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useServerPrepStmts=true&enablePacketDebug=true'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&useServerPrepStmts=true&enablePacketDebug=true'
    ;;
  "MULTI" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&allowMultiQueries=true&enablePacketDebug=true'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&allowMultiQueries=true&enablePacketDebug=true'
    ;;
  "BULK_SERVER" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=true&useServerPrepStmts=true&enablePacketDebug=true'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&useBatchMultiSend=true&useServerPrepStmts=true&enablePacketDebug=true'
    ;;
  "NO_BULK_CLIENT" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false&enablePacketDebug=true'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&useBatchMultiSend=false&enablePacketDebug=true'
    ;;
  "NO_BULK_SERVER" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useBatchMultiSend=false&useServerPrepStmts=true&enablePacketDebug=true'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&useBatchMultiSend=false&useServerPrepStmts=true&enablePacketDebug=true'
    ;;
  "COMPRESSION" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&useCompression=true&enablePacketDebug=true'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&useCompression=true&enablePacketDebug=true'
    ;;
   *)
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root&enablePacketDebug=true'
+   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root'
+   if [ -n "$MAXSCALE_VERSION" ]
+   then
+       urlString=-DdbUrl='jdbc:mariadb://localhost:4007/testj?user=bob&killFetchStmtOnClose=false&enablePacketDebug=true'
+   else
+       urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&enablePacketDebug=true'
+   fi
    ;;
 esac;
 
@@ -52,22 +58,51 @@ then
         testSingleHost=false
     fi
 else
+
     testSingleHost=true
+
+    ###################################################################################################################
+    # launch docker server and maxscale
+    ###################################################################################################################
+    export INNODB_LOG_FILE_SIZE=$(echo $PACKET| cut -d'M' -f 1)0M
+    docker-compose -f .travis/docker-compose.yml build
+    docker-compose -f .travis/docker-compose.yml up -d
+
+    ###################################################################################################################
+    # for travis, wait for docker initialisation
+    ###################################################################################################################
+    if [ -n "$TRAVIS" ]
+    then
+        mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=4007 )
+
+        for i in {30..0}; do
+            if echo 'SELECT 1' | "${mysql[@]}" &> /dev/null; then
+                break
+            fi
+            echo 'maxscale still not active'
+            sleep 1
+        done
+
+        docker-compose -f .travis/docker-compose.yml logs
+
+        if [ "$i" = 0 ]; then
+            echo 'SELECT 1' | "${mysql[@]}"
+            echo >&2 'Maxscale init process failed.'
+            exit 1
+        fi
+    fi
 fi
 
-echo "Running coveralls for JDK version: $TRAVIS_JDK_VERSION with profile jdbc42"
+
+
+###################################################################################################################
+# run test suite
+###################################################################################################################
+echo "Running coveralls for JDK version: $TRAVIS_JDK_VERSION"
 mvn clean test $urlString -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID  \
-    -DkeystorePath="/etc/mysql/client-keystore.jks" -DkeystorePassword="kspass"  \
-    -Dkeystore2Path="/etc/mysql/fullclient-keystore.jks" -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
-    -Dkeystore2PathP12="/etc/mysql/fullclient-keystore.p12"
-
-if [ "$TYPE" == "MAXSCALE" ]
-then
-sudo service maxscale stop
-fi
-
-
-if [ ! -n "$AURORA" ]
-then
-    sudo service mysql stop
-fi
+    -DkeystorePath="/home/travis/build/rusher/mariadb-connector-j/tmp/client-keystore.jks" \
+    -DkeystorePassword="kspass"  \
+    -DserverCertificatePath="/home/travis/build/rusher/mariadb-connector-j/tmp/server.crt" \
+    -Dkeystore2Path="/home/travis/build/rusher/mariadb-connector-j/tmp/fullclient-keystore.jks" \
+    -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
+    -Dkeystore2PathP12="/home/travis/build/rusher/mariadb-connector-j/tmp/fullclient-keystore.p12"

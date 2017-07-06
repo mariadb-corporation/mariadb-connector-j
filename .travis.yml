@@ -1,38 +1,46 @@
-sudo: required
+dist: trusty
 language: java
+services: docker
+sudo: false
 before_install:
-    - chmod +x .travis/before_test.sh
     - chmod +x .travis/script.sh
     - echo "MAVEN_OPTS='-Xmx384m'" > ~/.mavenrc
-install: .travis/before_test.sh
-dist: trusty
+install:
+
+    # generate SSL certificates
+    - mkdir tmp
+    - .travis/gen-ssl.sh mariadb.example.com tmp
+
 cache:
   directories:
     - $HOME/.m2
+
 jdk:
-#    - oraclejdk9 temporary disabled, because travis issue https://github.com/travis-ci/travis-ci/issues/7944
+#    - oraclejdk9
     - oraclejdk8
+
 env:
     - AURORA=true
-    - MARIA=5.5 PACKET=8M
-    - MARIA=10.0 PACKET=8M
-    - MARIA=10.1 PACKET=8M
-    - MARIA=10.1 PACKET=20M
-    - MARIA=10.1 PACKET=40M
-    - MARIA=10.2 PACKET=8M
-    - MARIA=10.2 PACKET=8M PROFILE=true
-    - MARIA=10.2 PACKET=20M
-    - MARIA=10.2 PACKET=40M
-    - TYPE=PREPARE MARIA=10.1 PACKET=40M
-    - TYPE=MAXSCALE MAXSCALE_VERSION=2.1.3 MARIA=10.1 PACKET=40M
-    - TYPE=REWRITE MARIA=10.1 PACKET=40M
-    - TYPE=MULTI MARIA=10.1 PACKET=40M
-    - TYPE=BULK_SERVER MARIA=10.1 PACKET=40M
-    - TYPE=NO_BULK_CLIENT MARIA=10.1 PACKET=40M
-    - TYPE=NO_BULK_SERVER MARIA=10.1 PACKET=40M
-    - COMPRESSION=false MARIA=10.1 PACKET=40M
-    - TYPE=NO_BULK_SERVER MARIA=10.2 PACKET=40M
-    - COMPRESSION=false MARIA=10.2 PACKET=40M
-    - MYSQL=5.7 PACKET=8M
-    - MYSQL=5.6 PACKET=8M
+    - DB=mysql:5.5 PACKET=8M
+    - DB=mysql:5.6 PACKET=8M
+#    - DB=mysql:5.7 PACKET=8M
+#    - DB=mysql:8.0 PACKET=8M
+    - DB=mariadb:5.5 PACKET=8M
+    - DB=mariadb:10.0 PACKET=8M
+    - DB=mariadb:10.1 PACKET=8M
+    - DB=mariadb:10.2 PACKET=8M
+    - DB=mariadb:10.2 PACKET=8M PROFILE=true
+    - DB=mariadb:10.2 PACKET=8M TYPE=PREPARE
+    - DB=mariadb:10.2 PACKET=8M TYPE=REWRITE
+    - DB=mariadb:10.2 PACKET=8M TYPE=MULTI
+    - DB=mariadb:10.2 PACKET=20M
+    - DB=mariadb:10.2 PACKET=40M
+    - DB=mariadb:10.2 PACKET=40M TYPE=BULK_SERVER
+    - DB=mariadb:10.2 PACKET=40M TYPE=NO_BULK_CLIENT
+    - DB=mariadb:10.2 PACKET=40M TYPE=NO_BULK_SERVER
+    - DB=mariadb:10.2 PACKET=40M COMPRESSION=true
+    - DB=mariadb:10.3 PACKET=8M
+#    - DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.0.2
+#    - DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.0.6
+#    - DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.1.4
 script: .travis/script.sh

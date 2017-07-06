@@ -1,0 +1,26 @@
+version: '2'
+services:
+  maxscale:
+
+    depends_on:
+      - db
+
+    ports:
+      - 4007:4007
+      - 4008:4008
+    build:
+      context: .
+      dockerfile: maxscale/Dockerfile
+
+  db:
+    image: $DB
+    command: --max-allowed-packet=$PACKET --innodb-log-file-size=$INNODB_LOG_FILE_SIZE --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --ssl-ca=/etc/ssl/ca.crt --ssl-cert=/etc/ssl/server.crt --ssl-key=/etc/ssl/server.key --bind-address=0.0.0.0
+    ports:
+      - 3305:3306
+    volumes:
+      - /home/travis/build/rusher/mariadb-connector-j/tmp:/etc/ssl
+      - /home/travis/build/rusher/mariadb-connector-j/.travis/sql:/docker-entrypoint-initdb.d
+
+    environment:
+      MYSQL_DATABASE: testj
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1

@@ -874,6 +874,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     @Test
     public void checkSetLocalDateTimeNoOffset() throws SQLException {
         Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+        Assume.assumeFalse(!isMariadbServer() && strictBeforeVersion(5,6));
         checkSetLocalDateTime(true, true, "Europe/Paris");
         checkSetLocalDateTime(true, false, "Europe/Paris");
         checkSetLocalDateTime(false, true, "Europe/Paris");
@@ -883,6 +884,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     @Test
     public void checkSetLocalDateTimeOffset() throws SQLException {
         Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+        Assume.assumeFalse(!isMariadbServer() && strictBeforeVersion(5,6));
         checkSetLocalDateTime(true, true, "+2:00");
         checkSetLocalDateTime(true, false, "+2:00");
         checkSetLocalDateTime(false, true, "+2:00");
