@@ -106,3 +106,8 @@ mvn clean test $urlString -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLE
     -Dkeystore2Path="/home/travis/build/rusher/mariadb-connector-j/tmp/fullclient-keystore.jks" \
     -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
     -Dkeystore2PathP12="/home/travis/build/rusher/mariadb-connector-j/tmp/fullclient-keystore.p12"
+
+if [ -n "$PROFILE" ]
+then
+    tail -5000 /tmp/debug.log
+fi
