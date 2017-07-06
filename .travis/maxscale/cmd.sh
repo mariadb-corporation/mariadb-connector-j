@@ -1,6 +1,6 @@
 
 #ensure that first database restart has been done database
-sleep 10
+sleep 15
 
 #################################################################################################
 # wait for db availability for 30s
