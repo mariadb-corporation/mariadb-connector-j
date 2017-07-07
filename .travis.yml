@@ -21,8 +21,7 @@ env:
     - AURORA=true
     - DB=mysql:5.5 PACKET=8M
     - DB=mysql:5.6 PACKET=8M
-#    - DB=mysql:5.7 PACKET=8M
-#    - DB=mysql:8.0 PACKET=8M
+    - DB=mysql:5.7 PACKET=8M
     - DB=mariadb:5.5 PACKET=8M
     - DB=mariadb:10.0 PACKET=8M
     - DB=mariadb:10.1 PACKET=8M
