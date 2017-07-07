@@ -18,8 +18,8 @@ services:
     ports:
       - 3305:3306
     volumes:
-      - ./tmp:/etc/ssl
-      - .travis/sql:/docker-entrypoint-initdb.d
+      - $PROJ_PATH/tmp:/etc/ssl
+      - $PROJ_PATH/.travis/sql:/docker-entrypoint-initdb.d
 
     environment:
       MYSQL_DATABASE: testj
