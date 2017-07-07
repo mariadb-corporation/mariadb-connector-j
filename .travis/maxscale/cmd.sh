@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #ensure that first database restart has been done database
-sleep 15
+sleep 5
 
 #################################################################################################
 # wait for db availability for 30s

@@ -18,8 +18,8 @@ services:
     ports:
       - 3305:3306
     volumes:
-      - /home/travis/build/rusher/mariadb-connector-j/tmp:/etc/ssl
-      - /home/travis/build/rusher/mariadb-connector-j/.travis/sql:/docker-entrypoint-initdb.d
+      - ./tmp:/etc/ssl
+      - .travis/sql:/docker-entrypoint-initdb.d
 
     environment:
       MYSQL_DATABASE: testj
