@@ -47,7 +47,7 @@ then
     mv src/test/resources/logback-test-travis.xml src/test/resources/logback-test.xml
 fi
 
-cmd=( mvn clean test  -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID  \
+cmd=( mvn clean test $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID  \
     -DkeystorePath="/home/travis/build/rusher/mariadb-connector-j/tmp/client-keystore.jks" \
     -DkeystorePassword="kspass"  \
     -DserverCertificatePath="/home/travis/build/rusher/mariadb-connector-j/tmp/server.crt" \
@@ -119,6 +119,8 @@ fi
 ###################################################################################################################
 echo "Running coveralls for JDK version: $TRAVIS_JDK_VERSION"
 cmd+=( -DdbUrl="$urlString" )
+cmd+=( -DtestSingleHost="$testSingleHost" )
+echo $cmd
 
 "${cmd[@]}"
 if [ -n "$PROFILE" ]
