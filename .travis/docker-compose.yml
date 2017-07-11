@@ -1,25 +1,22 @@
 version: '2'
 services:
   maxscale:
-
     depends_on:
       - db
-
     ports:
       - 4007:4007
       - 4008:4008
     build:
       context: .
       dockerfile: maxscale/Dockerfile
-
   db:
     image: $DB
     command: --max-allowed-packet=$PACKET --innodb-log-file-size=$INNODB_LOG_FILE_SIZE --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --ssl-ca=/etc/sslcert/ca.crt --ssl-cert=/etc/sslcert/server.crt --ssl-key=/etc/sslcert/server.key --bind-address=0.0.0.0
     ports:
       - 3305:3306
     volumes:
-      - $PROJ_PATH/tmp:/etc/sslcert
-      - $PROJ_PATH/.travis/sql:/docker-entrypoint-initdb.d
+      - $sslcert:/etc/sslcert
+      - $entrypoint:/docker-entrypoint-initdb.d
 
     environment:
       MYSQL_DATABASE: testj

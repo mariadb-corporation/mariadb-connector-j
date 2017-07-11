@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -603,7 +604,8 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void binTest2() throws SQLException, IOException {
-
+        //maxscale skip, dur to https://jira.mariadb.org/browse/MXS-1314
+        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
         createTable("bintest2", "bin1 longblob", "engine=innodb");
 
         byte[] buf = new byte[1000000];

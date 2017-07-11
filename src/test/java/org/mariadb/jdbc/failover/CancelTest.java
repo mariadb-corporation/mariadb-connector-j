@@ -90,7 +90,7 @@ public class CancelTest extends BaseMultiHostTest {
     @Test(expected = SQLTimeoutException.class)
     public void timeoutSleep() throws Exception {
         try (Connection connection = getNewConnection(false)) {
-            PreparedStatement stmt = connection.prepareStatement("select sleep(100)");
+            PreparedStatement stmt = connection.prepareStatement("select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2");
             stmt.setQueryTimeout(1);
             stmt.execute();
         }

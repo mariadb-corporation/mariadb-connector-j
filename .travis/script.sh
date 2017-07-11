@@ -8,33 +8,32 @@ set -e
 ###################################################################################################################
 case "$TYPE" in
  "REWRITE" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&rewriteBatchedStatements=true&enablePacketDebug=true'
+   urlString='jdbc:mariadb://localhost:3305/testj?user=bob&rewriteBatchedStatements=true&enablePacketDebug=true'
    ;;
  "PREPARE" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&useServerPrepStmts=true&enablePacketDebug=true'
+   urlString='jdbc:mariadb://localhost:3305/testj?user=bob&useServerPrepStmts=true&enablePacketDebug=true'
    ;;
  "MULTI" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&allowMultiQueries=true&enablePacketDebug=true'
+   urlString='jdbc:mariadb://localhost:3305/testj?user=bob&allowMultiQueries=true&enablePacketDebug=true'
    ;;
  "BULK_SERVER" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&useBatchMultiSend=true&useServerPrepStmts=true&enablePacketDebug=true'
+   urlString='jdbc:mariadb://localhost:3305/testj?user=bob&useBatchMultiSend=true&useServerPrepStmts=true&enablePacketDebug=true'
    ;;
  "NO_BULK_CLIENT" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&useBatchMultiSend=false&enablePacketDebug=true'
+   urlString='jdbc:mariadb://localhost:3305/testj?user=bob&useBatchMultiSend=false&enablePacketDebug=true'
    ;;
  "NO_BULK_SERVER" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&useBatchMultiSend=false&useServerPrepStmts=true&enablePacketDebug=true'
+   urlString='jdbc:mariadb://localhost:3305/testj?user=bob&useBatchMultiSend=false&useServerPrepStmts=true&enablePacketDebug=true'
    ;;
  "COMPRESSION" )
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&useCompression=true&enablePacketDebug=true'
+   urlString='jdbc:mariadb://localhost:3305/testj?user=bob&useCompression=true&enablePacketDebug=true'
    ;;
   *)
-   urlString=-DdbUrl='jdbc:mariadb://localhost:3306/testj?user=root'
    if [ -n "$MAXSCALE_VERSION" ]
    then
-       urlString=-DdbUrl='jdbc:mariadb://localhost:4007/testj?user=bob&killFetchStmtOnClose=false&enablePacketDebug=true'
+       urlString='jdbc:mariadb://localhost:4007/testj?user=bob&killFetchStmtOnClose=false&enablePacketDebug=true'
    else
-       urlString=-DdbUrl='jdbc:mariadb://localhost:3305/testj?user=bob&enablePacketDebug=true'
+       urlString='jdbc:mariadb://localhost:3305/testj?user=bob&enablePacketDebug=true'
    fi
    ;;
 esac;
@@ -48,11 +47,19 @@ then
     mv src/test/resources/logback-test-travis.xml src/test/resources/logback-test.xml
 fi
 
+cmd=( mvn clean test  -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID  \
+    -DkeystorePath="/home/travis/build/rusher/mariadb-connector-j/tmp/client-keystore.jks" \
+    -DkeystorePassword="kspass"  \
+    -DserverCertificatePath="/home/travis/build/rusher/mariadb-connector-j/tmp/server.crt" \
+    -Dkeystore2Path="/home/travis/build/rusher/mariadb-connector-j/tmp/fullclient-keystore.jks" \
+    -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
+    -Dkeystore2PathP12="/home/travis/build/rusher/mariadb-connector-j/tmp/fullclient-keystore.p12" )
+
 if [ -n "$AURORA" ]
 then
     if [ -n "$AURORA_STRING_URL" ]
     then
-        urlString=-DdbUrl=$AURORA_STRING_URL
+        urlString=$AURORA_STRING_URL
         testSingleHost=true
     else
         testSingleHost=false
@@ -67,6 +74,18 @@ else
     export INNODB_LOG_FILE_SIZE=$(echo $PACKET| cut -d'M' -f 1)0M
     docker-compose -f .travis/docker-compose.yml build
     docker-compose -f .travis/docker-compose.yml up -d
+
+    ###################################################################################################################
+    # launch 3 galera servers
+    ###################################################################################################################
+    if [ -n "$GALERA" ]
+    then
+        docker-compose -f .travis/galera-compose.yml up -d
+        urlString='jdbc:mariadb://localhost:3106/testj?user=bob&enablePacketDebug=true'
+
+        cmd+=( -DdefaultGaleraUrl="jdbc:mariadb:failover://localhost:3106,localhost:3107,localhost:3108/testj?user=bob&enablePacketDebug=true" )
+
+    fi
 
     ###################################################################################################################
     # for travis, wait for docker initialisation
@@ -99,14 +118,9 @@ fi
 # run test suite
 ###################################################################################################################
 echo "Running coveralls for JDK version: $TRAVIS_JDK_VERSION"
-mvn clean test $urlString -DtestSingleHost=$testSingleHost $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID  \
-    -DkeystorePath="$PROJ_PATH/tmp/client-keystore.jks" \
-    -DkeystorePassword="kspass"  \
-    -DserverCertificatePath="$PROJ_PATH/tmp/server.crt" \
-    -Dkeystore2Path="$PROJ_PATH/tmp/fullclient-keystore.jks" \
-    -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
-    -Dkeystore2PathP12="$PROJ_PATH/tmp/fullclient-keystore.p12"
+cmd+=( -DdbUrl="$urlString" )
 
+"${cmd[@]}"
 if [ -n "$PROFILE" ]
 then
     tail -5000 /tmp/debug.log

@@ -59,6 +59,8 @@ import org.mariadb.jdbc.internal.util.CallableStatementCache;
 import org.mariadb.jdbc.internal.util.ClientPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
@@ -106,7 +108,7 @@ public class MariaDbConnection implements Connection {
     private volatile int lowercaseTableNames = -1;
     private boolean canUseServerTimeout = false;
     private boolean sessionStateAware = true;
-
+    private boolean multiMaster;
 
     /**
      * save point count - to generate good names for the savepoints.
@@ -142,6 +144,23 @@ public class MariaDbConnection implements Connection {
             this.clientPrepareStatementCache = ClientPrepareStatementCache.newInstance(options.prepStmtCacheSize);
         } else {
             clientPrepareStatementCache = null;
+        }
+
+        //Check if connection has many master
+        multiMaster = false;
+        if (protocol.getUrlParser().getHaMode() == HaMode.SEQUENTIAL
+                || protocol.getUrlParser().getHaMode() == HaMode.REPLICATION
+                || protocol.getUrlParser().getHaMode() == HaMode.FAILOVER) {
+            boolean firstMaster = false;
+            for (HostAddress host : protocol.getUrlParser().getHostAddresses()) {
+                if (host.type == ParameterConstant.TYPE_MASTER) {
+                    if (firstMaster) {
+                        multiMaster = true;
+                    } else {
+                        firstMaster = true;
+                    }
+                }
+            }
         }
     }
 
@@ -1112,7 +1131,24 @@ public class MariaDbConnection implements Connection {
         if (isClosed()) return false;
 
         try {
-            return protocol.ping();
+            if (!multiMaster) {
+                return protocol.ping();
+            } else {
+                try (Statement st = createStatement()) {
+                    try (ResultSet rs = st.executeQuery("SELECT @@wsrep_cluster_status")) {
+                        if (!rs.next() || "PRIMARY".equalsIgnoreCase(rs.getString(1))) return true;
+                        //connected to a galera node, but not primary
+                        //so reject the connection
+                        return false;
+                    }
+                } catch (SQLException sqle) {
+                    if (sqle.getErrorCode() == 1193) {
+                        //variable is unknown -> not galera, and server has responded
+                        return true;
+                    }
+                    return false;
+                }
+            }
         } catch (SQLException e) {
             return false;
         }

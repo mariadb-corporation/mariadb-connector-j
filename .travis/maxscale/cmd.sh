@@ -7,19 +7,21 @@ sleep 5
 # wait for db availability for 30s
 #################################################################################################
 mysql=( mysql --protocol=tcp -ubob -hdb --port=3306 )
-for i in {30..0}; do
-    if echo 'SELECT 1' | "${mysql[@]}" &> /dev/null; then
-        break
-    fi
-    echo 'DB init process in progress...'
-    sleep 1
-done
+for j in {1..0}; do
+    for i in {10..0}; do
+        if echo 'use test2' | "${mysql[@]}" &> /dev/null; then
+            break
+        fi
+        echo 'DB init process in progress...'
+        sleep 3
+    done
 
-if [ "$i" = 0 ]; then
-    echo 'SELECT 1' | "${mysql[@]}"
-    echo >&2 'DB init process failed.'
-    exit 2
-fi
+    echo 'use test2' | "${mysql[@]}"
+    if [ "$i" = 0 ]; then
+        echo 'DB init process failed.'
+        exit 1
+    fi
+done
 
 /usr/bin/maxscale --nodaemon
 

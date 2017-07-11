@@ -60,6 +60,8 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.Assert.assertTrue;
+
 /**
  * test for galera
  * The node must be configure with specific names :
@@ -116,4 +118,10 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
         }
     }
 
+    @Test
+    public void isValidGaleraConnection() throws SQLException {
+        try (Connection connection = getNewConnection(false)) {
+            assertTrue(connection.isValid(0));
+        }
+    }
 }

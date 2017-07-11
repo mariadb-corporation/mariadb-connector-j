@@ -124,7 +124,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             stopProxy(firstServerId);
 
             try {
-                st.execute("SELECT 1");
+                st.execute("show variables like 'slow_query_log'");
                 fail();
             } catch (SQLException e) {
                 //normal exception that permit to blacklist the failing connection.
