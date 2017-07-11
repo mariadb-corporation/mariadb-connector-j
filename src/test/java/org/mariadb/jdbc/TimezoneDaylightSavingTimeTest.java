@@ -142,7 +142,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     public static void endClass() throws SQLException {
         if (testSingleHost || !"true".equals(System.getenv("AURORA"))) {
             TimeZone.setDefault(previousTimeZone);
-            Locale.setDefault(previousFormatLocale);
+            if (previousFormatLocale != null) Locale.setDefault(previousFormatLocale);
         }
     }
 
