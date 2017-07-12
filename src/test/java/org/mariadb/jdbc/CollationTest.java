@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -84,6 +85,9 @@ public class CollationTest extends BaseTest {
      */
     @Test
     public void emoji() throws SQLException {
+        //maxscale skip
+        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+
         try (Connection connection = setConnection()) {
             String sqlForCharset = "select @@character_set_server";
             ResultSet rs = connection.createStatement().executeQuery(sqlForCharset);
@@ -119,6 +123,9 @@ public class CollationTest extends BaseTest {
      */
     @Test
     public void test4BytesUtf8() throws Exception {
+        //maxscale skip
+        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+
         String sqlForCharset = "select @@character_set_server";
         ResultSet rs = sharedConnection.createStatement().executeQuery(sqlForCharset);
         if (rs.next()) {
