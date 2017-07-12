@@ -9,8 +9,8 @@ services:
       - 3106:3306
     command: --wsrep_new_cluster --wsrep-node-name=node1 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci  --bind-address=0.0.0.0 --wsrep-new-cluster --binlog-format=ROW --wsrep-provider=/usr/lib/galera/libgalera_smm.so --wsrep-cluster-name=my_super_cluster --wsrep-on=ON --ssl-ca=/etc/sslcert/ca.crt --ssl-cert=/etc/sslcert/server.crt --ssl-key=/etc/sslcert/server.key
     volumes:
-      - $sslcert:/etc/sslcert
-      - $entrypoint:/docker-entrypoint-initdb.d
+      - $SSLCERT:/etc/sslcert
+      - $ENTRYPOINT:/docker-entrypoint-initdb.d
   node2:
     image: mariadb:10.2
     depends_on:
@@ -22,8 +22,8 @@ services:
       - 3107:3306
     command: --wsrep_cluster_address=gcomm://node1 --wsrep-node-name=node2 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci  --bind-address=0.0.0.0 --wsrep-new-cluster --binlog-format=ROW --wsrep-provider=/usr/lib/galera/libgalera_smm.so --wsrep-cluster-name=my_super_cluster  --wsrep-on=ON --ssl-ca=/etc/sslcert/ca.crt --ssl-cert=/etc/sslcert/server.crt --ssl-key=/etc/sslcert/server.key
     volumes:
-      - $sslcert:/etc/sslcert
-      - $entrypoint:/docker-entrypoint-initdb.d
+      - $SSLCERT:/etc/sslcert
+      - $ENTRYPOINT:/docker-entrypoint-initdb.d
   node3:
     image: mariadb:10.2
     depends_on:
@@ -35,5 +35,5 @@ services:
       - 3108:3306
     command: --wsrep_cluster_address=gcomm://node1 --wsrep-node-name=node3 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci  --bind-address=0.0.0.0 --wsrep-new-cluster --binlog-format=ROW --wsrep-provider=/usr/lib/galera/libgalera_smm.so --wsrep-cluster-name=my_super_cluster  --wsrep-on=ON --ssl-ca=/etc/sslcert/ca.crt --ssl-cert=/etc/sslcert/server.crt --ssl-key=/etc/sslcert/server.key
     volumes:
-      - $sslcert:/etc/sslcert
-      - $entrypoint:/docker-entrypoint-initdb.d
+      - $SSLCERT:/etc/sslcert
+      - $ENTRYPOINT:/docker-entrypoint-initdb.d

@@ -15,8 +15,8 @@ services:
     ports:
       - 3305:3306
     volumes:
-      - $sslcert:/etc/sslcert
-      - $entrypoint:/docker-entrypoint-initdb.d
+      - $SSLCERT:/etc/sslcert
+      - $ENTRYPOINT:/docker-entrypoint-initdb.d
 
     environment:
       MYSQL_DATABASE: testj

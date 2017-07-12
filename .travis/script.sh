@@ -48,12 +48,12 @@ then
 fi
 
 cmd=( mvn clean test $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID  \
-    -DkeystorePath="/home/travis/build/rusher/mariadb-connector-j/tmp/client-keystore.jks" \
+    -DkeystorePath="$SSLCERT/client-keystore.jks" \
     -DkeystorePassword="kspass"  \
-    -DserverCertificatePath="/home/travis/build/rusher/mariadb-connector-j/tmp/server.crt" \
-    -Dkeystore2Path="/home/travis/build/rusher/mariadb-connector-j/tmp/fullclient-keystore.jks" \
+    -DserverCertificatePath="$SSLCERT/server.crt" \
+    -Dkeystore2Path="$SSLCERT/fullclient-keystore.jks" \
     -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
-    -Dkeystore2PathP12="/home/travis/build/rusher/mariadb-connector-j/tmp/fullclient-keystore.p12" )
+    -Dkeystore2PathP12="$SSLCERT/fullclient-keystore.p12" )
 
 if [ -n "$AURORA" ]
 then
