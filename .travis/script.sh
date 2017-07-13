@@ -6,6 +6,9 @@ set -e
 ###################################################################################################################
 # test different type of configuration
 ###################################################################################################################
+mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=3305 )
+export COMPOSE_FILE=.travis/docker-compose.yml
+
 case "$TYPE" in
  "REWRITE" )
    urlString='jdbc:mariadb://localhost:3305/testj?user=bob&rewriteBatchedStatements=true&enablePacketDebug=true'
@@ -32,6 +35,8 @@ case "$TYPE" in
    if [ -n "$MAXSCALE_VERSION" ]
    then
        urlString='jdbc:mariadb://localhost:4007/testj?user=bob&killFetchStmtOnClose=false&enablePacketDebug=true'
+       mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=4007 )
+       export COMPOSE_FILE=.travis/maxscale-compose.yml
    else
        urlString='jdbc:mariadb://localhost:3305/testj?user=bob&enablePacketDebug=true'
    fi
@@ -72,8 +77,8 @@ else
     # launch docker server and maxscale
     ###################################################################################################################
     export INNODB_LOG_FILE_SIZE=$(echo $PACKET| cut -d'M' -f 1)0M
-    docker-compose -f .travis/docker-compose.yml build
-    docker-compose -f .travis/docker-compose.yml up -d
+    docker-compose -f $COMPOSE_FILE build
+    docker-compose -f $COMPOSE_FILE up -d
 
     ###################################################################################################################
     # launch 3 galera servers
@@ -82,33 +87,28 @@ else
     then
         docker-compose -f .travis/galera-compose.yml up -d
         urlString='jdbc:mariadb://localhost:3106/testj?user=bob&enablePacketDebug=true'
-
         cmd+=( -DdefaultGaleraUrl="jdbc:mariadb:failover://localhost:3106,localhost:3107,localhost:3108/testj?user=bob&enablePacketDebug=true" )
 
     fi
 
     ###################################################################################################################
-    # for travis, wait for docker initialisation
+    # wait for docker initialisation
     ###################################################################################################################
-    if [ -n "$TRAVIS" ]
-    then
-        mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=4007 )
 
-        for i in {60..0}; do
-            if echo 'SELECT 1' | "${mysql[@]}" &> /dev/null; then
-                break
-            fi
-            echo 'maxscale still not active'
-            sleep 1
-        done
-
-        docker-compose -f .travis/docker-compose.yml logs
-
-        if [ "$i" = 0 ]; then
-            echo 'SELECT 1' | "${mysql[@]}"
-            echo >&2 'Maxscale init process failed.'
-            exit 1
+    for i in {60..0}; do
+        if echo 'SELECT 1' | "${mysql[@]}" &> /dev/null; then
+            break
         fi
+        echo 'data server still not active'
+        sleep 1
+    done
+
+    docker-compose -f $COMPOSE_FILE logs
+
+    if [ "$i" = 0 ]; then
+        echo 'SELECT 1' | "${mysql[@]}"
+        echo >&2 'data server init process failed.'
+        exit 1
     fi
 fi
 
