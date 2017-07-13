@@ -94,7 +94,7 @@ else
     then
         mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=4007 )
 
-        for i in {30..0}; do
+        for i in {60..0}; do
             if echo 'SELECT 1' | "${mysql[@]}" &> /dev/null; then
                 break
             fi
