@@ -12,7 +12,7 @@ install:
     - .travis/gen-ssl.sh mariadb.example.com tmp
     - export PROJ_PATH=`pwd`
     - export SSLCERT=$PROJ_PATH/tmp
-#    - export SSLCERT=C:/projects/ssl
+#    - set SSLCERT=C:/projects/ssl
     - export ENTRYPOINT=$PROJ_PATH/.travis/sql
 
 cache:

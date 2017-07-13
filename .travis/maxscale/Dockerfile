@@ -1,21 +1,24 @@
-FROM asosso/maxscale:1.4.3
+FROM centos:7
 
-# bring system up2date
-#RUN yum update -y
-RUN yum -y install MariaDB-client
+ARG MAXSCALE_VERSION
+ENV MAXSCALE_VERSION ${MAXSCALE_VERSION:-2.1.4}
 
-# We copy our config creator script to the container
+COPY maxscale/mariadb.repo /etc/yum.repos.d/
+
+RUN rpm --import https://yum.mariadb.org/RPM-GPG-KEY-MariaDB \
+    && yum -y install https://downloads.mariadb.com/MaxScale/$MAXSCALE_VERSION/centos/7/x86_64/maxscale-$MAXSCALE_VERSION-1.centos.7.x86_64.rpm \
+    && yum -y update
+
+RUN yum -y install maxscale-$MAXSCALE_VERSION MariaDB-client \
+    && yum clean all \
+    && rm -rf /tmp/*
+
 COPY maxscale/docker-entrypoint.sh /
-COPY maxscale/cmd.sh /usr/bin/
-
+RUN chmod 777 /etc/maxscale.cnf
+COPY maxscale/maxscale.cnf /etc/
 RUN chmod 777 /docker-entrypoint.sh
-RUN chmod 777 /usr/bin/cmd.sh
 
-# We expose our set Listener Ports
-EXPOSE 4006 4007
 
-# We define the config creator as entrypoint
+EXPOSE 4006 4007 4008
+
 ENTRYPOINT ["/docker-entrypoint.sh"]
-
-# We startup MaxScale as default command
-CMD ["/usr/bin/cmd.sh"]
