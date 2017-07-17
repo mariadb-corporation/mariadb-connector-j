@@ -445,9 +445,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             writer.flush();
 
             ComStmtPrepare comStmtPrepare = new ComStmtPrepare(this, sql);
-            ServerPrepareResult result = comStmtPrepare.read(reader, eofDeprecated);
-
-            return result;
+            return comStmtPrepare.read(reader, eofDeprecated);
         } catch (IOException e) {
             throw handleIoException(e);
         } finally {
@@ -780,7 +778,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 try {
                     writer.startPacket(0);
                     writer.write(COM_STMT_CLOSE);
-                    writer.writeInt(statementId & 0xff);
+                    writer.writeInt(statementId);
                     writer.flush();
                     return true;
                 } catch (IOException e) {
