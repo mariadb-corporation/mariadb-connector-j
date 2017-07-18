@@ -59,6 +59,8 @@ import org.mariadb.jdbc.internal.util.CallableStatementCache;
 import org.mariadb.jdbc.internal.util.ClientPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
@@ -106,7 +108,6 @@ public class MariaDbConnection implements Connection {
     private volatile int lowercaseTableNames = -1;
     private boolean canUseServerTimeout = false;
     private boolean sessionStateAware = true;
-
 
     /**
      * save point count - to generate good names for the savepoints.
@@ -1096,7 +1097,7 @@ public class MariaDbConnection implements Connection {
         if (isClosed()) return false;
 
         try {
-            return protocol.ping();
+            return protocol.isValid();
         } catch (SQLException e) {
             return false;
         }

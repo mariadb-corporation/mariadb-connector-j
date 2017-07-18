@@ -957,6 +957,7 @@ public class SelectResultSet implements ResultSet {
 
         switch (columnInfo.getColumnType()) {
             case STRING:
+            case VARCHAR:
                 if (row.getMaxFieldSize() > 0) {
                     return new String(row.buf, row.pos, Math.max(row.getMaxFieldSize() * 3, row.length), Buffer.UTF_8)
                             .substring(0, row.getMaxFieldSize());
@@ -3322,8 +3323,7 @@ public class SelectResultSet implements ResultSet {
             }
         } catch (NumberFormatException nfe) {
             //parse error.
-            //if this is a decimal with only "0" in decimal, like "1.0000" (can be the case if trying to getByte with a database decimal value
-            //retrying without the decimal part.
+            //if its a decimal retry without the decimal part.
             String value = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
             if (isIntegerRegex.matcher(value).find()) {
                 try {
@@ -3383,8 +3383,7 @@ public class SelectResultSet implements ResultSet {
             }
         } catch (NumberFormatException nfe) {
             //parse error.
-            //if this is a decimal with only "0" in decimal, like "1.0000" (can be the case if trying to getInt with a database decimal value
-            //retrying without the decimal part.
+            //if its a decimal retry without the decimal part.
             String value = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
             if (isIntegerRegex.matcher(value).find()) {
                 try {
@@ -3449,8 +3448,7 @@ public class SelectResultSet implements ResultSet {
             }
         } catch (NumberFormatException nfe) {
             //parse error.
-            //if this is a decimal with only "0" in decimal, like "1.0000" (can be the case if trying to getInt with a database decimal value
-            //retrying without the decimal part.
+            //if its a decimal retry without the decimal part.
             String value = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
             if (isIntegerRegex.matcher(value).find()) {
                 try {
@@ -3516,8 +3514,7 @@ public class SelectResultSet implements ResultSet {
 
         } catch (NumberFormatException nfe) {
             //parse error.
-            //if this is a decimal with only "0" in decimal, like "1.0000" (can be the case if trying to getlong with a database decimal value
-            //retrying without the decimal part.
+            //if its a decimal retry without the decimal part.
             String value = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
             if (isIntegerRegex.matcher(value).find()) {
                 try {

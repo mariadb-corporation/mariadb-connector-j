@@ -278,6 +278,12 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
     }
 
+    @Override
+    public boolean isValid() throws SQLException {
+        if (isMasterConnection()) return checkIfMaster();
+        return ping();
+    }
+
     /**
      * Aurora best way to check if a node is a master : is not in read-only mode.
      *

@@ -478,18 +478,17 @@ public abstract class AbstractMastersListener implements Listener {
 
     protected boolean pingMasterProtocol(Protocol protocol) {
         try {
-            protocol.ping();
-            return true;
+            if (protocol.isValid()) return true;
         } catch (SQLException e) {
-            proxy.lock.lock();
-            try {
-                protocol.close();
-                if (setMasterHostFail()) {
-                    addToBlacklist(protocol.getHostAddress());
-                }
-            } finally {
-                proxy.lock.unlock();
-            }
+            //eat exception
+        }
+
+        proxy.lock.lock();
+        try {
+            protocol.close();
+            if (setMasterHostFail()) addToBlacklist(protocol.getHostAddress());
+        } finally {
+            proxy.lock.unlock();
         }
         return false;
     }

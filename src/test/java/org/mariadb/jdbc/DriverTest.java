@@ -801,7 +801,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void testConnectWithDb() throws SQLException {
-        Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
+        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
 
         requireMinimumVersion(5, 0);
         try {
@@ -991,7 +991,7 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void conj1() throws Exception {
-        Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
+        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
 
         requireMinimumVersion(5, 0);
         Connection connection = null;
@@ -1236,7 +1236,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void localSocket() throws Exception {
         requireMinimumVersion(5, 1);
-
+        Assume.assumeTrue(System.getenv("TRAVIS") == null);
         Assume.assumeTrue(isLocalConnection("localSocket"));
 
         Statement st = sharedConnection.createStatement();

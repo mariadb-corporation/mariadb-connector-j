@@ -121,7 +121,7 @@ public class DataSourceTest extends BaseTest {
      */
     @Test
     public void setDatabaseNameTest() throws SQLException {
-        Assume.assumeFalse("MAXSCALE".equals(System.getenv("TYPE")));
+        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
         Connection connection = null;
         try {

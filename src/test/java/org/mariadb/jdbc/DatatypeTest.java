@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -606,7 +607,6 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void binTest2() throws SQLException, IOException {
-
         createTable("bintest2", "bin1 longblob", "engine=innodb");
 
         byte[] buf = new byte[1000000];
@@ -614,19 +614,26 @@ public class DatatypeTest extends BaseTest {
             buf[i] = (byte) i;
         }
         InputStream is = new ByteArrayInputStream(buf);
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into bintest2 (bin1) values (?)");
-        ps.setBinaryStream(1, is);
-        ps.execute();
-        ps = sharedConnection.prepareStatement("insert into bintest2 (bin1) values (?)");
-        is = new ByteArrayInputStream(buf);
-        ps.setBinaryStream(1, is);
-        ps.execute();
+        Connection connection = null;
+        try {
+            connection = setConnection();
+            PreparedStatement ps = connection.prepareStatement("insert into bintest2 (bin1) values (?)");
+            ps.setBinaryStream(1, is);
+            ps.execute();
+            ps = connection.prepareStatement("insert into bintest2 (bin1) values (?)");
+            is = new ByteArrayInputStream(buf);
+            ps.setBinaryStream(1, is);
+            ps.execute();
+            ResultSet rs = getResultSet("select bin1 from bintest2", false);
+            binTest2Result(rs, buf);
 
-        ResultSet rs = getResultSet("select bin1 from bintest2", false);
-        binTest2Result(rs, buf);
 
-        rs = getResultSet("select bin1 from bintest2", true);
-        binTest2Result(rs, buf);
+            ResultSet rs2 = getResultSet("select bin1 from bintest2", true);
+            binTest2Result(rs2, buf);
+        } finally {
+            if (connection != null) connection.close();
+        }
+
     }
 
     private void binTest2Result(ResultSet rs, byte[] buf) throws SQLException, IOException {

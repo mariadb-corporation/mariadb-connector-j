@@ -477,7 +477,7 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals(10, rs.getInt(10)); //NUM_PREC_RADIX
         assertEquals(1, rs.getInt(11)); //NULLABLE
         assertEquals("", rs.getString(12)); //REMARKS
-        assertEquals(null, rs.getString(13)); //COLUMN_DEF
+        assertNull(rs.getString(13)); //COLUMN_DEF
         assertEquals(32 * 4, rs.getInt(16)); //CHAR_OCTET_LENGTH
         assertEquals(2, rs.getInt(17)); //ORDINAL_POSITION
         assertEquals("YES", rs.getString(18)); //IS_NULLABLE
@@ -703,7 +703,8 @@ public class DatabaseMetadataTest extends BaseTest {
     @Test
     public void getColumnsBasic() throws SQLException {
         cancelForVersion(10, 1); //due to server error MDEV-8984
-        if (sharedConnection.getMetaData().getDatabaseProductVersion().startsWith("10.2")) {
+        if (sharedConnection.getMetaData().getDatabaseProductVersion().startsWith("10.2")
+                || sharedConnection.getMetaData().getDatabaseProductVersion().startsWith("10.3")) {
             testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
                     "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
                             + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE decimal,BUFFER_LENGTH int,"

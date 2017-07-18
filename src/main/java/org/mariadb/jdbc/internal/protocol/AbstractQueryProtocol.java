@@ -835,6 +835,25 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
+    @Override
+    public boolean isValid() throws SQLException {
+
+        if (isMasterConnection() && urlParser.isMultiMaster()) {
+            //this is a galera node.
+            //checking not only that node is responding, but that this node is in primary mode too.
+            Results results = new Results();
+            executeQuery(true, results, "SELECT @@wsrep_cluster_status");
+            results.commandEnd();
+            ResultSet rs = results.getResultSet();
+
+            if (rs != null && (!rs.next() || "PRIMARY".equalsIgnoreCase(rs.getString(1)))) return true;
+
+            //connected to a galera node, but not primary
+            return false;
+        }
+
+        return ping();
+    }
 
     @Override
     public void setCatalog(final String database) throws SQLException {

@@ -136,6 +136,8 @@ public interface Protocol {
 
     boolean ping() throws SQLException;
 
+    boolean isValid() throws SQLException;
+
     void executeQuery(String sql) throws SQLException;
 
     void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql) throws SQLException;
