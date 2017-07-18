@@ -477,7 +477,9 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals(10, rs.getInt(10)); //NUM_PREC_RADIX
         assertEquals(1, rs.getInt(11)); //NULLABLE
         assertEquals("", rs.getString(12)); //REMARKS
-        assertEquals(null, rs.getString(13)); //COLUMN_DEF
+
+        //since 10.2.7, value that are expected as String are enclosed with single quotes as javadoc require
+        assertTrue("null".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); //COLUMN_DEF
         assertEquals(32 * 4, rs.getInt(16)); //CHAR_OCTET_LENGTH
         assertEquals(2, rs.getInt(17)); //ORDINAL_POSITION
         assertEquals("YES", rs.getString(18)); //IS_NULLABLE
@@ -500,7 +502,10 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals(10, rs.getInt(10)); //NUM_PREC_RADIX
         assertEquals(1, rs.getInt(11)); //NULLABLE
         assertEquals("", rs.getString(12)); //REMARKS
-        assertEquals(null, rs.getString(13)); //COLUMN_DEF
+
+        //since 10.2.7, value that are expected as String are enclosed with single quotes as javadoc require
+        assertTrue("null".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); //COLUMN_DEF
+
         assertEquals(0, rs.getInt(16)); //CHAR_OCTET_LENGTH
         assertEquals(3, rs.getInt(17)); //ORDINAL_POSITION
         assertEquals("YES", rs.getString(18)); //IS_NULLABLE
@@ -523,7 +528,8 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals(10, rs.getInt(10)); //NUM_PREC_RADIX
         assertEquals(1, rs.getInt(11)); //NULLABLE
         assertEquals("", rs.getString(12)); //REMARKS
-        assertEquals(null, rs.getString(13)); //COLUMN_DEF
+        //since 10.2.7, value that are expected as String are enclosed with single quotes as javadoc require
+        assertTrue("null".equalsIgnoreCase(rs.getString(13)) || rs.getString(13) == null); //COLUMN_DEF
         assertEquals(5 * 4, rs.getInt(16)); //CHAR_OCTET_LENGTH
         assertEquals(4, rs.getInt(17)); //ORDINAL_POSITION
         assertEquals("YES", rs.getString(18)); //IS_NULLABLE
