@@ -685,7 +685,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
 
                 + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"
-                + " IF(COLUMN_DEFAULT in ('null',null), null,COLUMN_DEFAULT) COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
+                + " COLUMN_DEFAULT COLUMN_DEF, 0 SQL_DATA_TYPE, 0 SQL_DATETIME_SUB,  "
                 + " LEAST(CHARACTER_OCTET_LENGTH," + Integer.MAX_VALUE + ") CHAR_OCTET_LENGTH,"
                 + " ORDINAL_POSITION, IS_NULLABLE, NULL SCOPE_CATALOG, NULL SCOPE_SCHEMA, NULL SCOPE_TABLE, NULL SOURCE_DATA_TYPE,"
                 + " IF(EXTRA = 'auto_increment','YES','NO') IS_AUTOINCREMENT, "
