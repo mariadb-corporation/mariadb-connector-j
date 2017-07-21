@@ -57,6 +57,7 @@ import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
@@ -856,6 +857,33 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
 
         return ping();
+    }
+
+
+    @Override
+    public String getCatalog() throws SQLException {
+
+        if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) != 0) {
+            //client session track return empty value, not null value. Java require sending null if empty
+            if (database != null && database.isEmpty()) return null;
+            return database;
+        }
+
+        cmdPrologue();
+        lock.lock();
+        try {
+            Results results = new Results();
+            executeQuery(isMasterConnection(), results, "select database()");
+            results.commandEnd();
+            ResultSet rs = results.getResultSet();
+            if (rs.next()) {
+                this.database = rs.getString(1);
+                return database;
+            }
+            return null;
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override

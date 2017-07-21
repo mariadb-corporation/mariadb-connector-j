@@ -106,6 +106,8 @@ public interface Protocol {
 
     void setCatalog(String database) throws SQLException;
 
+    String getCatalog() throws SQLException;
+
     String getServerVersion();
 
     boolean isConnected();

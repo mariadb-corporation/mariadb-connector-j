@@ -752,12 +752,7 @@ public class MariaDbConnection implements Connection {
      * @see #setCatalog
      */
     public String getCatalog() throws SQLException {
-        try (Statement st = createStatement()) {
-            try (ResultSet rs = st.executeQuery("select database()")) {
-                rs.next();
-                return rs.getString(1);
-            }
-        }
+        return protocol.getCatalog();
     }
 
     /**
