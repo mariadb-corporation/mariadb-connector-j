@@ -604,8 +604,6 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void binTest2() throws SQLException, IOException {
-        //maxscale skip, dur to https://jira.mariadb.org/browse/MXS-1314
-        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
         createTable("bintest2", "bin1 longblob", "engine=innodb");
 
         byte[] buf = new byte[1000000];
@@ -634,8 +632,6 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void binTest3() throws SQLException, IOException {
-        //maxscale skip, dur to https://jira.mariadb.org/browse/MXS-1314
-        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
         byte[] buf = new byte[1000000];
         for (int i = 0; i < 1000000; i++) {
             buf[i] = (byte) i;

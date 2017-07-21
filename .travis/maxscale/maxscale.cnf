@@ -1,0 +1,125 @@
+# MaxScale documentation on GitHub:
+# https://github.com/mariadb-corporation/MaxScale/blob/2.1/Documentation/Documentation-Contents.md
+
+# Global parameters
+#
+# Complete list of configuration options:
+# https://github.com/mariadb-corporation/MaxScale/blob/2.1/Documentation/Getting-Started/Configuration-Guide.md
+
+
+[maxscale]
+threads=2
+log_messages=1
+log_trace=1
+log_debug=1
+
+# Server definitions
+#
+# Set the address of the server to the network
+# address of a MySQL server.
+#
+
+[server1]
+type=server
+address=db
+port=3306
+protocol=MySQLBackend
+authenticator_options=skip_authentication=true
+router_options=master
+
+# Monitor for the servers
+#
+# This will keep MaxScale aware of the state of the servers.
+# MySQL Monitor documentation:
+# https://github.com/mariadb-corporation/MaxScale/blob/2.1/Documentation/Monitors/MySQL-Monitor.md
+
+[MySQL Monitor]
+type=monitor
+module=mysqlmon
+servers=server1
+user=boby
+passwd=hey
+monitor_interval=10000
+
+# Service definitions
+#
+# Service Definition for a read-only service and
+# a read/write splitting service.
+#
+
+# ReadConnRoute documentation:
+# https://github.com/mariadb-corporation/MaxScale/blob/2.1/Documentation/Routers/ReadConnRoute.md
+
+[Read-Only Service]
+enable_root_user=1
+version_string=10.2.99-MariaDB-maxScale
+type=service
+router=readconnroute
+servers=server1
+user=boby
+passwd=hey
+router_options=slave
+localhost_match_wildcard_host=1
+
+[Read-Write Service]
+enable_root_user=1
+version_string=10.2.99-MariaDB-maxScale
+type=service
+router=readwritesplit
+servers=server1
+user=boby
+passwd=hey
+localhost_match_wildcard_host=1
+
+[Write Service]
+type=service
+router=readconnroute
+servers=server1
+user=boby
+passwd=hey
+router_options=master
+localhost_match_wildcard_host=1
+version_string=10.2.99-MariaDB-maxscale
+
+
+# This service enables the use of the MaxAdmin interface
+# MaxScale administration guide:
+# https://github.com/mariadb-corporation/MaxScale/blob/2.1/Documentation/Reference/MaxAdmin.mda
+
+[MaxAdmin Service]
+enable_root_user=1
+version_string=10.2.99-MariaDB-maxScale
+type=service
+router=cli
+
+# Listener definitions for the services
+#
+# These listeners represent the ports the
+# services will listen on.
+#
+[Write Listener]
+type=listener
+service=Write Service
+protocol=MySQLClient
+port=4007
+socket=/var/lib/maxscale/writeconn.sock
+
+[Read-Only Listener]
+type=listener
+service=Read-Only Service
+protocol=MySQLClient
+port=4008
+socket=/var/lib/maxscale/readconn.sock
+
+[Read-Write Listener]
+type=listener
+service=Read-Write Service
+protocol=MySQLClient
+port=4006
+socket=/var/lib/maxscale/rwsplit.sock
+
+[MaxAdmin Listener]
+type=listener
+service=MaxAdmin Service
+protocol=maxscaled
+socket=/tmp/maxadmin.sock
