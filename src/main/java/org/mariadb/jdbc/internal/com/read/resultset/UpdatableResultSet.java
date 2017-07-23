@@ -79,15 +79,13 @@ public class UpdatableResultSet extends SelectResultSet {
     private static final int STATE_UPDATE = 1;
     private static final int STATE_UPDATED = 2;
     private static final int STATE_INSERT = 3;
-    public boolean rowUpdated = false;
-    public boolean rowInserted = false;
-    public boolean rowDeleted = false;
     private String database;
     private String table;
 
     private boolean canBeUpdate;
     private boolean canBeInserted;
     private boolean canBeRefresh;
+    private int notInsertRowPointer;
 
     private String exceptionUpdateMsg;
     private String exceptionInsertMsg;
@@ -115,6 +113,12 @@ public class UpdatableResultSet extends SelectResultSet {
         super(columnsInformation, results, protocol, reader, callableResult, eofDeprecated);
         checkIfUpdatable(results);
         parameterHolders = new ParameterHolder[columnInformationLength];
+    }
+
+
+    @Override
+    public int getConcurrency() throws SQLException {
+        return CONCUR_UPDATABLE;
     }
 
     private void checkIfUpdatable(Results results) throws IOException, SQLException {
@@ -1199,7 +1203,6 @@ public class UpdatableResultSet extends SelectResultSet {
             }
 
             insertPreparedStatement.execute();
-            rowInserted = true;
 
             if (hasGeneratedPrimaryFields) {
                 //primary is auto_increment (only one field)
@@ -1219,7 +1222,6 @@ public class UpdatableResultSet extends SelectResultSet {
             }
 
             Arrays.fill(parameterHolders, null);
-            state = STATE_STANDARD;
         }
     }
 
@@ -1229,7 +1231,7 @@ public class UpdatableResultSet extends SelectResultSet {
     public void updateRow() throws SQLException {
 
         if (state == STATE_INSERT) {
-            throw new SQLException("Cannot call updateRow() when inserting a new row", "24000");
+            throw new SQLException("Cannot call updateRow() when inserting a new row");
         }
 
         if (state == STATE_UPDATE) {
@@ -1288,7 +1290,6 @@ public class UpdatableResultSet extends SelectResultSet {
 
             refreshRow();
 
-            rowUpdated = true;
             Arrays.fill(parameterHolders, null);
             state = STATE_STANDARD;
         }
@@ -1301,11 +1302,11 @@ public class UpdatableResultSet extends SelectResultSet {
     public void deleteRow() throws SQLException {
 
         if (state == STATE_INSERT) {
-            throw new SQLException("Cannot call deleteRow() when inserting a new row", "24000");
+            throw new SQLException("Cannot call deleteRow() when inserting a new row");
         }
 
         if (!canBeUpdate) {
-            throw new SQLDataException(exceptionUpdateMsg, "24000");
+            throw new SQLDataException(exceptionUpdateMsg);
         }
 
         if (getRowPointer() < 0) {
@@ -1346,7 +1347,6 @@ public class UpdatableResultSet extends SelectResultSet {
         deletePreparedStatement.executeUpdate();
 
         deleteCurrentRowData();
-        rowDeleted = true;
     }
 
 
@@ -1418,6 +1418,18 @@ public class UpdatableResultSet extends SelectResultSet {
      * {inheritDoc}.
      */
     public void refreshRow() throws SQLException {
+        if (state == STATE_INSERT) {
+            throw new SQLException("Cannot call deleteRow() when inserting a new row");
+        }
+
+        if (getRowPointer() < 0) {
+            throw new SQLDataException("Current position is before the first row", "22023");
+        }
+
+        if (getRowPointer() >= getDataSize()) {
+            throw new SQLDataException("Current position is after the last row", "22023");
+        }
+
         if (canBeRefresh) {
             updateRowData(refreshRawData());
         }
@@ -1426,31 +1438,7 @@ public class UpdatableResultSet extends SelectResultSet {
     /**
      * {inheritDoc}.
      */
-    public boolean rowUpdated() throws SQLException {
-        return rowUpdated;
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public boolean rowInserted() throws SQLException {
-        return rowInserted;
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public boolean rowDeleted() throws SQLException {
-        return rowDeleted;
-    }
-
-    /**
-     * {inheritDoc}.
-     */
     public void cancelRowUpdates() throws SQLException {
-        if (state == STATE_INSERT) {
-            throw new SQLException("Cannot call cancelRowUpdates() when inserting a new row", "24000");
-        }
         Arrays.fill(parameterHolders, null);
         state = STATE_STANDARD;
     }
@@ -1459,9 +1447,10 @@ public class UpdatableResultSet extends SelectResultSet {
      * {inheritDoc}.
      */
     public void moveToInsertRow() throws SQLException {
-        if (!canBeInserted) throw new SQLException(exceptionInsertMsg, "24000");
+        if (!canBeInserted) throw new SQLException(exceptionInsertMsg);
         Arrays.fill(parameterHolders, null);
         state = STATE_INSERT;
+        notInsertRowPointer = getRowPointer();
     }
 
     /**
@@ -1470,5 +1459,80 @@ public class UpdatableResultSet extends SelectResultSet {
     public void moveToCurrentRow() throws SQLException {
         Arrays.fill(parameterHolders, null);
         state = STATE_STANDARD;
+        setRowPointer(notInsertRowPointer);
     }
+
+
+    @Override
+    public void beforeFirst() throws SQLException {
+        if (state == STATE_INSERT) {
+            state = STATE_UPDATE;
+            setRowPointer(notInsertRowPointer);
+        }
+        super.beforeFirst();
+    }
+
+    @Override
+    public boolean first() throws SQLException {
+        if (state == STATE_INSERT) {
+            state = STATE_UPDATE;
+            setRowPointer(notInsertRowPointer);
+        }
+        return super.first();
+    }
+
+    @Override
+    public boolean last() throws SQLException {
+        if (state == STATE_INSERT) {
+            state = STATE_UPDATE;
+            setRowPointer(notInsertRowPointer);
+        }
+        return super.last();
+    }
+
+    @Override
+    public void afterLast() throws SQLException {
+        if (state == STATE_INSERT) {
+            state = STATE_UPDATE;
+            setRowPointer(notInsertRowPointer);
+        }
+        super.afterLast();
+    }
+
+    @Override
+    public boolean absolute(int row) throws SQLException {
+        if (state == STATE_INSERT) {
+            state = STATE_UPDATE;
+            setRowPointer(notInsertRowPointer);
+        }
+        return super.absolute(row);
+    }
+
+    @Override
+    public boolean relative(int rows) throws SQLException {
+        if (state == STATE_INSERT) {
+            state = STATE_UPDATE;
+            setRowPointer(notInsertRowPointer);
+        }
+        return super.relative(rows);
+    }
+
+    @Override
+    public boolean next() throws SQLException {
+        if (state == STATE_INSERT) {
+            state = STATE_UPDATE;
+            setRowPointer(notInsertRowPointer);
+        }
+        return super.next();
+    }
+
+    @Override
+    public boolean previous() throws SQLException {
+        if (state == STATE_INSERT) {
+            state = STATE_UPDATE;
+            setRowPointer(notInsertRowPointer);
+        }
+        return super.previous();
+    }
+
 }

@@ -549,6 +549,7 @@ public class SelectResultSet implements ResultSet {
     /**
      * Delete current data.
      * Position cursor to the previous row.
+     * @throws SQLException if previous() fail.
      */
     protected void deleteCurrentRowData() throws SQLException {
         //move data

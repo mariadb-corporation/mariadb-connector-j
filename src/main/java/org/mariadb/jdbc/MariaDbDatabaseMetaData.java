@@ -2274,10 +2274,41 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         return executeQuery(sql);
     }
 
+    /**
+     * Retrieves whether this database supports the given result set type.
+     * ResultSet.TYPE_FORWARD_ONLY and ResultSet.TYPE_SCROLL_INSENSITIVE are supported.
+     *
+     * @param type        one of the following <code>ResultSet</code> constants:
+     *                    <ul>
+     *                    <li><code>ResultSet.TYPE_FORWARD_ONLY</code></li>
+     *                    <li><code>ResultSet.TYPE_SCROLL_INSENSITIVE</code></li>
+     *                    <li><code>ResultSet.TYPE_SCROLL_SENSITIVE</code></li>
+     *                    </ul>
+     * @return true if supported
+     * @throws SQLException cannot occur here
+     */
     public boolean supportsResultSetType(int type) throws SQLException {
         return (type == ResultSet.TYPE_SCROLL_INSENSITIVE || type == ResultSet.TYPE_FORWARD_ONLY);
     }
 
+    /**
+     * Retrieves whether this database supports the given concurrency type in combination with the given result set type.
+     * All are supported, but combination that use ResultSet.TYPE_SCROLL_INSENSITIVE.
+     *
+     * @param type        one of the following <code>ResultSet</code> constants:
+     *                    <ul>
+     *                    <li><code>ResultSet.TYPE_FORWARD_ONLY</code></li>
+     *                    <li><code>ResultSet.TYPE_SCROLL_INSENSITIVE</code></li>
+     *                    <li><code>ResultSet.TYPE_SCROLL_SENSITIVE</code></li>
+     *                    </ul>
+     * @param concurrency one of the following <code>ResultSet</code> constants:
+     *                    <ul>
+     *                    <li><code>ResultSet.CONCUR_READ_ONLY</code></li>
+     *                    <li><code>ResultSet.CONCUR_UPDATABLE</code></li>
+     *                    </ul>
+     * @return true if supported
+     * @throws SQLException cannot occur here
+     */
     public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
         //Support all concurrency (ResultSet.CONCUR_READ_ONLY and ResultSet.CONCUR_UPDATABLE)
         //so just return scroll type
