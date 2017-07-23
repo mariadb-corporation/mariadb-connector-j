@@ -67,7 +67,7 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
                               String[] partsMulti) throws Exception {
 
         MariaDbPreparedStatementClient statement = new MariaDbPreparedStatementClient((MariaDbConnection) sharedConnection, sql,
-                ResultSet.FETCH_FORWARD);
+                ResultSet.FETCH_FORWARD, ResultSet.CONCUR_READ_ONLY);
         assertEquals(paramNumber, statement.getParameterCount());
 
         if (sharedIsRewrite()) {

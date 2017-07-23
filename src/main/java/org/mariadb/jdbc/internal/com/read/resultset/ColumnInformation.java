@@ -100,15 +100,25 @@ public class ColumnInformation {
             0, 0, 0, 0, 0, 0, 0, 0
     };
 
-    Buffer buffer;
+    private Buffer buffer;
     private short charsetNumber;
     private long length;
     private ColumnType type;
     private byte decimals;
     private short flags;
 
-    public ColumnInformation(ColumnType type) {
-        this.type = type;
+    /**
+     * Constructor for extent.
+     *
+     * @param other other columnInformation
+     */
+    public ColumnInformation(ColumnInformation other) {
+        this.buffer = other.buffer;
+        this.charsetNumber = other.charsetNumber;
+        this.length = other.length;
+        this.type = other.type;
+        this.decimals = other.decimals;
+        this.flags = other.flags;
     }
 
     /**

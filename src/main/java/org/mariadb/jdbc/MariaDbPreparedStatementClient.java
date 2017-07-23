@@ -78,14 +78,17 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
     /**
      * Constructor.
      *
-     * @param connection          connection
-     * @param sql                 sql query
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param connection            connection
+     * @param sql                   sql query
+     * @param resultSetScrollType   one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency  a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                              <code>ResultSet.CONCUR_UPDATABLE</code>
      * @throws SQLException exception
      */
-    public MariaDbPreparedStatementClient(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
-        super(connection, resultSetScrollType);
+    public MariaDbPreparedStatementClient(MariaDbConnection connection, String sql, int resultSetScrollType,
+                                          int resultSetConcurrency) throws SQLException {
+        super(connection, resultSetScrollType, resultSetConcurrency);
         this.sqlQuery = sql;
 
         if (options.cachePrepStmts) {
@@ -95,9 +98,9 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
 
         if (prepareResult == null) {
             if (options.rewriteBatchedStatements) {
-                prepareResult = ClientPrepareResult.rewritableParts(sqlQuery, connection.noBackslashEscapes);
+                prepareResult = ClientPrepareResult.rewritableParts(sqlQuery, protocol.noBackslashEscapes());
             } else {
-                prepareResult = ClientPrepareResult.parameterParts(sqlQuery, connection.noBackslashEscapes);
+                prepareResult = ClientPrepareResult.parameterParts(sqlQuery, protocol.noBackslashEscapes());
             }
             if (options.cachePrepStmts && sql.length() < 1024) {
                 String key = new StringBuilder(this.protocol.getDatabase()).append("-").append(sqlQuery).toString();
@@ -203,7 +206,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
         lock.lock();
         try {
             executeQueryPrologue(false);
-            results = new Results(this, fetchSize, false, 1, false, resultSetScrollType,
+            results = new Results(this, fetchSize, false, 1, false, resultSetScrollType, resultSetConcurrency,
                     protocol.getAutoIncrementIncrement());
             if (queryTimeout != 0 && canUseServerTimeout) {
                 //timer will not be used for timeout to avoid having threads
@@ -334,7 +337,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
     protected void executeInternalBatch(int size) throws SQLException {
 
         executeQueryPrologue(true);
-        results.reset(0, true, size, false, resultSetScrollType);
+        results.reset(0, true, size, false, resultSetScrollType, resultSetConcurrency);
 
         if (options.rewriteBatchedStatements) {
             if (prepareResult.isQueryMultiValuesRewritable()) {
@@ -423,8 +426,14 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
         return resultSetMetaData;
     }
 
-
-    protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
+    /**
+     * Set parameter.
+     *
+     * @param parameterIndex    index
+     * @param holder            parameter holder
+     * @throws SQLException if index position doesn't correspond to query parameters
+     */
+    public void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
         if (parameterIndex >= 1 && parameterIndex < prepareResult.getParamCount() + 1) {
             parameters[parameterIndex - 1] = holder;
         } else {
@@ -457,7 +466,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
 
     private void setParametersData() throws SQLException {
         try (MariaDbPreparedStatementServer ssps = new MariaDbPreparedStatementServer(connection, this.sqlQuery,
-                ResultSet.TYPE_SCROLL_INSENSITIVE, true)) {
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY, true)) {
             resultSetMetaData = ssps.getMetaData();
             parameterMetaData = ssps.getParameterMetaData();
         } catch (SQLException sqle) {

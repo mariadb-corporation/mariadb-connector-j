@@ -69,15 +69,20 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
      * Specific implementation of CallableStatement to handle function call, represent by call like
      * {?= call procedure-name[(arg1,arg2, ...)]}.
      *
-     * @param query         query
-     * @param connection    current connection
-     * @param procedureName procedure name
-     * @param database      database
-     * @throws SQLException exception
+     * @param query                 query
+     * @param connection            current connection
+     * @param procedureName         procedure name
+     * @param database              database
+     * @param resultSetType         a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                              <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency  a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                              <code>ResultSet.CONCUR_UPDATABLE</code>
+     *@throws SQLException exception
      */
     public MariaDbProcedureStatement(String query, MariaDbConnection connection,
-                                     String procedureName, String database) throws SQLException {
-        super(connection, query, ResultSet.TYPE_FORWARD_ONLY);
+                                     String procedureName, String database, int resultSetType, int resultSetConcurrency) throws SQLException {
+        super(connection, query, resultSetType, resultSetConcurrency);
         this.parameterMetadata = new CallableParameterMetaData(connection, database, procedureName, false);
         setParamsAccordingToSetArguments();
         setParametersVariables();
@@ -137,7 +142,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
         }
     }
 
-    protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
+    public void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
         params.get(parameterIndex - 1).isInput = true;
         super.setParameter(parameterIndex, holder);
     }

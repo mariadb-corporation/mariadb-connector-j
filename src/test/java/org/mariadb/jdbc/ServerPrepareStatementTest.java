@@ -343,7 +343,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                         + "date0 DATE default '2001-01-01',"
                         + "datetime0 DATETIME(6) default '2001-01-01 00:00:00',"
                         + "timestamp0 TIMESTAMP(6) default  '2001-01-01 00:00:00',"
-                        + "timestamp1 TIMESTAMP(0) default  '2001-01-01 00:00:00',"
+                        + "timestamp1 TIMESTAMP(0) null default  '2001-01-01 00:00:00',"
                         + "timestamp_zero TIMESTAMP  null, "
                         + "time0 TIME(6) default '22:11:00',"
                         + ((!isMariadbServer() && minVersion(5, 6)) ? "year2 YEAR(4) default 99," : "year2 YEAR(2) default 99,")
@@ -353,7 +353,8 @@ public class ServerPrepareStatementTest extends BaseTest {
                         + "varchar0 VARCHAR(1) default '1',"
                         + "varchar_binary VARCHAR(10) BINARY default 0x1,"
                         + "binary0 BINARY(10) default 0x1,"
-                        + "varbinary0 VARBINARY(10) default 0x1"
+                        + "varbinary0 VARBINARY(10) default 0x1, "
+                        + "id int not null AUTO_INCREMENT, PRIMARY KEY (id)"
         );
     }
 
@@ -440,7 +441,8 @@ public class ServerPrepareStatementTest extends BaseTest {
 
             ps.addBatch();
             ps.executeBatch();
-            ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from preparetest");
+            ResultSet rs = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+                    .executeQuery("SELECT * from preparetest");
             if (rs.next()) {
                 assertEquals(rs.getBoolean(1), bit1);
                 assertEquals(rs.getByte(2), bit2);
@@ -459,9 +461,6 @@ public class ServerPrepareStatementTest extends BaseTest {
                 assertEquals(rs.getDouble(15), double0, 10000);
                 assertEquals(rs.getBigDecimal(16), decimal0);
                 assertEquals(rs.getBigDecimal(17), decimal1);
-                Calendar cc = new GregorianCalendar();
-                cc.setTimeInMillis(date0.getTime());
-                cc.setTimeInMillis(date0.getTime());
                 assertEquals(rs.getDate(18), date0);
                 assertEquals(rs.getTimestamp(19), datetime0);
                 assertEquals(rs.getTimestamp(20), timestamp0);
@@ -478,6 +477,115 @@ public class ServerPrepareStatementTest extends BaseTest {
                         new String(binary0, StandardCharsets.UTF_8));
                 assertEquals(new String(rs.getBytes(31), StandardCharsets.UTF_8),
                         new String(varbinary0, StandardCharsets.UTF_8));
+
+
+                /***************************************************************************
+                 * Update Row
+                 **************************************************************************/
+
+                rs.updateBoolean(1, Boolean.TRUE);
+                rs.updateByte(2, (byte) 2);
+                rs.updateByte(3, (byte) 126);
+                rs.updateShort(4, (short) 126);
+                rs.updateBoolean(5, Boolean.TRUE);
+                rs.updateShort(6, (short) 6);
+                rs.updateShort(7, (short) 7);
+                rs.updateInt(8, 55001);
+                rs.updateInt(9, 55002);
+                rs.updateInt(10, Integer.MAX_VALUE - 1);
+                rs.updateInt(11, Integer.MAX_VALUE - 2);
+                rs.updateInt(12, 59000);
+                rs.updateObject(13, BigInteger.valueOf(555555));
+                rs.updateFloat(14,  3148483647.6526F);
+                rs.updateDouble(15,  3187483642.6527D);
+                rs.updateBigDecimal(16, new BigDecimal("3897483647"));
+                rs.updateBigDecimal(17, new BigDecimal("3197443647"));
+                rs.updateDate(18, new Date(1499990400000L));
+                rs.updateTimestamp(19, new Timestamp(-2124620212000L));
+                rs.updateTimestamp(20, new Timestamp(1441222349000L));
+                rs.updateTimestamp(21, null);
+                rs.updateTimestamp(22, new Timestamp(1441290309000L));
+                rs.updateTime(23, new Time(55549992));
+                rs.updateInt(24, (short) 56);
+                rs.updateInt(25, 2051);
+                rs.updateString(26, "\\");
+                rs.updateString(27, "\r");
+                rs.updateString(28, "è");
+                rs.updateString(29, "&");
+                rs.updateBytes(30, "1234567899".getBytes());
+                rs.updateRow();
+
+                //check row refresh
+                assertEquals(rs.getBoolean(1), Boolean.TRUE);
+                assertEquals(rs.getByte(2), (byte) 2);
+                assertEquals(rs.getByte(3), (byte) 126);
+                assertEquals(rs.getShort(4), (byte) 126);
+                assertEquals(rs.getBoolean(5), Boolean.TRUE);
+                assertEquals(rs.getShort(6), (short) 6);
+                assertEquals(rs.getShort(7), (short) 7);
+                assertEquals(rs.getInt(8), 55001);
+                assertEquals(rs.getInt(9), 55002);
+                assertEquals(rs.getInt(10), Integer.MAX_VALUE - 1);
+                assertEquals(rs.getInt(11), Integer.MAX_VALUE - 2);
+                assertEquals(rs.getInt(12), 59000);
+                assertEquals(rs.getObject(13), BigInteger.valueOf(555555));
+                assertEquals(rs.getFloat(14), 3148483647.6526F, 10000);
+                assertEquals(rs.getDouble(15), 3187483642.6527D, 10000);
+                assertEquals(rs.getBigDecimal(16), new BigDecimal("3897483647"));
+                assertEquals(rs.getBigDecimal(17), new BigDecimal("3197443647.0000"));
+                assertEquals(rs.getDate(18).getTime(), new Date(1499990400000L).getTime());
+                assertEquals(rs.getTimestamp(19), new Timestamp(-2124620212000L));
+                assertEquals(rs.getTimestamp(20), new Timestamp(1441222349000L));
+                assertNull(rs.getTimestamp(21));
+                assertEquals(rs.getTimestamp(22), new Timestamp(1441290309000L));
+                assertEquals(rs.getTime(23), new Time(55549992));
+                assertYear(rs, 24, (short) 56);
+                assertEquals(rs.getInt(25), 2051);
+                assertEquals(rs.getString(26), "\\");
+                assertEquals(rs.getString(27), "\r");
+                assertEquals(rs.getString(28), "è");
+                assertEquals(rs.getString(29), "&");
+                assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8),"1234567899");
+
+                rs = sharedConnection.createStatement().executeQuery("SELECT * from preparetest");
+                if (rs.next()) {
+                    assertEquals(rs.getBoolean(1), Boolean.TRUE);
+                    assertEquals(rs.getByte(2), (byte) 2);
+                    assertEquals(rs.getByte(3), (byte) 126);
+                    assertEquals(rs.getShort(4), (byte) 126);
+                    assertEquals(rs.getBoolean(5), Boolean.TRUE);
+                    assertEquals(rs.getShort(6), (short) 6);
+                    assertEquals(rs.getShort(7), (short) 7);
+                    assertEquals(rs.getInt(8), 55001);
+                    assertEquals(rs.getInt(9), 55002);
+                    assertEquals(rs.getInt(10), Integer.MAX_VALUE - 1);
+                    assertEquals(rs.getInt(11), Integer.MAX_VALUE - 2);
+                    assertEquals(rs.getInt(12), 59000);
+                    assertEquals(rs.getObject(13), BigInteger.valueOf(555555));
+                    assertEquals(rs.getFloat(14), 3148483647.6526F, 10000);
+                    assertEquals(rs.getDouble(15), 3187483642.6527D, 10000);
+                    assertEquals(rs.getBigDecimal(16), new BigDecimal("3897483647"));
+                    assertEquals(rs.getBigDecimal(17), new BigDecimal("3197443647.0000"));
+                    assertEquals(rs.getDate(18).getTime(), new Date(1499990400000L).getTime());
+                    assertEquals(rs.getTimestamp(19), new Timestamp(-2124620212000L));
+                    assertEquals(rs.getTimestamp(20), new Timestamp(1441222349000L));
+                    assertNull(rs.getTimestamp(21));
+                    assertEquals(rs.getTimestamp(22), new Timestamp(1441290309000L));
+                    assertEquals(rs.getTime(23), new Time(55549992));
+                    assertYear(rs, 24, (short) 56);
+                    assertEquals(rs.getInt(25), 2051);
+                    assertEquals(rs.getString(26), "\\");
+                    assertEquals(rs.getString(27), "\r");
+                    assertEquals(rs.getString(28), "è");
+                    assertEquals(rs.getString(29), "&");
+                    assertEquals(new String(rs.getBytes(30), StandardCharsets.UTF_8),"1234567899");
+                    assertFalse(rs.next());
+
+                } else {
+                    fail();
+                }
+
+
             } else {
                 fail();
             }
@@ -493,9 +601,9 @@ public class ServerPrepareStatementTest extends BaseTest {
         } else {
             if (minVersion(5, 6)) {
                 //year on 2 bytes is deprecated since 5.5.27
-                assertEquals(rs.getInt(fieldNumber), 2030);
+                assertEquals(rs.getInt(fieldNumber), comparaison + 2000);
             } else {
-                assertEquals(rs.getInt(fieldNumber), 30);
+                assertEquals(rs.getInt(fieldNumber), comparaison);
             }
         }
     }

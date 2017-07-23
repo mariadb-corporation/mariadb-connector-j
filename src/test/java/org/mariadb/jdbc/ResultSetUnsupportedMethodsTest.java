@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -183,7 +184,7 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
-    public void getRowInserte() throws SQLException {
+    public void getRowInserted() throws SQLException {
         rs.rowInserted();
     }
 

@@ -530,7 +530,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             pst = connection.prepareStatement("SELECT * from daylight where 1 = ?", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         } else {
             MariaDbConnection mariaDbConnection = (MariaDbConnection) connection;
-            pst = new MariaDbPreparedStatementClient(mariaDbConnection, "SELECT * from daylight where 1 = ?", ResultSet.TYPE_SCROLL_INSENSITIVE);
+            pst = new MariaDbPreparedStatementClient(mariaDbConnection, "SELECT * from daylight where 1 = ?",
+                    ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         }
         pst.setInt(1, 1);
         rs = pst.executeQuery();

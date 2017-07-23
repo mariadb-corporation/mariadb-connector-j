@@ -79,7 +79,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
      * a format that extends the ISO-8601 extended offset date-time format
      * to add the time-zone.</p>
      **/
-    private static final DateTimeFormatter SPEC_ISO_ZONED_DATE_TIME = new DateTimeFormatterBuilder()
+    public static final DateTimeFormatter SPEC_ISO_ZONED_DATE_TIME = new DateTimeFormatterBuilder()
             .parseCaseInsensitive()
             .append(DateTimeFormatter.ISO_LOCAL_DATE)
             .optionalStart()
@@ -99,10 +99,24 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
 
     protected boolean useFractionalSeconds;
     protected boolean hasLongData = false;
+    private boolean noBackslashEscapes;
 
-
-    public BasePrepareStatement(MariaDbConnection connection, int resultSetScrollType) {
-        super(connection, resultSetScrollType);
+    /**
+     * Constructor.
+     * Base class that permit setting parameters for client and server PrepareStatement.
+     *
+     * @param connection           current connection
+     * @param resultSetScrollType  one of the following <code>ResultSet</code> constants:
+     *                             <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                             <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency one of the following <code>ResultSet</code> constants:
+     *                             <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                             <code>ResultSet.CONCUR_UPDATABLE</code>
+     */
+    public BasePrepareStatement(MariaDbConnection connection, int resultSetScrollType, int resultSetConcurrency) {
+        super(connection, resultSetScrollType, resultSetConcurrency);
+        this.noBackslashEscapes = protocol.noBackslashEscapes();
         this.useFractionalSeconds = options.useFractionalSeconds;
     }
 
@@ -152,7 +166,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new ReaderParameter(reader, length, connection.noBackslashEscapes));
+        setParameter(parameterIndex, new ReaderParameter(reader, length, noBackslashEscapes));
         hasLongData = true;
     }
 
@@ -178,7 +192,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new ReaderParameter(reader, length, connection.noBackslashEscapes));
+        setParameter(parameterIndex, new ReaderParameter(reader, length, noBackslashEscapes));
         hasLongData = true;
     }
 
@@ -205,7 +219,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new ReaderParameter(reader, connection.noBackslashEscapes));
+        setParameter(parameterIndex, new ReaderParameter(reader, noBackslashEscapes));
         hasLongData = true;
     }
 
@@ -240,7 +254,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(blob.getBinaryStream(), blob.length(), connection.noBackslashEscapes));
+        setParameter(parameterIndex, new StreamParameter(blob.getBinaryStream(), blob.length(), noBackslashEscapes));
         hasLongData = true;
     }
 
@@ -267,7 +281,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(inputStream, length, connection.noBackslashEscapes));
+        setParameter(parameterIndex, new StreamParameter(inputStream, length, noBackslashEscapes));
         hasLongData = true;
     }
 
@@ -295,7 +309,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             return;
         }
 
-        setParameter(parameterIndex, new StreamParameter(inputStream, connection.noBackslashEscapes));
+        setParameter(parameterIndex, new StreamParameter(inputStream, noBackslashEscapes));
         hasLongData = true;
     }
 
@@ -317,7 +331,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             return;
         }
 
-        setParameter(parameterIndex, new ReaderParameter(clob.getCharacterStream(), clob.length(), connection.noBackslashEscapes));
+        setParameter(parameterIndex, new ReaderParameter(clob.getCharacterStream(), clob.length(), noBackslashEscapes));
         hasLongData = true;
     }
 
@@ -581,7 +595,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
         setParameter(parameterIndex, new NullParameter());
     }
 
-    protected abstract void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException;
+    public abstract void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException;
 
     /**
      * Sets the designated parameter to the given <code>java.net.URL</code> value. The driver converts this to an SQL
@@ -600,7 +614,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setNull(parameterIndex, ColumnType.STRING);
             return;
         }
-        setParameter(parameterIndex, new StringParameter(url.toString(), connection.noBackslashEscapes));
+        setParameter(parameterIndex, new StringParameter(url.toString(), noBackslashEscapes));
     }
 
     /**
@@ -821,7 +835,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
      * @param targetSqlType  the SQL type (as defined in java.sql.Types) to be sent to the database
      * @throws SQLException                    if parameterIndex does not correspond to a parameter marker in the SQL statement;
      *                                         if a database access error occurs or this method is called on a closed
-     *                                         <code>PreparedStatement</code>
+     *                                         <code>PreparedStatement</code>s
      * @throws SQLFeatureNotSupportedException if <code>targetSqlType</code> is a <code>ARRAY</code>, <code>BLOB</code>,
      *                                         <code>CLOB</code>, <code>DATALINK</code>, <code>JAVA_OBJECT</code>,
      *                                         <code>NCHAR</code>, <code>NCLOB</code>, <code>NVARCHAR</code>,
@@ -920,7 +934,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
         } else {
             //fallback to sending serialized object
             try {
-                setParameter(parameterIndex, new SerializableParameter(obj, connection.noBackslashEscapes));
+                setParameter(parameterIndex, new SerializableParameter(obj, noBackslashEscapes));
                 hasLongData = true;
             } catch (IOException e) {
                 throw ExceptionMapper.getSqlException(
@@ -1034,7 +1048,6 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
                 throw ExceptionMapper.getSqlException("Could not convert [" + str + "] to " + targetSqlType, e);
             }
         } else if (obj instanceof Number) {
-            testNumbers(targetSqlType);
             Number bd = (Number) obj;
             switch (targetSqlType) {
                 case Types.TINYINT:
@@ -1100,7 +1113,6 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
                 setTimestamp(parameterIndex, new Timestamp(timemillis));
             }
         } else if (obj instanceof Boolean) {
-            testNumbers(targetSqlType);
             setBoolean(parameterIndex, (Boolean) obj);
         } else if (obj instanceof Blob) {
             setBlob(parameterIndex, (Blob) obj);
@@ -1168,7 +1180,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(stream, length, connection.noBackslashEscapes));
+        setParameter(parameterIndex, new StreamParameter(stream, length, noBackslashEscapes));
         hasLongData = true;
     }
 
@@ -1197,7 +1209,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(stream, connection.noBackslashEscapes));
+        setParameter(parameterIndex, new StreamParameter(stream, noBackslashEscapes));
         hasLongData = true;
     }
 
@@ -1222,7 +1234,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(stream, length, connection.noBackslashEscapes));
+        setParameter(parameterIndex, new StreamParameter(stream, length, noBackslashEscapes));
         hasLongData = true;
     }
 
@@ -1247,7 +1259,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(stream, length, connection.noBackslashEscapes));
+        setParameter(parameterIndex, new StreamParameter(stream, length, noBackslashEscapes));
         hasLongData = true;
     }
 
@@ -1275,7 +1287,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(stream, connection.noBackslashEscapes));
+        setParameter(parameterIndex, new StreamParameter(stream, noBackslashEscapes));
         hasLongData = true;
     }
 
@@ -1301,7 +1313,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setNull(parameterIndex, ColumnType.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(stream, length, connection.noBackslashEscapes));
+        setParameter(parameterIndex, new StreamParameter(stream, length, noBackslashEscapes));
         hasLongData = true;
     }
 
@@ -1365,7 +1377,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             return;
         }
 
-        setParameter(parameterIndex, new StringParameter(str, connection.noBackslashEscapes));
+        setParameter(parameterIndex, new StringParameter(str, noBackslashEscapes));
     }
 
     /**
@@ -1385,7 +1397,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             return;
         }
 
-        setParameter(parameterIndex, new ByteArrayParameter(bytes, connection.noBackslashEscapes));
+        setParameter(parameterIndex, new ByteArrayParameter(bytes, noBackslashEscapes));
     }
 
 
@@ -1417,26 +1429,9 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
             setNull(parameterIndex, Types.BLOB);
             return;
         }
-        setParameter(parameterIndex, new StreamParameter(x, length, connection.noBackslashEscapes));
+        setParameter(parameterIndex, new StreamParameter(x, length, noBackslashEscapes));
         hasLongData = true;
     }
-
-
-    private void testNumbers(int targetSqlType) throws SQLException {
-        switch (targetSqlType) {
-            case Types.BINARY:
-            case Types.VARBINARY:
-            case Types.LONGVARBINARY:
-            case Types.DATE:
-            case Types.TIME:
-            case Types.TIMESTAMP:
-            case Types.BLOB:
-                throw ExceptionMapper.getSqlException("Cannot convert to " + targetSqlType);
-            default:
-                return;
-        }
-    }
-
 
     public void setInt(final int column, final int value) throws SQLException {
         setParameter(column, new IntParameter(value));

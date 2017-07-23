@@ -63,6 +63,7 @@ import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.com.read.resultset.UpdatableResultSet;
 import org.mariadb.jdbc.internal.com.send.ComQuery;
 import org.mariadb.jdbc.internal.com.send.ComStmtExecute;
 import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
@@ -1357,7 +1358,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             //read resultSet
-            SelectResultSet selectResultSet = new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated);
+            SelectResultSet selectResultSet;
+            if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
+                selectResultSet = new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated);
+            } else {
+                selectResultSet = new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated);
+            }
+
             results.addResultSet(selectResultSet, hasMoreResults());
 
         } catch (IOException e) {

@@ -76,6 +76,7 @@ public class Results {
     private SelectResultSet callableResultSet;
     private boolean binaryFormat;
     private int resultSetScrollType;
+    private int resultSetConcurrency;
     private int maxFieldSize;
     private int autoIncrement;
 
@@ -93,16 +94,21 @@ public class Results {
         this.cmdInformation = null;
         this.binaryFormat = false;
         this.resultSetScrollType = ResultSet.TYPE_FORWARD_ONLY;
+        this.resultSetConcurrency = ResultSet.CONCUR_READ_ONLY;
         this.autoIncrement = 1;
     }
 
     /**
      * Constructor for specific statement.
      *
-     * @param statement     current Statement.
-     * @param autoIncrement connection auto-increment
+     * @param statement             current Statement.
+     * @param autoIncrement         connection auto-increment
+     * @param resultSetScrollType   one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency  a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                              <code>ResultSet.CONCUR_UPDATABLE</code>
      */
-    public Results(MariaDbStatement statement, int autoIncrement) {
+    public Results(MariaDbStatement statement, int autoIncrement, int resultSetScrollType, int resultSetConcurrency) {
         this.statement = statement;
         this.fetchSize = 0;
         this.maxFieldSize = 0;
@@ -110,24 +116,27 @@ public class Results {
         this.expectedSize = 1;
         this.cmdInformation = null;
         this.binaryFormat = false;
-        this.resultSetScrollType = ResultSet.TYPE_FORWARD_ONLY;
+        this.resultSetScrollType = resultSetScrollType;
+        this.resultSetConcurrency = resultSetConcurrency;
         this.autoIncrement = autoIncrement;
     }
 
     /**
      * Default constructor.
      *
-     * @param statement           current statement
-     * @param fetchSize           fetch size
-     * @param batch               select result possible
-     * @param expectedSize        expected size
-     * @param binaryFormat        use binary protocol
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param autoIncrement       Connection auto-increment value
+     * @param statement             current statement
+     * @param fetchSize             fetch size
+     * @param batch                 select result possible
+     * @param expectedSize          expected size
+     * @param binaryFormat          use binary protocol
+     * @param resultSetScrollType   one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency  a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                              <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @param autoIncrement         Connection auto-increment value
      */
     public Results(MariaDbStatement statement, int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType,
-                   int autoIncrement) {
+                int resultSetConcurrency, int autoIncrement) {
         this.statement = statement;
         this.fetchSize = fetchSize;
         this.batch = batch;
@@ -136,20 +145,23 @@ public class Results {
         this.cmdInformation = null;
         this.binaryFormat = binaryFormat;
         this.resultSetScrollType = resultSetScrollType;
+        this.resultSetConcurrency = resultSetConcurrency;
         this.autoIncrement = autoIncrement;
     }
 
     /**
      * Reset.
      *
-     * @param fetchSize           fetch size
-     * @param batch               select result possible
-     * @param expectedSize        expected size
-     * @param binaryFormat        use binary protocol
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param fetchSize             fetch size
+     * @param batch                 select result possible
+     * @param expectedSize          expected size
+     * @param binaryFormat          use binary protocol
+     * @param resultSetScrollType   one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency  a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                              <code>ResultSet.CONCUR_UPDATABLE</code>
      */
-    public void reset(int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType) {
+    public void reset(int fetchSize, boolean batch, int expectedSize, boolean binaryFormat, int resultSetScrollType, int resultSetConcurrency) {
         this.fetchSize = fetchSize;
         this.batch = batch;
         this.maxFieldSize = statement.getMaxFieldSize();
@@ -157,6 +169,7 @@ public class Results {
         this.cmdInformation = null;
         this.binaryFormat = binaryFormat;
         this.resultSetScrollType = resultSetScrollType;
+        this.resultSetConcurrency = resultSetConcurrency;
     }
 
     /**
@@ -407,5 +420,9 @@ public class Results {
 
     public void setAutoIncrement(int autoIncrement) {
         this.autoIncrement = autoIncrement;
+    }
+
+    public int getResultSetConcurrency() {
+        return resultSetConcurrency;
     }
 }

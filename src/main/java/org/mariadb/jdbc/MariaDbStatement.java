@@ -101,6 +101,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     protected long maxRows;
     protected Results results;
     protected int resultSetScrollType;
+    protected int resultSetConcurrency;
     protected boolean mustCloseOnCompletion = false;
     protected Options options;
     //are warnings cleared?
@@ -117,15 +118,18 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @param connection          the connection to return in getConnection.
      * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
      *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                             <code>ResultSet.CONCUR_UPDATABLE</code>
      */
-    public MariaDbStatement(MariaDbConnection connection, int resultSetScrollType) {
+    public MariaDbStatement(MariaDbConnection connection, int resultSetScrollType, int resultSetConcurrency) {
         this.protocol = connection.getProtocol();
         this.connection = connection;
         this.canUseServerTimeout = connection.canUseServerTimeout();
         this.resultSetScrollType = resultSetScrollType;
+        this.resultSetConcurrency = resultSetConcurrency;
         this.lock = this.connection.lock;
         this.options = this.protocol.getOptions();
-        this.results = new Results(this, protocol.getAutoIncrementIncrement());
+        this.results = new Results(this, protocol.getAutoIncrementIncrement(), resultSetScrollType, resultSetConcurrency);
     }
 
     /**
@@ -148,7 +152,8 @@ public class MariaDbStatement implements Statement, Cloneable {
         clone.protocol = connection.getProtocol();
         clone.timerTaskFuture = null;
         clone.batchQueries = new ArrayList<>();
-        clone.results = new Results(clone, clone.protocol.getAutoIncrementIncrement());
+        clone.results = new Results(clone, clone.protocol.getAutoIncrementIncrement(),
+                clone.resultSetScrollType, clone.resultSetConcurrency);
         clone.closed = false;
         clone.warningsCleared = true;
         clone.fetchSize = 0;
@@ -333,9 +338,9 @@ public class MariaDbStatement implements Statement, Cloneable {
         try {
 
             executeQueryPrologue(false);
-            results.reset(fetchSize, false, 1, false, resultSetScrollType);
+            results.reset(fetchSize, false, 1, false, resultSetScrollType, resultSetConcurrency);
             protocol.executeQuery(protocol.isMasterConnection(), results,
-                    getTimeoutSql(Utils.nativeSql(sql, connection.noBackslashEscapes)));
+                    getTimeoutSql(Utils.nativeSql(sql, protocol.noBackslashEscapes())));
             results.commandEnd();
             return results.getResultSet() != null;
 
@@ -369,9 +374,9 @@ public class MariaDbStatement implements Statement, Cloneable {
         try {
 
             executeQueryPrologue(false);
-            results.reset(fetchSize, false, 1, false, resultSetScrollType);
+            results.reset(fetchSize, false, 1, false, resultSetScrollType, resultSetConcurrency);
             protocol.executeQuery(protocol.isMasterConnection(), results,
-                    getTimeoutSql(Utils.nativeSql(sql, connection.noBackslashEscapes)), charset);
+                    getTimeoutSql(Utils.nativeSql(sql, protocol.noBackslashEscapes())), charset);
             results.commandEnd();
             return results.getResultSet() != null;
 
@@ -1176,7 +1181,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @since 1.2
      */
     public int getResultSetConcurrency() throws SQLException {
-        return ResultSet.CONCUR_READ_ONLY;
+        return resultSetConcurrency;
     }
 
     /**
@@ -1292,13 +1297,13 @@ public class MariaDbStatement implements Statement, Cloneable {
 
         executeQueryPrologue(true);
 
-        results.reset(0, true, size, false, resultSetScrollType);
+        results.reset(0, true, size, false, resultSetScrollType, resultSetConcurrency);
         if (this.options.rewriteBatchedStatements) {
 
             //check that queries are rewritable
             boolean batchQueryMultiRewritable = true;
             for (String query : batchQueries) {
-                if (!ClientPrepareResult.isRewritableBatch(query, connection.noBackslashEscapes)) {
+                if (!ClientPrepareResult.isRewritableBatch(query, protocol.noBackslashEscapes())) {
                     batchQueryMultiRewritable = false;
                     break;
                 }

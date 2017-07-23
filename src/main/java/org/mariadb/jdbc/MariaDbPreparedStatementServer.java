@@ -80,16 +80,19 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
     /**
      * Constructor for creating Server prepared statement.
      *
-     * @param connection          current connection
-     * @param sql                 Sql String to prepare
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param connection            current connection
+     * @param sql                   Sql String to prepare
+     * @param resultSetScrollType   one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency  a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                              <code>ResultSet.CONCUR_UPDATABLE</code>
      * @param forcePrepare        force immediate prepare
      * @throws SQLException exception
      */
-    public MariaDbPreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType, boolean forcePrepare)
+    public MariaDbPreparedStatementServer(MariaDbConnection connection, String sql, int resultSetScrollType,
+                                          int resultSetConcurrency, boolean forcePrepare)
             throws SQLException {
-        super(connection, resultSetScrollType);
+        super(connection, resultSetScrollType, resultSetConcurrency);
         this.sql = sql;
         returnTableAlias = options.useOldAliasMetadataBehavior;
         currentParameterHolder = Collections.synchronizedMap(new TreeMap<Integer, ParameterHolder>());
@@ -140,7 +143,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
         parameterMetaData = new MariaDbParameterMetaData(serverPrepareResult.getParameters());
     }
 
-    protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
+    public void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
         currentParameterHolder.put(parameterIndex - 1, holder);
     }
 
@@ -243,7 +246,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
         try {
             executeQueryPrologue(serverPrepareResult);
 
-            results.reset(0, true, queryParameterSize, true, resultSetScrollType);
+            results.reset(0, true, queryParameterSize, true, resultSetScrollType, resultSetConcurrency);
 
             //if  multi send capacity
             if (options.useBatchMultiSend) {
@@ -363,7 +366,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
             executeQueryPrologue(serverPrepareResult);
             ParameterHolder[] parameterHolders = currentParameterHolder.values().toArray(new ParameterHolder[0]);
 
-            results.reset(fetchSize, false, 1, true, resultSetScrollType);
+            results.reset(fetchSize, false, 1, true, resultSetScrollType, resultSetConcurrency);
 
             if (serverPrepareResult != null) {
                 serverPrepareResult.resetParameterTypeHeader();
