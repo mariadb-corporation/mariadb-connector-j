@@ -55,13 +55,12 @@ package org.mariadb.jdbc;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mariadb.jdbc.internal.protocol.Protocol;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import javax.sql.DataSource;
+import java.sql.*;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class ErrorMessageTest extends BaseTest {
 
@@ -252,4 +251,29 @@ public class ErrorMessageTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testFailOverKillCmd() throws Throwable {
+        DataSource ds = new MariaDbDataSource("jdbc:mariadb:failover//"
+                + ((hostname != null) ? hostname : "localhost") + ":" + port + ","
+                + ((hostname != null) ? hostname : "localhost") + ":" + port
+                + "/" + database + "?user=" + username + (password != null ? "&password=" + password : ""));
+
+        try (Connection connection = ds.getConnection()) {
+            Protocol protocol = getProtocolFromConnection(connection);
+            Statement stmt = connection.createStatement();
+            long threadId = protocol.getServerThreadId();
+            stmt.executeQuery("KILL " + threadId);
+            stmt.executeQuery("SELECT 1");
+            long newThreadId = protocol.getServerThreadId();
+            assertNotEquals(threadId, newThreadId);
+            PreparedStatement preparedStatement = connection.prepareStatement("KILL ?");
+            preparedStatement.setLong(1, newThreadId);
+            preparedStatement.execute();
+
+            stmt.executeQuery("SELECT 1");
+            long anotherNewThreadId = protocol.getServerThreadId();
+            assertNotEquals(anotherNewThreadId, newThreadId);
+
+        }
+    }
 }

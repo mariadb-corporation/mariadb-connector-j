@@ -180,7 +180,14 @@ public abstract class AbstractMastersListener implements Listener {
                     + " ] connection fail. Reason : " + qe.getMessage());
             addToBlacklist(currentProtocol.getHostAddress());
         }
-        return primaryFail(method, args);
+
+        //check that failover is due to kill command
+        boolean killCmd = qe != null
+                && qe.getSQLState() != null
+                && qe.getSQLState().equals("70100")
+                && 1927 == qe.getErrorCode();
+
+        return primaryFail(method, args, killCmd);
     }
 
     /**
@@ -421,7 +428,7 @@ public abstract class AbstractMastersListener implements Listener {
 
     public abstract void switchReadOnlyConnection(Boolean readonly) throws SQLException;
 
-    public abstract HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable;
+    public abstract HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) throws Throwable;
 
     /**
      * Throw a human readable message after a failoverException.

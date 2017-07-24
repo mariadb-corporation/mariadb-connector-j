@@ -129,7 +129,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
     }
 
     @Override
-    public HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable {
+    public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) throws Throwable {
         boolean alreadyClosed = !currentProtocol.isConnected();
         boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();
 
@@ -156,6 +156,9 @@ public class MastersFailoverListener extends AbstractMastersListener {
         try {
             reconnectFailedConnection(new SearchFilter(true, false));
             handleFailLoop();
+
+            if (killCmd) return new HandleErrorResult(true, false);
+
             if (alreadyClosed || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args))) {
                 logger.info("Connection to master lost, new master " + currentProtocol.getHostAddress() + " found"
                         + ", query type permit to be re-execute on new server without throwing exception");

@@ -521,12 +521,13 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     /**
      * To handle the newly detected failover on the master connection.
      *
-     * @param method the initial called method
-     * @param args   the initial args
+     * @param method    the initial called method
+     * @param args      the initial args
+     * @param killCmd   is the fail due to a KILL cmd
      * @return an object to indicate if the previous Exception must be thrown, or the object resulting if a failover worked
      * @throws Throwable if failover has not been catch
      */
-    public HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable {
+    public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) throws Throwable {
         boolean alreadyClosed = !masterProtocol.isConnected();
         boolean inTransaction = masterProtocol != null && masterProtocol.inTransaction();
 
@@ -580,6 +581,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         try {
             reconnectFailedConnection(new SearchFilter(true, urlParser.getOptions().failOnReadOnly));
             handleFailLoop();
+
+            if (killCmd) return new HandleErrorResult(true, false);
+
             if (currentReadOnlyAsked //use master connection temporary in replacement of slave
                     || alreadyClosed //connection was already close
                     || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args))) { //connection was not in transaction
@@ -658,12 +662,13 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     /**
      * To handle the newly detected failover on the secondary connection.
      *
-     * @param method the initial called method
-     * @param args   the initial args
+     * @param method    the initial called method
+     * @param args      the initial args
+     * @param killCmd   is fail due to a KILL command
      * @return an object to indicate if the previous Exception must be thrown, or the object resulting if a failover worked
      * @throws Throwable if failover has not catch error
      */
-    public HandleErrorResult secondaryFail(Method method, Object[] args) throws Throwable {
+    public HandleErrorResult secondaryFail(Method method, Object[] args, boolean killCmd) throws Throwable {
         proxy.lock.lock();
         try {
             if (pingSecondaryProtocol(this.secondaryProtocol)) {
@@ -711,6 +716,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     proxy.lock.unlock();
                 }
             }
+
+            if (killCmd) return new HandleErrorResult(true, false);
+
             logger.info("Connection to slave lost, new slave " + currentProtocol.getHostAddress() + ", conn:"
                     + currentProtocol.getServerThreadId() + " found"
                     + ", query is re-execute on new server without throwing exception");
