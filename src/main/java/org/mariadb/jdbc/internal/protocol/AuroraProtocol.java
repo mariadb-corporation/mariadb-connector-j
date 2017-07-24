@@ -116,10 +116,9 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             throws SQLException {
 
         AuroraProtocol protocol;
-        Deque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
-        if (loopAddresses.isEmpty()) {
-            loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
-        }
+        Deque<HostAddress> loopAddresses = new ArrayDeque<>(addresses);
+        if (loopAddresses.isEmpty()) resetHostList(listener, loopAddresses);
+
         int maxConnectionTry = listener.getRetriesAllDown();
         SQLException lastQueryException = null;
         HostAddress probableMasterHost = null;

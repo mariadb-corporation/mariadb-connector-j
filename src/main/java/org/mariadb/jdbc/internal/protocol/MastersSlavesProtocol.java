@@ -83,10 +83,8 @@ public class MastersSlavesProtocol extends MasterProtocol {
                             SearchFilter searchFilter) throws SQLException {
 
         MastersSlavesProtocol protocol;
-        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
-        if (loopAddresses.isEmpty()) {
-            loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
-        }
+        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>(addresses);
+        if (loopAddresses.isEmpty()) resetHostList(listener, loopAddresses);
 
         int maxConnectionTry = listener.getRetriesAllDown();
         SQLException lastQueryException = null;

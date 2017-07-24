@@ -102,10 +102,9 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
                             SearchFilter searchFilter) throws SQLException {
 
         MasterProtocol protocol;
-        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>((!addresses.isEmpty()) ? addresses : listener.getBlacklistKeys());
-        if (loopAddresses.isEmpty()) {
-            loopAddresses.addAll(listener.getUrlParser().getHostAddresses());
-        }
+        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>(addresses);
+        if (loopAddresses.isEmpty()) resetHostList(listener, loopAddresses);
+
         int maxConnectionTry = listener.getRetriesAllDown();
         SQLException lastQueryException = null;
         while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
