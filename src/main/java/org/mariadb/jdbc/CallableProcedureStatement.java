@@ -282,6 +282,7 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
     }
 
     @Override
+    @Deprecated
     @SuppressWarnings("deprecation")
     public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
         return getOutputResult().getBigDecimal(indexToOutputIndex(parameterIndex));
