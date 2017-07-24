@@ -59,8 +59,7 @@ import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 import java.sql.SQLException;
-import java.util.ArrayDeque;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class MastersSlavesProtocol extends MasterProtocol {
@@ -137,9 +136,10 @@ public class MastersSlavesProtocol extends MasterProtocol {
                 return;
             }
 
-            //loop is set so
+            // if server has try to connect to all host, and there is remaining master or slave that fail
+            // add all servers back to continue looping until maxConnectionTry is reached
             if (loopAddresses.isEmpty() && !searchFilter.isFailoverLoop() && maxConnectionTry > 0) {
-                loopAddresses = new ArrayDeque<>(listener.getBlacklistKeys());
+                resetHostList(listener, loopAddresses);
             }
         }
 
@@ -155,6 +155,26 @@ public class MastersSlavesProtocol extends MasterProtocol {
             throw new SQLException(error);
         }
 
+    }
+
+    /**
+     * Reinitialize loopAddresses with all servers in randomize order.
+     *
+     * @param listener      current listener
+     * @param loopAddresses the list to reinitialize
+     */
+    private static void resetHostList(MastersSlavesListener listener, Deque<HostAddress> loopAddresses) {
+        //if all servers have been connected without result
+        //add back all servers
+        List<HostAddress> servers = new ArrayList<>();
+        servers.addAll(listener.getUrlParser().getHostAddresses());
+        Collections.shuffle(servers);
+
+        //remove current connected hosts to avoid reconnect them
+        servers.removeAll(listener.connectedHosts());
+
+        loopAddresses.clear();
+        loopAddresses.addAll(loopAddresses);
     }
 
     protected static boolean foundMaster(MastersSlavesListener listener, MastersSlavesProtocol protocol,

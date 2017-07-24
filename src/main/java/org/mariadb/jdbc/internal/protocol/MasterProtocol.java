@@ -60,8 +60,7 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
 import java.io.Closeable;
 import java.sql.SQLException;
-import java.util.ArrayDeque;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 
@@ -138,9 +137,12 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
                 lastQueryException = e;
             }
 
+            // if server has try to connect to all host, and master still fail
+            // add all servers back to continue looping until maxConnectionTry is reached
             if (loopAddresses.isEmpty() && !searchFilter.isFailoverLoop() && maxConnectionTry > 0) {
-                loopAddresses = new ArrayDeque<>(listener.getBlacklistKeys());
+                resetHostList(listener, loopAddresses);
             }
+
         }
         if (lastQueryException != null) {
             throw new SQLException("No active connection found for master : " + lastQueryException.getMessage(),
@@ -149,4 +151,20 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
         throw new SQLException("No active connection found for master");
     }
 
+    /**
+     * Reinitialize loopAddresses with all hosts : all servers in randomize order without connected host.
+     *
+     * @param listener      current listener
+     * @param loopAddresses the list to reinitialize
+     */
+    private static void resetHostList(Listener listener, Deque<HostAddress> loopAddresses) {
+        //if all servers have been connected without result
+        //add back all servers
+        List<HostAddress> servers = new ArrayList<>();
+        servers.addAll(listener.getUrlParser().getHostAddresses());
+        Collections.shuffle(servers);
+
+        loopAddresses.clear();
+        loopAddresses.addAll(loopAddresses);
+    }
 }
