@@ -262,19 +262,18 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
     }
 
     @Override
+    @Deprecated
     @SuppressWarnings("deprecation")
     public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
         return getResult().getBigDecimal(indexToOutputIndex(parameterIndex));
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public BigDecimal getBigDecimal(int parameterIndex) throws SQLException {
         return getResult().getBigDecimal(indexToOutputIndex(parameterIndex));
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public BigDecimal getBigDecimal(String parameterName) throws SQLException {
         return getResult().getBigDecimal(nameToOutputIndex(parameterName));
     }
