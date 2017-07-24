@@ -783,4 +783,25 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             oldServerPrepareResult.failover(serverPrepareResult.getStatementId(), secondaryProtocol);
         }
     }
+
+    /**
+     * List current connected HostAddress.
+     *
+     * @return hostAddress List.
+     */
+    public List<HostAddress> connectedHosts() {
+        List<HostAddress> usedHost = new ArrayList<>();
+
+        if (isMasterHostFail()) {
+            Protocol masterProtocol = waitNewMasterProtocol.get();
+            if (masterProtocol != null) usedHost.add(masterProtocol.getHostAddress());
+        } else usedHost.add(masterProtocol.getHostAddress());
+
+        if (isSecondaryHostFail()) {
+            Protocol secondProtocol = waitNewSecondaryProtocol.get();
+            if (secondProtocol != null) usedHost.add(secondProtocol.getHostAddress());
+        } else usedHost.add(secondaryProtocol.getHostAddress());
+
+        return usedHost;
+    }
 }
