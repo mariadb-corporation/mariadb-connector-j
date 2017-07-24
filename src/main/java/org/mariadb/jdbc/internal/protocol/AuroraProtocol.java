@@ -295,11 +295,14 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         getResult(results);
         results.commandEnd();
         ResultSet resultSet = results.getResultSet();
-        if (resultSet.next()) {
-            this.masterConnection = "OFF".equals(resultSet.getString(2));
-            reader.setServerThreadId(this.serverThreadId, this.masterConnection);
-            writer.setServerThreadId(this.serverThreadId, this.masterConnection);
-        }
+
+        if (!resultSet.next()) throw new SQLException("Error checking Aurora's master status : No information");
+
+        this.masterConnection = "OFF".equals(resultSet.getString(2));
+        reader.setServerThreadId(this.serverThreadId, this.masterConnection);
+        writer.setServerThreadId(this.serverThreadId, this.masterConnection);
+        //Aurora replicas have read-only flag forced
+        this.readOnly = !this.masterConnection;
 
     }
 
