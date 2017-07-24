@@ -72,7 +72,9 @@ public class ExecuteBatchTest extends BaseTest {
 
     static {
         char[] chars = new char[100];
-        for (int i = 27; i < 127; i++) chars[i - 27] = (char) i;
+        for (int i = 27; i < 127; i++) {
+            chars[i - 27] = (char) i;
+        }
         oneHundredLengthString = new String(chars);
     }
 

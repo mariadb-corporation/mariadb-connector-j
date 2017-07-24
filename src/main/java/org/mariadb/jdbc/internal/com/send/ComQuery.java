@@ -127,7 +127,9 @@ public class ComQuery {
             pos.write(secondPart, 0, secondPart.length);
 
             int staticLength = 1;
-            for (int i = 0; i < queryParts.size(); i++) staticLength += queryParts.get(i).length;
+            for (int i = 0; i < queryParts.size(); i++) {
+                staticLength += queryParts.get(i).length;
+            }
 
             for (int i = 0; i < paramCount; i++) {
                 parameters[i].writeTo(pos);

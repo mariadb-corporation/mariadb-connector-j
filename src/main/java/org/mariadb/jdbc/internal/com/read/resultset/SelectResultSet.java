@@ -562,7 +562,9 @@ public class SelectResultSet implements ResultSet {
         }
 
         //keep garbage easy
-        for (int i = 0; i < data.length; i++) data[i] = null;
+        for (int i = 0; i < data.length; i++) {
+            data[i] = null;
+        }
 
         if (statement != null) {
             statement.checkCloseOnCompletion(this);
@@ -3624,16 +3626,16 @@ public class SelectResultSet implements ResultSet {
 
                 Date dt;
                 synchronized (calendar) {
-                    calendar.clear();
-                    calendar.set(Calendar.YEAR, year);
-                    calendar.set(Calendar.MONTH, month - 1);
-                    calendar.set(Calendar.DAY_OF_MONTH, day);
-                    calendar.set(Calendar.HOUR_OF_DAY, 0);
-                    calendar.set(Calendar.MINUTE, 0);
-                    calendar.set(Calendar.SECOND, 0);
-                    calendar.set(Calendar.MILLISECOND, 0);
-                    dt = new Date(calendar.getTimeInMillis());
-                }
+                calendar.clear();
+                calendar.set(Calendar.YEAR, year);
+                calendar.set(Calendar.MONTH, month - 1);
+                calendar.set(Calendar.DAY_OF_MONTH, day);
+                calendar.set(Calendar.HOUR_OF_DAY, 0);
+                calendar.set(Calendar.MINUTE, 0);
+                calendar.set(Calendar.SECOND, 0);
+                calendar.set(Calendar.MILLISECOND, 0);
+                dt = new Date(calendar.getTimeInMillis());
+            }
                 return dt;
         }
     }

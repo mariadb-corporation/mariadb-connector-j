@@ -288,7 +288,9 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
             return;
         }
 
-        for (int i = pos; i < pos + len; i++) buf[i] = value;
+        for (int i = pos; i < pos + len; i++) {
+            buf[i] = value;
+        }
         pos += len;
     }
 

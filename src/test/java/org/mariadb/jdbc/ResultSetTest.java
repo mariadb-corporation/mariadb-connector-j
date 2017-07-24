@@ -820,7 +820,9 @@ public class ResultSetTest extends BaseTest {
         //getDouble
         //supported JDBC type :
         //TINYINT, SMALLINT, INTEGER, BIGINT, REAL, FLOAT, DOUBLE, DECIMAL, NUMERIC, BIT, BOOLEAN, CHAR, VARCHAR, LONGVARCHAR
-        for (int i = 1; i < 11; i++) rs.getDouble(i);
+        for (int i = 1; i < 11; i++) {
+            rs.getDouble(i);
+        }
         for (int i = 11; i < 16; i++) {
             try {
                 rs.getDouble(i);
@@ -839,7 +841,9 @@ public class ResultSetTest extends BaseTest {
         //getFloat
         //supported JDBC type :
         //TINYINT, SMALLINT, INTEGER, BIGINT, REAL, FLOAT, DOUBLE, DECIMAL, NUMERIC, BIT, BOOLEAN, CHAR, VARCHAR, LONGVARCHAR
-        for (int i = 1; i < 11; i++) rs.getDouble(i);
+        for (int i = 1; i < 11; i++) {
+            rs.getDouble(i);
+        }
         for (int i = 11; i < 16; i++) {
             try {
                 rs.getFloat(i);

@@ -695,11 +695,15 @@ public class Utils {
         int remaining = posHexa;
         if (remaining > 0) {
             if (remaining < 8) {
-                for (; remaining < 8; remaining++) outputBuilder.append("   ");
+                for (; remaining < 8; remaining++) {
+                    outputBuilder.append("   ");
+                }
                 outputBuilder.append(" ");
             }
 
-            for (; remaining < 16; remaining++) outputBuilder.append("   ");
+            for (; remaining < 16; remaining++) {
+                outputBuilder.append("   ");
+            }
 
             outputBuilder.append("    ")
                     .append(hexaValue, 0, posHexa)
