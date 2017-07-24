@@ -119,7 +119,7 @@ public class HostAddress {
 
         // Aurora using cluster end point mustn't have any other host
         if (haMode == HaMode.AURORA) {
-            Pattern clusterPattern = Pattern.compile("(.+)\\.cluster-([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)");
+            Pattern clusterPattern = Pattern.compile("(.+)\\.cluster-([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)", Pattern.CASE_INSENSITIVE);
             Matcher matcher = clusterPattern.matcher(spec);
 
             if (!matcher.find()) {

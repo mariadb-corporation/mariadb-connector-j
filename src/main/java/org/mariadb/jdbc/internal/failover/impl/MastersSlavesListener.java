@@ -790,7 +790,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      * @return hostAddress List.
      */
     public List<HostAddress> connectedHosts() {
-        List<HostAddress> usedHost = new ArrayList<>();
+        List<HostAddress> usedHost = new ArrayList<HostAddress>();
 
         if (isMasterHostFail()) {
             Protocol masterProtocol = waitNewMasterProtocol.get();
