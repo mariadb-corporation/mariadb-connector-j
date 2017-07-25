@@ -253,6 +253,7 @@ public class ErrorMessageTest extends BaseTest {
 
     @Test
     public void testFailOverKillCmd() throws Throwable {
+        Assume.assumeTrue(isMariadbServer());
         DataSource ds = new MariaDbDataSource("jdbc:mariadb:failover//"
                 + ((hostname != null) ? hostname : "localhost") + ":" + port + ","
                 + ((hostname != null) ? hostname : "localhost") + ":" + port
