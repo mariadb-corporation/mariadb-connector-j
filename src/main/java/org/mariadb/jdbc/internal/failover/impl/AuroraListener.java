@@ -74,7 +74,7 @@ import java.util.regex.Pattern;
 public class AuroraListener extends MastersSlavesListener {
 
     private final Logger log = Logger.getLogger(AuroraListener.class.getName());
-    private final Pattern auroraDNSPattern = Pattern.compile("(.+)\\.(cluster-)?([a-zA-Z0-9]+\\.[a-zA-Z0-9\\-]+\\.rds\\.amazonaws\\.com)",
+    private final Pattern auroraDnsPattern = Pattern.compile("(.+)\\.(cluster-)?([a-zA-Z0-9]+\\.[a-zA-Z0-9\\-]+\\.rds\\.amazonaws\\.com)",
             Pattern.CASE_INSENSITIVE);
     private final HostAddress clusterHostAddress;
     private String clusterDnsSuffix = null;
@@ -105,7 +105,7 @@ public class AuroraListener extends MastersSlavesListener {
         List<HostAddress> hostAddresses = urlParser.getHostAddresses();
         Matcher matcher;
         for (HostAddress hostAddress : hostAddresses) {
-            matcher = auroraDNSPattern.matcher(hostAddress.host);
+            matcher = auroraDnsPattern.matcher(hostAddress.host);
             if (matcher.find()) {
 
                 if (clusterDnsSuffix != null) {
@@ -385,7 +385,7 @@ public class AuroraListener extends MastersSlavesListener {
         Matcher matcher;
         if (masterHostName != null) {
             for (HostAddress hostAddress : loopAddress) {
-                matcher = auroraDNSPattern.matcher(hostAddress.host);
+                matcher = auroraDnsPattern.matcher(hostAddress.host);
                 if (hostAddress.host.startsWith(masterHostName) && !matcher.find()) {
                     return hostAddress;
                 }
