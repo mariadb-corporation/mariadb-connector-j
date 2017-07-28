@@ -125,7 +125,8 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
         try {
             connection = getNewConnection("&loadBalanceBlacklistTimeout=500", true);
             Statement st = connection.createStatement();
-
+            Protocol protocol = getProtocolFromConnection(connection);
+            int blackListNumber = protocol.getProxy().getListener().getBlacklistKeys().size();
             int firstServerId = getServerId(connection);
             stopProxy(firstServerId);
 
@@ -138,8 +139,8 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
             //check blacklist size
             try {
-                Protocol protocol = getProtocolFromConnection(connection);
-                assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 1);
+                protocol = getProtocolFromConnection(connection);
+                assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == blackListNumber + 1);
 
                 //replace proxified HostAddress by normal one
                 UrlParser urlParser = UrlParser.parse(defaultUrl);
@@ -150,7 +151,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             }
 
             //add first Host to blacklist
-            Protocol protocol = getProtocolFromConnection(connection);
+            protocol = getProtocolFromConnection(connection);
             TestableScheduler scheduler = new TestableScheduler();
 
             //check blacklist shared
