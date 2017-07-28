@@ -124,7 +124,8 @@ public class GeneratedKeysTest extends BaseTest {
     public void testGeneratedKeysNegativeValue() throws SQLException {
         Statement statement = sharedConnection.createStatement();
         statement.execute("ALTER TABLE gen_key_test2 AUTO_INCREMENT = 65500");
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO gen_key_test2 (name) VALUES (?)");
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO gen_key_test2 (name) VALUES (?)",
+                Statement.RETURN_GENERATED_KEYS);
         preparedStatement.setString(1, "t");
         preparedStatement.execute();
         ResultSet rs = preparedStatement.getGeneratedKeys();

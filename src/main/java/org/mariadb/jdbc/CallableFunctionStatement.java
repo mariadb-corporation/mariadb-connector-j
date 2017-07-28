@@ -86,7 +86,7 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
      */
     public CallableFunctionStatement(MariaDbConnection connection, String sql, int resultSetType,
                                      final int resultSetConcurrency) throws SQLException {
-        super(connection, sql, resultSetType, resultSetConcurrency);
+        super(connection, sql, resultSetType, resultSetConcurrency, Statement.NO_GENERATED_KEYS);
     }
 
     /**

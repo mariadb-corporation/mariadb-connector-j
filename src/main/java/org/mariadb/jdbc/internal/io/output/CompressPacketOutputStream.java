@@ -101,6 +101,10 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
         lastPacketExactMaxPacketLength = false;
     }
 
+    public int initialPacketPos() {
+        return 0;
+    }
+
     /**
      * Flush the internal buffer.
      * <p>
@@ -141,6 +145,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                 byte[] compressedBytes;
                 int uncompressSize = Math.min(MAX_PACKET_LENGTH, remainingData.length + 4 + pos);
                 checkMaxAllowedLength(uncompressSize);
+
                 try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
                     try (DeflaterOutputStream deflater = new DeflaterOutputStream(baos)) {
                         if (remainingData.length != 0) deflater.write(remainingData);
@@ -167,7 +172,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                         header[6] = (byte) (uncompressSize >>> 16);
                         out.write(header, 0, 7);
                         out.write(compressedBytes, 0, compressedLength);
-
+                        cmdLength += uncompressSize;
 
                         if (traceCache != null && permitTrace) {
                             //trace last packets
@@ -220,6 +225,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
             int uncompressSize = Math.min(MAX_PACKET_LENGTH, remainingData.length + 4 + pos);
             checkMaxAllowedLength(uncompressSize);
+            cmdLength += uncompressSize;
 
             //send packet without compression
             header[0] = (byte) (uncompressSize >>> 0);
@@ -231,6 +237,8 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             header[6] = (byte) 0x00;
             out.write(header, 0, 7);
 
+            cmdLength += uncompressSize;
+
             if (remainingData.length != 0) out.write(remainingData);
             subHeader[0] = (byte) (pos >>> 0);
             subHeader[1] = (byte) (pos >>> 8);
@@ -238,6 +246,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             subHeader[3] = (byte) this.seqNo++;
             out.write(subHeader, 0, 4);
             out.write(buf, 0, uncompressSize - (remainingData.length + 4));
+            cmdLength += remainingData.length;
 
             if (traceCache != null && permitTrace) {
                 //trace last packets
@@ -292,6 +301,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                 byte[] compressedBytes;
                 int uncompressSize = Math.min(MAX_PACKET_LENGTH, remainingData.length);
                 checkMaxAllowedLength(uncompressSize);
+                cmdLength += uncompressSize;
                 try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
                     try (DeflaterOutputStream deflater = new DeflaterOutputStream(baos)) {
                         deflater.write(remainingData);
@@ -341,6 +351,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
             int uncompressSize = Math.min(MAX_PACKET_LENGTH, remainingData.length);
             checkMaxAllowedLength(uncompressSize);
+            cmdLength += uncompressSize;
 
             //send packet without compression
             header[0] = (byte) (uncompressSize >>> 0);

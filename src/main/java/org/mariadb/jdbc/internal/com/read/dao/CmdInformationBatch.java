@@ -70,6 +70,7 @@ public class CmdInformationBatch implements CmdInformation {
     private int expectedSize;
     private int autoIncrement;
     private boolean hasException;
+    private boolean rewritten;
 
     /**
      * CmdInformationBatch is similar to CmdInformationMultiple, but knowing it's for batch,
@@ -107,6 +108,11 @@ public class CmdInformationBatch implements CmdInformation {
 
     @Override
     public int[] getUpdateCounts() {
+        if (rewritten) {
+            int[] ret = new int[expectedSize];
+            Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
+            return ret;
+        }
 
         int[] ret = new int[Math.max(updateCounts.size(), expectedSize)];
 
@@ -126,6 +132,12 @@ public class CmdInformationBatch implements CmdInformation {
 
     @Override
     public long[] getLargeUpdateCounts() {
+        if (rewritten) {
+            long[] ret = new long[expectedSize];
+            Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
+            return ret;
+        }
+
         long[] ret = new long[Math.max(updateCounts.size(), expectedSize)];
 
         Iterator<Long> iterator = updateCounts.iterator();
@@ -139,29 +151,6 @@ public class CmdInformationBatch implements CmdInformation {
             ret[pos++] = Statement.EXECUTE_FAILED;
         }
 
-        return ret;
-    }
-
-    /**
-     * Will return an array filled with Statement.EXECUTE_FAILED if any error occur,
-     * or Statement.SUCCESS_NO_INFO, if execution succeed.
-     *
-     * @return update count array.
-     */
-    public int[] getRewriteUpdateCounts() {
-        int[] ret = new int[expectedSize];
-        Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
-        return ret;
-    }
-
-    /**
-     * Same than getRewriteUpdateCounts, returning long array.
-     *
-     * @return update count array.
-     */
-    public long[] getRewriteLargeUpdateCounts() {
-        long[] ret = new long[expectedSize];
-        Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
         return ret;
     }
 
@@ -239,5 +228,8 @@ public class CmdInformationBatch implements CmdInformation {
         return false;
     }
 
+    public void setRewrite(boolean rewritten) {
+        this.rewritten = rewritten;
+    }
 }
 

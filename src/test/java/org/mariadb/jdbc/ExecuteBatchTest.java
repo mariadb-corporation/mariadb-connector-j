@@ -68,7 +68,7 @@ import static org.junit.Assert.*;
 public class ExecuteBatchTest extends BaseTest {
 
     static String oneHundredLengthString = "";
-    static boolean profileSql = true;
+    static boolean profileSql = false;
 
     static {
         char[] chars = new char[100];
@@ -94,7 +94,7 @@ public class ExecuteBatchTest extends BaseTest {
      */
     @Test
     public void interruptExecuteBatch() throws Exception {
-        Assume.assumeTrue(sharedOptions().useBatchMultiSend);
+        Assume.assumeTrue(sharedOptions().useBatchMultiSend && !(sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10,2)));
         ExecutorService service = Executors.newFixedThreadPool(1);
 
         final CyclicBarrier barrier = new CyclicBarrier(2);
@@ -310,7 +310,14 @@ public class ExecuteBatchTest extends BaseTest {
                 int[] updateCounts = pstmt.executeBatch();
                 assertEquals(10, updateCounts.length);
                 for (int i = 0; i < updateCounts.length; i++) {
-                    assertEquals(sharedIsRewrite() ? Statement.SUCCESS_NO_INFO : 1, updateCounts[i]);
+                    if ((sharedIsRewrite()
+                            || (sharedOptions().useBulkStmts
+                                    && isMariadbServer()
+                                    && minVersion(10,2)))) {
+                        assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[i]);
+                    } else {
+                        assertEquals(1, updateCounts[i]);
+                    }
                 }
             }
         }

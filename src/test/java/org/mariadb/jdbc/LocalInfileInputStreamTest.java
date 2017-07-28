@@ -271,6 +271,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
     @Test
     public void test2xMaxAllowedPacketLocalInfileInputStream() throws Exception {
+        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
         ResultSet rs = sharedConnection.createStatement().executeQuery("select @@max_allowed_packet");
         rs.next();
         long maxAllowedPacket = rs.getLong(1);

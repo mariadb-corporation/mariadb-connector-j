@@ -149,20 +149,14 @@ public class CmdInformationSingle implements CmdInformation {
         return updateCount != RESULT_SET_VALUE;
     }
 
-    public int[] getRewriteUpdateCounts() {
-        //cannot occur
-        return null;
-    }
-
-    @Override
-    public long[] getRewriteLargeUpdateCounts() {
-        //cannot occur
-        return null;
-    }
-
     @Override
     public void addSuccessStat(long updateCount, long insertId) {
         //cannot occur
+    }
+
+
+    public void setRewrite(boolean rewritten) {
+        //no need
     }
 }
 

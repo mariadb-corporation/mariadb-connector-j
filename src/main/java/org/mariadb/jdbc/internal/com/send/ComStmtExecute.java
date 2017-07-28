@@ -144,7 +144,7 @@ public class ComStmtExecute implements InterfaceSendPacket {
                 //Store types of parameters in first in first package that is sent to the server.
                 for (int i = 0; i < parameterCount; i++) {
                     parameterTypeHeader[i] = parameters[i].getColumnType();
-                    pos.writeShort((short) parameterTypeHeader[i].getType());
+                    pos.writeShort(parameterTypeHeader[i].getType());
                 }
             } else {
                 pos.write((byte) 0x00);

@@ -372,9 +372,22 @@ public class ResultSetTest extends BaseTest {
     public void generatedKeyNpe() throws SQLException {
         createTable("generatedKeyNpe", "id int not null primary key auto_increment, val int");
         Statement statement = sharedConnection.createStatement();
-        statement.execute("INSERT INTO generatedKeyNpe(val) values (0)");
+        statement.execute("INSERT INTO generatedKeyNpe(val) values (0)", Statement.RETURN_GENERATED_KEYS);
         try (ResultSet rs = statement.getGeneratedKeys()) {
             assertTrue(rs.next());
+        }
+    }
+
+    @Test
+    public void generatedKeyError() throws SQLException {
+        createTable("generatedKeyNpe", "id int not null primary key auto_increment, val int");
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("INSERT INTO generatedKeyNpe(val) values (0)");
+        try {
+            statement.getGeneratedKeys();
+            fail();
+        } catch (SQLException sqle) {
+            assertEquals("Cannot return generated keys : query was not set with Statement.RETURN_GENERATED_KEYS", sqle.getMessage());
         }
     }
 

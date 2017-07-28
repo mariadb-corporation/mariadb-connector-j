@@ -100,13 +100,13 @@ public enum ColumnType {
         }
     }
 
-    private final int mysqlType;
+    private final short mysqlType;
     private final int javaType;
     private final String javaTypeName;
     private final String className;
 
     ColumnType(int mysqlType, int javaType, String javaTypeName, String className) {
-        this.mysqlType = mysqlType;
+        this.mysqlType = (short) mysqlType;
         this.javaType = javaType;
         this.javaTypeName = javaTypeName;
         this.className = className;
@@ -353,7 +353,7 @@ public enum ColumnType {
         return name();
     }
 
-    public int getType() {
+    public short getType() {
         return mysqlType;
     }
 

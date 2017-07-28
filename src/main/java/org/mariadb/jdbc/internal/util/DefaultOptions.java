@@ -442,7 +442,15 @@ public enum DefaultOptions {
      * Hexadecimal value of those packet will be added to stacktrace when an IOException occur.
      * This options has no performance incidence (&lt; 1 microseconds per query) but driver will then take 16kb more memory.
      */
-    ENABLE_PACKET_DEBUG("enablePacketDebug", Boolean.FALSE, "1.6.0");
+    ENABLE_PACKET_DEBUG("enablePacketDebug", Boolean.FALSE, "1.6.0"),
+
+    /**
+     * Use dedicated COM_STMT_BULK_EXECUTE protocol for batch insert when possible.
+     * (batch without Statement.RETURN_GENERATED_KEYS and streams) to have faster batch.
+     * (significant only if server MariaDB &ge; 10.2.7)
+     */
+    USE_BULK_PROTOCOL("useBulkStmts", Boolean.TRUE, "2.1.0");
+
 
 
     protected final String name;

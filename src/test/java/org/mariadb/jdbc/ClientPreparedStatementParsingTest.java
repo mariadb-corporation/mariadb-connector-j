@@ -54,10 +54,7 @@ package org.mariadb.jdbc;
 
 import org.junit.Test;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 import static org.junit.Assert.*;
 
@@ -67,7 +64,7 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
                               String[] partsMulti) throws Exception {
 
         MariaDbPreparedStatementClient statement = new MariaDbPreparedStatementClient((MariaDbConnection) sharedConnection, sql,
-                ResultSet.FETCH_FORWARD, ResultSet.CONCUR_READ_ONLY);
+                ResultSet.FETCH_FORWARD, ResultSet.CONCUR_READ_ONLY, Statement.NO_GENERATED_KEYS);
         assertEquals(paramNumber, statement.getParameterCount());
 
         if (sharedIsRewrite()) {

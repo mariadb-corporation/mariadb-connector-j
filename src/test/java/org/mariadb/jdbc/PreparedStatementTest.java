@@ -340,7 +340,7 @@ public class PreparedStatementTest extends BaseTest {
                 arr[i] = (char) ('a' + (i % 10));
             }
 
-            try (Connection connection = setConnection("&rewriteBatchedStatements=true&profileSql=true")) {
+            try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
                 PreparedStatement pstmt = connection.prepareStatement(query);
                 for (int i = 0; i < 2; i++) {
                     pstmt.setString(1, new String(arr));
@@ -349,10 +349,12 @@ public class PreparedStatementTest extends BaseTest {
                 }
                 int[] results = pstmt.executeBatch();
                 assertEquals(2, results.length);
-                if (notRewritable) {
-                    for (int result : results) assertEquals(1, result);
-                } else {
-                    for (int result : results) assertEquals(Statement.SUCCESS_NO_INFO, result);
+                for (int result : results) {
+                    if (!notRewritable || (isMariadbServer() && minVersion(10,2))) {
+                        assertEquals(Statement.SUCCESS_NO_INFO, result);
+                    } else {
+                        assertEquals(1, result);
+                    }
                 }
             }
 
@@ -412,7 +414,7 @@ public class PreparedStatementTest extends BaseTest {
                 }
                 int[] results = pstmt.executeBatch();
                 assertEquals(4, results.length);
-                if (rewritableMulti || sharedIsRewrite()) {
+                if (rewritableMulti || sharedIsRewrite() || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10,2))) {
                     for (int result : results) assertEquals(Statement.SUCCESS_NO_INFO, result);
                 } else {
                     for (int result : results) assertEquals(1, result);

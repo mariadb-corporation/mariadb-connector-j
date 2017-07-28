@@ -89,7 +89,7 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
      */
     public CallableProcedureStatement(MariaDbConnection connection, String sql, int resultSetScrollType, int resultSetConcurrency)
             throws SQLException {
-        super(connection, sql, resultSetScrollType, resultSetConcurrency, true);
+        super(connection, sql, resultSetScrollType, resultSetConcurrency, Statement.NO_GENERATED_KEYS);
     }
 
     /**

@@ -483,8 +483,8 @@ public class SelectResultSet implements ResultSet {
         }
 
         //is end of stream
-        if (buf[0] == EOF && ((eofDeprecated && reader.getLastPacketLength() < 0xffffff)
-                || (!eofDeprecated && reader.getLastPacketLength() < 8))) {
+        if (buf[0] == EOF && ((eofDeprecated && buf.length < 0xffffff)
+                || (!eofDeprecated && buf.length < 8))) {
             int serverStatus;
             int warnings;
 

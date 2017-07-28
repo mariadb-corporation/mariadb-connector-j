@@ -927,9 +927,9 @@ public class ServerPrepareStatementTest extends BaseTest {
             int totalInsertCommands = (int) Math.ceil(3 * maxAllowedPacket / 1000); //mean that there will be 2 commands
             try (Connection connection2 = setConnection()) {
                 PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-                        "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, false) ");
+                        "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, false) ", Statement.RETURN_GENERATED_KEYS);
                 PreparedStatement preparedStatement2 = connection2.prepareStatement(
-                        "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, true) ");
+                        "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, true) ", Statement.RETURN_GENERATED_KEYS);
                 char[] thousandChars = new char[1000];
                 Arrays.fill(thousandChars, 'a');
                 String thousandLength = new String(thousandChars);

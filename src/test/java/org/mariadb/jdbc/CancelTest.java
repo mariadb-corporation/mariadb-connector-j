@@ -134,9 +134,9 @@ public class CancelTest extends BaseTest {
     public void timeoutPrepareBatch() throws Exception {
         Assume.assumeFalse(sharedIsAurora());
         Assume.assumeTrue(!sharedOptions().allowMultiQueries && !sharedIsRewrite());
+        Assume.assumeTrue(!(sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10,2)));
         createTable("timeoutBatch", "aa text");
         try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
-
             char[] arr = new char[1000];
             Arrays.fill(arr, 'a');
             String str = String.valueOf(arr);
@@ -148,7 +148,6 @@ public class CancelTest extends BaseTest {
                 }
                 stmt.executeBatch();
             }
-
         }
     }
 

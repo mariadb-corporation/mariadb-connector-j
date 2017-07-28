@@ -341,11 +341,6 @@ public class StandardPacketInputStream implements PacketInputStream {
     }
 
     @Override
-    public int getLastPacketLength() {
-        return lastPacketLength;
-    }
-
-    @Override
     public int getLastPacketSeq() {
         return packetSeq;
     }
