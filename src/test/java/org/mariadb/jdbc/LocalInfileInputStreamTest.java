@@ -279,7 +279,8 @@ public class LocalInfileInputStreamTest extends BaseTest {
             checkBigLocalInfile(maxAllowedPacket * 2);
             fail("must have fail");
         } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("Could not send query: query size is >= to max_allowed_packet"));
+            assertTrue(sqle.getMessage().contains("Could not send query: query size ")
+                    && sqle.getMessage().contains(" is >= to max_allowed_packet"));
         }
     }
 

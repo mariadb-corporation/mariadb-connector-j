@@ -95,9 +95,16 @@ public class ErrorMessageTest extends BaseTest {
                         sqle.getCause().getCause().getMessage().contains(
                                 "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
             } else {
-                assertTrue(sqle.getCause().getCause().getMessage().contains(
-                        "INSERT INTO testErrorMessage(test, test2) values "
-                                + "('more than 10 characters to provoc error', 10)"));
+                if (!sharedOptions().useBatchMultiSend) {
+                    assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+                            sqle.getCause().getCause().getMessage().contains(
+                                    "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
+                                            + "parameters ['more than 10 characters to provoc error',10]"));
+                } else {
+                    assertTrue(sqle.getCause().getCause().getMessage().contains(
+                            "INSERT INTO testErrorMessage(test, test2) values "
+                                    + "('more than 10 characters to provoc error', 10)"));
+                }
             }
         }
     }
@@ -167,10 +174,16 @@ public class ErrorMessageTest extends BaseTest {
                         sqle.getCause().getCause().getMessage().contains(
                                 "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
             } else {
-                assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                        sqle.getCause().getCause().getMessage().contains(
-                                "INSERT INTO testErrorMessage(test, test2) values "
-                                        + "('more than 10 characters to provoc error', 200)"));
+                if (!sharedOptions().useBatchMultiSend) {
+                    assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+                            sqle.getCause().getCause().getMessage().contains("INSERT INTO testErrorMessage(test, test2) "
+                                    + "values (?, ?), parameters ['more than 10 characters to provoc error',200]"));
+                } else {
+                    assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+                            sqle.getCause().getCause().getMessage().contains(
+                                    "INSERT INTO testErrorMessage(test, test2) values "
+                                            + "('more than 10 characters to provoc error', 200)"));
+                }
 
             }
         }
