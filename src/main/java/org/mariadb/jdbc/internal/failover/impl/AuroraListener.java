@@ -177,6 +177,7 @@ public class AuroraListener extends MastersSlavesListener {
         loopAddress.removeAll(getBlacklistKeys());
         Collections.shuffle(loopAddress);
         List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
+        blacklistShuffle.retainAll(urlParser.getHostAddresses());
         Collections.shuffle(blacklistShuffle);
         loopAddress.addAll(blacklistShuffle);
 
