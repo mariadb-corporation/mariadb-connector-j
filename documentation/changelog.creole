@@ -1,4 +1,5 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#210|2.1.0]] Released on 29 Jul. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#203|2.0.3]] Released on 27 Jun. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#202|2.0.2]] Released on 05 Jun. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#161|1.6.1]] Released on 05 Jun. 2017
@@ -24,6 +25,57 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+== 2.1.0
+
+=== CONJ-422 : verification of SSL Certificate Name Mismatch
+When using ssl, driver check hostname against the server's identity as presented in the server's Certificate (checking alternative names or certificate CN) to prevent man-in-the-middle attack.
+
+A new option "disableSslHostnameVerification" permit to deactivate this validation.
+|=disableSslHostnameVerification| When using ssl, driver check hostname against the server's identity as presented in the server's Certificate (checking alternative names or certificate CN) to prevent man-in-the-middle attack. This option permit to deactivate this validation.\\//Default: false. Since 2.1.0//
+
+=== CONJ-400 - Galera validation
+When configuration with multi-master, Connection.isValid() will not only validate connection, but primary state.
+A connection to a node that is not in primary mode will return false (then for pool, connection will be discarded)
+
+=== CONJ-322 - ResultSet.update* methods implementation
+ResultSet.update* methods aren't implemented
+statement using ResultSet.CONCUR_UPDATABLE must be able to update record.
+exemple:
+{{{
+    Statement stmt = con.createStatement(
+                                  ResultSet.TYPE_SCROLL_INSENSITIVE,
+                                  ResultSet.CONCUR_UPDATABLE);
+    ResultSet rs = stmt.executeQuery("SELECT age FROM TABLE2");
+    // rs will be scrollable, will not show changes made by others,
+    // and will be updatable
+    while(rs.next()){
+        //Retrieve by column name
+        int newAge = rs.getInt(1) + 5;
+        rs.updateDouble( 1 , newAge );
+        rs.updateRow();
+    }
+}}}
+
+
+=== CONJ-389 - faster batch insert
+Use dedicated [COM_STMT_BULK_EXECUTE |https://mariadb.com/kb/en/mariadb/com_stmt_bulk_execute/] protocol for batch insert when possible.
+(batch without Statement.RETURN_GENERATED_KEYS and streams) to have faster batch.
+(significant only if server MariaDB &ge; 10.2.7)
+
+A new option "useBulkStmts" permit to deactivate this functionality.
+|=useBulkStmts| When using ssl, driver check hostname against the server's identity as presented in the server's Certificate (checking alternative names or certificate CN) to prevent man-in-the-middle attack. This option permit to deactivate this validation.\\//Default: false. Since 2.1.0//
+
+
+other evolution
+*[CONJ-508] Connection.getCatalog() optimisation for 10.2+ server using new session_track_schema capabilities
+*[CONJ-492] Failover handle automatic reconnection on KILL command
+
+Bug
+*[CONJ-502] isolation leak when using multiple pools on same VM on failover
+*[CONJ-503] regression on aurora Connection Connection.isReadOnly()
+*[CONJ-505] correcting issue that ended throwing "Unknown prepared statement handler given to mysqld_stmt_execute"
+*[CONJ-496] return rounded numeric when querying on a decimal field in place of throwing an exception for compatibility
+
 
 == 2.0.3
 Bug
