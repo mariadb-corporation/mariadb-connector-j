@@ -75,14 +75,18 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
     /**
      * Constructor for getter/setter of callableStatement.
      *
-     * @param connection          current connection
-     * @param sql                 query
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param connection            current connection
+     * @param sql                   query
+     * @param resultSetType         a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                              <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency  a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                              <code>ResultSet.CONCUR_UPDATABLE</code>
      * @throws SQLException if clientPrepareStatement creation throw an exception
      */
-    public CallableFunctionStatement(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
-        super(connection, sql, resultSetScrollType);
+    public CallableFunctionStatement(MariaDbConnection connection, String sql, int resultSetType,
+                                     final int resultSetConcurrency) throws SQLException {
+        super(connection, sql, resultSetType, resultSetConcurrency, Statement.NO_GENERATED_KEYS);
     }
 
     /**
@@ -258,19 +262,18 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
     }
 
     @Override
+    @Deprecated
     @SuppressWarnings("deprecation")
     public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
         return getResult().getBigDecimal(indexToOutputIndex(parameterIndex));
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public BigDecimal getBigDecimal(int parameterIndex) throws SQLException {
         return getResult().getBigDecimal(indexToOutputIndex(parameterIndex));
     }
 
     @Override
-    @SuppressWarnings("deprecation")
     public BigDecimal getBigDecimal(String parameterName) throws SQLException {
         return getResult().getBigDecimal(nameToOutputIndex(parameterName));
     }

@@ -111,7 +111,12 @@ public class BasicBatchTest extends BaseTest {
         }
         final ResultSet rs = sharedConnection.createStatement().executeQuery("select * from test_batch");
         ps.executeQuery("SELECT 1");
-        rs1 = ps.getGeneratedKeys();
+        try {
+            rs1 = ps.getGeneratedKeys();
+            fail();
+        } catch (SQLException sqle) {
+            assertEquals("Cannot return generated keys : query was not set with Statement.RETURN_GENERATED_KEYS", sqle.getMessage());
+        }
         assertFalse(rs1.next());
         assertEquals(true, rs.next());
         assertEquals("aaa", rs.getString(2));
@@ -207,7 +212,7 @@ public class BasicBatchTest extends BaseTest {
         } catch (BatchUpdateException bue) {
             int[] updateCounts = bue.getUpdateCounts();
             assertEquals(4, updateCounts.length);
-            if (sharedIsRewrite()) {
+            if (sharedIsRewrite() || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10,2))) {
                 assertEquals(Statement.EXECUTE_FAILED, updateCounts[0]);
                 assertEquals(Statement.EXECUTE_FAILED, updateCounts[1]);
                 assertEquals(Statement.EXECUTE_FAILED, updateCounts[2]);
@@ -318,4 +323,32 @@ public class BasicBatchTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testBatchString() throws SQLException {
+        Assume.assumeTrue(runLongTest && (sharedOptions().useBulkStmts || sharedIsRewrite())); //if not will be too long.
+        createTable("testBatchString", "charValue VARCHAR(100) NOT NULL");
+        Statement stmt = sharedConnection.createStatement();
+        String[] data = new String[1_000_000];
+        String empty = "____________________________________________________________________________________________________";
+
+        for (int i = 0; i < data.length; i++) {
+            data[i] = (String.valueOf(i) + empty).substring(0, 100);
+        }
+
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO testBatchString (charValue) values (?)")) {
+            for (int i = 0; i < data.length; i++) {
+                preparedStatement.setString(1, data[i]); //a random 100 byte data
+                preparedStatement.addBatch();
+            }
+            preparedStatement.executeBatch();
+        }
+
+        stmt.setFetchSize(100);
+        ResultSet rs = stmt.executeQuery("SELECT charValue FROM testBatchString");
+        int counter = 0;
+        while (rs.next()) {
+            assertEquals(data[counter++], rs.getString(1));
+        }
+        assertEquals(data.length, counter);
+    }
 }

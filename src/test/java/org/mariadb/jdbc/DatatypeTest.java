@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -603,7 +604,6 @@ public class DatatypeTest extends BaseTest {
 
     @Test
     public void binTest2() throws SQLException, IOException {
-
         createTable("bintest2", "bin1 longblob", "engine=innodb");
 
         byte[] buf = new byte[1000000];
@@ -611,20 +611,50 @@ public class DatatypeTest extends BaseTest {
             buf[i] = (byte) i;
         }
         InputStream is = new ByteArrayInputStream(buf);
-        PreparedStatement ps = sharedConnection.prepareStatement("insert into bintest2 (bin1) values (?)");
-        ps.setBinaryStream(1, is);
-        ps.execute();
-        ps = sharedConnection.prepareStatement("insert into bintest2 (bin1) values (?)");
-        is = new ByteArrayInputStream(buf);
-        ps.setBinaryStream(1, is);
-        ps.execute();
+        try (Connection connection = setConnection()) {
+            PreparedStatement ps = connection.prepareStatement("insert into bintest2 (bin1) values (?)");
+            ps.setBinaryStream(1, is);
+            ps.execute();
+            ps = connection.prepareStatement("insert into bintest2 (bin1) values (?)");
+            is = new ByteArrayInputStream(buf);
+            ps.setBinaryStream(1, is);
+            ps.execute();
 
-        try (ResultSet rs = getResultSet("select bin1 from bintest2", false)) {
-            binTest2Result(rs, buf);
+            try (ResultSet rs = getResultSet("select bin1 from bintest2", false)) {
+                binTest2Result(rs, buf);
+            }
+
+            try (ResultSet rs = getResultSet("select bin1 from bintest2", true)) {
+                binTest2Result(rs, buf);
+            }
         }
+    }
 
-        try (ResultSet rs = getResultSet("select bin1 from bintest2", true)) {
-            binTest2Result(rs, buf);
+    @Test
+    public void binTest3() throws SQLException, IOException {
+        byte[] buf = new byte[1000000];
+        for (int i = 0; i < 1000000; i++) {
+            buf[i] = (byte) i;
+        }
+        InputStream is = new ByteArrayInputStream(buf);
+
+        try (Connection connection = setConnection()) {
+            createTable("bintest3", "bin1 longblob", "engine=innodb");
+            Statement stmt = connection.createStatement();
+
+            try (PreparedStatement ps = connection.prepareStatement("insert into bintest3 (bin1) values (?)")) {
+                ps.setBinaryStream(1, is);
+                ps.execute();
+            }
+
+            ResultSet rs = stmt.executeQuery("select bin1 from bintest3");
+            assertTrue(rs.next());
+            byte[] buf2 = rs.getBytes(1);
+            assertEquals(1000000, buf2.length);
+            for (int i = 0; i < 1000000; i++) {
+                assertEquals(buf[i], buf2[i]);
+            }
+
         }
     }
 

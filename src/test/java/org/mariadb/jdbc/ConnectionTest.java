@@ -385,4 +385,25 @@ public class ConnectionTest extends BaseTest {
             assertEquals(1, failedProperties.size());
         }
     }
+
+    @Test
+    public void retrieveCatalogTest() throws SQLException {
+        String db = sharedConnection.getCatalog();
+        Statement stmt = sharedConnection.createStatement();
+
+
+        stmt.execute("CREATE DATABASE gogogo");
+        stmt.execute("USE gogogo");
+        String db2 = sharedConnection.getCatalog();
+        assertEquals("gogogo", db2);
+        assertNotEquals(db, db2);
+        stmt.execute("DROP DATABASE gogogo");
+
+        String db3 = sharedConnection.getCatalog();
+        assertNull(db3);
+        stmt.execute("USE " + db);
+
+    }
+
+
 }

@@ -96,6 +96,13 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
         if (isExplicitClosed()) {
             throw new SQLException("Connection has been closed !");
         }
+
+        //check that failover is due to kill command
+        boolean killCmd = qe != null
+                && qe.getSQLState() != null
+                && qe.getSQLState().equals("70100")
+                && 1927 == qe.getErrorCode();
+
         if (protocol.mustBeMasterConnection()) {
             if (!protocol.isMasterConnection()) {
                 logger.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString()
@@ -108,7 +115,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
 
                 addToBlacklist(protocol.getHostAddress());
             }
-            return primaryFail(method, args);
+            return primaryFail(method, args, killCmd);
         } else {
             if (setSecondaryHostFail()) {
                 logger.warn("SQL secondary node [" + this.currentProtocol.getHostAddress().toString()
@@ -116,7 +123,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
                         + " ] connection fail. Reason : " + qe.getMessage());
                 addToBlacklist(protocol.getHostAddress());
             }
-            return secondaryFail(method, args);
+            return secondaryFail(method, args, killCmd);
         }
     }
 
@@ -182,7 +189,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
         return new SearchFilter(isMasterHostFail(), isSecondaryHostFail());
     }
 
-    public abstract HandleErrorResult secondaryFail(Method method, Object[] args) throws Throwable;
+    public abstract HandleErrorResult secondaryFail(Method method, Object[] args, boolean killCmd) throws Throwable;
 
     public abstract void foundActiveSecondary(Protocol newSecondaryProtocol) throws SQLException;
 

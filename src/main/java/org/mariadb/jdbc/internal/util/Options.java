@@ -115,6 +115,8 @@ public class Options {
     public Boolean usePipelineAuth;
     public boolean killFetchStmtOnClose;
     public boolean enablePacketDebug;
+    public boolean useBulkStmts;
+    public boolean disableSslHostnameVerification;
 
     //logging options
     public boolean log;
@@ -261,8 +263,10 @@ public class Options {
         if (useBatchMultiSend != options.useBatchMultiSend) return false;
         if (useBatchMultiSendNumber != options.useBatchMultiSendNumber) return false;
         if (usePipelineAuth != options.usePipelineAuth) return false;
+        if (useBulkStmts != options.useBulkStmts) return false;
         if (enablePacketDebug != options.enablePacketDebug) return false;
         if (killFetchStmtOnClose != options.killFetchStmtOnClose) return false;
+        if (disableSslHostnameVerification != options.disableSslHostnameVerification) return false;
         return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)
                 : options.prepStmtCacheSqlLimit != null);
 

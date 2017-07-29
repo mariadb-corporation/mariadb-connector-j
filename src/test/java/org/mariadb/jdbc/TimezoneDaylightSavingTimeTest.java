@@ -142,7 +142,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     public static void endClass() throws SQLException {
         if (testSingleHost || !"true".equals(System.getenv("AURORA"))) {
             TimeZone.setDefault(previousTimeZone);
-            Locale.setDefault(previousFormatLocale);
+            if (previousFormatLocale != null) Locale.setDefault(previousFormatLocale);
         }
     }
 
@@ -530,7 +530,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             pst = connection.prepareStatement("SELECT * from daylight where 1 = ?", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         } else {
             MariaDbConnection mariaDbConnection = (MariaDbConnection) connection;
-            pst = new MariaDbPreparedStatementClient(mariaDbConnection, "SELECT * from daylight where 1 = ?", ResultSet.TYPE_SCROLL_INSENSITIVE);
+            pst = new MariaDbPreparedStatementClient(mariaDbConnection, "SELECT * from daylight where 1 = ?",
+                    ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY, Statement.NO_GENERATED_KEYS);
         }
         pst.setInt(1, 1);
         rs = pst.executeQuery();
@@ -874,6 +875,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     @Test
     public void checkSetLocalDateTimeNoOffset() throws SQLException {
         Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+        Assume.assumeFalse(!isMariadbServer() && strictBeforeVersion(5,6));
         checkSetLocalDateTime(true, true, "Europe/Paris");
         checkSetLocalDateTime(true, false, "Europe/Paris");
         checkSetLocalDateTime(false, true, "Europe/Paris");
@@ -883,6 +885,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     @Test
     public void checkSetLocalDateTimeOffset() throws SQLException {
         Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+        Assume.assumeFalse(!isMariadbServer() && strictBeforeVersion(5,6));
         checkSetLocalDateTime(true, true, "+2:00");
         checkSetLocalDateTime(true, false, "+2:00");
         checkSetLocalDateTime(false, true, "+2:00");

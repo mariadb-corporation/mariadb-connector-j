@@ -87,6 +87,10 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
         maxPacketLength = Math.min(MAX_PACKET_LENGTH, maxAllowedPacket + 4);
     }
 
+    public int initialPacketPos() {
+        return 4;
+    }
+
     /**
      * Flush the internal buffer.
      *
@@ -101,6 +105,7 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
             buf[3] = (byte) this.seqNo++;
             checkMaxAllowedLength(pos - 4);
             out.write(buf, 0, pos);
+            cmdLength += pos - 4;
 
             if (traceCache != null && permitTrace) {
                 //trace last packets

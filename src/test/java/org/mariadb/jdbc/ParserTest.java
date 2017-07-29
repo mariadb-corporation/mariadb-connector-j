@@ -57,10 +57,7 @@ import org.junit.Test;
 import org.mariadb.jdbc.internal.util.DefaultOptions;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.ArrayList;
 
 import static org.junit.Assert.*;
@@ -132,6 +129,21 @@ public class ParserTest extends BaseTest {
             }
         } catch (SQLException e) {
             fail();
+        }
+    }
+
+    @Test
+    public void auroraClusterVerification() throws Exception {
+        try {
+            DriverManager.getConnection("jdbc:mariadb:aurora://"
+                    + "1.somehex.us-east-1.rds.amazonaws.com,"
+                    + "2.someOtherHex.us-east-1.rds.amazonaws.com/testj");
+            fail("must have fail since not same cluster");
+        } catch (Exception e) {
+            assertEquals("Connection string must contain only one aurora cluster. "
+                            + "'2.someOtherHex.us-east-1.rds.amazonaws.com' doesn't correspond to DNS prefix "
+                            + "'somehex.us-east-1.rds.amazonaws.com'",
+                    e.getMessage());
         }
     }
 }

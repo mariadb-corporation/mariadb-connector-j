@@ -100,6 +100,7 @@ public class UrlParser {
     private List<HostAddress> addresses;
     private HaMode haMode;
     private String initialUrl;
+    private boolean multiMaster = isMultiMaster();
 
     private UrlParser() {
     }
@@ -120,6 +121,7 @@ public class UrlParser {
                 }
             }
         }
+        multiMaster = loadMultiMasterValue();
     }
 
     /**
@@ -410,4 +412,25 @@ public class UrlParser {
 
     }
 
+    private boolean loadMultiMasterValue() {
+        if (haMode == HaMode.SEQUENTIAL
+                || haMode == HaMode.REPLICATION
+                || haMode == HaMode.FAILOVER) {
+            boolean firstMaster = false;
+            for (HostAddress host : addresses) {
+                if (host.type == ParameterConstant.TYPE_MASTER) {
+                    if (firstMaster) {
+                        return true;
+                    } else {
+                        firstMaster = true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean isMultiMaster() {
+        return multiMaster;
+    }
 }

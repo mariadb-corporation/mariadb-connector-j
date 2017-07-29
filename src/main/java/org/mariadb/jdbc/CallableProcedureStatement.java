@@ -79,15 +79,17 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
     /**
      * Constructor for getter/setter of callableStatement.
      *
-     * @param connection          current connection
-     * @param sql                 query
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param connection            current connection
+     * @param sql                   query
+     * @param resultSetScrollType   one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency  a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                              <code>ResultSet.CONCUR_UPDATABLE</code>
      * @throws SQLException is prepareStatement connection throw any error
      */
-    public CallableProcedureStatement(MariaDbConnection connection, String sql, int resultSetScrollType)
+    public CallableProcedureStatement(MariaDbConnection connection, String sql, int resultSetScrollType, int resultSetConcurrency)
             throws SQLException {
-        super(connection, sql, resultSetScrollType, true);
+        super(connection, sql, resultSetScrollType, resultSetConcurrency, Statement.NO_GENERATED_KEYS);
     }
 
     /**
@@ -282,6 +284,7 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
     }
 
     @Override
+    @Deprecated
     @SuppressWarnings("deprecation")
     public BigDecimal getBigDecimal(int parameterIndex, int scale) throws SQLException {
         return getOutputResult().getBigDecimal(indexToOutputIndex(parameterIndex));

@@ -256,7 +256,8 @@ public class ComQuery {
      * @return current index
      * @throws IOException if connection error occur
      */
-    public static int sendMultiple(final PacketOutputStream writer, String firstQuery, List<String> queries, int currentIndex) throws IOException {
+    public static int sendBatchAggregateSemiColon(final PacketOutputStream writer, String firstQuery,
+                                                  List<String> queries, int currentIndex) throws IOException {
         writer.startPacket(0);
         writer.write(Packet.COM_QUERY);
         //index is already set to 1 for first one

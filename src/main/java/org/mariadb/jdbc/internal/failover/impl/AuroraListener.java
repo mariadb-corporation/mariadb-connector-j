@@ -74,10 +74,10 @@ import java.util.regex.Pattern;
 public class AuroraListener extends MastersSlavesListener {
 
     private final Logger log = Logger.getLogger(AuroraListener.class.getName());
-    private final Pattern clusterPattern = Pattern.compile("(.+)\\.cluster-([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)");
+    private final Pattern auroraDnsPattern = Pattern.compile("(.+)\\.(cluster-)?([a-zA-Z0-9]+\\.[a-zA-Z0-9\\-]+\\.rds\\.amazonaws\\.com)",
+            Pattern.CASE_INSENSITIVE);
     private final HostAddress clusterHostAddress;
-    private String urlEndStr = "";
-
+    private String clusterDnsSuffix = null;
 
     /**
      * Constructor for Aurora.
@@ -86,8 +86,9 @@ public class AuroraListener extends MastersSlavesListener {
      * - master can change after he has a failover
      *
      * @param urlParser connection informations
+     * @throws SQLException when connection string contain host with different cluster
      */
-    public AuroraListener(UrlParser urlParser) {
+    public AuroraListener(UrlParser urlParser) throws SQLException {
         super(urlParser);
         masterProtocol = null;
         secondaryProtocol = null;
@@ -100,14 +101,31 @@ public class AuroraListener extends MastersSlavesListener {
      * @param urlParser object that holds the connection information
      * @return cluster host address
      */
-    private HostAddress findClusterHostAddress(UrlParser urlParser) {
+    private HostAddress findClusterHostAddress(UrlParser urlParser) throws SQLException {
         List<HostAddress> hostAddresses = urlParser.getHostAddresses();
         Matcher matcher;
         for (HostAddress hostAddress : hostAddresses) {
-            matcher = clusterPattern.matcher(hostAddress.host);
+            matcher = auroraDnsPattern.matcher(hostAddress.host);
             if (matcher.find()) {
-                urlEndStr = "." + matcher.group(2);
-                return hostAddress;
+
+                if (clusterDnsSuffix != null) {
+                    //ensure there is only one cluster
+                    if (!clusterDnsSuffix.equalsIgnoreCase(matcher.group(3))) {
+                        throw new SQLException("Connection string must contain only one aurora cluster. "
+                                + "'" + hostAddress.host + "' doesn't correspond to DNS prefix '" + clusterDnsSuffix + "'");
+                    }
+                } else {
+                    clusterDnsSuffix = matcher.group(3);
+                }
+
+                if (matcher.group(2) != null && !matcher.group(2).isEmpty()) {
+                    //not just an instance entry-point, but cluster entrypoint.
+                    return hostAddress;
+                }
+            } else {
+                if (clusterDnsSuffix == null && hostAddress.host.indexOf(".") > -1) {
+                    clusterDnsSuffix = hostAddress.host.substring(hostAddress.host.indexOf(".") + 1);
+                }
             }
         }
         return null;
@@ -159,6 +177,7 @@ public class AuroraListener extends MastersSlavesListener {
         loopAddress.removeAll(getBlacklistKeys());
         Collections.shuffle(loopAddress);
         List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
+        blacklistShuffle.retainAll(urlParser.getHostAddresses());
         Collections.shuffle(blacklistShuffle);
         loopAddress.addAll(blacklistShuffle);
 
@@ -209,14 +228,9 @@ public class AuroraListener extends MastersSlavesListener {
      */
     public void retrieveAllEndpointsAndSet(Protocol protocol) throws SQLException {
         // For a given cluster, same port for all endpoints and same end host address
-        int port = protocol.getPort();
-        if ("".equals(urlEndStr) && protocol.getHost().indexOf(".") > -1) {
-            urlEndStr = protocol.getHost().substring(protocol.getHost().indexOf("."));
-        }
-
-        List<String> endpoints = getCurrentEndpointIdentifiers(protocol);
-        if (!"".equals(urlEndStr)) {
-            setUrlParserFromEndpoints(endpoints, port);
+        if (clusterDnsSuffix != null) {
+            List<String> endpoints = getCurrentEndpointIdentifiers(protocol);
+            setUrlParserFromEndpoints(endpoints, protocol.getPort());
         }
 
     }
@@ -243,7 +257,7 @@ public class AuroraListener extends MastersSlavesListener {
                 ResultSet resultSet = results.getResultSet();
 
                 while (resultSet.next()) {
-                    endpoints.add(resultSet.getString(1) + urlEndStr);
+                    endpoints.add(resultSet.getString(1) + "." + clusterDnsSuffix);
                 }
 
                 //randomize order for distributed load-balancing
@@ -372,20 +386,20 @@ public class AuroraListener extends MastersSlavesListener {
         Matcher matcher;
         if (masterHostName != null) {
             for (HostAddress hostAddress : loopAddress) {
-                matcher = clusterPattern.matcher(hostAddress.host);
+                matcher = auroraDnsPattern.matcher(hostAddress.host);
                 if (hostAddress.host.startsWith(masterHostName) && !matcher.find()) {
                     return hostAddress;
                 }
             }
 
             HostAddress masterHostAddress;
-            if (urlEndStr.equals("") && protocol.getHost().indexOf(".") > -1) {
-                urlEndStr = protocol.getHost().substring(protocol.getHost().indexOf("."));
+            if (clusterDnsSuffix == null && protocol.getHost().indexOf(".") > -1) {
+                clusterDnsSuffix = protocol.getHost().substring(protocol.getHost().indexOf(".") + 1);
             } else {
                 return null;
             }
 
-            masterHostAddress = new HostAddress(masterHostName + urlEndStr, protocol.getPort(), null);
+            masterHostAddress = new HostAddress(masterHostName + "." + clusterDnsSuffix, protocol.getPort(), null);
             loopAddress.add(masterHostAddress);
             urlParser.setHostAddresses(loopAddress);
             return masterHostAddress;

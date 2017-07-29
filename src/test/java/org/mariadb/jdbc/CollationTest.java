@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -95,7 +96,7 @@ public class CollationTest extends BaseTest {
             String clientCharacterSet = rs.getString(1);
 
             if ("utf8mb4".equalsIgnoreCase(serverCharacterSet)) {
-                assertTrue(serverCharacterSet.equalsIgnoreCase(clientCharacterSet));
+                assertEquals(serverCharacterSet, clientCharacterSet);
             } else {
                 connection.createStatement().execute("SET NAMES utf8mb4");
             }

@@ -77,10 +77,17 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 
 
 public class Utils {
     private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
+    private static final Pattern IP_V4 = Pattern.compile("^(([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){1}"
+            + "(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){2}"
+            + "([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$");
+    private static final Pattern IP_V6 = Pattern.compile("^[0-9a-fA-F]{1,4}(:[0-9a-fA-F]{1,4}){7}$");
+    private static final Pattern IP_V6_COMPRESSED = Pattern.compile("^(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)"
+            + "::(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)$");
 
     /**
      * Escape String.
@@ -720,15 +727,6 @@ public class Utils {
         return (bytes != null) ? getHex(bytes) : "";
     }
 
-
-    private enum Parse {
-        Normal,
-        Parenthesis, /* inside parenthesis */
-        String, /* inside string */
-        Quote,
-        Escape /* found backslash */
-    }
-
     /**
      * Parse the option "sessionVariable" to ensure having no injection.
      * semi-column not in string will be replaced by comma.
@@ -828,6 +826,22 @@ public class Utils {
             out.append(tmpkey);
         }
         return out.toString();
+    }
+
+    public static boolean isIPv4(final String ip) {
+        return IP_V4.matcher(ip).matches();
+    }
+
+    public static boolean isIPv6(final String ip) {
+        return IP_V6.matcher(ip).matches() || IP_V6_COMPRESSED.matcher(ip).matches();
+    }
+
+    private enum Parse {
+        Normal,
+        Parenthesis, /* inside parenthesis */
+        String, /* inside string */
+        Quote,
+        Escape /* found backslash */
     }
 
 }

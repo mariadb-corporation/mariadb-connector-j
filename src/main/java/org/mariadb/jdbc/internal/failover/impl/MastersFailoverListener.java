@@ -129,13 +129,13 @@ public class MastersFailoverListener extends AbstractMastersListener {
     }
 
     @Override
-    public HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable {
+    public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) throws Throwable {
         boolean alreadyClosed = !currentProtocol.isConnected();
         boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();
 
         proxy.lock.lock();
         try {
-            if (currentProtocol != null && currentProtocol.isConnected() && currentProtocol.ping()) {
+            if (currentProtocol != null && currentProtocol.isConnected() && currentProtocol.isValid()) {
                 //connection re-established
                 //if in transaction cannot be sure that the last query has been received by server of not,
                 // so rollback.and throw exception
@@ -156,6 +156,9 @@ public class MastersFailoverListener extends AbstractMastersListener {
         try {
             reconnectFailedConnection(new SearchFilter(true, false));
             handleFailLoop();
+
+            if (killCmd) return new HandleErrorResult(true, false);
+
             if (alreadyClosed || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args))) {
                 logger.info("Connection to master lost, new master " + currentProtocol.getHostAddress() + " found"
                         + ", query type permit to be re-execute on new server without throwing exception");
@@ -196,12 +199,14 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 loopAddress.removeAll(getBlacklistKeys());
                 Collections.shuffle(loopAddress);
                 List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
+                blacklistShuffle.retainAll(urlParser.getHostAddresses());
                 Collections.shuffle(blacklistShuffle);
                 loopAddress.addAll(blacklistShuffle);
             } else {
                 //order in sequence
                 loopAddress.removeAll(getBlacklistKeys());
                 loopAddress.addAll(getBlacklistKeys());
+                loopAddress.retainAll(urlParser.getHostAddresses());
             }
 
             //put connected at end

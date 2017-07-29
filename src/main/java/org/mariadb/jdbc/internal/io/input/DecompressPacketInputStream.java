@@ -190,7 +190,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
         do {
             int count = inputStream.read(arr, off, remaining);
             if (count < 0) {
-                throw new EOFException("unexpected end of exception, read " + (length - remaining) + " bytes from " + length);
+                throw new EOFException("unexpected end of stream, read " + (length - remaining) + " bytes from " + length);
             }
             remaining -= count;
             off += count;
@@ -269,11 +269,6 @@ public class DecompressPacketInputStream implements PacketInputStream {
             } else return null;
         }
         return null;
-    }
-
-    @Override
-    public int getLastPacketLength() {
-        return lastPacketLength;
     }
 
     @Override

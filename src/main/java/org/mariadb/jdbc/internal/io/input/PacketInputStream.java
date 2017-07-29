@@ -63,8 +63,6 @@ public interface PacketInputStream {
 
     byte[] getPacketArray(boolean reUsable) throws IOException;
 
-    int getLastPacketLength();
-
     int getLastPacketSeq();
 
     int getCompressLastPacketSeq();

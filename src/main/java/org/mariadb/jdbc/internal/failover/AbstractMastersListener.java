@@ -180,7 +180,14 @@ public abstract class AbstractMastersListener implements Listener {
                     + " ] connection fail. Reason : " + qe.getMessage());
             addToBlacklist(currentProtocol.getHostAddress());
         }
-        return primaryFail(method, args);
+
+        //check that failover is due to kill command
+        boolean killCmd = qe != null
+                && qe.getSQLState() != null
+                && qe.getSQLState().equals("70100")
+                && 1927 == qe.getErrorCode();
+
+        return primaryFail(method, args, killCmd);
     }
 
     /**
@@ -343,14 +350,9 @@ public abstract class AbstractMastersListener implements Listener {
                     if (!((Boolean) args[0])) return true; //launched on slave connection
                     ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
                     return (serverPrepareResult.getSql()).toUpperCase().startsWith("SELECT");
-                case "prepareAndExecute":
-                    if (!((Boolean) args[0])) return true; //launched on slave connection
-                    return ((String) args[2]).toUpperCase().startsWith("SELECT");
-                case "executeBatch":
-                case "executeBatchMultiple":
-                case "executeBatchRewrite":
-                case "prepareAndExecutes":
-                case "executeBatchMulti":
+                case "executeBatchStmt":
+                case "executeBatchClient":
+                case "executeBatchServer":
                     if (!((Boolean) args[0])) return true; //launched on slave connection
                     return false;
                 default:
@@ -421,7 +423,7 @@ public abstract class AbstractMastersListener implements Listener {
 
     public abstract void switchReadOnlyConnection(Boolean readonly) throws SQLException;
 
-    public abstract HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable;
+    public abstract HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) throws Throwable;
 
     /**
      * Throw a human readable message after a failoverException.
@@ -485,18 +487,17 @@ public abstract class AbstractMastersListener implements Listener {
 
     protected boolean pingMasterProtocol(Protocol protocol) {
         try {
-            protocol.ping();
-            return true;
+            if (protocol.isValid()) return true;
         } catch (SQLException e) {
-            proxy.lock.lock();
-            try {
-                protocol.close();
-                if (setMasterHostFail()) {
-                    addToBlacklist(protocol.getHostAddress());
-                }
-            } finally {
-                proxy.lock.unlock();
-            }
+            //eat exception
+        }
+
+        proxy.lock.lock();
+        try {
+            protocol.close();
+            if (setMasterHostFail()) addToBlacklist(protocol.getHostAddress());
+        } finally {
+            proxy.lock.unlock();
         }
         return false;
     }

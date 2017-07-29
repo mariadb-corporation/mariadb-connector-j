@@ -106,6 +106,8 @@ public interface Protocol {
 
     void setCatalog(String database) throws SQLException;
 
+    String getCatalog() throws SQLException;
+
     String getServerVersion();
 
     boolean isConnected();
@@ -136,6 +138,8 @@ public interface Protocol {
 
     boolean ping() throws SQLException;
 
+    boolean isValid() throws SQLException;
+
     void executeQuery(String sql) throws SQLException;
 
     void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql) throws SQLException;
@@ -148,26 +152,17 @@ public interface Protocol {
     void executeQuery(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
                       ParameterHolder[] parameters, int timeout) throws SQLException;
 
-    void executeBatchMulti(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
-                           List<ParameterHolder[]> parameterList) throws SQLException;
+    boolean executeBatchClient(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult prepareResult,
+                               final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException;
 
-    void executeBatch(boolean mustExecuteOnMaster, Results results, List<String> queries) throws SQLException;
-
-    void executeBatchMultiple(boolean mustExecuteOnMaster, Results results, List<String> queries) throws SQLException;
-
-    void executeBatchRewrite(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult prepareResult,
-                             List<ParameterHolder[]> parameterList, boolean rewriteValues) throws SQLException;
-
+    void executeBatchStmt(boolean mustExecuteOnMaster, Results results, final List<String> queries) throws SQLException;
 
     void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
                               Results results, ParameterHolder[] parameters) throws SQLException;
 
-    ServerPrepareResult prepareAndExecutes(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                                           Results results, String sql,
-                                           List<ParameterHolder[]> parameterList) throws SQLException;
-
-    ServerPrepareResult prepareAndExecute(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                                          Results results, String sql, ParameterHolder[] parameters) throws SQLException;
+    boolean executeBatchServer(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
+                               Results results, String sql, List<ParameterHolder[]> parameterList,
+                               boolean hasLongData) throws SQLException;
 
     void getResult(Results results) throws SQLException;
 

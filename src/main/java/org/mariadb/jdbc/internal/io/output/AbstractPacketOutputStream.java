@@ -81,6 +81,8 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     protected int seqNo = 0;
     protected String serverThreadLog = "";
     protected LruTraceCache traceCache = null;
+    protected int mark = -1;
+    protected boolean bufferContainDataAfterMark = false;
 
     /**
      * Common feature to write data into socket, creating MySQL Packet.
@@ -113,7 +115,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
      *
      * @param len length to add
      */
-    private void growBuffer(int len) {
+    private void growBuffer(int len) throws IOException {
         int bufferLength = buf.length;
         int newCapacity;
         if (bufferLength == SMALL_BUFFER_SIZE) {
@@ -126,7 +128,23 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
             if (len + pos < LARGE_BUFFER_SIZE) {
                 newCapacity = LARGE_BUFFER_SIZE;
             } else newCapacity = getMaxPacketLength();
+        } else if (bufferContainDataAfterMark) {
+            //want to add some information to buffer without having the command Header
+            //must grow buffer until having all the query
+            newCapacity = Math.max(len + pos, getMaxPacketLength());
         } else newCapacity = getMaxPacketLength();
+
+        if (mark != -1 && len + pos > newCapacity) {
+            //buffer is > 16M with mark.
+            //flush until mark, reset pos at beginning
+            flushBufferStopAtMark();
+
+            if (len + pos <= bufferLength) return;
+
+            //need to keep all data, buffer can grow more than maxPacketLength
+            //grow buffer if needed
+            if (len + pos > newCapacity) newCapacity = len + pos;
+        }
 
         byte[] newBuf = new byte[newCapacity];
         System.arraycopy(buf, 0, newBuf, 0, pos);
@@ -180,13 +198,13 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     public void checkMaxAllowedLength(int length) throws MaxAllowedPacketException {
         if (cmdLength + length >= maxAllowedPacket && cmdLength == 0) {
             //launch exception only if no packet has been send.
-            throw new MaxAllowedPacketException("query size is >= to max_allowed_packet (" + maxAllowedPacket + ")", false);
+            throw new MaxAllowedPacketException("query size (" + (cmdLength + length)
+                    + ") is >= to max_allowed_packet (" + maxAllowedPacket + ")", cmdLength > 0);
         }
-        cmdLength += length;
     }
 
     public boolean isAllowedCmdLength() {
-        return cmdLength < maxAllowedPacket;
+        return cmdLength + (pos - initialPacketPos()) < maxAllowedPacket;
     }
 
     public OutputStream getOutputStream() {
@@ -379,7 +397,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
      */
     public void write(int value) throws IOException {
         if (pos >= buf.length) {
-            if (pos >= getMaxPacketLength()) {
+            if (pos >= getMaxPacketLength() && !bufferContainDataAfterMark) {
                 //buffer is more than a Packet, must flushBuffer()
                 flushBuffer(false);
             } else growBuffer(1);
@@ -405,24 +423,29 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
 
             //max buffer size
             if (len > buf.length - pos) {
-                //not enough space in buffer, will fill buffer
-                do {
-                    int lenToFillBuffer = Math.min(getMaxPacketLength() - pos, len);
-                    System.arraycopy(arr, off, buf, pos, lenToFillBuffer);
-                    len -= lenToFillBuffer;
-                    off += lenToFillBuffer;
-                    pos += lenToFillBuffer;
-                    if (len > 0) {
-                        flushBuffer(false);
-                    } else {
-                        break;
-                    }
-                } while (true);
-            } else {
-                System.arraycopy(arr, off, buf, pos, len);
-                pos += len;
+
+                if (mark != -1) {
+                    growBuffer(len);
+                    if (mark != -1) flushBufferStopAtMark();
+
+                } else {
+                    //not enough space in buffer, will stream :
+                    // fill buffer and flush until all data are snd
+                    do {
+                        int lenToFillBuffer = Math.min(getMaxPacketLength() - pos, len);
+                        System.arraycopy(arr, off, buf, pos, lenToFillBuffer);
+                        len -= lenToFillBuffer;
+                        off += lenToFillBuffer;
+                        pos += lenToFillBuffer;
+                        if (len > 0) {
+                            flushBuffer(false);
+                        } else {
+                            break;
+                        }
+                    } while (true);
+                    return;
+                }
             }
-            return;
         }
 
         System.arraycopy(arr, off, buf, pos, len);
@@ -646,29 +669,39 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
             //data may be bigger than buffer.
             //must flush buffer when full (and reset position to 0)
             if (len * 2 > buf.length - pos) {
-                if (noBackslashEscapes) {
-                    for (int i = 0; i < len; i++) {
-                        if (QUOTE == bytes[i]) {
-                            buf[pos++] = QUOTE;
-                            if (buf.length <= pos) flushBuffer(false);
-                        }
-                        buf[pos++] = bytes[i];
-                        if (buf.length <= pos) flushBuffer(false);
-                    }
+
+                if (mark != -1) {
+                    growBuffer(len * 2);
+                    if (mark != -1) flushBufferStopAtMark();
+
                 } else {
-                    for (int i = 0; i < len; i++) {
-                        if (bytes[i] == QUOTE
-                                || bytes[i] == SLASH
-                                || bytes[i] == DBL_QUOTE
-                                || bytes[i] == ZERO_BYTE) {
-                            buf[pos++] = '\\';
+
+                    //not enough space in buffer, will fill buffer
+                    if (noBackslashEscapes) {
+                        for (int i = 0; i < len; i++) {
+                            if (QUOTE == bytes[i]) {
+                                buf[pos++] = QUOTE;
+                                if (buf.length <= pos) flushBuffer(false);
+                            }
+                            buf[pos++] = bytes[i];
                             if (buf.length <= pos) flushBuffer(false);
                         }
-                        buf[pos++] = bytes[i];
-                        if (buf.length <= pos) flushBuffer(false);
+                    } else {
+                        for (int i = 0; i < len; i++) {
+                            if (bytes[i] == QUOTE
+                                    || bytes[i] == SLASH
+                                    || bytes[i] == DBL_QUOTE
+                                    || bytes[i] == ZERO_BYTE) {
+                                buf[pos++] = '\\';
+                                if (buf.length <= pos) flushBuffer(false);
+                            }
+                            buf[pos++] = bytes[i];
+                            if (buf.length <= pos) flushBuffer(false);
+                        }
                     }
+                    return;
                 }
-                return;
+
             }
         }
 
@@ -712,5 +745,53 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
 
     public void setTraceCache(LruTraceCache traceCache) {
         this.traceCache = traceCache;
+    }
+
+    @Override
+    public void mark() throws MaxAllowedPacketException {
+        mark = pos;
+    }
+
+    @Override
+    public boolean isMarked() {
+        return mark != - 1;
+    }
+
+    /**
+     * Flush to last mark.
+     * @throws IOException if flush fail.
+     */
+    @Override
+    public void flushBufferStopAtMark() throws IOException {
+        final int end = pos;
+        pos = mark;
+        flushBuffer(true);
+        out.flush();
+        startPacket(0);
+
+        System.arraycopy(buf, mark, buf, pos, end - mark);
+        pos += end - mark;
+        mark = -1;
+        bufferContainDataAfterMark = true;
+    }
+
+    public boolean bufferIsDataAfterMark() {
+        return bufferContainDataAfterMark;
+    }
+
+    /**
+     * Reset mark flag and send bytes after mark flag.
+     * @return bytes after mark flag
+     */
+    public byte[] resetMark() {
+        mark = -1;
+
+        if (bufferContainDataAfterMark) {
+            byte[] data = Arrays.copyOfRange(buf, initialPacketPos(), pos);
+            startPacket(0);
+            bufferContainDataAfterMark = false;
+            return data;
+        }
+        return null;
     }
 }

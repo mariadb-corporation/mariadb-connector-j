@@ -284,6 +284,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         loopAddress.removeAll(getBlacklistKeys());
         Collections.shuffle(loopAddress);
         List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
+        blacklistShuffle.retainAll(urlParser.getHostAddresses());
         Collections.shuffle(blacklistShuffle);
         loopAddress.addAll(blacklistShuffle);
 
@@ -521,19 +522,20 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     /**
      * To handle the newly detected failover on the master connection.
      *
-     * @param method the initial called method
-     * @param args   the initial args
+     * @param method    the initial called method
+     * @param args      the initial args
+     * @param killCmd   is the fail due to a KILL cmd
      * @return an object to indicate if the previous Exception must be thrown, or the object resulting if a failover worked
      * @throws Throwable if failover has not been catch
      */
-    public HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable {
+    public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) throws Throwable {
         boolean alreadyClosed = !masterProtocol.isConnected();
         boolean inTransaction = masterProtocol != null && masterProtocol.inTransaction();
 
         //try to reconnect automatically only time before looping
         proxy.lock.lock();
         try {
-            if (masterProtocol != null && masterProtocol.isConnected() && masterProtocol.ping()) {
+            if (masterProtocol != null && masterProtocol.isConnected() && masterProtocol.isValid()) {
                 if (inTransaction) {
                     masterProtocol.rollback();
                     return new HandleErrorResult(true);
@@ -580,6 +582,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         try {
             reconnectFailedConnection(new SearchFilter(true, urlParser.getOptions().failOnReadOnly));
             handleFailLoop();
+
+            if (killCmd) return new HandleErrorResult(true, false);
+
             if (currentReadOnlyAsked //use master connection temporary in replacement of slave
                     || alreadyClosed //connection was already close
                     || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args))) { //connection was not in transaction
@@ -658,12 +663,13 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     /**
      * To handle the newly detected failover on the secondary connection.
      *
-     * @param method the initial called method
-     * @param args   the initial args
+     * @param method    the initial called method
+     * @param args      the initial args
+     * @param killCmd   is fail due to a KILL command
      * @return an object to indicate if the previous Exception must be thrown, or the object resulting if a failover worked
      * @throws Throwable if failover has not catch error
      */
-    public HandleErrorResult secondaryFail(Method method, Object[] args) throws Throwable {
+    public HandleErrorResult secondaryFail(Method method, Object[] args, boolean killCmd) throws Throwable {
         proxy.lock.lock();
         try {
             if (pingSecondaryProtocol(this.secondaryProtocol)) {
@@ -676,8 +682,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
         if (!isMasterHostFail()) {
             try {
-                if (masterProtocol != null) {
-                    this.masterProtocol.ping(); //check that master is on before switching to him
+                //check that master is on before switching to him
+                if (masterProtocol != null && masterProtocol.isValid()) {
                     //switching to master connection
                     syncConnection(secondaryProtocol, masterProtocol);
                     proxy.lock.lock();
@@ -711,6 +717,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                     proxy.lock.unlock();
                 }
             }
+
+            if (killCmd) return new HandleErrorResult(true, false);
+
             logger.info("Connection to slave lost, new slave " + currentProtocol.getHostAddress() + ", conn:"
                     + currentProtocol.getServerThreadId() + " found"
                     + ", query is re-execute on new server without throwing exception");
@@ -782,5 +791,26 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             //replace prepare data
             oldServerPrepareResult.failover(serverPrepareResult.getStatementId(), secondaryProtocol);
         }
+    }
+
+    /**
+     * List current connected HostAddress.
+     *
+     * @return hostAddress List.
+     */
+    public List<HostAddress> connectedHosts() {
+        List<HostAddress> usedHost = new ArrayList<>();
+
+        if (isMasterHostFail()) {
+            Protocol masterProtocol = waitNewMasterProtocol.get();
+            if (masterProtocol != null) usedHost.add(masterProtocol.getHostAddress());
+        } else usedHost.add(masterProtocol.getHostAddress());
+
+        if (isSecondaryHostFail()) {
+            Protocol secondProtocol = waitNewSecondaryProtocol.get();
+            if (secondProtocol != null) usedHost.add(secondProtocol.getHostAddress());
+        } else usedHost.add(secondaryProtocol.getHostAddress());
+
+        return usedHost;
     }
 }

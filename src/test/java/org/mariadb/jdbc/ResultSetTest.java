@@ -55,12 +55,15 @@ package org.mariadb.jdbc;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
-import static org.junit.Assert.*;
 
 public class ResultSetTest extends BaseTest {
     /**
@@ -369,9 +372,22 @@ public class ResultSetTest extends BaseTest {
     public void generatedKeyNpe() throws SQLException {
         createTable("generatedKeyNpe", "id int not null primary key auto_increment, val int");
         Statement statement = sharedConnection.createStatement();
-        statement.execute("INSERT INTO generatedKeyNpe(val) values (0)");
+        statement.execute("INSERT INTO generatedKeyNpe(val) values (0)", Statement.RETURN_GENERATED_KEYS);
         try (ResultSet rs = statement.getGeneratedKeys()) {
             assertTrue(rs.next());
+        }
+    }
+
+    @Test
+    public void generatedKeyError() throws SQLException {
+        createTable("generatedKeyNpe", "id int not null primary key auto_increment, val int");
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("INSERT INTO generatedKeyNpe(val) values (0)");
+        try {
+            statement.getGeneratedKeys();
+            fail();
+        } catch (SQLException sqle) {
+            assertEquals("Cannot return generated keys : query was not set with Statement.RETURN_GENERATED_KEYS", sqle.getMessage());
         }
     }
 
@@ -806,5 +822,59 @@ public class ResultSetTest extends BaseTest {
                 assertTrue(sqle.getMessage().contains("not available"));
             }
         }
+    }
+
+    /**
+     * CONJ-496 : Driver not dealing with non zero decimal values.
+     *
+     * @throws SQLException if any abnormal error occur
+     */
+    @Test
+    public void numericTestWithDecimal() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT 1 as test");
+        rs.next();
+        assertTrue(rs.getInt("test") == 1);
+        assertTrue(rs.getByte("test") == 1);
+        assertTrue(rs.getShort("test") == 1);
+
+        rs = stmt.executeQuery("SELECT 1.3333 as test");
+        rs.next();
+        assertTrue(rs.getInt("test") == 1);
+        assertTrue(rs.getByte("test") == 1);
+        assertTrue(rs.getShort("test") == 1);
+        assertTrue(rs.getLong("test") == 1);
+        assertTrue(rs.getFloat("test") == 1.3333F);
+
+        rs = stmt.executeQuery("SELECT 1.0 as test");
+        rs.next();
+        assertTrue(rs.getInt("test") == 1);
+        assertTrue(rs.getByte("test") == 1);
+        assertTrue(rs.getShort("test") == 1);
+        assertTrue(rs.getLong("test") == 1);
+        assertTrue(rs.getFloat("test") == 1.0F);
+
+        rs = stmt.executeQuery("SELECT -1 as test");
+        rs.next();
+        assertTrue(rs.getInt("test") == -1);
+        assertTrue(rs.getByte("test") == -1);
+        assertTrue(rs.getShort("test") == -1);
+        assertTrue(rs.getLong("test") == -1);
+
+        rs = stmt.executeQuery("SELECT -1.0 as test");
+        rs.next();
+        assertTrue(rs.getInt("test") == -1);
+        assertTrue(rs.getByte("test") == -1);
+        assertTrue(rs.getShort("test") == -1);
+        assertTrue(rs.getLong("test") == -1);
+        assertTrue(rs.getFloat("test") == -1.0F);
+
+        rs = stmt.executeQuery("SELECT -1.3333 as test");
+        rs.next();
+        assertTrue(rs.getInt("test") == -1);
+        assertTrue(rs.getByte("test") == -1);
+        assertTrue(rs.getShort("test") == -1);
+        assertTrue(rs.getLong("test") == -1);
+        assertTrue(rs.getFloat("test") == -1.3333F);
     }
 }

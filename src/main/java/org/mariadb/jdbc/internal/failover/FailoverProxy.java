@@ -229,9 +229,21 @@ public class FailoverProxy implements InvocationHandler {
 
                     queryException = addHostInformationToException(queryException, protocol);
 
+                    //check that failover is due to kill command
+                    boolean killCmd = queryException != null
+                            && queryException.getSQLState() != null
+                            && queryException.getSQLState().equals("70100")
+                            && 1927 == queryException.getErrorCode();
+
+                    if (killCmd) {
+                        handleFailOver(queryException, method, args, protocol);
+                        return null;
+                    }
+
                     if (hasToHandleFailover(queryException)) {
                         return handleFailOver(queryException, method, args, protocol);
                     }
+
                     //error is "The MySQL server is running with the %s option so it cannot execute this statement"
                     //checking that server was master has not been demote to slave without resetting connections
                     if (queryException.getErrorCode() == 1290
@@ -251,7 +263,7 @@ public class FailoverProxy implements InvocationHandler {
                         lock.lock();
                         try {
                             protocol.close();
-                            isReconnected = listener.primaryFail(null, null).isReconnected;
+                            isReconnected = listener.primaryFail(null, null, false).isReconnected;
                         } finally {
                             lock.unlock();
                         }
@@ -288,6 +300,7 @@ public class FailoverProxy implements InvocationHandler {
             failHostAddress = protocol.getHostAddress();
             failIsMaster = protocol.isMasterConnection();
         }
+
         HandleErrorResult handleErrorResult = listener.handleFailover(qe, method, args, protocol);
         if (handleErrorResult.mustThrowError) {
             listener.throwFailoverMessage(failHostAddress, failIsMaster, qe, handleErrorResult.isReconnected);
@@ -306,13 +319,15 @@ public class FailoverProxy implements InvocationHandler {
      * 08004 : SQL server rejected SQL connection
      * 08006 : connection failure
      * 08007 : transaction resolution unknown
-     * 70100 : connection was killed
+     * 70100 : connection was killed if error code is "1927"
      *
      * @param exception the Exception
      * @return true if there has been a connection error that must be handled by failover
      */
     public boolean hasToHandleFailover(SQLException exception) {
-        return exception.getSQLState() != null && exception.getSQLState().startsWith("08");
+        return exception.getSQLState() != null
+                && (exception.getSQLState().startsWith("08")
+                || (exception.getSQLState().equals("70100") && 1927 == exception.getErrorCode())) ;
     }
 
     /**
