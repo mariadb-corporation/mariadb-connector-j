@@ -510,20 +510,20 @@ public class BaseTest {
         return openConnection(connUri + parameters, null);
     }
 
-    protected Connection setDnsConnection(String parameters) throws SQLException {
-        String connU = "jdbc:mariadb://mariadb.example.com:" + port + "/" + database;
-        String connUri = connU + "?user=" + username
-                + (password != null && !"".equals(password) ? "&password=" + password : "")
-                + (parameters != null ? "&" + parameters : "");
-        return openConnection(connUri + parameters, null);
-    }
-
     protected Connection setConnection(String additionnallParameters, String database) throws SQLException {
         String connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
         String connUri = connU + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
                 + (parameters != null ? "&" + parameters : "");
         return openConnection(connUri + additionnallParameters, null);
+    }
+
+    protected Connection setDnsConnection(String parameters) throws SQLException {
+        String connU = "jdbc:mariadb://mariadb.example.com:" + port + "/" + database;
+        String connUri = connU + "?user=" + username
+                + (password != null && !"".equals(password) ? "&password=" + password : "")
+                + (parameters != null ? "&" + parameters : "");
+        return openConnection(connUri + parameters, null);
     }
 
     /**
