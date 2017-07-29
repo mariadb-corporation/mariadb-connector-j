@@ -196,12 +196,14 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 loopAddress.removeAll(getBlacklistKeys());
                 Collections.shuffle(loopAddress);
                 List<HostAddress> blacklistShuffle = new LinkedList<HostAddress>(getBlacklistKeys());
+                blacklistShuffle.retainAll(urlParser.getHostAddresses());
                 Collections.shuffle(blacklistShuffle);
                 loopAddress.addAll(blacklistShuffle);
             } else {
                 //order in sequence
                 loopAddress.removeAll(getBlacklistKeys());
                 loopAddress.addAll(getBlacklistKeys());
+                loopAddress.retainAll(urlParser.getHostAddresses());
             }
 
             //put connected at end

@@ -284,6 +284,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         loopAddress.removeAll(getBlacklistKeys());
         Collections.shuffle(loopAddress);
         List<HostAddress> blacklistShuffle = new LinkedList<HostAddress>(getBlacklistKeys());
+        blacklistShuffle.retainAll(urlParser.getHostAddresses());
         Collections.shuffle(blacklistShuffle);
         loopAddress.addAll(blacklistShuffle);
 
