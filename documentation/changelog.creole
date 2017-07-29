@@ -63,7 +63,7 @@ Use dedicated [COM_STMT_BULK_EXECUTE |https://mariadb.com/kb/en/mariadb/com_stmt
 (significant only if server MariaDB &ge; 10.2.7)
 
 A new option "useBulkStmts" permit to deactivate this functionality.
-|=useBulkStmts| When using ssl, driver check hostname against the server's identity as presented in the server's Certificate (checking alternative names or certificate CN) to prevent man-in-the-middle attack. This option permit to deactivate this validation.\\//Default: false. Since 2.1.0//
+|=useBulkStmts| Use dedicated COM_STMT_BULK_EXECUTE protocol for batch insert when possible. (batch without Statement.RETURN_GENERATED_KEYS and streams) to have faster batch. (significant only if server MariaDB &ge; 10.2.7)\\//Default: true. Since 2.1.0//
 
 
 other evolution

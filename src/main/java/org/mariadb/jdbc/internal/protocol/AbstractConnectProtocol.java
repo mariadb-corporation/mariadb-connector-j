@@ -694,7 +694,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 // perform hostname verification
                 // (rfc2818 indicate that if "client has external information as to the expected identity of the server,
                 // the hostname check MAY be omitted")
-                if (!options.disableSslHostnameVerification) {
+                if (!options.disableSslHostnameVerification && !options.trustServerCertificate) {
                     HostnameVerifierImpl hostnameVerifier = new HostnameVerifierImpl();
                     SSLSession session = sslSocket.getSession();
                     if (!hostnameVerifier.verify(host, session)) {

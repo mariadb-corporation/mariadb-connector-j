@@ -11,34 +11,34 @@ export COMPOSE_FILE=.travis/docker-compose.yml
 
 case "$TYPE" in
  "REWRITE" )
-   urlString='jdbc:mariadb://localhost:3305/testj?user=bob&rewriteBatchedStatements=true&enablePacketDebug=true'
+   urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&rewriteBatchedStatements=true&enablePacketDebug=true'
    ;;
  "PREPARE" )
-   urlString='jdbc:mariadb://localhost:3305/testj?user=bob&useServerPrepStmts=true&enablePacketDebug=true'
+   urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&useServerPrepStmts=true&enablePacketDebug=true'
    ;;
  "MULTI" )
-   urlString='jdbc:mariadb://localhost:3305/testj?user=bob&allowMultiQueries=true&enablePacketDebug=true'
+   urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&allowMultiQueries=true&enablePacketDebug=true'
    ;;
  "BULK_SERVER" )
-   urlString='jdbc:mariadb://localhost:3305/testj?user=bob&useBatchMultiSend=true&useServerPrepStmts=true&enablePacketDebug=true'
+   urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&useBatchMultiSend=true&useServerPrepStmts=true&enablePacketDebug=true'
    ;;
  "NO_BULK_CLIENT" )
-   urlString='jdbc:mariadb://localhost:3305/testj?user=bob&useBatchMultiSend=false&enablePacketDebug=true'
+   urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&useBatchMultiSend=false&enablePacketDebug=true'
    ;;
  "NO_BULK_SERVER" )
-   urlString='jdbc:mariadb://localhost:3305/testj?user=bob&useBatchMultiSend=false&useServerPrepStmts=true&enablePacketDebug=true'
+   urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&useBatchMultiSend=false&useServerPrepStmts=true&enablePacketDebug=true'
    ;;
  "COMPRESSION" )
-   urlString='jdbc:mariadb://localhost:3305/testj?user=bob&useCompression=true&enablePacketDebug=true'
+   urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&useCompression=true&enablePacketDebug=true'
    ;;
   *)
    if [ -n "$MAXSCALE_VERSION" ]
    then
-       urlString='jdbc:mariadb://localhost:4007/testj?user=bob&killFetchStmtOnClose=false&enablePacketDebug=true'
+       urlString='jdbc:mariadb://mariadb.example.com:4007/testj?user=bob&killFetchStmtOnClose=false&enablePacketDebug=true'
        mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=4007 )
        export COMPOSE_FILE=.travis/maxscale-compose.yml
    else
-       urlString='jdbc:mariadb://localhost:3305/testj?user=bob&enablePacketDebug=true'
+       urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&enablePacketDebug=true'
    fi
    ;;
 esac;
@@ -87,8 +87,8 @@ else
     if [ -n "$GALERA" ]
     then
         docker-compose -f .travis/galera-compose.yml up -d
-        urlString='jdbc:mariadb://localhost:3106/testj?user=bob&enablePacketDebug=true'
-        cmd+=( -DdefaultGaleraUrl="jdbc:mariadb:failover://localhost:3106,localhost:3107,localhost:3108/testj?user=bob&enablePacketDebug=true" )
+        urlString='jdbc:mariadb://mariadb.example.com:3106/testj?user=bob&enablePacketDebug=true'
+        cmd+=( -DdefaultGaleraUrl="jdbc:mariadb:failover://mariadb.example.com:3106,mariadb.example.com:3107,mariadb.example.com:3108/testj?user=bob&enablePacketDebug=true" )
 
     fi
 

@@ -323,7 +323,7 @@ public class SslTest extends BaseTest {
     }
 
     private Connection createConnection(Properties info, String user, String pwd) throws SQLException {
-        String jdbcUrl = connUri;
+        String jdbcUrl = connDnsUri;
         Properties connProps = new Properties(info);
         connProps.setProperty("user", user);
         if (pwd != null) {
