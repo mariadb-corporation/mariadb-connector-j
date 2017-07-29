@@ -445,13 +445,19 @@ public enum DefaultOptions {
     ENABLE_PACKET_DEBUG("enablePacketDebug", Boolean.FALSE, "1.6.0"),
 
     /**
+     * When using ssl, driver check hostname against the server's identity as presented in the server's Certificate
+     * (checking alternative names or certificate CN) to prevent man-in-the-middle attack.
+     *
+     * This option permit to deactivate this validation.
+     */
+    SSL_HOSTNAME_VERIFICATION("disableSslHostnameVerification", Boolean.FALSE, "2.1.0"),
+
+    /**
      * Use dedicated COM_STMT_BULK_EXECUTE protocol for batch insert when possible.
      * (batch without Statement.RETURN_GENERATED_KEYS and streams) to have faster batch.
      * (significant only if server MariaDB &ge; 10.2.7)
      */
     USE_BULK_PROTOCOL("useBulkStmts", Boolean.TRUE, "2.1.0");
-
-
 
     protected final String name;
     protected final Object objType;
@@ -535,10 +541,14 @@ public enum DefaultOptions {
             for (String parameter : parameters) {
                 int pos = parameter.indexOf('=');
                 if (pos == -1) {
-                    throw new IllegalArgumentException("Invalid connection URL, expected key=value pairs, found " + parameter);
-                }
-                if (!properties.containsKey(parameter.substring(0, pos))) {
-                    properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+                    if (!properties.containsKey(parameter)) {
+                        properties.setProperty(parameter, "");
+                    }
+                } else {
+                    if (!properties.containsKey(parameter.substring(0, pos))) {
+                        properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+                    }
+
                 }
             }
         }
@@ -594,6 +604,7 @@ public enum DefaultOptions {
                         Options.class.getField(o.name).set(options, propertyValue);
                     } else if (o.objType.equals(Boolean.class)) {
                         switch (propertyValue.toLowerCase()) {
+                            case "":
                             case "1":
                             case "true":
                                 Options.class.getField(o.name).set(options, Boolean.TRUE);

@@ -116,6 +116,7 @@ public class Options {
     public boolean killFetchStmtOnClose;
     public boolean enablePacketDebug;
     public boolean useBulkStmts;
+    public boolean disableSslHostnameVerification;
 
     //logging options
     public boolean log;
@@ -265,6 +266,7 @@ public class Options {
         if (useBulkStmts != options.useBulkStmts) return false;
         if (enablePacketDebug != options.enablePacketDebug) return false;
         if (killFetchStmtOnClose != options.killFetchStmtOnClose) return false;
+        if (disableSslHostnameVerification != options.disableSslHostnameVerification) return false;
         return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)
                 : options.prepStmtCacheSqlLimit != null);
 
