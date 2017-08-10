@@ -1121,15 +1121,24 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private void parseVersion() {
         String[] versionArray = serverVersion.split("[^0-9]");
+
+        //standard version
+        if (versionArray.length > 2) {
+            majorVersion = Integer.parseInt(versionArray[0]);
+            minorVersion = Integer.parseInt(versionArray[1]);
+            patchVersion = Integer.parseInt(versionArray[2]);
+            return;
+        }
+
+        // in case version string has been forced
         if (versionArray.length > 0) {
             majorVersion = Integer.parseInt(versionArray[0]);
         }
+
         if (versionArray.length > 1) {
             minorVersion = Integer.parseInt(versionArray[1]);
         }
-        if (versionArray.length > 2) {
-            patchVersion = Integer.parseInt(versionArray[2]);
-        }
+
     }
 
     public int getMajorServerVersion() {
