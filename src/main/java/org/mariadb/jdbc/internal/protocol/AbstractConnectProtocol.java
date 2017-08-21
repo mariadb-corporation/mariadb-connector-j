@@ -407,6 +407,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
 
 
+            // Extract socketTimeout URL parameter
+            if (options.socketTimeout != null) socket.setSoTimeout(options.socketTimeout);
+
             handleConnectionPhases(host);
 
             connected = true;
@@ -436,9 +439,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
             autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
 
             loadCalendar();
-
-            // Extract socketTimeout URL parameter
-            if (options.socketTimeout != null) socket.setSoTimeout(options.socketTimeout);
 
             reader.setServerThreadId(this.serverThreadId, isMasterConnection());
             writer.setServerThreadId(this.serverThreadId, isMasterConnection());
