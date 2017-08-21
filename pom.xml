@@ -99,29 +99,6 @@
         </snapshotRepository>
     </distributionManagement>
 
-    <developers>
-        <developer>
-            <id>wlad</id>
-            <name>Vladislav Vaintroub</name>
-            <email>wlad@montyprogram.com</email>
-        </developer>
-        <developer>
-            <id>massimo</id>
-            <name>Massimo Siani</name>
-            <email>massimo.siani@skysql.com</email>
-        </developer>
-        <developer>
-            <id>georg</id>
-            <name>Georg Richter</name>
-            <email>georg@skysql.com</email>
-        </developer>
-        <developer>
-            <id>diego</id>
-            <name>Diego Dupin</name>
-            <email>diego.dupin@mariadb.com</email>
-        </developer>
-    </developers>
-
     <build>
         <plugins>
             <plugin>
