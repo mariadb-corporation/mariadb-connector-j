@@ -166,6 +166,12 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                 //***********************************************************
                 if (Utils.isIPv4(host)) {
                     for (GeneralName entry : subjectAltNames.getGeneralNames()) {
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("IPv4 verification of hostname : type=" + entry.extension
+                                    + " value=" + entry.value
+                                    + " to " + host);
+                        }
+
                         if (entry.extension == Extension.IP) { //IP
                             if (host.equals(entry.value)) return;
                         }
@@ -179,6 +185,11 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                 if (Utils.isIPv6(host)) {
                     String normalisedHost = normaliseAddress(host);
                     for (GeneralName entry : subjectAltNames.getGeneralNames()) {
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("IPv6 verification of hostname : type=" + entry.extension
+                                    + " value=" + entry.value
+                                    + " to " + host);
+                        }
                         if (entry.extension == Extension.IP) { //IP
                             if (!Utils.isIPv4(entry.value)) {
                                 String normalizedSubjectAlt = normaliseAddress(entry.value);
@@ -196,6 +207,11 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                 //***********************************************************
                 String normalizedHost = host.toLowerCase(Locale.ROOT);
                 for (GeneralName entry : subjectAltNames.getGeneralNames()) {
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("DNS verification of hostname : type=" + entry.extension
+                                + " value=" + entry.value
+                                + " to " + host);
+                    }
                     if (entry.extension == Extension.DNS) { //IP
                         String normalizedSubjectAlt = entry.value.toLowerCase(Locale.ROOT);
                         if (matchDns(normalizedHost, normalizedSubjectAlt)) {
