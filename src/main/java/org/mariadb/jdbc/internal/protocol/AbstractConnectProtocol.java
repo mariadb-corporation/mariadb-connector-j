@@ -406,10 +406,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 }
             }
 
-
-            // Extract socketTimeout URL parameter
-            if (options.socketTimeout != null) socket.setSoTimeout(options.socketTimeout);
-
             handleConnectionPhases(host);
 
             connected = true;
@@ -434,6 +430,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     additionalData();
                 }
             } else additionalData();
+
+            // Extract socketTimeout URL parameter
+            if (options.socketTimeout != null) socket.setSoTimeout(options.socketTimeout);
 
             writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
             autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
