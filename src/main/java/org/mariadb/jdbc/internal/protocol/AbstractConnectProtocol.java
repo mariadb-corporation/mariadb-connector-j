@@ -696,13 +696,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 if (!options.disableSslHostnameVerification && !options.trustServerCertificate) {
                     HostnameVerifierImpl hostnameVerifier = new HostnameVerifierImpl();
                     SSLSession session = sslSocket.getSession();
-                    if (!hostnameVerifier.verify(host, session)) {
+                    if (!hostnameVerifier.verify(host, session, serverThreadId)) {
 
                         //Use proprietary verify method in order to have an exception with a better description of error.
                         try {
                             Certificate[] certs = session.getPeerCertificates();
                             X509Certificate cert = (X509Certificate) certs[0];
-                            hostnameVerifier.verify(host, cert);
+                            hostnameVerifier.verify(host, cert, serverThreadId);
                         } catch (SSLException ex) {
                             throw new SQLNonTransientConnectionException("SSL hostname verification failed : " + ex.getMessage()
                                     + "\nThis verification can be disable using the option \"disableSslHostnameVerification\" "

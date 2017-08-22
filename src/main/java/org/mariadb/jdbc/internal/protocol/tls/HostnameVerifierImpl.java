@@ -138,10 +138,15 @@ public class HostnameVerifierImpl implements HostnameVerifier {
 
     @Override
     public boolean verify(String host, SSLSession session) {
+        return verify(host, session, -1);
+    }
+
+
+    public boolean verify(String host, SSLSession session, long serverThreadId) {
         try {
             Certificate[] certs = session.getPeerCertificates();
             X509Certificate cert = (X509Certificate) certs[0];
-            verify(host, cert);
+            verify(host, cert, serverThreadId);
             return true;
         } catch (SSLException ex) {
             if (logger.isDebugEnabled()) logger.debug(ex.getMessage(), ex);
@@ -152,11 +157,12 @@ public class HostnameVerifierImpl implements HostnameVerifier {
     /**
      * Verification that throw an exception with a detailed error message in case of error.
      *
-     * @param host hostname
-     * @param cert certificate
+     * @param host              hostname
+     * @param cert              certificate
+     * @param serverThreadId    server thread Identifier to identify connection in logs
      * @throws SSLException exception
      */
-    public void verify(String host, X509Certificate cert) throws SSLException {
+    public void verify(String host, X509Certificate cert, long serverThreadId) throws SSLException {
         String normalizedHost = host.toLowerCase(Locale.ROOT);
         try {
             //***********************************************************
@@ -173,9 +179,9 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                 if (Utils.isIPv4(host)) {
                     for (GeneralName entry : subjectAltNames.getGeneralNames()) {
                         if (logger.isTraceEnabled()) {
-                            logger.trace("IPv4 verification of hostname : type=" + entry.extension
-                                    + " value=" + entry.value
-                                    + " to " + host);
+                            logger.trace("Conn: " + serverThreadId + ". IPv4 verification of hostname : type=" + entry.extension
+                                    + " value=\"" + entry.value
+                                    + "\" to \"" + host + "\"");
                         }
 
                         if (entry.extension == Extension.IP) { //IP
@@ -189,9 +195,9 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                     String normalisedHost = normaliseAddress(host);
                     for (GeneralName entry : subjectAltNames.getGeneralNames()) {
                         if (logger.isTraceEnabled()) {
-                            logger.trace("IPv6 verification of hostname : type=" + entry.extension
-                                    + " value=" + entry.value
-                                    + " to " + host);
+                            logger.trace("Conn: " + serverThreadId + ". IPv6 verification of hostname : type=" + entry.extension
+                                    + " value=\"" + entry.value
+                                    + "\" to \"" + host + "\"");
                         }
                         if (entry.extension == Extension.IP) { //IP
                             if (!Utils.isIPv4(entry.value)) {
@@ -208,7 +214,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                     //***********************************************************
                     for (GeneralName entry : subjectAltNames.getGeneralNames()) {
                         if (logger.isTraceEnabled()) {
-                            logger.trace("DNS verification of hostname : type=" + entry.extension
+                            logger.trace("Conn: " + serverThreadId + ". DNS verification of hostname : type=" + entry.extension
                                     + " value=" + entry.value
                                     + " to " + host);
                         }
@@ -239,7 +245,11 @@ public class HostnameVerifierImpl implements HostnameVerifier {
             }
 
             String normalizedCn = cn.toLowerCase(Locale.ROOT);
-
+            if (logger.isTraceEnabled()) {
+                logger.trace("Conn: " + serverThreadId + ". DNS verification of hostname :"
+                        + " CN=" + normalizedCn
+                        + " to " + normalizedHost);
+            }
             if (!matchDns(normalizedHost, normalizedCn)) {
                 String errorMsg = normalizedHostMsg(normalizedHost) + " doesn't correspond to certificate CN \"" + normalizedCn + "\"";
                 if (!subjectAltNames.isEmpty()) errorMsg += " and " + subjectAltNames.toString();
