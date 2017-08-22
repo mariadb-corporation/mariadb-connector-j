@@ -417,10 +417,18 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
             parameters[parameterIndex - 1] = holder;
         } else {
             String error = "Could not set parameter at position " + parameterIndex
-                    + " (values was " + holder.toString() + ")\nQuery - conn:" + protocol.getServerThreadId() + "(" + (protocol.isMasterConnection() ? "M" : "S") + ") ";
+                    + " (values was " + holder.toString() + ")\n"
+                    + "Query - conn:" + protocol.getServerThreadId()
+                    + "(" + (protocol.isMasterConnection() ? "M" : "S") + ") ";
 
             if (options.maxQuerySizeToLog > 0) {
-                error += " - " + ((sqlQuery.length() < options.maxQuerySizeToLog) ? sqlQuery : sqlQuery.substring(0, options.maxQuerySizeToLog) + "...") + "\"";
+                error += " - \"";
+                if (sqlQuery.length() < options.maxQuerySizeToLog) {
+                    error += sqlQuery;
+                } else {
+                    error += sqlQuery.substring(0, options.maxQuerySizeToLog) + "...";
+                }
+                error += "\"";
             } else {
                 error += " - \"" + sqlQuery + "\"";
             }
