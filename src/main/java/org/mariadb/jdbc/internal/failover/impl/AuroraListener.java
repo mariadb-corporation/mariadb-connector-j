@@ -269,7 +269,7 @@ public class AuroraListener extends MastersSlavesListener {
         } catch (SQLException qe) {
             log.log(Level.WARNING, "SQL exception occurred: " + qe.getMessage());
             if (protocol.getProxy().hasToHandleFailover(qe)) {
-                if (masterProtocol.equals(protocol)) {
+                if (masterProtocol == null || masterProtocol.equals(protocol)) {
                     setMasterHostFail();
                 } else if (secondaryProtocol.equals(protocol)) {
                     setSecondaryHostFail();

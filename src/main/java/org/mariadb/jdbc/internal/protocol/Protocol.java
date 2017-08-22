@@ -265,7 +265,7 @@ public interface Protocol {
 
     boolean isEofDeprecated();
 
-    int getAutoIncrementIncrement();
+    int getAutoIncrementIncrement() throws SQLException;
 
     boolean sessionStateAware();
 

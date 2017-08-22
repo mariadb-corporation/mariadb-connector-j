@@ -47,7 +47,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                 if (!matchWildCards(hostIsIp, hostnameSt.nextToken(), templateSt.nextToken())) return false;
             }
         } catch (SSLException exception) {
-            throw new SSLException("host \"" + hostname + "\" doesn't correspond to certificate CN \"" + tlsDnsPattern
+            throw new SSLException(normalizedHostMsg(hostname) + " doesn't correspond to certificate CN \"" + tlsDnsPattern
                     + "\" : wildcards not possible for IPs");
         }
         return true;
@@ -157,12 +157,18 @@ public class HostnameVerifierImpl implements HostnameVerifier {
      * @throws SSLException exception
      */
     public void verify(String host, X509Certificate cert) throws SSLException {
+        String normalizedHost = host.toLowerCase(Locale.ROOT);
         try {
+            //***********************************************************
+            // RFC 6125 : check Subject Alternative Name (SAN)
+            //***********************************************************
+            String altNameError = "";
+
             SubjectAltNames subjectAltNames = getSubjectAltNames(cert);
             if (!subjectAltNames.isEmpty()) {
 
                 //***********************************************************
-                // Host is IPv4 : Check corresponding entries in alternative subject names
+                // Host is IPv4 : Check corresponding entries in subject alternative names
                 //***********************************************************
                 if (Utils.isIPv4(host)) {
                     for (GeneralName entry : subjectAltNames.getGeneralNames()) {
@@ -176,13 +182,10 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                             if (host.equals(entry.value)) return;
                         }
                     }
-                    throw new SSLException("No IPv4 corresponding to host \"" + host + "\" in certificate alt-names " + subjectAltNames.toString());
-                }
-
-                //***********************************************************
-                // Host is IPv6 : Check corresponding entries in alternative subject names
-                //***********************************************************
-                if (Utils.isIPv6(host)) {
+                } else if (Utils.isIPv6(host)) {
+                    //***********************************************************
+                    // Host is IPv6 : Check corresponding entries in subject alternative names
+                    //***********************************************************
                     String normalisedHost = normaliseAddress(host);
                     for (GeneralName entry : subjectAltNames.getGeneralNames()) {
                         if (logger.isTraceEnabled()) {
@@ -199,46 +202,69 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                             }
                         }
                     }
-                    throw new SSLException("No IPv6 corresponding to host \"" + host + "\" in certificate alt-names " + subjectAltNames.toString());
-                }
-
-                //***********************************************************
-                // Host is not IP = DNS : Check corresponding entries in alternative subject names
-                //***********************************************************
-                String normalizedHost = host.toLowerCase(Locale.ROOT);
-                for (GeneralName entry : subjectAltNames.getGeneralNames()) {
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("DNS verification of hostname : type=" + entry.extension
-                                + " value=" + entry.value
-                                + " to " + host);
-                    }
-                    if (entry.extension == Extension.DNS) { //IP
-                        String normalizedSubjectAlt = entry.value.toLowerCase(Locale.ROOT);
-                        if (matchDns(normalizedHost, normalizedSubjectAlt)) {
-                            return;
+                } else {
+                    //***********************************************************
+                    // Host is not IP = DNS : Check corresponding entries in alternative subject names
+                    //***********************************************************
+                    for (GeneralName entry : subjectAltNames.getGeneralNames()) {
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("DNS verification of hostname : type=" + entry.extension
+                                    + " value=" + entry.value
+                                    + " to " + host);
+                        }
+                        if (entry.extension == Extension.DNS) { //IP
+                            String normalizedSubjectAlt = entry.value.toLowerCase(Locale.ROOT);
+                            if (matchDns(normalizedHost, normalizedSubjectAlt)) {
+                                return;
+                            }
                         }
                     }
                 }
-                throw new SSLException("DNS host \"" + host + "\" not found in certificate alt-names " + subjectAltNames.toString());
             }
+
+            //***********************************************************
+            // RFC 2818 : legacy fallback using CN (recommendation is using alt-names)
+            //***********************************************************
+            X500Principal subjectPrincipal = cert.getSubjectX500Principal();
+            String cn = extractCommonName(subjectPrincipal.getName(X500Principal.RFC2253));
+
+            if (cn == null) {
+                if (subjectAltNames.isEmpty()) {
+                    throw new SSLException("CN not found in certificate principal \"" + subjectPrincipal
+                            + "\" and certificate doesn't contain SAN");
+                } else {
+                    throw new SSLException("CN not found in certificate principal \"" + subjectPrincipal
+                            + "\" and " + normalizedHostMsg(normalizedHost) + " doesn't correspond to " + subjectAltNames.toString());
+                }
+            }
+
+            String normalizedCn = cn.toLowerCase(Locale.ROOT);
+
+            if (!matchDns(normalizedHost, normalizedCn)) {
+                String errorMsg = normalizedHostMsg(normalizedHost) + " doesn't correspond to certificate CN \"" + normalizedCn + "\"";
+                if (!subjectAltNames.isEmpty()) errorMsg += " and " + subjectAltNames.toString();
+                throw new SSLException(errorMsg);
+            }
+
+            return;
+
+
         } catch (CertificateParsingException cpe) {
-            // ignore error
+            throw new SSLException("certificate parsing error : " + cpe.getMessage());
         }
+    }
 
-        //***********************************************************
-        // no alternative subject names, check using CN
-        //***********************************************************
-        X500Principal subjectPrincipal = cert.getSubjectX500Principal();
-        String cn = extractCommonName(subjectPrincipal.getName(X500Principal.RFC2253));
-        if (cn == null) {
-            throw new SSLException("CN not found in certificate principal \"" + subjectPrincipal + "\"");
+    private static String normalizedHostMsg(String normalizedHost) {
+        StringBuilder msg = new StringBuilder();
+        if (Utils.isIPv4(normalizedHost)) {
+            msg.append("IPv4 host \"");
+        } else if (Utils.isIPv6(normalizedHost)) {
+            msg.append("IPv6 host \"");
+        } else {
+            msg.append("DNS host \"");
         }
-        String normalizedHost = host.toLowerCase(Locale.ROOT);
-        String normalizedCn = cn.toLowerCase(Locale.ROOT);
-        if (!matchDns(normalizedHost, normalizedCn)) {
-            throw new SSLException("host \"" + normalizedHost + "\" doesn't correspond to certificate CN \"" + normalizedCn + "\"");
-        }
-
+        msg.append(normalizedHost).append("\"");
+        return msg.toString();
     }
 
     private enum Extension {
@@ -256,7 +282,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
 
         @Override
         public String toString() {
-            return "{\"" + value + "\"|" + extension + "}";
+            return "{" + extension + ":\"" + value + "\"}";
         }
     }
 
@@ -265,7 +291,9 @@ public class HostnameVerifierImpl implements HostnameVerifier {
 
         @Override
         public String toString() {
-            StringBuilder sb = new StringBuilder("certificate SubjectAltNames[");
+            if (isEmpty()) return "SAN[-empty-]";
+
+            StringBuilder sb = new StringBuilder("SAN[");
             boolean first = true;
 
             for (GeneralName generalName : generalNames) {

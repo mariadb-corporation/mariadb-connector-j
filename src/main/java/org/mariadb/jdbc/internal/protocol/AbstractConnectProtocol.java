@@ -704,7 +704,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                             X509Certificate cert = (X509Certificate) certs[0];
                             hostnameVerifier.verify(host, cert);
                         } catch (SSLException ex) {
-                            throw new SQLNonTransientConnectionException(ex.getMessage()
+                            throw new SQLNonTransientConnectionException("SSL hostname verification failed : " + ex.getMessage()
                                     + "\nThis verification can be disable using the option \"disableSslHostnameVerification\" "
                                     + "but won't prevent man-in-the-middle attacks anymore", "08006");
                         }

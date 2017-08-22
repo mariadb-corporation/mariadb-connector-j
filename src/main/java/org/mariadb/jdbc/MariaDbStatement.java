@@ -120,8 +120,9 @@ public class MariaDbStatement implements Statement, Cloneable {
      *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
      * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
      *                             <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @throws SQLException if cannot retrieve auto increment value
      */
-    public MariaDbStatement(MariaDbConnection connection, int resultSetScrollType, int resultSetConcurrency) {
+    public MariaDbStatement(MariaDbConnection connection, int resultSetScrollType, int resultSetConcurrency) throws SQLException {
         this.protocol = connection.getProtocol();
         this.connection = connection;
         this.canUseServerTimeout = connection.canUseServerTimeout();
@@ -152,8 +153,12 @@ public class MariaDbStatement implements Statement, Cloneable {
         clone.protocol = connection.getProtocol();
         clone.timerTaskFuture = null;
         clone.batchQueries = new ArrayList<>();
-        clone.results = new Results(clone, clone.protocol.getAutoIncrementIncrement(),
-                clone.resultSetScrollType, clone.resultSetConcurrency);
+        try {
+            clone.results = new Results(clone, clone.protocol.getAutoIncrementIncrement(),
+                    clone.resultSetScrollType, clone.resultSetConcurrency);
+        } catch (SQLException sqle) {
+            //eat exception
+        }
         clone.closed = false;
         clone.warningsCleared = true;
         clone.fetchSize = 0;
