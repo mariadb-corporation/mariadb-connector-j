@@ -621,7 +621,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         sendPipelineCheckMaster();
         readPipelineCheckMaster();
 
-        if (options.createDatabaseIfNotExist) {
+        if (options.createDatabaseIfNotExist && !database.isEmpty()) {
             // Try to create the database if it does not exist
             String quotedDb = MariaDbConnection.quoteIdentifier(this.database);
             sendCreateDatabaseIfNotExist(quotedDb);
@@ -845,7 +845,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         // If a database is given, but createDatabaseIfNotExist is not defined or is false,
         // then just try to connect to the given database
-        if (database != null && !options.createDatabaseIfNotExist) {
+        if (!database.isEmpty() && !options.createDatabaseIfNotExist) {
             capabilities |= MariaDbServerCapabilities.CONNECT_WITH_DB;
         }
         return capabilities;

@@ -205,7 +205,8 @@ public class BaseTest {
     }
 
     private static void setUri() {
-        connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
+        connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/"
+                + ((database == null) ? "" : database);
         connUri = connU + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
                 + (parameters != null ? "&" + parameters : "");
@@ -511,7 +512,8 @@ public class BaseTest {
     }
 
     protected Connection setConnection(String additionnallParameters, String database) throws SQLException {
-        String connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
+        String connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/"
+                + ((database == null) ? "" : database);
         String connUri = connU + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
                 + (parameters != null ? "&" + parameters : "");
@@ -519,7 +521,8 @@ public class BaseTest {
     }
 
     protected Connection setDnsConnection(String parameters) throws SQLException {
-        String connU = "jdbc:mariadb://mariadb.example.com:" + port + "/" + database;
+        String connU = "jdbc:mariadb://mariadb.example.com:" + port + "/"
+                + ((database == null) ? "" : database);
         String connUri = connU + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
                 + (parameters != null ? "&" + parameters : "");
