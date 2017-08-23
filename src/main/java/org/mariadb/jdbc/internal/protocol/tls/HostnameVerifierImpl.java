@@ -141,7 +141,15 @@ public class HostnameVerifierImpl implements HostnameVerifier {
         return verify(host, session, -1);
     }
 
-
+    /**
+     * Verification, like HostnameVerifier.verify() with an additional server thread id
+     * to identify connection in logs.
+     *
+     * @param host              host to connect (DNS/IP)
+     * @param session           SSL session
+     * @param serverThreadId    connection id to identify connection in logs
+     * @return true if valid
+     */
     public boolean verify(String host, SSLSession session, long serverThreadId) {
         try {
             Certificate[] certs = session.getPeerCertificates();
