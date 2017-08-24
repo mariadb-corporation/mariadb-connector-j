@@ -1274,7 +1274,7 @@ public class SelectResultSet implements ResultSet {
                     BigInteger unsignedValue = new BigInteger(1, new byte[]{(byte) (value >> 56),
                             (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
                             (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                            (byte) (value >> 0)});
+                            (byte) value});
                     if (unsignedValue.compareTo(new BigInteger(String.valueOf(Long.MAX_VALUE))) > 0) {
                         throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
                                 + unsignedValue + " is not in Long range", "22003", 1264);
@@ -1388,7 +1388,7 @@ public class SelectResultSet implements ResultSet {
                     BigInteger unsignedValue = new BigInteger(1, new byte[]{(byte) (value >> 56),
                             (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
                             (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                            (byte) (value >> 0)});
+                            (byte) value});
                     return unsignedValue.floatValue();
                 case FLOAT:
                     int valueFloat = ((row.buf[row.pos] & 0xff)
@@ -1508,7 +1508,7 @@ public class SelectResultSet implements ResultSet {
                         return new BigInteger(1, new byte[]{(byte) (valueLong >> 56),
                                 (byte) (valueLong >> 48), (byte) (valueLong >> 40), (byte) (valueLong >> 32),
                                 (byte) (valueLong >> 24), (byte) (valueLong >> 16), (byte) (valueLong >> 8),
-                                (byte) (valueLong >> 0)}).doubleValue();
+                                (byte) valueLong}).doubleValue();
                     }
                 case FLOAT:
                     return getInternalFloat(columnInfo);
@@ -1613,7 +1613,7 @@ public class SelectResultSet implements ResultSet {
                         return new BigDecimal(String.valueOf(new BigInteger(1, new byte[]{(byte) (value >> 56),
                                 (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
                                 (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                                (byte) (value >> 0)}))).setScale(columnInfo.getDecimals());
+                                (byte) value}))).setScale(columnInfo.getDecimals());
                     }
                 case FLOAT:
                     return BigDecimal.valueOf(getInternalFloat(columnInfo));
@@ -3685,7 +3685,7 @@ public class SelectResultSet implements ResultSet {
                         return new BigInteger(1, new byte[]{(byte) (value >> 56),
                                 (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
                                 (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                                (byte) (value >> 0)});
+                                (byte) value});
                     }
                 case FLOAT:
                     return BigInteger.valueOf((long) getInternalFloat(columnInfo));

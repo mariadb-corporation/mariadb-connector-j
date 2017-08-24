@@ -149,7 +149,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                 try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
                     try (DeflaterOutputStream deflater = new DeflaterOutputStream(baos)) {
                         if (remainingData.length != 0) deflater.write(remainingData);
-                        subHeader[0] = (byte) (pos >>> 0);
+                        subHeader[0] = (byte) pos;
                         subHeader[1] = (byte) (pos >>> 8);
                         subHeader[2] = (byte) (pos >>> 16);
                         subHeader[3] = (byte) this.seqNo++;
@@ -163,11 +163,11 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                     if (compressedBytes.length < (int) (MIN_COMPRESSION_RATIO * pos)) {
                         int compressedLength = compressedBytes.length;
 
-                        header[0] = (byte) (compressedLength >>> 0);
+                        header[0] = (byte) compressedLength;
                         header[1] = (byte) (compressedLength >>> 8);
                         header[2] = (byte) (compressedLength >>> 16);
                         header[3] = (byte) this.compressSeqNo++;
-                        header[4] = (byte) (uncompressSize >>> 0);
+                        header[4] = (byte) uncompressSize;
                         header[5] = (byte) (uncompressSize >>> 8);
                         header[6] = (byte) (uncompressSize >>> 16);
                         out.write(header, 0, 7);
@@ -228,7 +228,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             cmdLength += uncompressSize;
 
             //send packet without compression
-            header[0] = (byte) (uncompressSize >>> 0);
+            header[0] = (byte) uncompressSize;
             header[1] = (byte) (uncompressSize >>> 8);
             header[2] = (byte) (uncompressSize >>> 16);
             header[3] = (byte) this.compressSeqNo++;
@@ -240,7 +240,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             cmdLength += uncompressSize;
 
             if (remainingData.length != 0) out.write(remainingData);
-            subHeader[0] = (byte) (pos >>> 0);
+            subHeader[0] = (byte) pos;
             subHeader[1] = (byte) (pos >>> 8);
             subHeader[2] = (byte) (pos >>> 16);
             subHeader[3] = (byte) this.seqNo++;
@@ -314,11 +314,11 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                 if (compressedBytes.length < (int) (MIN_COMPRESSION_RATIO * pos)) {
                     int compressedLength = compressedBytes.length;
 
-                    header[0] = (byte) (compressedLength >>> 0);
+                    header[0] = (byte) compressedLength;
                     header[1] = (byte) (compressedLength >>> 8);
                     header[2] = (byte) (compressedLength >>> 16);
                     header[3] = (byte) this.compressSeqNo++;
-                    header[4] = (byte) (uncompressSize >>> 0);
+                    header[4] = (byte) uncompressSize;
                     header[5] = (byte) (uncompressSize >>> 8);
                     header[6] = (byte) (uncompressSize >>> 16);
                     out.write(header, 0, 7);
@@ -354,7 +354,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             cmdLength += uncompressSize;
 
             //send packet without compression
-            header[0] = (byte) (uncompressSize >>> 0);
+            header[0] = (byte) uncompressSize;
             header[1] = (byte) (uncompressSize >>> 8);
             header[2] = (byte) (uncompressSize >>> 16);
             header[3] = (byte) this.compressSeqNo++;
@@ -393,7 +393,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
      * @throws IOException if socket error occur.
      */
     public void writeEmptyPacket() throws IOException {
-        buf[0] = (byte) (4 >>> 0);
+        buf[0] = (byte) 4;
         buf[1] = (byte) 0x00;
         buf[2] = (byte) 0x00;
         buf[3] = (byte) this.compressSeqNo++;

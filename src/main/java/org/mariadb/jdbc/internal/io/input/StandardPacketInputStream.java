@@ -111,7 +111,7 @@ public class StandardPacketInputStream implements PacketInputStream {
 
             byte[] buf = new byte[length + 3];
             buf[0] = (byte) 0xfc;
-            buf[1] = (byte) (length >>> 0);
+            buf[1] = (byte) length;
             buf[2] = (byte) (length >>> 8);
             System.arraycopy(value, 0, buf, 3, length);
             return buf;
@@ -120,7 +120,7 @@ public class StandardPacketInputStream implements PacketInputStream {
 
             byte[] buf = new byte[length + 4];
             buf[0] = (byte) 0xfd;
-            buf[1] = (byte) (length >>> 0);
+            buf[1] = (byte) length;
             buf[2] = (byte) (length >>> 8);
             buf[3] = (byte) (length >>> 16);
             System.arraycopy(value, 0, buf, 4, length);
@@ -130,14 +130,11 @@ public class StandardPacketInputStream implements PacketInputStream {
 
             byte[] buf = new byte[length + 9];
             buf[0] = (byte) 0xfe;
-            buf[1] = (byte) (length >>> 0);
+            buf[1] = (byte) length;
             buf[2] = (byte) (length >>> 8);
             buf[3] = (byte) (length >>> 16);
             buf[4] = (byte) (length >>> 24);
-            buf[5] = (byte) (length >>> 32);
-            buf[6] = (byte) (length >>> 40);
-            buf[7] = (byte) (length >>> 48);
-            buf[8] = (byte) (length >>> 54);
+            //byte[] cannot have a more than 4 byte length size, so buf[5] -> buf[8] = 0x00;
             System.arraycopy(value, 0, buf, 9, length);
             return buf;
         }
@@ -184,23 +181,21 @@ public class StandardPacketInputStream implements PacketInputStream {
                     buf[pos++] = (byte) length;
                 } else if (length < 65536) {
                     buf[pos++] = (byte) 0xfc;
-                    buf[pos++] = (byte) (length >>> 0);
+                    buf[pos++] = (byte) length;
                     buf[pos++] = (byte) (length >>> 8);
                 } else if (length < 16777216) {
                     buf[pos++] = (byte) 0xfd;
-                    buf[pos++] = (byte) (length >>> 0);
+                    buf[pos++] = (byte) length;
                     buf[pos++] = (byte) (length >>> 8);
                     buf[pos++] = (byte) (length >>> 16);
                 } else {
                     buf[pos++] = (byte) 0xfe;
-                    buf[pos++] = (byte) (length >>> 0);
+                    buf[pos++] = (byte) length;
                     buf[pos++] = (byte) (length >>> 8);
                     buf[pos++] = (byte) (length >>> 16);
                     buf[pos++] = (byte) (length >>> 24);
-                    buf[pos++] = (byte) (length >>> 32);
-                    buf[pos++] = (byte) (length >>> 40);
-                    buf[pos++] = (byte) (length >>> 48);
-                    buf[pos++] = (byte) (length >>> 54);
+                    //byte[] cannot have more than 4 byte length size, so buf[pos+5] -> buf[pos+8] = 0x00;
+                    pos+=4;
                 }
                 System.arraycopy(arr, 0, buf, pos, length);
                 pos += length;

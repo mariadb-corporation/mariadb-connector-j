@@ -347,16 +347,16 @@ public class Buffer {
             buf[position++] = (byte) length;
         } else if (length < 65536) {
             buf[position++] = (byte) 0xfc;
-            buf[position++] = (byte) (length >>> 0);
+            buf[position++] = (byte) length;
             buf[position++] = (byte) (length >>> 8);
         } else if (length < 16777216) {
             buf[position++] = (byte) 0xfd;
-            buf[position++] = (byte) (length >>> 0);
+            buf[position++] = (byte) length;
             buf[position++] = (byte) (length >>> 8);
             buf[position++] = (byte) (length >>> 16);
         } else {
             buf[position++] = (byte) 0xfe;
-            buf[position++] = (byte) (length >>> 0);
+            buf[position++] = (byte) length;
             buf[position++] = (byte) (length >>> 8);
             buf[position++] = (byte) (length >>> 16);
             buf[position++] = (byte) (length >>> 24);

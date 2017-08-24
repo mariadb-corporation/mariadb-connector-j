@@ -221,13 +221,13 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         if (2 > buf.length - pos) {
             //not enough space remaining
             byte[] arr = new byte[2];
-            arr[0] = (byte) (value >> 0);
+            arr[0] = (byte) value;
             arr[1] = (byte) (value >> 8);
             write(arr, 0, 2);
             return;
         }
 
-        buf[pos] = (byte) (value >> 0);
+        buf[pos] = (byte) value;
         buf[pos + 1] = (byte) (value >> 8);
         pos += 2;
     }
@@ -242,7 +242,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         if (4 > buf.length - pos) {
             //not enough space remaining
             byte[] arr = new byte[4];
-            arr[0] = (byte) (value >> 0);
+            arr[0] = (byte) value;
             arr[1] = (byte) (value >> 8);
             arr[2] = (byte) (value >> 16);
             arr[3] = (byte) (value >> 24);
@@ -250,7 +250,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
             return;
         }
 
-        buf[pos] = (byte) (value >> 0);
+        buf[pos] = (byte) value;
         buf[pos + 1] = (byte) (value >> 8);
         buf[pos + 2] = (byte) (value >> 16);
         buf[pos + 3] = (byte) (value >> 24);
@@ -267,7 +267,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         if (8 > buf.length - pos) {
             //not enough space remaining
             byte[] arr = new byte[8];
-            arr[0] = (byte) (value >> 0);
+            arr[0] = (byte) value;
             arr[1] = (byte) (value >> 8);
             arr[2] = (byte) (value >> 16);
             arr[3] = (byte) (value >> 24);
@@ -279,7 +279,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
             return;
         }
 
-        buf[pos] = (byte) (value >> 0);
+        buf[pos] = (byte) value;
         buf[pos + 1] = (byte) (value >> 8);
         buf[pos + 2] = (byte) (value >> 16);
         buf[pos + 3] = (byte) (value >> 24);
@@ -327,14 +327,14 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                 //not enough space remaining
                 byte[] arr = new byte[3];
                 arr[0] = (byte) 0xfc;
-                arr[1] = (byte) (length >>> 0);
+                arr[1] = (byte) length;
                 arr[2] = (byte) (length >>> 8);
                 write(arr, 0, 3);
                 return;
             }
 
             buf[pos] = (byte) 0xfc;
-            buf[pos + 1] = (byte) (length >>> 0);
+            buf[pos + 1] = (byte) length;
             buf[pos + 2] = (byte) (length >>> 8);
             pos += 3;
 
@@ -344,7 +344,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                 //not enough space remaining
                 byte[] arr = new byte[4];
                 arr[0] = (byte) 0xfd;
-                arr[1] = (byte) (length >>> 0);
+                arr[1] = (byte) length;
                 arr[2] = (byte) (length >>> 8);
                 arr[3] = (byte) (length >>> 16);
                 write(arr, 0, 4);
@@ -352,7 +352,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
             }
 
             buf[pos] = (byte) 0xfd;
-            buf[pos + 1] = (byte) (length >>> 0);
+            buf[pos + 1] = (byte) length;
             buf[pos + 2] = (byte) (length >>> 8);
             buf[pos + 3] = (byte) (length >>> 16);
             pos += 4;
@@ -363,7 +363,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                 //not enough space remaining
                 byte[] arr = new byte[9];
                 arr[0] = (byte) 0xfe;
-                arr[1] = (byte) (length >>> 0);
+                arr[1] = (byte) length;
                 arr[2] = (byte) (length >>> 8);
                 arr[3] = (byte) (length >>> 16);
                 arr[4] = (byte) (length >>> 24);
@@ -376,7 +376,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
             }
 
             buf[pos] = (byte) 0xfe;
-            buf[pos + 1] = (byte) (length >>> 0);
+            buf[pos + 1] = (byte) length;
             buf[pos + 2] = (byte) (length >>> 8);
             buf[pos + 3] = (byte) (length >>> 16);
             buf[pos + 4] = (byte) (length >>> 24);
