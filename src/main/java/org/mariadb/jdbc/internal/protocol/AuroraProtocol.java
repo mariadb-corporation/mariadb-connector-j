@@ -267,7 +267,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         servers.removeAll(listener.connectedHosts());
 
         loopAddresses.clear();
-        loopAddresses.addAll(loopAddresses);
+        loopAddresses.addAll(servers);
     }
 
     /**

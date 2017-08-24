@@ -162,6 +162,6 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
         Collections.shuffle(servers);
 
         loopAddresses.clear();
-        loopAddresses.addAll(loopAddresses);
+        loopAddresses.addAll(servers);
     }
 }

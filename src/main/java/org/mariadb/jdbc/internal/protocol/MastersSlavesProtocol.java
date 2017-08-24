@@ -172,7 +172,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
         servers.removeAll(listener.connectedHosts());
 
         loopAddresses.clear();
-        loopAddresses.addAll(loopAddresses);
+        loopAddresses.addAll(servers);
     }
 
     protected static boolean foundMaster(MastersSlavesListener listener, MastersSlavesProtocol protocol,
