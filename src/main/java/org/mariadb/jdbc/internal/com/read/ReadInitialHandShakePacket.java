@@ -137,7 +137,7 @@ public class ReadInitialHandShakePacket {
             serverMariaDb = true;
             serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());
         } else {
-            serverMariaDb = this.serverVersion.indexOf("MariaDB") != -1;
+            serverMariaDb = this.serverVersion.contains("MariaDB");
         }
 
         //since MariaDB 10.2

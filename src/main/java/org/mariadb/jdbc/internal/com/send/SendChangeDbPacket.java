@@ -60,7 +60,7 @@ import java.io.IOException;
 
 public class SendChangeDbPacket implements InterfaceSendPacket {
 
-    private String database;
+    private final String database;
 
     public SendChangeDbPacket(final String database) {
         this.database = database;

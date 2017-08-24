@@ -100,12 +100,12 @@ public class ColumnInformation {
             0, 0, 0, 0, 0, 0, 0, 0
     };
 
-    private Buffer buffer;
-    private short charsetNumber;
-    private long length;
-    private ColumnType type;
-    private byte decimals;
-    private short flags;
+    private final Buffer buffer;
+    private final short charsetNumber;
+    private final long length;
+    private final ColumnType type;
+    private final byte decimals;
+    private final short flags;
 
     /**
      * Constructor for extent.
@@ -155,18 +155,11 @@ public class ColumnInformation {
 
         charsetNumber = buffer.readShort();
         length = buffer.readInt();
-        type = ColumnType.fromServer(buffer.readByte() & 0xff);
+        type = ColumnType.fromServer(buffer.readByte() & 0xff, charsetNumber);
         flags = buffer.readShort();
         decimals = buffer.readByte();
 
 
-        int sqlType = type.getSqlType();
-
-        if ((sqlType == Types.BLOB || sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY)
-                && !isBinary()) {
-           /* MySQL Text datatype */
-            type = ColumnType.VARCHAR;
-        }
     }
 
     /**
@@ -188,7 +181,7 @@ public class ColumnInformation {
             }
             baos.write(0xc);
             baos.write(new byte[]{33, 0});  /* charset  = UTF8 */
-            int len = 1;
+            int len;
 
             /* Sensible predefined length - since we're dealing with I_S here, most char fields are 64 char long */
             switch (type.getSqlType()) {
@@ -337,10 +330,6 @@ public class ColumnInformation {
 
     public boolean isBlob() {
         return ((this.flags & 16) > 0);
-    }
-
-    public void setUnsigned() {
-        this.flags |= 32;
     }
 
     public boolean isZeroFill() {

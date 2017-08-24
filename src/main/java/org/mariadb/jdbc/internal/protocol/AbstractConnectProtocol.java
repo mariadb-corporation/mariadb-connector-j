@@ -112,13 +112,13 @@ import static org.mariadb.jdbc.internal.com.Packet.*;
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public abstract class AbstractConnectProtocol implements Protocol {
-    public static final byte[] SESSION_QUERY = ("SELECT @@max_allowed_packet,"
+    private static final byte[] SESSION_QUERY = ("SELECT @@max_allowed_packet,"
             + "@@system_time_zone,"
             + "@@time_zone,"
             + "@@sql_mode,"
             + "@@auto_increment_increment").getBytes(StandardCharsets.UTF_8);
-    public static final byte[] IS_MASTER_QUERY = "show global variables like 'innodb_read_only'".getBytes(StandardCharsets.UTF_8);
-    private static Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
+    private static final byte[] IS_MASTER_QUERY = "show global variables like 'innodb_read_only'".getBytes(StandardCharsets.UTF_8);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
     protected final ReentrantLock lock;
     protected final UrlParser urlParser;
     protected final Options options;
@@ -126,14 +126,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private final String password;
     public boolean hasWarnings = false;
     public Results activeStreamingResult = null;
-    public int dataTypeMappingFlags;
+    private int dataTypeMappingFlags;
     public short serverStatus;
     protected int autoIncrementIncrement;
     protected Socket socket;
     protected PacketOutputStream writer;
     protected boolean readOnly = false;
     protected PacketInputStream reader;
-    protected HostAddress currentHost;
+    private HostAddress currentHost;
     protected FailoverProxy proxy;
     protected volatile boolean connected = false;
     protected boolean explicitClosed = false;
@@ -150,7 +150,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private int patchVersion;
     private Map<String, String> serverData;
     private TimeZone timeZone;
-    private LruTraceCache traceCache = new LruTraceCache();
+    private final LruTraceCache traceCache = new LruTraceCache();
 
     /**
      * Get a protocol instance.
@@ -174,7 +174,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         setDataTypeMappingFlags();
     }
 
-    protected static void close(PacketInputStream packetInputStream, PacketOutputStream packetOutputStream, Socket socket) throws SQLException {
+    private static void close(PacketInputStream packetInputStream, PacketOutputStream packetOutputStream, Socket socket) throws SQLException {
         SendClosePacket closePacket = new SendClosePacket();
         try {
             try {
@@ -183,6 +183,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 socket.setSoTimeout(3);
                 InputStream is = socket.getInputStream();
                 while (is.read() != -1) {
+                    //read byte
                 }
             } catch (Throwable t) {
                 //eat exception
@@ -333,11 +334,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
      */
     private void initializeSocketOption() {
         try {
-            if (!options.tcpNoDelay) {
-                socket.setTcpNoDelay(options.tcpNoDelay);
-            } else {
-                socket.setTcpNoDelay(true);
-            }
+
+            socket.setTcpNoDelay(options.tcpNoDelay);
 
             if (options.tcpKeepAlive) {
                 socket.setKeepAlive(true);
@@ -367,9 +365,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
             connect((currentHost != null) ? currentHost.host : null,
                     (currentHost != null) ? currentHost.port : 3306);
-            return;
-        } catch (SQLException sqle) {
-            throw sqle;
         } catch (IOException e) {
             throw new SQLException("Could not connect to " + currentHost + ". " + e.getMessage() + getTraces(),
                     CONNECTION_EXCEPTION.getSqlState(), e);
@@ -445,12 +440,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
             serverData = null;
             activeStreamingResult = null;
             hostFailed = false;
-        } catch (IOException ioException) {
+        } catch (IOException | SQLException ioException) {
             ensureClosingSocketOnException();
             throw ioException;
-        } catch (SQLException sqlException) {
-            ensureClosingSocketOnException();
-            throw sqlException;
         }
     }
 
@@ -460,9 +452,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * (minimum hosts TCP/IP buffer size)
      *
      * @throws IOException  if socket exception occur
-     * @throws SQLException if query exception occur
      */
-    private void sendPipelineAdditionalData() throws IOException, SQLException {
+    private void sendPipelineAdditionalData() throws IOException {
         sendSessionInfos();
         sendRequestSessionVariables();
         //for aurora, check that connection is master
@@ -487,7 +478,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
 
         if (options.sessionVariables != null && !options.sessionVariables.isEmpty()) {
-            sessionOption.append("," + Utils.parseSessionVariables(options.sessionVariables));
+            sessionOption.append(",").append(Utils.parseSessionVariables(options.sessionVariables));
         }
 
         writer.startPacket(0);
@@ -503,7 +494,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         writer.flush();
     }
 
-    private void readRequestSessionVariables() throws IOException, SQLException {
+    private void readRequestSessionVariables() throws SQLException {
         Results results = new Results();
         getResult(results);
 
@@ -580,7 +571,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void requestSessionDataWithShow() throws IOException, SQLException {
+    private void requestSessionDataWithShow() throws SQLException {
         try {
             Results results = new Results();
             executeQuery(true, results, "SHOW VARIABLES WHERE Variable_name in ("
@@ -918,8 +909,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     private byte decideLanguage(byte serverLanguage) {
         //force UTF8mb4 if possible, UTF8 if not.
-        byte result = (isServerLanguageUtf8mb4(serverLanguage) ? serverLanguage : 33);
-        return result;
+        return (isServerLanguageUtf8mb4(serverLanguage) ? serverLanguage : 33);
     }
 
     /**
@@ -984,7 +974,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @return is master flag
      */
     public boolean isMasterConnection() {
-        return currentHost == null ? true : ParameterConstant.TYPE_MASTER.equals(currentHost.type);
+        return currentHost == null || ParameterConstant.TYPE_MASTER.equals(currentHost.type);
     }
 
     /**
@@ -992,7 +982,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      *
      * @throws IOException in case of socket error.
      */
-    public void sendPipelineCheckMaster() throws IOException {
+    private void sendPipelineCheckMaster() throws IOException {
         if (urlParser.getHaMode() == HaMode.AURORA) {
             writer.startPacket(0);
             writer.write(COM_QUERY);
@@ -1001,7 +991,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    public void readPipelineCheckMaster() throws IOException, SQLException {
+    public void readPipelineCheckMaster() throws SQLException {
         //nothing if not aurora
     }
 
@@ -1031,8 +1021,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
             try {
                 connect(null, 0);
                 return;
-            } catch (SQLException sqle) {
-                throw sqle;
             } catch (IOException e) {
                 if (hosts.isEmpty()) {
                     throw new SQLException("Could not connect to named pipe '" + options.pipe + "' : "
@@ -1054,8 +1042,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
             try {
                 connect(currentHost.host, currentHost.port);
                 return;
-            } catch (SQLException sqle) {
-                throw sqle;
             } catch (IOException e) {
                 if (hosts.isEmpty()) {
                     throw new SQLException("Could not connect to " + HostAddress.toString(addrs) + " : " + e.getMessage() + getTraces(),
@@ -1066,7 +1052,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     public boolean shouldReconnectWithoutProxy() {
-        return (!((serverStatus & ServerStatus.IN_TRANSACTION) != 0) && hostFailed && urlParser.getOptions().autoReconnect);
+        return (((serverStatus & ServerStatus.IN_TRANSACTION) == 0) && hostFailed && urlParser.getOptions().autoReconnect);
     }
 
     public String getServerVersion() {
@@ -1157,7 +1143,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @param sslSocket current sslSocket
      * @throws SQLException if protocol isn't a supported protocol
      */
-    protected void enabledSslProtocolSuites(SSLSocket sslSocket) throws SQLException {
+    private void enabledSslProtocolSuites(SSLSocket sslSocket) throws SQLException {
         if (options.enabledSslProtocolSuites == null) {
             sslSocket.setEnabledProtocols(new String[]{"TLSv1", "TLSv1.1"});
         } else {
@@ -1179,7 +1165,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @param sslSocket current ssl socket
      * @throws SQLException if a cipher isn't known
      */
-    protected void enabledSslCipherSuites(SSLSocket sslSocket) throws SQLException {
+    private void enabledSslCipherSuites(SSLSocket sslSocket) throws SQLException {
         if (options.enabledSslCipherSuites != null) {
             List<String> possibleCiphers = Arrays.asList(sslSocket.getSupportedCipherSuites());
             String[] ciphers = options.enabledSslCipherSuites.split("[,;\\s]+");

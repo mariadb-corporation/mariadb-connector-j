@@ -65,9 +65,9 @@ import java.sql.Types;
 
 public class MariaDbResultSetMetaData implements ResultSetMetaData {
 
-    private ColumnInformation[] fieldPackets;
-    private int datatypeMappingflags;
-    private boolean returnTableAlias;
+    private final ColumnInformation[] fieldPackets;
+    private final int datatypeMappingflags;
+    private final boolean returnTableAlias;
 
     /**
      * Constructor.

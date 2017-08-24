@@ -121,7 +121,7 @@ public class UpdatableResultSet extends SelectResultSet {
         return CONCUR_UPDATABLE;
     }
 
-    private void checkIfUpdatable(Results results) throws IOException, SQLException {
+    private void checkIfUpdatable(Results results) throws SQLException {
 
         database = null;
         table = null;
@@ -662,8 +662,8 @@ public class UpdatableResultSet extends SelectResultSet {
     }
 
 
-    protected void updateInternalObject(final int parameterIndex, final Object obj, final int targetSqlType,
-                                        final long scaleOrLength) throws SQLException {
+    private void updateInternalObject(final int parameterIndex, final Object obj, final int targetSqlType,
+                                      final long scaleOrLength) throws SQLException {
         switch (targetSqlType) {
             case Types.ARRAY:
             case Types.DATALINK:
@@ -824,8 +824,6 @@ public class UpdatableResultSet extends SelectResultSet {
             updateBoolean(parameterIndex, (Boolean) obj);
         } else if (obj instanceof Blob) {
             updateBlob(parameterIndex, (Blob) obj);
-        } else if (obj instanceof BigInteger) {
-            updateString(parameterIndex, obj.toString());
         } else if (obj instanceof Clob) {
             updateClob(parameterIndex, (Clob) obj);
         } else if (obj instanceof InputStream) {
@@ -1372,7 +1370,7 @@ public class UpdatableResultSet extends SelectResultSet {
                             .append("` = ? ");
                 }
             }
-            selectSql.append(" FROM `" + database + "`.`" + table + "`").append(whereClause);
+            selectSql.append(" FROM `").append(database).append("`.`").append(table).append("`").append(whereClause);
 
             //row's raw bytes must be encoded according to current resultSet type
             //Create Server or Client PrepareStatement accordingly

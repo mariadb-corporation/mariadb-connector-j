@@ -58,8 +58,8 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import java.io.IOException;
 
 public interface ParameterHolder {
-    public static final byte[] BINARY_INTRODUCER = {'_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\''};
-    public static final byte QUOTE = (byte) '\'';
+    byte[] BINARY_INTRODUCER = {'_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\''};
+    byte QUOTE = (byte) '\'';
 
     /**
      * Write parameter value.

@@ -57,7 +57,6 @@ import org.mariadb.jdbc.internal.com.send.parameters.NullParameter;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
@@ -88,7 +87,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
         setParametersVariables();
     }
 
-    private void setParamsAccordingToSetArguments() throws SQLException {
+    private void setParamsAccordingToSetArguments() {
         params = new ArrayList<>(this.parameterCount);
         for (int index = 0; index < this.parameterCount; index++) {
             params.add(new CallParameter());

@@ -270,10 +270,8 @@ public class Results {
 
     /**
      * Indicate that command / batch is finished, so set current resultSet if needed.
-     *
-     * @return current results
      */
-    public Results commandEnd() {
+    public void commandEnd() {
         if (cmdInformation != null) {
             if (executionResults != null && !cmdInformation.isCurrentUpdateCount()) {
                 resultSet = executionResults.poll();
@@ -284,7 +282,6 @@ public class Results {
         } else {
             resultSet = null;
         }
-        return this;
     }
 
     public SelectResultSet getResultSet() {

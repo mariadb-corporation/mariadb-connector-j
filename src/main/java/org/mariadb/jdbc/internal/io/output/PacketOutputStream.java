@@ -94,7 +94,7 @@ public interface PacketOutputStream {
 
     boolean checkRemainingSize(int len);
 
-    boolean isAllowedCmdLength();
+    boolean exceedMaxLength();
 
     OutputStream getOutputStream();
 

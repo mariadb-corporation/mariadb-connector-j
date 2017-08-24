@@ -62,18 +62,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ServerPrepareResult implements PrepareResult {
     private int statementId;
-    private ColumnInformation[] columns;
-    private ColumnInformation[] parameters;
+    private final ColumnInformation[] columns;
+    private final ColumnInformation[] parameters;
     private ColumnType[] parameterTypeHeader;
     private Protocol unProxiedProtocol;
-    private String sql;
+    private final String sql;
     private Results activeCursorResult;
 
 
     //share indicator
     private volatile int shareCounter = 1;
     private volatile boolean isBeingDeallocate;
-    private AtomicBoolean inCache = new AtomicBoolean();
+    private final AtomicBoolean inCache = new AtomicBoolean();
 
     /**
      * PrepareStatement Result object.

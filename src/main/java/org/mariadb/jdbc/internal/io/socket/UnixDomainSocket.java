@@ -65,9 +65,9 @@ import java.net.SocketAddress;
 import java.util.Arrays;
 
 public class UnixDomainSocket extends Socket {
-    public static final int AF_UNIX = 1;
-    public static final int SOCK_STREAM = Platform.isSolaris() ? 2 : 1;
-    public static final int PROTOCOL = 0;
+    private static final int AF_UNIX = 1;
+    private static final int SOCK_STREAM = Platform.isSolaris() ? 2 : 1;
+    private static final int PROTOCOL = 0;
 
     static {
         if (Platform.isSolaris()) {
@@ -108,7 +108,7 @@ public class UnixDomainSocket extends Socket {
 
     public static native String strerror(int errno);
 
-    static String formatError(LastErrorException lee) {
+    private static String formatError(LastErrorException lee) {
         try {
             return strerror(lee.getErrorCode());
         } catch (Throwable t) {
@@ -185,8 +185,8 @@ public class UnixDomainSocket extends Socket {
     }
 
     public static class SockAddr extends Structure {
-        public short sun_family;
-        public byte[] sun_path;
+        public final short sun_family;
+        public final byte[] sun_path;
 
         /**
          * Contructor.
@@ -202,7 +202,7 @@ public class UnixDomainSocket extends Socket {
         }
 
         protected java.util.List getFieldOrder() {
-            return Arrays.asList(new String[]{"sun_family", "sun_path"});
+            return Arrays.asList("sun_family", "sun_path");
         }
 
     }
@@ -255,7 +255,7 @@ public class UnixDomainSocket extends Socket {
 
         @Override
         public void write(byte[] bytesEntry, int off, int len) throws IOException {
-            int bytes = 0;
+            int bytes;
             try {
                 if (off > 0) {
                     int size = (len < 10240) ? len : 10240;

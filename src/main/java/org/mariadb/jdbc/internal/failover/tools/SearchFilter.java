@@ -53,10 +53,10 @@
 package org.mariadb.jdbc.internal.failover.tools;
 
 public class SearchFilter {
-    boolean fineIfFoundOnlyMaster;
-    boolean fineIfFoundOnlySlave;
-    boolean initialConnection;
-    boolean failoverLoop;
+    private boolean fineIfFoundOnlyMaster;
+    private boolean fineIfFoundOnlySlave;
+    private boolean initialConnection;
+    private boolean failoverLoop;
 
     public SearchFilter() {
         //empty constructor

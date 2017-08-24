@@ -69,7 +69,7 @@ import java.sql.SQLException;
 import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 
 public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
-    private PacketInputStream reader;
+    private final PacketInputStream reader;
 
     public SendGssApiAuthPacket(PacketInputStream reader, String password, byte[] authData, int packSeq, String passwordCharacterEncoding) {
         super(packSeq, authData, password, passwordCharacterEncoding);
@@ -120,7 +120,7 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
             @SuppressWarnings("unchecked")
             Method method = platformClass.getMethod("isWindows");
             Boolean isWindows = (Boolean) method.invoke(platformClass);
-            if (isWindows.booleanValue()) {
+            if (isWindows) {
                 try {
                     Class.forName("waffle.windows.auth.impl.WindowsAuthProviderImpl");
                     return new WindowsNativeSspiAuthentication(reader, packSeq);

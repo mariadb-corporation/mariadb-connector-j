@@ -429,7 +429,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     }
 
                     //if buffer > MAX_ALLOWED_PACKET, flush until last mark.
-                    if (!writer.isAllowedCmdLength() && writer.isMarked()) {
+                    if (writer.exceedMaxLength() && writer.isMarked()) {
                         writer.flushBufferStopAtMark();
                     }
 
@@ -531,8 +531,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             @Override
             public SQLException handleResultException(SQLException qex, Results results,
                                                       List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult)
-                    throws SQLException {
+                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
 
                 int counter = results.getCurrentStatNumber() - 1;
                 ParameterHolder[] parameters = parametersList.get(counter);
@@ -662,8 +661,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             @Override
             public SQLException handleResultException(SQLException qex, Results results,
                                                       List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult)
-                    throws SQLException {
+                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
 
                 String sql = queries.get(currentCounter + sendCmdCounter);
                 return logQuery.exceptionWithQuery(sql, qex);
@@ -880,8 +878,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             @Override
             public SQLException handleResultException(SQLException qex, Results results,
                                                       List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult)
-                    throws SQLException {
+                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
                 return logQuery.exceptionWithQuery(qex, prepareResult);
             }
 
@@ -1118,10 +1115,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Cancels the current query - clones the current protocol and executes a query using the new connection.
      *
      * @throws SQLException never thrown
-     * @throws IOException  if Host is not responding
      */
     @Override
-    public void cancelCurrentQuery() throws SQLException, IOException {
+    public void cancelCurrentQuery() throws SQLException {
         try (MasterProtocol copiedProtocol = new MasterProtocol(urlParser, new ReentrantLock())) {
             copiedProtocol.setHostAddress(getHostAddress());
             copiedProtocol.connect();
@@ -1704,7 +1700,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             mustReconnect = ((MaxAllowedPacketException) initialException).isMustReconnect();
             driverPreventError = !mustReconnect;
         } else {
-            mustReconnect = !writer.isAllowedCmdLength();
+            mustReconnect = writer.exceedMaxLength();
         }
 
         if (mustReconnect) {

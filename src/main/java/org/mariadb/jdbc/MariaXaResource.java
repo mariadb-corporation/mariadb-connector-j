@@ -63,23 +63,19 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class MariaXaResource implements XAResource {
-    MariaDbConnection connection;
+    private final MariaDbConnection connection;
 
     public MariaXaResource(MariaDbConnection connection) {
         this.connection = connection;
     }
 
-    static String xidToString(Xid xid) {
-        StringBuilder sb = new StringBuilder(2 * Xid.MAXBQUALSIZE + 2 * Xid.MAXGTRIDSIZE + 16);
-        sb.append("0x")
-                .append(Utils.byteArrayToHexString(xid.getGlobalTransactionId()))
-                .append(",0x")
-                .append(Utils.byteArrayToHexString(xid.getBranchQualifier()))
-                .append(",").append(xid.getFormatId());
-        return sb.toString();
+    private static String xidToString(Xid xid) {
+        return "0x" + Utils.byteArrayToHexString(xid.getGlobalTransactionId())
+                + ",0x" + Utils.byteArrayToHexString(xid.getBranchQualifier())
+                + "," + xid.getFormatId();
     }
 
-    static String flagsToString(int flags) {
+    private static String flagsToString(int flags) {
         switch (flags) {
             case TMJOIN:
                 return "JOIN";
@@ -94,7 +90,7 @@ public class MariaXaResource implements XAResource {
         }
     }
 
-    XAException mapXaException(SQLException sqle) {
+    private XAException mapXaException(SQLException sqle) {
         int xaErrorCode;
 
         switch (sqle.getErrorCode()) {
@@ -132,7 +128,7 @@ public class MariaXaResource implements XAResource {
      * @param command query to run.
      * @throws XAException exception
      */
-    void execute(String command) throws XAException {
+    private void execute(String command) throws XAException {
         try {
             connection.createStatement().execute(command);
         } catch (SQLException sqle) {
@@ -248,7 +244,7 @@ public class MariaXaResource implements XAResource {
 
         try {
             ResultSet rs = connection.createStatement().executeQuery("XA RECOVER");
-            ArrayList<MariaDbXid> xidList = new ArrayList<MariaDbXid>();
+            ArrayList<MariaDbXid> xidList = new ArrayList<>();
 
             while (rs.next()) {
                 int formatId = rs.getInt(1);

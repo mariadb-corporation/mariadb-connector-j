@@ -59,7 +59,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class CallableStatementCache extends LinkedHashMap<CallableStatementCacheKey, CallableStatement> {
-    private int maxSize;
+    private final int maxSize;
 
     private CallableStatementCache(int size) {
         super(size, .75f, true);

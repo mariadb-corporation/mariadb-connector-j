@@ -69,7 +69,7 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
     /**
      * Information about parameters, merely from registerOutputParameter() and setXXX() calls.
      */
-    protected CallParameter[] params;
+    private CallParameter[] params;
     protected CallableParameterMetaData parameterMetadata;
 
     /**
@@ -136,7 +136,7 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
      * @return index
      * @throws SQLException exception
      */
-    protected int nameToIndex(String parameterName) throws SQLException {
+    private int nameToIndex(String parameterName) throws SQLException {
         parameterMetadata.readMetadataFromDbIfRequired();
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i);
@@ -170,9 +170,8 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
      *
      * @param parameterIndex index
      * @return index
-     * @throws SQLException exception
      */
-    private int indexToOutputIndex(int parameterIndex) throws SQLException {
+    private int indexToOutputIndex(int parameterIndex) {
         return parameterIndex;
     }
 
@@ -634,7 +633,7 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
         registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), typeName);
     }
 
-    CallParameter getParameter(int index) throws SQLException {
+    private CallParameter getParameter(int index) throws SQLException {
         if (index > params.length || index <= 0) {
             throw new SQLException("No parameter with index " + (index));
         }

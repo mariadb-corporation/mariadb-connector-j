@@ -66,7 +66,7 @@ public enum DefaultOptions {
      */
     PASSWORD("password", "1.0.0"),
 
-    CONNECT_TIMEOUT("connectTimeout", (Integer) null, 0, Integer.MAX_VALUE, "1.1.8"),
+    CONNECT_TIMEOUT("connectTimeout", (Integer) null, 0, "1.1.8"),
 
     /**
      * On Windows, specify named pipe name to connect to mysqld.exe.
@@ -103,7 +103,7 @@ public enum DefaultOptions {
      * Defined the network socket timeout (SO_TIMEOUT) in milliseconds.
      * 0 (default) disable this timeout
      */
-    SOCKET_TIMEOUT("socketTimeout", new Integer[]{10000, null, null, null, null, null}, 0, Integer.MAX_VALUE, "1.1.8"),
+    SOCKET_TIMEOUT("socketTimeout", new Integer[]{10000, null, null, null, null, null}, 0, "1.1.8"),
 
     /**
      * Session timeout is defined by the wait_timeout server variable.
@@ -189,12 +189,12 @@ public enum DefaultOptions {
     /**
      * set buffer size for TCP buffer (SO_RCVBUF).
      */
-    TCP_RCV_BUF("tcpRcvBuf", (Integer) null, 0, Integer.MAX_VALUE, "1.0.0"),
+    TCP_RCV_BUF("tcpRcvBuf", (Integer) null, 0, "1.0.0"),
 
     /**
      * set buffer size for TCP buffer (SO_SNDBUF).
      */
-    TCP_SND_BUF("tcpSndBuf", (Integer) null, 0, Integer.MAX_VALUE, "1.0.0"),
+    TCP_SND_BUF("tcpSndBuf", (Integer) null, 0, "1.0.0"),
 
     /**
      * to use custom socket factory, set it to full name of the class that implements javax.net.SocketFactory.
@@ -234,26 +234,26 @@ public enum DefaultOptions {
      * When using loadbalancing, the number of times the driver should cycle through available hosts, attempting to connect.
      * Between cycles, the driver will pause for 250ms if no servers are available.
      */
-    RETRY_ALL_DOWN("retriesAllDown", 120, 0, Integer.MAX_VALUE, "1.2.0"),
+    RETRY_ALL_DOWN("retriesAllDown", 120, 0, "1.2.0"),
 
     /**
      * When using failover, the number of times the driver should cycle silently through available hosts, attempting to connect.
      * Between cycles, the driver will pause for 250ms if no servers are available.
      * if set to 0, there will be no silent reconnection
      */
-    FAILOVER_LOOP_RETRIES("failoverLoopRetries", 120, 0, Integer.MAX_VALUE, "1.2.0"),
+    FAILOVER_LOOP_RETRIES("failoverLoopRetries", 120, 0, "1.2.0"),
 
 
     /**
      * When in multiple hosts, after this time in second without used, verification that the connections haven't been lost.
      * When 0, no verification will be done. Defaults to 0 (120 before 1.5.8 version)
      */
-    VALID_CONNECTION_TIMEOUT("validConnectionTimeout", 0, 0, Integer.MAX_VALUE, "1.2.0"),
+    VALID_CONNECTION_TIMEOUT("validConnectionTimeout", 0, 0, "1.2.0"),
 
     /**
      * time in second a server is blacklisted after a connection failure.  default to 50s
      */
-    LOAD_BALANCE_BLACKLIST_TIMEOUT("loadBalanceBlacklistTimeout", 50, 0, Integer.MAX_VALUE, "1.2.0"),
+    LOAD_BALANCE_BLACKLIST_TIMEOUT("loadBalanceBlacklistTimeout", 50, 0, "1.2.0"),
 
     /**
      * enable/disable prepare Statement cache, default true.
@@ -264,13 +264,13 @@ public enum DefaultOptions {
      * This sets the number of prepared statements that the driver will cache per VM if "cachePrepStmts" is enabled.
      * default to 250.
      */
-    PREPSTMTCACHESIZE("prepStmtCacheSize", 250, 0, Integer.MAX_VALUE, "1.3.0"),
+    PREPSTMTCACHESIZE("prepStmtCacheSize", 250, 0, "1.3.0"),
 
     /**
      * This is the maximum length of a prepared SQL statement that the driver will cache  if "cachePrepStmts" is enabled.
      * default to 2048.
      */
-    PREPSTMTCACHESQLLIMIT("prepStmtCacheSqlLimit", 2048, 0, Integer.MAX_VALUE, "1.3.0"),
+    PREPSTMTCACHESQLLIMIT("prepStmtCacheSqlLimit", 2048, 0, "1.3.0"),
 
     /**
      * when in high availability, and switching to a read-only host, assure that this host is in read-only mode by
@@ -369,7 +369,7 @@ public enum DefaultOptions {
      * This sets the number of callable statements that the driver will cache per VM if "cacheCallableStmts" is enabled.
      * default to 150.
      */
-    CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", 150, 0, Integer.MAX_VALUE, "1.4.0"),
+    CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", 150, 0, "1.4.0"),
 
     /**
      * Indicate to server some client information in a key;value pair.
@@ -390,7 +390,7 @@ public enum DefaultOptions {
      * When using useBatchMultiSend, indicate maximum query that can be send at a time.
      * default to 100
      */
-    USE_BATCH_MULTI_SEND_NUMBER("useBatchMultiSendNumber", 100, 1, Integer.MAX_VALUE, "1.5.0"),
+    USE_BATCH_MULTI_SEND_NUMBER("useBatchMultiSendNumber", 100, 1, "1.5.0"),
 
     /**
      * Enable log information. require Slf4j version &gt; 1.4 dependency.
@@ -410,13 +410,13 @@ public enum DefaultOptions {
      * Max query log size.
      * default to 1024.
      */
-    MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", 1024, 0, Integer.MAX_VALUE, "1.5.0"),
+    MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", 1024, 0, "1.5.0"),
 
     /**
      * Will log query with execution time superior to this value (if defined )
      * default to null.
      */
-    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, 0L, Long.MAX_VALUE, "1.5.0"),
+    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, 0L, "1.5.0"),
 
     /**
      * Indicate password encoding charset. If not set, driver use platform's default charset.
@@ -459,12 +459,12 @@ public enum DefaultOptions {
      */
     USE_BULK_PROTOCOL("useBulkStmts", Boolean.TRUE, "2.1.0");
 
-    protected final String name;
-    protected final Object objType;
-    protected final Object defaultValue;
-    protected final Object minValue;
-    protected final Object maxValue;
-    protected final String implementationVersion;
+    private final String name;
+    private final Object objType;
+    private final Object defaultValue;
+    private final Object minValue;
+    private final Object maxValue;
+    private final String implementationVersion;
     protected Object value = null;
 
     DefaultOptions(String name, String implementationVersion) {
@@ -485,31 +485,31 @@ public enum DefaultOptions {
         maxValue = null;
     }
 
-    DefaultOptions(String name, Integer defaultValue, Integer minValue, Integer maxValue, String implementationVersion) {
+    DefaultOptions(String name, Integer defaultValue, Integer minValue, String implementationVersion) {
         this.name = name;
         this.objType = Integer.class;
         this.defaultValue = defaultValue;
         this.minValue = minValue;
-        this.maxValue = maxValue;
+        this.maxValue = Integer.MAX_VALUE;
         this.implementationVersion = implementationVersion;
     }
 
-    DefaultOptions(String name, Long defaultValue, Long minValue, Long maxValue, String implementationVersion) {
+    DefaultOptions(String name, Long defaultValue, Long minValue, String implementationVersion) {
         this.name = name;
         this.objType = Long.class;
         this.defaultValue = defaultValue;
         this.minValue = minValue;
-        this.maxValue = maxValue;
+        this.maxValue = Long.MAX_VALUE;
         this.implementationVersion = implementationVersion;
     }
 
 
-    DefaultOptions(String name, Integer[] defaultValue, Integer minValue, Integer maxValue, String implementationVersion) {
+    DefaultOptions(String name, Integer[] defaultValue, Integer minValue, String implementationVersion) {
         this.name = name;
         this.objType = Integer.class;
         this.defaultValue = defaultValue;
         this.minValue = minValue;
-        this.maxValue = maxValue;
+        this.maxValue = Integer.MAX_VALUE;
         this.implementationVersion = implementationVersion;
     }
 
@@ -517,12 +517,12 @@ public enum DefaultOptions {
         return parse(haMode, "", new Properties());
     }
 
-    public static Options parse(HaMode haMode, String urlParameters, Options options) {
+    public static void parse(HaMode haMode, String urlParameters, Options options) {
         Properties prop = new Properties();
-        return parse(haMode, urlParameters, prop, options);
+        parse(haMode, urlParameters, prop, options);
     }
 
-    public static Options parse(HaMode haMode, String urlParameters, Properties properties) {
+    private static Options parse(HaMode haMode, String urlParameters, Properties properties) {
         return parse(haMode, urlParameters, properties, null);
     }
 
@@ -622,9 +622,11 @@ public enum DefaultOptions {
                     } else if (o.objType.equals(Integer.class)) {
                         try {
                             Integer value = Integer.parseInt(propertyValue);
+                            assert o.minValue != null;
+                            assert o.maxValue != null;
                             if (value.compareTo((Integer) o.minValue) < 0 || value.compareTo((Integer) o.maxValue) > 0) {
                                 throw new IllegalArgumentException("Optional parameter " + o.name + " must be greater or equal to " + o.minValue
-                                        + ((((Integer) o.maxValue).intValue() != Integer.MAX_VALUE) ? " and smaller than " + o.maxValue : " ")
+                                        + (((Integer) o.maxValue != Integer.MAX_VALUE) ? " and smaller than " + o.maxValue : " ")
                                         + ", was \"" + propertyValue + "\"");
                             }
                             Options.class.getField(o.name).set(options, value);
@@ -634,9 +636,11 @@ public enum DefaultOptions {
                     } else if (o.objType.equals(Long.class)) {
                         try {
                             Long value = Long.parseLong(propertyValue);
+                            assert o.minValue != null;
+                            assert o.maxValue != null;
                             if (value.compareTo((Long) o.minValue) < 0 || value.compareTo((Long) o.maxValue) > 0) {
                                 throw new IllegalArgumentException("Optional parameter " + o.name + " must be greater or equal to " + o.minValue
-                                        + ((((Long) o.maxValue).intValue() != Long.MAX_VALUE) ? " and smaller than " + o.maxValue : " ")
+                                        + (((Long) o.maxValue != Long.MAX_VALUE) ? " and smaller than " + o.maxValue : " ")
                                         + ", was \"" + propertyValue + "\"");
                             }
                             Options.class.getField(o.name).set(options, value);

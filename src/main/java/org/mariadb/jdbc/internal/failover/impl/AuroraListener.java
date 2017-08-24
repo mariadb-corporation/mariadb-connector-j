@@ -123,7 +123,7 @@ public class AuroraListener extends MastersSlavesListener {
                     return hostAddress;
                 }
             } else {
-                if (clusterDnsSuffix == null && hostAddress.host.indexOf(".") > -1) {
+                if (clusterDnsSuffix == null && hostAddress.host.contains(".")) {
                     clusterDnsSuffix = hostAddress.host.substring(hostAddress.host.indexOf(".") + 1);
                 }
             }
@@ -376,9 +376,6 @@ public class AuroraListener extends MastersSlavesListener {
                 queryResult.next();
                 masterHostName = queryResult.getString(1);
             }
-
-        } catch (SQLException sqle) {
-            //eat exception because cannot happen in this getString()
         } finally {
             proxy.lock.unlock();
         }
@@ -393,7 +390,7 @@ public class AuroraListener extends MastersSlavesListener {
             }
 
             HostAddress masterHostAddress;
-            if (clusterDnsSuffix == null && protocol.getHost().indexOf(".") > -1) {
+            if (clusterDnsSuffix == null && protocol.getHost().contains(".")) {
                 clusterDnsSuffix = protocol.getHost().substring(protocol.getHost().indexOf(".") + 1);
             } else {
                 return null;

@@ -139,7 +139,7 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
      * @return index
      * @throws SQLException exception
      */
-    protected int nameToIndex(String parameterName) throws SQLException {
+    private int nameToIndex(String parameterName) throws SQLException {
         parameterMetadata.readMetadataFromDbIfRequired();
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i);
@@ -657,7 +657,7 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
         registerOutParameter(parameterName, sqlType.getVendorTypeNumber(), typeName);
     }
 
-    CallParameter getParameter(int index) throws SQLException {
+    private CallParameter getParameter(int index) throws SQLException {
         if (index > params.size() || index <= 0) {
             throw new SQLException("No parameter with index " + index);
         }

@@ -123,10 +123,9 @@ public class SendOldPasswordAuthPacket extends AbstractAuthSwitchSendResponsePac
                 continue;
             }
 
-            long tmp = currChar;
-            nr ^= (((nr & 63) + add) * tmp) + (nr << 8);
+            nr ^= (((nr & 63) + add) * (long) currChar) + (nr << 8);
             nr2 += (nr2 << 8) ^ nr;
-            add += tmp;
+            add += (long) currChar;
         }
         return new long[]{nr & 0x7FFFFFFF, nr2 & 0x7FFFFFFF};
     }

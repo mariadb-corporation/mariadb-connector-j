@@ -60,6 +60,6 @@ public interface DynamicSizedSchedulerInterface extends ScheduledExecutorService
      *
      * @param newSize New pool size that is superior to 0
      */
-    public void setPoolSize(int newSize);
+    void setPoolSize(int newSize);
 
 }

@@ -61,10 +61,10 @@ import java.sql.SQLException;
 
 public class StringParameter implements Cloneable, ParameterHolder {
 
-    private String stringValue;
-    private boolean noBackslashEscapes;
+    private final String stringValue;
+    private final boolean noBackslashEscapes;
 
-    public StringParameter(String str, boolean noBackslashEscapes) throws SQLException {
+    public StringParameter(String str, boolean noBackslashEscapes) {
         this.stringValue = str;
         this.noBackslashEscapes = noBackslashEscapes;
     }

@@ -97,11 +97,11 @@ public class Utils {
      * @return escaped string.
      */
     public static String escapeString(String value, boolean noBackslashEscapes) {
-        if (value.indexOf("'") == -1) {
+        if (!value.contains("'")) {
             if (noBackslashEscapes) {
                 return value;
             }
-            if (value.indexOf("\\") == -1) {
+            if (!value.contains("\\")) {
                 return value;
             }
         }
@@ -203,7 +203,7 @@ public class Utils {
      * @param functionString - input string
      * @return unescaped string
      */
-    public static String replaceFunctionParameter(String functionString) {
+    private static String replaceFunctionParameter(String functionString) {
 
         if (!functionString.contains("SQL_")) {
             return functionString;
@@ -330,9 +330,7 @@ public class Utils {
      * @throws SQLException if escape sequence is incorrect.
      */
     public static String nativeSql(String sql, boolean noBackslashEscapes) throws SQLException {
-        if (sql.indexOf('{') == -1) {
-            return sql;
-        }
+        if (sql.indexOf('{') == -1) return sql;
 
         StringBuilder escapeSequenceBuf = new StringBuilder();
         StringBuilder sqlBuffer = new StringBuilder();
@@ -667,7 +665,7 @@ public class Utils {
      * @param dataLength    byte length to write
      * @param outputBuilder string builder
      */
-    public static void writeHex(byte[] bytes, int offset, int dataLength, StringBuilder outputBuilder) {
+    private static void writeHex(byte[] bytes, int offset, int dataLength, StringBuilder outputBuilder) {
 
         if (bytes == null || bytes.length == 0) return;
 
@@ -714,7 +712,7 @@ public class Utils {
         }
     }
 
-    protected static String getHex(final byte[] raw) {
+    private static String getHex(final byte[] raw) {
         final StringBuilder hex = new StringBuilder(2 * raw.length);
         for (final byte b : raw) {
             hex.append(hexArray[(b & 0xF0) >> 4])
@@ -744,17 +742,16 @@ public class Utils {
         String key = null;
 
         char[] chars = sessionVariable.toCharArray();
-        int length = chars.length;
 
-        for (int i = 0; i < length; i++) {
+        for (char aChar : chars) {
 
             if (state == Parse.Escape) {
-                sb.append(chars[i]);
+                sb.append(aChar);
                 state = singleQuotes ? Parse.Quote : Parse.String;
                 continue;
             }
 
-            char car = chars[i];
+            char car = aChar;
             switch (car) {
                 case '"':
                     if (state == Parse.Normal) {

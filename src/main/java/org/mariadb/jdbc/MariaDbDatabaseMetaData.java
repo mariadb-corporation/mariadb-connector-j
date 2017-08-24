@@ -64,15 +64,13 @@ import java.sql.*;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 
 public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     public static final String DRIVER_NAME = "MariaDB connector/J";
-    private String url;
-    private MariaDbConnection connection;
-    private String databaseProductName = "MySQL";
-    private String username;
+    private final String url;
+    private final MariaDbConnection connection;
+    private final String username;
     private boolean datePrecisionColumnExist = true;
 
     /**
@@ -88,7 +86,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         this.url = url;
     }
 
-    static String columnTypeClause(int dataTypeMappingFlags) {
+    private static String columnTypeClause(int dataTypeMappingFlags) {
         String upperCaseWithoutSize = " UCASE(IF( COLUMN_TYPE LIKE '%(%)%', CONCAT(SUBSTRING( COLUMN_TYPE,1, LOCATE('(',"
                 + "COLUMN_TYPE) - 1 ), SUBSTRING(COLUMN_TYPE ,1+locate(')', COLUMN_TYPE))), "
                 + "COLUMN_TYPE))";
@@ -171,11 +169,12 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             /* Treat null catalog as current */
             catalog = "";
         }
+
         if (catalog == null) {
             return getImportedKeysUsingInformationSchema(catalog, schema, table);
         }
 
-        if (catalog.equals("")) {
+        if (catalog.isEmpty()) {
             catalog = connection.getCatalog();
             if (catalog == null || catalog.equals("")) {
                 return getImportedKeysUsingInformationSchema(catalog, schema, table);
@@ -193,14 +192,14 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     /**
      * Get imported keys.
      *
-     * @param tableDef   table definiation
+     * @param tableDef   table definition
      * @param tableName  table name
      * @param catalog    catalog
      * @param connection connection
      * @return resultset resultset
      * @throws ParseException exception
      */
-    public static ResultSet getImportedKeys(String tableDef, String tableName, String catalog, MariaDbConnection connection) throws ParseException {
+    private static ResultSet getImportedKeys(String tableDef, String tableName, String catalog, MariaDbConnection connection) throws ParseException {
         String[] columnNames = {
                 "PKTABLE_CAT", "PKTABLE_SCHEM", "PKTABLE_NAME",
                 "PKCOLUMN_NAME", "FKTABLE_CAT", "FKTABLE_SCHEM",
@@ -281,29 +280,25 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         String[][] arr = data.toArray(new String[0][]);
 
          /* Sort array by PKTABLE_CAT, PKTABLE_NAME, and KEY_SEQ.*/
-        Arrays.sort(arr, new Comparator<String[]>() {
-            @Override
-            public int compare(String[] row1, String[] row2) {
-                int result = row1[0].compareTo(row2[0]);   //PKTABLE_CAT
+        Arrays.sort(arr, (row1, row2) -> {
+            int result = row1[0].compareTo(row2[0]);   //PKTABLE_CAT
+            if (result == 0) {
+                result = row1[2].compareTo(row2[2]);   //PKTABLE_NAME
                 if (result == 0) {
-                    result = row1[2].compareTo(row2[2]);   //PKTABLE_NAME
+                    result = row1[8].length() - row2[8].length();  // KEY_SEQ
                     if (result == 0) {
-                        result = row1[8].length() - row2[8].length();  // KEY_SEQ
-                        if (result == 0) {
-                            result = row1[8].compareTo(row2[8]);
-                        }
+                        result = row1[8].compareTo(row2[8]);
                     }
                 }
-                return result;
             }
+            return result;
         });
-        ResultSet ret = SelectResultSet.createResultSet(columnNames, columnTypes, arr, connection.getProtocol());
-        return ret;
+        return SelectResultSet.createResultSet(columnNames, columnTypes, arr, connection.getProtocol());
     }
 
     // Extract identifier quoted string from input String.
     // Return new position, or -1 on error
-    static int skipWhite(char[] part, int startPos) {
+    private static int skipWhite(char[] part, int startPos) {
         for (int i = startPos; i < part.length; i++) {
             if (!Character.isWhitespace(part[i])) {
                 return i;
@@ -312,13 +307,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         return part.length;
     }
 
-    static int parseIdentifier(char[] part, int startPos, Identifier identifier) throws ParseException {
+    private static int parseIdentifier(char[] part, int startPos, Identifier identifier) throws ParseException {
         int pos = skipWhite(part, startPos);
         if (part[pos] != '`') {
             throw new ParseException(new String(part), pos);
         }
         pos++;
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         int quotes = 0;
         for (; pos < part.length; pos++) {
             char ch = part[pos];
@@ -346,7 +341,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         throw new ParseException(new String(part), startPos);
     }
 
-    static int parseIdentifierList(char[] part, int startPos, List<Identifier> list) throws ParseException {
+    private static int parseIdentifierList(char[] part, int startPos, List<Identifier> list) throws ParseException {
         int pos = skipWhite(part, startPos);
         if (part[pos] != '(') {
             throw new ParseException(new String(part), pos);
@@ -372,7 +367,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         }
     }
 
-    static int skipKeyword(char[] part, int startPos, String keyword) throws ParseException {
+    private static int skipKeyword(char[] part, int startPos, String keyword) throws ParseException {
         int pos = skipWhite(part, startPos);
         for (int i = 0; i < keyword.length(); i++, pos++) {
             if (part[pos] != keyword.charAt(i)) {
@@ -382,7 +377,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         return pos;
     }
 
-    static int getImportedKeyAction(String actionKey) {
+    private static int getImportedKeyAction(String actionKey) {
         if (actionKey == null) {
             return DatabaseMetaData.importedKeyRestrict;
         }
@@ -476,7 +471,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      *                   connection URL.
      * @return part of SQL query ,that restricts search for the catalog.
      */
-    String catalogCond(String columnName, String catalog) {
+    private String catalogCond(String columnName, String catalog) {
         if (catalog == null && connection.nullCatalogMeansCurrent) {
             /* Treat null catalog as current */
             catalog = "";
@@ -493,7 +488,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     // Helper to generate  information schema queries with "like" or "equals" condition (typically  on table name)
-    String patternCond(String columnName, String tableName) {
+    private String patternCond(String columnName, String tableName) {
         if (tableName == null) {
             return "(1 = 1)";
         }
@@ -585,34 +580,34 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern, String[] types)
             throws SQLException {
 
-        String sql =
-                "SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME, IF(TABLE_TYPE='BASE TABLE', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
+        StringBuilder sql =
+                new StringBuilder("SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME, IF(TABLE_TYPE='BASE TABLE', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
                         + " TABLE_COMMENT REMARKS, NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, "
                         + " NULL REF_GENERATION"
                         + " FROM INFORMATION_SCHEMA.TABLES "
                         + " WHERE "
                         + catalogCond("TABLE_SCHEMA", catalog)
                         + " AND "
-                        + patternCond("TABLE_NAME", tableNamePattern);
+                        + patternCond("TABLE_NAME", tableNamePattern));
 
         if (types != null && types.length > 0) {
-            sql += " AND TABLE_TYPE IN (";
+            sql.append(" AND TABLE_TYPE IN (");
             for (int i = 0; i < types.length; i++) {
                 if (types[i] == null) {
                     continue;
                 }
                 String type = escapeQuote(mapTableTypes(types[i]));
                 if (i == types.length - 1) {
-                    sql += type + ")";
+                    sql.append(type).append(")");
                 } else {
-                    sql += type + ",";
+                    sql.append(type).append(",");
                 }
             }
         }
 
-        sql += " ORDER BY TABLE_TYPE, TABLE_SCHEMA, TABLE_NAME";
+        sql.append(" ORDER BY TABLE_TYPE, TABLE_SCHEMA, TABLE_NAME");
 
-        return executeQuery(sql);
+        return executeQuery(sql.toString());
     }
 
     /**
@@ -840,13 +835,14 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      */
     public ResultSet getImportedKeysUsingShowCreateTable(String catalog, String schema, String table) throws Exception {
 
-        if (catalog == null || catalog.equals("")) {
+        if (catalog == null || catalog.isEmpty()) {
             throw new IllegalArgumentException("catalog");
         }
 
-        if (table == null || table.equals("")) {
+        if (table == null || table.isEmpty()) {
             throw new IllegalArgumentException("table");
         }
+
         ResultSet rs = connection.createStatement().executeQuery("SHOW CREATE TABLE "
                 + MariaDbConnection.quoteIdentifier(catalog) + "." + MariaDbConnection.quoteIdentifier(table));
         rs.next();
@@ -989,7 +985,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     public String getDatabaseProductName() throws SQLException {
-        return databaseProductName;
+        return "MySQL";
     }
 
     public String getDatabaseProductVersion() throws SQLException {
@@ -1637,7 +1633,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     /* Is INFORMATION_SCHEMA.PARAMETERS available ?*/
-    boolean haveInformationSchemaParameters() {
+    private boolean haveInformationSchemaParameters() {
         return connection.getProtocol().versionGreaterOrEqual(5, 5, 3);
     }
 

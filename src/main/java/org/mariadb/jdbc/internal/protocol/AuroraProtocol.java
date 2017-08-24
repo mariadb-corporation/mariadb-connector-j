@@ -80,7 +80,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      * @param listener       aurora failover to call back if master is found
      * @param probableMaster probable master host
      */
-    public static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster) {
+    private static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster) {
         AuroraProtocol protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
         try {
 
@@ -268,7 +268,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         servers.removeAll(listener.connectedHosts());
 
         loopAddresses.clear();
-        loopAddresses.addAll(loopAddresses);
+        loopAddresses.addAll(servers);
     }
 
     /**
@@ -290,7 +290,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     }
 
     @Override
-    public void readPipelineCheckMaster() throws IOException, SQLException {
+    public void readPipelineCheckMaster() throws SQLException {
         Results results = new Results();
         getResult(results);
         results.commandEnd();

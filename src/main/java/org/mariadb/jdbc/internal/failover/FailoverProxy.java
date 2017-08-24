@@ -67,21 +67,21 @@ import java.util.concurrent.locks.ReentrantLock;
 
 
 public class FailoverProxy implements InvocationHandler {
-    public static final String METHOD_IS_EXPLICIT_CLOSED = "isExplicitClosed";
-    public static final String METHOD_GET_OPTIONS = "getOptions";
-    public static final String METHOD_GET_PROXY = "getProxy";
-    public static final String METHOD_EXECUTE_QUERY = "executeQuery";
-    public static final String METHOD_SET_READ_ONLY = "setReadonly";
-    public static final String METHOD_IS_READ_ONLY = "isReadOnly";
-    public static final String METHOD_CLOSED_EXPLICIT = "closeExplicit";
-    public static final String METHOD_IS_CLOSED = "isClosed";
-    public static final String METHOD_EXECUTE_PREPARED_QUERY = "executePreparedQuery";
-    public static final String METHOD_COM_MULTI_PREPARE_EXECUTES = "prepareAndExecutesComMulti";
-    public static final String METHOD_PROLOG_PROXY = "prologProxy";
-    private static Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
+    private static final String METHOD_IS_EXPLICIT_CLOSED = "isExplicitClosed";
+    private static final String METHOD_GET_OPTIONS = "getOptions";
+    private static final String METHOD_GET_PROXY = "getProxy";
+    private static final String METHOD_EXECUTE_QUERY = "executeQuery";
+    private static final String METHOD_SET_READ_ONLY = "setReadonly";
+    private static final String METHOD_IS_READ_ONLY = "isReadOnly";
+    private static final String METHOD_CLOSED_EXPLICIT = "closeExplicit";
+    private static final String METHOD_IS_CLOSED = "isClosed";
+    private static final String METHOD_EXECUTE_PREPARED_QUERY = "executePreparedQuery";
+    private static final String METHOD_COM_MULTI_PREPARE_EXECUTES = "prepareAndExecutesComMulti";
+    private static final String METHOD_PROLOG_PROXY = "prologProxy";
+    private static final Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
     public final ReentrantLock lock;
 
-    private Listener listener;
+    private final Listener listener;
 
     /**
      * Proxy constructor.
@@ -170,7 +170,7 @@ public class FailoverProxy implements InvocationHandler {
                         try {
                             logger.trace("re-prepare query \"" + serverPrepareResult.getSql() + "\" on slave (was "
                                     + "temporary on master since failover)");
-                            this.listener.rePrepareOnSlave(serverPrepareResult, mustBeOnMaster);
+                            this.listener.rePrepareOnSlave(serverPrepareResult, false);
                         } catch (SQLException q) {
                             //error during re-prepare, will do executed on master.
                         }

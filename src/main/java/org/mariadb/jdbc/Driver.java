@@ -72,15 +72,6 @@ public final class Driver implements java.sql.Driver {
         }
     }
 
-    /*
-        Provide a "cleanup" method that can be called after unloading driver, to fix Tomcat's obscure classpath handling.
-
-        See CONJ-61.
-     */
-    public static void unloadDriver() {
-        MariaDbStatement.unloadDriver();
-    }
-
     /**
      * Connect to the given connection string.
      * <p>

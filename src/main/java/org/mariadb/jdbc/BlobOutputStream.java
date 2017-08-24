@@ -60,8 +60,8 @@ import java.io.OutputStream;
  */
 class BlobOutputStream extends OutputStream {
 
-    int pos;
-    MariaDbBlob blob;
+    private int pos;
+    private final MariaDbBlob blob;
 
     public BlobOutputStream(MariaDbBlob blob, int pos) {
         this.blob = blob;

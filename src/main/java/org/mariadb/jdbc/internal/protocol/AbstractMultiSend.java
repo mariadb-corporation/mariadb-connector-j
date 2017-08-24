@@ -75,14 +75,14 @@ public abstract class AbstractMultiSend {
 
     protected int statementId = -1;
     protected ColumnType[] parameterTypeHeader;
-    private Protocol protocol;
-    private PacketOutputStream writer;
-    private Results results;
+    private final Protocol protocol;
+    private final PacketOutputStream writer;
+    private final Results results;
     private List<ParameterHolder[]> parametersList;
     private PrepareResult prepareResult;
     private List<String> queries;
-    private boolean binaryProtocol;
-    private boolean readPrepareStmtResult;
+    private final boolean binaryProtocol;
+    private final boolean readPrepareStmtResult;
     private String sql;
 
     /**
@@ -109,7 +109,7 @@ public abstract class AbstractMultiSend {
     }
 
     /**
-     * Bulk execute for client-sier PreparedStatement.executeBatch (no prepare).
+     * Bulk execute for client-side PreparedStatement.executeBatch (no prepare).
      *
      * @param protocol            current protocol
      * @param writer              outputStream
@@ -151,8 +151,7 @@ public abstract class AbstractMultiSend {
 
     public abstract SQLException handleResultException(SQLException qex, Results results,
                                                        List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                       int sendCmdCounter, int paramCount, PrepareResult prepareResult)
-            throws SQLException;
+                                                       int sendCmdCounter, int paramCount, PrepareResult prepareResult);
 
     public abstract int getParamCount();
 
@@ -175,7 +174,7 @@ public abstract class AbstractMultiSend {
             if (readPrepareStmtResult) {
                 parameterTypeHeader = new ColumnType[paramCount];
                 if (prepareResult == null && protocol.getOptions().cachePrepStmts) {
-                    String key = new StringBuilder(protocol.getDatabase()).append("-").append(sql).toString();
+                    String key = protocol.getDatabase() + "-" + sql;
                     prepareResult = protocol.prepareStatementCache().get(key);
                     if (prepareResult != null && !((ServerPrepareResult) prepareResult).incrementShareCounter()) {
                         //in cache but been de-allocated

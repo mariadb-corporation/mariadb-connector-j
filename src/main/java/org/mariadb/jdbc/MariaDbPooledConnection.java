@@ -63,9 +63,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class MariaDbPooledConnection implements PooledConnection {
 
-    MariaDbConnection connection;
-    List<ConnectionEventListener> connectionEventListeners;
-    List<StatementEventListener> statementEventListeners;
+    final MariaDbConnection connection;
+    private final List<ConnectionEventListener> connectionEventListeners;
+    final List<StatementEventListener> statementEventListeners;
 
     /**
      * Constructor.

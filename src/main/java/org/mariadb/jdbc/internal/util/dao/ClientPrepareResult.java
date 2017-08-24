@@ -58,12 +58,12 @@ import java.util.List;
 
 public class ClientPrepareResult implements PrepareResult {
 
-    private String sql;
-    private List<byte[]> queryParts;
+    private final String sql;
+    private final List<byte[]> queryParts;
     private boolean isQueryMultiValuesRewritable = true;
     private boolean isQueryMultipleRewritable = true;
-    private boolean rewriteType;
-    private int paramCount;
+    private final boolean rewriteType;
+    private final int paramCount;
 
     private ClientPrepareResult(String sql, List<byte[]> queryParts, boolean isQueryMultiValuesRewritable,
                                 boolean isQueryMultipleRewritable, boolean rewriteType) {
@@ -223,12 +223,12 @@ public class ClientPrepareResult implements PrepareResult {
         boolean singleQuotes = false;
         boolean endingSemicolon = false;
         char[] query = queryString.toCharArray();
-        int queryLength = query.length;
-        for (int i = 0; i < queryLength; i++) {
+
+        for (char aQuery : query) {
 
             if (state == LexState.Escape) state = LexState.String;
 
-            char car = query[i];
+            char car = aQuery;
             switch (car) {
                 case '*':
                     if (state == LexState.Normal && lastChar == '/') state = LexState.SlashStarComment;

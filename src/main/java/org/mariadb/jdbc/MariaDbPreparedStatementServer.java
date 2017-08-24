@@ -59,23 +59,22 @@ import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
-import java.io.IOException;
 import java.sql.*;
 import java.util.*;
 
 public class MariaDbPreparedStatementServer extends BasePrepareStatement implements Cloneable {
 
-    private static Logger logger = LoggerFactory.getLogger(MariaDbPreparedStatementServer.class);
+    private static final Logger logger = LoggerFactory.getLogger(MariaDbPreparedStatementServer.class);
 
-    String sql;
-    ServerPrepareResult serverPrepareResult = null;
-    boolean returnTableAlias = false;
+    private String sql;
+    private ServerPrepareResult serverPrepareResult = null;
+    private boolean returnTableAlias = false;
     int parameterCount = -1;
-    MariaDbResultSetMetaData metadata;
-    MariaDbParameterMetaData parameterMetaData;
-    Map<Integer, ParameterHolder> currentParameterHolder;
-    List<ParameterHolder[]> queryParameters = new ArrayList<>();
-    boolean mustExecuteOnMaster;
+    private MariaDbResultSetMetaData metadata;
+    private MariaDbParameterMetaData parameterMetaData;
+    private Map<Integer, ParameterHolder> currentParameterHolder;
+    private List<ParameterHolder[]> queryParameters = new ArrayList<>();
+    private boolean mustExecuteOnMaster;
 
     /**
      * Constructor for creating Server prepared statement.
@@ -396,7 +395,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
                     try {
                         protocol.cancelCurrentQuery();
                         skipMoreResults();
-                    } catch (SQLException | IOException sqle) {
+                    } catch (SQLException sqle) {
                         //eat exception
                     }
                 } else skipMoreResults();
@@ -436,7 +435,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
      * @return String representation
      */
     public String toString() {
-        StringBuffer sb = new StringBuffer("sql : '" + serverPrepareResult.getSql() + "'");
+        StringBuilder sb = new StringBuilder("sql : '" + serverPrepareResult.getSql() + "'");
         if (parameterCount > 0) {
             sb.append(", parameters : [");
             for (int i = 0; i < parameterCount; i++) {

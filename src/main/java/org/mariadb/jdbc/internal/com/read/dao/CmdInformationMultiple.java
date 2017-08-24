@@ -64,11 +64,11 @@ import java.util.Iterator;
 public class CmdInformationMultiple implements CmdInformation {
 
 
-    private ArrayList<Long> insertIds;
-    private ArrayList<Long> updateCounts;
+    private final ArrayList<Long> insertIds;
+    private final ArrayList<Long> updateCounts;
+    private final int expectedSize;
+    private final int autoIncrement;
     private int insertIdNumber = 0;
-    private int expectedSize;
-    private int autoIncrement;
     private int moreResults;
     private boolean hasException;
     private boolean rewritten;
@@ -169,12 +169,10 @@ public class CmdInformationMultiple implements CmdInformation {
         int position = 0;
         long insertId;
         Iterator<Long> idIterator = insertIds.iterator();
-        Iterator<Long> updateIterator = updateCounts.iterator();
-        while (updateIterator.hasNext()) {
-            long updateCount = updateIterator.next();
+        for (Long updateCount : updateCounts) {
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
-                    && (insertId = idIterator.next().longValue()) > 0) {
+                    && (insertId = idIterator.next()) > 0) {
                 for (int i = 0; i < updateCount; i++) {
                     ret[position++] = insertId + i * autoIncrement;
                 }
@@ -219,17 +217,12 @@ public class CmdInformationMultiple implements CmdInformation {
 
     @Override
     public boolean moreResults() {
-
-        if (moreResults++ < updateCounts.size() - 1) {
-            return updateCounts.get(moreResults) != RESULT_SET_VALUE;
-        }
-        return false;
+        return moreResults++ < updateCounts.size() - 1 && updateCounts.get(moreResults) != RESULT_SET_VALUE;
     }
 
     @Override
     public boolean isCurrentUpdateCount() {
-        if (updateCounts.size() >= 0) return updateCounts.get(moreResults) != RESULT_SET_VALUE;
-        return true;
+        return updateCounts.size() < 0 || updateCounts.get(moreResults) != RESULT_SET_VALUE;
     }
 
     public void setRewrite(boolean rewritten) {

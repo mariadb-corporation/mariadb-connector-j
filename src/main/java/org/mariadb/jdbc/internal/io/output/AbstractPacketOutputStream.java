@@ -70,19 +70,19 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     private static final int MEDIUM_BUFFER_SIZE = 128 * 1024;
     private static final int LARGE_BUFFER_SIZE = 1024 * 1024;
 
-    protected static Logger logger = LoggerFactory.getLogger(AbstractPacketOutputStream.class);
+    protected static final Logger logger = LoggerFactory.getLogger(AbstractPacketOutputStream.class);
 
     protected byte[] buf;
     protected int pos;
     protected int maxAllowedPacket = Integer.MAX_VALUE;
-    protected int maxQuerySizeToLog;
+    protected final int maxQuerySizeToLog;
     protected long cmdLength;
     protected boolean permitTrace;
     protected int seqNo = 0;
     protected String serverThreadLog = "";
     protected LruTraceCache traceCache = null;
-    protected int mark = -1;
-    protected boolean bufferContainDataAfterMark = false;
+    private int mark = -1;
+    private boolean bufferContainDataAfterMark = false;
 
     /**
      * Common feature to write data into socket, creating MySQL Packet.
@@ -199,12 +199,12 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         if (cmdLength + length >= maxAllowedPacket && cmdLength == 0) {
             //launch exception only if no packet has been send.
             throw new MaxAllowedPacketException("query size (" + (cmdLength + length)
-                    + ") is >= to max_allowed_packet (" + maxAllowedPacket + ")", cmdLength > 0);
+                    + ") is >= to max_allowed_packet (" + maxAllowedPacket + ")", false);
         }
     }
 
-    public boolean isAllowedCmdLength() {
-        return cmdLength + (pos - initialPacketPos()) < maxAllowedPacket;
+    public boolean exceedMaxLength() {
+        return cmdLength + (pos - initialPacketPos()) >= maxAllowedPacket;
     }
 
     public OutputStream getOutputStream() {
@@ -529,7 +529,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                 buf[pos++] = (byte) (0x80 | (currChar & 0x3f));
             } else if (currChar >= 0xD800 && currChar < 0xE000) {
                 //reserved for surrogate - see https://en.wikipedia.org/wiki/UTF-16
-                if (currChar >= 0xD800 && currChar < 0xDC00) {
+                if (currChar < 0xDC00) {
                     //is high surrogate
                     if (charsOffset + 1 > charsLength) {
                         buf[pos++] = (byte) 0x63;

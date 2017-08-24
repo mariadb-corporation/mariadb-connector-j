@@ -405,10 +405,8 @@ public class UrlParser {
         if (initialUrl != null ? !initialUrl.equals(urlParser.getInitialUrl()) : urlParser.getInitialUrl() != null) {
             return false;
         }
-        if (getUsername() != null ? !getUsername().equals(urlParser.getUsername()) : urlParser.getUsername() != null) {
-            return false;
-        }
-        return getPassword() != null ? getPassword().equals(urlParser.getPassword()) : urlParser.getPassword() == null;
+        return (getUsername() != null ? getUsername().equals(urlParser.getUsername()) : urlParser.getUsername() == null)
+                && (getPassword() != null ? getPassword().equals(urlParser.getPassword()) : urlParser.getPassword() == null);
 
     }
 
@@ -418,7 +416,7 @@ public class UrlParser {
                 || haMode == HaMode.FAILOVER) {
             boolean firstMaster = false;
             for (HostAddress host : addresses) {
-                if (host.type == ParameterConstant.TYPE_MASTER) {
+                if (host.type.equals(ParameterConstant.TYPE_MASTER)) {
                     if (firstMaster) {
                         return true;
                     } else {

@@ -60,7 +60,7 @@ import java.io.IOException;
 
 public class NullParameter implements ParameterHolder, Cloneable {
     private static final byte[] NULL = {'N', 'U', 'L', 'L'};
-    private ColumnType type;
+    private final ColumnType type;
 
     public NullParameter() {
         type = ColumnType.NULL;

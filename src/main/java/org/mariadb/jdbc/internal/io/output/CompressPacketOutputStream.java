@@ -72,8 +72,8 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
     private static final float MIN_COMPRESSION_RATIO = 0.9f;
     private int maxPacketLength = MAX_PACKET_LENGTH;
     private int compressSeqNo;
-    private byte[] header = new byte[7];
-    private byte[] subHeader = new byte[4];
+    private final byte[] header = new byte[7];
+    private final byte[] subHeader = new byte[4];
     private byte[] remainingData = new byte[0];
     private boolean lastPacketExactMaxPacketLength = false;
 

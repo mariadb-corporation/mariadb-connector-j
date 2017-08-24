@@ -63,14 +63,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class HostAddress {
-    private static Logger logger = LoggerFactory.getLogger(HostAddress.class);
+    private static final Logger logger = LoggerFactory.getLogger(HostAddress.class);
 
     public String host;
     public int port;
     public String type = null;
 
 
-    public HostAddress() {
+    private HostAddress() {
     }
 
     /**
@@ -157,7 +157,7 @@ public class HostAddress {
         return arr;
     }
 
-    static HostAddress parseSimpleHostAddress(String str) {
+    private static HostAddress parseSimpleHostAddress(String str) {
         HostAddress result = new HostAddress();
         if (str.charAt(0) == '[') {
             /* IPv6 addresses in URLs are enclosed in square brackets */
@@ -178,7 +178,7 @@ public class HostAddress {
         return result;
     }
 
-    static HostAddress parseParameterHostAddress(String str) {
+    private static HostAddress parseParameterHostAddress(String str) {
         HostAddress result = new HostAddress();
         String[] array = str.split("(?=\\()|(?<=\\))");
         for (int i = 1; i < array.length; i++) {
@@ -207,20 +207,20 @@ public class HostAddress {
      * @return String value
      */
     public static String toString(List<HostAddress> addrs) {
-        String str = "";
+        StringBuilder str = new StringBuilder();
         for (int i = 0; i < addrs.size(); i++) {
             if (addrs.get(i).type != null) {
-                str += "address=(host=" + addrs.get(i).host + ")(port=" + addrs.get(i).port + ")(type=" + addrs.get(i).type + ")";
+                str.append("address=(host=").append(addrs.get(i).host).append(")(port=").append(addrs.get(i).port).append(")(type=").append(addrs.get(i).type).append(")");
             } else {
                 boolean isIPv6 = addrs.get(i).host != null && addrs.get(i).host.contains(":");
                 String host = (isIPv6) ? ("[" + addrs.get(i).host + "]") : addrs.get(i).host;
-                str += host + ":" + addrs.get(i).port;
+                str.append(host).append(":").append(addrs.get(i).port);
             }
             if (i < addrs.size() - 1) {
-                str += ",";
+                str.append(",");
             }
         }
-        return str;
+        return str.toString();
     }
 
     /**
@@ -230,20 +230,20 @@ public class HostAddress {
      * @return String value
      */
     public static String toString(HostAddress[] addrs) {
-        String str = "";
+        StringBuilder str = new StringBuilder();
         for (int i = 0; i < addrs.length; i++) {
             if (addrs[i].type != null) {
-                str += "address=(host=" + addrs[i].host + ")(port=" + addrs[i].port + ")(type=" + addrs[i].type + ")";
+                str.append("address=(host=").append(addrs[i].host).append(")(port=").append(addrs[i].port).append(")(type=").append(addrs[i].type).append(")");
             } else {
                 boolean isIPv6 = addrs[i].host != null && addrs[i].host.contains(":");
                 String host = (isIPv6) ? ("[" + addrs[i].host + "]") : addrs[i].host;
-                str += host + ":" + addrs[i].port;
+                str.append(host).append(":").append(addrs[i].port);
             }
             if (i < addrs.length - 1) {
-                str += ",";
+                str.append(",");
             }
         }
-        return str;
+        return str.toString();
     }
 
     @Override
