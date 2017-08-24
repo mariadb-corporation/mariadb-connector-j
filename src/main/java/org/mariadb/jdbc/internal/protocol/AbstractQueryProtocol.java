@@ -1393,12 +1393,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     /**
      * Get current auto increment increment.
+     * *** no lock needed ****
      *
      * @return auto increment increment.
      * @throws SQLException if cannot retrieve auto increment value
      */
     public int getAutoIncrementIncrement() throws SQLException {
         if (autoIncrementIncrement == 0) {
+            lock.lock();
             try {
                 Results results = new Results();
                 executeQuery(true, results, "select @@auto_increment_increment");
@@ -1409,6 +1411,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             } catch (SQLException e) {
                 if (e.getSQLState().startsWith("08")) throw e;
                 autoIncrementIncrement = 1;
+            } finally {
+                lock.unlock();
             }
         }
         return autoIncrementIncrement;
