@@ -910,7 +910,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         for (int i = 1; i < 65536; i++) {
             pstmt.setInt(i, i);
         }
-        assertTrue(pstmt.execute());
+        assertFalse(pstmt.execute());
     }
 
     /**

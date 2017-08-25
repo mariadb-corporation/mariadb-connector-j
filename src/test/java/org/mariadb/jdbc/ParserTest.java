@@ -91,7 +91,6 @@ public class ParserTest extends BaseTest {
         datasource.setUrl("jdbc:mariadb://localhost:3306/db");
     }
 
-    @SuppressWarnings("EmptyTryBlock")
     @Test
     public void mysqlDatasourceVerification() throws Exception {
         MariaDbDataSource datasource = new MariaDbDataSource();
@@ -99,7 +98,8 @@ public class ParserTest extends BaseTest {
         datasource.setPassword(password);
         datasource.setUrl("jdbc:mysql://" + hostname + ":" + port + "/" + database);
         try (Connection connection = datasource.getConnection()) {
-            //ok
+            Statement stmt = connection.createStatement();
+            assertTrue(stmt.execute("SELECT 10"));
         }
     }
 

@@ -581,7 +581,7 @@ public class UpdateResultSetTest extends BaseTest {
         createTable("insertNoRow", "id int not null primary key, strm blob");
         Statement st = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
         ResultSet rs = st.executeQuery("select * from insertNoRow");
-        assertTrue(!rs.next());
+        assertFalse(rs.next());
         rs.moveToInsertRow();
         try {
             rs.refreshRow();

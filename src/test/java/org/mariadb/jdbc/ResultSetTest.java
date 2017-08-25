@@ -788,10 +788,21 @@ public class ResultSetTest extends BaseTest {
         //getDouble
         //supported JDBC type :
         //TINYINT, SMALLINT, INTEGER, BIGINT, REAL, FLOAT, DOUBLE, DECIMAL, NUMERIC, BIT, BOOLEAN, CHAR, VARCHAR, LONGVARCHAR
-        for (int i = 1; i < 11; i++) rs.getDouble(i);
+        for (int i = 1; i < 11; i++) {
+            rs.getDouble(i);
+            rs.getFloat(i);
+        }
+
         for (int i = 11; i < 16; i++) {
             try {
                 rs.getDouble(i);
+                fail();
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("Incorrect format "));
+            }
+            try {
+                rs.getFloat(i);
+                fail();
             } catch (SQLException sqle) {
                 assertTrue(sqle.getMessage().contains("Incorrect format "));
             }
@@ -802,22 +813,9 @@ public class ResultSetTest extends BaseTest {
             } catch (SQLException sqle) {
                 assertTrue(sqle.getMessage().contains("not available"));
             }
-        }
-
-        //getFloat
-        //supported JDBC type :
-        //TINYINT, SMALLINT, INTEGER, BIGINT, REAL, FLOAT, DOUBLE, DECIMAL, NUMERIC, BIT, BOOLEAN, CHAR, VARCHAR, LONGVARCHAR
-        for (int i = 1; i < 11; i++) rs.getDouble(i);
-        for (int i = 11; i < 16; i++) {
             try {
                 rs.getFloat(i);
-            } catch (SQLException sqle) {
-                assertTrue(sqle.getMessage().contains("Incorrect format "));
-            }
-        }
-        for (int i = 16; i < 18; i++) {
-            try {
-                rs.getFloat(i);
+                fail();
             } catch (SQLException sqle) {
                 assertTrue(sqle.getMessage().contains("not available"));
             }

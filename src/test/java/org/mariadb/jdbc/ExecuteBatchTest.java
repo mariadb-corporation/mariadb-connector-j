@@ -67,8 +67,8 @@ import static org.junit.Assert.*;
 
 public class ExecuteBatchTest extends BaseTest {
 
-    static final String oneHundredLengthString;
-    static final boolean profileSql = false;
+    private static final String oneHundredLengthString;
+    private static final boolean profileSql = false;
 
     static {
         char[] chars = new char[100];

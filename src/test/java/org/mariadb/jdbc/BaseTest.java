@@ -510,13 +510,27 @@ public class BaseTest {
         return openConnection(connUri + parameters, null);
     }
 
-    protected Connection setConnection(String additionnallParameters, String database) throws SQLException {
-        String connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/"
-                + ((database == null) ? "" : database);
-        String connUri = connU + "?user=" + username
-                + (password != null && !"".equals(password) ? "&password=" + password : "")
-                + (parameters != null ? "&" + parameters : "");
-        return openConnection(connUri + additionnallParameters, null);
+    protected Connection setConnection(String additionalParameters, String database) throws SQLException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("jdbc:mariadb://");
+        if (hostname == null) {
+            sb.append("localhost");
+        } else {
+            sb.append(hostname);
+        }
+        sb.append(":").append(port).append("/");
+        if (database != null) {
+            sb.append(database);
+        }
+        sb.append("?user=").append(username);
+        if (password != null && !password.isEmpty()) {
+            sb.append("&password=").append(password);
+        }
+        if (parameters != null && !parameters.isEmpty()) {
+            sb.append("&").append(parameters);
+        }
+        sb.append(additionalParameters);
+        return openConnection(sb.toString(), null);
     }
 
     protected Connection setDnsConnection(String parameters) throws SQLException {
@@ -732,8 +746,7 @@ public class BaseTest {
         try {
             ResultSet rs = connection.createStatement().executeQuery("select @@have_ssl");
             assertTrue(rs.next());
-            String value = rs.getString(1);
-            return value.equals("YES");
+            return "YES".equals(rs.getString(1));
         } catch (Exception e) {
             return false; /* maybe 4.x ? */
         }

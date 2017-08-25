@@ -161,7 +161,7 @@ public class ReplicationFailoverTest extends BaseReplication {
         }
     }
 
-    @Test()
+    @Test(expected = SQLException.class)
     public void masterWithoutFailover() throws Throwable {
         try (Connection connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
             int masterServerId = getServerId(connection);
@@ -172,12 +172,8 @@ public class ReplicationFailoverTest extends BaseReplication {
             stopProxy(masterServerId);
             stopProxy(firstSlaveId);
 
-            try {
-                connection.createStatement().executeQuery("SELECT CONNECTION_ID()");
-                fail();
-            } catch (SQLException e) {
-                assertTrue(true);
-            }
+            connection.createStatement().executeQuery("SELECT CONNECTION_ID()");
+            fail();
         }
     }
 

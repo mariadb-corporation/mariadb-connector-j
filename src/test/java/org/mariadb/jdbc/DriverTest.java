@@ -954,7 +954,7 @@ public class DriverTest extends BaseTest {
             st.execute("select sleep(0.5)");
             try {
                 st.execute("select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2");
-                assertFalse("must be exception here", true);
+                fail("must be exception here");
             } catch (Exception e) {
                 //normal exception
             }

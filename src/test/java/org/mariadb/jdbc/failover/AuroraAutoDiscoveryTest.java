@@ -260,7 +260,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             }
 
             String newHost = getProtocolFromConnection(connection).getHost();
-            assertTrue("Connected to new writer", !initialHost.equals(newHost));
+            assertFalse("Connected to new writer", initialHost.equals(newHost));
             assertEquals(System.getProperty("newlyCreatedInstance"), newHost.substring(0, newHost.indexOf(".")));
         }
     }

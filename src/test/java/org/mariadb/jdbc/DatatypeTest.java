@@ -721,7 +721,7 @@ public class DatatypeTest extends BaseTest {
     public void byteTest() throws SQLException {
         PreparedStatement ps = sharedConnection.prepareStatement("insert into bytetest (a) values (?)");
         ps.setByte(1, Byte.MAX_VALUE);
-        assertTrue(ps.execute());
+        assertFalse(ps.execute());
         try (ResultSet rs = getResultSet("select a from bytetest", false)) {
             byteTestResult(rs);
         }
@@ -960,11 +960,12 @@ public class DatatypeTest extends BaseTest {
         createTable("LatinTable", "t1 varchar(30)", "DEFAULT CHARSET=latin1");
 
         try (Connection connection = DriverManager.getConnection(connU + "?user=" + username
-                + (password != null && !"".equals(password) ? "&password=" + password : "") + "&useServerPrepStmts=true")) {
+                + ((password != null && !password.isEmpty()) ? "&password=" + password : "") + "&useServerPrepStmts=true")) {
             checkCharactersInsert(connection);
         }
 
-        assertTrue(sharedConnection.createStatement().execute("truncate LatinTable"));
+        Statement stmt = sharedConnection.createStatement();
+        assertFalse(stmt.execute("truncate LatinTable"));
 
         try (Connection connection = DriverManager.getConnection(connU + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "") + "&useServerPrepStmts=false")) {

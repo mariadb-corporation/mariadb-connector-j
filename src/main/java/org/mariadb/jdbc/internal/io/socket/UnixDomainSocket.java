@@ -214,18 +214,18 @@ public class UnixDomainSocket extends Socket {
             try {
                 if (off > 0) {
                     int bytes = 0;
-                    int size = (len < 10240) ? len : 10240;
-                    byte[] data = new byte[size];
+                    int remainingLength = len;
+                    int size;
+                    byte[] data = new byte[(len < 10240) ? len : 10240];
                     do {
-                        size = (len < 10240) ? len : 10240;
-                        size = recv(fd, data, size, 0);
+                        size = recv(fd, data, (remainingLength < 10240) ? remainingLength : 10240, 0);
                         if (size > 0) {
                             System.arraycopy(data, 0, bytesEntry, off, size);
                             bytes += size;
                             off += size;
-                            len -= size;
+                            remainingLength -= size;
                         }
-                    } while ((len > 0) && (size > 0));
+                    } while ((remainingLength > 0) && (size > 0));
                     return bytes;
                 } else {
                     return recv(fd, bytesEntry, len, 0);

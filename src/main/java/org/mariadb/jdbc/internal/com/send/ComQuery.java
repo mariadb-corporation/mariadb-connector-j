@@ -62,9 +62,6 @@ import java.util.List;
 
 public class ComQuery {
 
-    public ComQuery() {
-    }
-
     /**
      * Client-side PrepareStatement.execute() packet send.
      *
@@ -257,22 +254,23 @@ public class ComQuery {
      */
     public static int sendBatchAggregateSemiColon(final PacketOutputStream writer, String firstQuery,
                                                   List<String> queries, int currentIndex) throws IOException {
+        int index = currentIndex;
         writer.startPacket(0);
         writer.write(Packet.COM_QUERY);
         //index is already set to 1 for first one
         writer.write(firstQuery.getBytes("UTF-8"));
 
         //add query with ";"
-        while (currentIndex < queries.size()) {
-            byte[] sqlByte = queries.get(currentIndex).getBytes("UTF-8");
+        while (index < queries.size()) {
+            byte[] sqlByte = queries.get(index).getBytes("UTF-8");
             if (!writer.checkRemainingSize(sqlByte.length + 1)) break;
             writer.write(';');
             writer.write(sqlByte);
-            currentIndex++;
+            index++;
         }
 
         writer.flush();
-        return currentIndex;
+        return index;
     }
 
     /**

@@ -188,11 +188,11 @@ public class HostAddress {
             }
             String key = token[0].toLowerCase();
             String value = token[1].toLowerCase();
-            if (key.equals("host")) {
+            if ("host".equals(key)) {
                 result.host = value.replace("[", "").replace("]", "");
-            } else if (key.equals("port")) {
+            } else if ("port".equals(key)) {
                 result.port = Integer.parseInt(value);
-            } else if (key.equals("type")
+            } else if ("type".equals(key)
                     && (value.equals(ParameterConstant.TYPE_MASTER) || value.equals(ParameterConstant.TYPE_SLAVE))) {
                 result.type = value;
             }

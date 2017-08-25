@@ -61,11 +61,8 @@ import java.sql.SQLFeatureNotSupportedException;
 
 
 public class ResultSetUnsupportedMethodsTest extends BaseTest {
+
     private ResultSet rs;
-
-    public ResultSetUnsupportedMethodsTest() {
-
-    }
 
     @Before
     public void before() throws SQLException {
