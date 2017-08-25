@@ -83,7 +83,7 @@ public class AuroraFailoverTest extends BaseReplication {
      * @throws SQLException exception
      */
     @BeforeClass()
-    public static void beforeClass2() throws SQLException {
+    public static void beforeClass2() {
         proxyUrl = proxyAuroraUrl;
         System.out.println("environment variable \"AURORA\" value : " + System.getenv("AURORA"));
         Assume.assumeTrue(initialAuroraUrl != null && System.getenv("AURORA") != null && amazonRDSClient != null);
@@ -95,7 +95,7 @@ public class AuroraFailoverTest extends BaseReplication {
      * @throws SQLException exception
      */
     @Before
-    public void init() throws SQLException {
+    public void init() {
         defaultUrl = initialAuroraUrl;
         currentType = HaMode.AURORA;
     }
@@ -200,7 +200,7 @@ public class AuroraFailoverTest extends BaseReplication {
 
             // a timeout should occur here
             try {
-                rs = ps.executeQuery();
+                ps.executeQuery();
                 fail();
             } catch (SQLException e) {
                 // check that it's a timeout that occurs
@@ -214,7 +214,7 @@ public class AuroraFailoverTest extends BaseReplication {
             }
 
             try {
-                rs = ps.executeQuery();
+                ps.executeQuery();
             } catch (SQLException e) {
                 fail();
             }
@@ -267,7 +267,7 @@ public class AuroraFailoverTest extends BaseReplication {
     @Test
     public void testCloseFail() throws Throwable {
         assureBlackList();
-        Protocol protocol = null;
+        Protocol protocol;
         try (Connection connection = getNewConnection(true)) {
             connection.setReadOnly(true);
             int current = getServerId(connection);

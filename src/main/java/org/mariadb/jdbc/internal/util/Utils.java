@@ -80,6 +80,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
 
+@SuppressWarnings("Annotator")
 public class Utils {
     private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
     private static final Pattern IP_V4 = Pattern.compile("^(([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){1}"
@@ -329,6 +330,7 @@ public class Utils {
      * @return escaped sql string
      * @throws SQLException if escape sequence is incorrect.
      */
+    @SuppressWarnings("ConstantConditions")
     public static String nativeSql(String sql, boolean noBackslashEscapes) throws SQLException {
         if (sql.indexOf('{') == -1) return sql;
 
@@ -555,9 +557,9 @@ public class Utils {
                         socketFactory = constructor.newInstance();
                         return socketFactory.createSocket();
                     }
-                } catch (Exception sfex) {
+                } catch (Exception exp) {
                     throw new IOException("Socket factory failed to initialized with option \"socketFactory\" set to \""
-                            + urlParser.getOptions().socketFactory + "\"", sfex);
+                            + urlParser.getOptions().socketFactory + "\"", exp);
                 }
             }
             socketFactory = SocketFactory.getDefault();
@@ -573,18 +575,6 @@ public class Utils {
      */
     public static String hexdump(byte[]... bytes) {
         return hexdump(Integer.MAX_VALUE, 0, Integer.MAX_VALUE, bytes);
-    }
-
-    /**
-     * Hexdump.
-     *
-     * @param maxQuerySizeToLog max log size
-     * @param offset            offset of last byte array
-     * @param bytes             byte arrays
-     * @return String
-     */
-    public static String hexdump(int maxQuerySizeToLog, int offset, byte[]... bytes) {
-        return hexdump(maxQuerySizeToLog, offset, Integer.MAX_VALUE, bytes);
     }
 
     /**
@@ -743,15 +733,14 @@ public class Utils {
 
         char[] chars = sessionVariable.toCharArray();
 
-        for (char aChar : chars) {
+        for (char car : chars) {
 
             if (state == Parse.Escape) {
-                sb.append(aChar);
+                sb.append(car);
                 state = singleQuotes ? Parse.Quote : Parse.String;
                 continue;
             }
 
-            char car = aChar;
             switch (car) {
                 case '"':
                     if (state == Parse.Normal) {
@@ -835,7 +824,6 @@ public class Utils {
 
     private enum Parse {
         Normal,
-        Parenthesis, /* inside parenthesis */
         String, /* inside string */
         Quote,
         Escape /* found backslash */

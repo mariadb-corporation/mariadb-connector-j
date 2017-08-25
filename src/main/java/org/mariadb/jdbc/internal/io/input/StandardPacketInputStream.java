@@ -144,18 +144,18 @@ public class StandardPacketInputStream implements PacketInputStream {
     /**
      * Create Buffer with Text protocol values.
      *
-     * @param rowData     datas
+     * @param rowDatas    datas
      * @param columnTypes column types
      * @return Buffer
      */
-    public static byte[] create(byte[][] rowData, ColumnType[] columnTypes) {
+    public static byte[] create(byte[][] rowDatas, ColumnType[] columnTypes) {
 
         int totalLength = 0;
-        for (byte[] aRowData : rowData) {
-            if (aRowData == null) {
+        for (byte[] rowData : rowDatas) {
+            if (rowData == null) {
                 totalLength++;
             } else {
-                int length = aRowData.length;
+                int length = rowData.length;
                 if (length < 251) {
                     totalLength += length + 1;
                 } else if (length < 65536) {
@@ -170,7 +170,7 @@ public class StandardPacketInputStream implements PacketInputStream {
         byte[] buf = new byte[totalLength];
 
         int pos = 0;
-        for (byte[] arr : rowData) {
+        for (byte[] arr : rowDatas) {
             if (arr == null) {
                 buf[pos++] = (byte) 251;
             } else {

@@ -383,7 +383,7 @@ public class DateTest extends BaseTest {
                 rs.getTime(3);
                 fail();
             } catch (SQLException e) {
-                e.getMessage().contains("Cannot read Time using a Types.DATE field");
+                assertTrue(e.getMessage().contains("Cannot read Time using a Types.DATE field"));
             }
         } else {
             fail("Must have a result");

@@ -78,7 +78,7 @@ public class TimeoutTest extends BaseTest {
      * @throws SQLException exception
      */
     @Test
-    public void resultSetAfterSocketTimeoutTest() throws Throwable {
+    public void resultSetAfterSocketTimeoutTest() {
         Assume.assumeFalse(sharedIsAurora());
         int went = 0;
         for (int j = 0; j < 100; j++) {
@@ -94,7 +94,6 @@ public class TimeoutTest extends BaseTest {
                             bugReproduced = true;
                             break;
                         }
-                        assertTrue(v1 == 1 && v2 == 2);
                         went++;
                     } catch (SQLNonTransientConnectionException e) {
                         //error due to socketTimeout

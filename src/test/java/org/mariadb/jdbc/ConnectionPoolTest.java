@@ -155,7 +155,7 @@ public class ConnectionPoolTest extends BaseTest {
         } catch (InterruptedException e) {
             //eat exception
         }
-        exec = Executors.newFixedThreadPool(50);
+        Executors.newFixedThreadPool(50);
 
     }
 
@@ -191,7 +191,7 @@ public class ConnectionPoolTest extends BaseTest {
     }
 
 
-    private long insert500WithPool(DataSource ds) throws SQLException {
+    private long insert500WithPool(DataSource ds) {
         ExecutorService exec = Executors.newFixedThreadPool(50);
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < 50; i++) {
@@ -208,7 +208,7 @@ public class ConnectionPoolTest extends BaseTest {
     }
 
     private class ForceLoadPoolThread implements Runnable {
-        private DataSource dataSource;
+        private final DataSource dataSource;
 
         public ForceLoadPoolThread(DataSource dataSource) {
             this.dataSource = dataSource;
@@ -225,9 +225,9 @@ public class ConnectionPoolTest extends BaseTest {
     }
 
     private class InsertThread implements Runnable {
-        private DataSource dataSource;
-        private int insertNumber;
-        private int tableNumber;
+        private final DataSource dataSource;
+        private final int insertNumber;
+        private final int tableNumber;
 
         public InsertThread(int tableNumber, int insertNumber, DataSource dataSource) {
             this.insertNumber = insertNumber;

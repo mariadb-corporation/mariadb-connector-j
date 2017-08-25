@@ -98,7 +98,7 @@ public class LoggerFactory {
             try {
                 return new Slf4JLogger((org.slf4j.Logger) method.invoke(loggerClass, clazz));
             } catch (IllegalAccessException | InvocationTargetException illegalAccess) {
-                return null;
+                return NO_LOGGER;
             }
         } else {
             return NO_LOGGER;

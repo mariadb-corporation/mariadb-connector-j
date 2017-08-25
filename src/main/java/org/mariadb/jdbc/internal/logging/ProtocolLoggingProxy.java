@@ -108,7 +108,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                                 .append(" - \"");
 
 
-                        logQuery(method.getName(), args, returnObj, sb);
+                        logQuery(method.getName(), args, sb);
                         if (maxQuerySizeToLog > 0 && sb.length() > maxQuerySizeToLog) {
                             logger.info(sb.substring(0, maxQuerySizeToLog) + "...\"");
                         } else {
@@ -127,7 +127,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
     }
 
     @SuppressWarnings("unchecked")
-    private void logQuery(String methodName, Object[] args, Object returnObj, StringBuilder sb) {
+    private void logQuery(String methodName, Object[] args, StringBuilder sb) {
         switch (methodName) {
             case "executeQuery":
                 switch (args.length) {
@@ -144,7 +144,10 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                             break;
                         }
                         ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
-                        sb.append(getQueryFromPrepareParameters(clientPrepareResult, (ParameterHolder[]) args[3], clientPrepareResult.getParamCount()));
+                        sb.append(getQueryFromPrepareParameters(
+                                clientPrepareResult,
+                                (ParameterHolder[]) args[3],
+                                clientPrepareResult.getParamCount()));
                         break;
                     default:
                         //no default

@@ -291,8 +291,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
 
         } catch (SQLException sqle) {
             results.commandEnd();
-            throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size,
-                    results.isRewritten());
+            throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size);
         } finally {
             executeBatchEpilogue();
             lock.unlock();
@@ -319,8 +318,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
             return results.getCmdInformation().getLargeUpdateCounts();
 
         } catch (SQLException sqle) {
-            throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size,
-                    options.rewriteBatchedStatements && prepareResult.isQueryMultiValuesRewritable());
+            throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size);
         } finally {
             executeBatchEpilogue();
             lock.unlock();

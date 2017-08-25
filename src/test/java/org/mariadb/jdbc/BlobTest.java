@@ -189,6 +189,7 @@ public class BlobTest extends BaseTest {
         Reader readStuff = rs.getCharacterStream("strm");
 
         char[] chars = new char[50000];
+        //noinspection ResultOfMethodCallIgnored
         readStuff.read(chars);
 
         byte[] arrResult = new byte[20000];
@@ -245,6 +246,7 @@ public class BlobTest extends BaseTest {
         if (rs.next()) {
             Reader readStuff = rs.getClob("strm").getCharacterStream();
             char[] chars = new char[5];
+            //noinspection ResultOfMethodCallIgnored
             readStuff.read(chars);
             assertEquals(new String(chars), clob);
         } else {
@@ -306,6 +308,7 @@ public class BlobTest extends BaseTest {
         rs.next();
         Reader readStuff = rs.getClob("strm").getCharacterStream();
         char[] chars = new char[4];
+        //noinspection ResultOfMethodCallIgnored
         readStuff.read(chars);
         Assert.assertEquals(new String(chars), clob);
     }

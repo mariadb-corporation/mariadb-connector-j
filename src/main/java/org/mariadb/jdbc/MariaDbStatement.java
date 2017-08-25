@@ -157,15 +157,6 @@ public class MariaDbStatement implements Statement, Cloneable {
         return clone;
     }
 
-    /**
-     * returns the protocol.
-     *
-     * @return the protocol used.
-     */
-    public Protocol getProtocol() {
-        return protocol;
-    }
-
     // Part of query prolog - setup timeout timer
     protected void setTimerTask() {
         assert (timerTaskFuture == null);
@@ -277,7 +268,7 @@ public class MariaDbStatement implements Statement, Cloneable {
         return sqle;
     }
 
-    protected BatchUpdateException executeBatchExceptionEpilogue(SQLException sqle, CmdInformation cmdInformation, int size, boolean rewritten) {
+    protected BatchUpdateException executeBatchExceptionEpilogue(SQLException sqle, CmdInformation cmdInformation, int size) {
         sqle = handleFailoverAndTimeout(sqle);
         int[] ret;
         if (cmdInformation == null) {
@@ -1244,7 +1235,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             return results.getCmdInformation().getUpdateCounts();
 
         } catch (SQLException initialSqlEx) {
-            throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), size, false);
+            throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), size);
         } finally {
             executeBatchEpilogue();
             lock.unlock();

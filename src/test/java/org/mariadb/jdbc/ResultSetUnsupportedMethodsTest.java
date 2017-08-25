@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -64,7 +63,7 @@ import java.sql.SQLFeatureNotSupportedException;
 public class ResultSetUnsupportedMethodsTest extends BaseTest {
     private ResultSet rs;
 
-    public ResultSetUnsupportedMethodsTest() throws SQLException {
+    public ResultSetUnsupportedMethodsTest() {
 
     }
 
@@ -235,12 +234,12 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateInt8() throws SQLException {
-        rs.updateInt(1, (int) 1);
+        rs.updateInt(1, 1);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateInt9() throws SQLException {
-        rs.updateInt("a", (int) 1);
+        rs.updateInt("a", 1);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
@@ -275,22 +274,22 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateBigDecimal16() throws SQLException {
-        rs.updateBigDecimal(1, (java.math.BigDecimal) null);
+        rs.updateBigDecimal(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateBigDecimal17() throws SQLException {
-        rs.updateBigDecimal("a", (java.math.BigDecimal) null);
+        rs.updateBigDecimal("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateString18() throws SQLException {
-        rs.updateString(1, (String) null);
+        rs.updateString(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateString19() throws SQLException {
-        rs.updateString("a", (String) null);
+        rs.updateString("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
@@ -305,152 +304,152 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateDate22() throws SQLException {
-        rs.updateDate(1, (java.sql.Date) null);
+        rs.updateDate(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateDate23() throws SQLException {
-        rs.updateDate("a", (java.sql.Date) null);
+        rs.updateDate("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateTime24() throws SQLException {
-        rs.updateTime(1, (java.sql.Time) null);
+        rs.updateTime(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateTime25() throws SQLException {
-        rs.updateTime("a", (java.sql.Time) null);
+        rs.updateTime("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateTimestamp26() throws SQLException {
-        rs.updateTimestamp(1, (java.sql.Timestamp) null);
+        rs.updateTimestamp(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateTimestamp27() throws SQLException {
-        rs.updateTimestamp("a", (java.sql.Timestamp) null);
+        rs.updateTimestamp("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateAsciiStream28() throws SQLException {
-        rs.updateAsciiStream(1, (java.io.InputStream) null);
+        rs.updateAsciiStream(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateAsciiStream29() throws SQLException {
-        rs.updateAsciiStream("a", (java.io.InputStream) null);
+        rs.updateAsciiStream("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateAsciiStream30() throws SQLException {
-        rs.updateAsciiStream(1, (java.io.InputStream) null);
+        rs.updateAsciiStream(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateAsciiStream31() throws SQLException {
-        rs.updateAsciiStream("a", (java.io.InputStream) null);
+        rs.updateAsciiStream("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateAsciiStream32() throws SQLException {
-        rs.updateAsciiStream(1, (java.io.InputStream) null);
+        rs.updateAsciiStream(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateAsciiStream33() throws SQLException {
-        rs.updateAsciiStream("a", (java.io.InputStream) null);
+        rs.updateAsciiStream("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateBinaryStream34() throws SQLException {
-        rs.updateBinaryStream(1, (java.io.InputStream) null);
+        rs.updateBinaryStream(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateBinaryStream35() throws SQLException {
-        rs.updateBinaryStream("a", (java.io.InputStream) null);
+        rs.updateBinaryStream("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateBinaryStream36() throws SQLException {
-        rs.updateBinaryStream(1, (java.io.InputStream) null);
+        rs.updateBinaryStream(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateBinaryStream37() throws SQLException {
-        rs.updateBinaryStream("a", (java.io.InputStream) null);
+        rs.updateBinaryStream("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateBinaryStream38() throws SQLException {
-        rs.updateBinaryStream(1, (java.io.InputStream) null);
+        rs.updateBinaryStream(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateBinaryStream39() throws SQLException {
-        rs.updateBinaryStream("a", (java.io.InputStream) null);
+        rs.updateBinaryStream("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateCharacterStream40() throws SQLException {
-        rs.updateCharacterStream(1, (java.io.Reader) null);
+        rs.updateCharacterStream(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateCharacterStream41() throws SQLException {
-        rs.updateCharacterStream("a", (java.io.Reader) null);
+        rs.updateCharacterStream("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateCharacterStream42() throws SQLException {
-        rs.updateCharacterStream(1, (java.io.Reader) null);
+        rs.updateCharacterStream(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateCharacterStream43() throws SQLException {
-        rs.updateCharacterStream("a", (java.io.Reader) null);
+        rs.updateCharacterStream("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateCharacterStream44() throws SQLException {
-        rs.updateCharacterStream(1, (java.io.Reader) null);
+        rs.updateCharacterStream(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateCharacterStream45() throws SQLException {
-        rs.updateCharacterStream("a", (java.io.Reader) null);
+        rs.updateCharacterStream("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateObject46() throws SQLException {
-        rs.updateObject(1, (Object) null);
+        rs.updateObject(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateObject47() throws SQLException {
-        rs.updateObject(1, (Object) null);
+        rs.updateObject(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateObject48() throws SQLException {
-        rs.updateObject("a", (Object) null);
+        rs.updateObject("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateObject49() throws SQLException {
-        rs.updateObject("a", (Object) null);
+        rs.updateObject("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateRef50() throws SQLException {
-        rs.updateRef(1, (java.sql.Ref) null);
+        rs.updateRef(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateRef51() throws SQLException {
-        rs.updateRef("a", (java.sql.Ref) null);
+        rs.updateRef("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
@@ -515,32 +514,32 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateArray64() throws SQLException {
-        rs.updateArray(1, (java.sql.Array) null);
+        rs.updateArray(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateArray65() throws SQLException {
-        rs.updateArray("a", (java.sql.Array) null);
+        rs.updateArray("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateRowId66() throws SQLException {
-        rs.updateRowId(1, (java.sql.RowId) null);
+        rs.updateRowId(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateRowId67() throws SQLException {
-        rs.updateRowId("a", (java.sql.RowId) null);
+        rs.updateRowId("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateNString68() throws SQLException {
-        rs.updateNString(1, (String) null);
+        rs.updateNString(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateNString69() throws SQLException {
-        rs.updateNString("a", (String) null);
+        rs.updateNString("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
@@ -575,32 +574,32 @@ public class ResultSetUnsupportedMethodsTest extends BaseTest {
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateSqlXml76() throws SQLException {
-        rs.updateSQLXML(1, (java.sql.SQLXML) null);
+        rs.updateSQLXML(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateSsqlXml77() throws SQLException {
-        rs.updateSQLXML("a", (java.sql.SQLXML) null);
+        rs.updateSQLXML("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateNCharacterStream78() throws SQLException {
-        rs.updateNCharacterStream(1, (java.io.Reader) null);
+        rs.updateNCharacterStream(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateNCharacterStream79() throws SQLException {
-        rs.updateNCharacterStream("a", (java.io.Reader) null);
+        rs.updateNCharacterStream("a", null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateNCharacterStream80() throws SQLException {
-        rs.updateNCharacterStream(1, (java.io.Reader) null);
+        rs.updateNCharacterStream(1, null);
     }
 
     @Test(expected = SQLFeatureNotSupportedException.class)
     public void testupdateNCharacterStream81() throws SQLException {
-        rs.updateNCharacterStream("a", (java.io.Reader) null);
+        rs.updateNCharacterStream("a", null);
     }
 
 

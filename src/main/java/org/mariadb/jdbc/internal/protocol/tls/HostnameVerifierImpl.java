@@ -172,6 +172,9 @@ public class HostnameVerifierImpl implements HostnameVerifier {
      */
     public void verify(String host, X509Certificate cert, long serverThreadId) throws SSLException {
         String lowerCaseHost = host.toLowerCase(Locale.ROOT);
+
+        if (lowerCaseHost == null) return; //no validation if no host (possible for name pipe)
+
         try {
             //***********************************************************
             // RFC 6125 : check Subject Alternative Name (SAN)

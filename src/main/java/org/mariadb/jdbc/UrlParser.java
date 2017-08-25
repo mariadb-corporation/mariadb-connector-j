@@ -224,6 +224,7 @@ public class UrlParser {
                                                   String additionalParameters) {
 
         if (additionalParameters != null) {
+            //noinspection Annotator
             String regex = "(\\/([^\\?]*))?(\\?(.+))*";
             Pattern pattern = Pattern.compile(regex, Pattern.DOTALL);
             Matcher matcher = pattern.matcher(additionalParameters);
@@ -402,12 +403,9 @@ public class UrlParser {
         if (!(parser instanceof UrlParser)) return false;
 
         UrlParser urlParser = (UrlParser) parser;
-        if (initialUrl != null ? !initialUrl.equals(urlParser.getInitialUrl()) : urlParser.getInitialUrl() != null) {
-            return false;
-        }
-        return (getUsername() != null ? getUsername().equals(urlParser.getUsername()) : urlParser.getUsername() == null)
+        return (initialUrl != null ? initialUrl.equals(urlParser.getInitialUrl()) : urlParser.getInitialUrl() == null)
+                && (getUsername() != null ? getUsername().equals(urlParser.getUsername()) : urlParser.getUsername() == null)
                 && (getPassword() != null ? getPassword().equals(urlParser.getPassword()) : urlParser.getPassword() == null);
-
     }
 
     private boolean loadMultiMasterValue() {

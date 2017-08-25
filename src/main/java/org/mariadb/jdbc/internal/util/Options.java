@@ -54,6 +54,7 @@ package org.mariadb.jdbc.internal.util;
 
 import java.lang.reflect.Field;
 
+@SuppressWarnings("ConstantConditions")
 public class Options {
     //standard options
     public String user;
@@ -158,6 +159,7 @@ public class Options {
         return result.toString();
     }
 
+    @SuppressWarnings("SimplifiableIfStatement")
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -231,7 +233,9 @@ public class Options {
         if (localSocketAddress != null ? !localSocketAddress.equals(options.localSocketAddress) : options.localSocketAddress != null) {
             return false;
         }
-        if (enabledSslCipherSuites != null ? !enabledSslCipherSuites.equals(options.enabledSslCipherSuites) : options.enabledSslCipherSuites != null) {
+        if (enabledSslCipherSuites != null) {
+            if (!enabledSslCipherSuites.equals(options.enabledSslCipherSuites)) return false;
+        } else if (options.enabledSslCipherSuites != null) {
             return false;
         }
 

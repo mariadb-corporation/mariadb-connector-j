@@ -271,7 +271,6 @@ public abstract class BaseReplication extends BaseMonoServer {
         int masterId = -1;
         for (int i = 0; i < 20; i++) {
             try (Connection connection = getNewConnection(false)) {
-                ;
                 int serverId = getServerId(connection);
                 if (i > 0) {
                     assertTrue(masterId == serverId);
@@ -338,7 +337,7 @@ public abstract class BaseReplication extends BaseMonoServer {
     @Test
     public void failoverDuringMasterSetReadOnly() throws Throwable {
         try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
-            int masterServerId = -1;
+            int masterServerId;
             masterServerId = getServerId(connection);
 
             stopProxy(masterServerId);

@@ -73,7 +73,7 @@ public class TruncateExceptionTest extends BaseTest {
     }
 
     @Test
-    public void truncationThrowError() throws SQLException {
+    public void truncationThrowError() {
         try {
             queryTruncation(true);
             fail("Must have thrown SQLException");
@@ -83,7 +83,7 @@ public class TruncateExceptionTest extends BaseTest {
     }
 
     @Test
-    public void truncationThrowNoError() throws SQLException {
+    public void truncationThrowNoError() {
         try {
             ResultSet resultSet = sharedConnection.createStatement().executeQuery("SELECT @@sql_mode");
             resultSet.next();

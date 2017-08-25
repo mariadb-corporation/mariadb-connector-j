@@ -53,11 +53,9 @@
 package org.mariadb.jdbc.internal.util.dao;
 
 import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 
-import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ServerPrepareResult implements PrepareResult {
@@ -67,7 +65,6 @@ public class ServerPrepareResult implements PrepareResult {
     private ColumnType[] parameterTypeHeader;
     private Protocol unProxiedProtocol;
     private final String sql;
-    private Results activeCursorResult;
 
 
     //share indicator
@@ -127,7 +124,6 @@ public class ServerPrepareResult implements PrepareResult {
      * @return true if can be used (is not been deallocate).
      */
     public synchronized boolean incrementShareCounter() {
-        fetchAllOpenCursor();
 
         if (isBeingDeallocate) {
             return false;
@@ -190,26 +186,5 @@ public class ServerPrepareResult implements PrepareResult {
     public ColumnType[] getParameterTypeHeader() {
         return parameterTypeHeader;
     }
-
-    public void openCursor(Results result) {
-        activeCursorResult = result;
-    }
-
-    /**
-     * if a new query will be done using this statementId and there is an open cursor,
-     * then fetch all results in resultSet (Cursor will be closed after executing a query).
-     */
-    public void fetchAllOpenCursor() {
-        if (activeCursorResult != null && activeCursorResult.getResultSet() != null) {
-            //will then fetch all remaining results
-            try {
-                activeCursorResult.getResultSet().setFetchSize(0);
-            } catch (SQLException sqle) {
-                //error will be thrown by query that cause this closing.
-            }
-        }
-        activeCursorResult = null;
-    }
-
 
 }

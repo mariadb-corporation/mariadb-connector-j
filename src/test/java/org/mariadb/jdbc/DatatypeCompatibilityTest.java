@@ -138,6 +138,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
                 new BigInteger("FFFFFFFFFFFFFFFF", 16));
     }
 
+    @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
     @Test
     public void testFixedPointTypes() throws SQLException {
         requireMinimumVersion(5, 0);

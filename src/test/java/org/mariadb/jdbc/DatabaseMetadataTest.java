@@ -256,9 +256,9 @@ public class DatabaseMetadataTest extends BaseTest {
              Get result sets using either method and compare (ignore minor differences INT vs SMALLINT
            */
         ResultSet rs1 = ((MariaDbDatabaseMetaData) sharedConnection.getMetaData())
-                .getImportedKeysUsingShowCreateTable("testj", null, "product_order");
+                .getImportedKeysUsingShowCreateTable("testj", "product_order");
         ResultSet rs2 = ((MariaDbDatabaseMetaData) sharedConnection.getMetaData())
-                .getImportedKeysUsingInformationSchema("testj", null, "product_order");
+                .getImportedKeysUsingInformationSchema("testj", "product_order");
         assertEquals(rs1.getMetaData().getColumnCount(), rs2.getMetaData().getColumnCount());
 
 
@@ -920,7 +920,7 @@ public class DatabaseMetadataTest extends BaseTest {
             String columnName = rs.getString("column_name");
             int type = rs.getInt("data_type");
             String typeName = rs.getString("type_name");
-            assertTrue(typeName.indexOf("(") == -1);
+            assertTrue(!typeName.contains("("));
             for (char c : typeName.toCharArray()) {
                 assertTrue("bad typename " + typeName, c == ' ' || Character.isUpperCase(c));
             }

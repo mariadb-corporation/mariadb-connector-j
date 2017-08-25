@@ -130,7 +130,7 @@ public class StatementTest extends BaseTest {
                 stmt.setFetchSize(Integer.MIN_VALUE);
                 ResultSet rs = stmt.executeQuery();
                 rs.next();
-                rs = stmt.executeQuery();
+                stmt.executeQuery();
             }
         }
     }
@@ -313,7 +313,7 @@ public class StatementTest extends BaseTest {
                 stopProxy();
                 otherStatement.execute("SELECT 1");
             } catch (SQLException e) {
-                assertTrue(otherStatement.isClosed());
+                assertTrue(otherStatement != null ? otherStatement.isClosed() : false);
                 assertTrue(connection.isClosed());
                 try {
                     statement.execute("SELECT 1");

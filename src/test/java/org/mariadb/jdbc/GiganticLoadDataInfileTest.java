@@ -125,7 +125,7 @@ public class GiganticLoadDataInfileTest extends BaseTest {
             if (buffer == null) {
                 currentRow++;
                 currentPosInBuffer = 0;
-                buffer = new String(currentRow + "\tname" + currentRow + "\n").getBytes();
+                buffer = (currentRow + "\tname" + currentRow + "\n").getBytes();
             }
             return buffer[currentPosInBuffer++];
         }

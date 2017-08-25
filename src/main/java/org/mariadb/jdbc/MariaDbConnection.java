@@ -74,6 +74,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
+@SuppressWarnings("Annotator")
 public class MariaDbConnection implements Connection {
     private static final Logger logger = LoggerFactory.getLogger(MariaDbConnection.class);
 
@@ -143,7 +144,7 @@ public class MariaDbConnection implements Connection {
         }
     }
 
-    public static MariaDbConnection newConnection(String initialUrl, Protocol protocol, ReentrantLock lock) throws SQLException {
+    public static MariaDbConnection newConnection(String initialUrl, Protocol protocol, ReentrantLock lock) {
         return new MariaDbConnection(initialUrl, protocol, lock);
     }
 
@@ -1596,14 +1597,6 @@ public class MariaDbConnection implements Connection {
         } catch (SocketException se) {
             throw ExceptionMapper.getSqlException("Cannot set the network timeout", se);
         }
-    }
-
-    protected String getServerTimezone() {
-        return options.serverTimezone;
-    }
-
-    protected Options getOptions() {
-        return options;
     }
 
     public ClientPrepareStatementCache getClientPrepareStatementCache() {

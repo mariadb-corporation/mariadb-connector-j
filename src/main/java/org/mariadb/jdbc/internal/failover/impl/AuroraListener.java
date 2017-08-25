@@ -358,7 +358,7 @@ public class AuroraListener extends MastersSlavesListener {
      * @throws SQLException if any connection error occur
      */
     private HostAddress searchForMasterHostAddress(Protocol protocol, List<HostAddress> loopAddress) throws SQLException {
-        String masterHostName = null;
+        String masterHostName;
         proxy.lock.lock();
         try {
             Results results = new Results();

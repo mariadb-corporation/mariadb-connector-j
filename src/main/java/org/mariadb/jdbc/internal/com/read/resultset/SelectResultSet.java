@@ -128,7 +128,8 @@ import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
-@SuppressWarnings("deprecation")
+@SuppressWarnings({"deprecation", "BigDecimalMethodWithoutRoundingCalled",
+        "StatementWithEmptyBody", "SynchronizationOnLocalVariableOrMethodParameter"})
 public class SelectResultSet implements ResultSet {
     private static final String NOT_UPDATABLE_ERROR = "Updates are not supported when using ResultSet.CONCUR_READ_ONLY";
     
@@ -509,7 +510,7 @@ public class SelectResultSet implements ResultSet {
                 int pos = skipLengthEncodedValue(buf, 1); //skip update count
                 pos = skipLengthEncodedValue(buf, pos); //skip insert id
                 serverStatus = ((buf[pos++] & 0xff) + ((buf[pos++] & 0xff) << 8));
-                warnings = (buf[pos++] & 0xff) + ((buf[pos++] & 0xff) << 8);
+                warnings = (buf[pos++] & 0xff) + ((buf[pos] & 0xff) << 8);
                 callableResult = (serverStatus & PS_OUT_PARAMETERS) != 0;
             }
             protocol.setServerStatus((short) serverStatus);
@@ -1323,6 +1324,7 @@ public class SelectResultSet implements ResultSet {
      * @return float
      * @throws SQLException id any error occur
      */
+    @SuppressWarnings("UnnecessaryInitCause")
     private float getInternalFloat(ColumnInformation columnInfo) throws SQLException {
         if (lastValueNull) return 0;
 
@@ -1349,6 +1351,7 @@ public class SelectResultSet implements ResultSet {
                         SQLException sqlException = new SQLException("Incorrect format \""
                                 + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
                                 + "\" for getFloat for data field with type " + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
+                        //noinspection UnnecessaryInitCause
                         sqlException.initCause(nfe);
                         throw sqlException;
                     }
@@ -1472,6 +1475,7 @@ public class SelectResultSet implements ResultSet {
                         SQLException sqlException = new SQLException("Incorrect format \""
                                 + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
                                 + "\" for getDouble for data field with type " + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
+                        //noinspection UnnecessaryInitCause
                         sqlException.initCause(nfe);
                         throw sqlException;
                     }
@@ -1530,6 +1534,7 @@ public class SelectResultSet implements ResultSet {
                     } catch (NumberFormatException nfe) {
                         SQLException sqlException = new SQLException("Incorrect format for getDouble for data field with type "
                                 + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
+                        //noinspection UnnecessaryInitCause
                         sqlException.initCause(nfe);
                         throw sqlException;
                     }
@@ -1866,6 +1871,7 @@ public class SelectResultSet implements ResultSet {
      * @return timestamp.
      * @throws SQLException if text value cannot be parse
      */
+    @SuppressWarnings("ConstantConditions")
     private Timestamp getInternalTimestamp(ColumnInformation columnInfo, Calendar userCalendar) throws SQLException {
         if (lastValueNull) return null;
 
@@ -3339,9 +3345,9 @@ public class SelectResultSet implements ResultSet {
                     | (row.buf[row.pos + 11] & 0xff) << 24);
         }
 
-        String microsecondString = Integer.toString(microseconds);
+        StringBuilder microsecondString = new StringBuilder(Integer.toString(microseconds));
         while (microsecondString.length() < 6) {
-            microsecondString = "0" + microsecondString;
+            microsecondString.insert(0, "0");
         }
         boolean negative = (row.buf[row.pos] == 0x01);
         return (negative ? "-" : "") + (hourString + ":" + minuteString + ":" + secondString + "." + microsecondString);
@@ -3693,7 +3699,6 @@ public class SelectResultSet implements ResultSet {
         }
 
     }
-
 
     private Date binaryDate(ColumnInformation columnInfo, Calendar cal) throws SQLException {
         switch (columnInfo.getColumnType()) {

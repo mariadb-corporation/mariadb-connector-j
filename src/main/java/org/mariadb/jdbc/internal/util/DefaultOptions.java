@@ -56,6 +56,7 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.util.Properties;
 
+@SuppressWarnings("ALL")
 public enum DefaultOptions {
     /**
      * Database user name.

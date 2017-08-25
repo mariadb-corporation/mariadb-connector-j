@@ -379,9 +379,9 @@ public class MultiTest extends BaseTest {
             int[] updateCounts = statement.executeBatch();
             assertEquals(totalInsertCommands, updateCounts.length);
             int totalUpdates = 0;
-            for (int count = 0; count < updateCounts.length; count++) {
-                assertEquals(1, updateCounts[count]);
-                totalUpdates += updateCounts[count];
+            for (int updateCount : updateCounts) {
+                assertEquals(1, updateCount);
+                totalUpdates += updateCount;
             }
             assertEquals(totalInsertCommands, totalUpdates);
             verifyInsertCount(tmpConnection, totalInsertCommands);
@@ -562,8 +562,8 @@ public class MultiTest extends BaseTest {
             }
             int[] updateCounts = preparedStatement.executeBatch();
             assertEquals(cycles, updateCounts.length);
-            for (int count = 0; count < updateCounts.length; count++) {
-                assertTrue(updateCounts[count] == 2 || updateCounts[count] == Statement.SUCCESS_NO_INFO); //2 rows updated by update.
+            for (int updateCount : updateCounts) {
+                assertTrue(updateCount == 2 || updateCount == Statement.SUCCESS_NO_INFO); //2 rows updated by update.
             }
 
             verifyUpdateCount(tmpConnection, cycles); //1000 update commande launched
@@ -810,7 +810,7 @@ public class MultiTest extends BaseTest {
                 + " rewrite:" + rewrite
                 + " batchMulti:" + batchMulti);
         createTable("MultiTestt9", "id int not null primary key, test varchar(10)");
-        Assume.assumeTrue(!batchMulti || (batchMulti && !sharedIsAurora()));
+        Assume.assumeTrue(!batchMulti || !sharedIsAurora());
 
         try (Connection connection = setBlankConnection(
                 "&useServerPrepStmts=" + serverPrepare

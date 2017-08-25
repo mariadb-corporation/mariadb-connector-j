@@ -14,7 +14,7 @@ import java.security.cert.X509Certificate;
 import static org.junit.Assert.*;
 
 public class HostnameVerifierImplTest {
-    HostnameVerifierImpl verifier = new HostnameVerifierImpl();
+    final HostnameVerifierImpl verifier = new HostnameVerifierImpl();
 
     private static X509Certificate getCertificate(String certString) throws CertificateException {
         CertificateFactory cf = CertificateFactory.getInstance("X.509");

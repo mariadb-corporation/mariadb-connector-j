@@ -56,7 +56,6 @@ import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.send.parameters.*;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;

@@ -81,6 +81,7 @@ import static org.junit.Assert.*;
  * mvn test -DdbUrl=jdbc:mariadb://localhost:3306/testj?user=root -DlogLevel=FINEST
  */
 @Ignore
+@SuppressWarnings("Annotator")
 public class BaseTest {
     protected static final String mDefUrl = "jdbc:mariadb://localhost:3306/testj?user=root";
     protected static String connU;
@@ -96,10 +97,10 @@ public class BaseTest {
     protected static Connection sharedConnection;
     protected static boolean runLongTest = false;
     protected static boolean doPrecisionTest = true;
-    private static Deque<String> tempTableList = new ArrayDeque<>();
-    private static Deque<String> tempViewList = new ArrayDeque<>();
-    private static Deque<String> tempProcedureList = new ArrayDeque<>();
-    private static Deque<String> tempFunctionList = new ArrayDeque<>();
+    private static final Deque<String> tempTableList = new ArrayDeque<>();
+    private static final Deque<String> tempViewList = new ArrayDeque<>();
+    private static final Deque<String> tempProcedureList = new ArrayDeque<>();
+    private static final Deque<String> tempFunctionList = new ArrayDeque<>();
     private static TcpProxy proxy = null;
     private static UrlParser urlParser;
     private static final NumberFormat numberFormat = DecimalFormat.getInstance();
@@ -367,7 +368,7 @@ public class BaseTest {
      */
     static boolean isMariadbServer() throws SQLException {
         DatabaseMetaData md = sharedConnection.getMetaData();
-        return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
+        return md.getDatabaseProductVersion().contains("MariaDB");
     }
 
     /**
@@ -421,10 +422,8 @@ public class BaseTest {
 
     /**
      * Clean proxies.
-     *
-     * @throws SQLException exception
      */
-    public void closeProxy() throws SQLException {
+    public void closeProxy() {
         try {
             proxy.stop();
         } catch (Exception e) {
@@ -433,7 +432,7 @@ public class BaseTest {
     }
 
     @Before
-    public void init() throws SQLException {
+    public void init() {
         Assume.assumeTrue(testSingleHost);
     }
 
@@ -448,7 +447,7 @@ public class BaseTest {
 
     protected Protocol getProtocolFromConnection(Connection conn) throws Throwable {
 
-        Method getProtocol = MariaDbConnection.class.getDeclaredMethod("getProtocol", new Class[0]);
+        Method getProtocol = MariaDbConnection.class.getDeclaredMethod("getProtocol");
         getProtocol.setAccessible(true);
         Object obj = getProtocol.invoke(conn);
         return (Protocol) obj;

@@ -222,7 +222,7 @@ public class CmdInformationMultiple implements CmdInformation {
 
     @Override
     public boolean isCurrentUpdateCount() {
-        return updateCounts.size() < 0 || updateCounts.get(moreResults) != RESULT_SET_VALUE;
+        return updateCounts.get(moreResults) != RESULT_SET_VALUE;
     }
 
     public void setRewrite(boolean rewritten) {

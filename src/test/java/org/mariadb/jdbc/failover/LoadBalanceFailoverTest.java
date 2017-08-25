@@ -71,7 +71,7 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
      * @throws SQLException exception
      */
     @BeforeClass()
-    public static void beforeClass2() throws SQLException {
+    public static void beforeClass2() {
         proxyUrl = proxyLoadbalanceUrl;
         Assume.assumeTrue(initialLoadbalanceUrl != null);
     }
@@ -82,7 +82,7 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
      * @throws SQLException exception
      */
     @Before
-    public void init() throws SQLException {
+    public void init() {
         defaultUrl = initialLoadbalanceUrl;
         currentType = HaMode.LOADBALANCE;
     }

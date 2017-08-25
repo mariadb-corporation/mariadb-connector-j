@@ -241,7 +241,7 @@ public class DataTypeUnsignedTest extends BaseTest {
             }
 
             try (ResultSet rs = DatatypeTest.getResultSet("select * from yearTest", true, connection)) {
-                yearTestResult(rs, sharedOptions().useServerPrepStmts ? true : false);
+                yearTestResult(rs, sharedOptions().useServerPrepStmts);
             }
         }
     }
@@ -701,24 +701,19 @@ public class DataTypeUnsignedTest extends BaseTest {
     }
 
     private void nullTest(ResultSet rs, boolean decimal) throws SQLException {
-        try {
-            if (!decimal) {
-                assertFalse(rs.getBoolean(1));
-            }
-            assertEquals(0, rs.getByte(1));
-            assertTrue(rs.wasNull());
-            assertEquals(0, rs.getShort(1));
-            assertEquals(0, rs.getInt(1));
-            assertEquals(0, rs.getLong(1));
-            assertEquals(0, rs.getDouble(1), .00001);
-            assertEquals(0, rs.getFloat(1), .00001);
-            assertNull(rs.getBigDecimal(1));
-            assertNull(rs.getString(1));
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            fail("must not have thrown error");
+        if (!decimal) {
+            assertFalse(rs.getBoolean(1));
         }
+        assertEquals(0, rs.getByte(1));
+        assertTrue(rs.wasNull());
+        assertEquals(0, rs.getShort(1));
+        assertEquals(0, rs.getInt(1));
+        assertEquals(0, rs.getLong(1));
+        assertEquals(0, rs.getDouble(1), .00001);
+        assertEquals(0, rs.getFloat(1), .00001);
+        assertNull(rs.getBigDecimal(1));
+        assertNull(rs.getString(1));
+
     }
 
 }

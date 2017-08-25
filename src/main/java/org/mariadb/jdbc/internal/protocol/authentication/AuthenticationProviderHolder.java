@@ -67,9 +67,7 @@ public class AuthenticationProviderHolder {
     /**
      * The default provider will construct a new pool on every request.
      */
-    public static final AuthenticationProvider DEFAULT_PROVIDER =
-            (reader, plugin, password, authData, seqNo, passwordCharacterEncoding) ->
-                    DefaultAuthenticationProvider.processAuthPlugin(reader, plugin, password, authData, seqNo, passwordCharacterEncoding);
+    public static final AuthenticationProvider DEFAULT_PROVIDER = DefaultAuthenticationProvider::processAuthPlugin;
 
     private static volatile AuthenticationProvider currentProvider = null;
 

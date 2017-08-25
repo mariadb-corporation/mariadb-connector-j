@@ -61,10 +61,10 @@ import java.util.concurrent.TimeUnit;
 
 
 public class TcpProxy {
-    private static Logger logger = LoggerFactory.getLogger(TcpProxy.class);
+    private static final Logger logger = LoggerFactory.getLogger(TcpProxy.class);
 
-    String host;
-    int remoteport;
+    final String host;
+    final int remoteport;
     TcpProxySocket socket;
 
     /**

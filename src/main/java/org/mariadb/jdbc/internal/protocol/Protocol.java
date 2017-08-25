@@ -114,6 +114,7 @@ public interface Protocol {
 
     boolean getReadonly();
 
+    @SuppressWarnings("RedundantThrows")
     void setReadonly(boolean readOnly) throws SQLException;
 
     boolean isMasterConnection();

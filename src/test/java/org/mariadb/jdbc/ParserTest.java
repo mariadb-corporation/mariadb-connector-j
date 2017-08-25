@@ -91,6 +91,7 @@ public class ParserTest extends BaseTest {
         datasource.setUrl("jdbc:mariadb://localhost:3306/db");
     }
 
+    @SuppressWarnings("EmptyTryBlock")
     @Test
     public void mysqlDatasourceVerification() throws Exception {
         MariaDbDataSource datasource = new MariaDbDataSource();
@@ -133,7 +134,7 @@ public class ParserTest extends BaseTest {
     }
 
     @Test
-    public void auroraClusterVerification() throws Exception {
+    public void auroraClusterVerification() {
         try {
             DriverManager.getConnection("jdbc:mariadb:aurora://"
                     + "1.somehex.us-east-1.rds.amazonaws.com,"

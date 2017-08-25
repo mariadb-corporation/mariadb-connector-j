@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -69,7 +68,6 @@ import static org.junit.Assert.*;
 public class DatatypeTest extends BaseTest {
 
     private ResultSet resultSet;
-    private String str = "\u4f60\u597d(hello in Chinese)";
 
     /**
      * Initialisation.
@@ -371,9 +369,9 @@ public class DatatypeTest extends BaseTest {
     @Test
     public void testLongColName() throws SQLException {
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
-        String str = "";
+        StringBuilder str = new StringBuilder();
         for (int i = 0; i < dbmd.getMaxColumnNameLength(); i++) {
-            str += "x";
+            str.append("x");
         }
         createTable("longcol", str + " int not null primary key");
         sharedConnection.createStatement().execute("insert into longcol values (1)");
@@ -381,22 +379,21 @@ public class DatatypeTest extends BaseTest {
         try (ResultSet rs = getResultSet("select * from longcol", false)) {
             assertEquals(true, rs.next());
             assertEquals(1, rs.getInt(1));
-            assertEquals(1, rs.getInt(str));
+            assertEquals(1, rs.getInt(str.toString()));
             assertEquals("1", rs.getString(1));
         }
 
         try (ResultSet rs = getResultSet("select * from longcol", true)) {
             assertEquals(true, rs.next());
             assertEquals(1, rs.getInt(1));
-            assertEquals(1, rs.getInt(str));
+            assertEquals(1, rs.getInt(str.toString()));
             assertEquals("1", rs.getString(1));
         }
     }
 
     @Test(expected = SQLException.class)
     public void testBadParamlist() throws SQLException {
-        PreparedStatement ps = null;
-        ps = sharedConnection.prepareStatement("insert into blah values (?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into blah values (?)");
         ps.execute();
     }
 
@@ -405,7 +402,7 @@ public class DatatypeTest extends BaseTest {
      */
 
     @Test
-    public void setBitBoolObjectTest() throws SQLException, IOException, ClassNotFoundException {
+    public void setBitBoolObjectTest() throws SQLException {
         PreparedStatement ps = sharedConnection.prepareStatement("insert into bitBoolTest values (?,?)");
         ps.setObject(1, 0);
         ps.setObject(2, 0);
@@ -519,7 +516,7 @@ public class DatatypeTest extends BaseTest {
     }
 
     @Test
-    public void setObjectBitInt() throws SQLException, IOException {
+    public void setObjectBitInt() throws SQLException {
 
         PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO TestBigIntType "
                 + "(t1, t2, t3, t4) VALUES (?, ?, ?, ?)");
@@ -603,7 +600,7 @@ public class DatatypeTest extends BaseTest {
     }
 
     @Test
-    public void binTest2() throws SQLException, IOException {
+    public void binTest2() throws SQLException {
         createTable("bintest2", "bin1 longblob", "engine=innodb");
 
         byte[] buf = new byte[1000000];
@@ -631,7 +628,7 @@ public class DatatypeTest extends BaseTest {
     }
 
     @Test
-    public void binTest3() throws SQLException, IOException {
+    public void binTest3() throws SQLException {
         byte[] buf = new byte[1000000];
         for (int i = 0; i < 1000000; i++) {
             buf[i] = (byte) i;
@@ -658,7 +655,7 @@ public class DatatypeTest extends BaseTest {
         }
     }
 
-    private void binTest2Result(ResultSet rs, byte[] buf) throws SQLException, IOException {
+    private void binTest2Result(ResultSet rs, byte[] buf) throws SQLException {
         if (rs.next()) {
             byte[] buf2 = rs.getBytes(1);
             for (int i = 0; i < 1000000; i++) {
@@ -974,6 +971,7 @@ public class DatatypeTest extends BaseTest {
 
     private void checkCharactersInsert(Connection connection) throws Throwable {
         try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO LatinTable(t1)  values (?)")) {
+            String str = "\u4f60\u597d(hello in Chinese)";
             try {
                 preparedStatement.setString(1, str);
                 preparedStatement.execute();

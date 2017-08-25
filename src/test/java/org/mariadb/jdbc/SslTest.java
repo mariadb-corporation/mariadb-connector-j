@@ -73,6 +73,7 @@ import java.util.UUID;
 
 import static org.junit.Assert.*;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class SslTest extends BaseTest {
     String serverCertificatePath;
     String clientKeystorePath;
@@ -82,7 +83,7 @@ public class SslTest extends BaseTest {
      * Enable Crypto.
      */
     @BeforeClass
-    public static void enableCrypto() throws Exception {
+    public static void enableCrypto() {
         Assume.assumeFalse(System.getenv("MAXSCALE_VERSION") != null || "true".equals(System.getenv("AURORA")));
         try {
             Field field = Class.forName("javax.crypto.JceSecurity").getDeclaredField("isRestricted");
@@ -243,7 +244,7 @@ public class SslTest extends BaseTest {
     }
 
     @Test
-    public void wrongCipherMysqlOptionCompatibility() throws Exception {
+    public void wrongCipherMysqlOptionCompatibility() {
         // Only test with MariaDB since MySQL community is compiled with yaSSL
         try {
             if (isMariadbServer()) {
@@ -299,7 +300,7 @@ public class SslTest extends BaseTest {
     private String getServerCertificate() {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(serverCertificatePath)))) {
             StringBuilder sb = new StringBuilder();
-            String line = null;
+            String line;
             while ((line = br.readLine()) != null) {
                 sb.append(line);
                 sb.append("\n");
@@ -438,7 +439,7 @@ public class SslTest extends BaseTest {
     }
 
     @Test
-    public void conc71() throws SQLException {
+    public void conc71() {
         try {
             Properties info = new Properties();
             info.setProperty("serverSslCert", getServerCertificate());
@@ -900,7 +901,7 @@ public class SslTest extends BaseTest {
         }
     }
 
-    private boolean clientKeystorePathDefined() throws SQLException {
+    private boolean clientKeystorePathDefined() {
         return clientKeystorePath != null && !clientKeystorePath.isEmpty() && clientKeystorePassword != null && !clientKeystorePassword.isEmpty();
     }
 
@@ -917,8 +918,8 @@ public class SslTest extends BaseTest {
     private void generateKeystoreFromFile(String certificateFile, String keystoreFile, String password)
             throws KeyStoreException, CertificateException,
             IOException, NoSuchAlgorithmException {
-        InputStream inStream = null;
-        KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+        InputStream inStream;
+        final KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
 
         // generate a keystore from the provided cert
         if (certificateFile.startsWith("classpath:")) {
@@ -929,7 +930,6 @@ public class SslTest extends BaseTest {
             inStream = new FileInputStream(certificateFile);
         }
 
-        ks = KeyStore.getInstance(KeyStore.getDefaultType());
         try {
             // Note: KeyStore requires it be loaded even if you don't load anything into it:
             ks.load(null);

@@ -65,7 +65,7 @@ class CallParameter {
     int scale;
     String typeName;
     boolean isSigned;
-    int isNullable;
+    int canBeNull;
     int precision;
     String className;
     String name;

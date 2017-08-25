@@ -224,11 +224,10 @@ public class ClientPrepareResult implements PrepareResult {
         boolean endingSemicolon = false;
         char[] query = queryString.toCharArray();
 
-        for (char aQuery : query) {
+        for (char car : query) {
 
             if (state == LexState.Escape) state = LexState.String;
 
-            char car = aQuery;
             switch (car) {
                 case '*':
                     if (state == LexState.Normal && lastChar == '/') state = LexState.SlashStarComment;
@@ -602,7 +601,7 @@ public class ClientPrepareResult implements PrepareResult {
 
         } catch (UnsupportedEncodingException u) {
             //cannot happen
-            return null;
+            throw new IllegalStateException("UTF-8 is an unknown encoding !?");
         }
     }
 
@@ -635,7 +634,6 @@ public class ClientPrepareResult implements PrepareResult {
         String, /* inside string */
         SlashStarComment, /* inside slash-star comment */
         Escape, /* found backslash */
-        Parameter, /* parameter placeholder found */
         EOLComment, /* # comment, or // comment, or -- comment */
         Backtick /* found backtick */
     }

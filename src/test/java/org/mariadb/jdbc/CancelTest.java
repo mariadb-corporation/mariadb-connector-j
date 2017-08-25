@@ -75,7 +75,7 @@ public class CancelTest extends BaseTest {
     }
 
     @Test
-    public void cancelTest() throws SQLException {
+    public void cancelTest() {
         try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
 
             Statement stmt = tmpConnection.createStatement();

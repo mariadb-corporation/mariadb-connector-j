@@ -135,6 +135,7 @@ public class DataSourceTest extends BaseTest {
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
         try (Connection connection = ds.getConnection(username, password)) {
             ds.setServerName(connectToIP);
+            //noinspection EmptyTryBlock
             try (Connection connection2 = ds.getConnection(username, password)) {
                 //do nothing
             }

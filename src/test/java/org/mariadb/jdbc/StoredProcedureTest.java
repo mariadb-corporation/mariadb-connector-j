@@ -759,7 +759,7 @@ public class StoredProcedureTest extends BaseTest {
                 param.append(",");
             }
 
-            procDef.append(" OUT param_" + i + " VARCHAR(32)");
+            procDef.append(" OUT param_").append(i).append(" VARCHAR(32)");
             param.append("?");
         }
 
@@ -789,15 +789,15 @@ public class StoredProcedureTest extends BaseTest {
             int il = buffer.length;
             int[] typesToTest = new int[]{Types.BIT, Types.BINARY, Types.BLOB, Types.JAVA_OBJECT, Types.LONGVARBINARY, Types.VARBINARY};
 
-            for (int i = 0; i < typesToTest.length; i++) {
+            for (int typeToTest : typesToTest) {
                 cstmt.setBinaryStream("mblob", new ByteArrayInputStream(buffer), buffer.length);
-                cstmt.registerOutParameter("mblob", typesToTest[i]);
+                cstmt.registerOutParameter("mblob", typeToTest);
                 cstmt.executeUpdate();
 
                 InputStream is = cstmt.getBlob("mblob").getBinaryStream();
                 ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
-                int bytesRead = 0;
+                int bytesRead;
                 byte[] readBuf = new byte[256];
 
                 while ((bytesRead = is.read(readBuf)) != -1) {
@@ -827,7 +827,7 @@ public class StoredProcedureTest extends BaseTest {
 
         try (CallableStatement callableStatement = sharedConnection.prepareCall("{ call /*comment ? */ testj.testProcedureComment(?, "
                 + "/*comment ? */?) #comment ? }")) {
-            assertTrue(callableStatement.toString().indexOf("/*") != -1);
+            assertTrue(callableStatement.toString().contains("/*"));
             callableStatement.setInt(1, 1);
             callableStatement.setString(2, " a");
             ResultSet rs = callableStatement.executeQuery();
@@ -982,14 +982,14 @@ public class StoredProcedureTest extends BaseTest {
 
         Method[] setters = CallableStatement.class.getMethods();
 
-        for (int i = 0; i < setters.length; i++) {
-            if (setters[i].getName().startsWith("set")) {
-                Class<?>[] args = setters[i].getParameterTypes();
+        for (Method setter : setters) {
+            if (setter.getName().startsWith("set")) {
+                Class<?>[] args = setter.getParameterTypes();
 
                 if (args.length == 2 && args[0].equals(Integer.TYPE)) {
                     if (!args[1].isPrimitive()) {
                         try {
-                            setters[i].invoke(callable, new Object[]{2, null});
+                            setter.invoke(callable, 2, null);
                         } catch (InvocationTargetException ive) {
                             if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                 throw ive;
@@ -998,7 +998,7 @@ public class StoredProcedureTest extends BaseTest {
                     } else {
                         if (args[1].getName().equals("boolean")) {
                             try {
-                                setters[i].invoke(callable, new Object[]{2, Boolean.FALSE});
+                                setter.invoke(callable, 2, Boolean.FALSE);
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -1009,7 +1009,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("byte")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[]{2, (byte) 0});
+                                setter.invoke(callable, 2, (byte) 0);
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -1021,7 +1021,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("double")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[]{2, 0D});
+                                setter.invoke(callable, 2, 0D);
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -1033,7 +1033,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("float")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[]{2, 0f});
+                                setter.invoke(callable, 2, 0f);
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -1045,7 +1045,7 @@ public class StoredProcedureTest extends BaseTest {
                         if (args[1].getName().equals("int")) {
 
                             try {
-                                setters[i].invoke(callable, new Object[]{2, 0});
+                                setter.invoke(callable, 2, 0);
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -1056,7 +1056,7 @@ public class StoredProcedureTest extends BaseTest {
 
                         if (args[1].getName().equals("long")) {
                             try {
-                                setters[i].invoke(callable, new Object[]{2, 0L});
+                                setter.invoke(callable, 2, 0L);
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -1066,7 +1066,7 @@ public class StoredProcedureTest extends BaseTest {
 
                         if (args[1].getName().equals("short")) {
                             try {
-                                setters[i].invoke(callable, new Object[]{2, (short) 0});
+                                setter.invoke(callable, 2, (short) 0);
                             } catch (InvocationTargetException ive) {
                                 if (!(ive.getCause().getClass().getName().equals("java.sql.SQLFeatureNotSupportedException"))) {
                                     throw ive;
@@ -1273,6 +1273,7 @@ public class StoredProcedureTest extends BaseTest {
             callableStatement.execute();
             assertEquals(6, callableStatement.getInt(2));
         } finally {
+            assert callableStatement != null;
             callableStatement.clearParameters();
             callableStatement.close();
             sharedConnection.setCatalog(originalCatalog);

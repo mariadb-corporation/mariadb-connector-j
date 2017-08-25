@@ -310,7 +310,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
     }
 
     public int isNullable(int param) throws SQLException {
-        return getParam(param).isNullable;
+        return getParam(param).canBeNull;
     }
 
     public boolean isSigned(int param) throws SQLException {
@@ -376,8 +376,4 @@ public class CallableParameterMetaData implements ParameterMetaData {
         return false;
     }
 
-    public String getDatabase() throws SQLException {
-        readMetadataFromDbIfRequired();
-        return database;
-    }
 }

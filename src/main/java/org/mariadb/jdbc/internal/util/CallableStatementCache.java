@@ -70,20 +70,6 @@ public class CallableStatementCache extends LinkedHashMap<CallableStatementCache
         return new CallableStatementCache(size);
     }
 
-    /**
-     * Add prepared statement to cache.
-     *
-     * @param key   sql
-     * @param value prepareResult
-     * @return ServerPrepareResult to avoid to prepare statement.
-     */
-    public CallableStatement putIfNone(CallableStatementCacheKey key, CallableStatement value) {
-        if (!containsKey(key)) {
-            put(key, value);
-        }
-        return value;
-    }
-
     @Override
     protected boolean removeEldestEntry(Map.Entry<CallableStatementCacheKey, CallableStatement> eldest) {
         return this.size() > maxSize;

@@ -76,8 +76,13 @@ public class TraceObject {
         this.buf = buf;
     }
 
+    /**
+     * Clear trace array for easy garbage.
+     */
     public void remove() {
-        for (byte[] b : buf) b = null;
+        for (int i = 0; i < buf.length; i++) {
+            buf[i] = null;// force null for easier garbage
+        }
         buf = null;
     }
 

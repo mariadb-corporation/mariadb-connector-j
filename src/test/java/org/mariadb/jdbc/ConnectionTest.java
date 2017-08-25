@@ -126,7 +126,7 @@ public class ConnectionTest extends BaseTest {
 
                 SQLPermission sqlPermission = new SQLPermission("callAbort");
                 SecurityManager securityManager = System.getSecurityManager();
-                if (securityManager != null && sqlPermission != null) {
+                if (securityManager != null) {
                     try {
                         securityManager.checkPermission(sqlPermission);
                     } catch (SecurityException se) {
@@ -135,12 +135,7 @@ public class ConnectionTest extends BaseTest {
                     }
                 }
 
-                Executor executor = new Executor() {
-                    @Override
-                    public void execute(Runnable command) {
-                        command.run();
-                    }
-                };
+                Executor executor = Runnable::run;
 
                 connection.abort(executor);
                 assertTrue(connection.isClosed());
@@ -166,7 +161,7 @@ public class ConnectionTest extends BaseTest {
             int timeout = 1000;
             SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
             SecurityManager securityManager = System.getSecurityManager();
-            if (securityManager != null && sqlPermission != null) {
+            if (securityManager != null) {
                 try {
                     securityManager.checkPermission(sqlPermission);
                 } catch (SecurityException se) {
@@ -174,12 +169,7 @@ public class ConnectionTest extends BaseTest {
                     return;
                 }
             }
-            Executor executor = new Executor() {
-                @Override
-                public void execute(Runnable command) {
-                    command.run();
-                }
-            };
+            Executor executor = Runnable::run;
             try {
                 connection.setNetworkTimeout(executor, timeout);
             } catch (SQLException sqlex) {
@@ -208,7 +198,7 @@ public class ConnectionTest extends BaseTest {
      * @throws SQLException exception
      */
     @Test
-    public void isValidShouldThrowExceptionWithNegativeTimeout() throws SQLException {
+    public void isValidShouldThrowExceptionWithNegativeTimeout() {
         try {
             sharedConnection.isValid(-1);
             fail("The above row should have thrown an SQLException");

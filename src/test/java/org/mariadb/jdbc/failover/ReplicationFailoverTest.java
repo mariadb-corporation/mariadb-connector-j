@@ -73,7 +73,7 @@ public class ReplicationFailoverTest extends BaseReplication {
      * @throws SQLException exception
      */
     @BeforeClass()
-    public static void beforeClass2() throws SQLException {
+    public static void beforeClass2() {
         proxyUrl = proxyReplicationUrl;
         Assume.assumeTrue(initialReplicationUrl != null);
     }
@@ -84,7 +84,7 @@ public class ReplicationFailoverTest extends BaseReplication {
      * @throws SQLException exception
      */
     @Before
-    public void init() throws SQLException {
+    public void init() {
         defaultUrl = initialReplicationUrl;
         currentType = HaMode.REPLICATION;
     }
@@ -140,7 +140,6 @@ public class ReplicationFailoverTest extends BaseReplication {
             }
 
             connection.setReadOnly(true);
-            st = connection.createStatement();
             restartProxy(masterServerId);
             try {
                 connection.setReadOnly(false);

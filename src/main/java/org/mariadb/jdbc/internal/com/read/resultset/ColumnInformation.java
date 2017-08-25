@@ -222,9 +222,9 @@ public class ColumnInformation {
         }
     }
 
-    public String getCatalog() {
-        return null;
-    }
+//    public String getCatalog() {
+//        return null;
+//    }
 
     public String getDb() {
         return getString(1);

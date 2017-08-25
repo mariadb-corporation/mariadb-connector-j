@@ -58,7 +58,6 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.List;
 
 public class ComQuery {

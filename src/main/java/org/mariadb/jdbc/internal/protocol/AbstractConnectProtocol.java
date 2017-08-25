@@ -182,6 +182,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 socket.shutdownOutput();
                 socket.setSoTimeout(3);
                 InputStream is = socket.getInputStream();
+                //noinspection StatementWithEmptyBody
                 while (is.read() != -1) {
                     //read byte
                 }
@@ -529,7 +530,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         writer.flush();
     }
 
-    private void readPipelineAdditionalData() throws IOException, SQLException {
+    private void readPipelineAdditionalData() throws SQLException {
 
         SQLException resultingException = null;
         //read set session OKPacket
@@ -540,35 +541,35 @@ public abstract class AbstractConnectProtocol implements Protocol {
             resultingException = sqlException;
         }
 
-        boolean sessionDataRead;
+        boolean canTrySessionWithShow = false;
         try {
             readRequestSessionVariables();
-            sessionDataRead = true;
         } catch (SQLException sqlException) {
             if (resultingException == null) {
                 resultingException = new SQLException("could not load system variables",
                         CONNECTION_EXCEPTION.getSqlState(), sqlException);
+                canTrySessionWithShow = true;
             }
-            sessionDataRead = false;
         }
 
         try {
             readPipelineCheckMaster();
         } catch (SQLException sqlException) {
+            canTrySessionWithShow = false;
             if (resultingException == null) {
-                resultingException = new SQLException("could not identified if server is master",
-                        CONNECTION_EXCEPTION.getSqlState(), sqlException);
+                throw new SQLException("could not identified if server is master", CONNECTION_EXCEPTION.getSqlState(), sqlException);
             }
+        }
+
+        if (canTrySessionWithShow) {
+            //fallback in case of galera non primary nodes that permit only show / set command,
+            //not SELECT when not part of quorum
+            requestSessionDataWithShow();
         }
 
         if (resultingException != null) throw resultingException;
         connected = true;
 
-        if (!sessionDataRead) {
-            //fallback in case of galera non primary nodes that permit only show / set command,
-            //not SELECT when not part of quorum
-            requestSessionDataWithShow();
-        }
     }
 
     private void requestSessionDataWithShow() throws SQLException {

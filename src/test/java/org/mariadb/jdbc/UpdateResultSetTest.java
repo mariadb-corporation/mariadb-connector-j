@@ -538,7 +538,7 @@ public class UpdateResultSetTest extends BaseTest {
 
 
     @Test
-    public void updateMeta() throws SQLException, IOException {
+    public void updateMeta() throws SQLException {
         DatabaseMetaData meta = sharedConnection.getMetaData();
 
         assertTrue(meta.ownUpdatesAreVisible(ResultSet.TYPE_FORWARD_ONLY));
@@ -562,7 +562,7 @@ public class UpdateResultSetTest extends BaseTest {
     }
 
     @Test
-    public void updateResultSetMeta() throws SQLException, IOException {
+    public void updateResultSetMeta() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         assertEquals(ResultSet.CONCUR_READ_ONLY, stmt.getResultSetConcurrency());
         ResultSet rs = stmt.executeQuery("SELECT 1");

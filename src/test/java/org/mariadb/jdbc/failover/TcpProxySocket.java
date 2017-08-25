@@ -61,10 +61,10 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class TcpProxySocket implements Runnable {
-    private static Logger logger = LoggerFactory.getLogger(TcpProxy.class);
+    private static final Logger logger = LoggerFactory.getLogger(TcpProxy.class);
 
-    String host;
-    int remoteport;
+    final String host;
+    final int remoteport;
     int localport;
     boolean stop = false;
     Socket client = null;
@@ -159,24 +159,22 @@ public class TcpProxySocket implements Runnable {
                     }
                     final InputStream fromServer = server.getInputStream();
                     final OutputStream toServer = server.getOutputStream();
-                    new Thread() {
-                        public void run() {
-                            int bytesRead;
-                            try {
-                                while ((bytesRead = fromClient.read(request)) != -1) {
-                                    toServer.write(request, 0, bytesRead);
-                                    toServer.flush();
-                                }
-                            } catch (IOException e) {
-                                //eat exception
+                    new Thread(() -> {
+                        int bytesRead;
+                        try {
+                            while ((bytesRead = fromClient.read(request)) != -1) {
+                                toServer.write(request, 0, bytesRead);
+                                toServer.flush();
                             }
-                            try {
-                                toServer.close();
-                            } catch (IOException e) {
-                                //eat exception
-                            }
+                        } catch (IOException e) {
+                            //eat exception
                         }
-                    }.start();
+                        try {
+                            toServer.close();
+                        } catch (IOException e) {
+                            //eat exception
+                        }
+                    }).start();
                     int bytesRead;
                     try {
                         while ((bytesRead = fromServer.read(reply)) != -1) {

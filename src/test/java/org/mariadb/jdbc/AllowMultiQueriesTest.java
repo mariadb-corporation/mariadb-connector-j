@@ -98,7 +98,7 @@ public class AllowMultiQueriesTest extends BaseTest {
     }
 
     @Test
-    public void allowMultiQueriesFetchTest() throws SQLException {
+    public void allowMultiQueriesFetchTest() {
         try (Connection connection = setConnection("&allowMultiQueries=true")) {
             try (Statement statement = connection.createStatement()) {
                 statement.setFetchSize(1);

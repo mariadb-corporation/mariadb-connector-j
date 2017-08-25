@@ -70,7 +70,7 @@ import static org.junit.Assert.*;
 
 public class DistributedTransaction extends BaseTest {
 
-    MariaDbDataSource dataSource;
+    final MariaDbDataSource dataSource;
 
     /**
      * Initialisation.
@@ -229,7 +229,7 @@ public class DistributedTransaction extends BaseTest {
 
     @Test
     public void resumeAndJoinTest() throws Exception {
-        Connection conn1 = null;
+        Connection conn1;
         MariaDbDataSource ds = new MariaDbDataSource();
         ds.setUrl(connU);
         ds.setDatabaseName(database);
@@ -261,9 +261,7 @@ public class DistributedTransaction extends BaseTest {
                 xaRes1.start(xid, XAResource.TMJOIN);
                 fail(); // without pinGlobalTxToPhysicalConnection=true
             } catch (XAException xaex) {
-                if (xaConn1 != null) {
-                    xaConn1.close();
-                }
+                xaConn1.close();
             }
 
             ds.setProperties("pinGlobalTxToPhysicalConnection=true");

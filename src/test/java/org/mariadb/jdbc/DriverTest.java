@@ -217,7 +217,7 @@ public class DriverTest extends BaseTest {
     }
 
     private Map<String, Integer> loadVariables(Statement stmt) throws SQLException {
-        Map<String, Integer> variables = new HashMap<String, Integer>();
+        Map<String, Integer> variables = new HashMap<>();
         ResultSet rs = stmt.executeQuery("SHOW SESSION STATUS WHERE Variable_name in ('Prepared_stmt_count','Com_stmt_prepare', 'Com_stmt_close')");
         rs.next();
         variables.put(rs.getString(1), rs.getInt(2));
@@ -534,18 +534,18 @@ public class DriverTest extends BaseTest {
     public void manyColumnsTest() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("drop table if exists test_many_columns");
-        String query = "create table test_many_columns (a0 int primary key not null";
+        StringBuilder query = new StringBuilder("create table test_many_columns (a0 int primary key not null");
         for (int i = 1; i < 1000; i++) {
-            query += ",a" + i + " int";
+            query.append(",a").append(i).append(" int");
         }
-        query += ")";
-        stmt.execute(query);
-        query = "insert into test_many_columns values (0";
+        query.append(")");
+        stmt.execute(query.toString());
+        query = new StringBuilder("insert into test_many_columns values (0");
         for (int i = 1; i < 1000; i++) {
-            query += "," + i;
+            query.append(",").append(i);
         }
-        query += ")";
-        stmt.execute(query);
+        query.append(")");
+        stmt.execute(query.toString());
         ResultSet rs = stmt.executeQuery("select * from test_many_columns");
 
         assertEquals(true, rs.next());
@@ -626,6 +626,7 @@ public class DriverTest extends BaseTest {
     }
 
 
+    @SuppressWarnings("StatementWithEmptyBody")
     @Test
     public void testResultSetPositions() throws SQLException {
         sharedConnection.createStatement().execute("insert into ressetpos values (1),(2),(3),(4)");
@@ -924,7 +925,7 @@ public class DriverTest extends BaseTest {
         st.execute("insert into unsignedtest values(4294967295)");
         ResultSet rs = st.executeQuery("select * from unsignedtest");
         rs.next();
-        assertNotNull(rs.getLong("unsignedtest.a"));
+        assertEquals(4294967295L, rs.getLong("unsignedtest.a"));
     }
 
 
@@ -935,7 +936,7 @@ public class DriverTest extends BaseTest {
             setConnection("&password=");
         } catch (SQLException ex) {
             //SQLException is ok because we might get for example an access denied exception
-            if (!(ex.getMessage().indexOf("Could not connect: Access denied") > -1)) {
+            if (!(ex.getMessage().contains("Could not connect: Access denied"))) {
                 throw ex;
             }
         }
@@ -976,7 +977,7 @@ public class DriverTest extends BaseTest {
 
     /* Check that exception contains SQL statement, for queries with syntax errors */
     @Test
-    public void dumpQueryOnSyntaxException() throws Exception {
+    public void dumpQueryOnSyntaxException() {
         String syntacticallyWrongQuery = "banana";
         try {
             Statement st = sharedConnection.createStatement();
@@ -1072,19 +1073,19 @@ public class DriverTest extends BaseTest {
     @Test
     public void conj25() throws Exception {
         try (Statement stmt = sharedConnection.createStatement()) {
-            String st = "INSERT INTO conj25 VALUES (REPEAT('a',1024))";
+            StringBuilder st = new StringBuilder("INSERT INTO conj25 VALUES (REPEAT('a',1024))");
             for (int i = 1; i <= 100; i++) {
-                st = st + ",(REPEAT('a',1024))";
+                st.append(",(REPEAT('a',1024))");
             }
             stmt.setFetchSize(Integer.MIN_VALUE);
-            stmt.execute(st);
+            stmt.execute(st.toString());
             stmt.executeQuery("SELECT * FROM conj25 a, conj25 b");
         }
 
     }
 
     @Test
-    public void namedPipe() throws Exception {
+    public void namedPipe() {
         try (ResultSet rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket")) {
             rs.next();
             if (rs.getBoolean(1)) {
@@ -1140,7 +1141,7 @@ public class DriverTest extends BaseTest {
      * @throws Exception mustn't occur.
      */
     @Test
-    public void namedPipeWithoutHost() throws Exception {
+    public void namedPipeWithoutHost() {
         try (ResultSet rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket")) {
             rs.next();
             if (rs.getBoolean(1)) {

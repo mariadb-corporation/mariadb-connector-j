@@ -210,7 +210,13 @@ public class HostAddress {
         StringBuilder str = new StringBuilder();
         for (int i = 0; i < addrs.size(); i++) {
             if (addrs.get(i).type != null) {
-                str.append("address=(host=").append(addrs.get(i).host).append(")(port=").append(addrs.get(i).port).append(")(type=").append(addrs.get(i).type).append(")");
+                str.append("address=(host=")
+                        .append(addrs.get(i).host)
+                        .append(")(port=")
+                        .append(addrs.get(i).port)
+                        .append(")(type=")
+                        .append(addrs.get(i).type)
+                        .append(")");
             } else {
                 boolean isIPv6 = addrs.get(i).host != null && addrs.get(i).host.contains(":");
                 String host = (isIPv6) ? ("[" + addrs.get(i).host + "]") : addrs.get(i).host;
@@ -229,11 +235,18 @@ public class HostAddress {
      * @param addrs address array
      * @return String value
      */
+    @SuppressWarnings("unused")
     public static String toString(HostAddress[] addrs) {
         StringBuilder str = new StringBuilder();
         for (int i = 0; i < addrs.length; i++) {
             if (addrs[i].type != null) {
-                str.append("address=(host=").append(addrs[i].host).append(")(port=").append(addrs[i].port).append(")(type=").append(addrs[i].type).append(")");
+                str.append("address=(host=")
+                        .append(addrs[i].host)
+                        .append(")(port=")
+                        .append(addrs[i].port)
+                        .append(")(type=")
+                        .append(addrs[i].type)
+                        .append(")");
             } else {
                 boolean isIPv6 = addrs[i].host != null && addrs[i].host.contains(":");
                 String host = (isIPv6) ? ("[" + addrs[i].host + "]") : addrs[i].host;

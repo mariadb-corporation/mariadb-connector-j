@@ -56,8 +56,6 @@ import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 import java.io.IOException;
-import java.sql.SQLException;
-
 
 public class StringParameter implements Cloneable, ParameterHolder {
 

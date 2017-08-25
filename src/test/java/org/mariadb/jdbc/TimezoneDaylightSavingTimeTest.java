@@ -76,7 +76,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     public static TimeZone canadaTimeZone;
     private static Locale previousFormatLocale;
     private static TimeZone previousTimeZone;
-    private static TimeZone utcTimeZone;
 
     /**
      * Initialisation.
@@ -108,7 +107,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             previousTimeZone = TimeZone.getDefault();
 
             //I have tried to represent all times written in the code in the UTC time zone
-            utcTimeZone = TimeZone.getTimeZone("UTC");
+            final TimeZone utcTimeZone = TimeZone.getTimeZone("UTC");
 
             parisTimeZone = TimeZone.getTimeZone("Europe/Paris");
             canadaTimeZone = TimeZone.getTimeZone("Canada/Atlantic");
@@ -139,7 +138,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
      * @throws SQLException exception
      */
     @AfterClass()
-    public static void endClass() throws SQLException {
+    public static void endClass() {
         if (testSingleHost || !"true".equals(System.getenv("AURORA"))) {
             TimeZone.setDefault(previousTimeZone);
             if (previousFormatLocale != null) Locale.setDefault(previousFormatLocale);
@@ -311,7 +310,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             setSessionTimeZone(connection, "+00:00");
             Calendar initTime = Calendar.getInstance(TimeZone.getTimeZone("Europe/Paris"));
             initTime.clear();
-            initTime.set(1970, 0, 1, 1, 45, 23);
+            initTime.set(1970, Calendar.JANUARY, 1, 1, 45, 23);
             initTime.set(Calendar.MILLISECOND, 123);
 
             Time timeParis = new Time(initTime.getTimeInMillis());
@@ -423,7 +422,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
             Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
             quarterBeforeChangingHour.clear();
-            quarterBeforeChangingHour.set(2015, 2, 29, 0, 45, 0);
+            quarterBeforeChangingHour.set(2015, Calendar.MARCH, 29, 0, 45, 0);
 
             //check that paris is UTC+1, canada is UTC-3
             assertEquals(3600000, parisTimeZone.getOffset(quarterBeforeChangingHour.getTimeInMillis()));
@@ -434,7 +433,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
             Calendar quarterAfterChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
             quarterAfterChangingHour.clear();
-            quarterAfterChangingHour.set(2015, 2, 29, 1, 15, 0);
+            quarterAfterChangingHour.set(2015, Calendar.MARCH, 29, 1, 15, 0);
 
             //check that paris is UTC+2, canada is UTC-3
             assertEquals(2 * 3600000, parisTimeZone.getOffset(quarterAfterChangingHour.getTimeInMillis()));
@@ -734,7 +733,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
                 Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("Canada/Atlantic"));
                 quarterBeforeChangingHour.clear();
-                quarterBeforeChangingHour.set(2015, 2, 28, 21, 45, 0);
+                quarterBeforeChangingHour.set(2015, Calendar.MARCH, 28, 21, 45, 0);
 
                 int offsetBefore = parisTimeZone.getOffset(quarterBeforeChangingHour.getTimeInMillis());
                 assertEquals(offsetBefore, 3600000);
@@ -744,7 +743,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
                 Calendar quarterAfterChangingHour = Calendar.getInstance(TimeZone.getTimeZone("Canada/Atlantic"));
                 quarterAfterChangingHour.clear();
-                quarterAfterChangingHour.set(2015, 2, 28, 22, 15, 0);
+                quarterAfterChangingHour.set(2015, Calendar.MARCH, 28, 22, 15, 0);
 
                 int offsetAfter = parisTimeZone.getOffset(quarterAfterChangingHour.getTimeInMillis());
                 assertEquals(offsetAfter, 7200000);
@@ -789,13 +788,13 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         try (Connection connection = setConnection("&serverTimezone=UTC")) {
             Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
             quarterBeforeChangingHour.clear();
-            quarterBeforeChangingHour.set(2015, 2, 29, 0, 45, 0);
+            quarterBeforeChangingHour.set(2015, Calendar.MARCH, 29, 0, 45, 0);
             int offsetBefore = parisTimeZone.getOffset(quarterBeforeChangingHour.getTimeInMillis());
             assertEquals(offsetBefore, 3600000);
 
             Calendar quarterAfterChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
             quarterAfterChangingHour.clear();
-            quarterAfterChangingHour.set(2015, 2, 29, 1, 15, 0);
+            quarterAfterChangingHour.set(2015, Calendar.MARCH, 29, 1, 15, 0);
             int offsetAfter = parisTimeZone.getOffset(quarterAfterChangingHour.getTimeInMillis());
             assertEquals(offsetAfter, 7200000);
 
@@ -847,7 +846,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             setSessionTimeZone(connection, "Canada/Atlantic");
             Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
             quarterBeforeChangingHour.clear();
-            quarterBeforeChangingHour.set(2015, 2, 29, 0, 45, 0);
+            quarterBeforeChangingHour.set(2015, Calendar.MARCH, 29, 0, 45, 0);
             int offsetBefore = parisTimeZone.getOffset(quarterBeforeChangingHour.getTimeInMillis());
             assertEquals(offsetBefore, 3600000);
 

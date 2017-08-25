@@ -59,6 +59,7 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
 
+@SuppressWarnings("UnnecessaryInitCause")
 public class NamedPipeSocket extends Socket {
     private final String host;
     private final String name;
@@ -114,6 +115,7 @@ public class NamedPipeSocket extends Socket {
                     Field field = kernel32Class.getField("INSTANCE");
                     Object fieldInstance = field.get(kernel32Class);
                     Method waitNamedPipe = fieldInstance.getClass().getMethod("WaitNamedPipe");
+                    //noinspection JavaReflectionInvocation
                     waitNamedPipe.invoke(fieldInstance, filename, timeout);
 
                     //then retry connection

@@ -83,11 +83,10 @@ public class LocalInfileInputStreamTest extends BaseTest {
     public void testLocalInfileInputStream() throws SQLException {
         try (Statement st = sharedConnection.createStatement()) {
             // Build a tab-separated record file
-            StringBuilder builder = new StringBuilder();
-            builder.append("1\thello\n");
-            builder.append("2\tworld\n");
+            String builder = "1\thello\n"
+                    + "2\tworld\n";
 
-            InputStream inputStream = new ByteArrayInputStream(builder.toString().getBytes());
+            InputStream inputStream = new ByteArrayInputStream(builder.getBytes());
             ((MariaDbStatement) st).setLocalInfileInputStream(inputStream);
 
             st.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest (id, test)");
@@ -162,6 +161,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
         }
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Test
     public void loadDataInfileEmpty() throws SQLException, IOException {
         // Create temp file.

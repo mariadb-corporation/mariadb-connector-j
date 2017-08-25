@@ -358,6 +358,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         );
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void dataConformity() throws SQLException {
         Assume.assumeTrue(doPrecisionTest);
@@ -901,11 +902,11 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void testRewriteMultiPacket() throws SQLException {
         createTable("PreparedStatementTest3", "id int");
-        String sql = "INSERT INTO PreparedStatementTest3 VALUES (?)";
+        StringBuilder sql = new StringBuilder("INSERT INTO PreparedStatementTest3 VALUES (?)");
         for (int i = 1; i < 65535; i++) {
-            sql += ",(?)";
+            sql.append(",(?)");
         }
-        PreparedStatement pstmt = sharedConnection.prepareStatement(sql);
+        PreparedStatement pstmt = sharedConnection.prepareStatement(sql.toString());
         for (int i = 1; i < 65536; i++) {
             pstmt.setInt(i, i);
         }

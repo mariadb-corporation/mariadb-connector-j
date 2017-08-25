@@ -77,7 +77,7 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
      * @throws SQLException exception
      */
     @BeforeClass()
-    public static void beforeClass2() throws SQLException {
+    public static void beforeClass2() {
         proxyUrl = proxyGaleraUrl;
         Assume.assumeTrue(initialGaleraUrl != null);
     }
@@ -88,7 +88,7 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
      * @throws SQLException exception
      */
     @Before
-    public void init() throws SQLException {
+    public void init() {
         defaultUrl = initialGaleraUrl;
         currentType = HaMode.FAILOVER;
     }

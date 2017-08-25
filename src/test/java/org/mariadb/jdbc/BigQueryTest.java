@@ -91,10 +91,9 @@ public class BigQueryTest extends BaseTest {
         }
 
         Statement stmt = sharedConnection.createStatement();
-        StringBuilder query = new StringBuilder("INSERT INTO bigblob VALUES (null, '")
-                .append(arr).append("')");
+        String query = "INSERT INTO bigblob VALUES (null, '" + String.valueOf(arr) + "')";
 
-        stmt.executeUpdate(query.toString());
+        stmt.executeUpdate(query);
 
         ResultSet rs = stmt.executeQuery("select * from bigblob");
         rs.next();

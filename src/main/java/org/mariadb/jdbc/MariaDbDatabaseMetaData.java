@@ -171,21 +171,21 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         }
 
         if (catalog == null) {
-            return getImportedKeysUsingInformationSchema(catalog, schema, table);
+            return getImportedKeysUsingInformationSchema(null, table);
         }
 
         if (catalog.isEmpty()) {
             catalog = connection.getCatalog();
             if (catalog == null || catalog.equals("")) {
-                return getImportedKeysUsingInformationSchema(catalog, schema, table);
+                return getImportedKeysUsingInformationSchema(catalog, table);
             }
         }
 
         try {
-            return getImportedKeysUsingShowCreateTable(catalog, schema, table);
+            return getImportedKeysUsingShowCreateTable(catalog, table);
         } catch (Exception e) {
             // Likely, parsing failed, try out I_S query.
-            return getImportedKeysUsingInformationSchema(catalog, schema, table);
+            return getImportedKeysUsingInformationSchema(catalog, table);
         }
     }
 
@@ -581,7 +581,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             throws SQLException {
 
         StringBuilder sql =
-                new StringBuilder("SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME, IF(TABLE_TYPE='BASE TABLE', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
+                new StringBuilder("SELECT TABLE_SCHEMA TABLE_CAT, NULL  TABLE_SCHEM,  TABLE_NAME,"
+                        + " IF(TABLE_TYPE='BASE TABLE', 'TABLE', TABLE_TYPE) as TABLE_TYPE,"
                         + " TABLE_COMMENT REMARKS, NULL TYPE_CAT, NULL TYPE_SCHEM, NULL TYPE_NAME, NULL SELF_REFERENCING_COL_NAME, "
                         + " NULL REF_GENERATION"
                         + " FROM INFORMATION_SCHEMA.TABLES "
@@ -781,12 +782,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * GetImportedKeysUsingInformationSchema.
      *
      * @param catalog catalog
-     * @param schema  schema
      * @param table   table
      * @return resultset
      * @throws SQLException exception
      */
-    public ResultSet getImportedKeysUsingInformationSchema(String catalog, String schema, String table) throws SQLException {
+    public ResultSet getImportedKeysUsingInformationSchema(String catalog, String table) throws SQLException {
         if (table == null) {
             throw new SQLException("'table' parameter in getImportedKeys cannot be null");
         }
@@ -828,12 +828,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * GetImportedKeysUsingShowCreateTable.
      *
      * @param catalog catalog
-     * @param schema  schema
      * @param table   table
      * @return resultset
      * @throws SQLException exception
      */
-    public ResultSet getImportedKeysUsingShowCreateTable(String catalog, String schema, String table) throws Exception {
+    public ResultSet getImportedKeysUsingShowCreateTable(String catalog, String table) throws Exception {
 
         if (catalog == null || catalog.isEmpty()) {
             throw new IllegalArgumentException("catalog");
