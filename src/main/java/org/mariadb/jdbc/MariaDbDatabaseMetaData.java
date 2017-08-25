@@ -1075,12 +1075,24 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + "IGNORE_SERVER_IDS,MASTER_HEARTBEAT_PERIOD,MAXVALUE,RESIGNAL,SIGNALSLOW";
     }
 
-    public String getNumericFunctions() throws SQLException {
+    /**
+     * List of numeric functions.
+     *
+     * @return List of numeric functions.
+     */
+    @Override
+    public String getNumericFunctions() {
         return "DIV,ABS,ACOS,ASIN,ATAN,ATAN2,CEIL,CEILING,CONV,COS,COT,CRC32,DEGREES,EXP,FLOOR,GREATEST,LEAST,LN,LOG,"
                 + "LOG10,LOG2,MOD,OCT,PI,POW,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
     }
 
-    public String getStringFunctions() throws SQLException {
+    /**
+     * List of string functions.
+     *
+     * @return List of string functions.
+     */
+    @Override
+    public String getStringFunctions() {
         return "ASCII,BIN,BIT_LENGTH,CAST,CHARACTER_LENGTH,CHAR_LENGTH,CONCAT,CONCAT_WS,CONVERT,ELT,EXPORT_SET,"
                 + "EXTRACTVALUE,FIELD,FIND_IN_SET,FORMAT,FROM_BASE64,HEX,INSTR,LCASE,LEFT,LENGTH,LIKE,LOAD_FILE,LOCATE,"
                 + "LOWER,LPAD,LTRIM,MAKE_SET,MATCH AGAINST,MID,NOT LIKE,NOT REGEXP,OCTET_LENGTH,ORD,POSITION,QUOTE,"
@@ -1088,11 +1100,23 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + "SUBSTRING_INDEX,TO_BASE64,TRIM,UCASE,UNHEX,UPDATEXML,UPPER,WEIGHT_STRING";
     }
 
-    public String getSystemFunctions() throws SQLException {
+    /**
+     * List of system functions.
+     *
+     * @return List of system functions.
+     */
+    @Override
+    public String getSystemFunctions() {
         return "DATABASE,USER,SYSTEM_USER,SESSION_USER,LAST_INSERT_ID,VERSION";
     }
 
-    public String getTimeDateFunctions() throws SQLException {
+    /**
+     * List of time and date functions.
+     *
+     * @return List of time and date functions.
+     */
+    @Override
+    public String getTimeDateFunctions() {
         return "ADDDATE,ADDTIME,CONVERT_TZ,CURDATE,CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURTIME,DATEDIFF,"
                 + "DATE_ADD,DATE_FORMAT,DATE_SUB,DAY,DAYNAME,DAYOFMONTH,DAYOFWEEK,DAYOFYEAR,EXTRACT,FROM_DAYS,"
                 + "FROM_UNIXTIME,GET_FORMAT,HOUR,LAST_DAY,LOCALTIME,LOCALTIMESTAMP,MAKEDATE,MAKETIME,MICROSECOND,"

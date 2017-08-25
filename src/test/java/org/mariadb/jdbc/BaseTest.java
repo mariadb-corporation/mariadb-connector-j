@@ -552,6 +552,12 @@ public class BaseTest {
         return DriverManager.getConnection(url, info);
     }
 
+    /**
+     * Check if max_allowed_packet value is equal or greater then 8m.
+     * @param testName          test method name
+     * @return true if max_allowed_packet value is equal or greater then 8m.
+     * @throws SQLException if connection fail
+     */
     public boolean checkMaxAllowedPacketMore8m(String testName) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
@@ -574,10 +580,23 @@ public class BaseTest {
         return true;
     }
 
+    /**
+     * Check if max_allowed_packet value is equal or greater then 20m.
+     * @param testName          test method name
+     * @return true if max_allowed_packet value is equal or greater then 20m.
+     * @throws SQLException if connection fail
+     */
     public boolean checkMaxAllowedPacketMore20m(String testName) throws SQLException {
         return checkMaxAllowedPacketMore20m(testName, true);
     }
 
+    /**
+     * Check if max_allowed_packet value is equal or greater then 20m.
+     * @param testName          test method name
+     * @param displayMessage    message to display in case of error.
+     * @return true if max_allowed_packet value is equal or greater then 20m.
+     * @throws SQLException if connection fail
+     */
     public boolean checkMaxAllowedPacketMore20m(String testName, boolean displayMessage) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
@@ -604,10 +623,23 @@ public class BaseTest {
         return true;
     }
 
+    /**
+     * Check if max_allowed_packet value is equal or greater then 40m.
+     * @param testName      test method name
+     * @return true if max_allowed_packet value is equal or greater then 40m.
+     * @throws SQLException if connection fail
+     */
     public boolean checkMaxAllowedPacketMore40m(String testName) throws SQLException {
         return checkMaxAllowedPacketMore40m(testName, true);
     }
 
+    /**
+     * Check if max_allowed_packet value is equal or greater then 40m.
+     * @param testName      test method name
+     * @param displayMsg    message to display in case of error.
+     * @return true if max_allowed_packet value is equal or greater then 40m.
+     * @throws SQLException if connection fail
+     */
     public boolean checkMaxAllowedPacketMore40m(String testName, boolean displayMsg) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
@@ -665,7 +697,12 @@ public class BaseTest {
         return superPrivilege;
     }
 
-    //is the connection local?
+    /**
+     * Is the connection local.
+     *
+     * @param testName test method name
+     * @return true if local
+     */
     public boolean isLocalConnection(String testName) {
         boolean isLocal = false;
 
@@ -685,6 +722,12 @@ public class BaseTest {
         return isLocal;
     }
 
+    /**
+     * Indicate if server has ssl configured.
+     *
+     * @param connection connection to check
+     * @return true if SSL is enabled
+     */
     public boolean haveSsl(Connection connection) {
         try {
             ResultSet rs = connection.createStatement().executeQuery("select @@have_ssl");

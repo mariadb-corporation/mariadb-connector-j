@@ -194,7 +194,8 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
 
     @Test
     public void testInsertSelect() throws Exception {
-        assertTrue(checkParsing("insert into test_insert_select ( field1) (select  TMP.field1 from (select CAST(? as binary) `field1` from dual) TMP)",
+        assertTrue(checkParsing("insert into test_insert_select ( field1) (select  TMP.field1 from "
+                        + "(select CAST(? as binary) `field1` from dual) TMP)",
                 1, false, true,
                 new String[]{
                         "insert into test_insert_select ( field1) (select  TMP.field1 from (select CAST(",

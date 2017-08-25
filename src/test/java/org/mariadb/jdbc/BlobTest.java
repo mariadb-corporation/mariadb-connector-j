@@ -400,7 +400,7 @@ public class BlobTest extends BaseTest {
 
         try (Statement sta2 = sharedConnection.createStatement()) {
             try (ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test")) {
-                int i = 0;
+                int pos = 0;
                 while (set.next()) {
                     final Blob blob = set.getBlob("text");
                     if (blob != null) {
@@ -412,15 +412,13 @@ public class BlobTest extends BaseTest {
                                     bout.write(buffer, 0, read);
                                 }
                             }
-                            byte[] b = bout.toByteArray();
-
-                            assertArrayEquals(bout.toByteArray(), values[i++]);
+                            assertArrayEquals(bout.toByteArray(), values[pos++]);
                         }
                     } else {
-                        assertNull(values[i++]);
+                        assertNull(values[pos++]);
                     }
                 }
-                assertEquals(i, 3);
+                assertEquals(pos, 3);
             }
         }
     }

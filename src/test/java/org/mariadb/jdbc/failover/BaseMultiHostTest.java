@@ -437,8 +437,9 @@ public class BaseMultiHostTest {
         return md.getDatabaseProductVersion().contains("MariaDB");
     }
 
-    protected ServerPrepareResult getPrepareResult(MariaDbPreparedStatementServer preparedStatement) throws IllegalAccessException, NoSuchFieldException {
-        Field prepareResultField = MariaDbPreparedStatementServer.class.getDeclaredField("serverPrepareResult"); //NoSuchFieldException
+    protected ServerPrepareResult getPrepareResult(MariaDbPreparedStatementServer preparedStatement)
+            throws IllegalAccessException, NoSuchFieldException {
+        Field prepareResultField = MariaDbPreparedStatementServer.class.getDeclaredField("serverPrepareResult");
         prepareResultField.setAccessible(true);
         return (ServerPrepareResult) prepareResultField.get(preparedStatement); //IllegalAccessException
     }
