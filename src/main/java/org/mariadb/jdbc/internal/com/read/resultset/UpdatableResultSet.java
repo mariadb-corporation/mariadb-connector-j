@@ -131,20 +131,20 @@ public class UpdatableResultSet extends SelectResultSet {
         //check that resultSet concern one table and database exactly
         for (ColumnInformation columnInformation : columnsInformation) {
 
-            if (columnInformation.getDb() == null
-                    || columnInformation.getDb().isEmpty()) {
+            if (columnInformation.getDatabase() == null
+                    || columnInformation.getDatabase().isEmpty()) {
 
                 cannotUpdateInsertRow("The result-set contains fields without without any database information");
                 return;
 
             } else {
 
-                if (database != null && !database.equals(columnInformation.getDb())) {
+                if (database != null && !database.equals(columnInformation.getDatabase())) {
                     cannotUpdateInsertRow("The result-set contains more than one database");
                     return;
                 }
 
-                database = columnInformation.getDb();
+                database = columnInformation.getDatabase();
             }
 
             if (columnInformation.getOriginalTable() == null

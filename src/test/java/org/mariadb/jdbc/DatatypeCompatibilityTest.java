@@ -208,7 +208,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
         PreparedStatement ps = sharedConnection.prepareStatement("SELECT CONVERT(?, TIME)");
         ps.setTime(1, testTime);
         ResultSet rs = ps.executeQuery();
-        rs.next();
+        assertTrue(rs.next());
         Timestamp ts = rs.getTimestamp(1);
         Time time = rs.getTime(1);
         assertEquals(testTime, ts);

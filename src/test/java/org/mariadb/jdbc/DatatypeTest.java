@@ -149,16 +149,7 @@ public class DatatypeTest extends BaseTest {
                 resultSet.getMetaData().getColumnType(index));
     }
 
-    /**
-     * Testing different date parameters.
-     *
-     * @param connection     current connection
-     * @param tinyInt1isBit  tiny bit must be consider as boolean
-     * @param yearIsDateType year must be consider as Date or int
-     * @throws Exception exception
-     */
-    public void datatypes(Connection connection, boolean tinyInt1isBit, boolean yearIsDateType) throws Exception {
-
+    private void createDataTypeTables() throws SQLException {
         createTable("datatypetest",
                 "bit1 BIT(1) default 0,"
                         + "bit2 BIT(2) default 1,"
@@ -198,7 +189,19 @@ public class DatatypeTest extends BaseTest {
                         + "longtext0 LONGTEXT,"
                         + "enum0 ENUM('a','b') default 'a',"
                         + "set0 SET('a','b') default 'a' ");
+    }
 
+    /**
+     * Testing different date parameters.
+     *
+     * @param connection     current connection
+     * @param tinyInt1isBit  tiny bit must be consider as boolean
+     * @param yearIsDateType year must be consider as Date or int
+     * @throws Exception exception
+     */
+    public void datatypes(Connection connection, boolean tinyInt1isBit, boolean yearIsDateType) throws Exception {
+
+        createDataTypeTables();
 
         connection.createStatement().execute("insert into datatypetest (tinyblob0,mediumblob0,blob0,longblob0,"
                 + "tinytext0,mediumtext0,text0, longtext0) values(0x1,0x1,0x1,0x1, 'a', 'a', 'a', 'a')");
@@ -301,7 +304,7 @@ public class DatatypeTest extends BaseTest {
         stmt.setCharacterStream(2, reader);
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from Driverstreamtest");
-        rs.next();
+        assertTrue(rs.next());
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
         int ch;

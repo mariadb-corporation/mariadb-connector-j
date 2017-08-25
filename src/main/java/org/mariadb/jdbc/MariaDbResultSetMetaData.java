@@ -215,7 +215,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      * @throws SQLException if a database access error occurs
      */
     public String getCatalogName(int column) throws SQLException {
-        return getColumnInformation(column).getDb();
+        return getColumnInformation(column).getDatabase();
     }
 
     /**

@@ -131,9 +131,9 @@ public class SendOldPasswordAuthPacket extends AbstractAuthSwitchSendResponsePac
     }
 
     private class RandStruct {
-        final long maxValue = 0x3FFFFFFFL;
-        long seed1;
-        long seed2;
+        private final long maxValue = 0x3FFFFFFFL;
+        private long seed1;
+        private long seed2;
 
         public RandStruct(long seed1, long seed2) {
             this.seed1 = seed1 % maxValue;

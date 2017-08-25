@@ -150,12 +150,9 @@ public class UrlParser {
      */
     public static UrlParser parse(final String url, Properties prop) throws SQLException {
         if (url != null) {
-
-            if (prop == null) prop = new Properties();
-
             if (url.startsWith("jdbc:mariadb:") || url.startsWith("jdbc:mysql:") && !url.contains(DISABLE_MYSQL_URL)) {
                 UrlParser urlParser = new UrlParser();
-                parseInternal(urlParser, url, prop);
+                parseInternal(urlParser, url, (prop == null) ? new Properties() : prop);
                 return urlParser;
             }
         }

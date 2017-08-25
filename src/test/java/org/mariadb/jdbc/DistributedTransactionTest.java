@@ -68,14 +68,14 @@ import java.util.UUID;
 
 import static org.junit.Assert.*;
 
-public class DistributedTransaction extends BaseTest {
+public class DistributedTransactionTest extends BaseTest {
 
     final MariaDbDataSource dataSource;
 
     /**
      * Initialisation.
      */
-    public DistributedTransaction() {
+    public DistributedTransactionTest() {
         dataSource = new MariaDbDataSource();
         dataSource.setServerName(hostname);
         dataSource.setPortNumber(port);
@@ -94,11 +94,11 @@ public class DistributedTransaction extends BaseTest {
         requireMinimumVersion(5, 0);
     }
 
-    Xid newXid() {
+    private Xid newXid() {
         return new MariaDbXid(1, UUID.randomUUID().toString().getBytes(), UUID.randomUUID().toString().getBytes());
     }
 
-    Xid newXid(Xid branchFrom) {
+    private Xid newXid(Xid branchFrom) {
         return new MariaDbXid(1, branchFrom.getGlobalTransactionId(), UUID.randomUUID().toString().getBytes());
     }
 
@@ -108,7 +108,7 @@ public class DistributedTransaction extends BaseTest {
      * @param doCommit must commit
      * @throws Exception exception
      */
-    void test2PhaseCommit(boolean doCommit) throws Exception {
+    private void test2PhaseCommit(boolean doCommit) throws Exception {
 
         int connectionNumber = 1;
 

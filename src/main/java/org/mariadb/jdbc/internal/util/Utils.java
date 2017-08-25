@@ -224,10 +224,10 @@ public class Utils {
         }
         String func = sb.toString().toLowerCase();
 
-        if (func.equals("convert") || func.equals("timestampdiff") || func.equals("timestampadd")) {
+        if ("convert".equals(func) || "timestampdiff".equals(func) || "timestampadd".equals(func)) {
             String paramPrefix;
 
-            if (func.equals("timestampdiff") || func.equals("timestampadd")) {
+            if ("timestampdiff".equals(func) || "timestampadd".equals(func)) {
                 // Skip to first parameter
                 for (; index < input.length; index++) {
                     if (!Character.isWhitespace(input[index]) && input[index] != '(') {

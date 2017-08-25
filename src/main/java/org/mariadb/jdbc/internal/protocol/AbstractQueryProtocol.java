@@ -101,7 +101,7 @@ import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
-    static ThreadPoolExecutor readScheduler = null;
+    protected static ThreadPoolExecutor readScheduler = null;
     private static final Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
     private int transactionIsolationLevel = 0;
     private InputStream localInfileInputStream;
@@ -363,30 +363,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         ServerPrepareResult tmpServerPrepareResult = serverPrepareResult;
         try {
             SQLException exception = null;
+
             //**************************************************************************************
             // send PREPARE if needed
             //**************************************************************************************
-
             if (serverPrepareResult == null) {
-                if (options.cachePrepStmts) {
-                    tmpServerPrepareResult = serverPrepareStatementCache.get(database + "-" + sql);
-
-                    if (tmpServerPrepareResult != null) {
-                        tmpServerPrepareResult.incrementShareCounter();
-                    }
-                }
-
-                if (tmpServerPrepareResult == null) {
-                    writer.startPacket(0);
-                    writer.write(COM_STMT_PREPARE);
-                    writer.write(sql);
-                    writer.flush();
-                    try {
-                        tmpServerPrepareResult = new ComStmtPrepare(this, sql).read(reader, eofDeprecated);
-                    } catch (SQLException sqle) {
-                        throw logQuery.exceptionWithQuery(sql, sqle);
-                    }
-                }
+                tmpServerPrepareResult = prepare(sql, true);
             }
 
             //**************************************************************************************
@@ -1048,10 +1030,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             results.commandEnd();
             ResultSet rs = results.getResultSet();
 
-            if (rs != null && (!rs.next() || "PRIMARY".equalsIgnoreCase(rs.getString(1)))) return true;
-
-            //connected to a galera node, but not primary
-            return false;
+            //return true if connected to a galera node that is primary
+            return (rs != null && (!rs.next() || "PRIMARY".equalsIgnoreCase(rs.getString(1))));
         }
 
         return ping();
@@ -1361,11 +1341,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         String value = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
                         logger.debug("System variable change : " + variable + "=" + value);
 
-                        //only variable use by
+                        //only variable uses
                         switch (variable) {
+
                             case "auto_increment_increment":
                                 autoIncrementIncrement = Integer.parseInt(value);
                                 results.setAutoIncrement(autoIncrementIncrement);
+                                break;
+
                             default:
                                 //variable not used by driver
                         }

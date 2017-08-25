@@ -121,8 +121,8 @@ public class TimeoutTest extends BaseTest {
         try (Connection connection = setConnection("&connectTimeout=500&socketTimeout=500")) {
             PreparedStatement ps = connection.prepareStatement("SELECT 1");
             ResultSet rs = ps.executeQuery();
-            rs.next();
-            logInfo(rs.getString(1));
+            assertTrue(rs.next());
+            logInfo(rs. getString(1));
 
             // wait for the connection to time out
             ps = connection.prepareStatement("SELECT sleep(1)");

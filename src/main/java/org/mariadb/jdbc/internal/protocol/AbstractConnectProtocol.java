@@ -163,7 +163,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         urlParser.auroraPipelineQuirks();
         this.lock = lock;
         this.urlParser = urlParser;
-        this.options = this.urlParser.getOptions();
+        this.options = urlParser.getOptions();
         this.database = (urlParser.getDatabase() == null ? "" : urlParser.getDatabase());
         this.username = (urlParser.getUsername() == null ? "" : urlParser.getUsername());
         this.password = (urlParser.getPassword() == null ? "" : urlParser.getPassword());
@@ -716,8 +716,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 throw new SQLException("Trying to connect with ssl, but ssl not enabled in the server");
             }
 
-            authentication(exchangeCharset, clientCapabilities, greetingPacket.getSeed(), packetSeq,
-                    greetingPacket.getPluginName());
+            authentication(exchangeCharset, clientCapabilities, packetSeq, greetingPacket);
 
         } catch (IOException e) {
             if (reader != null) {
@@ -732,7 +731,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void authentication(byte exchangeCharset, long clientCapabilities, byte[] seed, byte packetSeq, String plugin)
+    private void authentication(byte exchangeCharset, long clientCapabilities, byte packetSeq, ReadInitialHandShakePacket greetingPacket)
             throws SQLException, IOException {
 
         //send handshake response
@@ -742,10 +741,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 clientCapabilities,
                 serverCapabilities,
                 exchangeCharset,
-                seed,
                 packetSeq,
-                plugin,
-                options);
+                options,
+                greetingPacket);
 
         Buffer buffer = reader.getPacket(false);
 
@@ -756,6 +754,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
                 buffer.readByte();
                 byte[] authData;
+                String plugin;
                 if (buffer.remaining() > 0) {
                     //AuthSwitchRequest packet.
                     plugin = buffer.readStringNullEnd(Charset.forName("ASCII"));
@@ -763,7 +762,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 } else {
                     //OldAuthSwitchRequest
                     plugin = DefaultAuthenticationProvider.MYSQL_OLD_PASSWORD;
-                    authData = Utils.copyWithLength(seed, 8);
+                    authData = Utils.copyWithLength(greetingPacket.getSeed(), 8);
                 }
 
                 //Authentication according to plugin.
@@ -772,7 +771,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         .processAuthPlugin(reader, plugin, password, authData, reader.getLastPacketSeq() + 1,
                                 options.passwordCharacterEncoding);
             } else {
-                interfaceSendPacket = new SendOldPasswordAuthPacket(this.password, Utils.copyWithLength(seed, 8),
+                interfaceSendPacket = new SendOldPasswordAuthPacket(this.password, Utils.copyWithLength(greetingPacket.getSeed(), 8),
                         reader.getLastPacketSeq() + 1, options.passwordCharacterEncoding);
             }
             interfaceSendPacket.send(writer);

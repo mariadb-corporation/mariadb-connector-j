@@ -192,11 +192,11 @@ public abstract class AbstractMultiSend {
     /**
      * Execute Bulk execution (send packets by batch of  useBatchMultiSendNumber or when max packet is reached) before reading results.
      *
-     * @param paramCount parameter counter
+     * @param estimatedParameterCount parameter counter
      * @return prepare result
      * @throws SQLException if any error occur
      */
-    private PrepareResult executeBatchStandard(int paramCount) throws SQLException {
+    private PrepareResult executeBatchStandard(int estimatedParameterCount) throws SQLException {
         int totalExecutionNumber = getTotalExecutionNumber();
         SQLException exception = null;
         BulkStatus status = new BulkStatus();
@@ -205,6 +205,7 @@ public abstract class AbstractMultiSend {
         FutureTask<AsyncMultiReadResult> futureReadTask = null;
 
         int requestNumberByBulk;
+        int paramCount = estimatedParameterCount;
         try {
             do {
                 status.sendEnded = false;

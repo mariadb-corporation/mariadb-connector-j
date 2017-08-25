@@ -556,49 +556,13 @@ public enum DefaultOptions {
         return parse(haMode, properties, options);
     }
 
-    private static Options parse(HaMode haMode, Properties properties, Options options) {
-        boolean initial = false;
-        if (options == null) {
-            options = new Options();
-            initial = true;
-        }
+    private static Options parse(HaMode haMode, Properties properties, Options paramOptions) {
+        Options options = paramOptions != null ? paramOptions : new Options();
 
         try {
             for (DefaultOptions o : DefaultOptions.values()) {
 
-                String propertyValue = properties.getProperty(o.name);
-
-                //Handle alias
-                if (propertyValue == null) {
-                    switch (o.name) {
-                        case "createDatabaseIfNotExist":
-                            propertyValue = properties.getProperty("createDB");
-                            break;
-                        case "useSsl":
-                            propertyValue = properties.getProperty("useSSL");
-                            break;
-                        case "profileSql":
-                            propertyValue = properties.getProperty("profileSQL");
-                            break;
-                        case "enabledSslCipherSuites":
-                            propertyValue = properties.getProperty("enabledSSLCipherSuites");
-                            break;
-                        case "trustStorePassword":
-                            propertyValue = properties.getProperty("trustCertificateKeyStorePassword");
-                            break;
-                        case "trustStore":
-                            propertyValue = properties.getProperty("trustCertificateKeyStoreUrl");
-                            break;
-                        case "keyStorePassword":
-                            propertyValue = properties.getProperty("clientCertificateKeyStorePassword");
-                            break;
-                        case "keyStore":
-                            propertyValue = properties.getProperty("clientCertificateKeyStoreUrl");
-                            break;
-                        default:
-                            //no alias
-                    }
-                }
+                String propertyValue = handleAlias(o.name, properties);
 
                 if (propertyValue != null) {
                     if (o.objType.equals(String.class)) {
@@ -650,7 +614,7 @@ public enum DefaultOptions {
                         }
                     }
                 } else {
-                    if (initial) {
+                    if (paramOptions == null) {
                         if (o.defaultValue instanceof Integer[]) {
                             Options.class.getField(o.name).set(options, ((Integer[]) o.defaultValue)[haMode.ordinal()]);
                         } else {
@@ -666,7 +630,56 @@ public enum DefaultOptions {
             throw new IllegalArgumentException("Security too restrictive : " + s.getMessage());
         }
 
-        //not compatible options
+        optionCoherenceValidation(options);
+
+        return options;
+    }
+
+
+    /**
+     * If properties with alias are set, will be used to set value.
+     *
+     * @param optionName current option name
+     * @param properties list of properties
+     * @return  properties or alias value if existant
+     */
+    private static String handleAlias(String optionName, Properties properties) {
+        String propertyValue = properties.getProperty(optionName);
+
+        if (propertyValue == null) {
+            switch (optionName) {
+                case "createDatabaseIfNotExist":
+                    propertyValue = properties.getProperty("createDB");
+                    break;
+                case "useSsl":
+                    propertyValue = properties.getProperty("useSSL");
+                    break;
+                case "profileSql":
+                    propertyValue = properties.getProperty("profileSQL");
+                    break;
+                case "enabledSslCipherSuites":
+                    propertyValue = properties.getProperty("enabledSSLCipherSuites");
+                    break;
+                case "trustStorePassword":
+                    propertyValue = properties.getProperty("trustCertificateKeyStorePassword");
+                    break;
+                case "trustStore":
+                    propertyValue = properties.getProperty("trustCertificateKeyStoreUrl");
+                    break;
+                case "keyStorePassword":
+                    propertyValue = properties.getProperty("clientCertificateKeyStorePassword");
+                    break;
+                case "keyStore":
+                    propertyValue = properties.getProperty("clientCertificateKeyStoreUrl");
+                    break;
+                default:
+                    //no alias
+            }
+        }
+        return propertyValue;
+    }
+
+    private static void optionCoherenceValidation(Options options) {
 
         //disable use server prepare id using client rewrite
         if (options.rewriteBatchedStatements) {
@@ -683,7 +696,6 @@ public enum DefaultOptions {
             options.usePipelineAuth = false;
         }
 
-        return options;
     }
 
 }

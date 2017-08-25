@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -149,9 +150,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
                     + "  (id, test)");
 
             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM ttlocal");
-            boolean next = rs.next();
-
-            assertTrue(next);
+            assertTrue(rs.next());
             assertEquals(2, rs.getInt(1));
 
             rs = st.executeQuery("SELECT * FROM ttlocal");
@@ -272,8 +271,9 @@ public class LocalInfileInputStreamTest extends BaseTest {
     @Test
     public void test2xMaxAllowedPacketLocalInfileInputStream() throws Exception {
         Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select @@max_allowed_packet");
-        rs.next();
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
+        assertTrue(rs.next());
         long maxAllowedPacket = rs.getLong(1);
         try {
             checkBigLocalInfile(maxAllowedPacket * 2);

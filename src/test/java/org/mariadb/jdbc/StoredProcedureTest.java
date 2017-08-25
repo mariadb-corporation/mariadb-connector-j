@@ -916,7 +916,9 @@ public class StoredProcedureTest extends BaseTest {
         while (rs.next()) {
             assertEquals(parameterNames[index], rs.getString("COLUMN_NAME"));
             assertEquals(parameterTypes[index], rs.getInt("DATA_TYPE"));
+
             switch (index) {
+                
                 case 0:
                 case 6:
                 case 7:
@@ -925,8 +927,10 @@ public class StoredProcedureTest extends BaseTest {
                 case 11:
                     assertEquals(precision[index], rs.getInt("LENGTH"));
                     break;
+
                 default:
                     assertEquals(precision[index], rs.getInt("PRECISION"));
+                    break;
             }
             assertEquals(scale[index], rs.getInt("SCALE"));
             assertEquals(direction[index], rs.getInt("COLUMN_TYPE"));

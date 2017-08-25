@@ -74,12 +74,13 @@ public class SharedMemorySocket extends Socket {
 
     //SDDL string for mutex security flags (Everyone group has SYNCHRONIZE right)
     private static final String EVERYONE_SYNCHRONIZE_SDDL = "D:(A;;0x100000;;;WD)";
-    private static final Map<String, Object> WIN32API_OPTIONS = new HashMap<String, Object>() {
-        {
-            put(Library.OPTION_FUNCTION_MAPPER, W32APIFunctionMapper.UNICODE);
-            put(Library.OPTION_TYPE_MAPPER, W32APITypeMapper.UNICODE);
-        }
-    };
+    private static final Map<String, Object> WIN32API_OPTIONS = new HashMap<>();
+
+    static {
+        WIN32API_OPTIONS.put(Library.OPTION_FUNCTION_MAPPER, W32APIFunctionMapper.UNICODE);
+        WIN32API_OPTIONS.put(Library.OPTION_TYPE_MAPPER, W32APITypeMapper.UNICODE);
+    }
+
     // Size of memory mapped region
     private static final int BUFFERLEN = 16004;
     private InputStream is;
