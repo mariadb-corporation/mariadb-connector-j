@@ -11,6 +11,7 @@ MariaDB java connector is a JDBC 4.2 compatible driver, used to connect applicat
 Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://jira.mariadb.org/projects/CONJ/issues/</a>
 
 ## Status
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/be7f4c89d63e496d824e8f365478e8c8)](https://www.codacy.com/app/diego-dupin/mariadb-connector-j?utm_source=github.com&utm_medium=referral&utm_content=MariaDB/mariadb-connector-j&utm_campaign=badger)
 [![Build Status](https://travis-ci.org/MariaDB/mariadb-connector-j.svg?branch=master)](https://travis-ci.org/MariaDB/mariadb-connector-j)
 [![Build status](https://ci.appveyor.com/api/projects/status/7hpe3wmbu57r8noa/branch/master?svg=true)](https://ci.appveyor.com/project/rusher/mariadb-connector-j/branch/master)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client)
