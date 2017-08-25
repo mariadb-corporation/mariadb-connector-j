@@ -271,7 +271,7 @@ public class DatabaseMetadataTest extends BaseTest {
                     assertEquals(((Number) s1).intValue(), ((Number) s2).intValue());
                 } else {
                     if (s1 != null && s2 != null && !s1.equals(s2)) {
-                        assertTrue(false);
+                        fail();
                     }
                     assertEquals(s1, s2);
                 }
@@ -589,7 +589,7 @@ public class DatabaseMetadataTest extends BaseTest {
                             columnType == Types.NULL);
                     break;
                 default:
-                    assertTrue("invalid type '" + type + "'", false);
+                    fail("invalid type '" + type + "'");
                     break;
             }
         }
@@ -920,7 +920,7 @@ public class DatabaseMetadataTest extends BaseTest {
             String columnName = rs.getString("column_name");
             int type = rs.getInt("data_type");
             String typeName = rs.getString("type_name");
-            assertTrue(!typeName.contains("("));
+            assertFalse(typeName.contains("("));
             for (char c : typeName.toCharArray()) {
                 assertTrue("bad typename " + typeName, c == ' ' || Character.isUpperCase(c));
             }

@@ -120,7 +120,7 @@ public class PooledConnectionTest extends BaseTest {
         MariaDbConnection connection = (MariaDbConnection) pc.getConnection();
         try (PreparedStatement ps = connection.prepareStatement("SELECT ?")) {
             ps.execute();
-            assertTrue("should never get there", false);
+            fail("should never get there");
         } catch (Exception e) {
             assertTrue(listener.statementErrorOccured);
             if (sharedBulkCapacity()) {

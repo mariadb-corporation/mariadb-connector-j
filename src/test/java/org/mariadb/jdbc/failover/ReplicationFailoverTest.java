@@ -228,7 +228,7 @@ public class ReplicationFailoverTest extends BaseReplication {
             } catch (SQLException e) {
                 //normal error
             }
-            assertTrue(!connection.isReadOnly());
+            assertFalse(connection.isReadOnly());
         }
     }
 

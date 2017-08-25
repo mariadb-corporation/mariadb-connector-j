@@ -64,7 +64,6 @@ public class TcpProxy {
     private static final Logger logger = LoggerFactory.getLogger(TcpProxy.class);
 
     private final String host;
-    private final int remoteport;
     private TcpProxySocket socket;
 
     /**
@@ -76,7 +75,6 @@ public class TcpProxy {
      */
     public TcpProxy(String host, int remoteport) throws IOException {
         this.host = host;
-        this.remoteport = remoteport;
         socket = new TcpProxySocket(host, remoteport);
         Executors.newSingleThreadScheduledExecutor().schedule(socket, 0, TimeUnit.MILLISECONDS);
     }

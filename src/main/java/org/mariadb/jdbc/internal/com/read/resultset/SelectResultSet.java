@@ -2047,7 +2047,7 @@ public class SelectResultSet implements ResultSet {
         } else if (type.equals(Boolean.class)) {
             return (T) (Boolean) getInternalBoolean(col);
 
-        } else if (type.equals(java.util.Calendar.class)) {
+        } else if (type.equals(Calendar.class)) {
             Calendar calendar = Calendar.getInstance(timeZone);
             Timestamp timestamp = getInternalTimestamp(col, null);
             if (timestamp == null) return null;

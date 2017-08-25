@@ -220,7 +220,7 @@ public class AuroraFailoverTest extends BaseReplication {
             }
 
             // the connection should not be closed
-            assertTrue(!connection.isClosed());
+            assertFalse(connection.isClosed());
         }
     }
 

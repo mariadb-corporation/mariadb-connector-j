@@ -142,7 +142,7 @@ public class StatementTest extends BaseTest {
         st1.close();
         conn2.close();
         Statement st2 = conn2.createStatement();
-        assertTrue(false);
+        fail();
         st2.close();
     }
 

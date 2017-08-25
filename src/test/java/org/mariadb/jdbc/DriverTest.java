@@ -255,7 +255,7 @@ public class DriverTest extends BaseTest {
         assertTrue(rs.isBeforeFirst());
         try {
             rs.first();
-            assertFalse("should not get there", true);
+            fail("should not get there");
         } catch (SQLException sqle) {
             assertTrue(sqle.getMessage().toLowerCase().contains("invalid operation"));
         }
@@ -634,7 +634,7 @@ public class DriverTest extends BaseTest {
         ResultSet rs = stmt.executeQuery("select * from ressetpos");
         assertTrue(rs.isBeforeFirst());
         assertTrue(rs.next());
-        assertTrue(!rs.isBeforeFirst());
+        assertFalse(rs.isBeforeFirst());
         assertTrue(rs.isFirst());
         rs.beforeFirst();
         assertTrue(rs.isBeforeFirst());
