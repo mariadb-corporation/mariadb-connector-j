@@ -352,6 +352,8 @@ public class MultiTest extends BaseTest {
         try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
             createTable("insertSelectTable1", "tt int");
             createTable("insertSelectTable2", "tt int");
+            Statement stmt = connection.createStatement();
+            stmt.execute("INSERT INTO insertSelectTable2(tt) VALUES (1),(2),(1)");
 
             PreparedStatement ps = connection.prepareStatement(
                     "INSERT INTO insertSelectTable1 "
@@ -362,6 +364,10 @@ public class MultiTest extends BaseTest {
             ps.setInt(1, 2);
             ps.addBatch();
             ps.executeBatch();
+
+            ResultSet rs = stmt.executeQuery("SELECT count(*) FROM insertSelectTable1");
+            assertTrue(rs.next());
+            assertEquals(3, rs.getInt(1));
         }
     }
 
@@ -1051,7 +1057,7 @@ public class MultiTest extends BaseTest {
             checkResults(tmpConnection);
             checkResultsPrepare(tmpConnection);
             checkResultsPrepareMulti(tmpConnection);
-            checkResultsPrepareBatch(tmpConnection, true);
+            checkResultsPrepareBatch(tmpConnection);
         }
     }
 
@@ -1068,13 +1074,12 @@ public class MultiTest extends BaseTest {
             checkResults(tmpConnection);
             checkResultsPrepare(tmpConnection);
             checkResultsPrepareMulti(tmpConnection);
-            checkResultsPrepareBatch(tmpConnection, false);
+            checkResultsPrepareBatch(tmpConnection);
         }
 
     }
 
-
-    private void checkResultsPrepareBatch(Connection connection, boolean isRewrite) throws SQLException {
+    private void checkResultsPrepareBatch(Connection connection) throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             stmt.executeQuery("truncate table testMultiGeneratedKey");
 
@@ -1096,7 +1101,6 @@ public class MultiTest extends BaseTest {
             assertEquals(4, rs.getInt(1));
             assertFalse(rs.next());
             assertFalse(preparedStatement.getMoreResults());
-
 
             assertEquals(1, updates[0]);
             assertEquals(1, updates[1]);

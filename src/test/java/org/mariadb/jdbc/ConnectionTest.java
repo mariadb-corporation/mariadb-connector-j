@@ -89,21 +89,21 @@ public class ConnectionTest extends BaseTest {
         try {
             DriverManager.getConnection("jdbc:mariadb://" + ((hostname != null) ? hostname : "localhost")
                     + ":" + port + "/" + database + "?user=foo");
-            Assert.fail();
+            fail();
         } catch (SQLException e) {
             switch (e.getErrorCode()) {
                 case (1524):
                     //GSSAPI plugin not loaded
-                    Assert.assertTrue("HY000".equals(e.getSQLState()));
+                    assertTrue("HY000".equals(e.getSQLState()));
                     break;
 
                 case (1045):
-                    Assert.assertTrue("28000".equals(e.getSQLState()));
+                    assertTrue("28000".equals(e.getSQLState()));
                     break;
 
                 case (1044):
                     //mysql
-                    Assert.assertTrue("42000".equals(e.getSQLState()));
+                    assertTrue("42000".equals(e.getSQLState()));
                     break;
 
                 default:

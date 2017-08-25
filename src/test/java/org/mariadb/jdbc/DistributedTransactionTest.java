@@ -108,7 +108,7 @@ public class DistributedTransactionTest extends BaseTest {
      * @param doCommit must commit
      * @throws Exception exception
      */
-    private void test2PhaseCommit(boolean doCommit) throws Exception {
+    private int test2PhaseCommit(boolean doCommit) throws Exception {
 
         int connectionNumber = 1;
 
@@ -140,17 +140,6 @@ public class DistributedTransactionTest extends BaseTest {
                 }
             }
 
-            // check the completion
-            try (ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
-                if (doCommit) {
-                    for (int i = 0; i < connectionNumber; i++) {
-                        assertTrue(rs.next());
-                        assertEquals(rs.getInt(1), i);
-                    }
-                } else {
-                    assertFalse(rs.next());
-                }
-            }
         } finally {
             for (int i = 0; i < connectionNumber; i++) {
                 try {
@@ -162,6 +151,7 @@ public class DistributedTransactionTest extends BaseTest {
                 }
             }
         }
+        return connectionNumber;
     }
 
     private void startAllResources(int connectionNumber, XAResource[] xaResources, Xid[] xids) throws XAException {
@@ -191,12 +181,24 @@ public class DistributedTransactionTest extends BaseTest {
 
     @Test
     public void testCommit() throws Exception {
-        test2PhaseCommit(true);
+        int connectionNumber = test2PhaseCommit(true);
+
+        // check the completion
+        try (ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
+            for (int i = 0; i < connectionNumber; i++) {
+                assertTrue(rs.next());
+                assertEquals(rs.getInt(1), i);
+            }
+        }
     }
 
     @Test
     public void testRollback() throws Exception {
         test2PhaseCommit(false);
+        // check the completion
+        try (ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
+            assertFalse(rs.next());
+        }
     }
 
     @Test

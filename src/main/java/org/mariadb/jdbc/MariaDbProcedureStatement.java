@@ -88,8 +88,8 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
     }
 
     private void setParamsAccordingToSetArguments() {
-        params = new ArrayList<>(this.parameterCount);
-        for (int index = 0; index < this.parameterCount; index++) {
+        params = new ArrayList<>(parameterCount);
+        for (int index = 0; index < parameterCount; index++) {
             params.add(new CallParameter());
         }
     }

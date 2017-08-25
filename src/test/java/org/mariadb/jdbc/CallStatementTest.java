@@ -141,7 +141,7 @@ public class CallStatementTest extends BaseTest {
         PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call prepareStmtWithOutParameter(?,?)}");
         preparedStatement.setInt(1, 2);
         preparedStatement.setInt(2, 3);
-        preparedStatement.execute();
+        assertTrue(preparedStatement.execute());
     }
 
     @Test
@@ -281,7 +281,7 @@ public class CallStatementTest extends BaseTest {
         PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call prepareWithNoParameters()}");
         ResultSet rs = preparedStatement.executeQuery();
         assertTrue(rs.next());
-        Assert.assertEquals("mike", rs.getString(1));
+        assertEquals("mike", rs.getString(1));
     }
 
     @Test
@@ -294,7 +294,7 @@ public class CallStatementTest extends BaseTest {
                 while (resultSet.next()) {
                     rowCount++;
                 }
-                Assert.assertEquals(1, rowCount);
+                assertEquals(1, rowCount);
             }
             statement.execute("SELECT 1");
         }

@@ -249,6 +249,9 @@ public class DateTest extends BaseTest {
             try (ResultSet rs = pstmt2.executeQuery()) {
                 testTime11(rs);
             }
+        } catch (SQLException sqle) {
+            sqle.printStackTrace();
+            fail();
         }
     }
 
@@ -277,6 +280,9 @@ public class DateTest extends BaseTest {
             try (ResultSet rs = pstmt2.executeQuery()) {
                 testTime11(rs);
             }
+        } catch (SQLException sqle) {
+            sqle.printStackTrace();
+            fail();
         }
     }
 

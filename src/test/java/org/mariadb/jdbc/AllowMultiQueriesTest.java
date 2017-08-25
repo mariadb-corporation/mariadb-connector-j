@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -102,13 +101,13 @@ public class AllowMultiQueriesTest extends BaseTest {
             stmt.execute("SELECT 1; SET @TOTO=3; SELECT 2", Statement.RETURN_GENERATED_KEYS);
             ResultSet rs = stmt.getResultSet();
             assertTrue(rs.next());
-            Assert.assertEquals(1, rs.getInt(1));
-            Assert.assertTrue(stmt.getMoreResults());
+            assertEquals(1, rs.getInt(1));
+            assertTrue(stmt.getMoreResults());
             stmt.getGeneratedKeys();
-            Assert.assertTrue(stmt.getMoreResults());
+            assertTrue(stmt.getMoreResults());
             rs = stmt.getResultSet();
             assertTrue(rs.next());
-            Assert.assertEquals(2, rs.getInt(1));
+            assertEquals(2, rs.getInt(1));
         }
     }
 

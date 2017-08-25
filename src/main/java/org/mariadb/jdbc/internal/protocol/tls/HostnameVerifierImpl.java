@@ -179,8 +179,6 @@ public class HostnameVerifierImpl implements HostnameVerifier {
             //***********************************************************
             // RFC 6125 : check Subject Alternative Name (SAN)
             //***********************************************************
-            String altNameError = "";
-
             SubjectAltNames subjectAltNames = getSubjectAltNames(cert);
             if (!subjectAltNames.isEmpty()) {
 

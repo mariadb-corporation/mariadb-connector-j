@@ -66,10 +66,10 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
 
     private static final Logger logger = LoggerFactory.getLogger(MariaDbPreparedStatementServer.class);
 
+    protected int parameterCount = -1;
     private String sql;
     private ServerPrepareResult serverPrepareResult = null;
     private boolean returnTableAlias = false;
-    private int parameterCount = -1;
     private MariaDbResultSetMetaData metadata;
     private MariaDbParameterMetaData parameterMetaData;
     private Map<Integer, ParameterHolder> currentParameterHolder;

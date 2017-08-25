@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -135,13 +134,13 @@ public class TruncateExceptionTest extends BaseTest {
             //resultSet must have been fetch
             ResultSet rs = pstmt.getGeneratedKeys();
             assertTrue(rs.next());
-            Assert.assertEquals(1, rs.getInt(1));
+            assertEquals(1, rs.getInt(1));
             if (sharedIsRewrite()) {
                 //rewritten with semi-colons -> error has stopped
                 assertFalse(rs.next());
             } else {
                 assertTrue(rs.next());
-                Assert.assertEquals(2, rs.getInt(1));
+                assertEquals(2, rs.getInt(1));
                 assertFalse(rs.next());
             }
         }
@@ -177,7 +176,7 @@ public class TruncateExceptionTest extends BaseTest {
             ResultSet rs = pstmt.getGeneratedKeys();
             for (int i = 1; i <= (sharedIsRewrite() ? 4 : 6); i++) {
                 assertTrue(rs.next());
-                Assert.assertEquals(i, rs.getInt(1));
+                assertEquals(i, rs.getInt(1));
             }
             assertFalse(rs.next());
         }

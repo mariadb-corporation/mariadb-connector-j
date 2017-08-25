@@ -89,7 +89,7 @@ public class ConnectionPoolTest extends BaseTest {
         ds.addDataSourceProperty("user", username);
         if (password != null) ds.addDataSourceProperty("password", password);
         ds.setAutoCommit(false);
-        validateDataSource(ds);
+        Assert.assertTrue(validateDataSource(ds));
 
     }
 
@@ -104,7 +104,7 @@ public class ConnectionPoolTest extends BaseTest {
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
         try (HikariDataSource ds = new HikariDataSource(config)) {
-            validateDataSource(ds);
+            Assert.assertTrue(validateDataSource(ds));
         }
 
     }
@@ -160,12 +160,13 @@ public class ConnectionPoolTest extends BaseTest {
     }
 
 
-    private void validateDataSource(DataSource ds) throws SQLException {
+    private boolean validateDataSource(DataSource ds) throws SQLException {
         try (Connection connection = ds.getConnection()) {
             try (Statement statement = connection.createStatement()) {
                 try (ResultSet rs = statement.executeQuery("SELECT 1")) {
                     Assert.assertTrue(rs.next());
                     Assert.assertEquals(1, rs.getInt(1));
+                    return true;
                 }
             }
         }

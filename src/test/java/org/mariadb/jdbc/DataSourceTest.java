@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -162,7 +161,7 @@ public class DataSourceTest extends BaseTest {
         //must throw SQLException
         try {
             ds.getConnection(username, password);
-            Assert.fail();
+            fail();
         } catch (SQLException e) {
             //normal error
         }

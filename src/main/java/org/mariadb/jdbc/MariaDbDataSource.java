@@ -148,7 +148,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      *
      * @param userName the username
      */
-    private void setUserName(String userName) {
+    public void setUserName(String userName) {
         setUser(userName);
     }
 

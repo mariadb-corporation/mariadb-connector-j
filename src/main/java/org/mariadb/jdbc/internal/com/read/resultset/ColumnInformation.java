@@ -56,7 +56,6 @@ import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Types;
 

@@ -265,11 +265,6 @@ public class UpdatableResultSet extends SelectResultSet {
         canBeInserted = false;
     }
 
-    private void cannotUpdateRow(String reason) {
-        if (exceptionUpdateMsg == null) exceptionUpdateMsg = "ResultSet cannot be updated. " + reason;
-        canBeUpdate = false;
-    }
-
     private void cannotInsertRow(String reason) {
         if (exceptionInsertMsg == null) exceptionInsertMsg = "No row can be inserted. " + reason;
         canBeInserted = false;

@@ -306,6 +306,9 @@ public class DatatypeCompatibilityTest extends BaseTest {
             testPreparedStatementGetTime(connection);
             testStatementGetString(connection);
             testPreparedStatementGetString(connection);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
         }
     }
 

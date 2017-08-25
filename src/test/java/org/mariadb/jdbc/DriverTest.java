@@ -643,7 +643,7 @@ public class DriverTest extends BaseTest {
         }
         assertTrue(rs.isAfterLast());
         rs.absolute(4);
-        assertTrue(!rs.isAfterLast());
+        assertFalse(rs.isAfterLast());
         rs.absolute(2);
         assertEquals(2, rs.getInt(1));
         rs.relative(2);

@@ -111,10 +111,10 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
             }
         }
 
-        Assert.assertTrue(connectionMap.size() >= 2);
+        assertTrue(connectionMap.size() >= 2);
         for (String key : connectionMap.keySet()) {
             Integer connectionCount = connectionMap.get(key).get();
-            Assert.assertTrue(connectionCount > 1);
+            assertTrue(connectionCount > 1);
         }
     }
 

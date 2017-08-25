@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -310,7 +309,7 @@ public class BlobTest extends BaseTest {
         char[] chars = new char[4];
         //noinspection ResultOfMethodCallIgnored
         readStuff.read(chars);
-        Assert.assertEquals(new String(chars), clob);
+        assertEquals(new String(chars), clob);
     }
 
     @Test
@@ -375,18 +374,24 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void conj77() throws Exception {
+
+        byte[][] values = new byte[3][];
+        values[0] = "".getBytes();
+        values[1] = "hello".getBytes();
+        values[2] = null;
+
         try (Statement sta1 = sharedConnection.createStatement()) {
             try (PreparedStatement pre = sharedConnection.prepareStatement("INSERT INTO conj77_test (Name,Archive) VALUES (?,?)")) {
-                pre.setString(1, "Empty String");
-                pre.setBytes(2, "".getBytes());
+                pre.setString(1, "1-Empty String");
+                pre.setBytes(2, values[0]);
                 pre.addBatch();
 
-                pre.setString(1, "Data Hello");
-                pre.setBytes(2, "hello".getBytes());
+                pre.setString(1, "2-Data Hello");
+                pre.setBytes(2, values[1]);
                 pre.addBatch();
 
-                pre.setString(1, "Empty Data null");
-                pre.setBytes(2, null);
+                pre.setString(1, "3-Empty Data null");
+                pre.setBytes(2, values[2]);
                 pre.addBatch();
 
                 pre.executeBatch();
@@ -395,6 +400,7 @@ public class BlobTest extends BaseTest {
 
         try (Statement sta2 = sharedConnection.createStatement()) {
             try (ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test")) {
+                int i = 0;
                 while (set.next()) {
                     final Blob blob = set.getBlob("text");
                     if (blob != null) {
@@ -406,9 +412,15 @@ public class BlobTest extends BaseTest {
                                     bout.write(buffer, 0, read);
                                 }
                             }
+                            byte[] b = bout.toByteArray();
+
+                            assertArrayEquals(bout.toByteArray(), values[i++]);
                         }
+                    } else {
+                        assertNull(values[i++]);
                     }
                 }
+                assertEquals(i, 3);
             }
         }
     }
