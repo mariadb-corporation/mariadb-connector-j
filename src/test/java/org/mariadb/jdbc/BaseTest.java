@@ -552,7 +552,7 @@ public class BaseTest {
         return DriverManager.getConnection(url, info);
     }
 
-    boolean checkMaxAllowedPacketMore8m(String testName) throws SQLException {
+    public boolean checkMaxAllowedPacketMore8m(String testName) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         assertTrue(rs.next());
@@ -574,11 +574,11 @@ public class BaseTest {
         return true;
     }
 
-    boolean checkMaxAllowedPacketMore20m(String testName) throws SQLException {
+    public boolean checkMaxAllowedPacketMore20m(String testName) throws SQLException {
         return checkMaxAllowedPacketMore20m(testName, true);
     }
 
-    boolean checkMaxAllowedPacketMore20m(String testName, boolean displayMessage) throws SQLException {
+    public boolean checkMaxAllowedPacketMore20m(String testName, boolean displayMessage) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         assertTrue(rs.next());
@@ -604,11 +604,11 @@ public class BaseTest {
         return true;
     }
 
-    boolean checkMaxAllowedPacketMore40m(String testName) throws SQLException {
+    public boolean checkMaxAllowedPacketMore40m(String testName) throws SQLException {
         return checkMaxAllowedPacketMore40m(testName, true);
     }
 
-    boolean checkMaxAllowedPacketMore40m(String testName, boolean displayMsg) throws SQLException {
+    public boolean checkMaxAllowedPacketMore40m(String testName, boolean displayMsg) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
         assertTrue(rs.next());
@@ -635,8 +635,14 @@ public class BaseTest {
         return true;
     }
 
-    //does the user have super privileges or not?
-    boolean hasSuperPrivilege(String testName) throws SQLException {
+    /**
+     * Does the user have super privileges.
+     *
+     * @param testName test name
+     * @return true if super user
+     * @throws SQLException in any connection occur
+     */
+    public boolean hasSuperPrivilege(String testName) throws SQLException {
         boolean superPrivilege = false;
         try (Statement st = sharedConnection.createStatement()) {
             // first test for specific user and host combination
@@ -660,7 +666,7 @@ public class BaseTest {
     }
 
     //is the connection local?
-    boolean isLocalConnection(String testName) {
+    public boolean isLocalConnection(String testName) {
         boolean isLocal = false;
 
         try {
@@ -679,7 +685,7 @@ public class BaseTest {
         return isLocal;
     }
 
-    boolean haveSsl(Connection connection) {
+    public boolean haveSsl(Connection connection) {
         try {
             ResultSet rs = connection.createStatement().executeQuery("select @@have_ssl");
             assertTrue(rs.next());
@@ -748,7 +754,7 @@ public class BaseTest {
         Assume.assumeFalse(dbVersion.startsWith(major + "." + minor + "." + patch));
     }
 
-    void requireMinimumVersion(int major, int minor) throws SQLException {
+    public void requireMinimumVersion(int major, int minor) throws SQLException {
         Assume.assumeTrue(minVersion(major, minor));
 
     }

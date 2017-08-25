@@ -82,7 +82,7 @@ public class ResultSetMetaDataTest extends BaseTest {
         stmt.execute("insert into test_rsmd (id_col,nullable_col,unikey_col) values (null, 'hej', 9)");
         ResultSet rs = stmt
                 .executeQuery("select id_col, nullable_col, unikey_col as something, char_col,us from test_rsmd");
-        assertEquals(true, rs.next());
+        assertTrue(rs.next());
         ResultSetMetaData rsmd = rs.getMetaData();
 
         assertEquals(true, rsmd.isAutoIncrement(1));

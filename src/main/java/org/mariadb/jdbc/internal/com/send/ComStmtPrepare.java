@@ -100,18 +100,7 @@ public class ComStmtPrepare {
         Buffer buffer = reader.getPacket(true);
         byte firstByte = buffer.getByteAt(buffer.position);
 
-        if (firstByte == ERROR) {
-            ErrorPacket ep = new ErrorPacket(buffer);
-            String message = ep.getMessage();
-            if (1054 == ep.getErrorNumber()) {
-                throw new SQLException("Error preparing query: " + message
-                        + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
-                        + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
-                        ep.getSqlState(), ep.getErrorNumber());
-            } else {
-                throw new SQLException("Error preparing query: " + message, ep.getSqlState(), ep.getErrorNumber());
-            }
-        }
+        if (firstByte == ERROR) throw buildErrorException(buffer);
 
         if (firstByte == OK) {
 
@@ -159,6 +148,19 @@ public class ComStmtPrepare {
 
         } else {
             throw new SQLException("Unexpected packet returned by server, first byte " + firstByte);
+        }
+    }
+
+    private SQLException buildErrorException(Buffer buffer) {
+        ErrorPacket ep = new ErrorPacket(buffer);
+        String message = ep.getMessage();
+        if (1054 == ep.getErrorNumber()) {
+            return new SQLException("Error preparing query: " + message
+                    + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
+                    + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
+                    ep.getSqlState(), ep.getErrorNumber());
+        } else {
+            return new SQLException("Error preparing query: " + message, ep.getSqlState(), ep.getErrorNumber());
         }
     }
 

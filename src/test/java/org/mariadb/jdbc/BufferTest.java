@@ -64,9 +64,9 @@ import static org.junit.Assert.*;
 
 public class BufferTest extends BaseTest {
 
-    static final char[] array8m;
-    static final char[] array20m;
-    static final char[] array40m;
+    private static final char[] array8m;
+    private static final char[] array20m;
+    private static final char[] array40m;
 
     static {
         array8m = new char[8000000];

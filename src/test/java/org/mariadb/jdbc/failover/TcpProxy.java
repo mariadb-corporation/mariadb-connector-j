@@ -63,9 +63,9 @@ import java.util.concurrent.TimeUnit;
 public class TcpProxy {
     private static final Logger logger = LoggerFactory.getLogger(TcpProxy.class);
 
-    final String host;
-    final int remoteport;
-    TcpProxySocket socket;
+    private final String host;
+    private final int remoteport;
+    private TcpProxySocket socket;
 
     /**
      * Initialise proxy.
@@ -92,7 +92,7 @@ public class TcpProxy {
      */
     public void restart(long sleepTime) {
         socket.kill();
-        logger.trace("host proxy port " + socket.localport + " for " + host + " started");
+        logger.trace("host proxy port " + socket.getLocalport() + " for " + host + " started");
         Executors.newSingleThreadScheduledExecutor().schedule(socket, sleepTime, TimeUnit.MILLISECONDS);
     }
 

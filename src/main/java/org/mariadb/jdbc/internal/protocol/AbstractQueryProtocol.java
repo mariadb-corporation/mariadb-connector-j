@@ -988,13 +988,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @throws SQLException if connection occur
      */
     public void forceReleaseWaitingPrepareStatement() throws SQLException {
-
-        if (statementIdToRelease != -1) {
-            if (forceReleasePrepareStatement(statementIdToRelease)) {
-                statementIdToRelease = -1;
-            }
+        if (statementIdToRelease != -1 && forceReleasePrepareStatement(statementIdToRelease)) {
+            statementIdToRelease = -1;
         }
-
     }
 
     @Override

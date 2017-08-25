@@ -195,9 +195,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                                     + "\" to \"" + lowerCaseHost + "\"");
                         }
 
-                        if (entry.extension == Extension.IP) { //IP
-                            if (lowerCaseHost.equals(entry.value)) return;
-                        }
+                        if (entry.extension == Extension.IP && lowerCaseHost.equals(entry.value)) return;
                     }
                 } else if (Utils.isIPv6(lowerCaseHost)) {
                     //***********************************************************
@@ -210,13 +208,11 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                                     + " value=\"" + entry.value
                                     + "\" to \"" + lowerCaseHost + "\"");
                         }
-                        if (entry.extension == Extension.IP) { //IP
-                            if (!Utils.isIPv4(entry.value)) {
-                                String normalizedSubjectAlt = normaliseAddress(entry.value);
-                                if (normalisedHost.equals(normalizedSubjectAlt)) {
-                                    return;
-                                }
-                            }
+
+                        if (entry.extension == Extension.IP
+                                && !Utils.isIPv4(entry.value)
+                                && normalisedHost.equals(normaliseAddress(entry.value))) {
+                            return;
                         }
                     }
                 } else {
@@ -229,11 +225,10 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                                     + " value=" + entry.value
                                     + " to " + lowerCaseHost);
                         }
-                        if (entry.extension == Extension.DNS) { //IP
-                            String normalizedSubjectAlt = entry.value.toLowerCase(Locale.ROOT);
-                            if (matchDns(lowerCaseHost, normalizedSubjectAlt)) {
-                                return;
-                            }
+
+                        if (entry.extension == Extension.DNS
+                                && matchDns(lowerCaseHost, entry.value.toLowerCase(Locale.ROOT))) {
+                            return;
                         }
                     }
                 }
@@ -290,8 +285,8 @@ public class HostnameVerifierImpl implements HostnameVerifier {
     }
 
     private class GeneralName {
-        final String value;
-        final Extension extension;
+        private final String value;
+        private final Extension extension;
 
         public GeneralName(String value, Extension extension) {
             this.value = value;
@@ -305,7 +300,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
     }
 
     private class SubjectAltNames {
-        final List<GeneralName> generalNames = new ArrayList<>();
+        private final List<GeneralName> generalNames = new ArrayList<>();
 
         @Override
         public String toString() {

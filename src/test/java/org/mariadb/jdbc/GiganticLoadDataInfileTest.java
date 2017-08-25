@@ -91,11 +91,10 @@ public class GiganticLoadDataInfileTest extends BaseTest {
                     + " FIELDS TERMINATED BY '\\t' ENCLOSED BY ''"
                     + " ESCAPED BY '\\\\' LINES TERMINATED BY '\\n'";
 
-            statement.execute(sql);
-            ResultSet resultSet = statement.executeQuery("select count(*) from gigantic_load_data_infile");
-            assertTrue(resultSet.next());
-            int numberOfRowsInTable = resultSet.getInt(1);
-            assertEquals(in.numberOfRows, numberOfRowsInTable);
+            assertTrue(statement.execute(sql));
+            ResultSet rs = statement.executeQuery("select count(*) from gigantic_load_data_infile");
+            assertTrue(rs.next());
+            assertEquals(in.numberOfRows, rs.getInt(1));
         }
     }
 

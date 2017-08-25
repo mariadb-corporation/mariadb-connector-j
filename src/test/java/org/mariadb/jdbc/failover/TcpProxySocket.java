@@ -63,13 +63,13 @@ import java.net.Socket;
 public class TcpProxySocket implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(TcpProxy.class);
 
-    final String host;
-    final int remoteport;
-    int localport;
-    boolean stop = false;
-    Socket client = null;
-    Socket server = null;
-    ServerSocket ss;
+    private final String host;
+    private final int remoteport;
+    private int localport;
+    private boolean stop = false;
+    private Socket client = null;
+    private Socket server = null;
+    private ServerSocket ss;
 
     /**
      * Creation of proxy.
@@ -208,5 +208,9 @@ public class TcpProxySocket implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public int getLocalport() {
+        return localport;
     }
 }

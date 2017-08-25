@@ -292,6 +292,7 @@ public abstract class AbstractMastersListener implements Listener {
         HandleErrorResult handleErrorResult = new HandleErrorResult(true);
         if (method != null) {
             switch (method.getName()) {
+
                 case "executeQuery":
                     if (args[2] instanceof String) {
                         String query = ((String) args[2]).toUpperCase();
@@ -304,6 +305,7 @@ public abstract class AbstractMastersListener implements Listener {
                         }
                     }
                     break;
+
                 case "executePreparedQuery":
                     //the statementId has been discarded with previous session
                     try {
@@ -319,9 +321,11 @@ public abstract class AbstractMastersListener implements Listener {
                         //if retry prepare fail, discard error. execution error will indicate the error.
                     }
                     break;
+
                 default:
                     handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                     handleErrorResult.mustThrowError = false;
+                    break;
             }
         }
         return handleErrorResult;

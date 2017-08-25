@@ -131,7 +131,7 @@ public class Utils {
     public static byte[] encryptPassword(final String password, final byte[] seed, String passwordCharacterEncoding)
             throws NoSuchAlgorithmException, UnsupportedEncodingException {
 
-        if (password == null || password.equals("")) return new byte[0];
+        if (password == null || password.isEmpty()) return new byte[0];
 
         final MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
         byte[] bytePwd;
@@ -243,7 +243,7 @@ public class Utils {
                     return new String(input);
                 }
                 paramPrefix = new String(input, index, 8);
-                if (paramPrefix.equals("SQL_TSI_")) {
+                if ("SQL_TSI_".equals(paramPrefix)) {
                     return new String(input, 0, index) + new String(input, index + 8, input.length - (index + 8));
                 }
                 return new String(input);
@@ -262,7 +262,7 @@ public class Utils {
                 return new String(input);
             }
             paramPrefix = new String(input, index, 4);
-            if (paramPrefix.equals("SQL_")) {
+            if ("SQL_".equals(paramPrefix)) {
                 return new String(input, 0, index) + new String(input, index + 4, input.length - (index + 4));
             }
 
@@ -332,7 +332,7 @@ public class Utils {
      */
     @SuppressWarnings("ConstantConditions")
     public static String nativeSql(String sql, boolean noBackslashEscapes) throws SQLException {
-        if (sql.indexOf('{') == -1) return sql;
+        if (!sql.contains("{")) return sql;
 
         StringBuilder escapeSequenceBuf = new StringBuilder();
         StringBuilder sqlBuffer = new StringBuilder();
@@ -515,7 +515,7 @@ public class Utils {
         TimeZone tz = TimeZone.getTimeZone(id);
 
         // Validate the timezone ID. JDK maps invalid timezones to GMT
-        if (tz.getID().equals("GMT") && !id.equals("GMT")) {
+        if ("GMT".equals(tz.getID()) && !"GMT".equals(id)) {
             throw new SQLException("invalid timezone id '" + id + "'");
         }
         return tz;
@@ -673,17 +673,13 @@ public class Utils {
 
             hexaValue[posHexa++] = (byteValue > 31 && byteValue < 127) ? (char) byteValue : '.';
 
-            if (posHexa == 8) {
-                outputBuilder.append(" ");
-            }
-
+            if (posHexa == 8) outputBuilder.append(" ");
             if (posHexa == 16) {
                 outputBuilder.append("    ")
                         .append(hexaValue)
                         .append("\n");
                 posHexa = 0;
             }
-
             pos++;
         }
 

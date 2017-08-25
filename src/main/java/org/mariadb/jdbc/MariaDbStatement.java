@@ -101,13 +101,13 @@ public class MariaDbStatement implements Statement, Cloneable {
     protected final Options options;
     protected int fetchSize;
     protected final boolean canUseServerTimeout;
+    protected volatile boolean executing;
     //are warnings cleared?
     private boolean warningsCleared;
     private boolean mustCloseOnCompletion = false;
     private List<String> batchQueries;
     private Future<?> timerTaskFuture;
     private boolean isTimedout;
-    volatile boolean executing;
     private int maxFieldSize;
 
     /**
@@ -285,13 +285,13 @@ public class MariaDbStatement implements Statement, Cloneable {
     /**
      * Handle Exception for large batch update (return BatchUpdateException with long[].
      *
-     * @param exception      initial exception
-     * @param cmdInformation command return information (to indicate output that have been executed)
-     * @param size           initial batch length
+     * @param initialException  initial exception
+     * @param cmdInformation    command return information (to indicate output that have been executed)
+     * @param size              initial batch length
      * @return a BatchUpdateException
      */
-    private BatchUpdateException executeLargeBatchExceptionEpilogue(SQLException exception, CmdInformation cmdInformation, int size) {
-        exception = handleFailoverAndTimeout(exception);
+    private BatchUpdateException executeLargeBatchExceptionEpilogue(SQLException initialException, CmdInformation cmdInformation, int size) {
+        SQLException exception = handleFailoverAndTimeout(initialException);
         long[] ret;
         if (cmdInformation == null) {
             ret = new long[size];
@@ -804,7 +804,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      * @throws SQLException if a database access error occurs or this method is called on a closed <code>Statement</code>
      */
     public void setEscapeProcessing(final boolean enable) throws SQLException {
-
+        //not handled
     }
 
     /**
@@ -986,6 +986,7 @@ public class MariaDbStatement implements Statement, Cloneable {
      */
     @Override
     public void setPoolable(final boolean poolable) throws SQLException {
+        // not handled
     }
 
     /**

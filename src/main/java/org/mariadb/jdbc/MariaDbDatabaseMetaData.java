@@ -167,7 +167,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
         if (catalog == null && connection.nullCatalogMeansCurrent) {
             /* Treat null catalog as current */
-            catalog = "";
+            return getImportedKeysUsingInformationSchema("", table);
         }
 
         if (catalog == null) {
@@ -176,7 +176,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
         if (catalog.isEmpty()) {
             catalog = connection.getCatalog();
-            if (catalog == null || catalog.equals("")) {
+            if (catalog == null || catalog.isEmpty()) {
                 return getImportedKeysUsingInformationSchema(catalog, table);
             }
         }
@@ -381,22 +381,25 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         if (actionKey == null) {
             return DatabaseMetaData.importedKeyRestrict;
         }
-        if (actionKey.equals("NO ACTION")) {
-            return DatabaseMetaData.importedKeyNoAction;
+        switch (actionKey) {
+            case "NO ACTION":
+                return DatabaseMetaData.importedKeyNoAction;
+
+            case "CASCADE":
+                return DatabaseMetaData.importedKeyCascade;
+
+            case "SET NULL":
+                return DatabaseMetaData.importedKeySetNull;
+
+            case "SET DEFAULT":
+                return DatabaseMetaData.importedKeySetDefault;
+
+            case "RESTRICT":
+                return DatabaseMetaData.importedKeyRestrict;
+
+            default:
+                throw new AssertionError("should not happen");
         }
-        if (actionKey.equals("CASCADE")) {
-            return DatabaseMetaData.importedKeyCascade;
-        }
-        if (actionKey.equals("SET NULL")) {
-            return DatabaseMetaData.importedKeySetNull;
-        }
-        if (actionKey.equals("SET DEFAULT")) {
-            return DatabaseMetaData.importedKeySetDefault;
-        }
-        if (actionKey.equals("RESTRICT")) {
-            return DatabaseMetaData.importedKeyRestrict;
-        }
-        throw new AssertionError("should not happen");
     }
 
     private String dataTypeClause(String fullTypeColumnName) {
@@ -472,15 +475,12 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * @return part of SQL query ,that restricts search for the catalog.
      */
     private String catalogCond(String columnName, String catalog) {
-        if (catalog == null && connection.nullCatalogMeansCurrent) {
-            /* Treat null catalog as current */
-            catalog = "";
-        }
-
         if (catalog == null) {
+            /* Treat null catalog as current */
+            if (connection.nullCatalogMeansCurrent) return "(ISNULL(database()) OR (" + columnName + " = database()))";
             return "(1 = 1)";
         }
-        if (catalog.equals("")) {
+        if (catalog.isEmpty()) {
             return "(ISNULL(database()) OR (" + columnName + " = database()))";
         }
         return "(" + columnName + " = " + escapeQuote(catalog) + ")";
@@ -546,7 +546,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * @return the internal table type.
      */
     private String mapTableTypes(String tableType) {
-        if (tableType.equals("TABLE")) {
+        if ("TABLE".equals(tableType)) {
             return "BASE TABLE";
         }
         return tableType;
@@ -844,9 +844,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
         ResultSet rs = connection.createStatement().executeQuery("SHOW CREATE TABLE "
                 + MariaDbConnection.quoteIdentifier(catalog) + "." + MariaDbConnection.quoteIdentifier(table));
-        rs.next();
-        String tableDef = rs.getString(2);
-        return MariaDbDatabaseMetaData.getImportedKeys(tableDef, table, catalog, connection);
+        if (rs.next()) {
+            String tableDef = rs.getString(2);
+            return MariaDbDatabaseMetaData.getImportedKeys(tableDef, table, catalog, connection);
+        }
+        throw new SQLException("Fail to retrieve table information using SHOW CREATE TABLE");
     }
 
     /**
@@ -1059,141 +1061,31 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      */
     @Override
     public String getSQLKeywords() throws SQLException {
-        return "ACCESSIBLE,"
-                + "ANALYZE,"
-                + "ASENSITIVE,"
-                + "BEFORE,"
-                + "BIGINT,"
-                + "BINARY,"
-                + "BLOB,"
-                + "CALL,"
-                + "CHANGE,"
-                + "CONDITION,"
-                + "DATABASE,"
-                + "DATABASES,"
-                + "DAY_HOUR,"
-                + "DAY_MICROSECOND,"
-                + "DAY_MINUTE,"
-                + "DAY_SECOND,"
-                + "DELAYED,"
-                + "DETERMINISTIC,"
-                + "DISTINCTROW,"
-                + "DIV,"
-                + "DUAL,"
-                + "EACH,"
-                + "ELSEIF,"
-                + "ENCLOSED,"
-                + "ESCAPED,"
-                + "EXIT,"
-                + "EXPLAIN,"
-                + "FLOAT4,"
-                + "FLOAT8,"
-                + "FORCE,"
-                + "FULLTEXT,"
-                + "HIGH_PRIORITY,"
-                + "HOUR_MICROSECOND,"
-                + "HOUR_MINUTE,"
-                + "HOUR_SECOND,"
-                + "IF,"
-                + "IGNORE,"
-                + "INFILE,"
-                + "INOUT,"
-                + "INT1,"
-                + "INT2,"
-                + "INT3,"
-                + "INT4,"
-                + "INT8,"
-                + "ITERATE,"
-                + "KEY,"
-                + "KEYS,"
-                + "KILL,"
-                + "LEAVE,"
-                + "LIMIT,"
-                + "LINEAR,"
-                + "LINES,"
-                + "LOAD,"
-                + "LOCALTIME,"
-                + "LOCALTIMESTAMP,"
-                + "LOCK,"
-                + "LONG,"
-                + "LONGBLOB,"
-                + "LONGTEXT,"
-                + "LOOP,"
-                + "LOW_PRIORITY,"
-                + "MEDIUMBLOB,"
-                + "MEDIUMINT,"
-                + "MEDIUMTEXT,"
-                + "MIDDLEINT,"
-                + "MINUTE_MICROSECOND,"
-                + "MINUTE_SECOND,"
-                + "MOD,"
-                + "MODIFIES,"
-                + "NO_WRITE_TO_BINLOG,"
-                + "OPTIMIZE,"
-                + "OPTIONALLY,"
-                + "OUT,"
-                + "OUTFILE,"
-                + "PURGE,"
-                + "RANGE,"
-                + "READS,"
-                + "READ_ONLY,"
-                + "READ_WRITE,"
-                + "REGEXP,"
-                + "RELEASE,"
-                + "RENAME,"
-                + "REPEAT,"
-                + "REPLACE,"
-                + "REQUIRE,"
-                + "RETURN,"
-                + "RLIKE,"
-                + "SCHEMAS,"
-                + "SECOND_MICROSECOND,"
-                + "SENSITIVE,"
-                + "SEPARATOR,"
-                + "SHOW,"
-                + "SPATIAL,"
-                + "SPECIFIC,"
-                + "SQLEXCEPTION,"
-                + "SQL_BIG_RESULT,"
-                + "SQL_CALC_FOUND_ROWS,"
-                + "SQL_SMALL_RESULT,"
-                + "SSL,"
-                + "STARTING,"
-                + "STRAIGHT_JOIN,"
-                + "TERMINATED,"
-                + "TINYBLOB,"
-                + "TINYINT,"
-                + "TINYTEXT,"
-                + "TRIGGER,"
-                + "UNDO,"
-                + "UNLOCK,"
-                + "UNSIGNED,"
-                + "USE,"
-                + "UTC_DATE,"
-                + "UTC_TIME,"
-                + "UTC_TIMESTAMP,"
-                + "VARBINARY,"
-                + "VARCHARACTER,"
-                + "WHILE,"
-                + "X509,"
-                + "XOR,"
-                + "YEAR_MONTH,"
-                + "ZEROFILL,"
-                + "GENERAL,"
-                + "IGNORE_SERVER_IDS,"
-                + "MASTER_HEARTBEAT_PERIOD,"
-                + "MAXVALUE,"
-                + "RESIGNAL,"
-                + "SIGNAL"
-                + "SLOW";
+        return "ACCESSIBLE,ANALYZE,ASENSITIVE,BEFORE,BIGINT,BINARY,BLOB,CALL,CHANGE,CONDITION,DATABASE,DATABASES,"
+                + "DAY_HOUR,DAY_MICROSECOND,DAY_MINUTE,DAY_SECOND,DELAYED,DETERMINISTIC,DISTINCTROW,DIV,DUAL,EACH,"
+                + "ELSEIF,ENCLOSED,ESCAPED,EXIT,EXPLAIN,FLOAT4,FLOAT8,FORCE,FULLTEXT,HIGH_PRIORITY,HOUR_MICROSECOND,"
+                + "HOUR_MINUTE,HOUR_SECOND,IF,IGNORE,INFILE,INOUT,INT1,INT2,INT3,INT4,INT8,ITERATE,KEY,KEYS,KILL,LEAVE,"
+                + "LIMIT,LINEAR,LINES,LOAD,LOCALTIME,LOCALTIMESTAMP,LOCK,LONG,LONGBLOB,LONGTEXT,LOOP,LOW_PRIORITY,"
+                + "MEDIUMBLOB,MEDIUMINT,MEDIUMTEXT,MIDDLEINT,MINUTE_MICROSECOND,MINUTE_SECOND,MOD,MODIFIES,"
+                + "NO_WRITE_TO_BINLOG,OPTIMIZE,OPTIONALLY,OUT,OUTFILE,PURGE,RANGE,READS,READ_ONLY,READ_WRITE,REGEXP,"
+                + "RELEASE,RENAME,REPEAT,REPLACE,REQUIRE,RETURN,RLIKE,SCHEMAS,SECOND_MICROSECOND,SENSITIVE,SEPARATOR,"
+                + "SHOW,SPATIAL,SPECIFIC,SQLEXCEPTION,SQL_BIG_RESULT,SQL_CALC_FOUND_ROWS,SQL_SMALL_RESULT,SSL,STARTING,"
+                + "STRAIGHT_JOIN,TERMINATED,TINYBLOB,TINYINT,TINYTEXT,TRIGGER,UNDO,UNLOCK,UNSIGNED,USE,UTC_DATE,"
+                + "UTC_TIME,UTC_TIMESTAMP,VARBINARY,VARCHARACTER,WHILE,X509,XOR,YEAR_MONTH,ZEROFILL,GENERAL,"
+                + "IGNORE_SERVER_IDS,MASTER_HEARTBEAT_PERIOD,MAXVALUE,RESIGNAL,SIGNALSLOW";
     }
 
     public String getNumericFunctions() throws SQLException {
-        return ""; //TODO : fix
+        return "DIV,ABS,ACOS,ASIN,ATAN,ATAN2,CEIL,CEILING,CONV,COS,COT,CRC32,DEGREES,EXP,FLOOR,GREATEST,LEAST,LN,LOG,"
+                + "LOG10,LOG2,MOD,OCT,PI,POW,POWER,RADIANS,RAND,ROUND,SIGN,SIN,SQRT,TAN,TRUNCATE";
     }
 
     public String getStringFunctions() throws SQLException {
-        return ""; //TODO: fix
+        return "ASCII,BIN,BIT_LENGTH,CAST,CHARACTER_LENGTH,CHAR_LENGTH,CONCAT,CONCAT_WS,CONVERT,ELT,EXPORT_SET,"
+                + "EXTRACTVALUE,FIELD,FIND_IN_SET,FORMAT,FROM_BASE64,HEX,INSTR,LCASE,LEFT,LENGTH,LIKE,LOAD_FILE,LOCATE,"
+                + "LOWER,LPAD,LTRIM,MAKE_SET,MATCH AGAINST,MID,NOT LIKE,NOT REGEXP,OCTET_LENGTH,ORD,POSITION,QUOTE,"
+                + "REPEAT,REPLACE,REVERSE,RIGHT,RPAD,RTRIM,SOUNDEX,SOUNDS LIKE,SPACE,STRCMP,SUBSTR,SUBSTRING,"
+                + "SUBSTRING_INDEX,TO_BASE64,TRIM,UCASE,UNHEX,UPDATEXML,UPPER,WEIGHT_STRING";
     }
 
     public String getSystemFunctions() throws SQLException {
@@ -1201,7 +1093,12 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     public String getTimeDateFunctions() throws SQLException {
-        return ""; //TODO : fix
+        return "ADDDATE,ADDTIME,CONVERT_TZ,CURDATE,CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURTIME,DATEDIFF,"
+                + "DATE_ADD,DATE_FORMAT,DATE_SUB,DAY,DAYNAME,DAYOFMONTH,DAYOFWEEK,DAYOFYEAR,EXTRACT,FROM_DAYS,"
+                + "FROM_UNIXTIME,GET_FORMAT,HOUR,LAST_DAY,LOCALTIME,LOCALTIMESTAMP,MAKEDATE,MAKETIME,MICROSECOND,"
+                + "MINUTE,MONTH,MONTHNAME,NOW,PERIOD_ADD,PERIOD_DIFF,QUARTER,SECOND,SEC_TO_TIME,STR_TO_DATE,SUBDATE,"
+                + "SUBTIME,SYSDATE,TIMEDIFF,TIMESTAMPADD,TIMESTAMPDIFF,TIME_FORMAT,TIME_TO_SEC,TO_DAYS,TO_SECONDS,"
+                + "UNIX_TIMESTAMP,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,WEEK,WEEKDAY,WEEKOFYEAR,YEAR,YEARWEEK";
     }
 
     public String getSearchStringEscape() throws SQLException {
@@ -1229,12 +1126,12 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     public boolean supportsConvert() throws SQLException {
-        return false; //TODO: fix
+        return true;
     }
 
     public boolean supportsConvert(int fromType, int toType)
             throws SQLException {
-        return false; // TODO: fix
+        return false;
     }
 
     public boolean supportsTableCorrelationNames() throws SQLException {

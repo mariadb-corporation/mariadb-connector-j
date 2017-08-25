@@ -75,9 +75,9 @@ import static org.junit.Assert.*;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class SslTest extends BaseTest {
-    String serverCertificatePath;
-    String clientKeystorePath;
-    String clientKeystorePassword;
+    private String serverCertificatePath;
+    private String clientKeystorePath;
+    private String clientKeystorePassword;
 
     /**
      * Enable Crypto.
@@ -297,7 +297,7 @@ public class SslTest extends BaseTest {
         }
     }
 
-    private String getServerCertificate() {
+    private String getServerCertificate() throws SQLException {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(serverCertificatePath)))) {
             StringBuilder sb = new StringBuilder();
             String line;
@@ -307,7 +307,7 @@ public class SslTest extends BaseTest {
             }
             return sb.toString();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new SQLException("abnormal exception", e);
         }
     }
 

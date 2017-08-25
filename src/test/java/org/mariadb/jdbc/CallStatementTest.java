@@ -256,24 +256,19 @@ public class CallStatementTest extends BaseTest {
     public void testMetaCatalog() throws Exception {
         createProcedure("testMetaCatalog", "(x int, out y int)\nBEGIN\nSELECT 1;end\n");
         ResultSet rs = sharedConnection.getMetaData().getProcedures(sharedConnection.getCatalog(), null, "testMetaCatalog");
-        if (rs.next()) {
-            assertTrue("testMetaCatalog".equals(rs.getString(3)));
-            assertFalse(rs.next());
-        } else {
-            fail();
-        }
+        assertTrue(rs.next());
+        assertTrue("testMetaCatalog".equals(rs.getString(3)));
+        assertFalse(rs.next());
+
         //test with bad catalog
         rs = sharedConnection.getMetaData().getProcedures("yahoooo", null, "testMetaCatalog");
         assertFalse(rs.next());
 
         //test without catalog
         rs = sharedConnection.getMetaData().getProcedures(null, null, "testMetaCatalog");
-        if (rs.next()) {
-            assertTrue("testMetaCatalog".equals(rs.getString(3)));
-            assertFalse(rs.next());
-        } else {
-            fail();
-        }
+        assertTrue(rs.next());
+        assertTrue("testMetaCatalog".equals(rs.getString(3)));
+        assertFalse(rs.next());
     }
 
     @Test

@@ -350,9 +350,7 @@ public class SelectResultSet implements ResultSet {
         List<byte[]> rows = new ArrayList<>();
 
         for (String[] rowData : data) {
-            if (rowData.length != columnNameLength) {
-                throw new RuntimeException("Number of elements in the row != number of columns :" + rowData.length + " vs " + columnNameLength);
-            }
+            assert rowData.length == columnNameLength;
             byte[][] rowBytes = new byte[rowData.length][];
             for (int i = 0; i < rowData.length; i++) {
                 if (rowData[i] != null) rowBytes[i] = rowData[i].getBytes();

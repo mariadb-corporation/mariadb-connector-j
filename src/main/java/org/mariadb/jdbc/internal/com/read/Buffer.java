@@ -300,6 +300,7 @@ public class Buffer {
                 break;
             default:
                 length = type;
+                break;
         }
 
         byte[] tmpBuf = new byte[length];
