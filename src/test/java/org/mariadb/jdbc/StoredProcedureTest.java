@@ -278,7 +278,7 @@ public class StoredProcedureTest extends BaseTest {
         CallableStatement stmt = sharedConnection.prepareCall("{call withResultSet(?)}");
         stmt.setInt(1, 1);
         ResultSet rs = stmt.executeQuery();
-        rs.next();
+        assertTrue(rs.next());
         int res = rs.getInt(1);
         assertEquals(res, 1);
     }
@@ -288,7 +288,7 @@ public class StoredProcedureTest extends BaseTest {
         CallableStatement stmt = sharedConnection.prepareCall("{call useParameterName(?)}");
         stmt.setInt("a", 1);
         ResultSet rs = stmt.executeQuery();
-        rs.next();
+        assertTrue(rs.next());
         int res = rs.getInt(1);
         assertEquals(res, 1);
     }
@@ -538,7 +538,7 @@ public class StoredProcedureTest extends BaseTest {
 
 
         rs = dbmd.getProcedures(sharedConnection.getCatalog(), null, "testFunctionCall");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals("testFunctionCall", rs.getString("PROCEDURE_NAME"));
         assertEquals(DatabaseMetaData.procedureReturnsResult, rs.getShort("PROCEDURE_TYPE"));
         callableStatement.setNull(2, Types.FLOAT);

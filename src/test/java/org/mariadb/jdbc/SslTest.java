@@ -109,7 +109,7 @@ public class SslTest extends BaseTest {
 
         if (System.getProperty("serverCertificatePath") == null) {
             try (ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert")) {
-                rs.next();
+                assertTrue(rs.next());
                 serverCertificatePath = rs.getString(1);
             }
         } else {

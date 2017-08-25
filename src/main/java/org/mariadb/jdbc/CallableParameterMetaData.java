@@ -107,9 +107,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
     }
 
     private int mapMariaDbTypeToJdbc(String str) {
-
-        str = str.toUpperCase();
-        switch (str) {
+        switch (str.toUpperCase()) {
             case "BIT":
                 return Types.BIT;
             case "TINYINT":

@@ -144,7 +144,7 @@ public class DistributedTransactionTest extends BaseTest {
             try (ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
                 if (doCommit) {
                     for (int i = 0; i < connectionNumber; i++) {
-                        rs.next();
+                        assertTrue(rs.next());
                         assertEquals(rs.getInt(1), i);
                     }
                 } else {

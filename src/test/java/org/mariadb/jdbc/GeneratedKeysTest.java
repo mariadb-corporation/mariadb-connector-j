@@ -129,7 +129,7 @@ public class GeneratedKeysTest extends BaseTest {
         preparedStatement.setString(1, "t");
         preparedStatement.execute();
         ResultSet rs = preparedStatement.getGeneratedKeys();
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(65500, rs.getInt(1));
     }
 

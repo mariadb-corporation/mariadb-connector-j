@@ -65,7 +65,7 @@ public class TimeoutTest extends BaseTest {
             throws SQLException {
         try (Statement stmt = conn.createStatement()) {
             try (ResultSet rs = stmt.executeQuery("select " + value)) {
-                rs.next();
+                assertTrue(rs.next());
                 return rs.getInt(1);
 
             }
@@ -177,7 +177,7 @@ public class TimeoutTest extends BaseTest {
             Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT 1");
 
-            rs.next();
+            assertTrue(rs.next());
 
             stmt.execute("set session wait_timeout=1");
             Thread.sleep(3000); // Wait for the server to kill the connection
@@ -186,7 +186,7 @@ public class TimeoutTest extends BaseTest {
             // "Could not read resultset: unexpected end of stream, ..."
             try {
                 rs = stmt.executeQuery("SELECT 2");
-                rs.next();
+                assertTrue(rs.next());
                 fail("Connection must have thrown error");
             } catch (SQLException e) {
                 //normal exception

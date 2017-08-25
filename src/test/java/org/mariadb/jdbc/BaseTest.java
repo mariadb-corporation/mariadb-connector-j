@@ -555,11 +555,11 @@ public class BaseTest {
     boolean checkMaxAllowedPacketMore8m(String testName) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
-        rs.next();
+        assertTrue(rs.next());
         long maxAllowedPacket = rs.getLong(1);
 
         rs = st.executeQuery("select @@innodb_log_file_size");
-        rs.next();
+        assertTrue(rs.next());
         long innodbLogFileSize = rs.getLong(1);
 
         if (maxAllowedPacket < 8 * 1024 * 1024L) {
@@ -581,11 +581,11 @@ public class BaseTest {
     boolean checkMaxAllowedPacketMore20m(String testName, boolean displayMessage) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
-        rs.next();
+        assertTrue(rs.next());
         long maxAllowedPacket = rs.getLong(1);
 
         rs = st.executeQuery("select @@innodb_log_file_size");
-        rs.next();
+        assertTrue(rs.next());
         long innodbLogFileSize = rs.getLong(1);
 
         if (maxAllowedPacket < 20 * 1024 * 1024L) {
@@ -611,11 +611,11 @@ public class BaseTest {
     boolean checkMaxAllowedPacketMore40m(String testName, boolean displayMsg) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
-        rs.next();
+        assertTrue(rs.next());
         long maxAllowedPacket = rs.getLong(1);
 
         rs = st.executeQuery("select @@innodb_log_file_size");
-        rs.next();
+        assertTrue(rs.next());
         long innodbLogFileSize = rs.getLong(1);
 
 
@@ -682,7 +682,7 @@ public class BaseTest {
     boolean haveSsl(Connection connection) {
         try {
             ResultSet rs = connection.createStatement().executeQuery("select @@have_ssl");
-            rs.next();
+            assertTrue(rs.next());
             String value = rs.getString(1);
             return value.equals("YES");
         } catch (Exception e) {

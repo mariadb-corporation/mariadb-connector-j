@@ -309,7 +309,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                 assertEquals(rs.getTime(1), time1);
                 assertEquals(rs.getTimestamp(2), timestamp1);
                 assertEquals(rs.getTimestamp(3), timestamp1);
-                rs.next();
+                assertTrue(rs.next());
                 assertEquals(rs.getTime(1), time1);
                 assertEquals(rs.getTimestamp(2), timestamp1);
                 assertEquals(rs.getTimestamp(3), timestamp1);
@@ -686,7 +686,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
         Statement statement = sharedConnection.createStatement();
         ResultSet rs = statement.executeQuery("select * from ServerPrepareStatementCacheSize4");
-        rs.next();
+        assertTrue(rs.next());
         byte[] newBytes = rs.getBytes(2);
         assertEquals(arr.length, newBytes.length);
         for (int i = 0; i < arr.length; i++) {
@@ -699,7 +699,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         PreparedStatement ps = prepareInsert();
         ps.execute();
         ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getInt(1), 1);
     }
 
@@ -708,7 +708,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         try (PreparedStatement ps = prepareInsert()) {
             ps.executeBatch();
             ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(rs.getInt(1), 3);
         }
     }
@@ -739,7 +739,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         ps.setShort(2, (short) 1);
         ps.execute();
         ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getInt(1), 1);
     }
 
@@ -1043,7 +1043,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
             try (final PreparedStatement preparedStatement = tmpConnection.prepareStatement(sql)) {
                 ResultSet rs = preparedStatement.executeQuery();
-                rs.next();
+                assertTrue(rs.next());
 
                 String columnOne = rs.getString("COLUMN_1");
                 String columnTwo = rs.getString("COLUMN_2");

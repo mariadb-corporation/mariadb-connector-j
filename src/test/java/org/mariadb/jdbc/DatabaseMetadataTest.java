@@ -191,7 +191,7 @@ public class DatabaseMetadataTest extends BaseTest {
                 + "RETURN CONCAT('Hello, ',s,'!')");
         ResultSet rs = sharedConnection.getMetaData().getFunctionColumns(null, null, "hello", null);
 
-        rs.next();
+        assertTrue(rs.next());
       /* First row is for return value */
         assertEquals(rs.getString("FUNCTION_CAT"), sharedConnection.getCatalog());
         assertEquals(rs.getString("FUNCTION_SCHEM"), null);
@@ -200,13 +200,13 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals(rs.getInt("DATA_TYPE"), Types.CHAR);
         assertEquals(rs.getString("TYPE_NAME"), "char");
 
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getString("COLUMN_NAME"), "s"); /* input parameter 's' (CHAR) */
         assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionColumnIn);
         assertEquals(rs.getInt("DATA_TYPE"), Types.CHAR);
         assertEquals(rs.getString("TYPE_NAME"), "char");
 
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getString("COLUMN_NAME"), "i"); /* input parameter 'i' (INT) */
         assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionColumnIn);
         assertEquals(rs.getInt("DATA_TYPE"), Types.INTEGER);

@@ -119,11 +119,11 @@ public class DriverTest extends BaseTest {
         stmt.execute("insert into DriverTestt1 (test) values (null)");
         ResultSet rs = stmt.executeQuery("select * from DriverTestt1");
         for (int i = 1; i < 4; i++) {
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(String.valueOf(i), rs.getString(1));
             assertEquals("hej" + i, rs.getString("test"));
         }
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(null, rs.getString("test"));
     }
 
@@ -150,7 +150,7 @@ public class DriverTest extends BaseTest {
         stmt.execute("insert into DriverTestt3 (test) values ('hej3')");
         stmt.execute("insert into DriverTestt3 (test) values (null)");
         ResultSet rs = stmt.executeQuery("select * from DriverTestt3");
-        rs.next();
+        assertTrue(rs.next());
         rs.getInt(102);
     }
 
@@ -161,7 +161,7 @@ public class DriverTest extends BaseTest {
         stmt.execute("insert into tt1 values(1, 'one')");
         stmt.execute("insert into tt2 values(1, 'two')");
         ResultSet rs = stmt.executeQuery("select tt1.*, tt2.* from tt1, tt2 where tt1.id = tt2.id");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(1, rs.getInt("tt1.id"));
         assertEquals(1, rs.getInt("tt2.id"));
         assertEquals("one", rs.getString("tt1.name"));
@@ -219,11 +219,11 @@ public class DriverTest extends BaseTest {
     private Map<String, Integer> loadVariables(Statement stmt) throws SQLException {
         Map<String, Integer> variables = new HashMap<>();
         ResultSet rs = stmt.executeQuery("SHOW SESSION STATUS WHERE Variable_name in ('Prepared_stmt_count','Com_stmt_prepare', 'Com_stmt_close')");
-        rs.next();
+        assertTrue(rs.next());
         variables.put(rs.getString(1), rs.getInt(2));
-        rs.next();
+        assertTrue(rs.next());
         variables.put(rs.getString(1), rs.getInt(2));
-        rs.next();
+        assertTrue(rs.next());
         variables.put(rs.getString(1), rs.getInt(2));
         return variables;
     }
@@ -633,7 +633,7 @@ public class DriverTest extends BaseTest {
         Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         ResultSet rs = stmt.executeQuery("select * from ressetpos");
         assertTrue(rs.isBeforeFirst());
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(!rs.isBeforeFirst());
         assertTrue(rs.isFirst());
         rs.beforeFirst();
@@ -703,7 +703,7 @@ public class DriverTest extends BaseTest {
         }
         assertFalse(sharedConnection.getAutoCommit());
         ResultSet rs = sharedConnection.createStatement().executeQuery("select @@autocommit");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(0, rs.getInt(1));
 
 
@@ -722,7 +722,7 @@ public class DriverTest extends BaseTest {
         }
         assertTrue(sharedConnection.getAutoCommit());
         rs = sharedConnection.createStatement().executeQuery("select @@autocommit");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
         
         /* Set autocommit value using Statement.execute */
@@ -808,7 +808,7 @@ public class DriverTest extends BaseTest {
         }
         st.setFetchSize(Integer.MIN_VALUE);
         try (ResultSet rs = st.executeQuery("select * from streamingtest")) {
-            rs.next();
+            assertTrue(rs.next());
             Statement st2 = sharedConnection.createStatement();
             try (ResultSet rs2 = st2.executeQuery("select * from streamingtest")) {
                 rs2.next();
@@ -826,7 +826,7 @@ public class DriverTest extends BaseTest {
 
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@global.sql_mode");
-        rs.next();
+        assertTrue(rs.next());
         String originalSqlMode = rs.getString(1);
         st.execute("set @@global.sql_mode = '" + originalSqlMode + ",NO_BACKSLASH_ESCAPES'");
 
@@ -858,7 +858,7 @@ public class DriverTest extends BaseTest {
 
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@global.sql_mode");
-        rs.next();
+        assertTrue(rs.next());
         String originalSqlMode = rs.getString(1);
         st.execute("set @@global.sql_mode = '" + originalSqlMode + ",NO_BACKSLASH_ESCAPES'");
 
@@ -873,13 +873,13 @@ public class DriverTest extends BaseTest {
                 try (PreparedStatement preparedStatement =
                              connection.prepareStatement("select * from testString2")) {
                     rs = preparedStatement.executeQuery();
-                    rs.next();
+                    assertTrue(rs.next());
                     String out = rs.getString(1);
                     assertEquals(out, "'\\");
 
                     Statement st2 = connection.createStatement();
                     rs = st2.executeQuery("select 'a\\b\\c'");
-                    rs.next();
+                    assertTrue(rs.next());
                     assertEquals("a\\b\\c", rs.getString(1));
                 }
             }
@@ -897,7 +897,7 @@ public class DriverTest extends BaseTest {
 
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@global.sql_mode");
-        rs.next();
+        assertTrue(rs.next());
         String originalSqlMode = rs.getString(1);
         st.execute("set @@global.sql_mode = '" + originalSqlMode + ",ANSI_QUOTES'");
 
@@ -924,7 +924,7 @@ public class DriverTest extends BaseTest {
         Statement st = sharedConnection.createStatement();
         st.execute("insert into unsignedtest values(4294967295)");
         ResultSet rs = st.executeQuery("select * from unsignedtest");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(4294967295L, rs.getLong("unsignedtest.a"));
     }
 
@@ -1087,7 +1087,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void namedPipe() {
         try (ResultSet rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket")) {
-            rs.next();
+            assertTrue(rs.next());
             if (rs.getBoolean(1)) {
                 String namedPipeName = rs.getString(2);
                 //skip test if no namedPipeName was obtained because then we do not use a socket connection
@@ -1113,7 +1113,7 @@ public class DriverTest extends BaseTest {
     public void namedPipeBusyTest() throws Exception {
         try {
             ResultSet rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket");
-            rs.next();
+            assertTrue(rs.next());
             if (rs.getBoolean(1)) {
                 String namedPipeName = rs.getString(2);
                 //skip test if no namedPipeName was obtained because then we do not use a socket connection
@@ -1143,7 +1143,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void namedPipeWithoutHost() {
         try (ResultSet rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket")) {
-            rs.next();
+            assertTrue(rs.next());
             if (rs.getBoolean(1)) {
                 String namedPipeName = rs.getString(2);
                 //skip test if no namedPipeName was obtained because then we do not use a socket connection
@@ -1181,7 +1181,7 @@ public class DriverTest extends BaseTest {
         String path = rs.getString(2);
         try (Connection connection = setConnection("&localSocket=" + path + "&profileSql=true")) {
             rs = connection.createStatement().executeQuery("select 1");
-            rs.next();
+            assertTrue(rs.next());
         }
     }
 
@@ -1211,12 +1211,12 @@ public class DriverTest extends BaseTest {
         String shmBaseName = rs.getString(2);
         try (Connection connection = setConnection("&sharedMemory=" + shmBaseName + "&profileSql=true")) {
             rs = connection.createStatement().executeQuery("select repeat('a',100000)");
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(100000, rs.getString(1).length());
             char[] arr = new char[100000];
             Arrays.fill(arr, 'a');
             rs = connection.createStatement().executeQuery("select '" + new String(arr) + "'");
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(100000, rs.getString(1).length());
         }
     }

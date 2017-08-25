@@ -350,7 +350,7 @@ public class DatatypeTest extends BaseTest {
     }
 
     private void testCharacterStreamWithLength(ResultSet rs, String toInsert) throws SQLException, IOException {
-        rs.next();
+        assertTrue(rs.next());
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
         int ch;

@@ -115,7 +115,7 @@ public class MultiTest extends BaseTest {
         ps.executeUpdate();
 
         ResultSet rs = st.executeQuery("SELECT * FROM MultiTesttselect1");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getInt(2), 1);
     }
 
@@ -129,7 +129,7 @@ public class MultiTest extends BaseTest {
         ps.executeUpdate();
 
         ResultSet rs = st.executeQuery("SELECT * FROM MultiTesttselect3");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getInt(2), 1);
     }
 
@@ -293,7 +293,7 @@ public class MultiTest extends BaseTest {
             }
             preparedStatement.executeBatch();
             ResultSet rs = connection.createStatement().executeQuery("SELECT COUNT(*) FROM MultiTestt10");
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(100, rs.getInt(1));
         }
     }

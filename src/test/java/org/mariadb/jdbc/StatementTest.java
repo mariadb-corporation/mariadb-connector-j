@@ -129,7 +129,7 @@ public class StatementTest extends BaseTest {
             try (PreparedStatement stmt = connection.prepareStatement("SELECT 1")) {
                 stmt.setFetchSize(Integer.MIN_VALUE);
                 ResultSet rs = stmt.executeQuery();
-                rs.next();
+                assertTrue(rs.next());
                 stmt.executeQuery();
             }
         }

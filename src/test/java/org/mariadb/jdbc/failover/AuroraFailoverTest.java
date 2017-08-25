@@ -144,7 +144,7 @@ public class AuroraFailoverTest extends BaseReplication {
         try (Connection connection = getNewConnection(false)) {
             ResultSet rs = connection.createStatement().executeQuery("show global variables like 'innodb_read_only'");
 
-            rs.next();
+            assertTrue(rs.next());
             assertEquals("OFF", rs.getString(2));
             assertFalse(connection.isReadOnly());
 
@@ -152,7 +152,7 @@ public class AuroraFailoverTest extends BaseReplication {
 
             rs = connection.createStatement().executeQuery("show global variables like 'innodb_read_only'");
 
-            rs.next();
+            assertTrue(rs.next());
             assertNotEquals("OFF", rs.getString(2));
             assertTrue(connection.isReadOnly());
         }
@@ -193,7 +193,7 @@ public class AuroraFailoverTest extends BaseReplication {
 
             PreparedStatement ps = connection.prepareStatement("SELECT 1");
             ResultSet rs = ps.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
 
             // wait for the connection to time out
             ps = connection.prepareStatement("DO sleep(20)");
@@ -315,7 +315,7 @@ public class AuroraFailoverTest extends BaseReplication {
             //check on 2 failover
             while (nbExecutionOnSlave + nbExecutionOnMasterFirstFailover < 500) {
                 ResultSet rs = preparedStatement.executeQuery();
-                rs.next();
+                assertTrue(rs.next());
                 isMaster = rs.getInt(1) != 1;
                 currentConnectionId = rs.getInt(2);
 
@@ -348,7 +348,7 @@ public class AuroraFailoverTest extends BaseReplication {
 
             while (nbExecutionOnSlave + nbExecutionOnMasterSecondFailover < 500) {
                 ResultSet rs = preparedStatement.executeQuery();
-                rs.next();
+                assertTrue(rs.next());
                 isMaster = rs.getInt(1) != 1;
                 currentConnectionId = rs.getInt(2);
 

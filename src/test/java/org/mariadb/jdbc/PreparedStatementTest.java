@@ -166,7 +166,7 @@ public class PreparedStatementTest extends BaseTest {
             try (PreparedStatement stmt = connection.prepareStatement("SELECT 1")) {
                 stmt.setFetchSize(Integer.MIN_VALUE);
                 ResultSet rs = stmt.executeQuery();
-                rs.next();
+                assertTrue(rs.next());
 
                 try (ResultSet rs2 = stmt.executeQuery()) {
                     assertTrue(rs2.next());
@@ -324,7 +324,7 @@ public class PreparedStatementTest extends BaseTest {
         Statement statement = sharedConnection.createStatement();
         statement.execute("TRUNCATE PreparedStatementTest1");
         ResultSet rs = statement.executeQuery("select @@max_allowed_packet");
-        rs.next();
+        assertTrue(rs.next());
         int maxAllowedPacket = rs.getInt(1);
         if (maxAllowedPacket < 21_000_000) { //to avoid OutOfMemory
             String query = "INSERT INTO PreparedStatementTest1 VALUES (null, ?)"
@@ -394,7 +394,7 @@ public class PreparedStatementTest extends BaseTest {
         Statement statement = sharedConnection.createStatement();
         statement.execute("TRUNCATE PreparedStatementTest1");
         ResultSet rs = statement.executeQuery("select @@max_allowed_packet");
-        rs.next();
+        assertTrue(rs.next());
         int maxAllowedPacket = rs.getInt(1);
         if (maxAllowedPacket < 21000000) { //to avoid OutOfMemory
             String query = "INSERT INTO PreparedStatementTest1 VALUES (null, ?)"

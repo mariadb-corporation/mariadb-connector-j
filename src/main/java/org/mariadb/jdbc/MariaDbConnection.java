@@ -167,7 +167,7 @@ public class MariaDbConnection implements Connection {
         return string;
     }
 
-    Protocol getProtocol() {
+    protected Protocol getProtocol() {
         return protocol;
     }
 
@@ -638,14 +638,11 @@ public class MariaDbConnection implements Connection {
     private CallableStatement createNewCallableStatement(String query, String procedureName, boolean isFunction,
                                                          String databaseAndProcedure, String database, String arguments,
                                                          int resultSetType, final int resultSetConcurrency) throws SQLException {
-        if (arguments == null) {
-            arguments = "()";
-        }
         if (isFunction) {
             return new MariaDbFunctionStatement(this,
                     database,
                     databaseAndProcedure,
-                    arguments,
+                    (arguments == null) ? "()" : arguments,
                     resultSetType,
                     resultSetConcurrency);
         } else {
@@ -850,19 +847,25 @@ public class MariaDbConnection implements Connection {
     public int getTransactionIsolation() throws SQLException {
         try (Statement stmt = createStatement()) {
             try (ResultSet rs = stmt.executeQuery("SELECT @@tx_isolation")) {
-                rs.next();
-                final String response = rs.getString(1);
-                if (response.equals("REPEATABLE-READ")) {
-                    return Connection.TRANSACTION_REPEATABLE_READ;
-                }
-                if (response.equals("READ-UNCOMMITTED")) {
-                    return Connection.TRANSACTION_READ_UNCOMMITTED;
-                }
-                if (response.equals("READ-COMMITTED")) {
-                    return Connection.TRANSACTION_READ_COMMITTED;
-                }
-                if (response.equals("SERIALIZABLE")) {
-                    return Connection.TRANSACTION_SERIALIZABLE;
+                if (rs.next()) {
+                    final String response = rs.getString(1);
+                    switch (response) {
+                        case "REPEATABLE-READ":
+                            return Connection.TRANSACTION_REPEATABLE_READ;
+
+                        case "READ-UNCOMMITTED":
+                            return Connection.TRANSACTION_READ_UNCOMMITTED;
+
+                        case "READ-COMMITTED":
+                            return Connection.TRANSACTION_READ_COMMITTED;
+
+                        case "SERIALIZABLE":
+                            return Connection.TRANSACTION_SERIALIZABLE;
+
+                        default:
+                            throw ExceptionMapper.getSqlException("Could not get transaction isolation level: "
+                                    + "Invalid @@tx_isolation value \"" + response + "\"");
+                    }
                 }
             }
         }
@@ -1018,6 +1021,7 @@ public class MariaDbConnection implements Connection {
      */
     @Override
     public void setHoldability(final int holdability) throws SQLException {
+        //not handled
     }
 
     /**
@@ -1238,12 +1242,29 @@ public class MariaDbConnection implements Connection {
      * @since 1.6
      */
     public void setClientInfo(final String name, final String value) throws SQLClientInfoException {
+        checkClientClose(name);
+        checkClientReconnect(name);
+        checkClientValidProperty(name);
+
+        try {
+            Statement statement = createStatement();
+            statement.execute(buildClientQuery(name, value));
+        } catch (SQLException sqle) {
+            Map<String, ClientInfoStatus> failures = new HashMap<>();
+            failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
+            throw new SQLClientInfoException("unexpected error during setClientInfo", failures, sqle);
+        }
+    }
+
+    private void checkClientClose(final String name) throws SQLClientInfoException {
         if (protocol.isExplicitClosed()) {
             Map<String, ClientInfoStatus> failures = new HashMap<>();
             failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
             throw new SQLClientInfoException("setClientInfo() is called on closed connection", failures);
         }
+    }
 
+    private void checkClientReconnect(final String name) throws SQLClientInfoException {
         if (protocol.isClosed() && protocol.getProxy() != null) {
             lock.lock();
             try {
@@ -1256,7 +1277,9 @@ public class MariaDbConnection implements Connection {
                 lock.unlock();
             }
         }
+    }
 
+    private void checkClientValidProperty(final String name) throws SQLClientInfoException {
         if (name == null || (!"ApplicationName".equals(name)
                 && !"ClientUser".equals(name)
                 && !"ClientHostname".equals(name))) {
@@ -1265,7 +1288,9 @@ public class MariaDbConnection implements Connection {
             throw new SQLClientInfoException("setClientInfo() parameters can only be \"ApplicationName\",\"ClientUser\" or \"ClientHostname\", "
                     + "but was : " + name, failures);
         }
+    }
 
+    private String buildClientQuery(final String name, final String value) {
         StringBuilder escapeQuery = new StringBuilder("SET @").append(name).append("=");
         if (value == null) {
             escapeQuery.append("null");
@@ -1294,16 +1319,7 @@ public class MariaDbConnection implements Connection {
             }
             escapeQuery.append("'");
         }
-
-        try {
-            Statement statement = createStatement();
-            statement.execute(escapeQuery.toString());
-        } catch (SQLException sqle) {
-            Map<String, ClientInfoStatus> failures = new HashMap<>();
-            failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
-            throw new SQLClientInfoException("unexpected error during setClientInfo", failures, sqle);
-
-        }
+        return escapeQuery.toString();
     }
 
     /**
@@ -1544,7 +1560,7 @@ public class MariaDbConnection implements Connection {
                 close();
                 pooledConnection = null;
             } catch (SQLException sqle) {
-                throw new RuntimeException(sqle);
+                //eat
             }
         });
     }

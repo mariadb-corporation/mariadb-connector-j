@@ -101,13 +101,13 @@ public class AllowMultiQueriesTest extends BaseTest {
             Statement stmt = connection.createStatement();
             stmt.execute("SELECT 1; SET @TOTO=3; SELECT 2", Statement.RETURN_GENERATED_KEYS);
             ResultSet rs = stmt.getResultSet();
-            rs.next();
+            assertTrue(rs.next());
             Assert.assertEquals(1, rs.getInt(1));
             Assert.assertTrue(stmt.getMoreResults());
             stmt.getGeneratedKeys();
             Assert.assertTrue(stmt.getMoreResults());
             rs = stmt.getResultSet();
-            rs.next();
+            assertTrue(rs.next());
             Assert.assertEquals(2, rs.getInt(1));
         }
     }

@@ -213,14 +213,17 @@ public class Buffer {
         switch (type) {
             case 251:
                 break;
+
             case 252:
                 position += 2 + (0xffff & (((buf[position] & 0xff) + ((buf[position + 1] & 0xff) << 8))));
                 break;
+
             case 253:
                 position += 3 + (0xffffff & ((buf[position] & 0xff)
                         + ((buf[position + 1] & 0xff) << 8)
                         + ((buf[position + 2] & 0xff) << 16)));
                 break;
+
             case 254:
                 position += 8 + ((buf[position] & 0xff)
                         + ((long) (buf[position + 1] & 0xff) << 8)
@@ -231,8 +234,10 @@ public class Buffer {
                         + ((long) (buf[position + 6] & 0xff) << 48)
                         + ((long) (buf[position + 7] & 0xff) << 56));
                 break;
+
             default:
                 position += type;
+                break;
         }
     }
 

@@ -61,6 +61,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class GeometryTest extends BaseTest {
@@ -83,14 +84,14 @@ public class GeometryTest extends BaseTest {
             String tmpGeometryBinary = geometryBinary;
             if (tmpGeometryBinary == null) {
                 try (ResultSet rs = stmt.executeQuery("SELECT AsWKB(GeomFromText('" + geometryString + "'))")) {
-                    rs.next();
+                    assertTrue(rs.next());
                     tmpGeometryBinary = printHexBinary(rs.getBytes(1));
                 }
             }
             String sql = "INSERT INTO geom_test VALUES (GeomFromText('" + geometryString + "'))";
             stmt.execute(sql);
             try (ResultSet rs = stmt.executeQuery("SELECT AsText(g), AsBinary(g), g FROM geom_test")) {
-                rs.next();
+                assertTrue(rs.next());
                 // as text
                 assertEquals(geometryString, rs.getString(1));
                 // as binary

@@ -770,13 +770,13 @@ public class ResultSetTest extends BaseTest {
         try (Statement stmt = sharedConnection.createStatement()) {
             stmt.execute("INSERT into numericTypeTable values (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 'a', 'a', 'a', 'a', 'a', 'a', now())");
             try (ResultSet rs = stmt.executeQuery("select * from numericTypeTable")) {
-                rs.next();
+                assertTrue(rs.next());
                 floatDoubleCheckResult(rs);
             }
         }
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("select * from numericTypeTable")) {
             try (ResultSet rs = preparedStatement.executeQuery()) {
-                rs.next();
+                assertTrue(rs.next());
                 floatDoubleCheckResult(rs);
             }
 
@@ -833,13 +833,13 @@ public class ResultSetTest extends BaseTest {
     public void numericTestWithDecimal() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT 1 as test");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getInt("test") == 1);
         assertTrue(rs.getByte("test") == 1);
         assertTrue(rs.getShort("test") == 1);
 
         rs = stmt.executeQuery("SELECT 1.3333 as test");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getInt("test") == 1);
         assertTrue(rs.getByte("test") == 1);
         assertTrue(rs.getShort("test") == 1);
@@ -847,7 +847,7 @@ public class ResultSetTest extends BaseTest {
         assertTrue(rs.getFloat("test") == 1.3333F);
 
         rs = stmt.executeQuery("SELECT 1.0 as test");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getInt("test") == 1);
         assertTrue(rs.getByte("test") == 1);
         assertTrue(rs.getShort("test") == 1);
@@ -855,14 +855,14 @@ public class ResultSetTest extends BaseTest {
         assertTrue(rs.getFloat("test") == 1.0F);
 
         rs = stmt.executeQuery("SELECT -1 as test");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getInt("test") == -1);
         assertTrue(rs.getByte("test") == -1);
         assertTrue(rs.getShort("test") == -1);
         assertTrue(rs.getLong("test") == -1);
 
         rs = stmt.executeQuery("SELECT -1.0 as test");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getInt("test") == -1);
         assertTrue(rs.getByte("test") == -1);
         assertTrue(rs.getShort("test") == -1);
@@ -870,7 +870,7 @@ public class ResultSetTest extends BaseTest {
         assertTrue(rs.getFloat("test") == -1.0F);
 
         rs = stmt.executeQuery("SELECT -1.3333 as test");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getInt("test") == -1);
         assertTrue(rs.getByte("test") == -1);
         assertTrue(rs.getShort("test") == -1);

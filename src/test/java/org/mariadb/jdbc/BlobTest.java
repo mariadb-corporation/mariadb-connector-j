@@ -143,7 +143,7 @@ public class BlobTest extends BaseTest {
         stmt.execute();
 
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTeststreamtest2");
-        rs.next();
+        assertTrue(rs.next());
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
         int ch;
@@ -163,7 +163,7 @@ public class BlobTest extends BaseTest {
         stmt.setCharacterStream(2, reader);
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTeststreamtest3");
-        rs.next();
+        assertTrue(rs.next());
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
         int ch;
@@ -185,7 +185,7 @@ public class BlobTest extends BaseTest {
         stmt.setCharacterStream(2, new StringReader(clob), 20000);
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest5");
-        rs.next();
+        assertTrue(rs.next());
         Reader readStuff = rs.getCharacterStream("strm");
 
         char[] chars = new char[50000];
@@ -224,7 +224,7 @@ public class BlobTest extends BaseTest {
         assertEquals(12000, remainRead);
 
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestblobtest2");
-        rs.next();
+        assertTrue(rs.next());
         InputStream readStuff = rs.getBlob("strm").getBinaryStream();
         int pos = 0;
         int ch;
@@ -265,7 +265,7 @@ public class BlobTest extends BaseTest {
         stmt.setClob(1, clob);
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest2");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getObject(1) instanceof String);
         String result = rs.getString(1);
         assertEquals("\u00D8hello", result);
@@ -280,7 +280,7 @@ public class BlobTest extends BaseTest {
         stmt.setBlob(2, stream);
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestblobtest");
-        rs.next();
+        assertTrue(rs.next());
         InputStream readStuff = rs.getBlob("strm").getBinaryStream();
         int ch;
         int pos = 0;
@@ -305,7 +305,7 @@ public class BlobTest extends BaseTest {
         stmt.setClob(2, new StringReader(clob));
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest3");
-        rs.next();
+        assertTrue(rs.next());
         Reader readStuff = rs.getClob("strm").getCharacterStream();
         char[] chars = new char[4];
         //noinspection ResultOfMethodCallIgnored
@@ -324,7 +324,7 @@ public class BlobTest extends BaseTest {
         stmt.setClob(2, clob);
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest4");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getObject(2) instanceof String);
         assertTrue(rs.getString(2).equals("hello"));
     }
@@ -426,7 +426,7 @@ public class BlobTest extends BaseTest {
 
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery("select * from emptyBlob");
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(0, rs.getBytes(1).length);
             assertEquals("a 'a ", rs.getString(2));
             assertNull(rs.getBytes(3));

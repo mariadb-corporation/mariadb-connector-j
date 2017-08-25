@@ -89,7 +89,7 @@ public class CallStatementTest extends BaseTest {
     public void stmtSimple() throws SQLException {
         createProcedure("stmtSimple", "(IN p1 INT, IN p2 INT) begin SELECT p1 + p2; end\n");
         ResultSet rs = sharedConnection.createStatement().executeQuery("{call stmtSimple(2,2)}");
-        rs.next();
+        assertTrue(rs.next());
         int result = rs.getInt(1);
         assertEquals(result, 4);
     }
@@ -101,7 +101,7 @@ public class CallStatementTest extends BaseTest {
         preparedStatement.setInt(1, 2);
         preparedStatement.setInt(2, 2);
         ResultSet rs = preparedStatement.executeQuery();
-        rs.next();
+        assertTrue(rs.next());
         int result = rs.getInt(1);
         assertEquals(result, 4);
     }
@@ -285,7 +285,7 @@ public class CallStatementTest extends BaseTest {
 
         PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call prepareWithNoParameters()}");
         ResultSet rs = preparedStatement.executeQuery();
-        rs.next();
+        assertTrue(rs.next());
         Assert.assertEquals("mike", rs.getString(1));
     }
 

@@ -217,7 +217,7 @@ public class ConnectionTest extends BaseTest {
     public void checkMaxAllowedPacket() throws Throwable {
         Statement statement = sharedConnection.createStatement();
         ResultSet rs = statement.executeQuery("show variables like 'max_allowed_packet'");
-        rs.next();
+        assertTrue(rs.next());
         int maxAllowedPacket = rs.getInt(2);
 
         //Create a SQL stream bigger than maxAllowedPacket

@@ -306,9 +306,7 @@ public class MariaXaResource implements XAResource {
         if (flags != TMJOIN && flags != TMRESUME && flags != TMNOFLAGS) {
             throw new XAException(XAException.XAER_INVAL);
         }
-        if (flags == TMJOIN && connection.getPinGlobalTxToPhysicalConnection()) {
-            flags = TMRESUME;
-        }
-        execute("XA START " + xidToString(xid) + " " + flagsToString(flags));
+        execute("XA START " + xidToString(xid) + " "
+                + flagsToString(flags == TMJOIN && connection.getPinGlobalTxToPhysicalConnection() ? TMRESUME : flags));
     }
 }

@@ -93,8 +93,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
             st.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest (id, test)");
 
             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM LocalInfileInputStreamTest");
-            boolean next = rs.next();
-            assertTrue(next);
+            assertTrue(rs.next());
 
             int count = rs.getInt(1);
             assertEquals(2, count);
@@ -137,7 +136,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
         //check that connection state is correct
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("SELECT 1");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
     }
 
@@ -198,8 +197,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
     }
 
     private void validateRecord(ResultSet rs, int expectedId, String expectedTest) throws SQLException {
-        boolean next = rs.next();
-        assertTrue(next);
+        assertTrue(rs.next());
 
         int id = rs.getInt(1);
         String test = rs.getString(2);
