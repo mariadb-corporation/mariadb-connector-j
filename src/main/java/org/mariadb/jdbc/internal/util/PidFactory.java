@@ -114,7 +114,7 @@ public class PidFactory {
 
                             }
                         }
-                    } catch (Exception cle) {
+                    } catch (Throwable cle) {
                         //jna jar's are not in classpath, no PID returned
                     }
 
