@@ -58,7 +58,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>1.6.3</version>
+    <version>1.6.4-SNAPSHOT</version>
     <description>JDBC driver for MariaDB and MySQL for java 6,7</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
@@ -71,8 +71,8 @@
         <checkstyle.plugin.version>2.15</checkstyle.plugin.version>
         <driver.version.major>1</driver.version.major>
         <driver.version.minor>6</driver.version.minor>
-        <driver.version.patch>3</driver.version.patch>
-        <driver.version.qualifier></driver.version.qualifier>
+        <driver.version.patch>4</driver.version.patch>
+        <driver.version.qualifier>-SNAPSHOT</driver.version.qualifier>
     </properties>
 
     <licenses>
