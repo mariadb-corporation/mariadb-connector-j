@@ -301,6 +301,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
 
     @Test
     public void testTimePrepareStatement() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         try (Connection connection = setConnection("&useServerPrepStmts=true")) {
             testStatementGetTime(connection);
             testPreparedStatementGetTime(connection);
@@ -314,6 +315,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
 
     @Test
     public void testTimeNotPrepareStatement() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         try (Connection connection = setConnection("&useServerPrepStmts=false")) {
             testStatementGetTime(connection);
             testPreparedStatementGetTime(connection);
