@@ -141,10 +141,12 @@ public class AuroraListener extends MastersSlavesListener {
      * so search for each host until found all the failed connection.
      * By default, search for the host not down, and recheck the down one after if not found valid connections.
      *
+     * @param initialSearchFilter initial search filter
      * @throws SQLException if a connection asked is not found
      */
     @Override
-    public void reconnectFailedConnection(SearchFilter searchFilter) throws SQLException {
+    public void reconnectFailedConnection(SearchFilter initialSearchFilter) throws SQLException {
+        SearchFilter searchFilter = initialSearchFilter;
         if (!searchFilter.isInitialConnection()
                 && (isExplicitClosed()
                 || (searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())

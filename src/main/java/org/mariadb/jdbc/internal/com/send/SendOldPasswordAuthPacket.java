@@ -71,7 +71,7 @@ public class SendOldPasswordAuthPacket extends AbstractAuthSwitchSendResponsePac
      */
     public void send(PacketOutputStream pos) throws IOException {
 
-        if (password == null || password.equals("")) {
+        if (password == null || password.isEmpty()) {
             pos.writeEmptyPacket(packSeq);
             return;
         }

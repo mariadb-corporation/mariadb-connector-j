@@ -483,7 +483,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
     public void close() throws SQLException {
         super.close();
         if (connection == null || connection.pooledConnection == null
-                || connection.pooledConnection.statementEventListeners.isEmpty()) {
+                || connection.pooledConnection.noStmtEventListeners()) {
             return;
         }
         connection.pooledConnection.fireStatementClosed(this);

@@ -405,7 +405,7 @@ public class MultiTest extends BaseTest {
                 return resultSet.getInt(2);
             }
         }
-        throw new RuntimeException("Unable to retrieve, variable value from Server " + variable);
+        throw new SQLException("Unable to retrieve, variable value from Server " + variable);
     }
 
 

@@ -143,9 +143,13 @@ public class CollationTest extends BaseTest {
 
                 assertEquals(4, rs.getBytes(2).length);
                 assertEquals(emoji, rs.getString(2));
+            } catch (SQLDataException exception) {
+                if (!mustThrowError) fail("Must not have thrown error");
             } catch (SQLException exception) {
                 //mysql server thrown an HY000 state (not 22007), so a SQLException will be thrown, not a SQLDataException
-                if (isMariadbServer()) assertTrue(exception instanceof SQLDataException);
+                if (isMariadbServer()) {
+                    fail("must have thrown a SQLDataException, not an SQLException");
+                }
                 if (!mustThrowError) fail("Must not have thrown error");
             }
         } else {

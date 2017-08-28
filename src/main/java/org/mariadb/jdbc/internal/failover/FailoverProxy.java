@@ -179,11 +179,10 @@ public class FailoverProxy implements InvocationHandler {
                         return listener.invoke(method, args, serverPrepareResult.getUnProxiedProtocol());
                     } catch (InvocationTargetException e) {
                         if (e.getTargetException() != null) {
-                            if (e.getTargetException() instanceof SQLException) {
-                                if (hasToHandleFailover((SQLException) e.getTargetException())) {
-                                    return handleFailOver((SQLException) e.getTargetException(), method, args,
-                                            serverPrepareResult.getUnProxiedProtocol());
-                                }
+                            if (e.getTargetException() instanceof SQLException
+                                    && hasToHandleFailover((SQLException) e.getTargetException())) {
+                                return handleFailOver((SQLException) e.getTargetException(), method, args,
+                                        serverPrepareResult.getUnProxiedProtocol());
                             }
                             throw e.getTargetException();
                         }
@@ -198,11 +197,10 @@ public class FailoverProxy implements InvocationHandler {
                     }
                 } catch (InvocationTargetException e) {
                     if (e.getTargetException() != null) {
-                        if (e.getTargetException() instanceof SQLException) {
-                            if (hasToHandleFailover((SQLException) e.getTargetException())) {
-                                return handleFailOver((SQLException) e.getTargetException(), method, args,
-                                        ((ServerPrepareResult) args[0]).getUnProxiedProtocol());
-                            }
+                        if (e.getTargetException() instanceof SQLException
+                                && hasToHandleFailover((SQLException) e.getTargetException())) {
+                            return handleFailOver((SQLException) e.getTargetException(), method, args,
+                                    ((ServerPrepareResult) args[0]).getUnProxiedProtocol());
                         }
                         throw e.getTargetException();
                     }

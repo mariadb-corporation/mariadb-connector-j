@@ -86,7 +86,7 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
         Buffer buffer = new Buffer(authData);
         final String serverPrincipalName = buffer.readStringNullEnd(StandardCharsets.UTF_8);
         String mechanisms = buffer.readStringNullEnd(StandardCharsets.UTF_8);
-        if (mechanisms.equals("")) mechanisms = "Kerberos";
+        if (mechanisms.isEmpty()) mechanisms = "Kerberos";
 
         GssapiAuth gssapiAuth = getAuthenticationMethod();
         gssapiAuth.authenticate(pos, serverPrincipalName, mechanisms);

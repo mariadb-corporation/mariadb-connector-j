@@ -543,7 +543,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
     }
 
-    void testResultSetColumns(ResultSet rs, String spec) throws SQLException {
+    private void testResultSetColumns(ResultSet rs, String spec) throws SQLException {
         ResultSetMetaData rsmd = rs.getMetaData();
         String[] tokens = spec.split(",");
 

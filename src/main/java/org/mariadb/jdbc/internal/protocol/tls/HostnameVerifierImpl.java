@@ -55,6 +55,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
 
     private static boolean matchWildCards(boolean hostIsIp, String hostnameToken, String tlsDnsToken) throws SSLException {
         int wildcardIndex = tlsDnsToken.indexOf("*");
+        String token = hostnameToken;
         if (wildcardIndex != -1) {
             if (hostIsIp) throw new SSLException("WildCards not possible when using IP's");
             boolean first = true;
@@ -65,19 +66,19 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                 beforeWildcard = afterWildcard.substring(0, wildcardIndex);
                 afterWildcard = afterWildcard.substring(wildcardIndex + 1);
 
-                int beforeStartIdx = hostnameToken.indexOf(beforeWildcard);
+                int beforeStartIdx = token.indexOf(beforeWildcard);
                 if ((beforeStartIdx == -1) || (first && beforeStartIdx != 0)) return false;
 
                 first = false;
 
-                hostnameToken = hostnameToken.substring(beforeStartIdx + beforeWildcard.length());
+                token = token.substring(beforeStartIdx + beforeWildcard.length());
                 wildcardIndex = afterWildcard.indexOf("*");
             }
-            return hostnameToken.endsWith(afterWildcard);
+            return token.endsWith(afterWildcard);
         }
 
         //no wildcard -> token must be equal.
-        return hostnameToken.equals(tlsDnsToken);
+        return token.equals(tlsDnsToken);
 
     }
 

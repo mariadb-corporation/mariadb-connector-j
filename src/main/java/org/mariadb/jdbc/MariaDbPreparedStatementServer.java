@@ -413,7 +413,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
 
             protocol = null;
             if (connection == null || connection.pooledConnection == null
-                    || connection.pooledConnection.statementEventListeners.isEmpty()) {
+                    || connection.pooledConnection.noStmtEventListeners()) {
                 return;
             }
             connection.pooledConnection.fireStatementClosed(this);

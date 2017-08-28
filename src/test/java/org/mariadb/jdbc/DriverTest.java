@@ -1306,7 +1306,6 @@ public class DriverTest extends BaseTest {
 
             } catch (SQLException e) {
                 e.printStackTrace();
-                throw new RuntimeException(e);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

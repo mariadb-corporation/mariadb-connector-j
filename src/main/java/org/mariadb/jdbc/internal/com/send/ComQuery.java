@@ -100,7 +100,6 @@ public class ComQuery {
      *
      * @param pos           outputStream
      * @param queryParts    query parts
-     * @param parameters    parameters
      * @param currentIndex  currentIndex
      * @param paramCount    parameter pos
      * @param parameterList parameter list
@@ -108,11 +107,13 @@ public class ComQuery {
      * @return current index
      * @throws IOException if connection fail
      */
-    public static int sendRewriteCmd(final PacketOutputStream pos, final List<byte[]> queryParts, ParameterHolder[] parameters,
-                                     int currentIndex, int paramCount, List<ParameterHolder[]> parameterList, boolean rewriteValues)
+    public static int sendRewriteCmd(final PacketOutputStream pos, final List<byte[]> queryParts, int currentIndex,
+                                     int paramCount, List<ParameterHolder[]> parameterList, boolean rewriteValues)
             throws IOException {
         pos.startPacket(0);
         pos.write(Packet.COM_QUERY);
+        int index = currentIndex;
+        ParameterHolder[]  parameters = parameterList.get(index++);
 
         byte[] firstPart = queryParts.get(0);
         byte[] secondPart = queryParts.get(1);
@@ -132,8 +133,8 @@ public class ComQuery {
             pos.write(queryParts.get(paramCount + 2));
 
             // write other, separate by ";"
-            while (currentIndex < parameterList.size()) {
-                parameters = parameterList.get(currentIndex);
+            while (index < parameterList.size()) {
+                parameters = parameterList.get(index);
 
                 //check packet length so to separate in multiple packet
                 int parameterLength = 0;
@@ -160,7 +161,7 @@ public class ComQuery {
                             pos.write(queryParts.get(i + 2));
                         }
                         pos.write(queryParts.get(paramCount + 2));
-                        currentIndex++;
+                        index++;
                     } else {
                         break;
                     }
@@ -174,7 +175,7 @@ public class ComQuery {
                         pos.write(queryParts.get(i + 2));
                     }
                     pos.write(queryParts.get(paramCount + 2));
-                    currentIndex++;
+                    index++;
                     break;
                 }
             }
@@ -191,8 +192,8 @@ public class ComQuery {
                 intermediatePartLength += queryParts.get(i + 2).length;
             }
 
-            while (currentIndex < parameterList.size()) {
-                parameters = parameterList.get(currentIndex);
+            while (index < parameterList.size()) {
+                parameters = parameterList.get(index);
 
                 //check packet length so to separate in multiple packet
                 int parameterLength = 0;
@@ -219,7 +220,7 @@ public class ComQuery {
                             byte[] addPart = queryParts.get(i + 2);
                             pos.write(addPart, 0, addPart.length);
                         }
-                        currentIndex++;
+                        index++;
                     } else {
                         break;
                     }
@@ -231,7 +232,7 @@ public class ComQuery {
                         parameters[i].writeTo(pos);
                         pos.write(queryParts.get(i + 2));
                     }
-                    currentIndex++;
+                    index++;
                     break;
                 }
             }
@@ -239,7 +240,7 @@ public class ComQuery {
         }
 
         pos.flush();
-        return currentIndex;
+        return index;
     }
 
     /**

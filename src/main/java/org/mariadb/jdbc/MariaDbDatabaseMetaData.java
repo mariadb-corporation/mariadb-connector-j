@@ -159,33 +159,34 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      */
     public ResultSet getImportedKeys(String catalog, String schema, String table) throws SQLException {
 
+        String database = catalog;
         // We avoid using information schema queries by default, because this appears to be an expensive
         // query (CONJ-41).
         if (table == null) {
             throw new SQLException("'table' parameter in getImportedKeys cannot be null");
         }
 
-        if (catalog == null && connection.nullCatalogMeansCurrent) {
+        if (database == null && connection.nullCatalogMeansCurrent) {
             /* Treat null catalog as current */
             return getImportedKeysUsingInformationSchema("", table);
         }
 
-        if (catalog == null) {
+        if (database == null) {
             return getImportedKeysUsingInformationSchema(null, table);
         }
 
-        if (catalog.isEmpty()) {
-            catalog = connection.getCatalog();
-            if (catalog == null || catalog.isEmpty()) {
-                return getImportedKeysUsingInformationSchema(catalog, table);
+        if (database.isEmpty()) {
+            database = connection.getCatalog();
+            if (database == null || database.isEmpty()) {
+                return getImportedKeysUsingInformationSchema(database, table);
             }
         }
 
         try {
-            return getImportedKeysUsingShowCreateTable(catalog, table);
+            return getImportedKeysUsingShowCreateTable(database, table);
         } catch (Exception e) {
             // Likely, parsing failed, try out I_S query.
-            return getImportedKeysUsingInformationSchema(catalog, table);
+            return getImportedKeysUsingInformationSchema(database, table);
         }
     }
 

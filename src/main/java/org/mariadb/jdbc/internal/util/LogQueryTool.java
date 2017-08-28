@@ -193,9 +193,9 @@ public class LogQueryTool {
             }
 
             if (options.maxQuerySizeToLog != 0 && sql.length() > options.maxQuerySizeToLog - 3) {
-                message += "\nQuery is: " + sql.substring(0, options.maxQuerySizeToLog - 3) + "...";
+                return message + "\nQuery is: " + sql.substring(0, options.maxQuerySizeToLog - 3) + "...";
             } else {
-                message += "\nQuery is: " + sql;
+                return message + "\nQuery is: " + sql;
             }
         }
         return message;

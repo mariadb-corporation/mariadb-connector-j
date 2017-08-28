@@ -114,6 +114,7 @@ public class MariaXaResource implements XAResource {
                 break;
             default:
                 xaErrorCode = 0;
+                break;
         }
         if (xaErrorCode != 0) {
             return new XAException(xaErrorCode);

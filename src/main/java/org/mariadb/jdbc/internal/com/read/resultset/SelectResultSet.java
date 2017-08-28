@@ -567,29 +567,25 @@ public class SelectResultSet implements ResultSet {
         int type = buf[pos++] & 0xff;
         switch (type) {
             case 251:
-                break;
+                return pos;
             case 252:
-                pos += 2 + (0xffff & (((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8))));
-                break;
+                return pos + 2 + (0xffff & (((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8))));
             case 253:
-                pos += 3 + (0xffffff & ((buf[pos] & 0xff)
+                return pos + 3 + (0xffffff & ((buf[pos] & 0xff)
                         + ((buf[pos + 1] & 0xff) << 8)
                         + ((buf[pos + 2] & 0xff) << 16)));
-                break;
             case 254:
-                pos += 8 + ((buf[pos] & 0xff)
+                return (int) (pos + 8 + ((buf[pos] & 0xff)
                         + ((long) (buf[pos + 1] & 0xff) << 8)
                         + ((long) (buf[pos + 2] & 0xff) << 16)
                         + ((long) (buf[pos + 3] & 0xff) << 24)
                         + ((long) (buf[pos + 4] & 0xff) << 32)
                         + ((long) (buf[pos + 5] & 0xff) << 40)
                         + ((long) (buf[pos + 6] & 0xff) << 48)
-                        + ((long) (buf[pos + 7] & 0xff) << 56));
-                break;
+                        + ((long) (buf[pos + 7] & 0xff) << 56)));
             default:
-                pos += type;
+                return pos + type;
         }
-        return pos;
     }
 
     /**

@@ -69,7 +69,7 @@ public class SendClearPasswordAuthPacket extends AbstractAuthSwitchSendResponseP
      * @throws IOException if a connection error occur
      */
     public void send(PacketOutputStream pos) throws IOException {
-        if (password == null || password.equals("")) {
+        if (password == null || password.isEmpty()) {
             pos.writeEmptyPacket(packSeq);
             return;
         }

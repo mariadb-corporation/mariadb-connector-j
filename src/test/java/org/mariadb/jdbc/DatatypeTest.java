@@ -132,7 +132,7 @@ public class DatatypeTest extends BaseTest {
         requireMinimumVersion(5, 0);
     }
 
-    void checkClass(String column, Class<?> clazz, String mysqlType, int javaSqlType) throws Exception {
+    private void checkClass(String column, Class<?> clazz, String mysqlType, int javaSqlType) throws Exception {
         int index = resultSet.findColumn(column);
         Object obj = resultSet.getObject(column);
         if (obj != null) {

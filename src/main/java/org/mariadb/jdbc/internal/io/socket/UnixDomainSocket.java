@@ -258,17 +258,18 @@ public class UnixDomainSocket extends Socket {
             int bytes;
             try {
                 if (off > 0) {
-                    int size = (len < 10240) ? len : 10240;
-                    byte[] data = new byte[size];
+                    int size;
+                    int remainingLength = len;
+                    byte[] data = new byte[(len < 10240) ? len : 10240];
                     do {
-                        size = (len < 10240) ? len : 10240;
+                        size = (remainingLength < 10240) ? remainingLength : 10240;
                         System.arraycopy(bytesEntry, off, data, 0, size);
                         bytes = send(fd, data, size, 0);
                         if (bytes > 0) {
                             off += bytes;
-                            len -= bytes;
+                            remainingLength -= bytes;
                         }
-                    } while ((len > 0) && (bytes > 0));
+                    } while ((remainingLength > 0) && (bytes > 0));
                 } else {
                     bytes = send(fd, bytesEntry, len, 0);
                 }

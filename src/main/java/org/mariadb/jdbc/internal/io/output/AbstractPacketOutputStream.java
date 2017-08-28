@@ -431,13 +431,14 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                 } else {
                     //not enough space in buffer, will stream :
                     // fill buffer and flush until all data are snd
+                    int remainingLen = len;
                     do {
-                        int lenToFillBuffer = Math.min(getMaxPacketLength() - pos, len);
+                        int lenToFillBuffer = Math.min(getMaxPacketLength() - pos, remainingLen);
                         System.arraycopy(arr, off, buf, pos, lenToFillBuffer);
-                        len -= lenToFillBuffer;
+                        remainingLen -= lenToFillBuffer;
                         off += lenToFillBuffer;
                         pos += lenToFillBuffer;
-                        if (len > 0) {
+                        if (remainingLen > 0) {
                             flushBuffer(false);
                         } else {
                             break;

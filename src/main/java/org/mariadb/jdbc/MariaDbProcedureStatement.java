@@ -100,7 +100,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
             int currentOutputMapper = 1;
 
             for (int index = 0; index < params.size(); index++) {
-                outputParameterMapper[index] = params.get(index).isOutput ? currentOutputMapper++ : -1;
+                outputParameterMapper[index] = params.get(index).isOutput() ? currentOutputMapper++ : -1;
             }
         }
     }
@@ -142,7 +142,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
     }
 
     public void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
-        params.get(parameterIndex - 1).isInput = true;
+        params.get(parameterIndex - 1).setInput(true);
         super.setParameter(parameterIndex, holder);
     }
 
@@ -170,7 +170,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
         setInputOutputParameterMap();
         //Set value for OUT parameters
         for (int index = 0; index < params.size(); index++) {
-            if (!params.get(index).isInput) {
+            if (!params.get(index).isInput()) {
                 super.setParameter(index + 1, new NullParameter());
             }
         }

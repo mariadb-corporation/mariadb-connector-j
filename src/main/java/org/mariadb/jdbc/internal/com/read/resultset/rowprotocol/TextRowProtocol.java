@@ -100,6 +100,7 @@ public class TextRowProtocol extends RowProtocol {
                             break;
                         default:
                             pos += type;
+                            break;
                     }
                 } else {
                     int type = this.buf[this.pos++] & 0xff;
@@ -128,6 +129,7 @@ public class TextRowProtocol extends RowProtocol {
                             break;
                         default:
                             length = type;
+                            break;
                     }
                     return false;
                 }

@@ -70,7 +70,7 @@ import static org.junit.Assert.*;
 
 public class DistributedTransactionTest extends BaseTest {
 
-    final MariaDbDataSource dataSource;
+    private final MariaDbDataSource dataSource;
 
     /**
      * Initialisation.

@@ -107,6 +107,7 @@ public class ConnectionTest extends BaseTest {
 
                 default:
                     e.printStackTrace();
+                    break;
             }
         }
     }

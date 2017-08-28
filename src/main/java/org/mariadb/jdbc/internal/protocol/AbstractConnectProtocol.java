@@ -1191,9 +1191,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (this.majorVersion > major) {
             return true;
         }
+
         if (this.majorVersion < major) {
             return false;
         }
+
         /*
          * Major versions are equal, compare minor versions
         */
@@ -1205,15 +1207,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
 
         //Minor versions are equal, compare patch version.
-        if (this.patchVersion > patch) {
-            return true;
-        }
-        if (this.patchVersion < patch) {
-            return false;
-        }
-
-        // Patch versions are equal => versions are equal.
-        return true;
+        return this.patchVersion >= patch;
     }
 
     public boolean getPinGlobalTxToPhysicalConnection() {

@@ -73,7 +73,7 @@ public class SendNativePasswordAuthPacket extends AbstractAuthSwitchSendResponse
      */
     public void send(PacketOutputStream pos) throws IOException {
         try {
-            if (password == null || password.equals("")) {
+            if (password == null || password.isEmpty()) {
                 pos.writeEmptyPacket(packSeq);
                 return;
             }

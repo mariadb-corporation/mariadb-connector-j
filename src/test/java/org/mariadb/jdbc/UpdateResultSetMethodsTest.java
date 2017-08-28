@@ -64,10 +64,6 @@ import java.sql.SQLFeatureNotSupportedException;
 public class UpdateResultSetMethodsTest extends BaseTest {
     private ResultSet rs;
 
-    public UpdateResultSetMethodsTest() {
-
-    }
-
     @Before
     public void before() throws SQLException {
         rs = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE).executeQuery("select 1");

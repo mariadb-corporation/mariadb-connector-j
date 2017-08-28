@@ -65,6 +65,7 @@ import org.mariadb.jdbc.internal.util.constant.Version;
 
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
+import java.sql.SQLException;
 import java.util.StringTokenizer;
 
 /**
@@ -108,7 +109,7 @@ public class SendHandshakeResponsePacket {
      * @see <a href="https://mariadb.com/kb/en/mariadb/1-connecting-connecting/#handshake-response-packet">protocol documentation</a>
      */
     public static void send(final PacketOutputStream pos,
-                            String username,
+                            final String username,
                             final String password,
                             final String database,
                             final long clientCapabilities,
@@ -129,7 +130,8 @@ public class SendHandshakeResponsePacket {
                     authData = Utils.encryptPassword(password, greetingPacket.getSeed(), options.passwordCharacterEncoding);
                     break;
                 } catch (NoSuchAlgorithmException e) {
-                    throw new RuntimeException("Could not use SHA-1, failing", e);
+                    //cannot occur :
+                    throw new IOException("Unknown algorithm SHA-1. Cannot encrypt password", e);
                 }
             case DefaultAuthenticationProvider.MYSQL_CLEAR_PASSWORD:
                 pos.permitTrace(false);
@@ -150,9 +152,12 @@ public class SendHandshakeResponsePacket {
         pos.writeBytes((byte) 0, 19);    //19
         pos.writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
 
-        if (username == null || "".equals(username)) username = System.getProperty("user.name"); //permit SSO
+        if (username == null || username.isEmpty()) {
+            pos.write(System.getProperty("user.name").getBytes()); //to permit SSO
+        } else {
+            pos.write(username.getBytes());     //strlen username
+        }
 
-        pos.write(username.getBytes());     //strlen username
         pos.write((byte) 0);        //1
 
         if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {

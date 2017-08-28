@@ -106,14 +106,15 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     /**
      * loop until found the failed connection.
      *
-     * @param listener     current failover
-     * @param addresses    list of HostAddress to loop
-     * @param searchFilter search parameter
+     * @param listener              current failover
+     * @param addresses             list of HostAddress to loop
+     * @param initialSearchFilter   search parameter
      * @throws SQLException if not found
      */
-    public static void loop(AuroraListener listener, final List<HostAddress> addresses, SearchFilter searchFilter)
+    public static void loop(AuroraListener listener, final List<HostAddress> addresses, SearchFilter initialSearchFilter)
             throws SQLException {
 
+        SearchFilter searchFilter = initialSearchFilter;
         AuroraProtocol protocol;
         Deque<HostAddress> loopAddresses = new ArrayDeque<>(addresses);
         if (loopAddresses.isEmpty()) resetHostList(listener, loopAddresses);

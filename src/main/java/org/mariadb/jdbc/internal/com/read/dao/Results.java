@@ -336,28 +336,26 @@ public class Results {
      * @throws SQLException if any connection error occur.
      */
     public boolean getMoreResults(final int current, Protocol protocol) throws SQLException {
-        if (fetchSize != 0) {
-            if (resultSet != null) {
+        if (fetchSize != 0 && resultSet != null) {
 
-                protocol.getLock().lock();
-                try {
-                    //load current resultSet
-                    if (current == Statement.CLOSE_CURRENT_RESULT && resultSet != null) {
-                        resultSet.close();
-                    } else {
-                        resultSet.fetchRemaining();
-                    }
-
-                    //load next data if there is
-                    if (protocol.hasMoreResults()) protocol.getResult(this);
-
-                } catch (SQLException e) {
-                    ExceptionMapper.throwException(e, null, statement);
-                } finally {
-                    protocol.getLock().unlock();
+            protocol.getLock().lock();
+            try {
+                //load current resultSet
+                if (current == Statement.CLOSE_CURRENT_RESULT && resultSet != null) {
+                    resultSet.close();
+                } else {
+                    resultSet.fetchRemaining();
                 }
 
+                //load next data if there is
+                if (protocol.hasMoreResults()) protocol.getResult(this);
+
+            } catch (SQLException e) {
+                ExceptionMapper.throwException(e, null, statement);
+            } finally {
+                protocol.getLock().unlock();
             }
+
         }
 
         if (cmdInformation.moreResults() && !batch) {

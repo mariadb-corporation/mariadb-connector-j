@@ -779,8 +779,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             do {
 
-                parameters = parameterList.get(currentIndex++);
-                currentIndex = ComQuery.sendRewriteCmd(writer, prepareResult.getQueryParts(), parameters, currentIndex,
+                currentIndex = ComQuery.sendRewriteCmd(writer, prepareResult.getQueryParts(), currentIndex,
                         prepareResult.getParamCount(), parameterList, rewriteValues);
                 getResult(results);
 
@@ -1574,13 +1573,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throw new SQLException("execute() is called on closed connection");
         }
         //old failover handling
-        if (!hasProxy) {
-            if (shouldReconnectWithoutProxy()) {
-                try {
-                    connectWithoutProxy();
-                } catch (SQLException qe) {
-                    ExceptionMapper.throwException(qe, connection, statement);
-                }
+        if (!hasProxy && shouldReconnectWithoutProxy()) {
+            try {
+                connectWithoutProxy();
+            } catch (SQLException qe) {
+                ExceptionMapper.throwException(qe, connection, statement);
             }
         }
 

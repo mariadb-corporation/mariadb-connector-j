@@ -268,8 +268,8 @@ public class MariaDbStatement implements Statement, Cloneable {
         return sqle;
     }
 
-    protected BatchUpdateException executeBatchExceptionEpilogue(SQLException sqle, CmdInformation cmdInformation, int size) {
-        sqle = handleFailoverAndTimeout(sqle);
+    protected BatchUpdateException executeBatchExceptionEpilogue(SQLException initialSqle, CmdInformation cmdInformation, int size) {
+        SQLException sqle = handleFailoverAndTimeout(initialSqle);
         int[] ret;
         if (cmdInformation == null) {
             ret = new int[size];
@@ -694,7 +694,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             protocol = null;
 
             if (connection == null || connection.pooledConnection == null
-                    || connection.pooledConnection.statementEventListeners.isEmpty()) {
+                    || connection.pooledConnection.noStmtEventListeners()) {
                 return;
             }
             connection.pooledConnection.fireStatementClosed(this);

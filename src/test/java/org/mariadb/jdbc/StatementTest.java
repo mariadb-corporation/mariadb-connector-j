@@ -271,7 +271,7 @@ public class StatementTest extends BaseTest {
             if (statement.isWrapperFor(MariaDbStatement.class)) {
                 mysqlStatement = statement.unwrap(MariaDbStatement.class);
             } else {
-                throw new RuntimeException("Mariadb JDBC adaptor must be used");
+                throw new SQLException("Mariadb JDBC adaptor must be used");
             }
             try {
                 String data = "\"1\", \"string1\"\n"

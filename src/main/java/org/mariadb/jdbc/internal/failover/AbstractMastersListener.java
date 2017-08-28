@@ -296,7 +296,7 @@ public abstract class AbstractMastersListener implements Listener {
                 case "executeQuery":
                     if (args[2] instanceof String) {
                         String query = ((String) args[2]).toUpperCase();
-                        if (!query.equals("ALTER SYSTEM CRASH")
+                        if (!"ALTER SYSTEM CRASH".equals(query)
                                 && !query.startsWith("KILL")) {
                             logger.debug("relaunch query to new connection "
                                     + ((currentProtocol != null) ? "server thread id " + currentProtocol.getServerThreadId() : ""));

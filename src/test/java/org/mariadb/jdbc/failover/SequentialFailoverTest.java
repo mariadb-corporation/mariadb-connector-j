@@ -221,7 +221,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
     }
 
     class MutableInt {
-        int value = 1; // note that we start at 1 since we're counting
+        private int value = 1; // note that we start at 1 since we're counting
 
         public void increment() {
             ++value;

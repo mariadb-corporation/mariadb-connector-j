@@ -199,11 +199,10 @@ public class CmdInformationMultiple implements CmdInformation {
             long updateCount = updateIterator.next();
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
-                    && (insertId = idIterator.next()) > 0) {
-                if (element == moreResults) {
-                    for (int i = 0; i < updateCount; i++) {
-                        ret[position++] = insertId + i * autoIncrement;
-                    }
+                    && (insertId = idIterator.next()) > 0
+                    && element == moreResults) {
+                for (int i = 0; i < updateCount; i++) {
+                    ret[position++] = insertId + i * autoIncrement;
                 }
             }
         }

@@ -115,11 +115,11 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
         for (int i = 0; i < parametersCount; i++) {
             params[i] = new CallParameter();
             if (i > 0) {
-                params[i].isInput = true;
+                params[i].setInput(true);
             }
         }
         // the query was in the form {?=call function()}, so the first parameter is always output
-        params[0].isOutput = true;
+        params[0].setOutput(true);
     }
 
     protected abstract SelectResultSet getResult() throws SQLException;
@@ -350,7 +350,7 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
 
     @Override
     public Object getObject(int parameterIndex) throws SQLException {
-        Class<?> classType = ColumnType.classFromJavaType(getParameter(parameterIndex).outputSqlType);
+        Class<?> classType = ColumnType.classFromJavaType(getParameter(parameterIndex).getOutputSqlType());
         if (classType != null) {
             return getResult().getObject(indexToOutputIndex(parameterIndex), classType);
         }
@@ -361,7 +361,7 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
     @Override
     public Object getObject(String parameterName) throws SQLException {
         int index = nameToIndex(parameterName);
-        Class<?> classType = ColumnType.classFromJavaType(getParameter(index).outputSqlType);
+        Class<?> classType = ColumnType.classFromJavaType(getParameter(index).getOutputSqlType());
         if (classType != null) {
             return getResult().getObject(indexToOutputIndex(index), classType);
         }
@@ -540,9 +540,9 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
      */
     public void registerOutParameter(int parameterIndex, int sqlType, String typeName) throws SQLException {
         CallParameter callParameter = getParameter(parameterIndex);
-        callParameter.outputSqlType = sqlType;
-        callParameter.typeName = typeName;
-        callParameter.isOutput = true;
+        callParameter.setOutputSqlType(sqlType);
+        callParameter.setTypeName(typeName);
+        callParameter.setOutput(true);
     }
 
     @Override
@@ -582,9 +582,9 @@ public abstract class CallableFunctionStatement extends MariaDbPreparedStatement
     @Override
     public void registerOutParameter(int parameterIndex, int sqlType, int scale) throws SQLException {
         CallParameter callParameter = getParameter(parameterIndex);
-        callParameter.isOutput = true;
-        callParameter.outputSqlType = sqlType;
-        callParameter.scale = scale;
+        callParameter.setOutput(true);
+        callParameter.setOutputSqlType(sqlType);
+        callParameter.setScale(scale);
     }
 
     @Override
