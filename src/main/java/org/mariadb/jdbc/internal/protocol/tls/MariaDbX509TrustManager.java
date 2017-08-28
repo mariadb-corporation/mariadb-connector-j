@@ -178,7 +178,7 @@ public class MariaDbX509TrustManager implements X509TrustManager {
         }
 
         if (trustManager == null) {
-            throw new RuntimeException("No X509TrustManager found");
+            throw new SQLException("No X509TrustManager found");
         }
     }
 

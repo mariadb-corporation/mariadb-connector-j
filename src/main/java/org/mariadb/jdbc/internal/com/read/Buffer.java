@@ -213,14 +213,17 @@ public class Buffer {
         switch (type) {
             case 251:
                 break;
+
             case 252:
                 position += 2 + (0xffff & (((buf[position] & 0xff) + ((buf[position + 1] & 0xff) << 8))));
                 break;
+
             case 253:
                 position += 3 + (0xffffff & ((buf[position] & 0xff)
                         + ((buf[position + 1] & 0xff) << 8)
                         + ((buf[position + 2] & 0xff) << 16)));
                 break;
+
             case 254:
                 position += 8 + ((buf[position] & 0xff)
                         + ((long) (buf[position + 1] & 0xff) << 8)
@@ -231,8 +234,10 @@ public class Buffer {
                         + ((long) (buf[position + 6] & 0xff) << 48)
                         + ((long) (buf[position + 7] & 0xff) << 56));
                 break;
+
             default:
                 position += type;
+                break;
         }
     }
 
@@ -295,6 +300,7 @@ public class Buffer {
                 break;
             default:
                 length = type;
+                break;
         }
 
         byte[] tmpBuf = new byte[length];
@@ -347,16 +353,16 @@ public class Buffer {
             buf[position++] = (byte) length;
         } else if (length < 65536) {
             buf[position++] = (byte) 0xfc;
-            buf[position++] = (byte) (length >>> 0);
+            buf[position++] = (byte) length;
             buf[position++] = (byte) (length >>> 8);
         } else if (length < 16777216) {
             buf[position++] = (byte) 0xfd;
-            buf[position++] = (byte) (length >>> 0);
+            buf[position++] = (byte) length;
             buf[position++] = (byte) (length >>> 8);
             buf[position++] = (byte) (length >>> 16);
         } else {
             buf[position++] = (byte) 0xfe;
-            buf[position++] = (byte) (length >>> 0);
+            buf[position++] = (byte) length;
             buf[position++] = (byte) (length >>> 8);
             buf[position++] = (byte) (length >>> 16);
             buf[position++] = (byte) (length >>> 24);

@@ -67,16 +67,16 @@ import java.util.concurrent.atomic.AtomicReference;
 public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {
 
 
-    private static Logger logger = LoggerFactory.getLogger(AbstractMastersSlavesListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractMastersSlavesListener.class);
     //These reference are when failloop reconnect failing connection, but lock is already held by
     //another thread (query in progress), so switching the connection wait for the query to be finish.
     //next query will reconnect those during preExecute method, or if actual used connection failed
     //during reconnection phase.
-    protected AtomicReference<Protocol> waitNewSecondaryProtocol = new AtomicReference<>();
-    protected AtomicReference<Protocol> waitNewMasterProtocol = new AtomicReference<>();
+    protected final AtomicReference<Protocol> waitNewSecondaryProtocol = new AtomicReference<>();
+    protected final AtomicReference<Protocol> waitNewMasterProtocol = new AtomicReference<>();
     /* =========================== Failover variables ========================================= */
     private volatile long secondaryHostFailNanos = 0;
-    private AtomicBoolean secondaryHostFail = new AtomicBoolean();
+    private final AtomicBoolean secondaryHostFail = new AtomicBoolean();
 
     protected AbstractMastersSlavesListener(UrlParser urlParser) {
         super(urlParser);

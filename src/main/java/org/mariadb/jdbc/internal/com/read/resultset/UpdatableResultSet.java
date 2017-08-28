@@ -67,7 +67,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.sql.*;
 import java.time.*;
 import java.util.Arrays;
@@ -121,7 +120,7 @@ public class UpdatableResultSet extends SelectResultSet {
         return CONCUR_UPDATABLE;
     }
 
-    private void checkIfUpdatable(Results results) throws IOException, SQLException {
+    private void checkIfUpdatable(Results results) throws SQLException {
 
         database = null;
         table = null;
@@ -132,20 +131,20 @@ public class UpdatableResultSet extends SelectResultSet {
         //check that resultSet concern one table and database exactly
         for (ColumnInformation columnInformation : columnsInformation) {
 
-            if (columnInformation.getDb() == null
-                    || columnInformation.getDb().isEmpty()) {
+            if (columnInformation.getDatabase() == null
+                    || columnInformation.getDatabase().isEmpty()) {
 
                 cannotUpdateInsertRow("The result-set contains fields without without any database information");
                 return;
 
             } else {
 
-                if (database != null && !database.equals(columnInformation.getDb())) {
+                if (database != null && !database.equals(columnInformation.getDatabase())) {
                     cannotUpdateInsertRow("The result-set contains more than one database");
                     return;
                 }
 
-                database = columnInformation.getDb();
+                database = columnInformation.getDatabase();
             }
 
             if (columnInformation.getOriginalTable() == null
@@ -264,11 +263,6 @@ public class UpdatableResultSet extends SelectResultSet {
         if (exceptionInsertMsg == null) exceptionInsertMsg = "No row can be inserted. " + reason;
         canBeUpdate = false;
         canBeInserted = false;
-    }
-
-    private void cannotUpdateRow(String reason) {
-        if (exceptionUpdateMsg == null) exceptionUpdateMsg = "ResultSet cannot be updated. " + reason;
-        canBeUpdate = false;
     }
 
     private void cannotInsertRow(String reason) {
@@ -662,8 +656,8 @@ public class UpdatableResultSet extends SelectResultSet {
     }
 
 
-    protected void updateInternalObject(final int parameterIndex, final Object obj, final int targetSqlType,
-                                        final long scaleOrLength) throws SQLException {
+    private void updateInternalObject(final int parameterIndex, final Object obj, final int targetSqlType,
+                                      final long scaleOrLength) throws SQLException {
         switch (targetSqlType) {
             case Types.ARRAY:
             case Types.DATALINK:
@@ -824,8 +818,6 @@ public class UpdatableResultSet extends SelectResultSet {
             updateBoolean(parameterIndex, (Boolean) obj);
         } else if (obj instanceof Blob) {
             updateBlob(parameterIndex, (Blob) obj);
-        } else if (obj instanceof BigInteger) {
-            updateString(parameterIndex, obj.toString());
         } else if (obj instanceof Clob) {
             updateClob(parameterIndex, (Clob) obj);
         } else if (obj instanceof InputStream) {
@@ -1372,7 +1364,7 @@ public class UpdatableResultSet extends SelectResultSet {
                             .append("` = ? ");
                 }
             }
-            selectSql.append(" FROM `" + database + "`.`" + table + "`").append(whereClause);
+            selectSql.append(" FROM `").append(database).append("`.`").append(table).append("`").append(whereClause);
 
             //row's raw bytes must be encoded according to current resultSet type
             //Create Server or Client PrepareStatement accordingly

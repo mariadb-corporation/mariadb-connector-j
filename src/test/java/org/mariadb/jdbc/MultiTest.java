@@ -115,7 +115,7 @@ public class MultiTest extends BaseTest {
         ps.executeUpdate();
 
         ResultSet rs = st.executeQuery("SELECT * FROM MultiTesttselect1");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getInt(2), 1);
     }
 
@@ -129,7 +129,7 @@ public class MultiTest extends BaseTest {
         ps.executeUpdate();
 
         ResultSet rs = st.executeQuery("SELECT * FROM MultiTesttselect3");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getInt(2), 1);
     }
 
@@ -293,7 +293,7 @@ public class MultiTest extends BaseTest {
             }
             preparedStatement.executeBatch();
             ResultSet rs = connection.createStatement().executeQuery("SELECT COUNT(*) FROM MultiTestt10");
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(100, rs.getInt(1));
         }
     }
@@ -352,6 +352,8 @@ public class MultiTest extends BaseTest {
         try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
             createTable("insertSelectTable1", "tt int");
             createTable("insertSelectTable2", "tt int");
+            Statement stmt = connection.createStatement();
+            stmt.execute("INSERT INTO insertSelectTable2(tt) VALUES (1),(2),(1)");
 
             PreparedStatement ps = connection.prepareStatement(
                     "INSERT INTO insertSelectTable1 "
@@ -362,6 +364,10 @@ public class MultiTest extends BaseTest {
             ps.setInt(1, 2);
             ps.addBatch();
             ps.executeBatch();
+
+            ResultSet rs = stmt.executeQuery("SELECT count(*) FROM insertSelectTable1");
+            assertTrue(rs.next());
+            assertEquals(3, rs.getInt(1));
         }
     }
 
@@ -379,9 +385,9 @@ public class MultiTest extends BaseTest {
             int[] updateCounts = statement.executeBatch();
             assertEquals(totalInsertCommands, updateCounts.length);
             int totalUpdates = 0;
-            for (int count = 0; count < updateCounts.length; count++) {
-                assertEquals(1, updateCounts[count]);
-                totalUpdates += updateCounts[count];
+            for (int updateCount : updateCounts) {
+                assertEquals(1, updateCount);
+                totalUpdates += updateCount;
             }
             assertEquals(totalInsertCommands, totalUpdates);
             verifyInsertCount(tmpConnection, totalInsertCommands);
@@ -399,7 +405,7 @@ public class MultiTest extends BaseTest {
                 return resultSet.getInt(2);
             }
         }
-        throw new RuntimeException("Unable to retrieve, variable value from Server " + variable);
+        throw new SQLException("Unable to retrieve, variable value from Server " + variable);
     }
 
 
@@ -562,8 +568,8 @@ public class MultiTest extends BaseTest {
             }
             int[] updateCounts = preparedStatement.executeBatch();
             assertEquals(cycles, updateCounts.length);
-            for (int count = 0; count < updateCounts.length; count++) {
-                assertTrue(updateCounts[count] == 2 || updateCounts[count] == Statement.SUCCESS_NO_INFO); //2 rows updated by update.
+            for (int updateCount : updateCounts) {
+                assertTrue(updateCount == 2 || updateCount == Statement.SUCCESS_NO_INFO); //2 rows updated by update.
             }
 
             verifyUpdateCount(tmpConnection, cycles); //1000 update commande launched
@@ -810,7 +816,7 @@ public class MultiTest extends BaseTest {
                 + " rewrite:" + rewrite
                 + " batchMulti:" + batchMulti);
         createTable("MultiTestt9", "id int not null primary key, test varchar(10)");
-        Assume.assumeTrue(!batchMulti || (batchMulti && !sharedIsAurora()));
+        Assume.assumeTrue(!batchMulti || !sharedIsAurora());
 
         try (Connection connection = setBlankConnection(
                 "&useServerPrepStmts=" + serverPrepare
@@ -1051,7 +1057,7 @@ public class MultiTest extends BaseTest {
             checkResults(tmpConnection);
             checkResultsPrepare(tmpConnection);
             checkResultsPrepareMulti(tmpConnection);
-            checkResultsPrepareBatch(tmpConnection, true);
+            checkResultsPrepareBatch(tmpConnection);
         }
     }
 
@@ -1068,13 +1074,12 @@ public class MultiTest extends BaseTest {
             checkResults(tmpConnection);
             checkResultsPrepare(tmpConnection);
             checkResultsPrepareMulti(tmpConnection);
-            checkResultsPrepareBatch(tmpConnection, false);
+            checkResultsPrepareBatch(tmpConnection);
         }
 
     }
 
-
-    private void checkResultsPrepareBatch(Connection connection, boolean isRewrite) throws SQLException {
+    private void checkResultsPrepareBatch(Connection connection) throws SQLException {
         try (Statement stmt = connection.createStatement()) {
             stmt.executeQuery("truncate table testMultiGeneratedKey");
 
@@ -1096,7 +1101,6 @@ public class MultiTest extends BaseTest {
             assertEquals(4, rs.getInt(1));
             assertFalse(rs.next());
             assertFalse(preparedStatement.getMoreResults());
-
 
             assertEquals(1, updates[0]);
             assertEquals(1, updates[1]);

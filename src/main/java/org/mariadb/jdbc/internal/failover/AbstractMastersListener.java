@@ -82,20 +82,20 @@ public abstract class AbstractMastersListener implements Listener {
      */
     private static final ConcurrentMap<HostAddress, Long> blacklist = new ConcurrentHashMap<>();
     private static final ConnectionValidator connectionValidationLoop = new ConnectionValidator();
-    private static Logger logger = LoggerFactory.getLogger(AbstractMastersListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractMastersListener.class);
 
     /* =========================== Failover variables ========================================= */
     public final UrlParser urlParser;
-    protected AtomicInteger currentConnectionAttempts = new AtomicInteger();
+    protected final AtomicInteger currentConnectionAttempts = new AtomicInteger();
     // currentReadOnlyAsked is volatile so can be queried without lock, but can only be updated when proxy.lock is locked
     protected volatile boolean currentReadOnlyAsked = false;
     protected Protocol currentProtocol = null;
     protected FailoverProxy proxy;
     protected long lastRetry = 0;
-    protected AtomicBoolean explicitClosed = new AtomicBoolean(false);
+    protected final AtomicBoolean explicitClosed = new AtomicBoolean(false);
     protected long lastQueryNanos = 0;
     private volatile long masterHostFailNanos = 0;
-    private AtomicBoolean masterHostFail = new AtomicBoolean();
+    private final AtomicBoolean masterHostFail = new AtomicBoolean();
 
     protected AbstractMastersListener(UrlParser urlParser) {
         this.urlParser = urlParser;
@@ -292,10 +292,11 @@ public abstract class AbstractMastersListener implements Listener {
         HandleErrorResult handleErrorResult = new HandleErrorResult(true);
         if (method != null) {
             switch (method.getName()) {
+
                 case "executeQuery":
                     if (args[2] instanceof String) {
                         String query = ((String) args[2]).toUpperCase();
-                        if (!query.equals("ALTER SYSTEM CRASH")
+                        if (!"ALTER SYSTEM CRASH".equals(query)
                                 && !query.startsWith("KILL")) {
                             logger.debug("relaunch query to new connection "
                                     + ((currentProtocol != null) ? "server thread id " + currentProtocol.getServerThreadId() : ""));
@@ -304,6 +305,7 @@ public abstract class AbstractMastersListener implements Listener {
                         }
                     }
                     break;
+
                 case "executePreparedQuery":
                     //the statementId has been discarded with previous session
                     try {
@@ -316,11 +318,14 @@ public abstract class AbstractMastersListener implements Listener {
                         handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                         handleErrorResult.mustThrowError = false;
                     } catch (Exception e) {
+                        //if retry prepare fail, discard error. execution error will indicate the error.
                     }
                     break;
+
                 default:
                     handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                     handleErrorResult.mustThrowError = false;
+                    break;
             }
         }
         return handleErrorResult;
@@ -353,8 +358,7 @@ public abstract class AbstractMastersListener implements Listener {
                 case "executeBatchStmt":
                 case "executeBatchClient":
                 case "executeBatchServer":
-                    if (!((Boolean) args[0])) return true; //launched on slave connection
-                    return false;
+                    return !((Boolean) args[0]);
                 default:
                     return false;
             }
@@ -417,7 +421,7 @@ public abstract class AbstractMastersListener implements Listener {
 
     public abstract void preExecute() throws SQLException;
 
-    public abstract void preClose() throws SQLException;
+    public abstract void preClose();
 
     public abstract void reconnectFailedConnection(SearchFilter filter) throws SQLException;
 

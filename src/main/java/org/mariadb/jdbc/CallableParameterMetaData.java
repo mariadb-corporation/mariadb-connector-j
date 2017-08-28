@@ -61,15 +61,15 @@ import java.util.regex.Pattern;
 
 public class CallableParameterMetaData implements ParameterMetaData {
 
-    private static Pattern PARAMETER_PATTERN =
+    private static final Pattern PARAMETER_PATTERN =
             Pattern.compile("\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
                     Pattern.CASE_INSENSITIVE);
-    private static Pattern RETURN_PATTERN =
+    private static final Pattern RETURN_PATTERN =
             Pattern.compile("\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*", Pattern.CASE_INSENSITIVE);
     private List<CallParameter> params;
-    private MariaDbConnection con;
+    private final MariaDbConnection con;
     private String database;
-    private String name;
+    private final String name;
     private boolean valid;
     private boolean isFunction;
 
@@ -106,10 +106,8 @@ public class CallableParameterMetaData implements ParameterMetaData {
         valid = true;
     }
 
-    int mapMariaDbTypeToJdbc(String str) {
-
-        str = str.toUpperCase();
-        switch (str) {
+    private int mapMariaDbTypeToJdbc(String str) {
+        switch (str.toUpperCase()) {
             case "BIT":
                 return Types.BIT;
             case "TINYINT":
@@ -220,14 +218,14 @@ public class CallableParameterMetaData implements ParameterMetaData {
             throw new SQLException("can not parse return value definition :" + functionReturn);
         }
         CallParameter callParameter = params.get(0);
-        callParameter.isOutput = true;
-        callParameter.isSigned = (matcher.group(1) == null);
-        callParameter.typeName = matcher.group(2).trim();
-        callParameter.sqlType = mapMariaDbTypeToJdbc(callParameter.typeName);
+        callParameter.setOutput(true);
+        callParameter.setSigned(matcher.group(1) == null);
+        callParameter.setTypeName(matcher.group(2).trim());
+        callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
         String scale = matcher.group(3);
         if (scale != null) {
             scale = scale.replace("(", "").replace(")", "").replace(" ", "");
-            callParameter.scale = Integer.valueOf(scale).intValue();
+            callParameter.setScale(Integer.valueOf(scale));
         }
     }
 
@@ -246,21 +244,22 @@ public class CallableParameterMetaData implements ParameterMetaData {
                 direction = direction.trim();
             }
 
-            callParameter.name = matcher2.group(2).trim();
-            callParameter.isSigned = (matcher2.group(3) == null);
-            callParameter.typeName = matcher2.group(4).trim().toUpperCase();
+            callParameter.setName(matcher2.group(2).trim());
+            callParameter.setSigned(matcher2.group(3) == null);
+            callParameter.setTypeName(matcher2.group(4).trim().toUpperCase());
 
             if (direction == null || direction.equalsIgnoreCase("IN")) {
-                callParameter.isInput = true;
+                callParameter.setInput(true);
             } else if (direction.equalsIgnoreCase("OUT")) {
-                callParameter.isOutput = true;
+                callParameter.setOutput(true);
             } else if (direction.equalsIgnoreCase("INOUT")) {
-                callParameter.isInput = callParameter.isOutput = true;
+                callParameter.setInput(true);
+                callParameter.setOutput(true);
             } else {
-                throw new SQLException("unknown parameter direction " + direction + "for " + callParameter.name);
+                throw new SQLException("unknown parameter direction " + direction + "for " + callParameter.getName());
             }
 
-            callParameter.sqlType = mapMariaDbTypeToJdbc(callParameter.typeName);
+            callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
 
             String scale = matcher2.group(5);
             if (scale != null) {
@@ -268,7 +267,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
                 if (scale.contains(",")) {
                     scale = scale.substring(0, scale.indexOf(","));
                 }
-                callParameter.scale = Integer.valueOf(scale).intValue();
+                callParameter.setScale(Integer.valueOf(scale));
             }
             params.add(callParameter);
         }
@@ -279,7 +278,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
      *
      * @throws SQLException if data doesn't correspond.
      */
-    public void readMetadata() throws SQLException {
+    private void readMetadata() throws SQLException {
         if (valid) {
             return;
         }
@@ -301,7 +300,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
         return params.size();
     }
 
-    CallParameter getParam(int index) throws SQLException {
+    private CallParameter getParam(int index) throws SQLException {
         if (index < 1 || index > params.size()) {
             throw new SQLException("invalid parameter index " + index);
         }
@@ -310,31 +309,31 @@ public class CallableParameterMetaData implements ParameterMetaData {
     }
 
     public int isNullable(int param) throws SQLException {
-        return getParam(param).isNullable;
+        return getParam(param).getCanBeNull();
     }
 
     public boolean isSigned(int param) throws SQLException {
-        return getParam(param).isSigned;
+        return getParam(param).isSigned();
     }
 
     public int getPrecision(int param) throws SQLException {
-        return getParam(param).precision;
+        return getParam(param).getPrecision();
     }
 
     public int getScale(int param) throws SQLException {
-        return getParam(param).scale;
+        return getParam(param).getScale();
     }
 
     public int getParameterType(int param) throws SQLException {
-        return getParam(param).sqlType;
+        return getParam(param).getSqlType();
     }
 
     public String getParameterTypeName(int param) throws SQLException {
-        return getParam(param).typeName;
+        return getParam(param).getTypeName();
     }
 
     public String getParameterClassName(int param) throws SQLException {
-        return getParam(param).className;
+        return getParam(param).getClassName();
     }
 
     /**
@@ -352,20 +351,20 @@ public class CallableParameterMetaData implements ParameterMetaData {
      */
     public int getParameterMode(int param) throws SQLException {
         CallParameter callParameter = getParam(param);
-        if (callParameter.isInput && callParameter.isOutput) {
+        if (callParameter.isInput() && callParameter.isOutput()) {
             return parameterModeInOut;
         }
-        if (callParameter.isInput) {
+        if (callParameter.isInput()) {
             return parameterModeIn;
         }
-        if (callParameter.isOutput) {
+        if (callParameter.isOutput()) {
             return parameterModeOut;
         }
         return parameterModeUnknown;
     }
 
     public String getName(int param) throws SQLException {
-        return getParam(param).name;
+        return getParam(param).getName();
     }
 
     public <T> T unwrap(Class<T> iface) throws SQLException {
@@ -376,8 +375,4 @@ public class CallableParameterMetaData implements ParameterMetaData {
         return false;
     }
 
-    public String getDatabase() throws SQLException {
-        readMetadataFromDbIfRequired();
-        return database;
-    }
 }

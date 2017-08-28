@@ -91,7 +91,7 @@ public enum ColumnType {
     STRING(254, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
     GEOMETRY(255, Types.VARBINARY, "Types.VARBINARY", "[B");
 
-    static ColumnType[] typeMap;
+    static final ColumnType[] typeMap;
 
     static {
         typeMap = new ColumnType[256];
@@ -271,20 +271,25 @@ public enum ColumnType {
     /**
      * Convert server Type to server type.
      *
-     * @param typeValue type value
+     * @param typeValue     type value
+     * @param charsetNumber charset
      * @return MariaDb type
      */
-    public static ColumnType fromServer(int typeValue) {
+    public static ColumnType fromServer(int typeValue, int charsetNumber) {
 
         ColumnType columnType = typeMap[typeValue];
 
         if (columnType == null) {
-            /*
-              Potential fallback for types that are not implemented.
-              Should not be normally used.
-             */
+            // Potential fallback for types that are not implemented.
+            // Should not be normally used.
             columnType = BLOB;
         }
+
+        if (charsetNumber != 63 && typeValue >= 249 && typeValue <= 252) {
+            // MySQL Text dataType
+            return ColumnType.VARCHAR;
+        }
+
         return columnType;
     }
 

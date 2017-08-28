@@ -100,9 +100,9 @@ public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
             }
 
             if (traceObj.isSend()) {
-                sb.append("\nsend at " + new Date(millis) + indicator);
+                sb.append("\nsend at ").append(new Date(millis)).append(indicator);
             } else {
-                sb.append("\nread at " + new Date(millis) + indicator);
+                sb.append("\nread at ").append(new Date(millis)).append(indicator);
             }
             sb.append(Utils.hexdump(traceObj.getBuf()));
 

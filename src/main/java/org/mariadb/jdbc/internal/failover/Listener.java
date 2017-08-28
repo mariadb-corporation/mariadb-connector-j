@@ -71,7 +71,7 @@ public interface Listener {
 
     void preExecute() throws SQLException;
 
-    void preClose() throws SQLException;
+    void preClose();
 
     void reconnectFailedConnection(SearchFilter filter) throws SQLException;
 

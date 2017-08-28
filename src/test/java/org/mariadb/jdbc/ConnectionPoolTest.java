@@ -89,7 +89,7 @@ public class ConnectionPoolTest extends BaseTest {
         ds.addDataSourceProperty("user", username);
         if (password != null) ds.addDataSourceProperty("password", password);
         ds.setAutoCommit(false);
-        validateDataSource(ds);
+        Assert.assertTrue(validateDataSource(ds));
 
     }
 
@@ -104,7 +104,7 @@ public class ConnectionPoolTest extends BaseTest {
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
         try (HikariDataSource ds = new HikariDataSource(config)) {
-            validateDataSource(ds);
+            Assert.assertTrue(validateDataSource(ds));
         }
 
     }
@@ -155,17 +155,18 @@ public class ConnectionPoolTest extends BaseTest {
         } catch (InterruptedException e) {
             //eat exception
         }
-        exec = Executors.newFixedThreadPool(50);
+        Executors.newFixedThreadPool(50);
 
     }
 
 
-    private void validateDataSource(DataSource ds) throws SQLException {
+    private boolean validateDataSource(DataSource ds) throws SQLException {
         try (Connection connection = ds.getConnection()) {
             try (Statement statement = connection.createStatement()) {
                 try (ResultSet rs = statement.executeQuery("SELECT 1")) {
                     Assert.assertTrue(rs.next());
                     Assert.assertEquals(1, rs.getInt(1));
+                    return true;
                 }
             }
         }
@@ -191,7 +192,7 @@ public class ConnectionPoolTest extends BaseTest {
     }
 
 
-    private long insert500WithPool(DataSource ds) throws SQLException {
+    private long insert500WithPool(DataSource ds) {
         ExecutorService exec = Executors.newFixedThreadPool(50);
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < 50; i++) {
@@ -208,7 +209,7 @@ public class ConnectionPoolTest extends BaseTest {
     }
 
     private class ForceLoadPoolThread implements Runnable {
-        private DataSource dataSource;
+        private final DataSource dataSource;
 
         public ForceLoadPoolThread(DataSource dataSource) {
             this.dataSource = dataSource;
@@ -225,9 +226,9 @@ public class ConnectionPoolTest extends BaseTest {
     }
 
     private class InsertThread implements Runnable {
-        private DataSource dataSource;
-        private int insertNumber;
-        private int tableNumber;
+        private final DataSource dataSource;
+        private final int insertNumber;
+        private final int tableNumber;
 
         public InsertThread(int tableNumber, int insertNumber, DataSource dataSource) {
             this.insertNumber = insertNumber;

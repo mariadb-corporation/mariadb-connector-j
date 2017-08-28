@@ -16,7 +16,6 @@ install:
     - .travis/gen-ssl.sh mariadb.example.com tmp
     - export PROJ_PATH=`pwd`
     - export SSLCERT=$PROJ_PATH/tmp
-#    - set SSLCERT=C:/projects/ssl
     - export ENTRYPOINT=$PROJ_PATH/.travis/sql
 
 cache:
@@ -24,7 +23,6 @@ cache:
     - $HOME/.m2
 
 jdk:
-#    - oraclejdk9
     - oraclejdk8
 
 env:

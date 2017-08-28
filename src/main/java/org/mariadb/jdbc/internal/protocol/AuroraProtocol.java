@@ -59,7 +59,6 @@ import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
-import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -80,7 +79,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      * @param listener       aurora failover to call back if master is found
      * @param probableMaster probable master host
      */
-    public static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster) {
+    private static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster) {
         AuroraProtocol protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
         try {
 
@@ -107,14 +106,15 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     /**
      * loop until found the failed connection.
      *
-     * @param listener     current failover
-     * @param addresses    list of HostAddress to loop
-     * @param searchFilter search parameter
+     * @param listener              current failover
+     * @param addresses             list of HostAddress to loop
+     * @param initialSearchFilter   search parameter
      * @throws SQLException if not found
      */
-    public static void loop(AuroraListener listener, final List<HostAddress> addresses, SearchFilter searchFilter)
+    public static void loop(AuroraListener listener, final List<HostAddress> addresses, SearchFilter initialSearchFilter)
             throws SQLException {
 
+        SearchFilter searchFilter = initialSearchFilter;
         AuroraProtocol protocol;
         Deque<HostAddress> loopAddresses = new ArrayDeque<>(addresses);
         if (loopAddresses.isEmpty()) resetHostList(listener, loopAddresses);
@@ -268,7 +268,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         servers.removeAll(listener.connectedHosts());
 
         loopAddresses.clear();
-        loopAddresses.addAll(loopAddresses);
+        loopAddresses.addAll(servers);
     }
 
     /**
@@ -290,7 +290,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     }
 
     @Override
-    public void readPipelineCheckMaster() throws IOException, SQLException {
+    public void readPipelineCheckMaster() throws SQLException {
         Results results = new Results();
         getResult(results);
         results.commandEnd();

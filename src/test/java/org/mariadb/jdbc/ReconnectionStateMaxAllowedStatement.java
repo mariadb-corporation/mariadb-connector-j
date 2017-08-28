@@ -91,14 +91,14 @@ public class ReconnectionStateMaxAllowedStatement extends BaseTest {
 
     private String level(Connection connection) throws SQLException {
         try (ResultSet rs = connection.prepareStatement("select @@tx_isolation").executeQuery()) {
-            rs.next();
+            assertTrue(rs.next());
             return rs.getString(1);
         }
     }
 
     private long maxPacket(Connection connection) throws SQLException {
         try (ResultSet rs = connection.prepareStatement("select @@max_allowed_packet").executeQuery()) {
-            rs.next();
+            assertTrue(rs.next());
             return rs.getLong(1);
         }
     }

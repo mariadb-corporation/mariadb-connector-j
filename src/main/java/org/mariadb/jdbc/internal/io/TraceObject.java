@@ -58,8 +58,8 @@ public class TraceObject {
     public static final int COMPRESSED_PROTOCOL_COMPRESSED_PACKET = 1;
     public static final int COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET = 2;
 
-    private boolean send;
-    private int indicatorFlag;
+    private final boolean send;
+    private final int indicatorFlag;
     private byte[][] buf;
 
     /**
@@ -76,8 +76,13 @@ public class TraceObject {
         this.buf = buf;
     }
 
+    /**
+     * Clear trace array for easy garbage.
+     */
     public void remove() {
-        for (byte[] b : buf) b = null;
+        for (int i = 0; i < buf.length; i++) {
+            buf[i] = null;// force null for easier garbage
+        }
         buf = null;
     }
 

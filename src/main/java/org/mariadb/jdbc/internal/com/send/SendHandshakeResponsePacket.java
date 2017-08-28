@@ -55,6 +55,7 @@ package org.mariadb.jdbc.internal.com.send;
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.util.Options;
@@ -100,37 +101,36 @@ public class SendHandshakeResponsePacket {
      * @param clientCapabilities client capabilities
      * @param serverCapabilities server capabilities
      * @param serverLanguage     server language (utf8 / utf8mb4 collation)
-     * @param seed               seed
      * @param packetSeq          packet sequence
-     * @param plugin             plugin name
      * @param options            user options
+     * @param greetingPacket     server handshake packet information
      * @throws IOException if socket exception occur
      * @see <a href="https://mariadb.com/kb/en/mariadb/1-connecting-connecting/#handshake-response-packet">protocol documentation</a>
      */
     public static void send(final PacketOutputStream pos,
-                            String username,
+                            final String username,
                             final String password,
                             final String database,
                             final long clientCapabilities,
                             final long serverCapabilities,
                             final byte serverLanguage,
-                            final byte[] seed,
                             final byte packetSeq,
-                            final String plugin,
-                            final Options options) throws IOException {
+                            final Options options,
+                            final ReadInitialHandShakePacket greetingPacket) throws IOException {
 
         pos.startPacket(packetSeq);
 
         final byte[] authData;
-        switch (plugin) {
+        switch (greetingPacket.getPluginName()) {
             case "": //CONJ-274 : permit connection mysql 5.1 db
             case DefaultAuthenticationProvider.MYSQL_NATIVE_PASSWORD:
                 pos.permitTrace(false);
                 try {
-                    authData = Utils.encryptPassword(password, seed, options.passwordCharacterEncoding);
+                    authData = Utils.encryptPassword(password, greetingPacket.getSeed(), options.passwordCharacterEncoding);
                     break;
                 } catch (NoSuchAlgorithmException e) {
-                    throw new RuntimeException("Could not use SHA-1, failing", e);
+                    //cannot occur :
+                    throw new IOException("Unknown algorithm SHA-1. Cannot encrypt password", e);
                 }
             case DefaultAuthenticationProvider.MYSQL_CLEAR_PASSWORD:
                 pos.permitTrace(false);
@@ -151,9 +151,12 @@ public class SendHandshakeResponsePacket {
         pos.writeBytes((byte) 0, 19);    //19
         pos.writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
 
-        if (username == null || "".equals(username)) username = System.getProperty("user.name"); //permit SSO
+        if (username == null || username.isEmpty()) {
+            pos.write(System.getProperty("user.name").getBytes()); //to permit SSO
+        } else {
+            pos.write(username.getBytes());     //strlen username
+        }
 
-        pos.write(username.getBytes());     //strlen username
         pos.write((byte) 0);        //1
 
         if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
@@ -173,7 +176,7 @@ public class SendHandshakeResponsePacket {
         }
 
         if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-            pos.write(plugin);
+            pos.write(greetingPacket.getPluginName());
             pos.write((byte) 0);
         }
 

@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -89,25 +88,26 @@ public class ConnectionTest extends BaseTest {
         try {
             DriverManager.getConnection("jdbc:mariadb://" + ((hostname != null) ? hostname : "localhost")
                     + ":" + port + "/" + database + "?user=foo");
-            Assert.fail();
+            fail();
         } catch (SQLException e) {
             switch (e.getErrorCode()) {
                 case (1524):
                     //GSSAPI plugin not loaded
-                    Assert.assertTrue("HY000".equals(e.getSQLState()));
+                    assertTrue("HY000".equals(e.getSQLState()));
                     break;
 
                 case (1045):
-                    Assert.assertTrue("28000".equals(e.getSQLState()));
+                    assertTrue("28000".equals(e.getSQLState()));
                     break;
 
                 case (1044):
                     //mysql
-                    Assert.assertTrue("42000".equals(e.getSQLState()));
+                    assertTrue("42000".equals(e.getSQLState()));
                     break;
 
                 default:
                     e.printStackTrace();
+                    break;
             }
         }
     }
@@ -126,7 +126,7 @@ public class ConnectionTest extends BaseTest {
 
                 SQLPermission sqlPermission = new SQLPermission("callAbort");
                 SecurityManager securityManager = System.getSecurityManager();
-                if (securityManager != null && sqlPermission != null) {
+                if (securityManager != null) {
                     try {
                         securityManager.checkPermission(sqlPermission);
                     } catch (SecurityException se) {
@@ -135,12 +135,7 @@ public class ConnectionTest extends BaseTest {
                     }
                 }
 
-                Executor executor = new Executor() {
-                    @Override
-                    public void execute(Runnable command) {
-                        command.run();
-                    }
-                };
+                Executor executor = Runnable::run;
 
                 connection.abort(executor);
                 assertTrue(connection.isClosed());
@@ -166,7 +161,7 @@ public class ConnectionTest extends BaseTest {
             int timeout = 1000;
             SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
             SecurityManager securityManager = System.getSecurityManager();
-            if (securityManager != null && sqlPermission != null) {
+            if (securityManager != null) {
                 try {
                     securityManager.checkPermission(sqlPermission);
                 } catch (SecurityException se) {
@@ -174,12 +169,7 @@ public class ConnectionTest extends BaseTest {
                     return;
                 }
             }
-            Executor executor = new Executor() {
-                @Override
-                public void execute(Runnable command) {
-                    command.run();
-                }
-            };
+            Executor executor = Runnable::run;
             try {
                 connection.setNetworkTimeout(executor, timeout);
             } catch (SQLException sqlex) {
@@ -208,7 +198,7 @@ public class ConnectionTest extends BaseTest {
      * @throws SQLException exception
      */
     @Test
-    public void isValidShouldThrowExceptionWithNegativeTimeout() throws SQLException {
+    public void isValidShouldThrowExceptionWithNegativeTimeout() {
         try {
             sharedConnection.isValid(-1);
             fail("The above row should have thrown an SQLException");
@@ -227,7 +217,7 @@ public class ConnectionTest extends BaseTest {
     public void checkMaxAllowedPacket() throws Throwable {
         Statement statement = sharedConnection.createStatement();
         ResultSet rs = statement.executeQuery("show variables like 'max_allowed_packet'");
-        rs.next();
+        assertTrue(rs.next());
         int maxAllowedPacket = rs.getInt(2);
 
         //Create a SQL stream bigger than maxAllowedPacket

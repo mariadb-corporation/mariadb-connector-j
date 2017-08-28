@@ -66,9 +66,9 @@ import java.util.TimeZone;
 
 public class TimeParameter implements Cloneable, ParameterHolder {
 
-    private Time time;
-    private TimeZone timeZone;
-    private boolean fractionalSeconds;
+    private final Time time;
+    private final TimeZone timeZone;
+    private final boolean fractionalSeconds;
 
     /**
      * Constructor.

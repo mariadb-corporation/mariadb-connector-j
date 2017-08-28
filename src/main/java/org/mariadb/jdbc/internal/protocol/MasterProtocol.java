@@ -84,7 +84,7 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
      * @param urlParser url connection object
      * @return new instance
      */
-    public static MasterProtocol getNewProtocol(FailoverProxy proxy, UrlParser urlParser) {
+    private static MasterProtocol getNewProtocol(FailoverProxy proxy, UrlParser urlParser) {
         MasterProtocol newProtocol = new MasterProtocol(urlParser, proxy.lock);
         newProtocol.setProxy(proxy);
         return newProtocol;
@@ -164,6 +164,6 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
         Collections.shuffle(servers);
 
         loopAddresses.clear();
-        loopAddresses.addAll(loopAddresses);
+        loopAddresses.addAll(servers);
     }
 }

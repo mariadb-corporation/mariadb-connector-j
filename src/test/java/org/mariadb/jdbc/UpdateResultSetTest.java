@@ -78,7 +78,7 @@ public class UpdateResultSetTest extends BaseTest {
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
                 "SELECT * FROM testnoprimarykey", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             ResultSet rs = preparedStatement.executeQuery("SELECT * FROM testnoprimarykey");
-            rs.next();
+            assertTrue(rs.next());
             try {
                 rs.updateString(1, "1");
                 fail();
@@ -94,7 +94,7 @@ public class UpdateResultSetTest extends BaseTest {
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
                 "SELECT 1", ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             ResultSet rs = preparedStatement.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             try {
                 rs.updateString(1, "1");
                 fail();
@@ -123,7 +123,7 @@ public class UpdateResultSetTest extends BaseTest {
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT * FROM testMultipleTable1, testMultipleTable2",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             ResultSet rs = preparedStatement.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             try {
                 rs.updateString("t1", "new value");
                 fail("must have failed since there is different tables");
@@ -147,7 +147,7 @@ public class UpdateResultSetTest extends BaseTest {
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT *, now() FROM testOneNoTable",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             ResultSet rs = preparedStatement.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             try {
                 rs.updateString("t1", "new value");
                 fail("must have failed since there is a field without database");
@@ -185,7 +185,7 @@ public class UpdateResultSetTest extends BaseTest {
                         + sharedConnection.getCatalog() + ".testMultipleDatabase, testConnectorJ.testMultipleDatabase",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             ResultSet rs = preparedStatement.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             try {
                 rs.updateString("t1", "new value");
                 fail("must have failed since there is different database");
@@ -209,7 +209,7 @@ public class UpdateResultSetTest extends BaseTest {
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT t1, t2 FROM UpdateWithoutPrimary",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             ResultSet rs = preparedStatement.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             try {
                 rs.updateString(1, "1-1-bis");
                 rs.updateRow();
@@ -258,8 +258,8 @@ public class UpdateResultSetTest extends BaseTest {
             rs.updateString(3, "0-2");
             rs.insertRow();
 
-            rs.next();
-            rs.next();
+            assertTrue(rs.next());
+            assertTrue(rs.next());
             rs.updateString(2, utf8escapeQuote);
             rs.updateRow();
         }
@@ -295,7 +295,7 @@ public class UpdateResultSetTest extends BaseTest {
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT t1, t2, id FROM PrimaryGenerated",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             ResultSet rs = preparedStatement.executeQuery();
-            rs.next();
+            assertFalse(rs.next());
 
             rs.moveToInsertRow();
             rs.updateString(1, "1-1");
@@ -354,7 +354,7 @@ public class UpdateResultSetTest extends BaseTest {
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT id, t1, t2 FROM testPrimaryGeneratedDefault",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             ResultSet rs = preparedStatement.executeQuery();
-            rs.next();
+            assertFalse(rs.next());
             rs.moveToInsertRow();
             rs.insertRow();
 
@@ -503,7 +503,7 @@ public class UpdateResultSetTest extends BaseTest {
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("select * from updateBlob",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             ResultSet rs = preparedStatement.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             InputStream updatedStream = new ByteArrayInputStream(updatedBlob);
 
             rs.updateBlob(2, updatedStream);
@@ -515,7 +515,7 @@ public class UpdateResultSetTest extends BaseTest {
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("select * from updateBlob",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             ResultSet rs = preparedStatement.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             checkResult(rs, updatedBlob);
         }
     }
@@ -538,7 +538,7 @@ public class UpdateResultSetTest extends BaseTest {
 
 
     @Test
-    public void updateMeta() throws SQLException, IOException {
+    public void updateMeta() throws SQLException {
         DatabaseMetaData meta = sharedConnection.getMetaData();
 
         assertTrue(meta.ownUpdatesAreVisible(ResultSet.TYPE_FORWARD_ONLY));
@@ -562,7 +562,7 @@ public class UpdateResultSetTest extends BaseTest {
     }
 
     @Test
-    public void updateResultSetMeta() throws SQLException, IOException {
+    public void updateResultSetMeta() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         assertEquals(ResultSet.CONCUR_READ_ONLY, stmt.getResultSetConcurrency());
         ResultSet rs = stmt.executeQuery("SELECT 1");
@@ -581,7 +581,7 @@ public class UpdateResultSetTest extends BaseTest {
         createTable("insertNoRow", "id int not null primary key, strm blob");
         Statement st = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_UPDATABLE);
         ResultSet rs = st.executeQuery("select * from insertNoRow");
-        assertTrue(!rs.next());
+        assertFalse(rs.next());
         rs.moveToInsertRow();
         try {
             rs.refreshRow();

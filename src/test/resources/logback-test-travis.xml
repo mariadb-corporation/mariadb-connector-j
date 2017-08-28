@@ -50,7 +50,7 @@
   ~ OF SUCH DAMAGE.
   ~
   -->
-
+<!--suppress XmlUnboundNsPrefix -->
 <configuration>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
