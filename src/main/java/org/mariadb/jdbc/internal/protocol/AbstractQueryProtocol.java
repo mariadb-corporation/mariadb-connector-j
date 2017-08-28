@@ -123,13 +123,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     AbstractQueryProtocol(final UrlParser urlParser, final ReentrantLock lock) {
         super(urlParser, lock);
-        if (options.useBatchMultiSend && readScheduler == null) {
-            synchronized (AbstractQueryProtocol.class) {
-                if (readScheduler == null) {
-                    readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
-                }
-            }
-        }
         logQuery = new LogQueryTool(options);
     }
 
@@ -485,6 +478,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
+    private void initializeBatchReader() {
+        if (options.useBatchMultiSend && readScheduler == null) {
+            synchronized (AbstractQueryProtocol.class) {
+                if (readScheduler == null) {
+                    readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
+                }
+            }
+        }
+    }
+
     /**
      * Execute clientPrepareQuery batch.
      *
@@ -497,7 +500,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                   final List<ParameterHolder[]> parametersList) throws SQLException {
 
         cmdPrologue();
-
+        initializeBatchReader();
         new AbstractMultiSend(this, writer, results, clientPrepareResult, parametersList) {
 
             @Override
@@ -627,7 +630,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             if (exception != null) throw exception;
             return;
         }
-
+        initializeBatchReader();
         new AbstractMultiSend(this, writer, results, queries) {
 
             @Override
@@ -828,6 +831,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
 
         if (!options.useBatchMultiSend) return false;
+        initializeBatchReader();
         new AbstractMultiSend(this, writer, results, serverPrepareResult, parametersList, true, sql) {
             @Override
             public void sendCmd(PacketOutputStream writer, Results results,
