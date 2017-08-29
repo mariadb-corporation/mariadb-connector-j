@@ -283,6 +283,65 @@ public class UpdateResultSetTest extends BaseTest {
         assertFalse(rs.next());
     }
 
+
+    @Test
+    public void testUpdateWhenFetch() throws Exception {
+        createTable("testUpdateWhenFetch", "`id` INT NOT NULL AUTO_INCREMENT,"
+                + "`t1` VARCHAR(50) NOT NULL,"
+                + "`t2` VARCHAR(50) NULL default 'default-value',"
+                + "PRIMARY KEY (`id`)", "DEFAULT CHARSET=utf8");
+
+        Statement stmt = sharedConnection.createStatement();
+        PreparedStatement pstmt = sharedConnection.prepareStatement("INSERT INTO testUpdateWhenFetch(t1,t2) values (?, ?)");
+        for (int i = 1; i < 100; i++) {
+            pstmt.setString(1, i + "-1");
+            pstmt.setString(2, i + "-2");
+            pstmt.addBatch();
+        }
+        pstmt.executeBatch();
+
+        String utf8escapeQuote = "你好 '\' \" \\";
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT id, t1, t2 FROM testUpdateWhenFetch",
+                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
+            preparedStatement.setFetchSize(2);
+            ResultSet rs = preparedStatement.executeQuery();
+
+            rs.moveToInsertRow();
+            rs.updateInt(1, -1);
+            rs.updateString(2, "0-1");
+            rs.updateString(3, "0-2");
+            rs.insertRow();
+
+            rs.next();
+            rs.next();
+            rs.updateString(2, utf8escapeQuote);
+            rs.updateRow();
+        }
+
+        ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM testUpdateWhenFetch");
+        assertTrue(rs.next());
+        assertEquals(-1, rs.getInt(1));
+        assertEquals("0-1", rs.getString(2));
+        assertEquals("0-2", rs.getString(3));
+
+        assertTrue(rs.next());
+        assertEquals(1, rs.getInt(1));
+        assertEquals("1-1", rs.getString(2));
+        assertEquals("1-2", rs.getString(3));
+
+        assertTrue(rs.next());
+        assertEquals(2, rs.getInt(1));
+        assertEquals(utf8escapeQuote, rs.getString(2));
+        assertEquals("2-2", rs.getString(3));
+
+        for (int i = 3; i < 100; i++) {
+            assertTrue(rs.next());
+            assertEquals(i + "-1", rs.getString(2));
+            assertEquals(i + "-2", rs.getString(3));
+        }
+        assertFalse(rs.next());
+    }
+
     @Test
     public void testPrimaryGenerated() throws Exception {
         createTable("PrimaryGenerated", "`id` INT NOT NULL AUTO_INCREMENT,"

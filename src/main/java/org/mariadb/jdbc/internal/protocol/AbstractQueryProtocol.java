@@ -1550,6 +1550,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
                 selectResultSet = new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated);
             } else {
+                //remove fetch size to permit updating results without creating new connection
+                results.removeFetchSize();
                 selectResultSet = new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated);
             }
 
