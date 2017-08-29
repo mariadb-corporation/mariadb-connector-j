@@ -78,6 +78,7 @@ public class BigQueryTest extends BaseTest {
         createTable("bigblob3", "id int not null primary key auto_increment, test longblob, test2 longblob, test3 varchar(20)");
         createTable("bigblob4", "test longblob");
         createTable("bigblob5", "id int not null primary key auto_increment, test longblob, test2 text");
+        createTable("bigblob6", "id int not null primary key auto_increment, test longblob");
     }
 
     @Test
@@ -102,6 +103,36 @@ public class BigQueryTest extends BaseTest {
         assertEquals(arr.length, newBytes.length);
         for (int i = 0; i < arr.length; i++) {
             assertEquals(arr[i], newBytes[i]);
+        }
+    }
+
+    @Test
+    public void sendBigPreparedQueryFe() throws SQLException {
+
+        Assume.assumeTrue(checkMaxAllowedPacketMore20m("sendBigPreparedQueryFe"));
+
+
+        byte[] arr = new byte[20000000];
+        Arrays.fill(arr, (byte) 0xfe);
+        Connection connection = null;
+        try {
+            connection = setConnection("&useCompression=true");
+            PreparedStatement ps = connection.prepareStatement("insert into bigblob6 values(null, ?)");
+            ps.setBytes(1, arr);
+            ps.executeUpdate();
+            ps.setBytes(1, arr);
+            ps.executeUpdate();
+
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("select test from bigblob6");
+            rs.next();
+            byte[] newBytes = rs.getBytes(1);
+            assertEquals(arr.length, newBytes.length);
+            for (int i = 0; i < arr.length; i++) {
+                assertEquals(arr[i], newBytes[i]);
+            }
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
