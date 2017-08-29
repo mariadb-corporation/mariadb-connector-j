@@ -665,7 +665,7 @@ public class Utils {
         int pos = offset;
         int posHexa = 0;
 
-        while (pos < dataLength) {
+        while (pos < dataLength + offset) {
             int byteValue = bytes[pos] & 0xFF;
             outputBuilder.append(hexArray[byteValue >>> 4])
                     .append(hexArray[byteValue & 0x0F])
