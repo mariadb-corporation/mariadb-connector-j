@@ -52,18 +52,13 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import java.sql.*;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import static org.junit.Assert.*;
 
 public class ResultSetTest extends BaseTest {
     /**
@@ -912,5 +907,86 @@ public class ResultSetTest extends BaseTest {
         assertTrue(rs.getShort("test") == -1);
         assertTrue(rs.getLong("test") == -1);
         assertTrue(rs.getFloat("test") == -1.3333F);
+    }
+
+    @Test
+    public void nullField() throws SQLException {
+        Assume.assumeTrue(isMariadbServer()); //'0000-00-00' doesn't work anymore on mysql 5.7.
+        createTable("nullField", "t1 varchar(50), t2 timestamp NULL, t3 date, t4 year(4)");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("INSERT INTO nullField(t1,t2,t3,t4) values "
+                + "(null, '0000-00-00 00:00:00', '0000-00-00', '0000'), "
+                + "(null, null, null, null),"
+                + "('aa', now(), now(), '2017')");
+
+        ResultSet rs = stmt.executeQuery("SELECT * FROM nullField");
+        assertTrue(rs.next());
+        if (!sharedOptions().useServerPrepStmts) {
+            assertNull(rs.getString(1));
+            assertTrue(rs.wasNull());
+
+            assertNull(rs.getTimestamp(2));
+            assertTrue(rs.wasNull());
+
+            assertEquals("0000-00-00 00:00:00", rs.getString(2));
+            assertFalse(rs.wasNull());
+
+            assertNull(rs.getDate(3));
+            assertTrue(rs.wasNull());
+
+            assertEquals("0000-00-00", rs.getString(3));
+            assertFalse(rs.wasNull());
+
+            assertEquals(Date.valueOf("0000-01-01"), rs.getDate(4));
+            assertFalse(rs.wasNull());
+
+            assertEquals(0, rs.getInt(4));
+            assertFalse(rs.wasNull());
+
+            assertEquals("0001-01-01", rs.getString(4));
+            assertFalse(rs.wasNull());
+
+        }
+
+        assertTrue(rs.next());
+
+        assertNull(rs.getTimestamp(2));
+        assertTrue(rs.wasNull());
+
+        assertNull(rs.getString(2));
+        assertTrue(rs.wasNull());
+
+        assertNull(rs.getDate(3));
+        assertTrue(rs.wasNull());
+
+        assertNull(rs.getString(3));
+        assertTrue(rs.wasNull());
+
+        assertNull(rs.getDate(4));
+        assertTrue(rs.wasNull());
+
+        assertNull(rs.getString(2));
+        assertTrue(rs.wasNull());
+
+        assertTrue(rs.next());
+
+        assertNotNull(rs.getTimestamp(2));
+        assertFalse(rs.wasNull());
+
+        assertNotNull(rs.getString(2));
+        assertFalse(rs.wasNull());
+
+        assertNotNull(rs.getDate(3));
+        assertFalse(rs.wasNull());
+
+        assertNotNull(rs.getString(3));
+        assertFalse(rs.wasNull());
+
+        assertNotNull(rs.getDate(4));
+        assertFalse(rs.wasNull());
+
+        assertNotNull(rs.getString(2));
+        assertFalse(rs.wasNull());
+
     }
 }

@@ -102,6 +102,10 @@ public class SelectResultSet implements ResultSet {
     private static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.[0-9]+$");
     private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
+    private static final int BIT_LAST_FIELD_NOT_NULL = 0;
+    private static final int BIT_LAST_FIELD_NULL     = 1;
+    private static final int BIT_LAST_ZERO_DATE      = 2;
+
     static {
         INSERT_ID_COLUMNS = new ColumnInformation[1];
         INSERT_ID_COLUMNS[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
@@ -126,8 +130,7 @@ public class SelectResultSet implements ResultSet {
     private int resultSetScrollType;
     private int rowPointer;
     private ColumnNameMap columnNameMap;
-    private boolean lastGetWasNull;
-    private boolean lastValueNull;
+    private int lastValueNull;
     private int lastRowPointer = -1;
     private int dataTypeMappingFlags;
     private boolean returnTableAlias;
@@ -605,7 +608,11 @@ public class SelectResultSet implements ResultSet {
             row.resetRow(data[rowPointer]);
             lastRowPointer = rowPointer;
         }
-        this.lastValueNull = row.setPosition(position - 1);
+        this.lastValueNull = row.setPosition(position - 1) ? BIT_LAST_FIELD_NULL : BIT_LAST_FIELD_NOT_NULL;
+    }
+
+    private boolean lastValueWasNull() {
+        return (lastValueNull & BIT_LAST_FIELD_NULL) != 0;
     }
 
     @Override
@@ -892,7 +899,8 @@ public class SelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public boolean wasNull() throws SQLException {
-        return lastValueNull || lastGetWasNull;
+        return (lastValueNull & BIT_LAST_FIELD_NULL) != 0
+                || (lastValueNull & BIT_LAST_ZERO_DATE) != 0;
     }
 
     /**
@@ -908,7 +916,7 @@ public class SelectResultSet implements ResultSet {
      */
     public InputStream getAsciiStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
         return new ByteArrayInputStream(new String(row.buf, row.pos, row.getLengthMaxFieldSize(), Buffer.UTF_8).getBytes());
     }
 
@@ -932,7 +940,7 @@ public class SelectResultSet implements ResultSet {
     }
 
     private String getInternalString(ColumnInformation columnInfo, Calendar cal) throws SQLException {
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
 
         switch (columnInfo.getColumnType()) {
             case STRING:
@@ -981,7 +989,13 @@ public class SelectResultSet implements ResultSet {
             case DATE:
                 if (isBinaryEncoded) {
                     Date date = getInternalDate(columnInfo, cal);
-                    return (date == null) ? null : date.toString();
+                    if (date == null) {
+                        //row data is not null but result is null -> this is "zero-date"
+                        //specific for "zero-date", getString will return "zero-date" value -> wasNull() must then return false
+                        lastValueNull ^= BIT_LAST_ZERO_DATE;
+                        return new String(row.buf, row.pos, row.length, Buffer.UTF_8);
+                    }
+                    return date.toString();
                 }
                 break;
             case YEAR:
@@ -997,10 +1011,10 @@ public class SelectResultSet implements ResultSet {
             case DATETIME:
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal);
                 if (timestamp == null) {
-                    if (!lastValueNull && !this.isBinaryEncoded) {
-                        return new String(row.buf, row.pos, row.length, Buffer.UTF_8);
-                    }
-                    return null;
+                    //row data is not null but result is null -> this is "zero-date"
+                    //specific for "zero-date", getString will return "zero-date" value -> wasNull() must then return false
+                    lastValueNull ^= BIT_LAST_ZERO_DATE;
+                    return new String(row.buf, row.pos, row.length, Buffer.UTF_8);
                 }
                 return timestamp.toString();
             case DECIMAL:
@@ -1037,7 +1051,7 @@ public class SelectResultSet implements ResultSet {
      */
     public InputStream getBinaryStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
         return new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());
     }
 
@@ -1071,7 +1085,7 @@ public class SelectResultSet implements ResultSet {
      * @return int
      */
     private int getInternalInt(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return 0;
+        if (lastValueWasNull()) return 0;
 
         if (!this.isBinaryEncoded) {
             return parseInt(columnInfo);
@@ -1139,7 +1153,7 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException if any error occur
      */
     private long getInternalLong(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return 0;
+        if (lastValueWasNull()) return 0;
 
         if (!this.isBinaryEncoded) {
             return parseLong(columnInfo);
@@ -1226,7 +1240,7 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException id any error occur
      */
     private float getInternalFloat(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return 0;
+        if (lastValueWasNull()) return 0;
 
         if (!this.isBinaryEncoded) {
             switch (columnInfo.getColumnType()) {
@@ -1350,7 +1364,7 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException id any error occur
      */
     private double getInternalDouble(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return 0;
+        if (lastValueWasNull()) return 0;
         if (!this.isBinaryEncoded) {
             switch (columnInfo.getColumnType()) {
                 case BIT:
@@ -1481,7 +1495,7 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException id any error occur
      */
     private BigDecimal getInternalBigDecimal(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
 
         if (!this.isBinaryEncoded) {
             return new BigDecimal(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
@@ -1538,7 +1552,7 @@ public class SelectResultSet implements ResultSet {
      */
     public byte[] getBytes(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
         byte[] data = new byte[row.getLengthMaxFieldSize()];
         System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
         return data;
@@ -1584,14 +1598,10 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException if raw data cannot be parse
      */
     private Date getInternalDate(ColumnInformation columnInfo, Calendar cal) throws SQLException {
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
 
         if (!this.isBinaryEncoded) {
             String rawValue = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
-            if ("0000-00-00".equals(rawValue)) {
-                lastGetWasNull = true;
-                return null;
-            }
 
             switch (columnInfo.getColumnType()) {
                 case TIMESTAMP:
@@ -1604,6 +1614,11 @@ public class SelectResultSet implements ResultSet {
                     throw new SQLException("Cannot read DATE using a Types.TIME field");
 
                 case DATE:
+                    if ("0000-00-00".equals(rawValue)) {
+                        lastValueNull |= BIT_LAST_ZERO_DATE;
+                        return null;
+                    }
+
                     return new Date(
                             Integer.parseInt(rawValue.substring(0, 4)) - 1900,
                             Integer.parseInt(rawValue.substring(5, 7)) - 1,
@@ -1681,7 +1696,7 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException if raw data cannot be parse
      */
     private Time getInternalTime(ColumnInformation columnInfo, Calendar cal) throws SQLException {
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
 
         if (!this.isBinaryEncoded) {
             if (columnInfo.getColumnType() == ColumnType.TIMESTAMP || columnInfo.getColumnType() == ColumnType.DATETIME) {
@@ -1694,10 +1709,6 @@ public class SelectResultSet implements ResultSet {
 
             } else {
                 String raw = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
-                if ("0000-00-00".equals(raw)) {
-                    lastGetWasNull = true;
-                    return null;
-                }
                 if (!options.useLegacyDatetimeCode && (raw.startsWith("-") || raw.split(":").length != 3 || raw.indexOf(":") > 3)) {
                     throw new SQLException("Time format \"" + raw + "\" incorrect, must be HH:mm:ss");
                 }
@@ -1769,12 +1780,12 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException if text value cannot be parse
      */
     private Timestamp getInternalTimestamp(ColumnInformation columnInfo, Calendar userCalendar) throws SQLException {
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
 
         if (!this.isBinaryEncoded) {
             String rawValue = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
             if (rawValue.startsWith("0000-00-00 00:00:00")) {
-                lastGetWasNull = true;
+                lastValueNull |= BIT_LAST_ZERO_DATE;
                 return null;
             }
 
@@ -1847,7 +1858,7 @@ public class SelectResultSet implements ResultSet {
      */
     public InputStream getUnicodeStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
         return new ByteArrayInputStream(new String(row.buf, row.pos, row.getLengthMaxFieldSize(), Buffer.UTF_8).getBytes());
     }
 
@@ -1910,27 +1921,27 @@ public class SelectResultSet implements ResultSet {
             return (T) getInternalString(col, null);
 
         } else if (type.equals(Integer.class)) {
-            if (lastValueNull) return null;
+            if (lastValueWasNull()) return null;
             return (T) (Integer) getInternalInt(col);
 
         } else if (type.equals(Long.class)) {
-            if (lastValueNull) return null;
+            if (lastValueWasNull()) return null;
             return (T) (Long) getInternalLong(col);
 
         } else if (type.equals(Short.class)) {
-            if (lastValueNull) return null;
+            if (lastValueWasNull()) return null;
             return (T) (Short) getInternalShort(col);
 
         } else if (type.equals(Double.class)) {
-            if (lastValueNull) return null;
+            if (lastValueWasNull()) return null;
             return (T) (Double) getInternalDouble(col);
 
         } else if (type.equals(Float.class)) {
-            if (lastValueNull) return null;
+            if (lastValueWasNull()) return null;
             return (T) (Float) getInternalFloat(col);
 
         } else if (type.equals(Byte.class)) {
-            if (lastValueNull) return null;
+            if (lastValueWasNull()) return null;
             return (T) (Byte) getInternalByte(col);
 
         } else if (type.equals(byte[].class)) {
@@ -1958,14 +1969,14 @@ public class SelectResultSet implements ResultSet {
             return type.cast(calendar);
 
         } else if (type.equals(Clob.class) || type.equals(NClob.class)) {
-            if (lastValueNull) return null;
+            if (lastValueWasNull()) return null;
             //TODO rewrite Blob to use buffer directly (using offset + length)
             byte[] data = new byte[row.getLengthMaxFieldSize()];
             System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
             return (T) new MariaDbClob(data);
 
         } else if (type.equals(InputStream.class)) {
-            if (lastValueNull) return null;
+            if (lastValueWasNull()) return null;
             return (T) new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());
 
         } else if (type.equals(Reader.class)) {
@@ -2000,7 +2011,7 @@ public class SelectResultSet implements ResultSet {
      */
     private Object getInternalObject(ColumnInformation columnInfo, int dataTypeMappingFlags)
             throws SQLException {
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
 
         switch (columnInfo.getColumnType()) {
             case BIT:
@@ -2573,7 +2584,7 @@ public class SelectResultSet implements ResultSet {
      */
     public Blob getBlob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
         //TODO implement MariaDbBlob with offset
         byte[] data = new byte[row.getLengthMaxFieldSize()];
         System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
@@ -2592,7 +2603,7 @@ public class SelectResultSet implements ResultSet {
      */
     public Clob getClob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
         //TODO implement MariaDbClob with offset
         byte[] data = new byte[row.getLengthMaxFieldSize()];
         System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
@@ -2626,7 +2637,7 @@ public class SelectResultSet implements ResultSet {
     @Override
     public URL getURL(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
         try {
             return new URL(getInternalString(columnsInformation[columnIndex - 1]));
         } catch (MalformedURLException e) {
@@ -2852,7 +2863,7 @@ public class SelectResultSet implements ResultSet {
      */
     public NClob getNClob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
         //TODO implement MariaDbBlob with offset
         byte[] data = new byte[row.getLengthMaxFieldSize()];
         System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
@@ -2964,7 +2975,7 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException id any error occur
      */
     private boolean getInternalBoolean(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return false;
+        if (lastValueWasNull()) return false;
 
         if (!this.isBinaryEncoded) {
             if (row.length == 1 && row.buf[row.pos] == 0) {
@@ -3020,7 +3031,7 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException id any error occur
      */
     private byte getInternalByte(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return 0;
+        if (lastValueWasNull()) return 0;
 
         if (!this.isBinaryEncoded) {
             if (columnInfo.getColumnType() == ColumnType.BIT) {
@@ -3083,7 +3094,7 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException id any error occur
      */
     private short getInternalShort(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return 0;
+        if (lastValueWasNull()) return 0;
 
         if (!this.isBinaryEncoded) {
             return parseShort(columnInfo);
@@ -3151,7 +3162,7 @@ public class SelectResultSet implements ResultSet {
     }
 
     private String getTimeString(ColumnInformation columnInfo) {
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
         if (row.length == 0) {
             // binary send 00:00:00 as 0.
             if (columnInfo.getDecimals() == 0) {
@@ -3227,7 +3238,7 @@ public class SelectResultSet implements ResultSet {
     }
 
     private int getInternalTinyInt(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return 0;
+        if (lastValueWasNull()) return 0;
         int value = row.buf[row.pos];
         if (!columnInfo.isSigned()) {
             value = (row.buf[row.pos] & 0xff);
@@ -3236,7 +3247,7 @@ public class SelectResultSet implements ResultSet {
     }
 
     private int getInternalSmallInt(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return 0;
+        if (lastValueWasNull()) return 0;
         int value = ((row.buf[row.pos] & 0xff) + ((row.buf[row.pos + 1] & 0xff) << 8));
         if (!columnInfo.isSigned()) {
             return value & 0xffff;
@@ -3246,7 +3257,7 @@ public class SelectResultSet implements ResultSet {
     }
 
     private long getInternalMediumInt(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return 0;
+        if (lastValueWasNull()) return 0;
         long value = ((row.buf[row.pos] & 0xff)
                 + ((row.buf[row.pos + 1] & 0xff) << 8)
                 + ((row.buf[row.pos + 2] & 0xff) << 16)
@@ -3259,7 +3270,7 @@ public class SelectResultSet implements ResultSet {
 
 
     private byte parseByte(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return 0;
+        if (lastValueWasNull()) return 0;
         try {
             switch (columnInfo.getColumnType()) {
                 case FLOAT:
@@ -3318,7 +3329,7 @@ public class SelectResultSet implements ResultSet {
     }
 
     private short parseShort(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return 0;
+        if (lastValueWasNull()) return 0;
         try {
             switch (columnInfo.getColumnType()) {
                 case FLOAT:
@@ -3515,7 +3526,7 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException exception
      */
     private BigInteger getInternalBigInteger(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueNull) return null;
+        if (lastValueWasNull()) return null;
         if (!this.isBinaryEncoded) {
             return new BigInteger(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
         } else {
@@ -3576,7 +3587,7 @@ public class SelectResultSet implements ResultSet {
                 throw new SQLException("Cannot read Date using a Types.TIME field");
             default:
                 if (row.length == 0) {
-                    lastGetWasNull = true;
+                    lastValueNull |= BIT_LAST_FIELD_NULL;
                     return null;
                 }
 
@@ -3666,7 +3677,7 @@ public class SelectResultSet implements ResultSet {
 
     private Timestamp binaryTimestamp(ColumnInformation columnInfo, Calendar userCalendar) throws SQLException {
         if (row.length == 0) {
-            lastGetWasNull = true;
+            lastValueNull |= BIT_LAST_FIELD_NULL;
             return null;
         }
 
