@@ -60,7 +60,7 @@ import java.sql.SQLException;
 
 public abstract class GssapiAuth {
 
-    protected PacketInputStream reader;
+    protected final PacketInputStream reader;
     protected int packSeq;
 
     public GssapiAuth(PacketInputStream reader, int packSeq) {

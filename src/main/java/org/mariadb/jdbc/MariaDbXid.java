@@ -58,9 +58,9 @@ import java.util.Arrays;
 
 
 public class MariaDbXid implements Xid {
-    public int formatId;
-    public byte[] globalTransactionId;
-    public byte[] branchQualifier;
+    private final int formatId;
+    private final byte[] globalTransactionId;
+    private final byte[] branchQualifier;
 
     /**
      * Global transaction identifier.

@@ -54,11 +54,11 @@ package org.mariadb.jdbc.internal.com.read.resultset;
 
 public class UpdatableColumnInformation extends ColumnInformation {
 
-    private boolean canBeNull;
-    private boolean primary;
-    private boolean hasDefault;
-    private boolean generated;
-    private boolean autoIncrement;
+    private final boolean canBeNull;
+    private final boolean primary;
+    private final boolean hasDefault;
+    private final boolean generated;
+    private final boolean autoIncrement;
 
     /**
      * Constructor of Column metadata.

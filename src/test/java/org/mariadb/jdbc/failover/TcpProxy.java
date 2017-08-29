@@ -61,11 +61,10 @@ import java.util.concurrent.TimeUnit;
 
 
 public class TcpProxy {
-    private static Logger logger = LoggerFactory.getLogger(TcpProxy.class);
+    private static final Logger logger = LoggerFactory.getLogger(TcpProxy.class);
 
-    String host;
-    int remoteport;
-    TcpProxySocket socket;
+    private final String host;
+    private TcpProxySocket socket;
 
     /**
      * Initialise proxy.
@@ -76,7 +75,6 @@ public class TcpProxy {
      */
     public TcpProxy(String host, int remoteport) throws IOException {
         this.host = host;
-        this.remoteport = remoteport;
         socket = new TcpProxySocket(host, remoteport);
         Executors.newSingleThreadScheduledExecutor().schedule(socket, 0, TimeUnit.MILLISECONDS);
     }
@@ -92,7 +90,7 @@ public class TcpProxy {
      */
     public void restart(long sleepTime) {
         socket.kill();
-        logger.trace("host proxy port " + socket.localport + " for " + host + " started");
+        logger.trace("host proxy port " + socket.getLocalport() + " for " + host + " started");
         Executors.newSingleThreadScheduledExecutor().schedule(socket, sleepTime, TimeUnit.MILLISECONDS);
     }
 

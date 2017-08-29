@@ -67,8 +67,8 @@ import static org.junit.Assert.*;
 
 public class ExecuteBatchTest extends BaseTest {
 
-    static String oneHundredLengthString = "";
-    static boolean profileSql = false;
+    private static final String oneHundredLengthString;
+    private static final boolean profileSql = false;
 
     static {
         char[] chars = new char[100];
@@ -101,34 +101,31 @@ public class ExecuteBatchTest extends BaseTest {
         final AtomicBoolean wasInterrupted = new AtomicBoolean(false);
         final AtomicReference<Exception> exceptionRef = new AtomicReference<>();
 
-        service.submit(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-                            "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
+        service.submit(() -> {
+            try {
+                PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                        "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?)");
 
-                    // Send a large enough batch that will take long enough to allow us to interrupt it
-                    for (int i = 0; i < 1_000_000; i++) {
-                        preparedStatement.setString(1, String.valueOf(System.nanoTime()));
-                        preparedStatement.setInt(2, i);
-                        preparedStatement.addBatch();
-                    }
-
-                    barrier.await();
-
-                    preparedStatement.executeBatch();
-                } catch (InterruptedException ex) {
-                    exceptionRef.set(ex);
-                    Thread.currentThread().interrupt();
-                } catch (BrokenBarrierException ex) {
-                    exceptionRef.set(ex);
-                } catch (SQLException ex) {
-                    exceptionRef.set(ex);
-                    wasInterrupted.set(Thread.currentThread().isInterrupted());
-                } catch (Exception ex) {
-                    exceptionRef.set(ex);
+                // Send a large enough batch that will take long enough to allow us to interrupt it
+                for (int i = 0; i < 1_000_000; i++) {
+                    preparedStatement.setString(1, String.valueOf(System.nanoTime()));
+                    preparedStatement.setInt(2, i);
+                    preparedStatement.addBatch();
                 }
+
+                barrier.await();
+
+                preparedStatement.executeBatch();
+            } catch (InterruptedException ex) {
+                exceptionRef.set(ex);
+                Thread.currentThread().interrupt();
+            } catch (BrokenBarrierException ex) {
+                exceptionRef.set(ex);
+            } catch (SQLException ex) {
+                exceptionRef.set(ex);
+                wasInterrupted.set(Thread.currentThread().isInterrupted());
+            } catch (Exception ex) {
+                exceptionRef.set(ex);
             }
         });
 
@@ -245,27 +242,6 @@ public class ExecuteBatchTest extends BaseTest {
         }
     }
 
-    @Test
-    public void clientRewriteValuesPossibleTest() throws SQLException {
-        // 8mb
-        // 20mb
-        // 40mb
-    }
-
-    @Test
-    public void clientRewriteMultiTest() throws SQLException {
-        // 8mb
-        // 20mb
-        // 40mb
-    }
-
-    @Test
-    public void clientStdMultiTest() throws SQLException {
-        // 8mb
-        // 20mb
-        // 40mb
-    }
-
     private void addBatchData(PreparedStatement preparedStatement, int batchNumber, Connection connection) throws SQLException {
         addBatchData(preparedStatement, batchNumber, connection, false);
     }
@@ -309,14 +285,14 @@ public class ExecuteBatchTest extends BaseTest {
                 }
                 int[] updateCounts = pstmt.executeBatch();
                 assertEquals(10, updateCounts.length);
-                for (int i = 0; i < updateCounts.length; i++) {
+                for (int updateCount : updateCounts) {
                     if ((sharedIsRewrite()
                             || (sharedOptions().useBulkStmts
-                                    && isMariadbServer()
-                                    && minVersion(10,2)))) {
-                        assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[i]);
+                            && isMariadbServer()
+                            && minVersion(10, 2)))) {
+                        assertEquals(Statement.SUCCESS_NO_INFO, updateCount);
                     } else {
-                        assertEquals(1, updateCounts[i]);
+                        assertEquals(1, updateCount);
                     }
                 }
             }

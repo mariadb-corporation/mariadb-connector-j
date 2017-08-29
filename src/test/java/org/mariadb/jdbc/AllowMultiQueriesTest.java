@@ -98,7 +98,24 @@ public class AllowMultiQueriesTest extends BaseTest {
     }
 
     @Test
-    public void allowMultiQueriesFetchTest() throws SQLException {
+    public void checkMultiGeneratedKeys() throws SQLException {
+        try (Connection connection = setConnection("&allowMultiQueries=true")) {
+            Statement stmt = connection.createStatement();
+            stmt.execute("SELECT 1; SET @TOTO=3; SELECT 2", Statement.RETURN_GENERATED_KEYS);
+            ResultSet rs = stmt.getResultSet();
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertTrue(stmt.getMoreResults());
+            stmt.getGeneratedKeys();
+            assertTrue(stmt.getMoreResults());
+            rs = stmt.getResultSet();
+            assertTrue(rs.next());
+            assertEquals(2, rs.getInt(1));
+        }
+    }
+
+    @Test
+    public void allowMultiQueriesFetchTest() {
         try (Connection connection = setConnection("&allowMultiQueries=true")) {
             try (Statement statement = connection.createStatement()) {
                 statement.setFetchSize(1);

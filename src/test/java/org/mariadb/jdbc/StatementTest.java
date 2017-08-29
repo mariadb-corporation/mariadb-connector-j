@@ -129,8 +129,8 @@ public class StatementTest extends BaseTest {
             try (PreparedStatement stmt = connection.prepareStatement("SELECT 1")) {
                 stmt.setFetchSize(Integer.MIN_VALUE);
                 ResultSet rs = stmt.executeQuery();
-                rs.next();
-                rs = stmt.executeQuery();
+                assertTrue(rs.next());
+                stmt.executeQuery();
             }
         }
     }
@@ -142,7 +142,7 @@ public class StatementTest extends BaseTest {
         st1.close();
         conn2.close();
         Statement st2 = conn2.createStatement();
-        assertTrue(false);
+        fail();
         st2.close();
     }
 
@@ -271,7 +271,7 @@ public class StatementTest extends BaseTest {
             if (statement.isWrapperFor(MariaDbStatement.class)) {
                 mysqlStatement = statement.unwrap(MariaDbStatement.class);
             } else {
-                throw new RuntimeException("Mariadb JDBC adaptor must be used");
+                throw new SQLException("Mariadb JDBC adaptor must be used");
             }
             try {
                 String data = "\"1\", \"string1\"\n"
@@ -313,7 +313,7 @@ public class StatementTest extends BaseTest {
                 stopProxy();
                 otherStatement.execute("SELECT 1");
             } catch (SQLException e) {
-                assertTrue(otherStatement.isClosed());
+                assertTrue(otherStatement != null ? otherStatement.isClosed() : false);
                 assertTrue(connection.isClosed());
                 try {
                     statement.execute("SELECT 1");

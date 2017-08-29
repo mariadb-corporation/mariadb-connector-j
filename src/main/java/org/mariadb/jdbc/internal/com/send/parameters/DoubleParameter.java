@@ -60,7 +60,7 @@ import java.io.IOException;
 
 public class DoubleParameter implements Cloneable, ParameterHolder {
 
-    private double value;
+    private final double value;
 
     public DoubleParameter(double value) {
         this.value = value;

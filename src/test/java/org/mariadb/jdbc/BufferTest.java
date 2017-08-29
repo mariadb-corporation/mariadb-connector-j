@@ -64,9 +64,9 @@ import static org.junit.Assert.*;
 
 public class BufferTest extends BaseTest {
 
-    static char[] array8m;
-    static char[] array20m;
-    static char[] array40m;
+    private static final char[] array8m;
+    private static final char[] array20m;
+    private static final char[] array40m;
 
     static {
         array8m = new char[8000000];
@@ -132,7 +132,7 @@ public class BufferTest extends BaseTest {
 
 
     @Test
-    public void send20mSqlNotCompressDataException() throws SQLException {
+    public void send20mSqlNotCompressDataException() {
         try {
             Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mSqlNotCompressDataException", false));
             sendSqlData(false, array20m);
@@ -144,7 +144,7 @@ public class BufferTest extends BaseTest {
     }
 
     @Test
-    public void send20mSqlCompressDataException() throws SQLException {
+    public void send20mSqlCompressDataException() {
         try {
             Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mSqlCompressDataException", false));
             sendSqlData(true, array20m);
@@ -156,7 +156,7 @@ public class BufferTest extends BaseTest {
     }
 
     @Test
-    public void send40mSqlNotCompressDataException() throws SQLException {
+    public void send40mSqlNotCompressDataException() {
         try {
             Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mSqlNotCompressDataException", false));
             sendSqlData(false, array40m);
@@ -168,7 +168,7 @@ public class BufferTest extends BaseTest {
     }
 
     @Test
-    public void send40mSqlCompressDataException() throws SQLException {
+    public void send40mSqlCompressDataException() {
         try {
             Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mSqlCompressDataException", false));
             sendSqlData(true, array40m);
@@ -181,7 +181,7 @@ public class BufferTest extends BaseTest {
 
 
     @Test
-    public void send20mByteBufferNotCompressDataException() throws SQLException {
+    public void send20mByteBufferNotCompressDataException() {
         try {
             Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mByteBufferNotCompressDataException", false));
             sendByteBufferData(false, array20m);
@@ -193,7 +193,7 @@ public class BufferTest extends BaseTest {
     }
 
     @Test
-    public void send20mByteBufferCompressDataException() throws SQLException {
+    public void send20mByteBufferCompressDataException() {
         try {
             Assume.assumeTrue(!checkMaxAllowedPacketMore20m("send20mByteBufferCompressDataException", false));
             sendByteBufferData(true, array20m);
@@ -205,7 +205,7 @@ public class BufferTest extends BaseTest {
     }
 
     @Test
-    public void send40mByteBufferNotCompressDataException() throws SQLException {
+    public void send40mByteBufferNotCompressDataException() {
         try {
             Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mByteBufferNotCompressDataException", false));
             sendByteBufferData(false, array40m);
@@ -217,7 +217,7 @@ public class BufferTest extends BaseTest {
     }
 
     @Test
-    public void send40mByteBufferCompressDataException() throws SQLException {
+    public void send40mByteBufferCompressDataException() {
         try {
             Assume.assumeTrue(!checkMaxAllowedPacketMore40m("send40mByteBufferCompressDataException", false));
             sendByteBufferData(true, array40m);

@@ -5,16 +5,16 @@ import org.junit.Test;
 
 import javax.net.ssl.SSLException;
 import javax.security.auth.x500.X500Principal;
-
 import java.io.ByteArrayInputStream;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class HostnameVerifierImplTest {
-    HostnameVerifierImpl verifier = new HostnameVerifierImpl();
+    private final HostnameVerifierImpl verifier = new HostnameVerifierImpl();
 
     private static X509Certificate getCertificate(String certString) throws CertificateException {
         CertificateFactory cf = CertificateFactory.getInstance("X.509");

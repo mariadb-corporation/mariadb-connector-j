@@ -92,13 +92,12 @@ public class BigQueryTest extends BaseTest {
         }
 
         Statement stmt = sharedConnection.createStatement();
-        StringBuilder query = new StringBuilder("INSERT INTO bigblob VALUES (null, '")
-                .append(arr).append("')");
+        String query = "INSERT INTO bigblob VALUES (null, '" + String.valueOf(arr) + "')";
 
-        stmt.executeUpdate(query.toString());
+        stmt.executeUpdate(query);
 
         ResultSet rs = stmt.executeQuery("select * from bigblob");
-        rs.next();
+        assertTrue(rs.next());
         byte[] newBytes = rs.getBytes(2);
         assertEquals(arr.length, newBytes.length);
         for (int i = 0; i < arr.length; i++) {
@@ -148,7 +147,7 @@ public class BigQueryTest extends BaseTest {
         ps.executeUpdate();
         Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("select * from bigblob2");
-        rs.next();
+        assertTrue(rs.next());
         byte[] newBytes = rs.getBytes(2);
         byte[] newBytes2 = rs.getBytes(3);
         assertEquals(arr.length, newBytes.length);
@@ -196,7 +195,7 @@ public class BigQueryTest extends BaseTest {
         ps.executeUpdate();
         Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("select * from bigblob3");
-        rs.next();
+        assertTrue(rs.next());
         byte[] newBytes = rs.getBytes(2);
         byte[] newBytes2 = rs.getBytes(3);
         assertEquals(arr.length, newBytes.length);
@@ -223,7 +222,7 @@ public class BigQueryTest extends BaseTest {
             Arrays.fill(arr, 'a');
             String request = "select '" + new String(arr) + "'";
             ResultSet rs = connection.createStatement().executeQuery(request);
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(arr.length, rs.getString(1).length());
         }
     }
@@ -342,7 +341,7 @@ public class BigQueryTest extends BaseTest {
         Statement stmt = sharedConnection.createStatement();
         stmt.setMaxFieldSize(2);
         ResultSet rs = stmt.executeQuery("select * from bigblob5");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(2, rs.getBytes(2).length);
         assertEquals(2, rs.getString(3).length());
         assertArrayEquals(new byte[]{abyte, abyte}, rs.getBytes(2));

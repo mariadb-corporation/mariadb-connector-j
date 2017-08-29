@@ -56,7 +56,6 @@ import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Types;
 
@@ -100,12 +99,12 @@ public class ColumnInformation {
             0, 0, 0, 0, 0, 0, 0, 0
     };
 
-    private Buffer buffer;
-    private short charsetNumber;
-    private long length;
-    private ColumnType type;
-    private byte decimals;
-    private short flags;
+    private final Buffer buffer;
+    private final short charsetNumber;
+    private final long length;
+    private final ColumnType type;
+    private final byte decimals;
+    private final short flags;
 
     /**
      * Constructor for extent.
@@ -155,18 +154,11 @@ public class ColumnInformation {
 
         charsetNumber = buffer.readShort();
         length = buffer.readInt();
-        type = ColumnType.fromServer(buffer.readByte() & 0xff);
+        type = ColumnType.fromServer(buffer.readByte() & 0xff, charsetNumber);
         flags = buffer.readShort();
         decimals = buffer.readByte();
 
 
-        int sqlType = type.getSqlType();
-
-        if ((sqlType == Types.BLOB || sqlType == Types.VARBINARY || sqlType == Types.BINARY || sqlType == Types.LONGVARBINARY)
-                && !isBinary()) {
-           /* MySQL Text datatype */
-            type = ColumnType.VARCHAR;
-        }
     }
 
     /**
@@ -177,63 +169,80 @@ public class ColumnInformation {
      * @return ColumnInformation
      */
     public static ColumnInformation create(String name, ColumnType type) {
-        try {
-            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-            for (int i = 0; i < 4; i++) {
-                baos.write(new byte[]{1, 0}); // catalog, empty string
-            }
-            for (int i = 0; i < 2; i++) {
-                baos.write(new byte[]{(byte) name.length()});
-                baos.write(name.getBytes());
-            }
-            baos.write(0xc);
-            baos.write(new byte[]{33, 0});  /* charset  = UTF8 */
-            int len = 1;
+        byte[] nameBytes = name.getBytes();
 
-            /* Sensible predefined length - since we're dealing with I_S here, most char fields are 64 char long */
-            switch (type.getSqlType()) {
-                case Types.VARCHAR:
-                case Types.CHAR:
-                    len = 64 * 3; /* 3 bytes per UTF8 char */
-                    break;
-                case Types.SMALLINT:
-                    len = 5;
-                    break;
-                case Types.NULL:
-                    len = 0;
-                    break;
-                default:
-                    len = 1;
-                    break;
-            }
-            baos.write(new byte[]{(byte) len, 0, 0, 0});  /*  length */
-            baos.write(ColumnType.toServer(type.getSqlType()).getType());
-            baos.write(new byte[]{0, 0});   /* flags */
-            baos.write(0); /* decimals */
-            baos.write(new byte[]{0, 0});   /* filler */
-            return new ColumnInformation(new Buffer(baos.toByteArray()));
-        } catch (IOException ioe) {
-            throw new RuntimeException("unexpected condition", ioe);
+        byte[] arr = new byte[23 + 2 * nameBytes.length];
+        int pos = 0;
+
+        //lenenc_str     catalog
+        //lenenc_str     schema
+        //lenenc_str     table
+        //lenenc_str     org_table
+        for (int i = 0; i < 4; i++) {
+            arr[pos++] = 1;
+            arr[pos++] = 0;
         }
+
+        //lenenc_str     name
+        //lenenc_str     org_name
+        for (int i = 0; i < 2; i++) {
+            arr[pos++] = (byte) name.length();
+            System.arraycopy(nameBytes, 0, arr, pos, nameBytes.length);
+            pos += nameBytes.length;
+        }
+
+        //lenenc_int     length of fixed-length fields [0c]
+        arr[pos++] = 0xc;
+
+        //2              character set
+        arr[pos++] = 33; /* charset  = UTF8 */
+        arr[pos++] = 0;
+
+        int len;
+
+        /* Sensible predefined length - since we're dealing with I_S here, most char fields are 64 char long */
+        switch (type.getSqlType()) {
+            case Types.VARCHAR:
+            case Types.CHAR:
+                len = 64 * 3; /* 3 bytes per UTF8 char */
+                break;
+            case Types.SMALLINT:
+                len = 5;
+                break;
+            case Types.NULL:
+                len = 0;
+                break;
+            default:
+                len = 1;
+                break;
+        }
+
+        //
+        arr[pos] = (byte) len; /* 4 bytes : column length */
+        pos += 4;
+
+        arr[pos++] = (byte) ColumnType.toServer(type.getSqlType()).getType(); /* 1 byte : type */
+
+        arr[pos++] = (byte) len; /* 2 bytes : flags */
+        arr[pos++] = 0;
+
+        arr[pos++] = 0; /* decimals */
+
+        arr[pos++] = 0; /* 2 bytes filler */
+        arr[pos++] = 0;
+
+        return new ColumnInformation(new Buffer(arr));
     }
 
     private String getString(int idx) {
-        try {
-            buffer.position = 0;
-            for (int i = 0; i < idx; i++) {
-                buffer.skipLengthEncodedBytes();
-            }
-            return new String(buffer.getLengthEncodedBytes(), StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            throw new RuntimeException("this does not happen", e);
+        buffer.position = 0;
+        for (int i = 0; i < idx; i++) {
+            buffer.skipLengthEncodedBytes();
         }
+        return new String(buffer.getLengthEncodedBytes(), StandardCharsets.UTF_8);
     }
 
-    public String getCatalog() {
-        return null;
-    }
-
-    public String getDb() {
+    public String getDatabase() {
         return getString(1);
     }
 
@@ -337,10 +346,6 @@ public class ColumnInformation {
 
     public boolean isBlob() {
         return ((this.flags & 16) > 0);
-    }
-
-    public void setUnsigned() {
-        this.flags |= 32;
     }
 
     public boolean isZeroFill() {

@@ -55,16 +55,12 @@ package org.mariadb.jdbc;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import static org.junit.Assert.*;
 
 
 public class DataTypeSignedTest extends BaseTest {
@@ -92,15 +88,15 @@ public class DataTypeSignedTest extends BaseTest {
         sharedConnection.createStatement().execute("insert into signedTinyIntTest values (null)");
         sharedConnection.createStatement().execute("insert into signedTinyIntTest values (-1)");
         try (ResultSet rs = DatatypeTest.getResultSet("select * from signedTinyIntTest", false)) {
-            signedTinyIntTestResult(rs);
+            assertTrue(signedTinyIntTestResult(rs));
         }
 
         try (ResultSet rs = DatatypeTest.getResultSet("select * from signedTinyIntTest", true)) {
-            signedTinyIntTestResult(rs);
+            assertTrue(signedTinyIntTestResult(rs));
         }
     }
 
-    private void signedTinyIntTestResult(ResultSet rs) throws SQLException {
+    private boolean signedTinyIntTestResult(ResultSet rs) throws SQLException {
         if (rs.next()) {
             assertEquals(120, rs.getByte(1));
             assertEquals(120, rs.getShort(1));
@@ -112,12 +108,14 @@ public class DataTypeSignedTest extends BaseTest {
             assertEquals(new BigDecimal("120"), rs.getBigDecimal(1));
             if (rs.next()) {
                 oneNullNegativeTest(rs);
+                return true;
             } else {
                 fail("must have result !");
             }
         } else {
             fail("must have result !");
         }
+        return false;
     }
 
 

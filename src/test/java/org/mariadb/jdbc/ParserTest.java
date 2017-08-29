@@ -98,7 +98,8 @@ public class ParserTest extends BaseTest {
         datasource.setPassword(password);
         datasource.setUrl("jdbc:mysql://" + hostname + ":" + port + "/" + database);
         try (Connection connection = datasource.getConnection()) {
-            //ok
+            Statement stmt = connection.createStatement();
+            assertTrue(stmt.execute("SELECT 10"));
         }
     }
 
@@ -133,7 +134,7 @@ public class ParserTest extends BaseTest {
     }
 
     @Test
-    public void auroraClusterVerification() throws Exception {
+    public void auroraClusterVerification() {
         try {
             DriverManager.getConnection("jdbc:mariadb:aurora://"
                     + "1.somehex.us-east-1.rds.amazonaws.com,"

@@ -67,11 +67,28 @@ import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.RowProtocol;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtocol;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+
+import java.io.*;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.sql.*;
+import java.sql.Date;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.format.DateTimeParseException;
+import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
 
 import static org.mariadb.jdbc.internal.com.Packet.EOF;
 import static org.mariadb.jdbc.internal.com.Packet.ERROR;
@@ -79,68 +96,19 @@ import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 import static org.mariadb.jdbc.internal.util.constant.ServerStatus.MORE_RESULTS_EXISTS;
 import static org.mariadb.jdbc.internal.util.constant.ServerStatus.PS_OUT_PARAMETERS;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.io.StringReader;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.sql.Array;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Date;
-import java.sql.NClob;
-import java.sql.Ref;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.RowId;
-import java.sql.SQLDataException;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.SQLXML;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.OffsetDateTime;
-import java.time.OffsetTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Map;
-import java.util.TimeZone;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
-
-@SuppressWarnings("deprecation")
+@SuppressWarnings({"deprecation", "BigDecimalMethodWithoutRoundingCalled",
+        "StatementWithEmptyBody", "SynchronizationOnLocalVariableOrMethodParameter"})
 public class SelectResultSet implements ResultSet {
-    public static final String NOT_UPDATABLE_ERROR = "Updates are not supported when using ResultSet.CONCUR_READ_ONLY";
+    private static final String NOT_UPDATABLE_ERROR = "Updates are not supported when using ResultSet.CONCUR_READ_ONLY";
     
-    public static final DateTimeFormatter TEXT_LOCAL_DATE_TIME;
-    public static final DateTimeFormatter TEXT_OFFSET_DATE_TIME;
-    public static final DateTimeFormatter TEXT_ZONED_DATE_TIME;
+    private static final DateTimeFormatter TEXT_LOCAL_DATE_TIME;
+    private static final DateTimeFormatter TEXT_OFFSET_DATE_TIME;
+    private static final DateTimeFormatter TEXT_ZONED_DATE_TIME;
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
     private static final ColumnInformation[] INSERT_ID_COLUMNS;
     private static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.[0-9]+$");
     private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
-    private static Logger logger = LoggerFactory.getLogger(SelectResultSet.class);
 
     static {
         INSERT_ID_COLUMNS = new ColumnInformation[1];
@@ -171,10 +139,10 @@ public class SelectResultSet implements ResultSet {
     protected boolean isBinaryEncoded;
     protected TimeZone timeZone;
     protected Options options;
-    protected Protocol protocol;
-    protected PacketInputStream reader;
+    private Protocol protocol;
+    private PacketInputStream reader;
     protected ColumnInformation[] columnsInformation;
-    protected boolean isEof;
+    private boolean isEof;
     protected int columnInformationLength;
     protected boolean noBackslashEscapes;
     private boolean callableResult;
@@ -349,9 +317,7 @@ public class SelectResultSet implements ResultSet {
         List<byte[]> rows = new ArrayList<>();
 
         for (String[] rowData : data) {
-            if (rowData.length != columnNameLength) {
-                throw new RuntimeException("Number of elements in the row != number of columns :" + rowData.length + " vs " + columnNameLength);
-            }
+            assert rowData.length == columnNameLength;
             byte[][] rowBytes = new byte[rowData.length][];
             for (int i = 0; i < rowData.length; i++) {
                 if (rowData[i] != null) rowBytes[i] = rowData[i].getBytes();
@@ -362,7 +328,7 @@ public class SelectResultSet implements ResultSet {
     }
 
     public static SelectResultSet createEmptyResultSet() {
-        return new SelectResultSet(INSERT_ID_COLUMNS, new ArrayList<byte[]>(), null,
+        return new SelectResultSet(INSERT_ID_COLUMNS, new ArrayList<>(), null,
                 TYPE_SCROLL_SENSITIVE);
     }
 
@@ -464,7 +430,7 @@ public class SelectResultSet implements ResultSet {
      * @throws IOException  exception
      * @throws SQLException exception
      */
-    public boolean readNextValue() throws IOException, SQLException {
+    private boolean readNextValue() throws IOException, SQLException {
         byte[] buf = reader.getPacketArray(false);
 
         //is error Packet
@@ -509,7 +475,7 @@ public class SelectResultSet implements ResultSet {
                 int pos = skipLengthEncodedValue(buf, 1); //skip update count
                 pos = skipLengthEncodedValue(buf, pos); //skip insert id
                 serverStatus = ((buf[pos++] & 0xff) + ((buf[pos++] & 0xff) << 8));
-                warnings = (buf[pos++] & 0xff) + ((buf[pos++] & 0xff) << 8);
+                warnings = (buf[pos++] & 0xff) + ((buf[pos] & 0xff) << 8);
                 callableResult = (serverStatus & PS_OUT_PARAMETERS) != 0;
             }
             protocol.setServerStatus((short) serverStatus);
@@ -553,9 +519,7 @@ public class SelectResultSet implements ResultSet {
      */
     protected void deleteCurrentRowData() throws SQLException {
         //move data
-        for (int i = rowPointer; i < dataSize - 1; i++) {
-            data[i] = data[i + 1];
-        }
+        System.arraycopy(data, rowPointer + 1, data, rowPointer, dataSize - 1 - rowPointer);
         data[dataSize - 1] = null;
         dataSize--;
         lastRowPointer = -1;
@@ -573,29 +537,25 @@ public class SelectResultSet implements ResultSet {
         int type = buf[pos++] & 0xff;
         switch (type) {
             case 251:
-                break;
+                return pos;
             case 252:
-                pos += 2 + (0xffff & (((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8))));
-                break;
+                return pos + 2 + (0xffff & (((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8))));
             case 253:
-                pos += 3 + (0xffffff & ((buf[pos] & 0xff)
+                return pos + 3 + (0xffffff & ((buf[pos] & 0xff)
                         + ((buf[pos + 1] & 0xff) << 8)
                         + ((buf[pos + 2] & 0xff) << 16)));
-                break;
             case 254:
-                pos += 8 + ((buf[pos] & 0xff)
+                return (int) (pos + 8 + ((buf[pos] & 0xff)
                         + ((long) (buf[pos + 1] & 0xff) << 8)
                         + ((long) (buf[pos + 2] & 0xff) << 16)
                         + ((long) (buf[pos + 3] & 0xff) << 24)
                         + ((long) (buf[pos + 4] & 0xff) << 32)
                         + ((long) (buf[pos + 5] & 0xff) << 40)
                         + ((long) (buf[pos + 6] & 0xff) << 48)
-                        + ((long) (buf[pos + 7] & 0xff) << 56));
-                break;
+                        + ((long) (buf[pos + 7] & 0xff) << 56)));
             default:
-                pos += type;
+                return pos + type;
         }
-        return pos;
     }
 
     /**
@@ -1274,7 +1234,7 @@ public class SelectResultSet implements ResultSet {
                     BigInteger unsignedValue = new BigInteger(1, new byte[]{(byte) (value >> 56),
                             (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
                             (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                            (byte) (value >> 0)});
+                            (byte) value});
                     if (unsignedValue.compareTo(new BigInteger(String.valueOf(Long.MAX_VALUE))) > 0) {
                         throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
                                 + unsignedValue + " is not in Long range", "22003", 1264);
@@ -1325,6 +1285,7 @@ public class SelectResultSet implements ResultSet {
      * @return float
      * @throws SQLException id any error occur
      */
+    @SuppressWarnings("UnnecessaryInitCause")
     private float getInternalFloat(ColumnInformation columnInfo) throws SQLException {
         if (lastValueNull) return 0;
 
@@ -1351,6 +1312,7 @@ public class SelectResultSet implements ResultSet {
                         SQLException sqlException = new SQLException("Incorrect format \""
                                 + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
                                 + "\" for getFloat for data field with type " + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
+                        //noinspection UnnecessaryInitCause
                         sqlException.initCause(nfe);
                         throw sqlException;
                     }
@@ -1388,7 +1350,7 @@ public class SelectResultSet implements ResultSet {
                     BigInteger unsignedValue = new BigInteger(1, new byte[]{(byte) (value >> 56),
                             (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
                             (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                            (byte) (value >> 0)});
+                            (byte) value});
                     return unsignedValue.floatValue();
                 case FLOAT:
                     int valueFloat = ((row.buf[row.pos] & 0xff)
@@ -1474,6 +1436,7 @@ public class SelectResultSet implements ResultSet {
                         SQLException sqlException = new SQLException("Incorrect format \""
                                 + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
                                 + "\" for getDouble for data field with type " + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
+                        //noinspection UnnecessaryInitCause
                         sqlException.initCause(nfe);
                         throw sqlException;
                     }
@@ -1508,7 +1471,7 @@ public class SelectResultSet implements ResultSet {
                         return new BigInteger(1, new byte[]{(byte) (valueLong >> 56),
                                 (byte) (valueLong >> 48), (byte) (valueLong >> 40), (byte) (valueLong >> 32),
                                 (byte) (valueLong >> 24), (byte) (valueLong >> 16), (byte) (valueLong >> 8),
-                                (byte) (valueLong >> 0)}).doubleValue();
+                                (byte) valueLong}).doubleValue();
                     }
                 case FLOAT:
                     return getInternalFloat(columnInfo);
@@ -1532,6 +1495,7 @@ public class SelectResultSet implements ResultSet {
                     } catch (NumberFormatException nfe) {
                         SQLException sqlException = new SQLException("Incorrect format for getDouble for data field with type "
                                 + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
+                        //noinspection UnnecessaryInitCause
                         sqlException.initCause(nfe);
                         throw sqlException;
                     }
@@ -1613,7 +1577,7 @@ public class SelectResultSet implements ResultSet {
                         return new BigDecimal(String.valueOf(new BigInteger(1, new byte[]{(byte) (value >> 56),
                                 (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
                                 (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                                (byte) (value >> 0)}))).setScale(columnInfo.getDecimals());
+                                (byte) value}))).setScale(columnInfo.getDecimals());
                     }
                 case FLOAT:
                     return BigDecimal.valueOf(getInternalFloat(columnInfo));
@@ -1815,7 +1779,7 @@ public class SelectResultSet implements ResultSet {
                         calendar.setLenient(true);
                     }
                     calendar.clear();
-                    calendar.set(1970, 0, 1, (negate ? -1 : 1) * hour, minutes, seconds);
+                    calendar.set(1970, Calendar.JANUARY, 1, (negate ? -1 : 1) * hour, minutes, seconds);
                     int nanoseconds = extractNanos(raw);
                     calendar.set(Calendar.MILLISECOND, nanoseconds / 1000000);
 
@@ -1868,6 +1832,7 @@ public class SelectResultSet implements ResultSet {
      * @return timestamp.
      * @throws SQLException if text value cannot be parse
      */
+    @SuppressWarnings("ConstantConditions")
     private Timestamp getInternalTimestamp(ColumnInformation columnInfo, Calendar userCalendar) throws SQLException {
         if (lastValueNull) return null;
 
@@ -1923,9 +1888,7 @@ public class SelectResultSet implements ResultSet {
                         }
                         timestamp.setNanos(nanoseconds);
                         return timestamp;
-                    } catch (NumberFormatException n) {
-                        throw new SQLException("Value \"" + rawValue + "\" cannot be parse as Timestamp");
-                    } catch (StringIndexOutOfBoundsException s) {
+                    } catch (NumberFormatException | StringIndexOutOfBoundsException n) {
                         throw new SQLException("Value \"" + rawValue + "\" cannot be parse as Timestamp");
                     }
             }
@@ -2050,7 +2013,7 @@ public class SelectResultSet implements ResultSet {
         } else if (type.equals(Boolean.class)) {
             return (T) (Boolean) getInternalBoolean(col);
 
-        } else if (type.equals(java.util.Calendar.class)) {
+        } else if (type.equals(Calendar.class)) {
             Calendar calendar = Calendar.getInstance(timeZone);
             Timestamp timestamp = getInternalTimestamp(col, null);
             if (timestamp == null) return null;
@@ -2127,7 +2090,7 @@ public class SelectResultSet implements ResultSet {
      * @param columnInfo           current column information
      * @param dataTypeMappingFlags dataTypeflag (year is date or int, bit boolean or int,  ...)
      * @return the object value.
-     * @throws ParseException if data cannot be parse
+     * @throws SQLException if any read error occur
      */
     private Object getInternalObject(ColumnInformation columnInfo, int dataTypeMappingFlags)
             throws SQLException {
@@ -3290,10 +3253,10 @@ public class SelectResultSet implements ResultSet {
             if (columnInfo.getDecimals() == 0) {
                 return "00:00:00";
             } else {
-                String value = "00:00:00.";
+                StringBuilder value = new StringBuilder("00:00:00.");
                 int decimal = columnInfo.getDecimals();
-                while (decimal-- > 0) value += "0";
-                return value;
+                while (decimal-- > 0) value.append("0");
+                return value.toString();
             }
         }
         String rawValue = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
@@ -3343,9 +3306,9 @@ public class SelectResultSet implements ResultSet {
                     | (row.buf[row.pos + 11] & 0xff) << 24);
         }
 
-        String microsecondString = Integer.toString(microseconds);
+        StringBuilder microsecondString = new StringBuilder(Integer.toString(microseconds));
         while (microsecondString.length() < 6) {
-            microsecondString = "0" + microsecondString;
+            microsecondString.insert(0, "0");
         }
         boolean negative = (row.buf[row.pos] == 0x01);
         return (negative ? "-" : "") + (hourString + ":" + minuteString + ":" + secondString + "." + microsecondString);
@@ -3359,7 +3322,7 @@ public class SelectResultSet implements ResultSet {
         }
     }
 
-    private int getInternalTinyInt(ColumnInformation columnInfo) throws SQLException {
+    private int getInternalTinyInt(ColumnInformation columnInfo) {
         if (lastValueNull) return 0;
         int value = row.buf[row.pos];
         if (!columnInfo.isSigned()) {
@@ -3368,7 +3331,7 @@ public class SelectResultSet implements ResultSet {
         return value;
     }
 
-    private int getInternalSmallInt(ColumnInformation columnInfo) throws SQLException {
+    private int getInternalSmallInt(ColumnInformation columnInfo) {
         if (lastValueNull) return 0;
         int value = ((row.buf[row.pos] & 0xff) + ((row.buf[row.pos + 1] & 0xff) << 8));
         if (!columnInfo.isSigned()) {
@@ -3378,7 +3341,7 @@ public class SelectResultSet implements ResultSet {
         return (short) value;
     }
 
-    private long getInternalMediumInt(ColumnInformation columnInfo) throws SQLException {
+    private long getInternalMediumInt(ColumnInformation columnInfo) {
         if (lastValueNull) return 0;
         long value = ((row.buf[row.pos] & 0xff)
                 + ((row.buf[row.pos + 1] & 0xff) << 8)
@@ -3685,7 +3648,7 @@ public class SelectResultSet implements ResultSet {
                         return new BigInteger(1, new byte[]{(byte) (value >> 56),
                                 (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
                                 (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                                (byte) (value >> 0)});
+                                (byte) value});
                     }
                 case FLOAT:
                     return BigInteger.valueOf((long) getInternalFloat(columnInfo));
@@ -3697,7 +3660,6 @@ public class SelectResultSet implements ResultSet {
         }
 
     }
-
 
     private Date binaryDate(ColumnInformation columnInfo, Calendar cal) throws SQLException {
         switch (columnInfo.getColumnType()) {
@@ -3780,7 +3742,7 @@ public class SelectResultSet implements ResultSet {
                     minutes = row.buf[row.pos + 6];
                     seconds = row.buf[row.pos + 7];
                 }
-                calendar.set(1970, 0, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
+                calendar.set(1970, Calendar.JANUARY, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
 
                 int nanoseconds = 0;
                 if (row.length > 8) {
@@ -3797,7 +3759,7 @@ public class SelectResultSet implements ResultSet {
     }
 
 
-    private Timestamp binaryTimestamp(ColumnInformation columnInfo, Calendar userCalendar) throws SQLException {
+    private Timestamp binaryTimestamp(ColumnInformation columnInfo, Calendar userCalendar) {
         if (row.length == 0) {
             lastGetWasNull = true;
             return null;
@@ -3840,7 +3802,7 @@ public class SelectResultSet implements ResultSet {
             Timestamp tt;
             synchronized (calendar) {
                 calendar.clear();
-                calendar.set(1970, 0, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
+                calendar.set(1970, Calendar.JANUARY, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
                 tt = new Timestamp(calendar.getTimeInMillis());
             }
             tt.setNanos(microseconds * 1000);
@@ -3883,7 +3845,7 @@ public class SelectResultSet implements ResultSet {
         return tt;
     }
 
-    protected int extractNanos(String timestring) throws SQLException {
+    private int extractNanos(String timestring) throws SQLException {
         int index = timestring.indexOf('.');
         if (index == -1) {
             return 0;
@@ -3912,7 +3874,7 @@ public class SelectResultSet implements ResultSet {
      * @param columnInfo current column information
      * @param clazz      ending class
      * @return timestamp.
-     * @throws ParseException if text value cannot be parse
+     * @throws SQLException if any read error occur
      */
     private ZonedDateTime getZonedDateTime(ColumnInformation columnInfo, Class clazz) throws SQLException {
         if (lastValueNull) return null;
@@ -4008,7 +3970,7 @@ public class SelectResultSet implements ResultSet {
      *
      * @param columnInfo current column information
      * @return timestamp.
-     * @throws ParseException if text value cannot be parse
+     * @throws SQLException if any read error occur
      */
     private OffsetTime getOffsetTime(ColumnInformation columnInfo) throws SQLException {
         if (lastValueNull) return null;
@@ -4147,7 +4109,7 @@ public class SelectResultSet implements ResultSet {
      *
      * @param columnInfo current column information
      * @return timestamp.
-     * @throws ParseException if text value cannot be parse
+     * @throws SQLException if any read error occur
      */
     private LocalTime getLocalTime(ColumnInformation columnInfo) throws SQLException {
         if (lastValueNull) return null;
@@ -4245,7 +4207,7 @@ public class SelectResultSet implements ResultSet {
      *
      * @param columnInfo current column information
      * @return timestamp.
-     * @throws ParseException if text value cannot be parse
+     * @throws SQLException if any read error occur
      */
     private LocalDate getLocalDate(ColumnInformation columnInfo) throws SQLException {
         if (lastValueNull) return null;

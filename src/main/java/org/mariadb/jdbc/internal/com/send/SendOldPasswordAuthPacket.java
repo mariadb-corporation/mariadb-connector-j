@@ -71,7 +71,7 @@ public class SendOldPasswordAuthPacket extends AbstractAuthSwitchSendResponsePac
      */
     public void send(PacketOutputStream pos) throws IOException {
 
-        if (password == null || password.equals("")) {
+        if (password == null || password.isEmpty()) {
             pos.writeEmptyPacket(packSeq);
             return;
         }
@@ -123,18 +123,17 @@ public class SendOldPasswordAuthPacket extends AbstractAuthSwitchSendResponsePac
                 continue;
             }
 
-            long tmp = currChar;
-            nr ^= (((nr & 63) + add) * tmp) + (nr << 8);
+            nr ^= (((nr & 63) + add) * (long) currChar) + (nr << 8);
             nr2 += (nr2 << 8) ^ nr;
-            add += tmp;
+            add += (long) currChar;
         }
         return new long[]{nr & 0x7FFFFFFF, nr2 & 0x7FFFFFFF};
     }
 
     private class RandStruct {
-        final long maxValue = 0x3FFFFFFFL;
-        long seed1;
-        long seed2;
+        private final long maxValue = 0x3FFFFFFFL;
+        private long seed1;
+        private long seed2;
 
         public RandStruct(long seed1, long seed2) {
             this.seed1 = seed1 % maxValue;

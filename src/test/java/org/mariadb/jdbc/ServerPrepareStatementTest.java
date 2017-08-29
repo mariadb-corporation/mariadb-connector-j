@@ -62,8 +62,10 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.sql.Date;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -309,7 +311,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                 assertEquals(rs.getTime(1), time1);
                 assertEquals(rs.getTimestamp(2), timestamp1);
                 assertEquals(rs.getTimestamp(3), timestamp1);
-                rs.next();
+                assertTrue(rs.next());
                 assertEquals(rs.getTime(1), time1);
                 assertEquals(rs.getTimestamp(2), timestamp1);
                 assertEquals(rs.getTimestamp(3), timestamp1);
@@ -358,6 +360,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         );
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void dataConformity() throws SQLException {
         Assume.assumeTrue(doPrecisionTest);
@@ -685,7 +688,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
         Statement statement = sharedConnection.createStatement();
         ResultSet rs = statement.executeQuery("select * from ServerPrepareStatementCacheSize4");
-        rs.next();
+        assertTrue(rs.next());
         byte[] newBytes = rs.getBytes(2);
         assertEquals(arr.length, newBytes.length);
         for (int i = 0; i < arr.length; i++) {
@@ -698,7 +701,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         PreparedStatement ps = prepareInsert();
         ps.execute();
         ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getInt(1), 1);
     }
 
@@ -707,7 +710,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         try (PreparedStatement ps = prepareInsert()) {
             ps.executeBatch();
             ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(rs.getInt(1), 3);
         }
     }
@@ -738,7 +741,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         ps.setShort(2, (short) 1);
         ps.execute();
         ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getInt(1), 1);
     }
 
@@ -901,15 +904,15 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void testRewriteMultiPacket() throws SQLException {
         createTable("PreparedStatementTest3", "id int");
-        String sql = "INSERT INTO PreparedStatementTest3 VALUES (?)";
+        StringBuilder sql = new StringBuilder("INSERT INTO PreparedStatementTest3 VALUES (?)");
         for (int i = 1; i < 65535; i++) {
-            sql += ",(?)";
+            sql.append(",(?)");
         }
-        PreparedStatement pstmt = sharedConnection.prepareStatement(sql);
+        PreparedStatement pstmt = sharedConnection.prepareStatement(sql.toString());
         for (int i = 1; i < 65536; i++) {
             pstmt.setInt(i, i);
         }
-        pstmt.execute();
+        assertFalse(pstmt.execute());
     }
 
     /**
@@ -1042,7 +1045,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
             try (final PreparedStatement preparedStatement = tmpConnection.prepareStatement(sql)) {
                 ResultSet rs = preparedStatement.executeQuery();
-                rs.next();
+                assertTrue(rs.next());
 
                 String columnOne = rs.getString("COLUMN_1");
                 String columnTwo = rs.getString("COLUMN_2");

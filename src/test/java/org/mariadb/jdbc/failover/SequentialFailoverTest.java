@@ -83,7 +83,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
      * @throws SQLException exception
      */
     @BeforeClass()
-    public static void beforeClass2() throws SQLException {
+    public static void beforeClass2() {
         proxyUrl = proxySequentialUrl;
         Assume.assumeTrue(initialGaleraUrl != null);
     }
@@ -94,7 +94,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
      * @throws SQLException exception
      */
     @Before
-    public void init() throws SQLException {
+    public void init() {
         defaultUrl = initialGaleraUrl;
         currentType = HaMode.SEQUENTIAL;
     }
@@ -197,8 +197,8 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
     }
 
     protected class CheckBlacklist implements Runnable {
-        private int firstServerId;
-        private Set<HostAddress> blacklistKeys;
+        private final int firstServerId;
+        private final Set<HostAddress> blacklistKeys;
 
         public CheckBlacklist(int firstServerId, Set<HostAddress> blacklistKeys) {
             this.firstServerId = firstServerId;
@@ -221,7 +221,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
     }
 
     class MutableInt {
-        int value = 1; // note that we start at 1 since we're counting
+        private int value = 1; // note that we start at 1 since we're counting
 
         public void increment() {
             ++value;

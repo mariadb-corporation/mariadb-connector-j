@@ -73,7 +73,7 @@ public class ReplicationFailoverTest extends BaseReplication {
      * @throws SQLException exception
      */
     @BeforeClass()
-    public static void beforeClass2() throws SQLException {
+    public static void beforeClass2() {
         proxyUrl = proxyReplicationUrl;
         Assume.assumeTrue(initialReplicationUrl != null);
     }
@@ -84,7 +84,7 @@ public class ReplicationFailoverTest extends BaseReplication {
      * @throws SQLException exception
      */
     @Before
-    public void init() throws SQLException {
+    public void init() {
         defaultUrl = initialReplicationUrl;
         currentType = HaMode.REPLICATION;
     }
@@ -140,7 +140,6 @@ public class ReplicationFailoverTest extends BaseReplication {
             }
 
             connection.setReadOnly(true);
-            st = connection.createStatement();
             restartProxy(masterServerId);
             try {
                 connection.setReadOnly(false);
@@ -162,7 +161,7 @@ public class ReplicationFailoverTest extends BaseReplication {
         }
     }
 
-    @Test()
+    @Test(expected = SQLException.class)
     public void masterWithoutFailover() throws Throwable {
         try (Connection connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
             int masterServerId = getServerId(connection);
@@ -173,12 +172,8 @@ public class ReplicationFailoverTest extends BaseReplication {
             stopProxy(masterServerId);
             stopProxy(firstSlaveId);
 
-            try {
-                connection.createStatement().executeQuery("SELECT CONNECTION_ID()");
-                fail();
-            } catch (SQLException e) {
-                assertTrue(true);
-            }
+            connection.createStatement().executeQuery("SELECT CONNECTION_ID()");
+            fail();
         }
     }
 
@@ -229,7 +224,7 @@ public class ReplicationFailoverTest extends BaseReplication {
             } catch (SQLException e) {
                 //normal error
             }
-            assertTrue(!connection.isReadOnly());
+            assertFalse(connection.isReadOnly());
         }
     }
 

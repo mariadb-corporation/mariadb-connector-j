@@ -52,7 +52,7 @@ then
     mv src/test/resources/logback-test-travis.xml src/test/resources/logback-test.xml
 fi
 
-cmd=( mvn clean test $ADDITIONNAL_VARIABLES -DjobId=$TRAVIS_JOB_ID  \
+cmd=( mvn clean test $ADDITIONNAL_VARIABLES -DjobId=${TRAVIS_JOB_ID}  \
     -DkeystorePath="$SSLCERT/client-keystore.jks" \
     -DkeystorePassword="kspass"  \
     -DserverCertificatePath="$SSLCERT/server.crt" \
@@ -65,7 +65,7 @@ if [ -n "$AURORA" ]
 then
     if [ -n "$AURORA_STRING_URL" ]
     then
-        urlString=$AURORA_STRING_URL
+        urlString=${AURORA_STRING_URL}
         testSingleHost=true
     else
         testSingleHost=false
@@ -77,9 +77,9 @@ else
     ###################################################################################################################
     # launch docker server and maxscale
     ###################################################################################################################
-    export INNODB_LOG_FILE_SIZE=$(echo $PACKET| cut -d'M' -f 1)0M
-    docker-compose -f $COMPOSE_FILE build
-    docker-compose -f $COMPOSE_FILE up -d
+    export INNODB_LOG_FILE_SIZE=$(echo ${PACKET}| cut -d'M' -f 1)0M
+    docker-compose -f ${COMPOSE_FILE} build
+    docker-compose -f ${COMPOSE_FILE} up -d
 
     ###################################################################################################################
     # launch 3 galera servers
@@ -104,7 +104,7 @@ else
         sleep 1
     done
 
-    docker-compose -f $COMPOSE_FILE logs
+    docker-compose -f ${COMPOSE_FILE} logs
 
     if [ "$i" = 0 ]; then
         echo 'SELECT 1' | "${mysql[@]}"
@@ -121,7 +121,7 @@ fi
 echo "Running coveralls for JDK version: $TRAVIS_JDK_VERSION"
 cmd+=( -DdbUrl="$urlString" )
 cmd+=( -DtestSingleHost="$testSingleHost" )
-echo $cmd
+echo ${cmd}
 
 "${cmd[@]}"
 if [ -n "$PROFILE" ]

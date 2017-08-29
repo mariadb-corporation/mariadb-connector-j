@@ -73,21 +73,20 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
     private static final int REUSABLE_BUFFER_LENGTH = 1024;
     private static final int MAX_PACKET_SIZE = 0xffffff;
-    private static Logger logger = LoggerFactory.getLogger(StandardPacketInputStream.class);
-    private byte[] header = new byte[7];
-    private byte[] reusableArray = new byte[REUSABLE_BUFFER_LENGTH];
+    private static final Logger logger = LoggerFactory.getLogger(StandardPacketInputStream.class);
+    private final byte[] header = new byte[7];
+    private final byte[] reusableArray = new byte[REUSABLE_BUFFER_LENGTH];
 
     //compress packet can contain multiple standard packet
     private byte[] cacheData = new byte[0];
     private int cachePos;
     private int cacheEnd;
 
-    private BufferedInputStream inputStream;
+    private final BufferedInputStream inputStream;
 
     private int packetSeq;
     private int compressPacketSeq;
-    private int maxQuerySizeToLog;
-    private int lastPacketLength;
+    private final int maxQuerySizeToLog;
     private String serverThreadLog = "";
     private LruTraceCache traceCache = null;
 
@@ -120,7 +119,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
         //loop until having the whole packet
         do {
             //Read 7 byte header
-            readBlocking(header, 0, 7);
+            readBlocking(header, 7);
 
             int compressedLength = (header[0] & 0xff) + ((header[1] & 0xff) << 8) + ((header[2] & 0xff) << 16);
             compressPacketSeq = header[3] & 0xff;
@@ -162,7 +161,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
             byte[] compressedBuffer = new byte[compressedLength];
             //Read compress content
-            readBlocking(compressedBuffer, 0, compressedLength);
+            readBlocking(compressedBuffer, compressedLength);
 
             Inflater inflater = new Inflater();
             inflater.setInput(compressedBuffer);
@@ -179,14 +178,14 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
         } else {
             //Read standard content
-            readBlocking(arr, 0, compressedLength);
+            readBlocking(arr, compressedLength);
         }
 
     }
 
-    private void readBlocking(byte[] arr, int offset, int length) throws IOException {
+    private void readBlocking(byte[] arr, int length) throws IOException {
         int remaining = length;
-        int off = offset;
+        int off = 0;
         do {
             int count = inputStream.read(arr, off, remaining);
             if (count < 0) {
@@ -218,7 +217,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
         //if packet is not totally fetch, return null
         while (cacheEnd > cachePos + 4 + packetOffset * (MAX_PACKET_SIZE + 4)) {
-            lastPacketLength = (cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4)] & 0xff)
+            int lastPacketLength = (cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4)] & 0xff)
                     + ((cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4) + 1] & 0xff) << 8)
                     + ((cacheData[cachePos + packetOffset * (MAX_PACKET_SIZE + 4) + 2] & 0xff) << 16);
             if (lastPacketLength == MAX_PACKET_SIZE) {

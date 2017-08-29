@@ -64,11 +64,11 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class CmdInformationBatch implements CmdInformation {
 
-    private Queue<Long> insertIds;
-    private Queue<Long> updateCounts;
+    private final Queue<Long> insertIds;
+    private final Queue<Long> updateCounts;
+    private final int expectedSize;
+    private final int autoIncrement;
     private int insertIdNumber = 0;
-    private int expectedSize;
-    private int autoIncrement;
     private boolean hasException;
     private boolean rewritten;
 
@@ -172,12 +172,11 @@ public class CmdInformationBatch implements CmdInformation {
         int position = 0;
         long insertId;
         Iterator<Long> idIterator = insertIds.iterator();
-        Iterator<Long> updateIterator = updateCounts.iterator();
-        while (updateIterator.hasNext()) {
-            int updateCount = updateIterator.next().intValue();
+        for (Long updateCountLong : updateCounts) {
+            int updateCount = updateCountLong.intValue();
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
-                    && (insertId = idIterator.next().longValue()) > 0) {
+                    && (insertId = idIterator.next()) > 0) {
                 for (int i = 0; i < updateCount; i++) {
                     ret[position++] = insertId + i * autoIncrement;
                 }
@@ -198,13 +197,12 @@ public class CmdInformationBatch implements CmdInformation {
         int position = 0;
         long insertId;
         Iterator<Long> idIterator = insertIds.iterator();
-        Iterator<Long> updateIterator = updateCounts.iterator();
 
-        while (updateIterator.hasNext()) {
-            int updateCount = updateIterator.next().intValue();
+        for (Long updateCountLong : updateCounts) {
+            int updateCount = updateCountLong.intValue();
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
-                    && (insertId = idIterator.next().longValue()) > 0) {
+                    && (insertId = idIterator.next()) > 0) {
                 for (int i = 0; i < updateCount; i++) {
                     ret[position++] = insertId + i * autoIncrement;
                 }

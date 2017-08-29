@@ -60,7 +60,7 @@ import java.io.IOException;
 
 public class IntParameter implements Cloneable, ParameterHolder {
 
-    private int value;
+    private final int value;
 
     public IntParameter(int value) {
         this.value = value;

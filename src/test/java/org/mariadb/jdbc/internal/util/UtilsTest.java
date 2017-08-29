@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import org.junit.Assert;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -78,7 +77,7 @@ public class UtilsTest {
                 + "20 2C 20 40 40 73 79 73  74 65 6D 5F 74 69 6D 65      , @@system_time\n"
                 + "5F 7A 6F 6E 65 2C 20 40  40 74 69 6D 65 5F 7A 6F     _zone, @@time_zo\n"
                 + "6E 65 2C 20 40 40 73 71  6C 5F 6D 6F 64 65           ne, @@sql_mode\n";
-        Assert.assertEquals(result, Utils.hexdump(bb));
+        assertEquals(result, Utils.hexdump(bb));
     }
 
     @Test

@@ -99,7 +99,7 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
      */
     protected void flushBuffer(boolean commandEnd) throws IOException {
         if (pos > 4) {
-            buf[0] = (byte) ((pos - 4) >>> 0);
+            buf[0] = (byte) (pos - 4);
             buf[1] = (byte) ((pos - 4) >>> 8);
             buf[2] = (byte) ((pos - 4) >>> 16);
             buf[3] = (byte) this.seqNo++;

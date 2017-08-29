@@ -70,7 +70,7 @@ import java.util.Arrays;
 import static org.mariadb.jdbc.internal.com.Packet.*;
 
 public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
-    private PacketInputStream reader;
+    private final PacketInputStream reader;
 
     public SendPamAuthPacket(PacketInputStream reader, String password, byte[] authData, int packSeq, String passwordCharacterEncoding) {
         super(packSeq, authData, password, passwordCharacterEncoding);
@@ -196,7 +196,7 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
      * Force focus to input field.
      */
     public class RequestFocusListener implements AncestorListener {
-        private boolean removeListener;
+        private final boolean removeListener;
 
         public RequestFocusListener() {
             this(true);

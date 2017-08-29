@@ -57,7 +57,7 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import java.sql.ResultSet;
 
 public interface CmdInformation {
-    public static final int RESULT_SET_VALUE = -1;
+    int RESULT_SET_VALUE = -1;
 
     int[] getUpdateCounts();
 

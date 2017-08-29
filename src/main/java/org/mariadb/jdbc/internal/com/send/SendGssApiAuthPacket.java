@@ -69,7 +69,7 @@ import java.sql.SQLException;
 import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 
 public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
-    private PacketInputStream reader;
+    private final PacketInputStream reader;
 
     public SendGssApiAuthPacket(PacketInputStream reader, String password, byte[] authData, int packSeq, String passwordCharacterEncoding) {
         super(packSeq, authData, password, passwordCharacterEncoding);
@@ -86,7 +86,7 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
         Buffer buffer = new Buffer(authData);
         final String serverPrincipalName = buffer.readStringNullEnd(StandardCharsets.UTF_8);
         String mechanisms = buffer.readStringNullEnd(StandardCharsets.UTF_8);
-        if (mechanisms.equals("")) mechanisms = "Kerberos";
+        if (mechanisms.isEmpty()) mechanisms = "Kerberos";
 
         GssapiAuth gssapiAuth = getAuthenticationMethod();
         gssapiAuth.authenticate(pos, serverPrincipalName, mechanisms);
@@ -120,7 +120,7 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
             @SuppressWarnings("unchecked")
             Method method = platformClass.getMethod("isWindows");
             Boolean isWindows = (Boolean) method.invoke(platformClass);
-            if (isWindows.booleanValue()) {
+            if (isWindows) {
                 try {
                     Class.forName("waffle.windows.auth.impl.WindowsAuthProviderImpl");
                     return new WindowsNativeSspiAuthentication(reader, packSeq);

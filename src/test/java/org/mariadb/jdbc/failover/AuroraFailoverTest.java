@@ -83,7 +83,7 @@ public class AuroraFailoverTest extends BaseReplication {
      * @throws SQLException exception
      */
     @BeforeClass()
-    public static void beforeClass2() throws SQLException {
+    public static void beforeClass2() {
         proxyUrl = proxyAuroraUrl;
         System.out.println("environment variable \"AURORA\" value : " + System.getenv("AURORA"));
         Assume.assumeTrue(initialAuroraUrl != null && System.getenv("AURORA") != null && amazonRDSClient != null);
@@ -95,7 +95,7 @@ public class AuroraFailoverTest extends BaseReplication {
      * @throws SQLException exception
      */
     @Before
-    public void init() throws SQLException {
+    public void init() {
         defaultUrl = initialAuroraUrl;
         currentType = HaMode.AURORA;
     }
@@ -144,7 +144,7 @@ public class AuroraFailoverTest extends BaseReplication {
         try (Connection connection = getNewConnection(false)) {
             ResultSet rs = connection.createStatement().executeQuery("show global variables like 'innodb_read_only'");
 
-            rs.next();
+            assertTrue(rs.next());
             assertEquals("OFF", rs.getString(2));
             assertFalse(connection.isReadOnly());
 
@@ -152,7 +152,7 @@ public class AuroraFailoverTest extends BaseReplication {
 
             rs = connection.createStatement().executeQuery("show global variables like 'innodb_read_only'");
 
-            rs.next();
+            assertTrue(rs.next());
             assertNotEquals("OFF", rs.getString(2));
             assertTrue(connection.isReadOnly());
         }
@@ -193,14 +193,14 @@ public class AuroraFailoverTest extends BaseReplication {
 
             PreparedStatement ps = connection.prepareStatement("SELECT 1");
             ResultSet rs = ps.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
 
             // wait for the connection to time out
             ps = connection.prepareStatement("DO sleep(20)");
 
             // a timeout should occur here
             try {
-                rs = ps.executeQuery();
+                ps.executeQuery();
                 fail();
             } catch (SQLException e) {
                 // check that it's a timeout that occurs
@@ -214,13 +214,13 @@ public class AuroraFailoverTest extends BaseReplication {
             }
 
             try {
-                rs = ps.executeQuery();
+                ps.executeQuery();
             } catch (SQLException e) {
                 fail();
             }
 
             // the connection should not be closed
-            assertTrue(!connection.isClosed());
+            assertFalse(connection.isClosed());
         }
     }
 
@@ -267,7 +267,7 @@ public class AuroraFailoverTest extends BaseReplication {
     @Test
     public void testCloseFail() throws Throwable {
         assureBlackList();
-        Protocol protocol = null;
+        Protocol protocol;
         try (Connection connection = getNewConnection(true)) {
             connection.setReadOnly(true);
             int current = getServerId(connection);
@@ -315,7 +315,7 @@ public class AuroraFailoverTest extends BaseReplication {
             //check on 2 failover
             while (nbExecutionOnSlave + nbExecutionOnMasterFirstFailover < 500) {
                 ResultSet rs = preparedStatement.executeQuery();
-                rs.next();
+                assertTrue(rs.next());
                 isMaster = rs.getInt(1) != 1;
                 currentConnectionId = rs.getInt(2);
 
@@ -348,7 +348,7 @@ public class AuroraFailoverTest extends BaseReplication {
 
             while (nbExecutionOnSlave + nbExecutionOnMasterSecondFailover < 500) {
                 ResultSet rs = preparedStatement.executeQuery();
-                rs.next();
+                assertTrue(rs.next());
                 isMaster = rs.getInt(1) != 1;
                 currentConnectionId = rs.getInt(2);
 

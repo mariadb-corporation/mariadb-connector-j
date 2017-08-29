@@ -63,9 +63,9 @@ import java.util.Calendar;
 import java.util.TimeZone;
 
 public class DateParameter implements Cloneable, ParameterHolder {
-    private Date date;
-    private TimeZone timeZone;
-    private Options options;
+    private final Date date;
+    private final TimeZone timeZone;
+    private final Options options;
 
     /**
      * Represents a date, constructed with time in millis since epoch.
@@ -95,9 +95,9 @@ public class DateParameter implements Cloneable, ParameterHolder {
     private byte[] dateByteFormat() {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         if (options.useLegacyDatetimeCode || options.maximizeMysqlCompatibility) {
-            timeZone = Calendar.getInstance().getTimeZone();
-        }
-        sdf.setTimeZone(timeZone);
+            sdf.setTimeZone(Calendar.getInstance().getTimeZone());
+        } else sdf.setTimeZone(timeZone);
+
         return sdf.format(date).getBytes();
     }
 

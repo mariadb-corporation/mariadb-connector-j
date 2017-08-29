@@ -149,15 +149,11 @@ public class UrlParser {
      * @throws SQLException if parsing exception occur
      */
     public static UrlParser parse(final String url, Properties prop) throws SQLException {
-        if (url != null) {
-
-            if (prop == null) prop = new Properties();
-
-            if (url.startsWith("jdbc:mariadb:") || url.startsWith("jdbc:mysql:") && !url.contains(DISABLE_MYSQL_URL)) {
-                UrlParser urlParser = new UrlParser();
-                parseInternal(urlParser, url, prop);
-                return urlParser;
-            }
+        if (url != null
+                && (url.startsWith("jdbc:mariadb:") || url.startsWith("jdbc:mysql:") && !url.contains(DISABLE_MYSQL_URL))) {
+            UrlParser urlParser = new UrlParser();
+            parseInternal(urlParser, url, (prop == null) ? new Properties() : prop);
+            return urlParser;
         }
         return null;
     }
@@ -224,6 +220,7 @@ public class UrlParser {
                                                   String additionalParameters) {
 
         if (additionalParameters != null) {
+            //noinspection Annotator
             String regex = "(\\/([^\\?]*))?(\\?(.+))*";
             Pattern pattern = Pattern.compile(regex, Pattern.DOTALL);
             Matcher matcher = pattern.matcher(additionalParameters);
@@ -402,14 +399,9 @@ public class UrlParser {
         if (!(parser instanceof UrlParser)) return false;
 
         UrlParser urlParser = (UrlParser) parser;
-        if (initialUrl != null ? !initialUrl.equals(urlParser.getInitialUrl()) : urlParser.getInitialUrl() != null) {
-            return false;
-        }
-        if (getUsername() != null ? !getUsername().equals(urlParser.getUsername()) : urlParser.getUsername() != null) {
-            return false;
-        }
-        return getPassword() != null ? getPassword().equals(urlParser.getPassword()) : urlParser.getPassword() == null;
-
+        return (initialUrl != null ? initialUrl.equals(urlParser.getInitialUrl()) : urlParser.getInitialUrl() == null)
+                && (getUsername() != null ? getUsername().equals(urlParser.getUsername()) : urlParser.getUsername() == null)
+                && (getPassword() != null ? getPassword().equals(urlParser.getPassword()) : urlParser.getPassword() == null);
     }
 
     private boolean loadMultiMasterValue() {
@@ -418,7 +410,7 @@ public class UrlParser {
                 || haMode == HaMode.FAILOVER) {
             boolean firstMaster = false;
             for (HostAddress host : addresses) {
-                if (host.type == ParameterConstant.TYPE_MASTER) {
+                if (host.type.equals(ParameterConstant.TYPE_MASTER)) {
                     if (firstMaster) {
                         return true;
                     } else {

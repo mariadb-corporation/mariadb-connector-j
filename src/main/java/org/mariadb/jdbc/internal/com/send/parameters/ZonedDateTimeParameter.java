@@ -69,8 +69,8 @@ import java.util.Locale;
  */
 public class ZonedDateTimeParameter implements Cloneable, ParameterHolder {
 
-    private ZonedDateTime tz;
-    private boolean fractionalSeconds;
+    private final ZonedDateTime tz;
+    private final boolean fractionalSeconds;
 
     /**
      * Constructor.
@@ -83,7 +83,6 @@ public class ZonedDateTimeParameter implements Cloneable, ParameterHolder {
     public ZonedDateTimeParameter(ZonedDateTime tz, ZoneId serverZoneId, boolean fractionalSeconds, Options options) {
         ZoneId zoneId = options.useLegacyDatetimeCode ? ZoneOffset.systemDefault() : serverZoneId;
         this.tz = tz.withZoneSameInstant(zoneId);
-        ;
         this.fractionalSeconds = fractionalSeconds;
     }
 

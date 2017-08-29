@@ -60,6 +60,7 @@ import java.util.Properties;
 
 import static org.junit.Assert.*;
 
+@SuppressWarnings("ConstantConditions")
 public class JdbcParserTest {
 
     @Test
@@ -189,7 +190,7 @@ public class JdbcParserTest {
         assertFalse(jdbc.getOptions().autoReconnect);
         assertNull(jdbc.getOptions().user);
         assertFalse(jdbc.getOptions().createDatabaseIfNotExist);
-        assertTrue(jdbc.getOptions().socketTimeout.intValue() == 10000);
+        assertTrue(jdbc.getOptions().socketTimeout == 10000);
     }
 
     @Test

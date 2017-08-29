@@ -58,7 +58,7 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import java.io.IOException;
 
 public class ShortParameter implements Cloneable, ParameterHolder {
-    private short value;
+    private final short value;
 
     public ShortParameter(short value) {
         this.value = value;

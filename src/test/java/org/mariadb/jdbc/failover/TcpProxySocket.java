@@ -61,15 +61,15 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class TcpProxySocket implements Runnable {
-    private static Logger logger = LoggerFactory.getLogger(TcpProxy.class);
+    private static final Logger logger = LoggerFactory.getLogger(TcpProxy.class);
 
-    String host;
-    int remoteport;
-    int localport;
-    boolean stop = false;
-    Socket client = null;
-    Socket server = null;
-    ServerSocket ss;
+    private final String host;
+    private final int remoteport;
+    private int localport;
+    private boolean stop = false;
+    private Socket client = null;
+    private Socket server = null;
+    private ServerSocket ss;
 
     /**
      * Creation of proxy.
@@ -159,24 +159,22 @@ public class TcpProxySocket implements Runnable {
                     }
                     final InputStream fromServer = server.getInputStream();
                     final OutputStream toServer = server.getOutputStream();
-                    new Thread() {
-                        public void run() {
-                            int bytesRead;
-                            try {
-                                while ((bytesRead = fromClient.read(request)) != -1) {
-                                    toServer.write(request, 0, bytesRead);
-                                    toServer.flush();
-                                }
-                            } catch (IOException e) {
-                                //eat exception
+                    new Thread(() -> {
+                        int bytesRead;
+                        try {
+                            while ((bytesRead = fromClient.read(request)) != -1) {
+                                toServer.write(request, 0, bytesRead);
+                                toServer.flush();
                             }
-                            try {
-                                toServer.close();
-                            } catch (IOException e) {
-                                //eat exception
-                            }
+                        } catch (IOException e) {
+                            //eat exception
                         }
-                    }.start();
+                        try {
+                            toServer.close();
+                        } catch (IOException e) {
+                            //eat exception
+                        }
+                    }).start();
                     int bytesRead;
                     try {
                         while ((bytesRead = fromServer.read(reply)) != -1) {
@@ -210,5 +208,9 @@ public class TcpProxySocket implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public int getLocalport() {
+        return localport;
     }
 }
