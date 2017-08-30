@@ -364,7 +364,7 @@ public class SelectResultSet implements ResultSet {
             } catch (SQLException queryException) {
                 throw ExceptionMapper.getException(queryException, null, statement, false);
             } catch (IOException ioe) {
-                throw handleIOException(ioe);
+                throw handleIoException(ioe);
             } finally {
                 lock.unlock();
             }
@@ -372,8 +372,9 @@ public class SelectResultSet implements ResultSet {
         }
     }
 
-    private SQLException handleIOException(IOException ioe) {
-        return ExceptionMapper.getException(new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
+    private SQLException handleIoException(IOException ioe) {
+        return ExceptionMapper.getException(new SQLException("Server has closed the connection. "
+                + "If result set contain huge amount of data, Server expects client to"
                 + " read off the result set relatively fast. "
                 + "In this case, please consider increasing net_wait_timeout session variable."
                 + " / processing your result set faster (check Streaming result sets documentation for more information)",
@@ -573,7 +574,7 @@ public class SelectResultSet implements ResultSet {
             } catch (SQLException queryException) {
                 throw ExceptionMapper.getException(queryException, null, this.statement, false);
             } catch (IOException ioe) {
-                throw handleIOException(ioe);
+                throw handleIoException(ioe);
             } finally {
                 resetVariables();
                 lock.unlock();
@@ -608,7 +609,7 @@ public class SelectResultSet implements ResultSet {
                 try {
                     if (!isEof) nextStreamingValue();
                 } catch (IOException ioe) {
-                    throw handleIOException(ioe);
+                    throw handleIoException(ioe);
                 } finally {
                     lock.unlock();
                 }
@@ -695,7 +696,7 @@ public class SelectResultSet implements ResultSet {
                     //this time, fetch is added even for streaming forward type only to keep current pointer row.
                     if (!isEof) addStreamingValue();
                 } catch (IOException ioe) {
-                    throw handleIOException(ioe);
+                    throw handleIoException(ioe);
                 } finally {
                     lock.unlock();
                 }
@@ -730,7 +731,7 @@ public class SelectResultSet implements ResultSet {
             try {
                 if (!isEof) addStreamingValue();
             } catch (IOException ioe) {
-                throw handleIOException(ioe);
+                throw handleIoException(ioe);
             } finally {
                 lock.unlock();
             }
@@ -886,7 +887,7 @@ public class SelectResultSet implements ResultSet {
                     addStreamingValue();
                 }
             } catch (IOException ioe) {
-                throw handleIOException(ioe);
+                throw handleIoException(ioe);
             } finally {
                 lock.unlock();
             }
