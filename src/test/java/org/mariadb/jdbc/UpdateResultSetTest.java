@@ -893,7 +893,7 @@ public class UpdateResultSetTest extends BaseTest {
 
     /**
      * CONJ-519 : Updatable result-set possible NPE when same field is repeated.
-     * @throws SQLException
+     * @throws SQLException if any exception occur
      */
     @Test
     public void repeatedFieldUpdatable() throws SQLException {
@@ -902,7 +902,10 @@ public class UpdateResultSetTest extends BaseTest {
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("insert into repeatedFieldUpdatable values ('gg', 'hh'), ('jj', 'll')");
 
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT t1, t2, t1 as t3 FROM repeatedFieldUpdatable", ResultSet.FETCH_FORWARD, ResultSet.CONCUR_UPDATABLE);
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                "SELECT t1, t2, t1 as t3 FROM repeatedFieldUpdatable",
+                ResultSet.FETCH_FORWARD,
+                ResultSet.CONCUR_UPDATABLE);
         ResultSet rs = preparedStatement.executeQuery();
         while (rs.next()) {
             rs.getObject(3);
