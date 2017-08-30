@@ -1051,9 +1051,12 @@ public class SelectResultSet implements ResultSet {
                 if (isBinaryEncoded) {
                     Date date = getInternalDate(columnInfo, cal);
                     if (date == null) {
-                        //specific for "zero-date", getString will return "zero-date" value -> wasNull() must then return false
-                        lastValueNull ^= BIT_LAST_ZERO_DATE;
-                        return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+                        if (!isBinaryEncoded) {
+                            //specific for "zero-date", getString will return "zero-date" value -> wasNull() must then return false
+                            lastValueNull ^= BIT_LAST_ZERO_DATE;
+                            return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+                        }
+                        return null;
                     }
                     return date.toString();
                 }
@@ -1071,9 +1074,12 @@ public class SelectResultSet implements ResultSet {
             case DATETIME:
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal);
                 if (timestamp == null) {
-                    //specific for "zero-date", getString will return "zero-date" value -> wasNull() must then return false
-                    lastValueNull ^= BIT_LAST_ZERO_DATE;
-                    return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+                    if (!isBinaryEncoded) {
+                        //specific for "zero-date", getString will return "zero-date" value -> wasNull() must then return false
+                        lastValueNull ^= BIT_LAST_ZERO_DATE;
+                        return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
+                    }
+                    return null;
                 }
                 return timestamp.toString();
             case DECIMAL:

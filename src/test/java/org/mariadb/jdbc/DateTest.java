@@ -583,10 +583,14 @@ public class DateTest extends BaseTest {
             assertTrue(rs.next());
             if (sharedUsePrepare()) {
                 assertNull(rs.getString(1));
+                assertTrue(rs.wasNull());
                 assertNull(rs.getDate(1));
+                assertTrue(rs.wasNull());
             } else {
                 assertEquals("0000-00-00", rs.getString(1));
+                assertFalse(rs.wasNull());
                 assertNull(rs.getDate(1));
+                assertTrue(rs.wasNull());
             }
         } catch (SQLDataException sqldataException) {
             //'0000-00-00' doesn't work anymore on mysql 5.7.
@@ -646,8 +650,10 @@ public class DateTest extends BaseTest {
                 assertEquals(null, resultSet.getDate(1));
                 if (sharedUsePrepare()) {
                     assertEquals(null, resultSet.getString(1));
+                    assertTrue(resultSet.wasNull());
                 } else {
                     assertTrue(resultSet.getString(1).contains("0000-00-00 00:00:00"));
+                    assertFalse(resultSet.wasNull());
                 }
             }
 
