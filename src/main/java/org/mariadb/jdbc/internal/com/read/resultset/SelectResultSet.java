@@ -167,7 +167,7 @@ public class SelectResultSet implements ResultSet {
     private boolean returnTableAlias;
     private boolean isClosed;
     private boolean eofDeprecated;
-
+    private ReentrantLock lock;
 
     /**
      * Create Streaming resultSet.
@@ -217,6 +217,7 @@ public class SelectResultSet implements ResultSet {
             fetchAllResults();
             streaming = false;
         } else {
+            this.lock = protocol.getLock();
             protocol.setActiveStreamingResult(results);
             protocol.removeHasMoreResults();
             data = new byte[Math.max(10, fetchSize)][];
@@ -257,13 +258,14 @@ public class SelectResultSet implements ResultSet {
         this.columnInformationLength = columnInformation.length;
         this.isEof = true;
         this.isBinaryEncoded = false;
-        this.fetchSize = 1;
+        this.fetchSize = 0;
         this.resultSetScrollType = resultSetScrollType;
         this.data = resultSet.toArray(new byte[10][]);
         this.dataSize = resultSet.size();
         this.dataFetchTime = 0;
         this.rowPointer = -1;
         this.callableResult = false;
+        this.streaming = false;
     }
 
     /**
@@ -351,48 +353,31 @@ public class SelectResultSet implements ResultSet {
      * @throws SQLException if any error occur
      */
     public void fetchRemaining() throws SQLException {
-        try {
-            try {
-                if (!isEof) {
-                    lastRowPointer = -1;
-                    ReentrantLock lock = protocol.getLock();
-                    lock.lock();
-                    try {
-                        while (!isEof) {
-                            addStreamingValue();
-                        }
-                    } finally {
-                        lock.unlock();
-                    }
-                }
-
-            } catch (IOException ioexception) {
-                throw new SQLException("Could not close resultSet : " + ioexception.getMessage(),
-                        CONNECTION_EXCEPTION.getSqlState(), ioexception);
-            }
-        } catch (SQLException queryException) {
-            ExceptionMapper.throwException(queryException, null, this.statement);
-        }
-
-        dataFetchTime++;
-    }
-
-    private void fetchRemainingLock() throws SQLException {
         if (!isEof) {
-            //load remaining results
-            ReentrantLock lock = protocol.getLock();
             lock.lock();
             try {
-                fetchRemaining();
-            } catch (SQLException ioe) {
-                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
-                        + " read off the result set relatively fast. "
-                        + "In this case, please consider increasing net_wait_timeout session variable."
-                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
+                lastRowPointer = -1;
+                while (!isEof) {
+                    addStreamingValue();
+                }
+
+            } catch (SQLException queryException) {
+                throw ExceptionMapper.getException(queryException, null, statement, false);
+            } catch (IOException ioe) {
+                throw handleIOException(ioe);
             } finally {
                 lock.unlock();
             }
+            dataFetchTime++;
         }
+    }
+
+    private SQLException handleIOException(IOException ioe) {
+        return ExceptionMapper.getException(new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
+                + " read off the result set relatively fast. "
+                + "In this case, please consider increasing net_wait_timeout session variable."
+                + " / processing your result set faster (check Streaming result sets documentation for more information)",
+                CONNECTION_EXCEPTION.getSqlState(), ioe), null, statement, false);
     }
 
     /**
@@ -445,10 +430,11 @@ public class SelectResultSet implements ResultSet {
             ErrorPacket errorPacket = new ErrorPacket(new Buffer(buf));
             resetVariables();
             if (statement != null) {
-                throw new SQLException("(conn:" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
-                        errorPacket.getSqlState(), errorPacket.getErrorNumber());
+                throw ExceptionMapper.getException(new SQLException("(conn:" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
+                        errorPacket.getSqlState(), errorPacket.getErrorNumber()), null, statement, false);
             } else {
-                throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorNumber());
+                throw ExceptionMapper.getException(new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(),
+                        errorPacket.getErrorNumber()), null, statement, false);
             }
         }
 
@@ -576,8 +562,7 @@ public class SelectResultSet implements ResultSet {
      */
     public void close() throws SQLException {
         isClosed = true;
-        if (protocol != null) {
-            ReentrantLock lock = protocol.getLock();
+        if (!isEof) {
             lock.lock();
             try {
                 while (!isEof) {
@@ -585,19 +570,16 @@ public class SelectResultSet implements ResultSet {
                     readNextValue();
                 }
 
-            } catch (IOException ioexception) {
-                ExceptionMapper.throwException(new SQLException(
-                        "Could not close resultSet : " + ioexception.getMessage() + protocol.getTraces(),
-                        CONNECTION_EXCEPTION.getSqlState(), ioexception), null, this.statement);
             } catch (SQLException queryException) {
-                ExceptionMapper.throwException(queryException, null, this.statement);
+                throw ExceptionMapper.getException(queryException, null, this.statement, false);
+            } catch (IOException ioe) {
+                throw handleIOException(ioe);
             } finally {
                 resetVariables();
                 lock.unlock();
             }
-        } else {
-            resetVariables();
         }
+        resetVariables();
 
         //keep garbage easy
         for (int i = 0; i < data.length; i++) data[i] = null;
@@ -622,15 +604,11 @@ public class SelectResultSet implements ResultSet {
             return true;
         } else {
             if (streaming && !isEof) {
-                ReentrantLock lock = protocol.getLock();
                 lock.lock();
                 try {
-                    nextStreamingValue();
+                    if (!isEof) nextStreamingValue();
                 } catch (IOException ioe) {
-                    throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
-                            + " read off the result set relatively fast. "
-                            + "In this case, please consider increasing net_wait_timeout session variable."
-                            + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
+                    throw handleIOException(ioe);
                 } finally {
                     lock.unlock();
                 }
@@ -712,16 +690,12 @@ public class SelectResultSet implements ResultSet {
 
                 //has to read more result to know if it's finished or not
                 //(next packet may be new data or an EOF packet indicating that there is no more data)
-                ReentrantLock lock = protocol.getLock();
                 lock.lock();
                 try {
                     //this time, fetch is added even for streaming forward type only to keep current pointer row.
-                    addStreamingValue();
+                    if (!isEof) addStreamingValue();
                 } catch (IOException ioe) {
-                    throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
-                            + " read off the result set relatively fast. "
-                            + "In this case, please consider increasing net_wait_timeout session variable."
-                            + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
+                    throw handleIOException(ioe);
                 } finally {
                     lock.unlock();
                 }
@@ -752,15 +726,11 @@ public class SelectResultSet implements ResultSet {
         } else {
             //when streaming and not having read all results,
             //must read next packet to know if next packet is an EOF packet or some additional data
-            ReentrantLock lock = protocol.getLock();
             lock.lock();
             try {
-                addStreamingValue();
+                if (!isEof) addStreamingValue();
             } catch (IOException ioe) {
-                throw new SQLException("Server has closed the connection. If result set contain huge amount of data, Server expects client to"
-                        + " read off the result set relatively fast. "
-                        + "In this case, please consider increasing net_wait_timeout session variable."
-                        + " / processing your result set faster (check Streaming result sets documentation for more information)", ioe);
+                throw handleIOException(ioe);
             } finally {
                 lock.unlock();
             }
@@ -788,7 +758,7 @@ public class SelectResultSet implements ResultSet {
     @Override
     public void afterLast() throws SQLException {
         checkClose();
-        fetchRemainingLock();
+        fetchRemaining();
         rowPointer = dataSize;
     }
 
@@ -807,7 +777,7 @@ public class SelectResultSet implements ResultSet {
     @Override
     public boolean last() throws SQLException {
         checkClose();
-        fetchRemainingLock();
+        fetchRemaining();
         rowPointer = dataSize - 1;
         return rowPointer > 0;
     }
@@ -835,7 +805,7 @@ public class SelectResultSet implements ResultSet {
         }
 
         //if streaming, must read additional results.
-        fetchRemainingLock();
+        fetchRemaining();
 
         if (row >= 0) {
 
@@ -909,15 +879,16 @@ public class SelectResultSet implements ResultSet {
     @Override
     public void setFetchSize(int fetchSize) throws SQLException {
         if (streaming && fetchSize == 0) {
-
+            lock.lock();
             try {
-
+                //fetch all results
                 while (!isEof) {
-                    //fetch all results
                     addStreamingValue();
                 }
-            } catch (IOException ioException) {
-                throw new SQLException(ioException);
+            } catch (IOException ioe) {
+                throw handleIOException(ioe);
+            } finally {
+                lock.unlock();
             }
 
             streaming = dataFetchTime == 1;
