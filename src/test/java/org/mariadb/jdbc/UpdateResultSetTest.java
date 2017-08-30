@@ -890,4 +890,22 @@ public class UpdateResultSetTest extends BaseTest {
 
         }
     }
+
+    /**
+     * CONJ-519 : Updatable result-set possible NPE when same field is repeated.
+     * @throws SQLException
+     */
+    @Test
+    public void repeatedFieldUpdatable() throws SQLException {
+        createTable("repeatedFieldUpdatable", "t1 varchar(50) NOT NULL, t2 varchar(50), PRIMARY KEY (t1)");
+
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("insert into repeatedFieldUpdatable values ('gg', 'hh'), ('jj', 'll')");
+
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT t1, t2, t1 as t3 FROM repeatedFieldUpdatable", ResultSet.FETCH_FORWARD, ResultSet.CONCUR_UPDATABLE);
+        ResultSet rs = preparedStatement.executeQuery();
+        while (rs.next()) {
+            rs.getObject(3);
+        }
+    }
 }

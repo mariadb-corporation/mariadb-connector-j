@@ -204,7 +204,6 @@ public class UpdatableResultSet extends SelectResultSet {
                             updatableColumns[index] = new UpdatableColumnInformation(
                                     columnInformation, canBeNull, hasDefault, generated, primary, autoIncrement);
                             found = true;
-                            break;
                         }
                     }
 
@@ -239,15 +238,16 @@ public class UpdatableResultSet extends SelectResultSet {
                     canBeRefresh = true;
                 }
 
+                boolean ensureAllColumnHaveMeta = true;
                 for (int index = 0; index < columnInformationLength; index++) {
                     if (updatableColumns[index] == null) {
                         //abnormal error : some field in META are not listed in SHOW COLUMNS
                         cannotUpdateInsertRow("Metadata information not available for table `"
                                 + database + "`.`" + table + "`, field `" + columnsInformation[index].getOriginalName() + "`");
+                        ensureAllColumnHaveMeta = false;
                     }
                 }
-
-                columnsInformation = updatableColumns;
+                if (ensureAllColumnHaveMeta) columnsInformation = updatableColumns;
             } else {
                 throw new SQLException("abnormal error : connection is null");
             }
@@ -312,8 +312,6 @@ public class UpdatableResultSet extends SelectResultSet {
      */
     public void updateBoolean(int columnIndex, boolean bool) throws SQLException {
         checkUpdatable(columnIndex);
-
-
         parameterHolders[columnIndex - 1] = new ByteParameter(bool ? (byte) 1 : (byte) 0);
     }
 
