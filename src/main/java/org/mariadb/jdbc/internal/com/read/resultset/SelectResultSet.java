@@ -990,10 +990,13 @@ public class SelectResultSet implements ResultSet {
                 if (isBinaryEncoded) {
                     Date date = getInternalDate(columnInfo, cal);
                     if (date == null) {
-                        //row data is not null but result is null -> this is "zero-date"
-                        //specific for "zero-date", getString will return "zero-date" value -> wasNull() must then return false
-                        lastValueNull ^= BIT_LAST_ZERO_DATE;
-                        return new String(row.buf, row.pos, row.length, Buffer.UTF_8);
+                        if (!isBinaryEncoded) {
+                            //row data is not null but result is null -> this is "zero-date"
+                            //specific for "zero-date", getString will return "zero-date" value -> wasNull() must then return false
+                            lastValueNull ^= BIT_LAST_ZERO_DATE;
+                            return new String(row.buf, row.pos, row.length, Buffer.UTF_8);
+                        }
+                        return null;
                     }
                     return date.toString();
                 }
@@ -1011,10 +1014,13 @@ public class SelectResultSet implements ResultSet {
             case DATETIME:
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal);
                 if (timestamp == null) {
-                    //row data is not null but result is null -> this is "zero-date"
-                    //specific for "zero-date", getString will return "zero-date" value -> wasNull() must then return false
-                    lastValueNull ^= BIT_LAST_ZERO_DATE;
-                    return new String(row.buf, row.pos, row.length, Buffer.UTF_8);
+                    if (!isBinaryEncoded) {
+                        //row data is not null but result is null -> this is "zero-date"
+                        //specific for "zero-date", getString will return "zero-date" value -> wasNull() must then return false
+                        lastValueNull ^= BIT_LAST_ZERO_DATE;
+                        return new String(row.buf, row.pos, row.length, Buffer.UTF_8);
+                    }
+                    return null;
                 }
                 return timestamp.toString();
             case DECIMAL:
