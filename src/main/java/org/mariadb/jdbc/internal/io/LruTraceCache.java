@@ -54,7 +54,9 @@ package org.mariadb.jdbc.internal.io;
 
 import org.mariadb.jdbc.internal.util.Utils;
 
-import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -76,11 +78,12 @@ public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
      * @return trace cache value
      */
     public String printStack() {
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
         StringBuilder sb = new StringBuilder();
         Set<Map.Entry<Long, TraceObject>> set = entrySet();
         for (Map.Entry<Long, TraceObject> entry : set) {
             TraceObject traceObj = entry.getValue();
-            long millis = entry.getKey();
+            long nano = entry.getKey();
             String indicator = "";
 
             switch (traceObj.getIndicatorFlag()) {
@@ -100,11 +103,18 @@ public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
             }
 
             if (traceObj.isSend()) {
-                sb.append("\nsend at " + new Date(millis) + indicator);
+                sb.append("\nsend at ");
             } else {
-                sb.append("\nread at " + new Date(millis) + indicator);
+                sb.append("\nread at ");
             }
-            sb.append(Utils.hexdump(traceObj.getBuf()));
+            //since java.time is not available for java version < 8
+            //use current time minus the nano second difference
+            Calendar calendar = Calendar.getInstance();
+            calendar.setTimeInMillis(System.currentTimeMillis() - (System.nanoTime() - nano) / 1000000);
+
+            sb.append(dateFormat.format(calendar.getTime()))
+                    .append(indicator)
+                    .append(Utils.hexdump(traceObj.getBuf()));
 
             traceObj.remove();
         }
