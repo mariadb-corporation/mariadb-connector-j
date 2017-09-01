@@ -64,6 +64,7 @@ import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.Arrays;
 
 import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
@@ -266,7 +267,7 @@ public class StandardPacketInputStream implements PacketInputStream {
         } while (remaining > 0);
 
         if (traceCache != null) {
-            traceCache.put(System.currentTimeMillis(), new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
+            traceCache.put(Instant.now(), new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
                     Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
         }
 
@@ -316,7 +317,7 @@ public class StandardPacketInputStream implements PacketInputStream {
                 } while (remaining > 0);
 
                 if (traceCache != null) {
-                    traceCache.put(System.currentTimeMillis(), new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
+                    traceCache.put(Instant.now(), new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
                             Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
                 }
 

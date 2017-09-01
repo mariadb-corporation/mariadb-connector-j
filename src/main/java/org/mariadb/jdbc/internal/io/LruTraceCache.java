@@ -54,19 +54,21 @@ package org.mariadb.jdbc.internal.io;
 
 import org.mariadb.jdbc.internal.util.Utils;
 
-import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
+public class LruTraceCache extends LinkedHashMap<Instant, TraceObject> {
 
     public LruTraceCache() {
         super(16, 1.0f, false);
     }
 
     @Override
-    protected boolean removeEldestEntry(Map.Entry<Long, TraceObject> eldest) {
+    protected boolean removeEldestEntry(Map.Entry<Instant, TraceObject> eldest) {
         return size() > 10;
     }
 
@@ -76,11 +78,12 @@ public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
      * @return trace cache value
      */
     public String printStack() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat();
         StringBuilder sb = new StringBuilder();
-        Set<Map.Entry<Long, TraceObject>> set = entrySet();
-        for (Map.Entry<Long, TraceObject> entry : set) {
+        Set<Map.Entry<Instant, TraceObject>> set = entrySet();
+        for (Map.Entry<Instant, TraceObject> entry : set) {
             TraceObject traceObj = entry.getValue();
-            long millis = entry.getKey();
+            Instant instant = entry.getKey();
             String indicator = "";
 
             switch (traceObj.getIndicatorFlag()) {
@@ -100,11 +103,13 @@ public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
             }
 
             if (traceObj.isSend()) {
-                sb.append("\nsend at ").append(new Date(millis)).append(indicator);
+                sb.append("\nsend at ");
             } else {
-                sb.append("\nread at ").append(new Date(millis)).append(indicator);
+                sb.append("\nread at ");
             }
-            sb.append(Utils.hexdump(traceObj.getBuf()));
+            DateTimeFormatter.ISO_INSTANT.formatTo(instant, sb);
+            sb.append(indicator)
+                    .append(Utils.hexdump(traceObj.getBuf()));
 
             traceObj.remove();
         }
@@ -116,8 +121,8 @@ public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
      * Permit to clear array's of array, to help garbage.
      */
     public void clearMemory() {
-        Set<Map.Entry<Long, TraceObject>> set = entrySet();
-        for (Map.Entry<Long, TraceObject> entry : set) {
+        Set<Map.Entry<Instant, TraceObject>> set = entrySet();
+        for (Map.Entry<Instant, TraceObject> entry : set) {
             entry.getValue().remove();
         }
         this.clear();

@@ -62,6 +62,7 @@ import org.mariadb.jdbc.internal.util.Utils;
 import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
@@ -136,7 +137,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
             if (traceCache != null) {
                 int length = decompressedLength != 0 ? decompressedLength : compressedLength;
-                traceCache.put(System.currentTimeMillis(), new TraceObject(false,
+                traceCache.put(Instant.now(), new TraceObject(false,
                         decompressedLength == 0 ? COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET : COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
                         Arrays.copyOfRange(header, 0, 7),
                         Arrays.copyOfRange(rawBytes, 0, length > 1000 ? 1000 : length)));

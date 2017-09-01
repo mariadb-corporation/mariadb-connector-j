@@ -59,6 +59,7 @@ import org.mariadb.jdbc.internal.util.Utils;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.time.Instant;
 import java.util.Arrays;
 
 import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
@@ -112,7 +113,7 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
             if (traceCache != null && permitTrace) {
                 //trace last packets
-                traceCache.put(System.currentTimeMillis(), new TraceObject(true, NOT_COMPRESSED,
+                traceCache.put(Instant.now(), new TraceObject(true, NOT_COMPRESSED,
                         Arrays.copyOfRange(buf, 0, pos > 1000 ? 1000 : pos)));
             }
 
@@ -149,7 +150,7 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
         if (traceCache != null) {
             //trace last packets
-            traceCache.put(System.currentTimeMillis(), new TraceObject(true, NOT_COMPRESSED, Arrays.copyOfRange(buf, 0, 4)));
+            traceCache.put(Instant.now(), new TraceObject(true, NOT_COMPRESSED, Arrays.copyOfRange(buf, 0, 4)));
         }
 
         if (logger.isTraceEnabled()) {

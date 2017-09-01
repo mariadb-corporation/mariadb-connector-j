@@ -53,15 +53,12 @@
 package org.mariadb.jdbc.internal.io.output;
 
 import org.mariadb.jdbc.internal.io.LruTraceCache;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 
 import java.io.*;
 import java.util.Arrays;
 
 public abstract class AbstractPacketOutputStream extends FilterOutputStream implements PacketOutputStream {
-    private static final Logger logger = LoggerFactory.getLogger(AbstractPacketOutputStream.class);
 
     private static final byte QUOTE = (byte) '\'';
     private static final byte DBL_QUOTE = (byte) '"';
