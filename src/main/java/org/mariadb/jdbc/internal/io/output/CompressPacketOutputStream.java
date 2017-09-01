@@ -53,6 +53,8 @@
 package org.mariadb.jdbc.internal.io.output;
 
 import org.mariadb.jdbc.internal.io.TraceObject;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.Utils;
 
 import java.io.ByteArrayOutputStream;
@@ -65,6 +67,7 @@ import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_COMPR
 import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET;
 
 public class CompressPacketOutputStream extends AbstractPacketOutputStream {
+    private static final Logger logger = LoggerFactory.getLogger(CompressPacketOutputStream.class);
 
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;
     private static final byte[] EMPTY_ARRAY = new byte[0];
@@ -193,17 +196,17 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                         if (logger.isTraceEnabled()) {
                             if (permitTrace) {
                                 if (remainingData.length != 0) {
-                                    logger.trace("send compress:" + serverThreadLog
-                                            + Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),
-                                            0,
-                                            compressedLength, header, remainingData, subHeader, buf));
+                                    logger.trace("send compress: {}{}",
+                                            serverThreadLog,
+                                            Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),0,
+                                                    compressedLength, header, remainingData, subHeader, buf));
                                 } else {
-                                    logger.trace("send compress:" + serverThreadLog
-                                            + Utils.hexdump(maxQuerySizeToLog - 11, 0, compressedLength, header, subHeader, buf));
+                                    logger.trace("send compress: {}{}",
+                                            serverThreadLog,
+                                            Utils.hexdump(maxQuerySizeToLog - 11, 0, compressedLength, header, subHeader, buf));
                                 }
                             } else {
-                                logger.trace("send compress:" + serverThreadLog
-                                        + " packet:<hidden>");
+                                logger.trace("send compress: {} packet=<hidden>", serverThreadLog);
                             }
                         }
                         if (pos + remainingData.length + 4 - uncompressSize > 0) {
@@ -267,19 +270,17 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             if (logger.isTraceEnabled()) {
                 if (permitTrace) {
                     if (remainingData.length != 0) {
-                        logger.trace("send uncompress:"
-                                + serverThreadLog
-                                + Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),
+                        logger.trace("send uncompress: {}{}",
+                                serverThreadLog,
+                                Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),
                                 0, pos, header, remainingData, subHeader, buf));
                     } else {
-                        logger.trace("send uncompress:"
-                                + serverThreadLog
-                                + Utils.hexdump(maxQuerySizeToLog - 11, 0, pos, header, subHeader, buf));
+                        logger.trace("send uncompress: {}{}",
+                                serverThreadLog,
+                                Utils.hexdump(maxQuerySizeToLog - 11, 0, pos, header, subHeader, buf));
                     }
                 } else {
-                    logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
-                            + serverThreadLog
-                            + " packet:<hidden>");
+                    logger.trace("send uncompress: length:(zlib:0,std:{}) {} packet:<hidden>", uncompressSize, serverThreadLog);
                 }
             }
 
@@ -333,13 +334,11 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
                     if (logger.isTraceEnabled()) {
                         if (permitTrace) {
-                            logger.trace("send compress:"
-                                    + serverThreadLog
-                                    + Utils.hexdump(maxQuerySizeToLog - 7, 0, uncompressSize, header, remainingData));
+                            logger.trace("send compress: {}{}",
+                                    serverThreadLog,
+                                    Utils.hexdump(maxQuerySizeToLog - 7, 0, uncompressSize, header, remainingData));
                         } else {
-                            logger.trace("send compress:"
-                                    + serverThreadLog
-                                    + " packet:<hidden>");
+                            logger.trace("send compress: {} packet:<hidden>", serverThreadLog);
                         }
                     }
 
@@ -374,13 +373,11 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
             if (logger.isTraceEnabled()) {
                 if (permitTrace) {
-                    logger.trace("send uncompress:"
-                            + serverThreadLog
-                            + Utils.hexdump(maxQuerySizeToLog - 7, 0, remainingData.length, header, remainingData));
+                    logger.trace("send uncompress: {}{}",
+                            serverThreadLog,
+                            Utils.hexdump(maxQuerySizeToLog - 7, 0, remainingData.length, header, remainingData));
                 } else {
-                    logger.trace("send uncompress:"
-                            + serverThreadLog
-                            + " packet:<hidden>");
+                    logger.trace("send uncompress: {} packet:<hidden>", serverThreadLog);
                 }
             }
             if (commandEnd && lastPacketExactMaxPacketLength) writeEmptyPacket();
@@ -411,16 +408,13 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                     Arrays.copyOfRange(buf, 0, 11)));
         }
 
-
         if (logger.isTraceEnabled()) {
             if (permitTrace) {
-                logger.trace("send compress:"
-                        + serverThreadLog
-                        + Utils.hexdump(maxQuerySizeToLog, 0, 11, buf));
+                logger.trace("send uncompress:{}{}",
+                        serverThreadLog,
+                        Utils.hexdump(maxQuerySizeToLog, 0, 11, buf));
             } else {
-                logger.trace("send compress:"
-                        + serverThreadLog
-                        + " packet:<hidden>");
+                logger.trace("send uncompress: {} packet:<hidden>", serverThreadLog);
             }
         }
     }

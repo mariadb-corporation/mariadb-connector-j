@@ -73,7 +73,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
     private static final int REUSABLE_BUFFER_LENGTH = 1024;
     private static final int MAX_PACKET_SIZE = 0xffffff;
-    private static final Logger logger = LoggerFactory.getLogger(StandardPacketInputStream.class);
+    private static final Logger logger = LoggerFactory.getLogger(DecompressPacketInputStream.class);
     private final byte[] header = new byte[7];
     private final byte[] reusableArray = new byte[REUSABLE_BUFFER_LENGTH];
 
@@ -144,9 +144,10 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
             if (logger.isTraceEnabled()) {
                 int length = decompressedLength != 0 ? decompressedLength : compressedLength;
-                logger.trace("read " + (decompressedLength == 0 ? "uncompress" : "compress")
-                        + serverThreadLog
-                        + Utils.hexdump(maxQuerySizeToLog - 7, 0, length, header, rawBytes));
+                logger.trace("read {} {}{}",
+                        (decompressedLength == 0 ? "uncompress" : "compress"),
+                        serverThreadLog,
+                        Utils.hexdump(maxQuerySizeToLog - 7, 0, length, header, rawBytes));
             }
 
             cache(rawBytes, decompressedLength == 0 ? compressedLength : decompressedLength);
@@ -234,9 +235,11 @@ public class DecompressPacketInputStream implements PacketInputStream {
                         System.arraycopy(cacheData, cachePos + 4, packet, 0, lastPacketLength);
 
                         if (logger.isTraceEnabled()) {
-                            logger.trace("read packet : seq=" + packetSeq + " len:" + lastPacketLength
-                                    + serverThreadLog
-                                    + Utils.hexdump(maxQuerySizeToLog, cachePos + 4, lastPacketLength, cacheData));
+                            logger.trace("read packet: seq={} len={} {}{}",
+                                    packetSeq,
+                                    lastPacketLength,
+                                    serverThreadLog,
+                                    Utils.hexdump(maxQuerySizeToLog, cachePos + 4, lastPacketLength, cacheData));
                         }
 
                         cachePos += 4 + lastPacketLength;
@@ -254,9 +257,11 @@ public class DecompressPacketInputStream implements PacketInputStream {
                         offset += lastPacketLength;
 
                         if (logger.isTraceEnabled()) {
-                            logger.trace("read packet : seq=" + packetSeq + " len:" + lastPacketLength
-                                    + serverThreadLog
-                                    + Utils.hexdump(maxQuerySizeToLog, cachePos + 4, lastPacketLength, cacheData));
+                            logger.trace("read packet: seq={} len={} {}{}",
+                                    packetSeq,
+                                    lastPacketLength,
+                                    serverThreadLog,
+                                    Utils.hexdump(maxQuerySizeToLog, cachePos + 4, lastPacketLength, cacheData));
                         }
 
                         cachePos += 4 + lastPacketLength;
@@ -292,7 +297,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
      * @param isMaster       is server master
      */
     public void setServerThreadId(long serverThreadId, Boolean isMaster) {
-        this.serverThreadLog = " conn:" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
+        this.serverThreadLog = "conn=" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
     }
 
     public void setTraceCache(LruTraceCache traceCache) {

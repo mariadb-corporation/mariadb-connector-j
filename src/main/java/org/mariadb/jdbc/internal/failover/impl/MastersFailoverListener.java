@@ -160,8 +160,9 @@ public class MastersFailoverListener extends AbstractMastersListener {
             if (killCmd) return new HandleErrorResult(true, false);
 
             if (alreadyClosed || !inTransaction && isQueryRelaunchable(method, args)) {
-                logger.info("Connection to master lost, new master " + currentProtocol.getHostAddress() + " found"
-                        + ", query type permit to be re-execute on new server without throwing exception");
+                logger.info("Connection to master lost, new master {} found"
+                        + ", query type permit to be re-execute on new server without throwing exception",
+                        currentProtocol.getHostAddress());
                 return relaunchOperation(method, args);
             }
             return new HandleErrorResult(true);

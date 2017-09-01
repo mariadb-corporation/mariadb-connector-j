@@ -102,7 +102,7 @@ public class FailoverProxy implements InvocationHandler {
      * <p>
      * example :
      * <p>
-     * java.sql.SQLException: (conn:603) Cannot execute statement in a READ ONLY transaction.<br/>
+     * java.sql.SQLException: (conn=603) Cannot execute statement in a READ ONLY transaction.<br/>
      * Query is: INSERT INTO TableX VALUES (21)<br/>
      * on HostAddress{host='mydb.example.com', port=3306},master=true</p>
      *
@@ -168,8 +168,8 @@ public class FailoverProxy implements InvocationHandler {
                         //PrepareStatement was to be executed on slave, but since a failover was running on master connection. Slave connection is up
                         // again, so has to be re-prepared on slave
                         try {
-                            logger.trace("re-prepare query \"" + serverPrepareResult.getSql() + "\" on slave (was "
-                                    + "temporary on master since failover)");
+                            logger.trace("re-prepare query \"{}\" on slave (was "
+                                    + "temporary on master since failover)", serverPrepareResult.getSql());
                             this.listener.rePrepareOnSlave(serverPrepareResult, false);
                         } catch (SQLException q) {
                             //error during re-prepare, will do executed on master.

@@ -61,6 +61,8 @@ import java.io.*;
 import java.util.Arrays;
 
 public abstract class AbstractPacketOutputStream extends FilterOutputStream implements PacketOutputStream {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractPacketOutputStream.class);
+
     private static final byte QUOTE = (byte) '\'';
     private static final byte DBL_QUOTE = (byte) '"';
     private static final byte ZERO_BYTE = (byte) '\0';
@@ -69,8 +71,6 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     private static final int SMALL_BUFFER_SIZE = 8192;
     private static final int MEDIUM_BUFFER_SIZE = 128 * 1024;
     private static final int LARGE_BUFFER_SIZE = 1024 * 1024;
-
-    protected static final Logger logger = LoggerFactory.getLogger(AbstractPacketOutputStream.class);
 
     protected byte[] buf;
     protected int pos;
@@ -741,7 +741,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
      * @param isMaster       is server master
      */
     public void setServerThreadId(long serverThreadId, Boolean isMaster) {
-        this.serverThreadLog = " conn:" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
+        this.serverThreadLog = "conn=" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
     }
 
     public void setTraceCache(LruTraceCache traceCache) {

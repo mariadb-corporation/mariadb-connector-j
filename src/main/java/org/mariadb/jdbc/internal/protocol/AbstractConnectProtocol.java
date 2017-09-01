@@ -586,8 +586,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             while (resultSet.next()) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("server data " + resultSet.getString(1)
-                            + " : " + resultSet.getString(2));
+                    logger.debug("server data {} = {}",
+                            resultSet.getString(1),
+                            resultSet.getString(2));
                 }
                 serverData.put(resultSet.getString(1), resultSet.getString(2));
             }

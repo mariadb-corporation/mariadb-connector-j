@@ -74,7 +74,7 @@ public class LogQueryTool {
      * @param sql current query
      * @return possibly truncated query if too big
      */
-    private String subQuery(String sql) {
+    public String subQuery(String sql) {
         if (options.maxQuerySizeToLog > 0 && sql.length() > options.maxQuerySizeToLog - 3) {
             return sql.substring(0, options.maxQuerySizeToLog - 3) + "...";
         }

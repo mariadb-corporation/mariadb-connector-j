@@ -189,9 +189,11 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                 if (Utils.isIPv4(lowerCaseHost)) {
                     for (GeneralName entry : subjectAltNames.getGeneralNames()) {
                         if (logger.isTraceEnabled()) {
-                            logger.trace("Conn: " + serverThreadId + ". IPv4 verification of hostname : type=" + entry.extension
-                                    + " value=\"" + entry.value
-                                    + "\" to \"" + lowerCaseHost + "\"");
+                            logger.trace("Conn={}. IPv4 verification of hostname : type={} value={} to {}",
+                                    serverThreadId,
+                                    entry.extension,
+                                    entry.value,
+                                    lowerCaseHost);
                         }
 
                         if (entry.extension == Extension.IP && lowerCaseHost.equals(entry.value)) return;
@@ -203,9 +205,11 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                     String normalisedHost = normaliseAddress(lowerCaseHost);
                     for (GeneralName entry : subjectAltNames.getGeneralNames()) {
                         if (logger.isTraceEnabled()) {
-                            logger.trace("Conn: " + serverThreadId + ". IPv6 verification of hostname : type=" + entry.extension
-                                    + " value=\"" + entry.value
-                                    + "\" to \"" + lowerCaseHost + "\"");
+                            logger.trace("Conn={}. IPv6 verification of hostname : type={} value={} to {}",
+                                    serverThreadId,
+                                    entry.extension,
+                                    entry.value,
+                                    lowerCaseHost);
                         }
 
                         if (entry.extension == Extension.IP
@@ -220,9 +224,11 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                     //***********************************************************
                     for (GeneralName entry : subjectAltNames.getGeneralNames()) {
                         if (logger.isTraceEnabled()) {
-                            logger.trace("Conn: " + serverThreadId + ". DNS verification of hostname : type=" + entry.extension
-                                    + " value=" + entry.value
-                                    + " to " + lowerCaseHost);
+                            logger.trace("Conn={}. DNS verification of hostname : type={} value={} to {}",
+                                    serverThreadId,
+                                    entry.extension,
+                                    entry.value,
+                                    lowerCaseHost);
                         }
 
                         if (entry.extension == Extension.DNS
@@ -241,7 +247,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
 
             if (cn == null) {
                 if (subjectAltNames.isEmpty()) {
-                    throw new SSLException("CN not found in certificate principal \"" + subjectPrincipal
+                    throw new SSLException("CN not found in certificate principal \"{}" + subjectPrincipal
                             + "\" and certificate doesn't contain SAN");
                 } else {
                     throw new SSLException("CN not found in certificate principal \"" + subjectPrincipal
@@ -251,9 +257,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
 
             String normalizedCn = cn.toLowerCase(Locale.ROOT);
             if (logger.isTraceEnabled()) {
-                logger.trace("Conn: " + serverThreadId + ". DNS verification of hostname :"
-                        + " CN=" + normalizedCn
-                        + " to " + lowerCaseHost);
+                logger.trace("Conn={}. DNS verification of hostname : CN={} to {}", serverThreadId, normalizedCn, lowerCaseHost);
             }
             if (!matchDns(lowerCaseHost, normalizedCn)) {
                 String errorMsg = normalizedHostMsg(lowerCaseHost) + " doesn't correspond to certificate CN \"" + normalizedCn + "\"";

@@ -271,9 +271,9 @@ public class StandardPacketInputStream implements PacketInputStream {
         }
 
         if (logger.isTraceEnabled()) {
-            logger.trace("read:"
-                    + serverThreadLog
-                    + Utils.hexdump(maxQuerySizeToLog - 4, 0, lastPacketLength, header, rawBytes));
+            logger.trace("read: {}{}",
+                    serverThreadLog,
+                    Utils.hexdump(maxQuerySizeToLog - 4, 0, lastPacketLength, header, rawBytes));
         }
 
         //***************************************************
@@ -321,9 +321,9 @@ public class StandardPacketInputStream implements PacketInputStream {
                 }
 
                 if (logger.isTraceEnabled()) {
-                    logger.trace("read:"
-                            + serverThreadLog
-                            + Utils.hexdump(maxQuerySizeToLog - 4, currentBufferLength, packetLength, header, rawBytes));
+                    logger.trace("read: {}{}",
+                            serverThreadLog,
+                            Utils.hexdump(maxQuerySizeToLog - 4, currentBufferLength, packetLength, header, rawBytes));
                 }
 
                 lastPacketLength += packetLength;
@@ -355,7 +355,7 @@ public class StandardPacketInputStream implements PacketInputStream {
      * @param isMaster       is server master
      */
     public void setServerThreadId(long serverThreadId, Boolean isMaster) {
-        this.serverThreadLog = " conn:" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
+        this.serverThreadLog = "conn=" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
     }
 
 

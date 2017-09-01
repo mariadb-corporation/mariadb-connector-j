@@ -1341,7 +1341,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         Buffer sessionVariableBuf = stateInfo.getLengthEncodedBuffer();
                         String variable = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
                         String value = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
-                        logger.debug("System variable change : " + variable + "=" + value);
+                        logger.debug("System variable change :  {} = {}", variable, value);
 
                         //only variable uses
                         switch (variable) {
@@ -1359,7 +1359,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     case StateChange.SESSION_TRACK_SCHEMA:
                         Buffer sessionSchemaBuf = stateInfo.getLengthEncodedBuffer();
                         database = sessionSchemaBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
-                        logger.debug("default database change. is now '" + database + "'");
+                        logger.debug("Database change : now is '{}'", database);
                         break;
 
                     default:

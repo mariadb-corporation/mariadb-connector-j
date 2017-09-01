@@ -105,22 +105,25 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
 
         if (protocol.mustBeMasterConnection()) {
             if (!protocol.isMasterConnection()) {
-                logger.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString()
-                        + ", conn " + this.currentProtocol.getServerThreadId()
-                        + " ] is now in read-only mode. Exception : " + qe.getMessage());
+                logger.warn("SQL Primary node [{}, conn={}] is now in read-only mode. Exception : {}",
+                        this.currentProtocol.getHostAddress().toString(),
+                        this.currentProtocol.getServerThreadId(),
+                        qe.getMessage());
             } else if (setMasterHostFail()) {
-                logger.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString()
-                        + ", conn " + this.currentProtocol.getServerThreadId()
-                        + " ] connection fail. Reason : " + qe.getMessage());
+                logger.warn("SQL Primary node [{}, conn={}] connection fail. Reason : {}",
+                        this.currentProtocol.getHostAddress().toString(),
+                        this.currentProtocol.getServerThreadId(),
+                        qe.getMessage());
 
                 addToBlacklist(protocol.getHostAddress());
             }
             return primaryFail(method, args, killCmd);
         } else {
             if (setSecondaryHostFail()) {
-                logger.warn("SQL secondary node [" + this.currentProtocol.getHostAddress().toString()
-                        + ", conn " + this.currentProtocol.getServerThreadId()
-                        + " ] connection fail. Reason : " + qe.getMessage());
+                logger.warn("SQL secondary node [{}, conn={}] connection fail. Reason : {}",
+                        this.currentProtocol.getHostAddress().toString(),
+                        this.currentProtocol.getServerThreadId(),
+                        qe.getMessage());
                 addToBlacklist(protocol.getHostAddress());
             }
             return secondaryFail(method, args, killCmd);

@@ -175,9 +175,10 @@ public abstract class AbstractMastersListener implements Listener {
             throw new SQLException("Connection has been closed !");
         }
         if (setMasterHostFail()) {
-            logger.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString()
-                    + ", conn " + this.currentProtocol.getServerThreadId()
-                    + " ] connection fail. Reason : " + qe.getMessage());
+            logger.warn("SQL Primary node [{}, conn={}] connection fail. Reason : {}",
+                    this.currentProtocol.getHostAddress().toString(),
+                    this.currentProtocol.getServerThreadId(),
+                    qe.getMessage());
             addToBlacklist(currentProtocol.getHostAddress());
         }
 
@@ -235,9 +236,10 @@ public abstract class AbstractMastersListener implements Listener {
 
     protected void setSessionReadOnly(boolean readOnly, Protocol protocol) throws SQLException {
         if (protocol.versionGreaterOrEqual(5, 6, 5)) {
-            logger.info("SQL node [" + protocol.getHostAddress().toString()
-                    + ", conn " + protocol.getServerThreadId()
-                    + " ] is now in " + (readOnly ? "read-only" : "write") + " mode.");
+            logger.info("SQL node [{}, conn={}] is now in {} mode.",
+                    protocol.getHostAddress().toString(),
+                    protocol.getServerThreadId(),
+                    readOnly ? "read-only" : "write");
             protocol.executeQuery("SET SESSION TRANSACTION " + (readOnly ? "READ ONLY" : "READ WRITE"));
         }
     }
@@ -298,8 +300,8 @@ public abstract class AbstractMastersListener implements Listener {
                         String query = ((String) args[2]).toUpperCase();
                         if (!"ALTER SYSTEM CRASH".equals(query)
                                 && !query.startsWith("KILL")) {
-                            logger.debug("relaunch query to new connection "
-                                    + ((currentProtocol != null) ? "server thread id " + currentProtocol.getServerThreadId() : ""));
+                            logger.debug("relaunch query to new connection {}",
+                                    ((currentProtocol != null) ? "(conn=" + currentProtocol.getServerThreadId() + ")": ""));
                             handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                             handleErrorResult.mustThrowError = false;
                         }

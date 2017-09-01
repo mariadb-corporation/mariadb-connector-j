@@ -200,7 +200,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
         //valid parameters
         for (int i = 0; i < prepareResult.getParamCount(); i++) {
             if (parameters[i] == null) {
-                logger.error("Parameter at position " + (i + 1) + " is not set");
+                logger.error("Parameter at position {} is not set", (i + 1));
                 ExceptionMapper.throwException(new SQLException("Parameter at position " + (i + 1) + " is not set", "07004"),
                         connection, this);
             }

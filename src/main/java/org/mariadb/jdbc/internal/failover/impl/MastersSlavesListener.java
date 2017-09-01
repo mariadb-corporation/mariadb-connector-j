@@ -587,9 +587,10 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 //connection was not in transaction
 
                 //can relaunch query
-                logger.info("Connection to master lost, new master " + currentProtocol.getHostAddress() + ", conn:"
-                        + currentProtocol.getServerThreadId() + " found"
-                        + ", query type permit to be re-execute on new server without throwing exception");
+                logger.info("Connection to master lost, new master {}, conn={} found"
+                        + ", query type permit to be re-execute on new server without throwing exception",
+                        currentProtocol.getHostAddress(),
+                        currentProtocol.getServerThreadId());
                 return relaunchOperation(method, args);
             }
             //throw Exception because must inform client, even if connection is reconnected
@@ -717,9 +718,10 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
             if (killCmd) return new HandleErrorResult(true, false);
 
-            logger.info("Connection to slave lost, new slave " + currentProtocol.getHostAddress() + ", conn:"
-                    + currentProtocol.getServerThreadId() + " found"
-                    + ", query is re-execute on new server without throwing exception");
+            logger.info("Connection to slave lost, new slave {}, conn={} found"
+                    + ", query is re-execute on new server without throwing exception",
+                    currentProtocol.getHostAddress(),
+                    currentProtocol.getServerThreadId());
             return relaunchOperation(method, args); //now that we are reconnect, relaunched result if the result was not crashing the node
         } catch (Exception ee) {
             //we will throw a Connection exception that will close connection

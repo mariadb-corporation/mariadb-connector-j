@@ -796,7 +796,7 @@ public class MariaDbConnection implements Connection {
      */
     public void setReadOnly(final boolean readOnly) throws SQLException {
         try {
-            logger.debug("setReadOnly to value " + readOnly);
+            logger.debug("set read-only to value {}", readOnly);
             protocol.setReadonly(readOnly);
         } catch (SQLException e) {
             ExceptionMapper.throwException(e, this, null);

@@ -431,7 +431,7 @@ public class SelectResultSet implements ResultSet {
             ErrorPacket errorPacket = new ErrorPacket(new Buffer(buf));
             resetVariables();
             if (statement != null) {
-                throw ExceptionMapper.getException(new SQLException("(conn:" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
+                throw ExceptionMapper.getException(new SQLException("(conn=" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
                         errorPacket.getSqlState(), errorPacket.getErrorNumber()), null, statement, false);
             } else {
                 throw ExceptionMapper.getException(new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(),

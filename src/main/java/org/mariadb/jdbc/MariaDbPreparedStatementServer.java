@@ -339,7 +339,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
     protected void validParameters() throws SQLException {
         for (int i = 0; i < parameterCount; i++) {
             if (currentParameterHolder.get(i) == null) {
-                logger.error("Parameter at position " + (i + 1) + " is not set");
+                logger.error("Parameter at position {} is not set", (i + 1));
                 ExceptionMapper.throwException(new SQLException("Parameter at position " + (i + 1) + " is not set", "07004"),
                         connection, this);
             }

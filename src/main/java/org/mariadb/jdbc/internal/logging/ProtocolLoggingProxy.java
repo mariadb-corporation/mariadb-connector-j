@@ -54,6 +54,7 @@ package org.mariadb.jdbc.internal.logging;
 
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.LogQueryTool;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
@@ -74,6 +75,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
     private final Long slowQueryThresholdNanos;
     private final int maxQuerySizeToLog;
     private final Protocol protocol;
+    private final LogQueryTool logQuery;
 
     /**
      * Constructor. Will create a proxy around protocol to log queries.
@@ -86,69 +88,63 @@ public class ProtocolLoggingProxy implements InvocationHandler {
         this.profileSql = options.profileSql;
         this.slowQueryThresholdNanos = options.slowQueryThresholdNanos;
         this.maxQuerySizeToLog = options.maxQuerySizeToLog;
+        this.logQuery = new LogQueryTool(options);
     }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         long startTime = System.nanoTime();
         try {
+
             switch (method.getName()) {
+
                 case "executeQuery":
                 case "executePreparedQuery":
                 case "executeBatchStmt":
                 case "executeBatchClient":
                 case "executeBatchServer":
+
                     Object returnObj = method.invoke(protocol, args);
                     if (logger.isInfoEnabled() && (profileSql
                             || (slowQueryThresholdNanos != null && System.nanoTime() - startTime > slowQueryThresholdNanos))) {
-                        StringBuilder sb = new StringBuilder();
-                        sb.append("Query - conn:").append(protocol.getServerThreadId())
-                                .append("(").append((protocol.isMasterConnection() ? "M" : "S")).append(")")
-                                .append(" - ").append(numberFormat.format(((double) System.nanoTime() - startTime) / 1000000)).append(" ms")
-                                .append(" - \"");
 
-
-                        logQuery(method.getName(), args, sb);
-                        if (maxQuerySizeToLog > 0 && sb.length() > maxQuerySizeToLog) {
-                            logger.info(sb.substring(0, maxQuerySizeToLog) + "...\"");
-                        } else {
-                            sb.append("\"");
-                            logger.info(sb.toString());
-                        }
-
+                        String sql = logQuery(method.getName(), args);
+                        logger.info("conn={}({}) - {} ms - Query: {}",
+                                protocol.getServerThreadId(),
+                                protocol.isMasterConnection() ? "M" : "S",
+                                numberFormat.format(((double) System.nanoTime() - startTime) / 1000000),
+                                logQuery.subQuery(sql));
                     }
                     return returnObj;
+
                 default:
                     return method.invoke(protocol, args);
             }
+
         } catch (InvocationTargetException e) {
             throw e.getCause();
         }
     }
 
     @SuppressWarnings("unchecked")
-    private void logQuery(String methodName, Object[] args, StringBuilder sb) {
+    private String logQuery(String methodName, Object[] args) {
         switch (methodName) {
             case "executeQuery":
                 switch (args.length) {
                     case 1:
-                        sb.append((String) args[0]);
-                        break;
+                        return (String) args[0];
                     case 3:
-                        sb.append((String) args[2]);
-                        break;
+                        return (String) args[2];
                     case 4:
                     case 5:
                         if (Charset.class.isInstance(args[3])) {
-                            sb.append((String) args[2]);
-                            break;
+                            return (String) args[2];
                         }
                         ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
-                        sb.append(getQueryFromPrepareParameters(
+                        return getQueryFromPrepareParameters(
                                 clientPrepareResult,
                                 (ParameterHolder[]) args[3],
-                                clientPrepareResult.getParamCount()));
-                        break;
+                                clientPrepareResult.getParamCount());
                     default:
                         //no default
                 }
@@ -156,15 +152,15 @@ public class ProtocolLoggingProxy implements InvocationHandler {
 
             case "executeBatchClient":
                 ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
-                sb.append(getQueryFromPrepareParameters(clientPrepareResult.getSql(), (List<ParameterHolder[]>) args[3],
-                        clientPrepareResult.getParamCount()));
-                break;
+                return getQueryFromPrepareParameters(clientPrepareResult.getSql(), (List<ParameterHolder[]>) args[3],
+                        clientPrepareResult.getParamCount());
 
             case "executeBatchStmt":
                 List<String> multipleQueries = (List<String>) args[2];
                 if (multipleQueries.size() == 1) {
-                    sb.append(multipleQueries.get(0));
+                    return multipleQueries.get(0);
                 } else {
+                    StringBuilder sb = new StringBuilder();
                     for (String multipleQuery : multipleQueries) {
                         if (maxQuerySizeToLog > 0 && (sb.length() + multipleQuery.length() + 1) > maxQuerySizeToLog) {
                             sb.append(multipleQuery.substring(1, Math.max(1, maxQuerySizeToLog - sb.length())));
@@ -173,28 +169,27 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                         sb.append(multipleQuery).append(";");
                         if (maxQuerySizeToLog > 0 && sb.length() >= maxQuerySizeToLog) break;
                     }
+                    return sb.toString();
                 }
-                break;
 
             case "executeBatchServer":
                 List<ParameterHolder[]> parameterList = (List<ParameterHolder[]>) args[4];
                 ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
-                sb.append(getQueryFromPrepareParameters(serverPrepareResult.getSql(), parameterList, serverPrepareResult.getParamCount()));
-                break;
+                return getQueryFromPrepareParameters(serverPrepareResult.getSql(), parameterList, serverPrepareResult.getParamCount());
 
             case "executePreparedQuery":
                 ServerPrepareResult prepareResult = (ServerPrepareResult) args[1];
                 if (args[3] instanceof ParameterHolder[]) {
-                    sb.append(getQueryFromPrepareParameters(prepareResult, (ParameterHolder[]) args[3], prepareResult.getParamCount()));
+                    return getQueryFromPrepareParameters(prepareResult, (ParameterHolder[]) args[3], prepareResult.getParamCount());
                 } else {
-                    sb.append(getQueryFromPrepareParameters(prepareResult.getSql(), (List<ParameterHolder[]>) args[3],
-                            prepareResult.getParameters().length));
+                    return getQueryFromPrepareParameters(prepareResult.getSql(), (List<ParameterHolder[]>) args[3],
+                            prepareResult.getParameters().length);
                 }
-                break;
 
             default:
                 //no default
         }
+        return "-unknown-";
     }
 
     private String getQueryFromPrepareParameters(String sql, List<ParameterHolder[]> parameterList, int parameterLength) {
