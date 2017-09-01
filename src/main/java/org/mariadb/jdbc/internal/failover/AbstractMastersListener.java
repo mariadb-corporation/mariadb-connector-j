@@ -301,7 +301,7 @@ public abstract class AbstractMastersListener implements Listener {
                         if (!"ALTER SYSTEM CRASH".equals(query)
                                 && !query.startsWith("KILL")) {
                             logger.debug("relaunch query to new connection {}",
-                                    ((currentProtocol != null) ? "(conn=" + currentProtocol.getServerThreadId() + ")": ""));
+                                    ((currentProtocol != null) ? "(conn=" + currentProtocol.getServerThreadId() + ")" : ""));
                             handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                             handleErrorResult.mustThrowError = false;
                         }

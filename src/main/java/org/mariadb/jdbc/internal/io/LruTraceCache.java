@@ -54,7 +54,6 @@ package org.mariadb.jdbc.internal.io;
 
 import org.mariadb.jdbc.internal.util.Utils;
 
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
@@ -78,7 +77,6 @@ public class LruTraceCache extends LinkedHashMap<Instant, TraceObject> {
      * @return trace cache value
      */
     public String printStack() {
-        SimpleDateFormat dateFormat = new SimpleDateFormat();
         StringBuilder sb = new StringBuilder();
         Set<Map.Entry<Instant, TraceObject>> set = entrySet();
         for (Map.Entry<Instant, TraceObject> entry : set) {
