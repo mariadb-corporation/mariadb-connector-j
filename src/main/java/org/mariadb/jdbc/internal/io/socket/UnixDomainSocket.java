@@ -63,11 +63,13 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UnixDomainSocket extends Socket {
     private static final int AF_UNIX = 1;
     private static final int SOCK_STREAM = Platform.isSolaris() ? 2 : 1;
     private static final int PROTOCOL = 0;
+    private final AtomicBoolean closeLock = new AtomicBoolean();
 
     static {
         if (Platform.isSolaris()) {
@@ -81,14 +83,15 @@ public class UnixDomainSocket extends Socket {
 
     private InputStream is;
     private OutputStream os;
-    private SockAddr sockaddr;
-    private int fd;
+    private final SockAddr sockaddr;
+    private final int fd;
 
     public UnixDomainSocket(String path) throws IOException {
         if (Platform.isWindows() || Platform.isWindowsCE()) {
             throw new IOException("Unix domain sockets are not supported on Windows");
         }
         sockaddr = new SockAddr(path);
+        closeLock.set(false);
         try {
             fd = socket(AF_UNIX, SOCK_STREAM, PROTOCOL);
         } catch (LastErrorException lee) {
@@ -118,11 +121,12 @@ public class UnixDomainSocket extends Socket {
 
     @Override
     public void close() throws IOException {
-        try {
-            close(fd);
-            fd = -1;
-        } catch (LastErrorException lee) {
-            throw new IOException("native close() failed : " + formatError(lee));
+        if (!closeLock.getAndSet(true)) {
+            try {
+                close(fd);
+            } catch (LastErrorException lee) {
+                throw new IOException("native close() failed : " + formatError(lee));
+            }
         }
     }
 
@@ -185,8 +189,8 @@ public class UnixDomainSocket extends Socket {
     }
 
     public static class SockAddr extends Structure {
-        public final short sun_family;
-        public final byte[] sun_path;
+        public short sun_family;
+        public byte[] sun_path;
 
         /**
          * Contructor.
