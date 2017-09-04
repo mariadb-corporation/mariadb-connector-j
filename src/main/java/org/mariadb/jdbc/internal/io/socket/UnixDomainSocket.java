@@ -63,11 +63,13 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UnixDomainSocket extends Socket {
-    public static final int AF_UNIX = 1;
-    public static final int SOCK_STREAM = Platform.isSolaris() ? 2 : 1;
-    public static final int PROTOCOL = 0;
+    private static final int AF_UNIX = 1;
+    private static final int SOCK_STREAM = Platform.isSolaris() ? 2 : 1;
+    private static final int PROTOCOL = 0;
+    private final AtomicBoolean closeLock = new AtomicBoolean();
 
     static {
         if (Platform.isSolaris()) {
@@ -81,14 +83,15 @@ public class UnixDomainSocket extends Socket {
 
     private InputStream is;
     private OutputStream os;
-    private SockAddr sockaddr;
-    private int fd;
+    private final SockAddr sockaddr;
+    private final int fd;
 
     public UnixDomainSocket(String path) throws IOException {
         if (Platform.isWindows() || Platform.isWindowsCE()) {
             throw new IOException("Unix domain sockets are not supported on Windows");
         }
         sockaddr = new SockAddr(path);
+        closeLock.set(false);
         try {
             fd = socket(AF_UNIX, SOCK_STREAM, PROTOCOL);
         } catch (LastErrorException lee) {
@@ -108,7 +111,7 @@ public class UnixDomainSocket extends Socket {
 
     public static native String strerror(int errno);
 
-    static String formatError(LastErrorException lee) {
+    private static String formatError(LastErrorException lee) {
         try {
             return strerror(lee.getErrorCode());
         } catch (Throwable t) {
@@ -118,11 +121,12 @@ public class UnixDomainSocket extends Socket {
 
     @Override
     public void close() throws IOException {
-        try {
-            close(fd);
-            fd = -1;
-        } catch (LastErrorException lee) {
-            throw new IOException("native close() failed : " + formatError(lee));
+        if (!closeLock.getAndSet(true)) {
+            try {
+                close(fd);
+            } catch (LastErrorException lee) {
+                throw new IOException("native close() failed : " + formatError(lee));
+            }
         }
     }
 
@@ -202,7 +206,7 @@ public class UnixDomainSocket extends Socket {
         }
 
         protected java.util.List getFieldOrder() {
-            return Arrays.asList(new String[]{"sun_family", "sun_path"});
+            return Arrays.asList("sun_family", "sun_path");
         }
 
     }
@@ -214,18 +218,18 @@ public class UnixDomainSocket extends Socket {
             try {
                 if (off > 0) {
                     int bytes = 0;
-                    int size = (len < 10240) ? len : 10240;
-                    byte[] data = new byte[size];
+                    int remainingLength = len;
+                    int size;
+                    byte[] data = new byte[(len < 10240) ? len : 10240];
                     do {
-                        size = (len < 10240) ? len : 10240;
-                        size = recv(fd, data, size, 0);
+                        size = recv(fd, data, (remainingLength < 10240) ? remainingLength : 10240, 0);
                         if (size > 0) {
                             System.arraycopy(data, 0, bytesEntry, off, size);
                             bytes += size;
                             off += size;
-                            len -= size;
+                            remainingLength -= size;
                         }
-                    } while ((len > 0) && (size > 0));
+                    } while ((remainingLength > 0) && (size > 0));
                     return bytes;
                 } else {
                     return recv(fd, bytesEntry, len, 0);
@@ -255,20 +259,21 @@ public class UnixDomainSocket extends Socket {
 
         @Override
         public void write(byte[] bytesEntry, int off, int len) throws IOException {
-            int bytes = 0;
+            int bytes;
             try {
                 if (off > 0) {
-                    int size = (len < 10240) ? len : 10240;
-                    byte[] data = new byte[size];
+                    int size;
+                    int remainingLength = len;
+                    byte[] data = new byte[(len < 10240) ? len : 10240];
                     do {
-                        size = (len < 10240) ? len : 10240;
+                        size = (remainingLength < 10240) ? remainingLength : 10240;
                         System.arraycopy(bytesEntry, off, data, 0, size);
                         bytes = send(fd, data, size, 0);
                         if (bytes > 0) {
                             off += bytes;
-                            len -= bytes;
+                            remainingLength -= bytes;
                         }
-                    } while ((len > 0) && (bytes > 0));
+                    } while ((remainingLength > 0) && (bytes > 0));
                 } else {
                     bytes = send(fd, bytesEntry, len, 0);
                 }
