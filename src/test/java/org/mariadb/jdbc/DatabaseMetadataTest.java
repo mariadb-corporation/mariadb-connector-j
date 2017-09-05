@@ -191,7 +191,7 @@ public class DatabaseMetadataTest extends BaseTest {
                 + "RETURN CONCAT('Hello, ',s,'!')");
         ResultSet rs = sharedConnection.getMetaData().getFunctionColumns(null, null, "hello", null);
 
-        rs.next();
+        assertTrue(rs.next());
       /* First row is for return value */
         assertEquals(rs.getString("FUNCTION_CAT"), sharedConnection.getCatalog());
         assertEquals(rs.getString("FUNCTION_SCHEM"), null);
@@ -200,13 +200,13 @@ public class DatabaseMetadataTest extends BaseTest {
         assertEquals(rs.getInt("DATA_TYPE"), Types.CHAR);
         assertEquals(rs.getString("TYPE_NAME"), "char");
 
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getString("COLUMN_NAME"), "s"); /* input parameter 's' (CHAR) */
         assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionColumnIn);
         assertEquals(rs.getInt("DATA_TYPE"), Types.CHAR);
         assertEquals(rs.getString("TYPE_NAME"), "char");
 
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getString("COLUMN_NAME"), "i"); /* input parameter 'i' (INT) */
         assertEquals(rs.getInt("COLUMN_TYPE"), DatabaseMetaData.functionColumnIn);
         assertEquals(rs.getInt("DATA_TYPE"), Types.INTEGER);
@@ -256,9 +256,9 @@ public class DatabaseMetadataTest extends BaseTest {
              Get result sets using either method and compare (ignore minor differences INT vs SMALLINT
            */
         ResultSet rs1 = ((MariaDbDatabaseMetaData) sharedConnection.getMetaData())
-                .getImportedKeysUsingShowCreateTable("testj", null, "product_order");
+                .getImportedKeysUsingShowCreateTable("testj", "product_order");
         ResultSet rs2 = ((MariaDbDatabaseMetaData) sharedConnection.getMetaData())
-                .getImportedKeysUsingInformationSchema("testj", null, "product_order");
+                .getImportedKeysUsingInformationSchema("testj", "product_order");
         assertEquals(rs1.getMetaData().getColumnCount(), rs2.getMetaData().getColumnCount());
 
 
@@ -271,7 +271,7 @@ public class DatabaseMetadataTest extends BaseTest {
                     assertEquals(((Number) s1).intValue(), ((Number) s2).intValue());
                 } else {
                     if (s1 != null && s2 != null && !s1.equals(s2)) {
-                        assertTrue(false);
+                        fail();
                     }
                     assertEquals(s1, s2);
                 }
@@ -543,7 +543,7 @@ public class DatabaseMetadataTest extends BaseTest {
 
     }
 
-    void testResultSetColumns(ResultSet rs, String spec) throws SQLException {
+    private void testResultSetColumns(ResultSet rs, String spec) throws SQLException {
         ResultSetMetaData rsmd = rs.getMetaData();
         String[] tokens = spec.split(",");
 
@@ -589,7 +589,7 @@ public class DatabaseMetadataTest extends BaseTest {
                             columnType == Types.NULL);
                     break;
                 default:
-                    assertTrue("invalid type '" + type + "'", false);
+                    fail("invalid type '" + type + "'");
                     break;
             }
         }
@@ -920,7 +920,7 @@ public class DatabaseMetadataTest extends BaseTest {
             String columnName = rs.getString("column_name");
             int type = rs.getInt("data_type");
             String typeName = rs.getString("type_name");
-            assertTrue(typeName.indexOf("(") == -1);
+            assertFalse(typeName.contains("("));
             for (char c : typeName.toCharArray()) {
                 assertTrue("bad typename " + typeName, c == ' ' || Character.isUpperCase(c));
             }

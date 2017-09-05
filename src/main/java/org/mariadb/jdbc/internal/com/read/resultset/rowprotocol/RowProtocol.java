@@ -54,10 +54,10 @@ package org.mariadb.jdbc.internal.com.read.resultset.rowprotocol;
 
 public abstract class RowProtocol {
     protected static final int NULL_LENGTH = -1;
+    private final int maxFieldSize;
     public byte[] buf;
     public int pos;
     public int length;
-    public int maxFieldSize;
     protected int index;
 
     public RowProtocol(int maxFieldSize) {

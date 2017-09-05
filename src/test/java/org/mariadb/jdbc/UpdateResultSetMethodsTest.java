@@ -64,10 +64,6 @@ import java.sql.SQLFeatureNotSupportedException;
 public class UpdateResultSetMethodsTest extends BaseTest {
     private ResultSet rs;
 
-    public UpdateResultSetMethodsTest() throws SQLException {
-
-    }
-
     @Before
     public void before() throws SQLException {
         rs = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE).executeQuery("select 1");
@@ -305,7 +301,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateInt8() throws SQLException {
         try {
-            rs.updateInt(1, (int) 1);
+            rs.updateInt(1, 1);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -316,7 +312,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateInt9() throws SQLException {
         try {
-            rs.updateInt("a", (int) 1);
+            rs.updateInt("a", 1);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -393,7 +389,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateBigDecimal16() throws SQLException {
         try {
-            rs.updateBigDecimal(1, (java.math.BigDecimal) null);
+            rs.updateBigDecimal(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -404,7 +400,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateBigDecimal17() throws SQLException {
         try {
-            rs.updateBigDecimal("a", (java.math.BigDecimal) null);
+            rs.updateBigDecimal("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -415,7 +411,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateString18() throws SQLException {
         try {
-            rs.updateString(1, (String) null);
+            rs.updateString(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -426,7 +422,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateString19() throws SQLException {
         try {
-            rs.updateString("a", (String) null);
+            rs.updateString("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -459,7 +455,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateDate22() throws SQLException {
         try {
-            rs.updateDate(1, (java.sql.Date) null);
+            rs.updateDate(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -470,7 +466,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateDate23() throws SQLException {
         try {
-            rs.updateDate("a", (java.sql.Date) null);
+            rs.updateDate("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -481,7 +477,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateTime24() throws SQLException {
         try {
-            rs.updateTime(1, (java.sql.Time) null);
+            rs.updateTime(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -492,7 +488,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateTime25() throws SQLException {
         try {
-            rs.updateTime("a", (java.sql.Time) null);
+            rs.updateTime("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -503,7 +499,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateTimestamp26() throws SQLException {
         try {
-            rs.updateTimestamp(1, (java.sql.Timestamp) null);
+            rs.updateTimestamp(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -514,7 +510,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateTimestamp27() throws SQLException {
         try {
-            rs.updateTimestamp("a", (java.sql.Timestamp) null);
+            rs.updateTimestamp("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -525,7 +521,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateAsciiStream28() throws SQLException {
         try {
-            rs.updateAsciiStream(1, (java.io.InputStream) null);
+            rs.updateAsciiStream(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -536,7 +532,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateAsciiStream29() throws SQLException {
         try {
-            rs.updateAsciiStream("a", (java.io.InputStream) null);
+            rs.updateAsciiStream("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -547,7 +543,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateAsciiStream30() throws SQLException {
         try {
-            rs.updateAsciiStream(1, (java.io.InputStream) null);
+            rs.updateAsciiStream(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -558,7 +554,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateAsciiStream31() throws SQLException {
         try {
-            rs.updateAsciiStream("a", (java.io.InputStream) null);
+            rs.updateAsciiStream("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -569,7 +565,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateAsciiStream32() throws SQLException {
         try {
-            rs.updateAsciiStream(1, (java.io.InputStream) null);
+            rs.updateAsciiStream(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -580,7 +576,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateAsciiStream33() throws SQLException {
         try {
-            rs.updateAsciiStream("a", (java.io.InputStream) null);
+            rs.updateAsciiStream("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -591,7 +587,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateBinaryStream34() throws SQLException {
         try {
-            rs.updateBinaryStream(1, (java.io.InputStream) null);
+            rs.updateBinaryStream(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -602,7 +598,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateBinaryStream35() throws SQLException {
         try {
-            rs.updateBinaryStream("a", (java.io.InputStream) null);
+            rs.updateBinaryStream("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -613,7 +609,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateBinaryStream36() throws SQLException {
         try {
-            rs.updateBinaryStream(1, (java.io.InputStream) null);
+            rs.updateBinaryStream(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -624,7 +620,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateBinaryStream37() throws SQLException {
         try {
-            rs.updateBinaryStream("a", (java.io.InputStream) null);
+            rs.updateBinaryStream("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -635,7 +631,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateBinaryStream38() throws SQLException {
         try {
-            rs.updateBinaryStream(1, (java.io.InputStream) null);
+            rs.updateBinaryStream(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -646,7 +642,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateBinaryStream39() throws SQLException {
         try {
-            rs.updateBinaryStream("a", (java.io.InputStream) null);
+            rs.updateBinaryStream("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -657,7 +653,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateCharacterStream40() throws SQLException {
         try {
-            rs.updateCharacterStream(1, (java.io.Reader) null);
+            rs.updateCharacterStream(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -668,7 +664,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateCharacterStream41() throws SQLException {
         try {
-            rs.updateCharacterStream("a", (java.io.Reader) null);
+            rs.updateCharacterStream("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -679,7 +675,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateCharacterStream42() throws SQLException {
         try {
-            rs.updateCharacterStream(1, (java.io.Reader) null);
+            rs.updateCharacterStream(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -690,7 +686,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateCharacterStream43() throws SQLException {
         try {
-            rs.updateCharacterStream("a", (java.io.Reader) null);
+            rs.updateCharacterStream("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -701,7 +697,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateCharacterStream44() throws SQLException {
         try {
-            rs.updateCharacterStream(1, (java.io.Reader) null);
+            rs.updateCharacterStream(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -712,7 +708,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateCharacterStream45() throws SQLException {
         try {
-            rs.updateCharacterStream("a", (java.io.Reader) null);
+            rs.updateCharacterStream("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -723,7 +719,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateObject46() throws SQLException {
         try {
-            rs.updateObject(1, (Object) null);
+            rs.updateObject(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -734,7 +730,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateObject47() throws SQLException {
         try {
-            rs.updateObject(1, (Object) null);
+            rs.updateObject(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -745,7 +741,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateObject48() throws SQLException {
         try {
-            rs.updateObject("a", (Object) null);
+            rs.updateObject("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -756,7 +752,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateObject49() throws SQLException {
         try {
-            rs.updateObject("a", (Object) null);
+            rs.updateObject("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -899,7 +895,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateNString68() throws SQLException {
         try {
-            rs.updateNString(1, (String) null);
+            rs.updateNString(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -910,7 +906,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateNString69() throws SQLException {
         try {
-            rs.updateNString("a", (String) null);
+            rs.updateNString("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -987,7 +983,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateNCharacterStream78() throws SQLException {
         try {
-            rs.updateNCharacterStream(1, (java.io.Reader) null);
+            rs.updateNCharacterStream(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -998,7 +994,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateNCharacterStream79() throws SQLException {
         try {
-            rs.updateNCharacterStream("a", (java.io.Reader) null);
+            rs.updateNCharacterStream("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -1009,7 +1005,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateNCharacterStream80() throws SQLException {
         try {
-            rs.updateNCharacterStream(1, (java.io.Reader) null);
+            rs.updateNCharacterStream(1, null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {
@@ -1020,7 +1016,7 @@ public class UpdateResultSetMethodsTest extends BaseTest {
     @Test
     public void testupdateNCharacterStream81() throws SQLException {
         try {
-            rs.updateNCharacterStream("a", (java.io.Reader) null);
+            rs.updateNCharacterStream("a", null);
         } catch (SQLFeatureNotSupportedException sqle) {
             Assert.fail();
         } catch (SQLException sqlee) {

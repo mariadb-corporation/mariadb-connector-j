@@ -64,7 +64,7 @@ public class ComStmtExecute implements InterfaceSendPacket {
     private final ParameterHolder[] parameters;
     private final int statementId;
     private final byte cursorFlag;
-    private ColumnType[] parameterTypeHeader;
+    private final ColumnType[] parameterTypeHeader;
 
     /**
      * Initialize parameters.
@@ -128,7 +128,7 @@ public class ComStmtExecute implements InterfaceSendPacket {
 
             //check if parameters type (using setXXX) have change since previous request, and resend new header type if so
             boolean mustSendHeaderType = false;
-            if (parameterCount == 0 || parameterTypeHeader[0] == null) {
+            if (parameterTypeHeader[0] == null) {
                 mustSendHeaderType = true;
             } else {
                 for (int i = 0; i < parameterCount; i++) {

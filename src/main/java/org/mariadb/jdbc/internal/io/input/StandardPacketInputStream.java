@@ -64,6 +64,7 @@ import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.Arrays;
 
 import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
@@ -72,14 +73,14 @@ public class StandardPacketInputStream implements PacketInputStream {
 
     private static final int REUSABLE_BUFFER_LENGTH = 1024;
     private static final int MAX_PACKET_SIZE = 0xffffff;
-    private static Logger logger = LoggerFactory.getLogger(StandardPacketInputStream.class);
-    private byte[] header = new byte[4];
-    private byte[] reusableArray = new byte[REUSABLE_BUFFER_LENGTH];
+    private static final Logger logger = LoggerFactory.getLogger(StandardPacketInputStream.class);
+    private final byte[] header = new byte[4];
+    private final byte[] reusableArray = new byte[REUSABLE_BUFFER_LENGTH];
 
-    private BufferedInputStream inputStream;
+    private final BufferedInputStream inputStream;
 
     private int packetSeq;
-    private int maxQuerySizeToLog;
+    private final int maxQuerySizeToLog;
     private int lastPacketLength;
     private String serverThreadLog = "";
 
@@ -111,7 +112,7 @@ public class StandardPacketInputStream implements PacketInputStream {
 
             byte[] buf = new byte[length + 3];
             buf[0] = (byte) 0xfc;
-            buf[1] = (byte) (length >>> 0);
+            buf[1] = (byte) length;
             buf[2] = (byte) (length >>> 8);
             System.arraycopy(value, 0, buf, 3, length);
             return buf;
@@ -120,7 +121,7 @@ public class StandardPacketInputStream implements PacketInputStream {
 
             byte[] buf = new byte[length + 4];
             buf[0] = (byte) 0xfd;
-            buf[1] = (byte) (length >>> 0);
+            buf[1] = (byte) length;
             buf[2] = (byte) (length >>> 8);
             buf[3] = (byte) (length >>> 16);
             System.arraycopy(value, 0, buf, 4, length);
@@ -130,14 +131,11 @@ public class StandardPacketInputStream implements PacketInputStream {
 
             byte[] buf = new byte[length + 9];
             buf[0] = (byte) 0xfe;
-            buf[1] = (byte) (length >>> 0);
+            buf[1] = (byte) length;
             buf[2] = (byte) (length >>> 8);
             buf[3] = (byte) (length >>> 16);
             buf[4] = (byte) (length >>> 24);
-            buf[5] = (byte) (length >>> 32);
-            buf[6] = (byte) (length >>> 40);
-            buf[7] = (byte) (length >>> 48);
-            buf[8] = (byte) (length >>> 54);
+            //byte[] cannot have a more than 4 byte length size, so buf[5] -> buf[8] = 0x00;
             System.arraycopy(value, 0, buf, 9, length);
             return buf;
         }
@@ -147,18 +145,18 @@ public class StandardPacketInputStream implements PacketInputStream {
     /**
      * Create Buffer with Text protocol values.
      *
-     * @param rowData     datas
+     * @param rowDatas    datas
      * @param columnTypes column types
      * @return Buffer
      */
-    public static byte[] create(byte[][] rowData, ColumnType[] columnTypes) {
+    public static byte[] create(byte[][] rowDatas, ColumnType[] columnTypes) {
 
         int totalLength = 0;
-        for (int i = 0; i < rowData.length; i++) {
-            if (rowData[i] == null) {
+        for (byte[] rowData : rowDatas) {
+            if (rowData == null) {
                 totalLength++;
             } else {
-                int length = rowData[i].length;
+                int length = rowData.length;
                 if (length < 251) {
                     totalLength += length + 1;
                 } else if (length < 65536) {
@@ -173,34 +171,30 @@ public class StandardPacketInputStream implements PacketInputStream {
         byte[] buf = new byte[totalLength];
 
         int pos = 0;
-        for (int i = 0; i < rowData.length; i++) {
-            if (rowData[i] == null) {
+        for (byte[] arr : rowDatas) {
+            if (arr == null) {
                 buf[pos++] = (byte) 251;
             } else {
-                byte[] arr = rowData[i];
                 int length = arr.length;
-
                 if (length < 251) {
                     buf[pos++] = (byte) length;
                 } else if (length < 65536) {
                     buf[pos++] = (byte) 0xfc;
-                    buf[pos++] = (byte) (length >>> 0);
+                    buf[pos++] = (byte) length;
                     buf[pos++] = (byte) (length >>> 8);
                 } else if (length < 16777216) {
                     buf[pos++] = (byte) 0xfd;
-                    buf[pos++] = (byte) (length >>> 0);
+                    buf[pos++] = (byte) length;
                     buf[pos++] = (byte) (length >>> 8);
                     buf[pos++] = (byte) (length >>> 16);
                 } else {
                     buf[pos++] = (byte) 0xfe;
-                    buf[pos++] = (byte) (length >>> 0);
+                    buf[pos++] = (byte) length;
                     buf[pos++] = (byte) (length >>> 8);
                     buf[pos++] = (byte) (length >>> 16);
                     buf[pos++] = (byte) (length >>> 24);
-                    buf[pos++] = (byte) (length >>> 32);
-                    buf[pos++] = (byte) (length >>> 40);
-                    buf[pos++] = (byte) (length >>> 48);
-                    buf[pos++] = (byte) (length >>> 54);
+                    //byte[] cannot have more than 4 byte length size, so buf[pos+5] -> buf[pos+8] = 0x00;
+                    pos += 4;
                 }
                 System.arraycopy(arr, 0, buf, pos, length);
                 pos += length;
@@ -273,14 +267,14 @@ public class StandardPacketInputStream implements PacketInputStream {
         } while (remaining > 0);
 
         if (traceCache != null) {
-            traceCache.put(System.currentTimeMillis(), new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
+            traceCache.put(Instant.now(), new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
                     Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
         }
 
         if (logger.isTraceEnabled()) {
-            logger.trace("read:"
-                    + serverThreadLog
-                    + Utils.hexdump(maxQuerySizeToLog - 4, 0, lastPacketLength, header, rawBytes));
+            logger.trace("read: {}{}",
+                    serverThreadLog,
+                    Utils.hexdump(maxQuerySizeToLog - 4, 0, lastPacketLength, header, rawBytes));
         }
 
         //***************************************************
@@ -323,14 +317,14 @@ public class StandardPacketInputStream implements PacketInputStream {
                 } while (remaining > 0);
 
                 if (traceCache != null) {
-                    traceCache.put(System.currentTimeMillis(), new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
+                    traceCache.put(Instant.now(), new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
                             Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
                 }
 
                 if (logger.isTraceEnabled()) {
-                    logger.trace("read:"
-                            + serverThreadLog
-                            + Utils.hexdump(maxQuerySizeToLog - 4, currentBufferLength, packetLength, header, rawBytes));
+                    logger.trace("read: {}{}",
+                            serverThreadLog,
+                            Utils.hexdump(maxQuerySizeToLog - 4, currentBufferLength, packetLength, header, rawBytes));
                 }
 
                 lastPacketLength += packetLength;
@@ -362,7 +356,7 @@ public class StandardPacketInputStream implements PacketInputStream {
      * @param isMaster       is server master
      */
     public void setServerThreadId(long serverThreadId, Boolean isMaster) {
-        this.serverThreadLog = " conn:" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
+        this.serverThreadLog = "conn=" + serverThreadId + ((isMaster != null) ? "(" + (isMaster ? "M" : "S") + ")" : "");
     }
 
 

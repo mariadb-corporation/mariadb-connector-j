@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -60,6 +59,7 @@ import org.junit.Test;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import static org.junit.Assert.*;
 
@@ -135,8 +135,10 @@ public class DataSourceTest extends BaseTest {
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
         try (Connection connection = ds.getConnection(username, password)) {
             ds.setServerName(connectToIP);
+
             try (Connection connection2 = ds.getConnection(username, password)) {
-                //do nothing
+                Statement stmt = connection2.createStatement();
+                assertTrue(stmt.execute("Select 1"));
             }
         }
     }
@@ -161,7 +163,7 @@ public class DataSourceTest extends BaseTest {
         //must throw SQLException
         try {
             ds.getConnection(username, password);
-            Assert.fail();
+            fail();
         } catch (SQLException e) {
             //normal error
         }

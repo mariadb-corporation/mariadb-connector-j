@@ -73,7 +73,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class MastersFailoverListener extends AbstractMastersListener {
-    private static Logger logger = LoggerFactory.getLogger(MastersFailoverListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(MastersFailoverListener.class);
     private final HaMode mode;
 
     /**
@@ -116,7 +116,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
 
     @Override
-    public void preClose() throws SQLException {
+    public void preClose() {
         if (explicitClosed.compareAndSet(false, true)) {
             proxy.lock.lock();
             try {
@@ -159,9 +159,10 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
             if (killCmd) return new HandleErrorResult(true, false);
 
-            if (alreadyClosed || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args))) {
-                logger.info("Connection to master lost, new master " + currentProtocol.getHostAddress() + " found"
-                        + ", query type permit to be re-execute on new server without throwing exception");
+            if (alreadyClosed || !inTransaction && isQueryRelaunchable(method, args)) {
+                logger.info("Connection to master lost, new master {} found"
+                        + ", query type permit to be re-execute on new server without throwing exception",
+                        currentProtocol.getHostAddress());
                 return relaunchOperation(method, args);
             }
             return new HandleErrorResult(true);

@@ -114,6 +114,7 @@ public interface Protocol {
 
     boolean getReadonly();
 
+    @SuppressWarnings("RedundantThrows")
     void setReadonly(boolean readOnly) throws SQLException;
 
     boolean isMasterConnection();
@@ -166,9 +167,9 @@ public interface Protocol {
 
     void getResult(Results results) throws SQLException;
 
-    void cancelCurrentQuery() throws SQLException, IOException;
+    void cancelCurrentQuery() throws SQLException;
 
-    void skip() throws SQLException, SQLException;
+    void skip() throws SQLException;
 
     boolean checkIfMaster() throws SQLException;
 
@@ -244,7 +245,7 @@ public interface Protocol {
 
     void skipEofPacket() throws SQLException, IOException;
 
-    void changeSocketTcpNoDelay(boolean setTcpNoDelay) throws SocketException;
+    void changeSocketTcpNoDelay(boolean setTcpNoDelay);
 
     void changeSocketSoTimeout(int setSoTimeout) throws SocketException;
 
@@ -265,7 +266,7 @@ public interface Protocol {
 
     boolean isEofDeprecated();
 
-    int getAutoIncrementIncrement();
+    int getAutoIncrementIncrement() throws SQLException;
 
     boolean sessionStateAware();
 

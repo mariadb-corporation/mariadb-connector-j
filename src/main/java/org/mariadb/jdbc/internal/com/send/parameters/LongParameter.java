@@ -59,7 +59,7 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import java.io.IOException;
 
 public class LongParameter implements Cloneable, ParameterHolder {
-    private long value;
+    private final long value;
 
     public LongParameter(long value) {
         this.value = value;

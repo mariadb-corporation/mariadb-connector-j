@@ -63,9 +63,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class MariaDbPooledConnection implements PooledConnection {
 
-    MariaDbConnection connection;
-    List<ConnectionEventListener> connectionEventListeners;
-    List<StatementEventListener> statementEventListeners;
+    protected final MariaDbConnection connection;
+    private final List<ConnectionEventListener> connectionEventListeners;
+    private final List<StatementEventListener> statementEventListeners;
 
     /**
      * Constructor.
@@ -228,5 +228,13 @@ public class MariaDbPooledConnection implements PooledConnection {
         for (ConnectionEventListener listener : connectionEventListeners) {
             listener.connectionErrorOccurred(event);
         }
+    }
+
+    /**
+     * Indicate if there are any registered listener.
+     * @return true if no listener.
+     */
+    public boolean noStmtEventListeners() {
+        return statementEventListeners.isEmpty();
     }
 }

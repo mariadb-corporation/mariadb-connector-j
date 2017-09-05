@@ -52,7 +52,10 @@
 
 package org.mariadb.jdbc.failover;
 
-import org.junit.*;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.sql.Connection;
@@ -77,7 +80,7 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
      * @throws SQLException exception
      */
     @BeforeClass()
-    public static void beforeClass2() throws SQLException {
+    public static void beforeClass2() {
         proxyUrl = proxyGaleraUrl;
         Assume.assumeTrue(initialGaleraUrl != null);
     }
@@ -88,7 +91,7 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
      * @throws SQLException exception
      */
     @Before
-    public void init() throws SQLException {
+    public void init() {
         defaultUrl = initialGaleraUrl;
         currentType = HaMode.FAILOVER;
     }
@@ -111,10 +114,10 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
             }
         }
 
-        Assert.assertTrue(connectionMap.size() >= 2);
+        assertTrue(connectionMap.size() >= 2);
         for (String key : connectionMap.keySet()) {
             Integer connectionCount = connectionMap.get(key).get();
-            Assert.assertTrue(connectionCount > 1);
+            assertTrue(connectionCount > 1);
         }
     }
 

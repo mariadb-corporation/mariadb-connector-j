@@ -80,7 +80,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class MastersSlavesListener extends AbstractMastersSlavesListener {
     private static final DynamicSizedSchedulerInterface dynamicSizedScheduler;
     private static final AtomicInteger listenerCount = new AtomicInteger();
-    private static Logger logger = LoggerFactory.getLogger(MastersSlavesListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(MastersSlavesListener.class);
 
     static {
         dynamicSizedScheduler = SchedulerServiceProviderHolder.getScheduler(1, "failover", 8);
@@ -182,10 +182,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
     /**
      * Called after a call on Connection.close(). Will explicitly closed all connections.
-     *
-     * @throws SQLException if error append during closing those connections.
      */
-    public void preClose() throws SQLException {
+    public void preClose() {
         if (explicitClosed.compareAndSet(false, true)) {
             proxy.lock.lock();
             try {
@@ -585,14 +583,14 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
             if (killCmd) return new HandleErrorResult(true, false);
 
-            if (currentReadOnlyAsked //use master connection temporary in replacement of slave
-                    || alreadyClosed //connection was already close
-                    || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args))) { //connection was not in transaction
+            if (currentReadOnlyAsked || alreadyClosed || !inTransaction && isQueryRelaunchable(method, args)) {
+                //connection was not in transaction
 
                 //can relaunch query
-                logger.info("Connection to master lost, new master " + currentProtocol.getHostAddress() + ", conn:"
-                        + currentProtocol.getServerThreadId() + " found"
-                        + ", query type permit to be re-execute on new server without throwing exception");
+                logger.info("Connection to master lost, new master {}, conn={} found"
+                        + ", query type permit to be re-execute on new server without throwing exception",
+                        currentProtocol.getHostAddress(),
+                        currentProtocol.getServerThreadId());
                 return relaunchOperation(method, args);
             }
             //throw Exception because must inform client, even if connection is reconnected
@@ -720,9 +718,10 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
             if (killCmd) return new HandleErrorResult(true, false);
 
-            logger.info("Connection to slave lost, new slave " + currentProtocol.getHostAddress() + ", conn:"
-                    + currentProtocol.getServerThreadId() + " found"
-                    + ", query is re-execute on new server without throwing exception");
+            logger.info("Connection to slave lost, new slave {}, conn={} found"
+                    + ", query is re-execute on new server without throwing exception",
+                    currentProtocol.getHostAddress(),
+                    currentProtocol.getServerThreadId());
             return relaunchOperation(method, args); //now that we are reconnect, relaunched result if the result was not crashing the node
         } catch (Exception ee) {
             //we will throw a Connection exception that will close connection

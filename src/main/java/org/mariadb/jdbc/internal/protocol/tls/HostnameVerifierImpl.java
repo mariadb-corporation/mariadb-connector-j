@@ -20,7 +20,7 @@ import java.util.*;
 
 public class HostnameVerifierImpl implements HostnameVerifier {
 
-    private static Logger logger = LoggerFactory.getLogger(HostnameVerifierImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(HostnameVerifierImpl.class);
 
     /**
      * DNS verification :
@@ -47,7 +47,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                 if (!matchWildCards(hostIsIp, hostnameSt.nextToken(), templateSt.nextToken())) return false;
             }
         } catch (SSLException exception) {
-            throw new SSLException("host \"" + hostname + "\" doesn't correspond to certificate CN \"" + tlsDnsPattern
+            throw new SSLException(normalizedHostMsg(hostname) + " doesn't correspond to certificate CN \"" + tlsDnsPattern
                     + "\" : wildcards not possible for IPs");
         }
         return true;
@@ -55,6 +55,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
 
     private static boolean matchWildCards(boolean hostIsIp, String hostnameToken, String tlsDnsToken) throws SSLException {
         int wildcardIndex = tlsDnsToken.indexOf("*");
+        String token = hostnameToken;
         if (wildcardIndex != -1) {
             if (hostIsIp) throw new SSLException("WildCards not possible when using IP's");
             boolean first = true;
@@ -65,23 +66,23 @@ public class HostnameVerifierImpl implements HostnameVerifier {
                 beforeWildcard = afterWildcard.substring(0, wildcardIndex);
                 afterWildcard = afterWildcard.substring(wildcardIndex + 1);
 
-                int beforeStartIdx = hostnameToken.indexOf(beforeWildcard);
+                int beforeStartIdx = token.indexOf(beforeWildcard);
                 if ((beforeStartIdx == -1) || (first && beforeStartIdx != 0)) return false;
 
                 first = false;
 
-                hostnameToken = hostnameToken.substring(beforeStartIdx + beforeWildcard.length());
+                token = token.substring(beforeStartIdx + beforeWildcard.length());
                 wildcardIndex = afterWildcard.indexOf("*");
             }
-            return hostnameToken.endsWith(afterWildcard);
+            return token.endsWith(afterWildcard);
         }
 
         //no wildcard -> token must be equal.
-        return hostnameToken.equals(tlsDnsToken);
+        return token.equals(tlsDnsToken);
 
     }
 
-    static String extractCommonName(String principal) throws SSLException {
+    private static String extractCommonName(String principal) throws SSLException {
         if (principal == null) return null;
         try {
             LdapName ldapName = new LdapName(principal);
@@ -100,7 +101,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
 
     private static String normaliseAddress(String hostname) {
         try {
-            if (hostname == null) return hostname;
+            if (hostname == null) return null;
             InetAddress inetAddress = InetAddress.getByName(hostname);
             return inetAddress.getHostAddress();
         } catch (UnknownHostException unexpected) {
@@ -138,10 +139,23 @@ public class HostnameVerifierImpl implements HostnameVerifier {
 
     @Override
     public boolean verify(String host, SSLSession session) {
+        return verify(host, session, -1);
+    }
+
+    /**
+     * Verification, like HostnameVerifier.verify() with an additional server thread id
+     * to identify connection in logs.
+     *
+     * @param host              host to connect (DNS/IP)
+     * @param session           SSL session
+     * @param serverThreadId    connection id to identify connection in logs
+     * @return true if valid
+     */
+    public boolean verify(String host, SSLSession session, long serverThreadId) {
         try {
             Certificate[] certs = session.getPeerCertificates();
             X509Certificate cert = (X509Certificate) certs[0];
-            verify(host, cert);
+            verify(host, cert, serverThreadId);
             return true;
         } catch (SSLException ex) {
             if (logger.isDebugEnabled()) logger.debug(ex.getMessage(), ex);
@@ -152,77 +166,121 @@ public class HostnameVerifierImpl implements HostnameVerifier {
     /**
      * Verification that throw an exception with a detailed error message in case of error.
      *
-     * @param host hostname
-     * @param cert certificate
+     * @param host              hostname
+     * @param cert              certificate
+     * @param serverThreadId    server thread Identifier to identify connection in logs
      * @throws SSLException exception
      */
-    public void verify(String host, X509Certificate cert) throws SSLException {
+    public void verify(String host, X509Certificate cert, long serverThreadId) throws SSLException {
+        String lowerCaseHost = host.toLowerCase(Locale.ROOT);
+
+        if (lowerCaseHost == null) return; //no validation if no host (possible for name pipe)
+
         try {
+            //***********************************************************
+            // RFC 6125 : check Subject Alternative Name (SAN)
+            //***********************************************************
             SubjectAltNames subjectAltNames = getSubjectAltNames(cert);
             if (!subjectAltNames.isEmpty()) {
 
                 //***********************************************************
-                // Host is IPv4 : Check corresponding entries in alternative subject names
+                // Host is IPv4 : Check corresponding entries in subject alternative names
                 //***********************************************************
-                if (Utils.isIPv4(host)) {
+                if (Utils.isIPv4(lowerCaseHost)) {
                     for (GeneralName entry : subjectAltNames.getGeneralNames()) {
-                        if (entry.extension == Extension.IP) { //IP
-                            if (host.equals(entry.value)) return;
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("Conn={}. IPv4 verification of hostname : type={} value={} to {}",
+                                    serverThreadId,
+                                    entry.extension,
+                                    entry.value,
+                                    lowerCaseHost);
+                        }
+
+                        if (entry.extension == Extension.IP && lowerCaseHost.equals(entry.value)) return;
+                    }
+                } else if (Utils.isIPv6(lowerCaseHost)) {
+                    //***********************************************************
+                    // Host is IPv6 : Check corresponding entries in subject alternative names
+                    //***********************************************************
+                    String normalisedHost = normaliseAddress(lowerCaseHost);
+                    for (GeneralName entry : subjectAltNames.getGeneralNames()) {
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("Conn={}. IPv6 verification of hostname : type={} value={} to {}",
+                                    serverThreadId,
+                                    entry.extension,
+                                    entry.value,
+                                    lowerCaseHost);
+                        }
+
+                        if (entry.extension == Extension.IP
+                                && !Utils.isIPv4(entry.value)
+                                && normalisedHost.equals(normaliseAddress(entry.value))) {
+                            return;
                         }
                     }
-                    throw new SSLException("No IPv4 corresponding to host \"" + host + "\" in certificate alt-names " + subjectAltNames.toString());
-                }
-
-                //***********************************************************
-                // Host is IPv6 : Check corresponding entries in alternative subject names
-                //***********************************************************
-                if (Utils.isIPv6(host)) {
-                    String normalisedHost = normaliseAddress(host);
+                } else {
+                    //***********************************************************
+                    // Host is not IP = DNS : Check corresponding entries in alternative subject names
+                    //***********************************************************
                     for (GeneralName entry : subjectAltNames.getGeneralNames()) {
-                        if (entry.extension == Extension.IP) { //IP
-                            if (!Utils.isIPv4(entry.value)) {
-                                String normalizedSubjectAlt = normaliseAddress(entry.value);
-                                if (normalisedHost.equals(normalizedSubjectAlt)) {
-                                    return;
-                                }
-                            }
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("Conn={}. DNS verification of hostname : type={} value={} to {}",
+                                    serverThreadId,
+                                    entry.extension,
+                                    entry.value,
+                                    lowerCaseHost);
                         }
-                    }
-                    throw new SSLException("No IPv6 corresponding to host \"" + host + "\" in certificate alt-names " + subjectAltNames.toString());
-                }
 
-                //***********************************************************
-                // Host is not IP = DNS : Check corresponding entries in alternative subject names
-                //***********************************************************
-                String normalizedHost = host.toLowerCase(Locale.ROOT);
-                for (GeneralName entry : subjectAltNames.getGeneralNames()) {
-                    if (entry.extension == Extension.DNS) { //IP
-                        String normalizedSubjectAlt = entry.value.toLowerCase(Locale.ROOT);
-                        if (matchDns(normalizedHost, normalizedSubjectAlt)) {
+                        if (entry.extension == Extension.DNS
+                                && matchDns(lowerCaseHost, entry.value.toLowerCase(Locale.ROOT))) {
                             return;
                         }
                     }
                 }
-                throw new SSLException("DNS host \"" + host + "\" not found in certificate alt-names " + subjectAltNames.toString());
             }
+
+            //***********************************************************
+            // RFC 2818 : legacy fallback using CN (recommendation is using alt-names)
+            //***********************************************************
+            X500Principal subjectPrincipal = cert.getSubjectX500Principal();
+            String cn = extractCommonName(subjectPrincipal.getName(X500Principal.RFC2253));
+
+            if (cn == null) {
+                if (subjectAltNames.isEmpty()) {
+                    throw new SSLException("CN not found in certificate principal \"{}" + subjectPrincipal
+                            + "\" and certificate doesn't contain SAN");
+                } else {
+                    throw new SSLException("CN not found in certificate principal \"" + subjectPrincipal
+                            + "\" and " + normalizedHostMsg(lowerCaseHost) + " doesn't correspond to " + subjectAltNames.toString());
+                }
+            }
+
+            String normalizedCn = cn.toLowerCase(Locale.ROOT);
+            if (logger.isTraceEnabled()) {
+                logger.trace("Conn={}. DNS verification of hostname : CN={} to {}", serverThreadId, normalizedCn, lowerCaseHost);
+            }
+            if (!matchDns(lowerCaseHost, normalizedCn)) {
+                String errorMsg = normalizedHostMsg(lowerCaseHost) + " doesn't correspond to certificate CN \"" + normalizedCn + "\"";
+                if (!subjectAltNames.isEmpty()) errorMsg += " and " + subjectAltNames.toString();
+                throw new SSLException(errorMsg);
+            }
+
         } catch (CertificateParsingException cpe) {
-            // ignore error
+            throw new SSLException("certificate parsing error : " + cpe.getMessage());
         }
+    }
 
-        //***********************************************************
-        // no alternative subject names, check using CN
-        //***********************************************************
-        X500Principal subjectPrincipal = cert.getSubjectX500Principal();
-        String cn = extractCommonName(subjectPrincipal.getName(X500Principal.RFC2253));
-        if (cn == null) {
-            throw new SSLException("CN not found in certificate principal \"" + subjectPrincipal + "\"");
+    private static String normalizedHostMsg(String normalizedHost) {
+        StringBuilder msg = new StringBuilder();
+        if (Utils.isIPv4(normalizedHost)) {
+            msg.append("IPv4 host \"");
+        } else if (Utils.isIPv6(normalizedHost)) {
+            msg.append("IPv6 host \"");
+        } else {
+            msg.append("DNS host \"");
         }
-        String normalizedHost = host.toLowerCase(Locale.ROOT);
-        String normalizedCn = cn.toLowerCase(Locale.ROOT);
-        if (!matchDns(normalizedHost, normalizedCn)) {
-            throw new SSLException("host \"" + normalizedHost + "\" doesn't correspond to certificate CN \"" + normalizedCn + "\"");
-        }
-
+        msg.append(normalizedHost).append("\"");
+        return msg.toString();
     }
 
     private enum Extension {
@@ -230,8 +288,8 @@ public class HostnameVerifierImpl implements HostnameVerifier {
     }
 
     private class GeneralName {
-        String value;
-        Extension extension;
+        private final String value;
+        private final Extension extension;
 
         public GeneralName(String value, Extension extension) {
             this.value = value;
@@ -240,16 +298,18 @@ public class HostnameVerifierImpl implements HostnameVerifier {
 
         @Override
         public String toString() {
-            return "{\"" + value + "\"|" + extension + "}";
+            return "{" + extension + ":\"" + value + "\"}";
         }
     }
 
     private class SubjectAltNames {
-        List<GeneralName> generalNames = new ArrayList<>();
+        private final List<GeneralName> generalNames = new ArrayList<>();
 
         @Override
         public String toString() {
-            StringBuilder sb = new StringBuilder("certificate SubjectAltNames[");
+            if (isEmpty()) return "SAN[-empty-]";
+
+            StringBuilder sb = new StringBuilder("SAN[");
             boolean first = true;
 
             for (GeneralName generalName : generalNames) {

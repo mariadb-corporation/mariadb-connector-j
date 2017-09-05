@@ -53,7 +53,10 @@
 package org.mariadb.jdbc;
 
 
-import org.junit.*;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 import java.sql.*;
 
@@ -89,7 +92,7 @@ public class CallStatementTest extends BaseTest {
     public void stmtSimple() throws SQLException {
         createProcedure("stmtSimple", "(IN p1 INT, IN p2 INT) begin SELECT p1 + p2; end\n");
         ResultSet rs = sharedConnection.createStatement().executeQuery("{call stmtSimple(2,2)}");
-        rs.next();
+        assertTrue(rs.next());
         int result = rs.getInt(1);
         assertEquals(result, 4);
     }
@@ -101,7 +104,7 @@ public class CallStatementTest extends BaseTest {
         preparedStatement.setInt(1, 2);
         preparedStatement.setInt(2, 2);
         ResultSet rs = preparedStatement.executeQuery();
-        rs.next();
+        assertTrue(rs.next());
         int result = rs.getInt(1);
         assertEquals(result, 4);
     }
@@ -141,7 +144,7 @@ public class CallStatementTest extends BaseTest {
         PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call prepareStmtWithOutParameter(?,?)}");
         preparedStatement.setInt(1, 2);
         preparedStatement.setInt(2, 3);
-        preparedStatement.execute();
+        assertTrue(preparedStatement.execute());
     }
 
     @Test
@@ -256,24 +259,19 @@ public class CallStatementTest extends BaseTest {
     public void testMetaCatalog() throws Exception {
         createProcedure("testMetaCatalog", "(x int, out y int)\nBEGIN\nSELECT 1;end\n");
         ResultSet rs = sharedConnection.getMetaData().getProcedures(sharedConnection.getCatalog(), null, "testMetaCatalog");
-        if (rs.next()) {
-            assertTrue("testMetaCatalog".equals(rs.getString(3)));
-            assertFalse(rs.next());
-        } else {
-            fail();
-        }
+        assertTrue(rs.next());
+        assertTrue("testMetaCatalog".equals(rs.getString(3)));
+        assertFalse(rs.next());
+
         //test with bad catalog
         rs = sharedConnection.getMetaData().getProcedures("yahoooo", null, "testMetaCatalog");
         assertFalse(rs.next());
 
         //test without catalog
         rs = sharedConnection.getMetaData().getProcedures(null, null, "testMetaCatalog");
-        if (rs.next()) {
-            assertTrue("testMetaCatalog".equals(rs.getString(3)));
-            assertFalse(rs.next());
-        } else {
-            fail();
-        }
+        assertTrue(rs.next());
+        assertTrue("testMetaCatalog".equals(rs.getString(3)));
+        assertFalse(rs.next());
     }
 
     @Test
@@ -285,8 +283,8 @@ public class CallStatementTest extends BaseTest {
 
         PreparedStatement preparedStatement = sharedConnection.prepareStatement("{call prepareWithNoParameters()}");
         ResultSet rs = preparedStatement.executeQuery();
-        rs.next();
-        Assert.assertEquals("mike", rs.getString(1));
+        assertTrue(rs.next());
+        assertEquals("mike", rs.getString(1));
     }
 
     @Test
@@ -299,7 +297,7 @@ public class CallStatementTest extends BaseTest {
                 while (resultSet.next()) {
                     rowCount++;
                 }
-                Assert.assertEquals(1, rowCount);
+                assertEquals(1, rowCount);
             }
             statement.execute("SELECT 1");
         }

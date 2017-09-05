@@ -59,9 +59,9 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class StreamParameter implements Cloneable, ParameterHolder {
-    private InputStream is;
-    private long length;
-    private boolean noBackslashEscapes;
+    private final InputStream is;
+    private final long length;
+    private final boolean noBackslashEscapes;
 
     /**
      * Constructor.

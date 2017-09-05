@@ -127,16 +127,20 @@ public class BinaryRowProtocol extends RowProtocol {
                             default:
                                 int type = this.buf[internalPos++] & 0xff;
                                 switch (type) {
+
                                     case 251:
                                         break;
+
                                     case 252:
                                         internalPos += 2 + (0xffff & (((buf[internalPos] & 0xff) + ((buf[internalPos + 1] & 0xff) << 8))));
                                         break;
+
                                     case 253:
                                         internalPos += 3 + (0xffffff & ((buf[internalPos] & 0xff)
                                                 + ((buf[internalPos + 1] & 0xff) << 8)
                                                 + ((buf[internalPos + 2] & 0xff) << 16)));
                                         break;
+
                                     case 254:
                                         internalPos += 8 + ((buf[internalPos] & 0xff)
                                                 + ((long) (buf[internalPos + 1] & 0xff) << 8)
@@ -147,8 +151,10 @@ public class BinaryRowProtocol extends RowProtocol {
                                                 + ((long) (buf[internalPos + 6] & 0xff) << 48)
                                                 + ((long) (buf[internalPos + 7] & 0xff) << 56));
                                         break;
+
                                     default:
                                         internalPos += type;
+                                        break;
                                 }
                                 break;
                         }

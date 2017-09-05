@@ -58,7 +58,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>2.1.0</version>
+    <version>2.1.1</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
@@ -71,7 +71,7 @@
         <checkstyle.plugin.version>2.16</checkstyle.plugin.version>
         <driver.version.major>2</driver.version.major>
         <driver.version.minor>1</driver.version.minor>
-        <driver.version.patch>0</driver.version.patch>
+        <driver.version.patch>1</driver.version.patch>
         <driver.version.qualifier></driver.version.qualifier>
     </properties>
 
@@ -98,29 +98,6 @@
             <url>https://oss.sonatype.org/content/repositories/snapshots</url>
         </snapshotRepository>
     </distributionManagement>
-
-    <developers>
-        <developer>
-            <id>wlad</id>
-            <name>Vladislav Vaintroub</name>
-            <email>wlad@montyprogram.com</email>
-        </developer>
-        <developer>
-            <id>massimo</id>
-            <name>Massimo Siani</name>
-            <email>massimo.siani@skysql.com</email>
-        </developer>
-        <developer>
-            <id>georg</id>
-            <name>Georg Richter</name>
-            <email>georg@skysql.com</email>
-        </developer>
-        <developer>
-            <id>diego</id>
-            <name>Diego Dupin</name>
-            <email>diego.dupin@mariadb.com</email>
-        </developer>
-    </developers>
 
     <build>
         <plugins>

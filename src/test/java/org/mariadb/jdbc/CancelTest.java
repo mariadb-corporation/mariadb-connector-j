@@ -64,6 +64,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class CancelTest extends BaseTest {
 
@@ -75,7 +76,7 @@ public class CancelTest extends BaseTest {
     }
 
     @Test
-    public void cancelTest() throws SQLException {
+    public void cancelTest() {
         try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
 
             Statement stmt = tmpConnection.createStatement();
@@ -163,7 +164,7 @@ public class CancelTest extends BaseTest {
         Statement stmt = sharedConnection.createStatement();
         stmt.cancel();
         ResultSet rs = stmt.executeQuery("select 1");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getInt(1), 1);
     }
 
@@ -183,7 +184,6 @@ public class CancelTest extends BaseTest {
 
             } catch (SQLException e) {
                 e.printStackTrace();
-                throw new RuntimeException(e);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

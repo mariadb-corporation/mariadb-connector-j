@@ -16,7 +16,6 @@ install:
     - .travis/gen-ssl.sh mariadb.example.com tmp
     - export PROJ_PATH=`pwd`
     - export SSLCERT=$PROJ_PATH/tmp
-#    - set SSLCERT=C:/projects/ssl
     - export ENTRYPOINT=$PROJ_PATH/.travis/sql
 
 cache:
@@ -24,7 +23,6 @@ cache:
     - $HOME/.m2
 
 jdk:
-#    - oraclejdk9
     - oraclejdk8
 
 env:
@@ -47,7 +45,7 @@ env:
     - DB=mariadb:10.2 PACKET=40M TYPE=NO_BULK_CLIENT
     - DB=mariadb:10.2 PACKET=40M TYPE=NO_BULK_SERVER
     - DB=mariadb:10.2 PACKET=40M COMPRESSION=true
-#    - DB=mariadb:10.3 PACKET=8M //wait for 10.2.7 merge
+    - DB=mariadb:10.3 PACKET=8M
     - DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.0.6
     - DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.1.4
 script: .travis/script.sh

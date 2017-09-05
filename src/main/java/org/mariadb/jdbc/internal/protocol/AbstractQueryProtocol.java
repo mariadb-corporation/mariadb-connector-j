@@ -63,7 +63,10 @@ import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.com.read.resultset.UpdatableResultSet;
-import org.mariadb.jdbc.internal.com.send.*;
+import org.mariadb.jdbc.internal.com.send.ComQuery;
+import org.mariadb.jdbc.internal.com.send.ComStmtExecute;
+import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
+import org.mariadb.jdbc.internal.com.send.SendChangeDbPacket;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.logging.Logger;
@@ -101,32 +104,25 @@ import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
 
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
-    public static ThreadPoolExecutor readScheduler = null;
-    private static Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
+    protected static ThreadPoolExecutor readScheduler = null;
+    private static final Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
     private int transactionIsolationLevel = 0;
     private InputStream localInfileInputStream;
     private long maxRows;  /* max rows returned by a statement */
     private volatile int statementIdToRelease = -1;
     private FutureTask activeFutureTask = null;
-    private LogQueryTool logQuery;
+    private final LogQueryTool logQuery;
     private boolean interrupted;
 
     /**
      * Get a protocol instance.
      *
-     * @param urlParser connection URL infos
+     * @param urlParser connection URL information's
      * @param lock      the lock for thread synchronisation
      */
 
-    public AbstractQueryProtocol(final UrlParser urlParser, final ReentrantLock lock) {
+    AbstractQueryProtocol(final UrlParser urlParser, final ReentrantLock lock) {
         super(urlParser, lock);
-        if (options.useBatchMultiSend && readScheduler == null) {
-            synchronized (AbstractQueryProtocol.class) {
-                if (readScheduler == null) {
-                    readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
-                }
-            }
-        }
         logQuery = new LogQueryTool(options);
     }
 
@@ -327,8 +323,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Execute clientPrepareQuery batch.
      *
      * @param results               results
-     * @param sql                   sql commande
-     * @param serverPrepareResult   prepare result if existant
+     * @param sql                   sql command
+     * @param serverPrepareResult   prepare result if exist
      * @param parametersList        List of parameters
      * @return if executed
      * @throws SQLException exception
@@ -363,31 +359,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         ServerPrepareResult tmpServerPrepareResult = serverPrepareResult;
         try {
             SQLException exception = null;
+
             //**************************************************************************************
             // send PREPARE if needed
             //**************************************************************************************
-
             if (serverPrepareResult == null) {
-                if (options.cachePrepStmts) {
-                    String key = new StringBuilder(database).append("-").append(sql).toString();
-                    tmpServerPrepareResult = serverPrepareStatementCache.get(key);
-
-                    if (tmpServerPrepareResult != null) {
-                        tmpServerPrepareResult.incrementShareCounter();
-                    }
-                }
-
-                if (tmpServerPrepareResult == null) {
-                    writer.startPacket(0);
-                    writer.write(COM_STMT_PREPARE);
-                    writer.write(sql);
-                    writer.flush();
-                    try {
-                        tmpServerPrepareResult = new ComStmtPrepare(this, sql).read(reader, eofDeprecated);
-                    } catch (SQLException sqle) {
-                        throw logQuery.exceptionWithQuery(sql, sqle);
-                    }
-                }
+                tmpServerPrepareResult = prepare(sql, true);
             }
 
             //**************************************************************************************
@@ -430,7 +407,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     }
 
                     //if buffer > MAX_ALLOWED_PACKET, flush until last mark.
-                    if (!writer.isAllowedCmdLength() && writer.isMarked()) {
+                    if (writer.exceedMaxLength() && writer.isMarked()) {
                         writer.flushBufferStopAtMark();
                     }
 
@@ -501,6 +478,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
+    private void initializeBatchReader() {
+        if (options.useBatchMultiSend && readScheduler == null) {
+            synchronized (AbstractQueryProtocol.class) {
+                if (readScheduler == null) {
+                    readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
+                }
+            }
+        }
+    }
+
     /**
      * Execute clientPrepareQuery batch.
      *
@@ -513,7 +500,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                   final List<ParameterHolder[]> parametersList) throws SQLException {
 
         cmdPrologue();
-
+        initializeBatchReader();
         new AbstractMultiSend(this, writer, results, clientPrepareResult, parametersList) {
 
             @Override
@@ -532,19 +519,18 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             @Override
             public SQLException handleResultException(SQLException qex, Results results,
                                                       List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult)
-                    throws SQLException {
+                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
 
                 int counter = results.getCurrentStatNumber() - 1;
                 ParameterHolder[] parameters = parametersList.get(counter);
                 List<byte[]> queryParts = clientPrepareResult.getQueryParts();
-                String sql = new String(queryParts.get(0));
+                StringBuilder sql = new StringBuilder(new String(queryParts.get(0)));
 
                 for (int i = 0; i < paramCount; i++) {
-                    sql += parameters[i].toString() + new String(queryParts.get(i + 1));
+                    sql.append(parameters[i].toString()).append(new String(queryParts.get(i + 1)));
                 }
 
-                return logQuery.exceptionWithQuery(sql, qex);
+                return logQuery.exceptionWithQuery(sql.toString(), qex);
             }
 
 
@@ -644,7 +630,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             if (exception != null) throw exception;
             return;
         }
-
+        initializeBatchReader();
         new AbstractMultiSend(this, writer, results, queries) {
 
             @Override
@@ -663,8 +649,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             @Override
             public SQLException handleResultException(SQLException qex, Results results,
                                                       List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult)
-                    throws SQLException {
+                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
 
                 String sql = queries.get(currentCounter + sendCmdCounter);
                 return logQuery.exceptionWithQuery(sql, qex);
@@ -689,7 +674,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Prepare query on server side.
      * Will permit to know the parameter number of the query, and permit to send only the data on next results.
      * <p>
-     * For failover, two additional information are in the resultset object :
+     * For failover, two additional information are in the result-set object :
      * - current connection : Since server maintain a state of this prepare statement, all query will be executed on this particular connection.
      * - executeOnMaster : state of current connection when creating this prepareStatement (if was on master, will only be executed on master.
      * If was on a slave, can be execute temporary on master, but we keep this flag,
@@ -708,8 +693,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         try {
             if (options.cachePrepStmts) {
 
-                String key = new StringBuilder(database).append("-").append(sql).toString();
-                ServerPrepareResult pr = serverPrepareStatementCache.get(key);
+                ServerPrepareResult pr = serverPrepareStatementCache.get(database + "-" + sql);
 
                 if (pr != null && pr.incrementShareCounter()) {
                     return pr;
@@ -764,9 +748,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 getResult(results);
 
             } catch (SQLException sqlException) {
-                logQuery.exceptionWithQuery(firstSql, sqlException);
-                if (!getOptions().continueBatchOnError) throw sqlException;
-                if (exception == null) exception = sqlException;
+                if (exception == null) {
+                    exception = logQuery.exceptionWithQuery(firstSql, sqlException);
+                    if (!options.continueBatchOnError) throw exception;
+                }
             } catch (IOException e) {
                 throw handleIoException(e);
             }
@@ -800,8 +785,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             do {
 
-                parameters = parameterList.get(currentIndex++);
-                currentIndex = ComQuery.sendRewriteCmd(writer, prepareResult.getQueryParts(), parameters, currentIndex,
+                currentIndex = ComQuery.sendRewriteCmd(writer, prepareResult.getQueryParts(), currentIndex,
                         prepareResult.getParamCount(), parameterList, rewriteValues);
                 getResult(results);
 
@@ -842,11 +826,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 && !hasLongData
                 && results.getAutoGeneratedKeys() == Statement.NO_GENERATED_KEYS
                 && versionGreaterOrEqual(10,2,7)
-                && executeBulkBatch(results, sql, null, parametersList)) {
+                && executeBulkBatch(results, sql, serverPrepareResult, parametersList)) {
             return true;
         }
 
         if (!options.useBatchMultiSend) return false;
+        initializeBatchReader();
         new AbstractMultiSend(this, writer, results, serverPrepareResult, parametersList, true, sql) {
             @Override
             public void sendCmd(PacketOutputStream writer, Results results,
@@ -881,8 +866,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             @Override
             public SQLException handleResultException(SQLException qex, Results results,
                                                       List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult)
-                    throws SQLException {
+                                                      int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
                 return logQuery.exceptionWithQuery(qex, prepareResult);
             }
 
@@ -966,7 +950,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     /**
      * Force release of prepare statement that are not used.
-     * This method will be call when adding a new preparestatement in cache, so the packet can be send to server without
+     * This method will be call when adding a new prepare statement in cache, so the packet can be send to server without
      * problem.
      *
      * @param statementId prepared statement Id to remove.
@@ -1010,13 +994,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @throws SQLException if connection occur
      */
     public void forceReleaseWaitingPrepareStatement() throws SQLException {
-
-        if (statementIdToRelease != -1) {
-            if (forceReleasePrepareStatement(statementIdToRelease)) {
-                statementIdToRelease = -1;
-            }
+        if (statementIdToRelease != -1 && forceReleasePrepareStatement(statementIdToRelease)) {
+            statementIdToRelease = -1;
         }
-
     }
 
     @Override
@@ -1052,10 +1032,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             results.commandEnd();
             ResultSet rs = results.getResultSet();
 
-            if (rs != null && (!rs.next() || "PRIMARY".equalsIgnoreCase(rs.getString(1)))) return true;
-
-            //connected to a galera node, but not primary
-            return false;
+            //return true if connected to a galera node that is primary
+            return (rs != null && (!rs.next() || "PRIMARY".equalsIgnoreCase(rs.getString(1))));
         }
 
         return ping();
@@ -1119,10 +1097,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Cancels the current query - clones the current protocol and executes a query using the new connection.
      *
      * @throws SQLException never thrown
-     * @throws IOException  if Host is not responding
      */
     @Override
-    public void cancelCurrentQuery() throws SQLException, IOException {
+    public void cancelCurrentQuery() throws SQLException {
         try (MasterProtocol copiedProtocol = new MasterProtocol(urlParser, new ReentrantLock())) {
             copiedProtocol.setHostAddress(getHostAddress());
             copiedProtocol.connect();
@@ -1157,7 +1134,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * Deallocate prepare statement if not used anymore.
      *
      * @param serverPrepareResult allocation result
-     * @throws SQLException if deallocation failed.
+     * @throws SQLException if de-allocation failed.
      */
     @Override
     public void releasePrepareStatement(ServerPrepareResult serverPrepareResult) throws SQLException {
@@ -1172,7 +1149,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     }
 
     /**
-     * Set max row retuen by a statement.
+     * Set max row return by a statement.
      *
      * @param max row number max value
      */
@@ -1290,7 +1267,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @throws SQLException if sub-result connection fail
      * @see <a href="https://mariadb.com/kb/en/mariadb/4-server-response-packets/">server response packets</a>
      */
-    public void readPacket(Results results) throws SQLException {
+    private void readPacket(Results results) throws SQLException {
         Buffer buffer;
         try {
             buffer = reader.getPacket(true);
@@ -1336,10 +1313,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      *
      * @param buffer  current buffer
      * @param results result object
-     * @throws SQLException if sub-result connection fail
      * @see <a href="https://mariadb.com/kb/en/mariadb/ok_packet/">OK_Packet</a>
      */
-    public void readOkPacket(Buffer buffer, Results results) throws SQLException {
+    private void readOkPacket(Buffer buffer, Results results) {
         buffer.skipByte(); //fieldCount
         final long updateCount = buffer.getLengthEncodedNumeric();
         final long insertId = buffer.getLengthEncodedNumeric();
@@ -1354,7 +1330,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         results.addStats(updateCount, insertId, hasMoreResults());
     }
 
-    private void handleStateChange(Buffer buf, Results results) throws SQLException {
+    private void handleStateChange(Buffer buf, Results results) {
         buf.skipLengthEncodedBytes(); //info
         while (buf.remaining() > 0) {
             Buffer stateInfo = buf.getLengthEncodedBuffer();
@@ -1365,13 +1341,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         Buffer sessionVariableBuf = stateInfo.getLengthEncodedBuffer();
                         String variable = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
                         String value = sessionVariableBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
-                        logger.debug("System variable change : " + variable + "=" + value);
+                        logger.debug("System variable change :  {} = {}", variable, value);
 
-                        //only variable use by
+                        //only variable uses
                         switch (variable) {
+
                             case "auto_increment_increment":
                                 autoIncrementIncrement = Integer.parseInt(value);
                                 results.setAutoIncrement(autoIncrementIncrement);
+                                break;
+
                             default:
                                 //variable not used by driver
                         }
@@ -1380,7 +1359,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     case StateChange.SESSION_TRACK_SCHEMA:
                         Buffer sessionSchemaBuf = stateInfo.getLengthEncodedBuffer();
                         database = sessionSchemaBuf.readStringLengthEncoded(StandardCharsets.UTF_8);
-                        logger.debug("default database change. is now '" + database + "'");
+                        logger.debug("Database change : now is '{}'", database);
                         break;
 
                     default:
@@ -1393,11 +1372,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     /**
      * Get current auto increment increment.
+     * *** no lock needed ****
      *
      * @return auto increment increment.
+     * @throws SQLException if cannot retrieve auto increment value
      */
-    public int getAutoIncrementIncrement() {
+    public int getAutoIncrementIncrement() throws SQLException {
         if (autoIncrementIncrement == 0) {
+            lock.lock();
             try {
                 Results results = new Results();
                 executeQuery(true, results, "select @@auto_increment_increment");
@@ -1405,8 +1387,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 ResultSet rs = results.getResultSet();
                 rs.next();
                 autoIncrementIncrement = rs.getInt(1);
-            } catch (Exception e) {
+            } catch (SQLException e) {
+                if (e.getSQLState().startsWith("08")) throw e;
                 autoIncrementIncrement = 1;
+            } finally {
+                lock.unlock();
             }
         }
         return autoIncrementIncrement;
@@ -1421,7 +1406,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @return SQLException if sub-result connection fail
      * @see <a href="https://mariadb.com/kb/en/mariadb/err_packet/">ERR_Packet</a>
      */
-    public SQLException readErrorPacket(Buffer buffer, Results results) {
+    private SQLException readErrorPacket(Buffer buffer, Results results) {
         removeHasMoreResults();
         this.hasWarnings = false;
         buffer.skipByte();
@@ -1450,7 +1435,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @throws SQLException if sub-result connection fail
      * @see <a href="https://mariadb.com/kb/en/mariadb/local_infile-packet/">local_infile packet</a>
      */
-    public void readLocalInfilePacket(Buffer buffer, Results results) throws SQLException {
+    private void readLocalInfilePacket(Buffer buffer, Results results) throws SQLException {
 
         int seq = 2;
         buffer.getLengthEncodedNumeric(); //field pos
@@ -1532,7 +1517,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @throws SQLException if sub-result connection fail
      * @see <a href="https://mariadb.com/kb/en/mariadb/resultset/">resultSet packets</a>
      */
-    public void readResultSet(Buffer buffer, Results results) throws SQLException {
+    private void readResultSet(Buffer buffer, Results results) throws SQLException {
         long fieldCount = buffer.getLengthEncodedNumeric();
 
         try {
@@ -1565,6 +1550,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             if (results.getResultSetConcurrency() == ResultSet.CONCUR_READ_ONLY) {
                 selectResultSet = new SelectResultSet(ci, results, this, reader, callableResult, eofDeprecated);
             } else {
+                //remove fetch size to permit updating results without creating new connection
+                results.removeFetchSize();
                 selectResultSet = new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated);
             }
 
@@ -1595,13 +1582,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             throw new SQLException("execute() is called on closed connection");
         }
         //old failover handling
-        if (!hasProxy) {
-            if (shouldReconnectWithoutProxy()) {
-                try {
-                    connectWithoutProxy();
-                } catch (SQLException qe) {
-                    ExceptionMapper.throwException(qe, connection, statement);
-                }
+        if (!hasProxy && shouldReconnectWithoutProxy()) {
+            try {
+                connectWithoutProxy();
+            } catch (SQLException qe) {
+                ExceptionMapper.throwException(qe, connection, statement);
             }
         }
 
@@ -1700,7 +1685,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             mustReconnect = ((MaxAllowedPacketException) initialException).isMustReconnect();
             driverPreventError = !mustReconnect;
         } else {
-            mustReconnect = !writer.isAllowedCmdLength();
+            mustReconnect = writer.exceedMaxLength();
         }
 
         if (mustReconnect) {

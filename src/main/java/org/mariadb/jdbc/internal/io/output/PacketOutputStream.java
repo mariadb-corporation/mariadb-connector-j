@@ -60,6 +60,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 
+@SuppressWarnings("RedundantThrows")
 public interface PacketOutputStream {
 
     void startPacket(int seqNo);
@@ -94,7 +95,7 @@ public interface PacketOutputStream {
 
     boolean checkRemainingSize(int len);
 
-    boolean isAllowedCmdLength();
+    boolean exceedMaxLength();
 
     OutputStream getOutputStream();
 

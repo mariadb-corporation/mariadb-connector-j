@@ -61,8 +61,8 @@ import java.util.Arrays;
 
 public class ByteArrayParameter implements Cloneable, ParameterHolder {
 
-    private byte[] bytes;
-    private boolean noBackslashEscapes;
+    private final byte[] bytes;
+    private final boolean noBackslashEscapes;
 
     public ByteArrayParameter(byte[] bytes, boolean noBackslashEscapes) {
         this.bytes = bytes;

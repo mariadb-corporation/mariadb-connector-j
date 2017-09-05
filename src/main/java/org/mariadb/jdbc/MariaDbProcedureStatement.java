@@ -57,7 +57,6 @@ import org.mariadb.jdbc.internal.com.send.parameters.NullParameter;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
@@ -88,9 +87,9 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
         setParametersVariables();
     }
 
-    private void setParamsAccordingToSetArguments() throws SQLException {
-        params = new ArrayList<>(this.parameterCount);
-        for (int index = 0; index < this.parameterCount; index++) {
+    private void setParamsAccordingToSetArguments() {
+        params = new ArrayList<>(parameterCount);
+        for (int index = 0; index < parameterCount; index++) {
             params.add(new CallParameter());
         }
     }
@@ -101,7 +100,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
             int currentOutputMapper = 1;
 
             for (int index = 0; index < params.size(); index++) {
-                outputParameterMapper[index] = params.get(index).isOutput ? currentOutputMapper++ : -1;
+                outputParameterMapper[index] = params.get(index).isOutput() ? currentOutputMapper++ : -1;
             }
         }
     }
@@ -143,7 +142,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
     }
 
     public void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
-        params.get(parameterIndex - 1).isInput = true;
+        params.get(parameterIndex - 1).setInput(true);
         super.setParameter(parameterIndex, holder);
     }
 
@@ -171,7 +170,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
         setInputOutputParameterMap();
         //Set value for OUT parameters
         for (int index = 0; index < params.size(); index++) {
-            if (!params.get(index).isInput) {
+            if (!params.get(index).isInput()) {
                 super.setParameter(index + 1, new NullParameter());
             }
         }

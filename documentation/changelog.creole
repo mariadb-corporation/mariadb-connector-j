@@ -1,4 +1,5 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#211|2.1.1]] Released on 05 Sept. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#210|2.1.0]] Released on 29 Jul. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#203|2.0.3]] Released on 27 Jun. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#202|2.0.2]] Released on 05 Jun. 2017
@@ -25,6 +26,20 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+== 2.1.1
+
+Bug :
+* [CONJ-519] Updatable result-set possible NPE when same field is repeated.
+* [CONJ-514] ResultSet method wasNull() always return true after a call on a "null-date" field binary protocol handling
+* [CONJ-516] Permit using updatable result-set when fetching
+* [CONJ-511] Add legacy SSL certificate Hostname verification with CN even when SAN are set
+* [CONJ-515] Improve MariaDB driver stability in case JNA errors
+
+misc :
+* correct typo in error message when setting wrong parameter
+* add trace to HostnameVerifier implementation
+* handling connection error when no database is provided
+
 == 2.1.0
 
 === CONJ-422 : verification of SSL Certificate Name Mismatch

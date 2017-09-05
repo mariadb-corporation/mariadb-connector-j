@@ -63,8 +63,8 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class MastersSlavesProtocol extends MasterProtocol {
-    boolean masterConnection = false;
-    boolean mustBeMasterConnection = false;
+    protected boolean masterConnection = false;
+    private boolean mustBeMasterConnection = false;
 
     public MastersSlavesProtocol(final UrlParser url, final ReentrantLock lock) {
         super(url, lock);
@@ -172,7 +172,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
         servers.removeAll(listener.connectedHosts());
 
         loopAddresses.clear();
-        loopAddresses.addAll(loopAddresses);
+        loopAddresses.addAll(servers);
     }
 
     protected static boolean foundMaster(MastersSlavesListener listener, MastersSlavesProtocol protocol,
@@ -224,7 +224,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
      * @param urlParser connection string Object.
      * @return a new MastersSlavesProtocol instance
      */
-    public static MastersSlavesProtocol getNewProtocol(FailoverProxy proxy, UrlParser urlParser) {
+    private static MastersSlavesProtocol getNewProtocol(FailoverProxy proxy, UrlParser urlParser) {
         MastersSlavesProtocol newProtocol = new MastersSlavesProtocol(urlParser, proxy.lock);
         newProtocol.setProxy(proxy);
         return newProtocol;

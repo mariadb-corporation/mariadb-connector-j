@@ -328,16 +328,16 @@ public class BasicBatchTest extends BaseTest {
         Assume.assumeTrue(runLongTest && (sharedOptions().useBulkStmts || sharedIsRewrite())); //if not will be too long.
         createTable("testBatchString", "charValue VARCHAR(100) NOT NULL");
         Statement stmt = sharedConnection.createStatement();
-        String[] data = new String[1_000_000];
+        String[] datas = new String[1_000_000];
         String empty = "____________________________________________________________________________________________________";
 
-        for (int i = 0; i < data.length; i++) {
-            data[i] = (String.valueOf(i) + empty).substring(0, 100);
+        for (int i = 0; i < datas.length; i++) {
+            datas[i] = (String.valueOf(i) + empty).substring(0, 100);
         }
 
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO testBatchString (charValue) values (?)")) {
-            for (int i = 0; i < data.length; i++) {
-                preparedStatement.setString(1, data[i]); //a random 100 byte data
+            for (String data : datas) {
+                preparedStatement.setString(1, data); //a random 100 byte data
                 preparedStatement.addBatch();
             }
             preparedStatement.executeBatch();
@@ -347,8 +347,8 @@ public class BasicBatchTest extends BaseTest {
         ResultSet rs = stmt.executeQuery("SELECT charValue FROM testBatchString");
         int counter = 0;
         while (rs.next()) {
-            assertEquals(data[counter++], rs.getString(1));
+            assertEquals(datas[counter++], rs.getString(1));
         }
-        assertEquals(data.length, counter);
+        assertEquals(datas.length, counter);
     }
 }

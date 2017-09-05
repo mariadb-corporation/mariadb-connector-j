@@ -64,6 +64,7 @@ import java.sql.Types;
 
 import static org.junit.Assert.*;
 
+@SuppressWarnings("ALL")
 public class DataNTypeTest extends BaseTest {
 
     @Test
@@ -184,7 +185,6 @@ public class DataNTypeTest extends BaseTest {
         createTable("testSetObjectNCharacter", "id int not null primary key, strm text", "CHARSET utf8");
         PreparedStatement stmt = sharedConnection.prepareStatement("insert into testSetObjectNCharacter (id, strm) values (?,?)");
         String toInsert = "\u00D8abcdefgh\njklmn\"";
-        ;
 
         stmt.setInt(1, 1);
         stmt.setObject(2, new StringReader(toInsert));

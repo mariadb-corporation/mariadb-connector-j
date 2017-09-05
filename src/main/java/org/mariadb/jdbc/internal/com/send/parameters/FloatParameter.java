@@ -59,7 +59,7 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import java.io.IOException;
 
 public class FloatParameter implements Cloneable, ParameterHolder {
-    private float value;
+    private final float value;
 
     public FloatParameter(float value) {
         this.value = value;

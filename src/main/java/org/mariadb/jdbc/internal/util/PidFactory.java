@@ -78,54 +78,41 @@ public class PidFactory {
                         @SuppressWarnings("unchecked")
                         Method isLinuxMethod = platformClass.getMethod("isLinux");
                         Boolean isLinux = (Boolean) isLinuxMethod.invoke(platformClass);
-                        if (isLinux.booleanValue()) {
+                        if (isLinux) {
 
                             //Linux pid implementation
-                            pidRequest = new PidRequestInter() {
-                                @Override
-                                public String getPid() {
-                                    return String.valueOf(CLibrary.INSTANCE.getpid());
-                                }
-                            };
+                            pidRequest = () -> String.valueOf(CLibrary.INSTANCE.getpid());
 
                         } else {
 
                             @SuppressWarnings("unchecked")
                             Method isWindowsMethod = platformClass.getMethod("isWindows");
                             Boolean isWindows = (Boolean) isWindowsMethod.invoke(platformClass);
-                            if (isWindows.booleanValue()) {
+                            if (isWindows) {
 
                                 //Windows pid implementation
-                                pidRequest = new PidRequestInter() {
-                                    @Override
-                                    public String getPid() {
-                                        try {
-                                            Class kernel32Class = Class.forName("com.sun.jna.platform.win32.Kernel32");
-                                            Field field = kernel32Class.getField("INSTANCE");
-                                            Object fieldinstance = field.get(kernel32Class);
-                                            Method getCurrentProcessIdMethod = fieldinstance.getClass().getMethod("GetCurrentProcessId");
-                                            return String.valueOf(getCurrentProcessIdMethod.invoke(fieldinstance));
-                                        } catch (Throwable cle) {
-                                            //jna plateform jar's are not in classpath, no PID returned
-                                        }
-                                        return null;
+                                pidRequest = () -> {
+                                    try {
+                                        Class kernel32Class = Class.forName("com.sun.jna.platform.win32.Kernel32");
+                                        Field field = kernel32Class.getField("INSTANCE");
+                                        Object fieldinstance = field.get(kernel32Class);
+                                        Method getCurrentProcessIdMethod = fieldinstance.getClass().getMethod("GetCurrentProcessId");
+                                        return String.valueOf(getCurrentProcessIdMethod.invoke(fieldinstance));
+                                    } catch (Throwable cle) {
+                                        //jna plateform jar's are not in classpath, no PID returned
                                     }
+                                    return null;
                                 };
 
                             }
                         }
-                    } catch (Exception cle) {
+                    } catch (Throwable cle) {
                         //jna jar's are not in classpath, no PID returned
                     }
 
                     //No JNA, or environment not Linux/windows -> return no PID
                     if (pidRequest == null) {
-                        pidRequest = new PidRequestInter() {
-                            @Override
-                            public String getPid() {
-                                return null;
-                            }
-                        };
+                        pidRequest = () -> null;
                     }
                 }
             }

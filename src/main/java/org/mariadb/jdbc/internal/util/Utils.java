@@ -80,6 +80,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 
 
+@SuppressWarnings("Annotator")
 public class Utils {
     private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
     private static final Pattern IP_V4 = Pattern.compile("^(([1-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){1}"
@@ -97,11 +98,11 @@ public class Utils {
      * @return escaped string.
      */
     public static String escapeString(String value, boolean noBackslashEscapes) {
-        if (value.indexOf("'") == -1) {
+        if (!value.contains("'")) {
             if (noBackslashEscapes) {
                 return value;
             }
-            if (value.indexOf("\\") == -1) {
+            if (!value.contains("\\")) {
                 return value;
             }
         }
@@ -130,7 +131,7 @@ public class Utils {
     public static byte[] encryptPassword(final String password, final byte[] seed, String passwordCharacterEncoding)
             throws NoSuchAlgorithmException, UnsupportedEncodingException {
 
-        if (password == null || password.equals("")) return new byte[0];
+        if (password == null || password.isEmpty()) return new byte[0];
 
         final MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
         byte[] bytePwd;
@@ -203,7 +204,7 @@ public class Utils {
      * @param functionString - input string
      * @return unescaped string
      */
-    public static String replaceFunctionParameter(String functionString) {
+    private static String replaceFunctionParameter(String functionString) {
 
         if (!functionString.contains("SQL_")) {
             return functionString;
@@ -223,10 +224,10 @@ public class Utils {
         }
         String func = sb.toString().toLowerCase();
 
-        if (func.equals("convert") || func.equals("timestampdiff") || func.equals("timestampadd")) {
+        if ("convert".equals(func) || "timestampdiff".equals(func) || "timestampadd".equals(func)) {
             String paramPrefix;
 
-            if (func.equals("timestampdiff") || func.equals("timestampadd")) {
+            if ("timestampdiff".equals(func) || "timestampadd".equals(func)) {
                 // Skip to first parameter
                 for (; index < input.length; index++) {
                     if (!Character.isWhitespace(input[index]) && input[index] != '(') {
@@ -242,7 +243,7 @@ public class Utils {
                     return new String(input);
                 }
                 paramPrefix = new String(input, index, 8);
-                if (paramPrefix.equals("SQL_TSI_")) {
+                if ("SQL_TSI_".equals(paramPrefix)) {
                     return new String(input, 0, index) + new String(input, index + 8, input.length - (index + 8));
                 }
                 return new String(input);
@@ -261,7 +262,7 @@ public class Utils {
                 return new String(input);
             }
             paramPrefix = new String(input, index, 4);
-            if (paramPrefix.equals("SQL_")) {
+            if ("SQL_".equals(paramPrefix)) {
                 return new String(input, 0, index) + new String(input, index + 4, input.length - (index + 4));
             }
 
@@ -329,10 +330,9 @@ public class Utils {
      * @return escaped sql string
      * @throws SQLException if escape sequence is incorrect.
      */
+    @SuppressWarnings("ConstantConditions")
     public static String nativeSql(String sql, boolean noBackslashEscapes) throws SQLException {
-        if (sql.indexOf('{') == -1) {
-            return sql;
-        }
+        if (!sql.contains("{")) return sql;
 
         StringBuilder escapeSequenceBuf = new StringBuilder();
         StringBuilder sqlBuffer = new StringBuilder();
@@ -515,7 +515,7 @@ public class Utils {
         TimeZone tz = TimeZone.getTimeZone(id);
 
         // Validate the timezone ID. JDK maps invalid timezones to GMT
-        if (tz.getID().equals("GMT") && !id.equals("GMT")) {
+        if ("GMT".equals(tz.getID()) && !"GMT".equals(id)) {
             throw new SQLException("invalid timezone id '" + id + "'");
         }
         return tz;
@@ -557,9 +557,9 @@ public class Utils {
                         socketFactory = constructor.newInstance();
                         return socketFactory.createSocket();
                     }
-                } catch (Exception sfex) {
+                } catch (Exception exp) {
                     throw new IOException("Socket factory failed to initialized with option \"socketFactory\" set to \""
-                            + urlParser.getOptions().socketFactory + "\"", sfex);
+                            + urlParser.getOptions().socketFactory + "\"", exp);
                 }
             }
             socketFactory = SocketFactory.getDefault();
@@ -575,18 +575,6 @@ public class Utils {
      */
     public static String hexdump(byte[]... bytes) {
         return hexdump(Integer.MAX_VALUE, 0, Integer.MAX_VALUE, bytes);
-    }
-
-    /**
-     * Hexdump.
-     *
-     * @param maxQuerySizeToLog max log size
-     * @param offset            offset of last byte array
-     * @param bytes             byte arrays
-     * @return String
-     */
-    public static String hexdump(int maxQuerySizeToLog, int offset, byte[]... bytes) {
-        return hexdump(maxQuerySizeToLog, offset, Integer.MAX_VALUE, bytes);
     }
 
     /**
@@ -667,7 +655,7 @@ public class Utils {
      * @param dataLength    byte length to write
      * @param outputBuilder string builder
      */
-    public static void writeHex(byte[] bytes, int offset, int dataLength, StringBuilder outputBuilder) {
+    private static void writeHex(byte[] bytes, int offset, int dataLength, StringBuilder outputBuilder) {
 
         if (bytes == null || bytes.length == 0) return;
 
@@ -677,7 +665,7 @@ public class Utils {
         int pos = offset;
         int posHexa = 0;
 
-        while (pos < dataLength) {
+        while (pos < dataLength + offset) {
             int byteValue = bytes[pos] & 0xFF;
             outputBuilder.append(hexArray[byteValue >>> 4])
                     .append(hexArray[byteValue & 0x0F])
@@ -685,17 +673,13 @@ public class Utils {
 
             hexaValue[posHexa++] = (byteValue > 31 && byteValue < 127) ? (char) byteValue : '.';
 
-            if (posHexa == 8) {
-                outputBuilder.append(" ");
-            }
-
+            if (posHexa == 8) outputBuilder.append(" ");
             if (posHexa == 16) {
                 outputBuilder.append("    ")
                         .append(hexaValue)
                         .append("\n");
                 posHexa = 0;
             }
-
             pos++;
         }
 
@@ -714,7 +698,7 @@ public class Utils {
         }
     }
 
-    protected static String getHex(final byte[] raw) {
+    private static String getHex(final byte[] raw) {
         final StringBuilder hex = new StringBuilder(2 * raw.length);
         for (final byte b : raw) {
             hex.append(hexArray[(b & 0xF0) >> 4])
@@ -744,17 +728,15 @@ public class Utils {
         String key = null;
 
         char[] chars = sessionVariable.toCharArray();
-        int length = chars.length;
 
-        for (int i = 0; i < length; i++) {
+        for (char car : chars) {
 
             if (state == Parse.Escape) {
-                sb.append(chars[i]);
+                sb.append(car);
                 state = singleQuotes ? Parse.Quote : Parse.String;
                 continue;
             }
 
-            char car = chars[i];
             switch (car) {
                 case '"':
                     if (state == Parse.Normal) {
@@ -838,7 +820,6 @@ public class Utils {
 
     private enum Parse {
         Normal,
-        Parenthesis, /* inside parenthesis */
         String, /* inside string */
         Quote,
         Escape /* found backslash */

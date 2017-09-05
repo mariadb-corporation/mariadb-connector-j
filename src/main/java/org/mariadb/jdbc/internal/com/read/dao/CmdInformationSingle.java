@@ -59,9 +59,9 @@ import java.sql.ResultSet;
 
 public class CmdInformationSingle implements CmdInformation {
 
-    private long insertId;
+    private final long insertId;
     private long updateCount;
-    private int autoIncrement;
+    private final int autoIncrement;
 
     /**
      * Object containing update / insert ids, optimized for only one result.

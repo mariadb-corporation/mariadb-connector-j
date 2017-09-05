@@ -105,9 +105,9 @@ public class ExceptionMapper {
                                             MariaDbStatement statement, boolean timeout) {
         String message = exception.getMessage();
         if (connection != null) {
-            message = "(conn:" + connection.getServerThreadId() + ") " + message;
+            message = "(conn=" + connection.getServerThreadId() + ") " + message;
         } else if (statement != null) {
-            message = "(conn:" + statement.getServerThreadId() + ") " + message;
+            message = "(conn=" + statement.getServerThreadId() + ") " + message;
         }
 
         SQLException sqlException;

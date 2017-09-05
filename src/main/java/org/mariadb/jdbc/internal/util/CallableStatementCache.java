@@ -59,7 +59,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class CallableStatementCache extends LinkedHashMap<CallableStatementCacheKey, CallableStatement> {
-    private int maxSize;
+    private final int maxSize;
 
     private CallableStatementCache(int size) {
         super(size, .75f, true);
@@ -68,20 +68,6 @@ public class CallableStatementCache extends LinkedHashMap<CallableStatementCache
 
     public static CallableStatementCache newInstance(int size) {
         return new CallableStatementCache(size);
-    }
-
-    /**
-     * Add prepared statement to cache.
-     *
-     * @param key   sql
-     * @param value prepareResult
-     * @return ServerPrepareResult to avoid to prepare statement.
-     */
-    public CallableStatement putIfNone(CallableStatementCacheKey key, CallableStatement value) {
-        if (!containsKey(key)) {
-            put(key, value);
-        }
-        return value;
     }
 
     @Override
