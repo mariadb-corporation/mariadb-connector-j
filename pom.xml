@@ -81,6 +81,19 @@
         </license>
     </licenses>
 
+    <organization>
+        <name>mariadb</name>
+        <url>http://mariadb.org/</url>
+    </organization>
+
+    <developers>
+        <developer>
+            <id>mariadbJdbcDevelopers</id>
+            <name>mariadb jdbc developers</name>
+            <url>http://mariadb.org/</url>
+        </developer>
+    </developers>
+
     <scm>
         <connection>scm:git:git://github.com/MariaDB/mariadb-connector-j.git</connection>
         <url>https://github.com/MariaDB/mariadb-connector-j</url>
@@ -203,21 +216,21 @@
                 </configuration>
             </plugin>
             <!--<plugin>-->
-                <!--<groupId>pl.project13.maven</groupId>-->
-                <!--<artifactId>git-commit-id-plugin</artifactId>-->
-                <!--<version>2.2.1</version>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<id>get-the-git-infos</id>-->
-                        <!--<goals>-->
-                            <!--<goal>revision</goal>-->
-                        <!--</goals>-->
-                    <!--</execution>-->
-                <!--</executions>-->
+            <!--<groupId>pl.project13.maven</groupId>-->
+            <!--<artifactId>git-commit-id-plugin</artifactId>-->
+            <!--<version>2.2.1</version>-->
+            <!--<executions>-->
+            <!--<execution>-->
+            <!--<id>get-the-git-infos</id>-->
+            <!--<goals>-->
+            <!--<goal>revision</goal>-->
+            <!--</goals>-->
+            <!--</execution>-->
+            <!--</executions>-->
 
-                <!--<configuration>-->
-                    <!--<prefix>git</prefix>-->
-                <!--</configuration>-->
+            <!--<configuration>-->
+            <!--<prefix>git</prefix>-->
+            <!--</configuration>-->
             <!--</plugin>-->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
