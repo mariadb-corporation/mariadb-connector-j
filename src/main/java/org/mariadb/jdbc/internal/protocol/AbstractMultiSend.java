@@ -61,6 +61,7 @@ import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -234,6 +235,13 @@ public abstract class AbstractMultiSend {
                         futureReadTask = new FutureTask<AsyncMultiReadResult>(new AsyncMultiRead(comStmtPrepare, status,
                                 protocol, false, this, paramCount,
                                 results, parametersList, queries, prepareResult));
+                        if (AbstractQueryProtocol.readScheduler == null) {
+                            synchronized (AbstractQueryProtocol.class) {
+                                if (AbstractQueryProtocol.readScheduler == null) {
+                                    AbstractQueryProtocol.readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
+                                }
+                            }
+                        }
                         AbstractQueryProtocol.readScheduler.execute(futureReadTask);
                     }
                 }
