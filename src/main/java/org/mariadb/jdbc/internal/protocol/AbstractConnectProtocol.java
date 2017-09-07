@@ -1092,10 +1092,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return username;
     }
 
-    public String getPassword() {
-        return password;
-    }
-
     private void parseVersion() {
         String[] versionArray = serverVersion.split("[^0-9]");
 

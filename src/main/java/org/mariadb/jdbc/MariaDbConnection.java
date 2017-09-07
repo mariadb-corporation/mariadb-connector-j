@@ -1468,15 +1468,6 @@ public class MariaDbConnection implements Connection {
     }
 
     /**
-     * returns the password for the connection.
-     *
-     * @return the password.
-     */
-    public String getPassword() {
-        return protocol.getPassword();
-    }
-
-    /**
      * returns the hostname for the connection.
      *
      * @return the hostname.
