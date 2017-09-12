@@ -135,8 +135,6 @@ public interface Protocol {
 
     String getUsername();
 
-    String getPassword();
-
     boolean ping() throws SQLException;
 
     boolean isValid() throws SQLException;
