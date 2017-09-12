@@ -1034,7 +1034,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             try {
                 connect(currentHost.host, currentHost.port);
                 return;
-            } catch (IOException e) {
+            } catch (IOException | SQLException e ) {
                 if (hosts.isEmpty()) {
                     throw new SQLException("Could not connect to " + HostAddress.toString(addrs) + " : " + e.getMessage() + getTraces(),
                             CONNECTION_EXCEPTION.getSqlState(), e);
