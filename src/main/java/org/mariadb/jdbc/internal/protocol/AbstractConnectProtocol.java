@@ -84,6 +84,7 @@ import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import javax.net.ssl.*;
 import java.io.FileInputStream;
@@ -109,7 +110,6 @@ import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 import static org.mariadb.jdbc.internal.com.Packet.*;
-import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public abstract class AbstractConnectProtocol implements Protocol {
     private static final byte[] SESSION_QUERY = ("SELECT @@max_allowed_packet,"
@@ -190,7 +190,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             packetOutputStream.close();
             packetInputStream.close();
         } catch (IOException e) {
-            throw new SQLException("Could not close connection: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
+            throw ExceptionMapper.connException("Could not close connection: " + e.getMessage(), e);
         } finally {
             try {
                 socket.close();
@@ -287,9 +287,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
             sslContext.init(keyManager, trustManager, null);
             return sslContext.getSocketFactory();
         } catch (KeyManagementException keyManagementEx) {
-            throw new SQLException("Could not initialize SSL context", CONNECTION_EXCEPTION.getSqlState(), keyManagementEx);
+            throw ExceptionMapper.connException("Could not initialize SSL context", keyManagementEx);
         } catch (NoSuchAlgorithmException noSuchAlgorithmEx) {
-            throw new SQLException("SSLContext TLS Algorithm not unknown", CONNECTION_EXCEPTION.getSqlState(), noSuchAlgorithmEx);
+            throw ExceptionMapper.connException("SSLContext TLS Algorithm not unknown", noSuchAlgorithmEx);
         }
 
     }
@@ -311,13 +311,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
             char[] keyStoreChars = (keyPassword == null) ? keyStorePasswordChars : keyPassword.toCharArray();
             return new MariaDbX509KeyManager(ks, keyStoreChars);
         } catch (GeneralSecurityException generalSecurityEx) {
-            throw new SQLException("Failed to create keyStore instance", CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
+            throw ExceptionMapper.connException("Failed to create keyStore instance", generalSecurityEx);
         } catch (FileNotFoundException fileNotFoundEx) {
-            throw new SQLException("Failed to find keyStore file. Option keyStore=" + keyStoreUrl,
-                    CONNECTION_EXCEPTION.getSqlState(), fileNotFoundEx);
+            throw ExceptionMapper.connException("Failed to find keyStore file. Option keyStore=" + keyStoreUrl, fileNotFoundEx);
         } catch (IOException ioEx) {
-            throw new SQLException("Failed to read keyStore file. Option keyStore=" + keyStoreUrl,
-                    CONNECTION_EXCEPTION.getSqlState(), ioEx);
+            throw ExceptionMapper.connException("Failed to read keyStore file. Option keyStore=" + keyStoreUrl, ioEx);
         } finally {
             try {
                 if (inStream != null) inStream.close();
@@ -364,9 +362,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
         try {
             connect((currentHost != null) ? currentHost.host : null,
                     (currentHost != null) ? currentHost.port : 3306);
-        } catch (IOException e) {
-            throw new SQLException("Could not connect to " + currentHost + ". " + e.getMessage() + getTraces(),
-                    CONNECTION_EXCEPTION.getSqlState(), e);
+        } catch (IOException ioException) {
+            throw ExceptionMapper.connException(
+                    "Could not connect to " + currentHost + ". " + ioException.getMessage() + getTraces(),
+                    ioException);
         }
     }
 
@@ -542,8 +541,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             readRequestSessionVariables(serverData);
         } catch (SQLException sqlException) {
             if (resultingException == null) {
-                resultingException = new SQLException("could not load system variables",
-                        CONNECTION_EXCEPTION.getSqlState(), sqlException);
+                resultingException = ExceptionMapper.connException("could not load system variables", sqlException);
                 canTrySessionWithShow = true;
             }
         }
@@ -553,7 +551,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         } catch (SQLException sqlException) {
             canTrySessionWithShow = false;
             if (resultingException == null) {
-                throw new SQLException("could not identified if server is master", CONNECTION_EXCEPTION.getSqlState(), sqlException);
+                throw ExceptionMapper.connException("could not identified if server is master", sqlException);
             }
         }
 
@@ -587,8 +585,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 }
                 serverData.put(resultSet.getString(1), resultSet.getString(2));
             }
-        } catch (SQLException sqlee) {
-            throw new SQLException("could not load system variables", CONNECTION_EXCEPTION.getSqlState(), sqlee);
+        } catch (SQLException sqlException) {
+            throw ExceptionMapper.connException("could not load system variables", sqlException);
         }
     }
 
@@ -714,7 +712,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             authentication(exchangeCharset, clientCapabilities, packetSeq, greetingPacket);
 
-        } catch (IOException e) {
+        } catch (IOException ioException) {
             if (reader != null) {
                 try {
                     reader.close();
@@ -722,8 +720,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     //eat exception
                 }
             }
-            throw new SQLException("Could not connect to " + currentHost.host + ":" + currentHost.port + ": " + e.getMessage(),
-                    CONNECTION_EXCEPTION.getSqlState(), e);
+
+            throw ExceptionMapper.connException(
+                    "Could not connect to " + currentHost.host + ":" + currentHost.port + " : " + ioException.getMessage(),
+                    ioException);
         }
     }
 
@@ -778,13 +778,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 ErrorPacket errorPacket = new ErrorPacket(buffer);
                 if (password != null && !password.isEmpty() && errorPacket.getErrorNumber() == 1045 && "28000".equals(errorPacket.getSqlState())) {
                     //Access denied
-                    throw new SQLException("Could not connect: " + errorPacket.getMessage()
+                    throw new SQLException(errorPacket.getMessage()
                             + "\nCurrent charset is " + Charset.defaultCharset().displayName()
                             + ". If password has been set using other charset, consider "
                             + "using option 'passwordCharacterEncoding'",
                             errorPacket.getSqlState(), errorPacket.getErrorNumber());
                 }
-                throw new SQLException("Could not connect: " + errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorNumber());
+                throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(), errorPacket.getErrorNumber());
             }
             serverStatus = new OkPacket(buffer).getServerStatus();
         }
@@ -1004,40 +1004,42 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (!isClosed()) {
             close();
         }
-        Random rand = new Random();
+
         List<HostAddress> addrs = urlParser.getHostAddresses();
-        List<HostAddress> hosts = new LinkedList<>(addrs);
+        LinkedList<HostAddress> hosts = new LinkedList<>(addrs);
+
+        if (urlParser.getHaMode().equals(HaMode.LOADBALANCE)) {
+            Collections.shuffle(hosts);
+        }
 
         //CONJ-293 : handle name-pipe without host
         if (hosts.isEmpty() && options.pipe != null) {
             try {
                 connect(null, 0);
                 return;
-            } catch (IOException e) {
-                if (hosts.isEmpty()) {
-                    throw new SQLException("Could not connect to named pipe '" + options.pipe + "' : "
-                            + e.getMessage() + getTraces(), CONNECTION_EXCEPTION.getSqlState(), e);
-                }
+            } catch (IOException ioException) {
+                throw ExceptionMapper.connException(
+                        "Could not connect to named pipe '" + options.pipe + "' : " + ioException.getMessage() + getTraces(),
+                        ioException);
             }
         }
 
         // There could be several addresses given in the URL spec, try all of them, and throw exception if all hosts
         // fail.
         while (!hosts.isEmpty()) {
-            if (urlParser.getHaMode().equals(HaMode.LOADBALANCE)) {
-                currentHost = hosts.get(rand.nextInt(hosts.size()));
-            } else {
-                currentHost = hosts.get(0);
-            }
-            hosts.remove(currentHost);
-
+            currentHost = hosts.poll();
             try {
                 connect(currentHost.host, currentHost.port);
                 return;
-            } catch (IOException | SQLException e ) {
+            } catch (SQLException e) {
                 if (hosts.isEmpty()) {
-                    throw new SQLException("Could not connect to " + HostAddress.toString(addrs) + " : " + e.getMessage() + getTraces(),
-                            CONNECTION_EXCEPTION.getSqlState(), e);
+                    throw ExceptionMapper.getException(e, null, null, false);
+                }
+            } catch (IOException ioException) {
+                if (hosts.isEmpty()) {
+                    throw ExceptionMapper.connException(
+                            "Could not connect to " + HostAddress.toString(addrs) + " : " + ioException.getMessage() + getTraces(),
+                            ioException);
                 }
             }
         }

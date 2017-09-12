@@ -83,25 +83,19 @@ public final class Driver implements java.sql.Driver {
      */
     public Connection connect(final String url, final Properties props) throws SQLException {
 
-        //log.debug("Connecting to: " + url);
-        try {
-            UrlParser urlParser = UrlParser.parse(url, props);
-            if (urlParser == null) {
-                return null;
-            }
-            if (urlParser.getHostAddresses() == null) {
-                //log.info("MariaDB connector : missing Host address");
-                return null;
-            } else {
-                ReentrantLock lock = new ReentrantLock();
-                Protocol protocol = Utils.retrieveProxy(urlParser, lock);
-                return MariaDbConnection.newConnection(url, protocol, lock);
-            }
-
-        } catch (SQLException e) {
-            ExceptionMapper.throwException(e, null, null);
+        UrlParser urlParser = UrlParser.parse(url, props);
+        if (urlParser == null) {
             return null;
         }
+        if (urlParser.getHostAddresses() == null) {
+            //log.info("MariaDB connector : missing Host address");
+            return null;
+        } else {
+            ReentrantLock lock = new ReentrantLock();
+            Protocol protocol = Utils.retrieveProxy(urlParser, lock);
+            return MariaDbConnection.newConnection(url, protocol, lock);
+        }
+
     }
 
     /**
