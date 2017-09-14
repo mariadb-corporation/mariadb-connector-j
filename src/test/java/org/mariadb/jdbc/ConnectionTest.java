@@ -394,4 +394,26 @@ public class ConnectionTest extends BaseTest {
     }
 
 
+    @Test
+    public void testValidTimeout() throws Throwable {
+        try (Connection connection = createProxyConnection(new Properties())) {
+            delayProxy(200);
+            assertTrue(connection.isValid(1)); //1 second
+            removeDelayProxy();
+        }
+    }
+
+    @Test
+    public void testValidFailedTimeout() throws Throwable {
+
+        try (Connection connection = createProxyConnection(new Properties())) {
+            delayProxy(2000);
+            long start = System.currentTimeMillis();
+            assertFalse(connection.isValid(1)); //1 second
+            assertTrue(System.currentTimeMillis() - start < 1050);
+            removeDelayProxy();
+            Thread.sleep(2000);
+        }
+
+    }
 }

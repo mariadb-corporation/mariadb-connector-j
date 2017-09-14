@@ -59,6 +59,7 @@ import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
+import java.net.SocketException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -307,9 +308,28 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     }
 
     @Override
-    public boolean isValid() throws SQLException {
-        if (isMasterConnection()) return checkIfMaster();
-        return ping();
+    public boolean isValid(int timeout) throws SQLException {
+
+        try {
+
+            this.socket.setSoTimeout(timeout);
+
+            if (isMasterConnection()) return checkIfMaster();
+            return ping();
+
+        } catch (SocketException socketException) {
+            throw new SQLException("Could not valid connection : " + socketException.getMessage(),
+                    CONNECTION_EXCEPTION.getSqlState(),
+                    socketException);
+        } finally {
+
+            //set back initial socket timeout
+            try {
+                this.socket.setSoTimeout(options.socketTimeout == null ? 0 : options.socketTimeout);
+            } catch (SocketException socketException) {
+                //eat
+            }
+        }
     }
 
     /**

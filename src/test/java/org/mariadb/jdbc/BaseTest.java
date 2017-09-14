@@ -411,6 +411,15 @@ public class BaseTest {
         proxy.stop();
     }
 
+    public void delayProxy(int millissecond) {
+        proxy.setDelay(millissecond);
+    }
+
+    public void removeDelayProxy() {
+        proxy.removeDelay();
+    }
+
+
     /**
      * Restart proxy.
      */

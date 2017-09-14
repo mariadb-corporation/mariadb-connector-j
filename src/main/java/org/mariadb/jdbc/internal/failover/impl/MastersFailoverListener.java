@@ -135,7 +135,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
         proxy.lock.lock();
         try {
-            if (currentProtocol != null && currentProtocol.isConnected() && currentProtocol.isValid()) {
+            if (currentProtocol != null && currentProtocol.isConnected() && currentProtocol.isValid(0)) {
                 //connection re-established
                 //if in transaction cannot be sure that the last query has been received by server of not,
                 // so rollback.and throw exception

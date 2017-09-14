@@ -137,7 +137,7 @@ public interface Protocol {
 
     boolean ping() throws SQLException;
 
-    boolean isValid() throws SQLException;
+    boolean isValid(int timeout) throws SQLException;
 
     void executeQuery(String sql) throws SQLException;
 

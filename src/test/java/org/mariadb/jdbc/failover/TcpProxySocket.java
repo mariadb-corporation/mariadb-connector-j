@@ -70,6 +70,7 @@ public class TcpProxySocket implements Runnable {
     private Socket client = null;
     private Socket server = null;
     private ServerSocket ss;
+    private int delay;
 
     /**
      * Creation of proxy.
@@ -91,6 +92,10 @@ public class TcpProxySocket implements Runnable {
 
     public boolean isClosed() {
         return ss.isClosed();
+    }
+
+    public void setDelay(int delay) {
+        this.delay = delay;
     }
 
     /**
@@ -163,6 +168,11 @@ public class TcpProxySocket implements Runnable {
                         int bytesRead;
                         try {
                             while ((bytesRead = fromClient.read(request)) != -1) {
+                                try {
+                                    Thread.sleep(delay);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
                                 toServer.write(request, 0, bytesRead);
                                 toServer.flush();
                             }

@@ -128,6 +128,24 @@ public class ExceptionMapper {
         return sqlException;
     }
 
+    /**
+     * Check connection exception to report to poolConnection listeners.
+     *
+     * @param exception current exception
+     * @param connection current connection
+     */
+    public static void checkConnectionException(SQLException exception, MariaDbConnection connection) {
+        if (exception.getSQLState() != null) {
+            SqlStates state = SqlStates.fromString(exception.getSQLState());
+            if (SqlStates.CONNECTION_EXCEPTION.equals(state)) {
+                connection.setHostFailed();
+                if (connection.pooledConnection != null) {
+                    connection.pooledConnection.fireConnectionErrorOccured(exception);
+                }
+            }
+        }
+    }
+
     private static SQLException get(final String message, String sqlState, int errorCode, final Throwable exception, boolean timeout) {
         final SqlStates state = SqlStates.fromString(sqlState);
         switch (state) {

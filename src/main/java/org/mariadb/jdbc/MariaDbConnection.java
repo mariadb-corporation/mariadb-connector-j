@@ -1160,8 +1160,8 @@ public class MariaDbConnection implements Connection {
      * transaction.</p>
      *
      * @param timeout - The time in seconds to wait for the database operation used to validate the connection to
-     *                complete.  If the timeout period expires before the operation completes, this method returns
-     *                false.  A value of 0 indicates a timeout is not applied to thedatabase operation.
+     *                complete. If the timeout period expires before the operation completes, this method returns
+     *                false.  A value of 0 indicates a timeout is not applied to the database operation.
      * @return true if the connection is valid, false otherwise
      * @throws SQLException if the value supplied for <code>timeout</code> is less then 0
      * @see DatabaseMetaData#getClientInfoProperties
@@ -1174,8 +1174,9 @@ public class MariaDbConnection implements Connection {
         if (isClosed()) return false;
 
         try {
-            return protocol.isValid();
+            return protocol.isValid(timeout * 1000);
         } catch (SQLException e) {
+            ExceptionMapper.checkConnectionException(e, this);
             return false;
         }
     }

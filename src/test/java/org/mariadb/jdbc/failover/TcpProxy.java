@@ -83,6 +83,14 @@ public class TcpProxy {
         socket.kill();
     }
 
+    public void setDelay(int delay) {
+        socket.setDelay(delay);
+    }
+
+    public void removeDelay() {
+        socket.setDelay(1);
+    }
+
     /**
      * Stop proxy and restart after X milliseconds.
      *
@@ -93,7 +101,6 @@ public class TcpProxy {
         logger.trace("host proxy port " + socket.getLocalport() + " for " + host + " started");
         Executors.newSingleThreadScheduledExecutor().schedule(socket, sleepTime, TimeUnit.MILLISECONDS);
     }
-
 
     /**
      * Restart proxy.

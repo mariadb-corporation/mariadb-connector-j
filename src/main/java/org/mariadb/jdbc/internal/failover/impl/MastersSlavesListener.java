@@ -533,7 +533,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         //try to reconnect automatically only time before looping
         proxy.lock.lock();
         try {
-            if (masterProtocol != null && masterProtocol.isConnected() && masterProtocol.isValid()) {
+            if (masterProtocol != null && masterProtocol.isConnected() && masterProtocol.isValid(0)) {
                 if (inTransaction) {
                     masterProtocol.rollback();
                     return new HandleErrorResult(true);
@@ -681,7 +681,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         if (!isMasterHostFail()) {
             try {
                 //check that master is on before switching to him
-                if (masterProtocol != null && masterProtocol.isValid()) {
+                if (masterProtocol != null && masterProtocol.isValid(0)) {
                     //switching to master connection
                     syncConnection(secondaryProtocol, masterProtocol);
                     proxy.lock.lock();

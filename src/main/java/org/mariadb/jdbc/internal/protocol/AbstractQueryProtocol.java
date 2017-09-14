@@ -1003,7 +1003,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     public boolean ping() throws SQLException {
 
         cmdPrologue();
-
         lock.lock();
         try {
 
@@ -1021,22 +1020,47 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
+    /**
+     * Check that connection is valid.
+     * !! careful, timeout is in milliseconds, connection.isValid(timeout) is in seconds !!
+     *
+     * @param timeout timeout in milliseconds
+     * @return true is valid
+     * @throws SQLException if any error occur
+     */
     @Override
-    public boolean isValid() throws SQLException {
+    public boolean isValid(int timeout) throws SQLException {
 
-        if (isMasterConnection() && urlParser.isMultiMaster()) {
-            //this is a galera node.
-            //checking not only that node is responding, but that this node is in primary mode too.
-            Results results = new Results();
-            executeQuery(true, results, "SELECT @@wsrep_cluster_status");
-            results.commandEnd();
-            ResultSet rs = results.getResultSet();
+        try {
 
-            //return true if connected to a galera node that is primary
-            return (rs != null && (!rs.next() || "PRIMARY".equalsIgnoreCase(rs.getString(1))));
+            this.socket.setSoTimeout(timeout);
+            if (isMasterConnection() && urlParser.isMultiMaster()) {
+                //this is a galera node.
+                //checking not only that node is responding, but that this node is in primary mode too.
+                Results results = new Results();
+                executeQuery(true, results, "SELECT @@wsrep_cluster_status");
+                results.commandEnd();
+                ResultSet rs = results.getResultSet();
+
+                //return true if connected to a galera node that is primary
+                return (rs != null && (!rs.next() || "PRIMARY".equalsIgnoreCase(rs.getString(1))));
+            }
+
+            return ping();
+
+        } catch (SocketException socketException) {
+            throw new SQLException("Could not valid connection : " + socketException.getMessage(),
+                    CONNECTION_EXCEPTION.getSqlState(),
+                    socketException);
+        } finally {
+
+            //set back initial socket timeout
+            try {
+                this.socket.setSoTimeout(options.socketTimeout == null ? 0 : options.socketTimeout);
+            } catch (SocketException socketException) {
+                //eat
+            }
         }
-
-        return ping();
     }
 
 
