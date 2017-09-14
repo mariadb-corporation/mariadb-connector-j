@@ -76,8 +76,6 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @BeforeClass()
     public static void beforeClass2() {
@@ -88,8 +86,6 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @Before
     public void init() {

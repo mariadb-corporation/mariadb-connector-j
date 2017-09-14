@@ -52,14 +52,10 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.sql.*;
 import java.util.Properties;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 public final class Driver implements java.sql.Driver {
@@ -91,9 +87,7 @@ public final class Driver implements java.sql.Driver {
             //log.info("MariaDB connector : missing Host address");
             return null;
         } else {
-            ReentrantLock lock = new ReentrantLock();
-            Protocol protocol = Utils.retrieveProxy(urlParser, lock);
-            return MariaDbConnection.newConnection(url, protocol, lock);
+            return MariaDbConnection.newConnection(urlParser);
         }
 
     }

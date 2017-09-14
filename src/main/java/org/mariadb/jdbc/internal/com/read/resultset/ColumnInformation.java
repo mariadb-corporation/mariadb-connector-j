@@ -229,7 +229,7 @@ public class ColumnInformation {
         arr[pos++] = 0; /* decimals */
 
         arr[pos++] = 0; /* 2 bytes filler */
-        arr[pos++] = 0;
+        arr[pos] = 0;
 
         return new ColumnInformation(new Buffer(arr));
     }

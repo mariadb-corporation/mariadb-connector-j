@@ -74,8 +74,6 @@ public class TimeoutTest extends BaseTest {
 
     /**
      * Conj-79.
-     *
-     * @throws SQLException exception
      */
     @Test
     public void resultSetAfterSocketTimeoutTest() {

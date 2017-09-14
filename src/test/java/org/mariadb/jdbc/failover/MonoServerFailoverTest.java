@@ -70,8 +70,6 @@ public class MonoServerFailoverTest extends BaseMonoServer {
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @BeforeClass()
     public static void beforeClass2() {
@@ -80,8 +78,6 @@ public class MonoServerFailoverTest extends BaseMonoServer {
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @Before
     public void init() {

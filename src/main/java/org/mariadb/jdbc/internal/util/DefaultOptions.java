@@ -641,7 +641,7 @@ public enum DefaultOptions {
      *
      * @param optionName current option name
      * @param properties list of properties
-     * @return  properties or alias value if existant
+     * @return properties or alias value if existant
      */
     private static String handleAlias(String optionName, Properties properties) {
         String propertyValue = properties.getProperty(optionName);

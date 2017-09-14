@@ -126,7 +126,6 @@ public class BaseMultiHostTest {
      * Initialize parameters.
      *
      * @throws SQLException exception
-     * @throws IOException  exception
      */
     @BeforeClass
     public static void beforeClass() throws SQLException {
@@ -234,8 +233,6 @@ public class BaseMultiHostTest {
 
     /**
      * Clean proxies.
-     *
-     * @throws SQLException exception
      */
     @AfterClass
     public static void afterClass() {
@@ -253,8 +250,6 @@ public class BaseMultiHostTest {
     /**
      * Delete table and procedure if created.
      * Close connection if needed
-     *
-     * @throws SQLException exception
      */
     @After
     public void afterBaseTest() {

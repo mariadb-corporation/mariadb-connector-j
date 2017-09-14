@@ -254,9 +254,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      */
     public Connection getConnection() throws SQLException {
         try {
-            ReentrantLock lock = new ReentrantLock();
-            Protocol proxyfiedProtocol = Utils.retrieveProxy(urlParser, lock);
-            return MariaDbConnection.newConnection(urlParser.getInitialUrl(), proxyfiedProtocol, lock);
+            return MariaDbConnection.newConnection(urlParser);
         } catch (SQLException e) {
             ExceptionMapper.throwException(e, null, null);
             return null;

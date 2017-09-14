@@ -179,12 +179,8 @@ public class CancelTest extends BaseTest {
         public void run() {
             try {
                 Thread.sleep(100);
-
                 stmt.cancel();
-
-            } catch (SQLException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
+            } catch (SQLException | InterruptedException e) {
                 e.printStackTrace();
             }
         }

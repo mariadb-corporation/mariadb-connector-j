@@ -79,8 +79,6 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @BeforeClass()
     public static void beforeClass2() {
@@ -90,8 +88,6 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @Before
     public void init() {

@@ -162,12 +162,8 @@ public class Options {
     @SuppressWarnings("SimplifiableIfStatement")
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null || getClass() != obj.getClass()) {
-            return false;
-        }
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
 
         Options options = (Options) obj;
 
@@ -193,9 +189,17 @@ public class Options {
         if (useLegacyDatetimeCode != options.useLegacyDatetimeCode) return false;
         if (maximizeMysqlCompatibility != options.maximizeMysqlCompatibility) return false;
         if (useServerPrepStmts != options.useServerPrepStmts) return false;
-        if (assureReadOnly != options.assureReadOnly) return false;
+        if (continueBatchOnError != options.continueBatchOnError) return false;
+        if (jdbcCompliantTruncation != options.jdbcCompliantTruncation) return false;
+        if (cacheCallableStmts != options.cacheCallableStmts) return false;
+        if (useBatchMultiSendNumber != options.useBatchMultiSendNumber) return false;
+        if (killFetchStmtOnClose != options.killFetchStmtOnClose) return false;
+        if (enablePacketDebug != options.enablePacketDebug) return false;
+        if (useBulkStmts != options.useBulkStmts) return false;
+        if (disableSslHostnameVerification != options.disableSslHostnameVerification) return false;
         if (log != options.log) return false;
         if (profileSql != options.profileSql) return false;
+        if (assureReadOnly != options.assureReadOnly) return false;
         if (autoReconnect != options.autoReconnect) return false;
         if (failOnReadOnly != options.failOnReadOnly) return false;
         if (retriesAllDown != options.retriesAllDown) return false;
@@ -203,80 +207,135 @@ public class Options {
         if (loadBalanceBlacklistTimeout != options.loadBalanceBlacklistTimeout) return false;
         if (failoverLoopRetries != options.failoverLoopRetries) return false;
         if (user != null ? !user.equals(options.user) : options.user != null) return false;
-        if ((passwordCharacterEncoding != null && !passwordCharacterEncoding.equals(options.passwordCharacterEncoding))
-                || options.passwordCharacterEncoding != null) {
-            return false;
-        }
-
         if (password != null ? !password.equals(options.password) : options.password != null) return false;
-        if (serverSslCert != null ? !serverSslCert.equals(options.serverSslCert) : options.serverSslCert != null) {
+        if (serverSslCert != null ? !serverSslCert.equals(options.serverSslCert) : options.serverSslCert != null)
             return false;
-        }
-        if (enabledSslProtocolSuites != null
-                ? !enabledSslProtocolSuites.equals(options.enabledSslProtocolSuites)
-                : options.enabledSslProtocolSuites != null) {
+        if (trustStore != null ? !trustStore.equals(options.trustStore) : options.trustStore != null) return false;
+        if (trustStorePassword != null ? !trustStorePassword.equals(options.trustStorePassword) : options.trustStorePassword != null)
             return false;
-        }
-        if (socketFactory != null ? !socketFactory.equals(options.socketFactory) : options.socketFactory != null) {
+        if (keyStore != null ? !keyStore.equals(options.keyStore) : options.keyStore != null) return false;
+        if (keyStorePassword != null ? !keyStorePassword.equals(options.keyStorePassword) : options.keyStorePassword != null)
             return false;
-        }
-        if (connectTimeout != null ? !connectTimeout.equals(options.connectTimeout) : options.connectTimeout != null) {
+        if (keyPassword != null ? !keyPassword.equals(options.keyPassword) : options.keyPassword != null) return false;
+        if (enabledSslProtocolSuites != null ? !enabledSslProtocolSuites.equals(options.enabledSslProtocolSuites) : options.enabledSslProtocolSuites != null)
             return false;
-        }
+        if (socketFactory != null ? !socketFactory.equals(options.socketFactory) : options.socketFactory != null)
+            return false;
+        if (connectTimeout != options.connectTimeout) return false;
         if (pipe != null ? !pipe.equals(options.pipe) : options.pipe != null) return false;
         if (localSocket != null ? !localSocket.equals(options.localSocket) : options.localSocket != null) return false;
-        if (sharedMemory != null ? !sharedMemory.equals(options.sharedMemory) : options.sharedMemory != null) {
+        if (sharedMemory != null ? !sharedMemory.equals(options.sharedMemory) : options.sharedMemory != null)
             return false;
-        }
         if (tcpRcvBuf != null ? !tcpRcvBuf.equals(options.tcpRcvBuf) : options.tcpRcvBuf != null) return false;
         if (tcpSndBuf != null ? !tcpSndBuf.equals(options.tcpSndBuf) : options.tcpSndBuf != null) return false;
-        if (localSocketAddress != null ? !localSocketAddress.equals(options.localSocketAddress) : options.localSocketAddress != null) {
+        if (localSocketAddress != null ? !localSocketAddress.equals(options.localSocketAddress) : options.localSocketAddress != null)
             return false;
-        }
-        if (enabledSslCipherSuites != null) {
-            if (!enabledSslCipherSuites.equals(options.enabledSslCipherSuites)) return false;
-        } else if (options.enabledSslCipherSuites != null) {
+        if (socketTimeout != null ? !socketTimeout.equals(options.socketTimeout) : options.socketTimeout != null)
             return false;
-        }
-
-        if (socketTimeout != null ? !socketTimeout.equals(options.socketTimeout) : options.socketTimeout != null) {
+        if (passwordCharacterEncoding != null ? !passwordCharacterEncoding.equals(options.passwordCharacterEncoding) : options.passwordCharacterEncoding != null)
             return false;
-        }
-        if (sessionVariables != null ? !sessionVariables.equals(options.sessionVariables) : options.sessionVariables != null) {
+        if (enabledSslCipherSuites != null ? !enabledSslCipherSuites.equals(options.enabledSslCipherSuites) : options.enabledSslCipherSuites != null)
             return false;
-        }
-        if (serverTimezone != null ? !serverTimezone.equals(options.serverTimezone) : options.serverTimezone != null) {
+        if (sessionVariables != null ? !sessionVariables.equals(options.sessionVariables) : options.sessionVariables != null)
             return false;
-        }
-        if (prepStmtCacheSize != null ? !prepStmtCacheSize.equals(options.prepStmtCacheSize) : options.prepStmtCacheSize != null) {
+        if (serverTimezone != null ? !serverTimezone.equals(options.serverTimezone) : options.serverTimezone != null)
             return false;
-        }
-        if (continueBatchOnError != options.continueBatchOnError) return false;
-        if (jdbcCompliantTruncation != options.jdbcCompliantTruncation) return false;
-        if (cacheCallableStmts != options.cacheCallableStmts) return false;
-        if (callableStmtCacheSize != null ? !callableStmtCacheSize.equals(options.callableStmtCacheSize) : options.callableStmtCacheSize != null) {
+        if (prepStmtCacheSize != null ? !prepStmtCacheSize.equals(options.prepStmtCacheSize) : options.prepStmtCacheSize != null)
             return false;
-        }
-        if (maxQuerySizeToLog != null ? !maxQuerySizeToLog.equals(options.maxQuerySizeToLog) : options.maxQuerySizeToLog != null) {
+        if (prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit) : options.prepStmtCacheSqlLimit != null)
             return false;
-        }
-        if (connectionAttributes != null ? !connectionAttributes.equals(options.connectionAttributes) : options.connectionAttributes != null) {
+        if (callableStmtCacheSize != null ? !callableStmtCacheSize.equals(options.callableStmtCacheSize) : options.callableStmtCacheSize != null)
             return false;
-        }
-        if (slowQueryThresholdNanos != null
-                ? !slowQueryThresholdNanos.equals(options.slowQueryThresholdNanos) : options.slowQueryThresholdNanos != null) {
+        if (connectionAttributes != null ? !connectionAttributes.equals(options.connectionAttributes) : options.connectionAttributes != null)
             return false;
-        }
-        if (useBatchMultiSend != options.useBatchMultiSend) return false;
-        if (useBatchMultiSendNumber != options.useBatchMultiSendNumber) return false;
-        if (usePipelineAuth != options.usePipelineAuth) return false;
-        if (useBulkStmts != options.useBulkStmts) return false;
-        if (enablePacketDebug != options.enablePacketDebug) return false;
-        if (killFetchStmtOnClose != options.killFetchStmtOnClose) return false;
-        if (disableSslHostnameVerification != options.disableSslHostnameVerification) return false;
-        return !(prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(options.prepStmtCacheSqlLimit)
-                : options.prepStmtCacheSqlLimit != null);
-
+        if (useBatchMultiSend != null ? !useBatchMultiSend.equals(options.useBatchMultiSend) : options.useBatchMultiSend != null)
+            return false;
+        if (usePipelineAuth != null ? !usePipelineAuth.equals(options.usePipelineAuth) : options.usePipelineAuth != null)
+            return false;
+        if (maxQuerySizeToLog != null ? !maxQuerySizeToLog.equals(options.maxQuerySizeToLog) : options.maxQuerySizeToLog != null)
+            return false;
+        if (slowQueryThresholdNanos != null ? !slowQueryThresholdNanos.equals(options.slowQueryThresholdNanos) : options.slowQueryThresholdNanos != null)
+            return false;
+        return true;
     }
 
+    @SuppressWarnings("SimplifiableIfStatement")
+    @Override
+    public int hashCode() {
+        int result = user != null ? user.hashCode() : 0;
+        result = 31 * result + (password != null ? password.hashCode() : 0);
+        result = 31 * result + (trustServerCertificate ? 1 : 0);
+        result = 31 * result + (serverSslCert != null ? serverSslCert.hashCode() : 0);
+        result = 31 * result + (trustStore != null ? trustStore.hashCode() : 0);
+        result = 31 * result + (trustStorePassword != null ? trustStorePassword.hashCode() : 0);
+        result = 31 * result + (keyStore != null ? keyStore.hashCode() : 0);
+        result = 31 * result + (keyStorePassword != null ? keyStorePassword.hashCode() : 0);
+        result = 31 * result + (keyPassword != null ? keyPassword.hashCode() : 0);
+        result = 31 * result + (enabledSslProtocolSuites != null ? enabledSslProtocolSuites.hashCode() : 0);
+        result = 31 * result + (useFractionalSeconds ? 1 : 0);
+        result = 31 * result + (pinGlobalTxToPhysicalConnection ? 1 : 0);
+        result = 31 * result + (socketFactory != null ? socketFactory.hashCode() : 0);
+        result = 31 * result + connectTimeout;
+        result = 31 * result + (pipe != null ? pipe.hashCode() : 0);
+        result = 31 * result + (localSocket != null ? localSocket.hashCode() : 0);
+        result = 31 * result + (sharedMemory != null ? sharedMemory.hashCode() : 0);
+        result = 31 * result + (tcpNoDelay ? 1 : 0);
+        result = 31 * result + (tcpKeepAlive ? 1 : 0);
+        result = 31 * result + (tcpRcvBuf != null ? tcpRcvBuf.hashCode() : 0);
+        result = 31 * result + (tcpSndBuf != null ? tcpSndBuf.hashCode() : 0);
+        result = 31 * result + (tcpAbortiveClose ? 1 : 0);
+        result = 31 * result + (localSocketAddress != null ? localSocketAddress.hashCode() : 0);
+        result = 31 * result + (socketTimeout != null ? socketTimeout.hashCode() : 0);
+        result = 31 * result + (allowMultiQueries ? 1 : 0);
+        result = 31 * result + (rewriteBatchedStatements ? 1 : 0);
+        result = 31 * result + (useCompression ? 1 : 0);
+        result = 31 * result + (interactiveClient ? 1 : 0);
+        result = 31 * result + (passwordCharacterEncoding != null ? passwordCharacterEncoding.hashCode() : 0);
+        result = 31 * result + (useSsl ? 1 : 0);
+        result = 31 * result + (enabledSslCipherSuites != null ? enabledSslCipherSuites.hashCode() : 0);
+        result = 31 * result + (sessionVariables != null ? sessionVariables.hashCode() : 0);
+        result = 31 * result + (tinyInt1isBit ? 1 : 0);
+        result = 31 * result + (yearIsDateType ? 1 : 0);
+        result = 31 * result + (createDatabaseIfNotExist ? 1 : 0);
+        result = 31 * result + (serverTimezone != null ? serverTimezone.hashCode() : 0);
+        result = 31 * result + (nullCatalogMeansCurrent ? 1 : 0);
+        result = 31 * result + (dumpQueriesOnException ? 1 : 0);
+        result = 31 * result + (useOldAliasMetadataBehavior ? 1 : 0);
+        result = 31 * result + (allowLocalInfile ? 1 : 0);
+        result = 31 * result + (cachePrepStmts ? 1 : 0);
+        result = 31 * result + (prepStmtCacheSize != null ? prepStmtCacheSize.hashCode() : 0);
+        result = 31 * result + (prepStmtCacheSqlLimit != null ? prepStmtCacheSqlLimit.hashCode() : 0);
+        result = 31 * result + (useLegacyDatetimeCode ? 1 : 0);
+        result = 31 * result + (maximizeMysqlCompatibility ? 1 : 0);
+        result = 31 * result + (useServerPrepStmts ? 1 : 0);
+        result = 31 * result + (continueBatchOnError ? 1 : 0);
+        result = 31 * result + (jdbcCompliantTruncation ? 1 : 0);
+        result = 31 * result + (cacheCallableStmts ? 1 : 0);
+        result = 31 * result + (callableStmtCacheSize != null ? callableStmtCacheSize.hashCode() : 0);
+        result = 31 * result + (connectionAttributes != null ? connectionAttributes.hashCode() : 0);
+        result = 31 * result + (useBatchMultiSend != null ? useBatchMultiSend.hashCode() : 0);
+        result = 31 * result + useBatchMultiSendNumber;
+        result = 31 * result + (usePipelineAuth != null ? usePipelineAuth.hashCode() : 0);
+        result = 31 * result + (killFetchStmtOnClose ? 1 : 0);
+        result = 31 * result + (enablePacketDebug ? 1 : 0);
+        result = 31 * result + (useBulkStmts ? 1 : 0);
+        result = 31 * result + (disableSslHostnameVerification ? 1 : 0);
+        result = 31 * result + (log ? 1 : 0);
+        result = 31 * result + (profileSql ? 1 : 0);
+        result = 31 * result + (maxQuerySizeToLog != null ? maxQuerySizeToLog.hashCode() : 0);
+        result = 31 * result + (slowQueryThresholdNanos != null ? slowQueryThresholdNanos.hashCode() : 0);
+        result = 31 * result + (assureReadOnly ? 1 : 0);
+        result = 31 * result + (autoReconnect ? 1 : 0);
+        result = 31 * result + (failOnReadOnly ? 1 : 0);
+        result = 31 * result + retriesAllDown;
+        result = 31 * result + validConnectionTimeout;
+        result = 31 * result + loadBalanceBlacklistTimeout;
+        result = 31 * result + failoverLoopRetries;
+        return result;
+    }
+
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
+    }
 }

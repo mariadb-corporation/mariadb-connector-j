@@ -100,7 +100,7 @@ public class MariaDbBlob implements Blob, Serializable {
     }
 
     private void readObject(ObjectInputStream in)
-            throws IOException, ClassNotFoundException {
+            throws IOException {
         actualSize = in.readInt();
         blobContent = new byte[actualSize];
         if (actualSize > 0) {

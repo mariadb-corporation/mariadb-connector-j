@@ -904,7 +904,7 @@ public class UpdateResultSetTest extends BaseTest {
 
         PreparedStatement preparedStatement = sharedConnection.prepareStatement(
                 "SELECT t1, t2, t1 as t3 FROM repeatedFieldUpdatable",
-                ResultSet.FETCH_FORWARD,
+                ResultSet.TYPE_FORWARD_ONLY,
                 ResultSet.CONCUR_UPDATABLE);
         ResultSet rs = preparedStatement.executeQuery();
         while (rs.next()) {

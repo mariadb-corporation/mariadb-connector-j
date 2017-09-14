@@ -461,11 +461,11 @@ public class Utils {
      * if a failover option is precised, protocol will be proxied so that any connection error will be handle directly.
      *
      * @param urlParser urlParser corresponding to connection url string.
-     * @param lock      lock to handle thread synchronisation
      * @return protocol
      * @throws SQLException if any error occur during connection
      */
-    public static Protocol retrieveProxy(final UrlParser urlParser, final ReentrantLock lock) throws SQLException {
+    public static Protocol retrieveProxy(final UrlParser urlParser) throws SQLException {
+        final ReentrantLock lock = new ReentrantLock();
         Protocol protocol;
         switch (urlParser.getHaMode()) {
             case AURORA:

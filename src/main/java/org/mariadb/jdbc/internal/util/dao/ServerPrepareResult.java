@@ -59,18 +59,16 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ServerPrepareResult implements PrepareResult {
-    private int statementId;
     private final ColumnInformation[] columns;
     private final ColumnInformation[] parameters;
+    private final String sql;
+    private final AtomicBoolean inCache = new AtomicBoolean();
+    private int statementId;
     private ColumnType[] parameterTypeHeader;
     private Protocol unProxiedProtocol;
-    private final String sql;
-
-
     //share indicator
     private volatile int shareCounter = 1;
     private volatile boolean isBeingDeallocate;
-    private final AtomicBoolean inCache = new AtomicBoolean();
 
     /**
      * PrepareStatement Result object.

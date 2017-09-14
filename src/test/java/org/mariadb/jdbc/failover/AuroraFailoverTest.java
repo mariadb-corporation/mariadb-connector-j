@@ -79,8 +79,6 @@ public class AuroraFailoverTest extends BaseReplication {
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @BeforeClass()
     public static void beforeClass2() {
@@ -91,8 +89,6 @@ public class AuroraFailoverTest extends BaseReplication {
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @Before
     public void init() {

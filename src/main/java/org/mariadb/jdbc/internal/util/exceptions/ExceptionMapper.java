@@ -54,7 +54,6 @@ package org.mariadb.jdbc.internal.util.exceptions;
 
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
-import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.util.SqlStates;
 
 import java.sql.*;

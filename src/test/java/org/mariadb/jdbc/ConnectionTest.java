@@ -194,8 +194,6 @@ public class ConnectionTest extends BaseTest {
 
     /**
      * Conj-120 Fix Connection.isValid method.
-     *
-     * @throws SQLException exception
      */
     @Test
     public void isValidShouldThrowExceptionWithNegativeTimeout() {

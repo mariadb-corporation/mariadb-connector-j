@@ -321,8 +321,8 @@ public class ClientPrepareResult implements PrepareResult {
      * <li>After value and first parameter part</li>
      * <li>for each parameters :
      * <ul>
-     *      <li>part after parameter and before last parenthesis</li>
-     *      <li>Last query part</li>
+     * <li>part after parameter and before last parenthesis</li>
+     * <li>Last query part</li>
      * </ul>
      * </li>
      * </ul>

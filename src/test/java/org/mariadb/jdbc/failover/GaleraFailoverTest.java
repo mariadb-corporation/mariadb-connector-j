@@ -76,8 +76,6 @@ import static org.junit.Assert.assertTrue;
 public class GaleraFailoverTest extends SequentialFailoverTest {
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @BeforeClass()
     public static void beforeClass2() {
@@ -87,8 +85,6 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @Before
     public void init() {

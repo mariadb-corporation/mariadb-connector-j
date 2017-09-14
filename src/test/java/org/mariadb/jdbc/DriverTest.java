@@ -1137,8 +1137,6 @@ public class DriverTest extends BaseTest {
 
     /**
      * CONJ-293 : permit connection to named pipe when no host is defined.
-     *
-     * @throws Exception mustn't occur.
      */
     @Test
     public void namedPipeWithoutHost() {
@@ -1304,9 +1302,7 @@ public class DriverTest extends BaseTest {
                     Thread.sleep(1000);
                 }
 
-            } catch (SQLException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
+            } catch (SQLException | InterruptedException e) {
                 e.printStackTrace();
             }
         }

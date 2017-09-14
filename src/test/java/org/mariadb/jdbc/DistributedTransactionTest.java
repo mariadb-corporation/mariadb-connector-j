@@ -75,7 +75,7 @@ public class DistributedTransactionTest extends BaseTest {
     /**
      * Initialisation.
      */
-    public DistributedTransactionTest() {
+    public DistributedTransactionTest() throws SQLException{
         dataSource = new MariaDbDataSource();
         dataSource.setServerName(hostname);
         dataSource.setPortNumber(port);
