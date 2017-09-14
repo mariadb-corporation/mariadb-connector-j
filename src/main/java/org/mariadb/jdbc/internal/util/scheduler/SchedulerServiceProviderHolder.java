@@ -76,7 +76,7 @@ public class SchedulerServiceProviderHolder {
 
         @Override
         public ScheduledThreadPoolExecutor getTimeoutScheduler() {
-            ScheduledThreadPoolExecutor timeoutScheduler = new ScheduledThreadPoolExecutor(1, new MariaDbThreadFactory("timeout"));
+            ScheduledThreadPoolExecutor timeoutScheduler = new ScheduledThreadPoolExecutor(1, new MariaDbThreadFactory("MariaDb-timeout"));
             timeoutScheduler.setRemoveOnCancelPolicy(true);
             return timeoutScheduler;
         }
@@ -84,7 +84,7 @@ public class SchedulerServiceProviderHolder {
         @Override
         @SuppressWarnings("unchecked")
         public ThreadPoolExecutor getBulkScheduler() {
-            return new ThreadPoolExecutor(5, 100, 1, TimeUnit.MINUTES, new SynchronousQueue(), new MariaDbThreadFactory("bulk"));
+            return new ThreadPoolExecutor(5, 100, 1, TimeUnit.MINUTES, new SynchronousQueue(), new MariaDbThreadFactory("MariaDb-bulk"));
         }
 
     };

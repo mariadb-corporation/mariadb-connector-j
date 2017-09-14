@@ -83,7 +83,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     private static final Logger logger = LoggerFactory.getLogger(MastersSlavesListener.class);
 
     static {
-        dynamicSizedScheduler = SchedulerServiceProviderHolder.getScheduler(1, "failover", 8);
+        dynamicSizedScheduler = SchedulerServiceProviderHolder.getScheduler(1, "MariaDb-failover", 8);
 
         // fail loop scaling happens async and only from a single thread
         dynamicSizedScheduler.scheduleWithFixedDelay(new Runnable() {
