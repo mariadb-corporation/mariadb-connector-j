@@ -58,9 +58,7 @@ import org.junit.Test;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.*;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.Executor;
 
 import static org.junit.Assert.*;
@@ -397,9 +395,18 @@ public class ConnectionTest extends BaseTest {
     @Test
     public void testValidTimeout() throws Throwable {
         try (Connection connection = createProxyConnection(new Properties())) {
+            //ensuring to reactivate proxy
+            Timer timer = new Timer();
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    removeDelayProxy();
+                }
+            }, 1000);
+
             delayProxy(200);
             assertTrue(connection.isValid(1)); //1 second
-            removeDelayProxy();
+            Thread.sleep(2000);
         }
     }
 
@@ -407,11 +414,19 @@ public class ConnectionTest extends BaseTest {
     public void testValidFailedTimeout() throws Throwable {
 
         try (Connection connection = createProxyConnection(new Properties())) {
+            //ensuring to reactivate proxy
+            Timer timer = new Timer();
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    removeDelayProxy();
+                }
+            }, 2000);
+
             delayProxy(2000);
             long start = System.currentTimeMillis();
             assertFalse(connection.isValid(1)); //1 second
             assertTrue(System.currentTimeMillis() - start < 1050);
-            removeDelayProxy();
             Thread.sleep(2000);
         }
 
