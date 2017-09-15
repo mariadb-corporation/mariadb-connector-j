@@ -55,7 +55,8 @@ package org.mariadb.jdbc.internal.util;
 import java.lang.reflect.Field;
 
 @SuppressWarnings("ConstantConditions")
-public class Options {
+public class Options implements Cloneable {
+
     //standard options
     public String user;
     public String password;
@@ -69,15 +70,15 @@ public class Options {
     public String keyStorePassword;
     public String keyPassword;
     public String enabledSslProtocolSuites;
-    public boolean useFractionalSeconds;
+    public boolean useFractionalSeconds = true;
     public boolean pinGlobalTxToPhysicalConnection;
     public String socketFactory;
     public Integer connectTimeout;
     public String pipe;
     public String localSocket;
     public String sharedMemory;
-    public boolean tcpNoDelay;
-    public boolean tcpKeepAlive;
+    public boolean tcpNoDelay = true;
+    public boolean tcpKeepAlive = true;
     public Integer tcpRcvBuf;
     public Integer tcpSndBuf;
     public boolean tcpAbortiveClose;
@@ -92,47 +93,47 @@ public class Options {
     public boolean useSsl;
     public String enabledSslCipherSuites;
     public String sessionVariables;
-    public boolean tinyInt1isBit;
-    public boolean yearIsDateType;
+    public boolean tinyInt1isBit = true;
+    public boolean yearIsDateType = true;
     public boolean createDatabaseIfNotExist;
     public String serverTimezone;
-    public boolean nullCatalogMeansCurrent;
-    public boolean dumpQueriesOnException;
+    public boolean nullCatalogMeansCurrent = true;
+    public boolean dumpQueriesOnException = true;
     public boolean useOldAliasMetadataBehavior;
-    public boolean allowLocalInfile;
-    public boolean cachePrepStmts;
-    public Integer prepStmtCacheSize;
-    public Integer prepStmtCacheSqlLimit;
-    public boolean useLegacyDatetimeCode;
+    public boolean allowLocalInfile = true;
+    public boolean cachePrepStmts = true;
+    public int prepStmtCacheSize = 250;
+    public Integer prepStmtCacheSqlLimit = 2048;
+    public boolean useLegacyDatetimeCode = true;
     public boolean maximizeMysqlCompatibility;
     public boolean useServerPrepStmts;
-    public boolean continueBatchOnError;
-    public boolean jdbcCompliantTruncation;
-    public boolean cacheCallableStmts;
-    public Integer callableStmtCacheSize;
+    public boolean continueBatchOnError = true;
+    public boolean jdbcCompliantTruncation = true;
+    public boolean cacheCallableStmts = true;
+    public int callableStmtCacheSize = 150;
     public String connectionAttributes;
     public Boolean useBatchMultiSend;
-    public int useBatchMultiSendNumber;
+    public int useBatchMultiSendNumber = 100;
     public Boolean usePipelineAuth;
-    public boolean killFetchStmtOnClose;
+    public boolean killFetchStmtOnClose = true;
     public boolean enablePacketDebug;
-    public boolean useBulkStmts;
+    public boolean useBulkStmts = true;
     public boolean disableSslHostnameVerification;
 
     //logging options
     public boolean log;
     public boolean profileSql;
-    public Integer maxQuerySizeToLog;
+    public int maxQuerySizeToLog = 1024;
     public Long slowQueryThresholdNanos;
 
     //HA options
     public boolean assureReadOnly;
     public boolean autoReconnect;
     public boolean failOnReadOnly;
-    public int retriesAllDown;
+    public int retriesAllDown = 120;
     public int validConnectionTimeout;
-    public int loadBalanceBlacklistTimeout;
-    public int failoverLoopRetries;
+    public int loadBalanceBlacklistTimeout = 50;
+    public int failoverLoopRetries = 120;
 
     @Override
     public String toString() {
@@ -220,7 +221,7 @@ public class Options {
             return false;
         }
         if (socketFactory != null ? !socketFactory.equals(opt.socketFactory) : opt.socketFactory != null) return false;
-        if (connectTimeout != opt.connectTimeout) return false;
+        if (connectTimeout != null ? !connectTimeout.equals(opt.connectTimeout) : opt.connectTimeout != null) return false;
         if (pipe != null ? !pipe.equals(opt.pipe) : opt.pipe != null) return false;
         if (localSocket != null ? !localSocket.equals(opt.localSocket) : opt.localSocket != null) return false;
         if (sharedMemory != null ? !sharedMemory.equals(opt.sharedMemory) : opt.sharedMemory != null) return false;
@@ -239,19 +240,17 @@ public class Options {
         }
         if (sessionVariables != null ? !sessionVariables.equals(opt.sessionVariables) : opt.sessionVariables != null) return false;
         if (serverTimezone != null ? !serverTimezone.equals(opt.serverTimezone) : opt.serverTimezone != null) return false;
-        if (prepStmtCacheSize != null ? !prepStmtCacheSize.equals(opt.prepStmtCacheSize) : opt.prepStmtCacheSize != null) return false;
+        if (prepStmtCacheSize != opt.prepStmtCacheSize) return false;
         if (prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(opt.prepStmtCacheSqlLimit) : opt.prepStmtCacheSqlLimit != null) {
             return false;
         }
-        if (callableStmtCacheSize != null ? !callableStmtCacheSize.equals(opt.callableStmtCacheSize) : opt.callableStmtCacheSize != null) {
-            return false;
-        }
+        if (callableStmtCacheSize != opt.callableStmtCacheSize) return false;
         if (connectionAttributes != null ? !connectionAttributes.equals(opt.connectionAttributes) : opt.connectionAttributes != null) {
             return false;
         }
         if (useBatchMultiSend != null ? !useBatchMultiSend.equals(opt.useBatchMultiSend) : opt.useBatchMultiSend != null) return false;
         if (usePipelineAuth != null ? !usePipelineAuth.equals(opt.usePipelineAuth) : opt.usePipelineAuth != null) return false;
-        if (maxQuerySizeToLog != null ? !maxQuerySizeToLog.equals(opt.maxQuerySizeToLog) : opt.maxQuerySizeToLog != null) return false;
+        if (maxQuerySizeToLog != opt.maxQuerySizeToLog) return false;
         if (slowQueryThresholdNanos != null ? !slowQueryThresholdNanos.equals(opt.slowQueryThresholdNanos) : opt.slowQueryThresholdNanos != null) {
             return false;
         }
@@ -274,7 +273,7 @@ public class Options {
         result = 31 * result + (useFractionalSeconds ? 1 : 0);
         result = 31 * result + (pinGlobalTxToPhysicalConnection ? 1 : 0);
         result = 31 * result + (socketFactory != null ? socketFactory.hashCode() : 0);
-        result = 31 * result + connectTimeout;
+        result = 31 * result + (connectTimeout != null ? connectTimeout.hashCode() : 0);
         result = 31 * result + (pipe != null ? pipe.hashCode() : 0);
         result = 31 * result + (localSocket != null ? localSocket.hashCode() : 0);
         result = 31 * result + (sharedMemory != null ? sharedMemory.hashCode() : 0);
@@ -302,7 +301,7 @@ public class Options {
         result = 31 * result + (useOldAliasMetadataBehavior ? 1 : 0);
         result = 31 * result + (allowLocalInfile ? 1 : 0);
         result = 31 * result + (cachePrepStmts ? 1 : 0);
-        result = 31 * result + (prepStmtCacheSize != null ? prepStmtCacheSize.hashCode() : 0);
+        result = 31 * result + prepStmtCacheSize;
         result = 31 * result + (prepStmtCacheSqlLimit != null ? prepStmtCacheSqlLimit.hashCode() : 0);
         result = 31 * result + (useLegacyDatetimeCode ? 1 : 0);
         result = 31 * result + (maximizeMysqlCompatibility ? 1 : 0);
@@ -310,7 +309,7 @@ public class Options {
         result = 31 * result + (continueBatchOnError ? 1 : 0);
         result = 31 * result + (jdbcCompliantTruncation ? 1 : 0);
         result = 31 * result + (cacheCallableStmts ? 1 : 0);
-        result = 31 * result + (callableStmtCacheSize != null ? callableStmtCacheSize.hashCode() : 0);
+        result = 31 * result + callableStmtCacheSize;
         result = 31 * result + (connectionAttributes != null ? connectionAttributes.hashCode() : 0);
         result = 31 * result + (useBatchMultiSend != null ? useBatchMultiSend.hashCode() : 0);
         result = 31 * result + useBatchMultiSendNumber;
@@ -321,7 +320,7 @@ public class Options {
         result = 31 * result + (disableSslHostnameVerification ? 1 : 0);
         result = 31 * result + (log ? 1 : 0);
         result = 31 * result + (profileSql ? 1 : 0);
-        result = 31 * result + (maxQuerySizeToLog != null ? maxQuerySizeToLog.hashCode() : 0);
+        result = 31 * result + maxQuerySizeToLog;
         result = 31 * result + (slowQueryThresholdNanos != null ? slowQueryThresholdNanos.hashCode() : 0);
         result = 31 * result + (assureReadOnly ? 1 : 0);
         result = 31 * result + (autoReconnect ? 1 : 0);

@@ -54,10 +54,11 @@ package org.mariadb.jdbc.internal.util;
 
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
+import java.lang.reflect.Field;
 import java.util.Properties;
 
-@SuppressWarnings("ALL")
 public enum DefaultOptions {
+
     /**
      * Database user name.
      */
@@ -67,6 +68,9 @@ public enum DefaultOptions {
      */
     PASSWORD("password", "1.0.0"),
 
+    /**
+     * The connect timeout value, in milliseconds, or zero for no timeout.
+     */
     CONNECT_TIMEOUT("connectTimeout", (Integer) null, 0, "1.1.8"),
 
     /**
@@ -309,7 +313,7 @@ public enum DefaultOptions {
      * <p>
      * (legacy alias trustCertificateKeyStoreUrl)
      */
-    TRUST_CERTIFICATE_KEYSTORE_URL("trustStore", "1.3.0"),
+    TRUSTSTORE("trustStore", "1.3.0"),
 
     /**
      * Password for the trusted root certificate file (similar to java System property "javax.net.ssl.trustStorePassword").
@@ -323,13 +327,13 @@ public enum DefaultOptions {
      * (similar to java System property "javax.net.ssl.keyStore", but ensure that only the private key's entries are used).
      * (legacy alias clientCertificateKeyStoreUrl)
      */
-    CLIENT_CERTIFICATE_KEYSTORE_URL("keyStore", "1.3.0"),
+    KEYSTORE("keyStore", "1.3.0"),
 
     /**
      * Password for the client certificate keystore  (similar to java System property "javax.net.ssl.keyStorePassword").
      * (legacy alias clientCertificateKeyStorePassword)
      */
-    CLIENT_CERTIFICATE_KEYSTORE_PASSWORD("keyStorePassword", "1.3.0"),
+    KEYSTORE_PASSWORD("keyStorePassword", "1.3.0"),
 
     /**
      * Password for the private key contain in client certificate keystore.
@@ -448,7 +452,6 @@ public enum DefaultOptions {
     /**
      * When using ssl, driver check hostname against the server's identity as presented in the server's Certificate
      * (checking alternative names or certificate CN) to prevent man-in-the-middle attack.
-     *
      * This option permit to deactivate this validation.
      */
     SSL_HOSTNAME_VERIFICATION("disableSslHostnameVerification", Boolean.FALSE, "2.1.0"),
@@ -460,34 +463,33 @@ public enum DefaultOptions {
      */
     USE_BULK_PROTOCOL("useBulkStmts", Boolean.TRUE, "2.1.0");
 
-    private final String name;
+    private final String optionName;
     private final Object objType;
     private final Object defaultValue;
     private final Object minValue;
     private final Object maxValue;
     private final String implementationVersion;
-    protected Object value = null;
 
-    DefaultOptions(String name, String implementationVersion) {
-        this.name = name;
+    DefaultOptions(final String optionName, final String implementationVersion) {
+        this.optionName = optionName;
         this.implementationVersion = implementationVersion;
-        objType = String.class;
-        defaultValue = null;
-        minValue = null;
-        maxValue = null;
+        this.objType = String.class;
+        this.defaultValue = null;
+        this.minValue = null;
+        this.maxValue = null;
     }
 
-    DefaultOptions(String name, Boolean defaultValue, String implementationVersion) {
-        this.name = name;
+    DefaultOptions(final String optionName, final Boolean defaultValue, final String implementationVersion) {
+        this.optionName = optionName;
         this.objType = Boolean.class;
         this.defaultValue = defaultValue;
         this.implementationVersion = implementationVersion;
-        minValue = null;
-        maxValue = null;
+        this.minValue = null;
+        this.maxValue = null;
     }
 
-    DefaultOptions(String name, Integer defaultValue, Integer minValue, String implementationVersion) {
-        this.name = name;
+    DefaultOptions(final String optionName, final Integer defaultValue, final Integer minValue, final String implementationVersion) {
+        this.optionName = optionName;
         this.objType = Integer.class;
         this.defaultValue = defaultValue;
         this.minValue = minValue;
@@ -495,8 +497,8 @@ public enum DefaultOptions {
         this.implementationVersion = implementationVersion;
     }
 
-    DefaultOptions(String name, Long defaultValue, Long minValue, String implementationVersion) {
-        this.name = name;
+    DefaultOptions(final String optionName, final Long defaultValue, final Long minValue, final String implementationVersion) {
+        this.optionName = optionName;
         this.objType = Long.class;
         this.defaultValue = defaultValue;
         this.minValue = minValue;
@@ -505,8 +507,8 @@ public enum DefaultOptions {
     }
 
 
-    DefaultOptions(String name, Integer[] defaultValue, Integer minValue, String implementationVersion) {
-        this.name = name;
+    DefaultOptions(final String optionName, final Integer[] defaultValue, final Integer minValue, final String implementationVersion) {
+        this.optionName = optionName;
         this.objType = Integer.class;
         this.defaultValue = defaultValue;
         this.minValue = minValue;
@@ -514,17 +516,31 @@ public enum DefaultOptions {
         this.implementationVersion = implementationVersion;
     }
 
-    public static Options defaultValues(HaMode haMode) {
+    public String getOptionName() {
+        return optionName;
+    }
+
+    public static Options defaultValues(final HaMode haMode) {
         return parse(haMode, "", new Properties());
     }
 
-    public static void parse(HaMode haMode, String urlParameters, Options options) {
+    /**
+     * Parse additional properties.
+     *
+     * @param haMode        current haMode.
+     * @param urlParameters options defined in url
+     * @param options       initial options
+     */
+    public static void parse(final HaMode haMode, final String urlParameters, final Options options) {
         Properties prop = new Properties();
         parse(haMode, urlParameters, prop, options);
+        optionCoherenceValidation(options);
     }
 
-    private static Options parse(HaMode haMode, String urlParameters, Properties properties) {
-        return parse(haMode, urlParameters, properties, null);
+    private static Options parse(final HaMode haMode, final String urlParameters, final Properties properties) {
+        Options options = parse(haMode, urlParameters, properties, null);
+        optionCoherenceValidation(options);
+        return options;
     }
 
     /**
@@ -536,7 +552,7 @@ public enum DefaultOptions {
      * @param options       initial options
      * @return options
      */
-    public static Options parse(HaMode haMode, String urlParameters, Properties properties, Options options) {
+    public static Options parse(final HaMode haMode, final String urlParameters, final Properties properties, final Options options) {
         if (urlParameters != null && !urlParameters.isEmpty()) {
             String[] parameters = urlParameters.split("&");
             for (String parameter : parameters) {
@@ -556,73 +572,79 @@ public enum DefaultOptions {
         return parse(haMode, properties, options);
     }
 
-    private static Options parse(HaMode haMode, Properties properties, Options paramOptions) {
-        Options options = paramOptions != null ? paramOptions : new Options();
+    private static Options parse(final HaMode haMode, final Properties properties, final Options paramOptions) {
+        final Options options = paramOptions != null ? paramOptions : new Options();
 
         try {
-            for (DefaultOptions o : DefaultOptions.values()) {
-
-                String propertyValue = handleAlias(o.name, properties);
-
-                if (propertyValue != null) {
+            //Option object is already initialized to default values.
+            //loop on properties,
+            // - check DefaultOption to check that property value correspond to type (and range)
+            // - set values
+            for (final String key : properties.stringPropertyNames()) {
+                final String propertyValue = properties.getProperty(key);
+                final DefaultOptions o = OptionUtils.OPTIONS_MAP.get(key);
+                if (o != null && propertyValue != null) {
+                    final Field field = Options.class.getField(o.optionName);
                     if (o.objType.equals(String.class)) {
-                        Options.class.getField(o.name).set(options, propertyValue);
+                        field.set(options, propertyValue);
                     } else if (o.objType.equals(Boolean.class)) {
                         switch (propertyValue.toLowerCase()) {
                             case "":
                             case "1":
                             case "true":
-                                Options.class.getField(o.name).set(options, Boolean.TRUE);
+                                field.set(options, Boolean.TRUE);
                                 break;
 
                             case "0":
                             case "false":
-                                Options.class.getField(o.name).set(options, Boolean.FALSE);
+                                field.set(options, Boolean.FALSE);
                                 break;
 
                             default:
-                                throw new IllegalArgumentException("Optional parameter " + o.name
+                                throw new IllegalArgumentException("Optional parameter " + o.optionName
                                         + " must be boolean (true/false or 0/1) was \"" + propertyValue + "\"");
                         }
                     } else if (o.objType.equals(Integer.class)) {
                         try {
-                            Integer value = Integer.parseInt(propertyValue);
+                            final Integer value = Integer.parseInt(propertyValue);
                             assert o.minValue != null;
                             assert o.maxValue != null;
                             if (value.compareTo((Integer) o.minValue) < 0 || value.compareTo((Integer) o.maxValue) > 0) {
-                                throw new IllegalArgumentException("Optional parameter " + o.name + " must be greater or equal to " + o.minValue
+                                throw new IllegalArgumentException("Optional parameter " + o.optionName
+                                        + " must be greater or equal to " + o.minValue
                                         + (((Integer) o.maxValue != Integer.MAX_VALUE) ? " and smaller than " + o.maxValue : " ")
                                         + ", was \"" + propertyValue + "\"");
                             }
-                            Options.class.getField(o.name).set(options, value);
+                            field.set(options, value);
                         } catch (NumberFormatException n) {
-                            throw new IllegalArgumentException("Optional parameter " + o.name + " must be Integer, was \"" + propertyValue + "\"");
+                            throw new IllegalArgumentException("Optional parameter " + o.optionName
+                                    + " must be Integer, was \"" + propertyValue + "\"");
                         }
                     } else if (o.objType.equals(Long.class)) {
                         try {
-                            Long value = Long.parseLong(propertyValue);
+                            final Long value = Long.parseLong(propertyValue);
                             assert o.minValue != null;
                             assert o.maxValue != null;
                             if (value.compareTo((Long) o.minValue) < 0 || value.compareTo((Long) o.maxValue) > 0) {
-                                throw new IllegalArgumentException("Optional parameter " + o.name + " must be greater or equal to " + o.minValue
+                                throw new IllegalArgumentException("Optional parameter " + o.optionName
+                                        + " must be greater or equal to " + o.minValue
                                         + (((Long) o.maxValue != Long.MAX_VALUE) ? " and smaller than " + o.maxValue : " ")
                                         + ", was \"" + propertyValue + "\"");
                             }
-                            Options.class.getField(o.name).set(options, value);
+                            field.set(options, value);
                         } catch (NumberFormatException n) {
-                            throw new IllegalArgumentException("Optional parameter " + o.name + " must be Long, was \"" + propertyValue + "\"");
-                        }
-                    }
-                } else {
-                    if (paramOptions == null) {
-                        if (o.defaultValue instanceof Integer[]) {
-                            Options.class.getField(o.name).set(options, ((Integer[]) o.defaultValue)[haMode.ordinal()]);
-                        } else {
-                            Options.class.getField(o.name).set(options, o.defaultValue);
+                            throw new IllegalArgumentException("Optional parameter " + o.optionName
+                                    + " must be Long, was \"" + propertyValue + "\"");
                         }
                     }
                 }
             }
+
+            //special case : field with multiple default according to HA_MODE
+            if (options.socketTimeout == null) {
+                options.socketTimeout = ((Integer[]) SOCKET_TIMEOUT.defaultValue)[haMode.ordinal()];
+            }
+
         } catch (NoSuchFieldException | IllegalAccessException n) {
             n.printStackTrace();
         } catch (SecurityException s) {
@@ -630,56 +652,14 @@ public enum DefaultOptions {
             throw new IllegalArgumentException("Security too restrictive : " + s.getMessage());
         }
 
-        optionCoherenceValidation(options);
-
         return options;
     }
 
-
     /**
-     * If properties with alias are set, will be used to set value.
-     *
-     * @param optionName current option name
-     * @param properties list of properties
-     * @return properties or alias value if existant
+     * Option initialisation end : set option value to a coherent state.
+     * @param options options
      */
-    private static String handleAlias(String optionName, Properties properties) {
-        String propertyValue = properties.getProperty(optionName);
-
-        if (propertyValue == null) {
-            switch (optionName) {
-                case "createDatabaseIfNotExist":
-                    propertyValue = properties.getProperty("createDB");
-                    break;
-                case "useSsl":
-                    propertyValue = properties.getProperty("useSSL");
-                    break;
-                case "profileSql":
-                    propertyValue = properties.getProperty("profileSQL");
-                    break;
-                case "enabledSslCipherSuites":
-                    propertyValue = properties.getProperty("enabledSSLCipherSuites");
-                    break;
-                case "trustStorePassword":
-                    propertyValue = properties.getProperty("trustCertificateKeyStorePassword");
-                    break;
-                case "trustStore":
-                    propertyValue = properties.getProperty("trustCertificateKeyStoreUrl");
-                    break;
-                case "keyStorePassword":
-                    propertyValue = properties.getProperty("clientCertificateKeyStorePassword");
-                    break;
-                case "keyStore":
-                    propertyValue = properties.getProperty("clientCertificateKeyStoreUrl");
-                    break;
-                default:
-                    //no alias
-            }
-        }
-        return propertyValue;
-    }
-
-    private static void optionCoherenceValidation(Options options) {
+    public static void optionCoherenceValidation(final Options options) {
 
         //disable use server prepare id using client rewrite
         if (options.rewriteBatchedStatements) {
@@ -698,4 +678,41 @@ public enum DefaultOptions {
 
     }
 
+    /**
+     * Generate parameter String equivalent to options.
+     *
+     * @param options   options
+     * @param haMode    high availability Mode
+     * @param sb        String builder
+     */
+    public static void propertyString(final Options options, final HaMode haMode, final StringBuilder sb) {
+        try {
+            boolean first = true;
+            for (DefaultOptions o : DefaultOptions.values()) {
+                final Object value = Options.class.getField(o.optionName).get(options);
+
+                if (value != null && !value.equals(o.defaultValue)) {
+                    if (first) {
+                        first = false;
+                        sb.append('?');
+                    } else {
+                        sb.append('&');
+                    }
+                    sb.append(o.optionName)
+                            .append('=');
+                    if (o.objType.equals(String.class)) {
+                        sb.append((String) value);
+                    } else if (o.objType.equals(Boolean.class)) {
+                        sb.append(((Boolean) value).toString());
+                    } else if (o.objType.equals(Integer.class)) {
+                        sb.append((Integer) value);
+                    } else if (o.objType.equals(Long.class)) {
+                        sb.append((Long) value);
+                    }
+                }
+            }
+        } catch (NoSuchFieldException | IllegalAccessException n) {
+            n.printStackTrace();
+        }
+    }
 }

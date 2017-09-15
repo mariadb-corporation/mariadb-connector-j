@@ -59,6 +59,7 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
@@ -92,7 +93,7 @@ import java.util.regex.Pattern;
  * {@code jdbc:mariadb://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}<br>
  * </p>
  */
-public class UrlParser {
+public class UrlParser implements Cloneable {
 
     private static final String DISABLE_MYSQL_URL = "disableMariaDbDriver";
     private String database;
@@ -121,7 +122,34 @@ public class UrlParser {
                 }
             }
         }
+
+        DefaultOptions.optionCoherenceValidation(options);
+        StringBuilder sb = new StringBuilder();
+        sb.append("jdbc:mariadb:");
+        if (haMode != HaMode.NONE) {
+            sb.append(haMode).append(":");
+        }
+        sb.append("//");
+        boolean first = true;
+        for (HostAddress hostAddress : addresses) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(",");
+            }
+            sb.append("address=(host=").append(hostAddress.host).append(")")
+                    .append("(port=").append(hostAddress.port).append(")");
+            if (hostAddress.type != null) {
+                sb.append("(type=").append(hostAddress.type).append(")");
+            }
+        }
+
+        sb.append("/");
+        if (database != null) sb.append(database);
+        DefaultOptions.propertyString(options, haMode, sb);
+        initialUrl = sb.toString();
         multiMaster = loadMultiMasterValue();
+
     }
 
     /**
@@ -203,7 +231,7 @@ public class UrlParser {
             setDefaultHostAddressType(urlParser);
 
         } catch (IllegalArgumentException i) {
-            throw new SQLException(i.getMessage());
+            throw new SQLException("error parsing url : " + i.getMessage(), i);
         }
     }
 
@@ -229,12 +257,14 @@ public class UrlParser {
 
                 urlParser.database = matcher.group(2);
                 urlParser.options = DefaultOptions.parse(urlParser.haMode, matcher.group(4), properties, urlParser.options);
+                DefaultOptions.optionCoherenceValidation(urlParser.options);
                 if (urlParser.database != null && urlParser.database.isEmpty()) urlParser.database = null;
 
             } else {
 
                 urlParser.database = null;
                 urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
+                DefaultOptions.optionCoherenceValidation(urlParser.options);
 
             }
 
@@ -242,6 +272,7 @@ public class UrlParser {
 
             urlParser.database = null;
             urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
+            DefaultOptions.optionCoherenceValidation(urlParser.options);
 
         }
 
@@ -340,7 +371,7 @@ public class UrlParser {
         return options.user;
     }
 
-    protected void setUsername(String username) {
+    public void setUsername(String username) {
         options.user = username;
     }
 
@@ -348,7 +379,7 @@ public class UrlParser {
         return options.password;
     }
 
-    protected void setPassword(String password) {
+    public void setPassword(String password) {
         options.password = password;
     }
 
@@ -356,7 +387,7 @@ public class UrlParser {
         return database;
     }
 
-    protected void setDatabase(String database) {
+    public void setDatabase(String database) {
         this.database = database;
     }
 
@@ -404,6 +435,14 @@ public class UrlParser {
                 && (getPassword() != null ? getPassword().equals(urlParser.getPassword()) : urlParser.getPassword() == null);
     }
 
+    @Override
+    public int hashCode() {
+        int result = options.password != null ? options.password.hashCode() : 0;
+        result = 31 * result + (options.user != null ? options.user.hashCode() : 0);
+        result = 31 * result + initialUrl.hashCode();
+        return result;
+    }
+
     private boolean loadMultiMasterValue() {
         if (haMode == HaMode.SEQUENTIAL
                 || haMode == HaMode.REPLICATION
@@ -424,5 +463,14 @@ public class UrlParser {
 
     public boolean isMultiMaster() {
         return multiMaster;
+    }
+
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        UrlParser tmpUrlParser = (UrlParser) super.clone();
+        tmpUrlParser.options = (Options) options.clone();
+        tmpUrlParser.addresses = new ArrayList<>();
+        tmpUrlParser.addresses.addAll(addresses);
+        return tmpUrlParser;
     }
 }

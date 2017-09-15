@@ -164,18 +164,26 @@ public class HostAddress {
             int ind = str.indexOf(']');
             result.host = str.substring(1, ind);
             if (ind != (str.length() - 1) && str.charAt(ind + 1) == ':') {
-                result.port = Integer.parseInt(str.substring(ind + 2));
+                result.port = getPort(str.substring(ind + 2));
             }
         } else if (str.contains(":")) {
               /* Parse host:port */
             String[] hostPort = str.split(":");
             result.host = hostPort[0];
-            result.port = Integer.parseInt(hostPort[1]);
+            result.port = getPort(hostPort[1]);
         } else {
               /* Just host name is given */
             result.host = str;
         }
         return result;
+    }
+
+    private static int getPort(String portString) {
+        try {
+            return Integer.parseInt(portString);
+        } catch (NumberFormatException nfe) {
+            throw new IllegalArgumentException("Incorrect port value : " + portString);
+        }
     }
 
     private static HostAddress parseParameterHostAddress(String str) {
@@ -191,7 +199,7 @@ public class HostAddress {
             if ("host".equals(key)) {
                 result.host = value.replace("[", "").replace("]", "");
             } else if ("port".equals(key)) {
-                result.port = Integer.parseInt(value);
+                result.port = getPort(value);
             } else if ("type".equals(key)
                     && (value.equals(ParameterConstant.TYPE_MASTER) || value.equals(ParameterConstant.TYPE_SLAVE))) {
                 result.type = value;
