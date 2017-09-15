@@ -359,4 +359,41 @@ public class StatementTest extends BaseTest {
             }
         }
     }
+
+    @Test
+    public void testFallbackBatchUpdate() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
+
+        createTable("testFallbackBatchUpdate", "col int");
+        int[] results;
+        int queriesInBatch = 2;
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                "DELETE FROM testFallbackBatchUpdate WHERE col = ? ")) {
+            for (int i = 0; i < queriesInBatch; i++) {
+                preparedStatement.setInt(1, 0);
+                preparedStatement.addBatch();
+            }
+            results = preparedStatement.executeBatch();
+        }
+        assertEquals(results.length, queriesInBatch);
+    }
+
+    @Test
+    public void testProperBatchUpdate() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
+
+        createTable("testProperBatchUpdate", "col int, col2 int");
+        int[] results;
+        int queriesInBatch = 3;
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                "UPDATE testProperBatchUpdate set col2 = ? WHERE col = ? ")) {
+            for (int i = 0; i < queriesInBatch; i++) {
+                preparedStatement.setInt(1, i);
+                preparedStatement.setInt(2, i);
+                preparedStatement.addBatch();
+            }
+            results = preparedStatement.executeBatch();
+        }
+        assertEquals(results.length, queriesInBatch);
+    }
 }

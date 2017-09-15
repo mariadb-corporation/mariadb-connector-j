@@ -430,7 +430,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     getResult(results);
                 } catch (SQLException sqle) {
                     if ("HY000".equals(sqle.getSQLState()) && sqle.getErrorCode() == 1295) {
-                        //query contain SELECT. cannot be handle by BULK protocol
+                        //query contain SELECT or DELETE. cannot be handle by BULK protocol
+                        // clear error and special error code, so it won't leak anywhere
+                        // and wouldn't be misinterpreted as an additional update count
+                        results.getCmdInformation().clearErrorStat();
                         return false;
                     }
                     if (exception == null) {

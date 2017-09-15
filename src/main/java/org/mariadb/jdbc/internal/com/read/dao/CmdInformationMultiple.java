@@ -92,6 +92,17 @@ public class CmdInformationMultiple implements CmdInformation {
         this.updateCounts.add((long) Statement.EXECUTE_FAILED);
     }
 
+    /**
+     * Clear error state, used for clear exception after first batch query, when fall back to per-query execution.
+     *
+     */
+    @Override
+    public void clearErrorStat() {
+        hasException = true;
+        this.updateCounts.remove((long) Statement.EXECUTE_FAILED);
+    }
+
+
     public void addResultSetStat() {
         this.updateCounts.add((long) RESULT_SET_VALUE);
     }
