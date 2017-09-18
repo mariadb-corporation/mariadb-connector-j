@@ -394,6 +394,7 @@ public class ConnectionTest extends BaseTest {
 
     @Test(timeout = 15_000L)
     public void testValidTimeout() throws Throwable {
+        Assume.assumeFalse(sharedIsAurora());
         try (Connection connection = createProxyConnection(new Properties())) {
             //ensuring to reactivate proxy
             Timer timer = new Timer();
