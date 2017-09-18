@@ -123,7 +123,7 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
                             serverThreadLog,
                             Utils.hexdump(maxQuerySizeToLog, 0, pos, buf));
                 } else {
-                    logger.trace("send: content length={}{} com=<hidden>",
+                    logger.trace("send: content length={} {} com=<hidden>",
                             pos - 4,
                             serverThreadLog);
                 }

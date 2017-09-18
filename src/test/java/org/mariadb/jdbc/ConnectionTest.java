@@ -392,7 +392,7 @@ public class ConnectionTest extends BaseTest {
     }
 
 
-    @Test
+    @Test(timeout = 15_000L)
     public void testValidTimeout() throws Throwable {
         try (Connection connection = createProxyConnection(new Properties())) {
             //ensuring to reactivate proxy
@@ -410,10 +410,11 @@ public class ConnectionTest extends BaseTest {
         }
     }
 
-    @Test
+    @Test(timeout = 15_000L)
     public void testValidFailedTimeout() throws Throwable {
-
-        try (Connection connection = createProxyConnection(new Properties())) {
+        Properties properties = new Properties();
+        properties.setProperty("profileSql", "true");
+        try (Connection connection = createProxyConnection(properties)) {
             //ensuring to reactivate proxy
             Timer timer = new Timer();
             timer.schedule(new TimerTask() {
@@ -423,11 +424,11 @@ public class ConnectionTest extends BaseTest {
                 }
             }, 2000);
 
-            delayProxy(2000);
+            delayProxy(1500);
             long start = System.currentTimeMillis();
             assertFalse(connection.isValid(1)); //1 second
             assertTrue(System.currentTimeMillis() - start < 1050);
-            Thread.sleep(2000);
+            Thread.sleep(5000);
         }
 
     }
