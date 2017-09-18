@@ -322,6 +322,8 @@ public class StatementTest extends BaseTest {
                     assertEquals("must be an SQLState 08000 exception", "08000", ee.getSQLState());
                 }
             }
+        } finally {
+            closeProxy();
         }
     }
 

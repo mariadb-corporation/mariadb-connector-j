@@ -97,10 +97,10 @@ public class BaseTest {
     protected static Connection sharedConnection;
     protected static boolean runLongTest = false;
     protected static boolean doPrecisionTest = true;
-    private static final Deque<String> tempTableList = new ArrayDeque<>();
-    private static final Deque<String> tempViewList = new ArrayDeque<>();
-    private static final Deque<String> tempProcedureList = new ArrayDeque<>();
-    private static final Deque<String> tempFunctionList = new ArrayDeque<>();
+    private static final Set<String> tempTableList = new HashSet<>();
+    private static final Set<String> tempViewList = new HashSet<>();
+    private static final Set<String> tempProcedureList = new HashSet<>();
+    private static final Set<String> tempFunctionList = new HashSet<>();
     private static TcpProxy proxy = null;
     private static UrlParser urlParser;
     private static final NumberFormat numberFormat = DecimalFormat.getInstance();
@@ -226,8 +226,7 @@ public class BaseTest {
         if (testSingleHost && sharedConnection != null && !sharedConnection.isClosed()) {
             if (!tempViewList.isEmpty()) {
                 Statement stmt = sharedConnection.createStatement();
-                String viewName;
-                while ((viewName = tempViewList.poll()) != null) {
+                for (String viewName : tempViewList) {
                     try {
                         stmt.execute("DROP VIEW IF EXISTS " + viewName);
                     } catch (SQLException e) {
@@ -237,8 +236,7 @@ public class BaseTest {
             }
             if (!tempTableList.isEmpty()) {
                 Statement stmt = sharedConnection.createStatement();
-                String tableName;
-                while ((tableName = tempTableList.poll()) != null) {
+                for (String tableName : tempTableList) {
                     try {
                         stmt.execute("DROP TABLE IF EXISTS " + tableName);
                     } catch (SQLException e) {
@@ -248,8 +246,7 @@ public class BaseTest {
             }
             if (!tempProcedureList.isEmpty()) {
                 Statement stmt = sharedConnection.createStatement();
-                String procedureName;
-                while ((procedureName = tempProcedureList.poll()) != null) {
+                for (String procedureName : tempProcedureList) {
                     try {
                         stmt.execute("DROP procedure IF EXISTS " + procedureName);
                     } catch (SQLException e) {
@@ -259,8 +256,7 @@ public class BaseTest {
             }
             if (!tempFunctionList.isEmpty()) {
                 Statement stmt = sharedConnection.createStatement();
-                String functionName;
-                while ((functionName = tempFunctionList.poll()) != null) {
+                for (String functionName : tempFunctionList) {
                     try {
                         stmt.execute("DROP FUNCTION IF EXISTS " + functionName);
                     } catch (SQLException e) {
@@ -433,6 +429,7 @@ public class BaseTest {
     public void closeProxy() {
         try {
             proxy.stop();
+            proxy = null;
         } catch (Exception e) {
             //Eat exception
         }

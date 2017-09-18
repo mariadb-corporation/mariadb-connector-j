@@ -408,6 +408,8 @@ public class ConnectionTest extends BaseTest {
             delayProxy(200);
             assertTrue(connection.isValid(1)); //1 second
             Thread.sleep(2000);
+        } finally {
+            closeProxy();
         }
     }
 
@@ -430,6 +432,8 @@ public class ConnectionTest extends BaseTest {
             assertFalse(connection.isValid(1)); //1 second
             assertTrue(System.currentTimeMillis() - start < 1050);
             Thread.sleep(5000);
+        } finally {
+            closeProxy();
         }
 
     }
