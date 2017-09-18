@@ -318,6 +318,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
             return results.getCmdInformation().getLargeUpdateCounts();
 
         } catch (SQLException sqle) {
+            results.commandEnd();
             throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size);
         } finally {
             executeBatchEpilogue();
