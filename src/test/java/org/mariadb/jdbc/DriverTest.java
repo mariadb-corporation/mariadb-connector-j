@@ -202,18 +202,32 @@ public class DriverTest extends BaseTest {
         //statement that cannot be prepared
         try (PreparedStatement pstmt = sharedConnection.prepareStatement(
                 "select  TMP.field1 from (select ? from dual) TMP")) {
-            ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
             try {
-                parameterMetaData.getParameterCount();
+                ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
                 fail();
             } catch (SQLException sqle) {
-                assertEquals("S1C00", sqle.getSQLState());
+                assertEquals("42S22", sqle.getSQLState());
+                assertTrue(sqle.getMessage().contains("Unknown column"));
             }
         }
         Map<String, Integer> endingValues = loadVariables(stmt);
         assertEquals(initValues.get("Prepared_stmt_count"), endingValues.get("Prepared_stmt_count"));
         assertEquals((Integer) (initValues.get("Com_stmt_prepare") + 1), endingValues.get("Com_stmt_prepare"));
         assertEquals(initValues.get("Com_stmt_close"), endingValues.get("Com_stmt_close"));
+    }
+
+    @Test
+    public void parameterMetaDataReturnException() throws SQLException {
+        //statement that cannot be prepared
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("selec1t 2 from dual")) {
+            try {
+                preparedStatement.getParameterMetaData();
+                fail();
+            } catch (SQLException sqle) {
+                assertEquals("42000", sqle.getSQLState());
+                assertTrue(sqle.getMessage().contains(" You have an error in your SQL syntax"));
+            }
+        }
     }
 
     private Map<String, Integer> loadVariables(Statement stmt) throws SQLException {

@@ -155,12 +155,12 @@ public class ComStmtPrepare {
         ErrorPacket ep = new ErrorPacket(buffer);
         String message = ep.getMessage();
         if (1054 == ep.getErrorNumber()) {
-            return new SQLException("Error preparing query: " + message
+            return new SQLException(message
                     + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
                     + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
                     ep.getSqlState(), ep.getErrorNumber());
         } else {
-            return new SQLException("Error preparing query: " + message, ep.getSqlState(), ep.getErrorNumber());
+            return new SQLException(message, ep.getSqlState(), ep.getErrorNumber());
         }
     }
 

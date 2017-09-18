@@ -127,6 +127,17 @@ public class Buffer {
     }
 
     /**
+     * Read String with defined length
+     *
+     * @param numberOfBytes raw data length.
+     * @return String value
+     */
+    public String readString(final int numberOfBytes) {
+        position += numberOfBytes;
+        return new String(buf, position - numberOfBytes, numberOfBytes);
+    }
+
+    /**
      * Read a short (2 bytes) from the buffer.
      *
      * @return an short
