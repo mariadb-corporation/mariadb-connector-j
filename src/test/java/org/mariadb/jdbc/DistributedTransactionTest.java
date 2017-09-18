@@ -68,14 +68,14 @@ import java.util.UUID;
 
 import static org.junit.Assert.*;
 
-public class DistributedTransaction extends BaseTest {
+public class DistributedTransactionTest extends BaseTest {
 
     MariaDbDataSource dataSource;
 
     /**
      * Initialisation.
      */
-    public DistributedTransaction() {
+    public DistributedTransactionTest() {
         dataSource = new MariaDbDataSource();
         dataSource.setServerName(hostname);
         dataSource.setPortNumber(port);

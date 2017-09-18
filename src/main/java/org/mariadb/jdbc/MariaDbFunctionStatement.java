@@ -133,7 +133,7 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement implemen
     }
 
 
-    protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
+    public void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
         super.setParameter(parameterIndex - 1, holder);
     }
 

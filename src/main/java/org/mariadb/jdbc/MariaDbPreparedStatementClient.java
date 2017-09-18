@@ -67,9 +67,9 @@ import java.util.List;
 
 
 public class MariaDbPreparedStatementClient extends BasePrepareStatement {
-    private static Logger logger = LoggerFactory.getLogger(MariaDbPreparedStatementClient.class);
-    protected ClientPrepareResult prepareResult;
-    protected List<ParameterHolder[]> parameterList = new ArrayList<ParameterHolder[]>();
+    private static final Logger logger = LoggerFactory.getLogger(MariaDbPreparedStatementClient.class);
+    private final List<ParameterHolder[]> parameterList = new ArrayList<ParameterHolder[]>();
+    private ClientPrepareResult prepareResult;
     private String sqlQuery;
     private ParameterHolder[] parameters;
     private ResultSetMetaData resultSetMetaData = null;
@@ -86,21 +86,21 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
      */
     public MariaDbPreparedStatementClient(MariaDbConnection connection, String sql, int resultSetScrollType) throws SQLException {
         super(connection, resultSetScrollType);
-        this.sqlQuery = sql;
+        sqlQuery = sql;
 
         if (options.cachePrepStmts) {
-            String key = new StringBuilder(this.protocol.getDatabase()).append("-").append(sqlQuery).toString();
+            String key = protocol.getDatabase() + "-" + sqlQuery;
             prepareResult = connection.getClientPrepareStatementCache().get(key);
         }
 
         if (prepareResult == null) {
             if (options.rewriteBatchedStatements) {
-                prepareResult = ClientPrepareResult.rewritableParts(sqlQuery, connection.noBackslashEscapes);
+                prepareResult = ClientPrepareResult.rewritableParts(sqlQuery, protocol.noBackslashEscapes());
             } else {
-                prepareResult = ClientPrepareResult.parameterParts(sqlQuery, connection.noBackslashEscapes);
+                prepareResult = ClientPrepareResult.parameterParts(sqlQuery, protocol.noBackslashEscapes());
             }
             if (options.cachePrepStmts && sql.length() < 1024) {
-                String key = new StringBuilder(this.protocol.getDatabase()).append("-").append(sqlQuery).toString();
+                String key = protocol.getDatabase() + "-" + sqlQuery;
                 connection.getClientPrepareStatementCache().put(key, prepareResult);
             }
         }
@@ -194,7 +194,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
         //valid parameters
         for (int i = 0; i < prepareResult.getParamCount(); i++) {
             if (parameters[i] == null) {
-                logger.error("Parameter at position " + (i + 1) + " is not set");
+                logger.error("Parameter at position {} is not set", (i + 1));
                 ExceptionMapper.throwException(new SQLException("Parameter at position " + (i + 1) + " is not set", "07004"),
                         connection, this);
             }
@@ -264,7 +264,8 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
     @Override
     public void clearBatch() {
         parameterList.clear();
-        this.parameters = new ParameterHolder[prepareResult.getParamCount()];
+        hasLongData = false;
+        parameters = new ParameterHolder[prepareResult.getParamCount()];
     }
 
     /**
@@ -280,6 +281,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
         try {
 
             executeInternalBatch(size);
+            results.commandEnd();
             if (!rewritten) {
                 return results.getCmdInformation().getUpdateCounts();
             } else {
@@ -287,6 +289,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
             }
 
         } catch (SQLException sqle) {
+            results.commandEnd();
             throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size, rewritten);
         } finally {
             executeBatchEpilogue();
@@ -311,6 +314,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
         try {
 
             executeInternalBatch(size);
+            results.commandEnd();
             if (!rewritten) {
                 return results.getCmdInformation().getLargeUpdateCounts();
             } else {
@@ -318,6 +322,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
             }
 
         } catch (SQLException sqle) {
+            results.commandEnd();
             throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size, rewritten);
         } finally {
             executeBatchEpilogue();
@@ -389,7 +394,6 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
             if (exception != null) throw exception;
         }
 
-        results.commandEnd();
     }
 
     /**
@@ -401,15 +405,11 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
      * invoke the method <code>getMetaData</code> on a <code>PreparedStatement</code> object rather than waiting to
      * execute it and then invoking the <code>ResultSet.getMetaData</code> method on the <code>ResultSet</code> object
      * that is returned.
-     * <br>
-     * <B>NOTE:</B> Using this method may be expensive for some drivers due to the lack of underlying DBMS support.
-     *
      * @return the description of a <code>ResultSet</code> object's columns or <code>null</code> if the driver cannot
      * return a <code>ResultSetMetaData</code> object
      * @throws SQLException                    if a database access error occurs or this method is called on a closed
      *                                         <code>PreparedStatement</code>
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
-     * @since 1.2
      */
     public ResultSetMetaData getMetaData() throws SQLException {
         checkClose();
@@ -418,24 +418,35 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
             return rs.getMetaData();
         }
         if (resultSetMetaData == null) {
-            setParametersData();
+            loadParametersData();
         }
         return resultSetMetaData;
     }
 
-
-    protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
+    /**
+     * Set parameter.
+     *
+     * @param parameterIndex    index
+     * @param holder            parameter holder
+     * @throws SQLException if index position doesn't correspond to query parameters
+     */
+    public void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
         if (parameterIndex >= 1 && parameterIndex < prepareResult.getParamCount() + 1) {
             parameters[parameterIndex - 1] = holder;
         } else {
             String error = "Could not set parameter at position " + parameterIndex
-                    + " (values was " + holder.toString()
-                    + ")\nQuery - conn:" + protocol.getServerThreadId() + "(" + (protocol.isMasterConnection() ? "M" : "S") + ") ";
+                    + " (values was " + holder.toString() + ")\n"
+                    + "Query - conn:" + protocol.getServerThreadId()
+                    + "(" + (protocol.isMasterConnection() ? "M" : "S") + ") ";
 
             if (options.maxQuerySizeToLog > 0) {
-                error += " - "
-                        + ((sqlQuery.length() < options.maxQuerySizeToLog) ? sqlQuery : sqlQuery.substring(0, options.maxQuerySizeToLog) + "...")
-                        + "\"";
+                error += " - \"";
+                if (sqlQuery.length() < options.maxQuerySizeToLog) {
+                    error += sqlQuery;
+                } else {
+                    error += sqlQuery.substring(0, options.maxQuerySizeToLog) + "...";
+                }
+                error += "\"";
             } else {
                 error += " - \"" + sqlQuery + "\"";
             }
@@ -459,20 +470,22 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
     public ParameterMetaData getParameterMetaData() throws SQLException {
         checkClose();
         if (parameterMetaData == null) {
-            setParametersData();
+            loadParametersData();
         }
         return parameterMetaData;
     }
 
-    private void setParametersData() throws SQLException {
+    private void loadParametersData() throws SQLException {
         MariaDbPreparedStatementServer ssps = null;
         try {
             ssps = new MariaDbPreparedStatementServer(connection, this.sqlQuery,
                     ResultSet.TYPE_SCROLL_INSENSITIVE, true);
             resultSetMetaData = ssps.getMetaData();
             parameterMetaData = ssps.getParameterMetaData();
+        } catch (SQLSyntaxErrorException sqlSyntaxErrorException) {
+            //if error is due to wrong SQL syntax, better to throw exception immediately
+            throw sqlSyntaxErrorException;
         } catch (SQLException sqle) {
-            //if statement cannot be prepared
             parameterMetaData = new MariaDbParameterMetaData(null);
         } finally {
             if (ssps != null) ssps.close();
@@ -499,6 +512,8 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
                 || connection.pooledConnection.statementEventListeners.isEmpty()) {
             return;
         }
+        connection.pooledConnection.fireStatementClosed(this);
+        connection = null;
     }
 
     protected int getParameterCount() {
@@ -510,7 +525,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
      */
     @Override
     public String toString() {
-        StringBuffer sb = new StringBuffer("sql : '" + sqlQuery + "'");
+        StringBuilder sb = new StringBuilder("sql : '" + sqlQuery + "'");
         sb.append(", parameters : [");
         for (int i = 0; i < parameters.length; i++) {
             ParameterHolder holder = parameters[i];
@@ -531,6 +546,5 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
     protected ClientPrepareResult getPrepareResult() {
         return prepareResult;
     }
-
 
 }

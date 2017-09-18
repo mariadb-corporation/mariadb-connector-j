@@ -53,9 +53,12 @@
 package org.mariadb.jdbc.internal.com.read;
 
 public class ErrorPacket {
+
+    private static final String GENERAL_ERROR = "HY000";
+
     private final short errorNumber;
     private final byte sqlStateMarker;
-    private final byte[] sqlState;
+    private final String sqlState;
     private final String message;
 
     /**
@@ -65,16 +68,16 @@ public class ErrorPacket {
      */
     public ErrorPacket(Buffer buffer) {
         buffer.skipByte();
-        this.errorNumber = buffer.readShort();
-        this.sqlStateMarker = buffer.readByte();
+        errorNumber = buffer.readShort();
+        sqlStateMarker = buffer.readByte();
         if (sqlStateMarker == '#') {
-            this.sqlState = buffer.readRawBytes(5);
-            this.message = buffer.readStringNullEnd(Buffer.UTF_8);
+            sqlState = buffer.readString(5);
+            message = buffer.readStringNullEnd(Buffer.UTF_8);
         } else {
             // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
             buffer.position -= 1;
-            this.message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position, Buffer.UTF_8);
-            this.sqlState = "HY000".getBytes();
+            message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position, Buffer.UTF_8);
+            sqlState = GENERAL_ERROR;
         }
     }
 
