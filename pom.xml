@@ -58,7 +58,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>1.6.4-SNAPSHOT</version>
+    <version>1.6.4</version>
     <description>JDBC driver for MariaDB and MySQL for java 6,7</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
@@ -72,7 +72,7 @@
         <driver.version.major>1</driver.version.major>
         <driver.version.minor>6</driver.version.minor>
         <driver.version.patch>4</driver.version.patch>
-        <driver.version.qualifier>-SNAPSHOT</driver.version.qualifier>
+        <driver.version.qualifier></driver.version.qualifier>
     </properties>
 
     <licenses>
@@ -80,6 +80,19 @@
             <name>LGPL-2.1</name>
         </license>
     </licenses>
+
+    <organization>
+        <name>mariadb</name>
+        <url>http://mariadb.org/</url>
+    </organization>
+
+    <developers>
+        <developer>
+            <id>mariadbJdbcDevelopers</id>
+            <name>mariadb jdbc developers</name>
+            <url>http://mariadb.org/</url>
+        </developer>
+    </developers>
 
     <scm>
         <connection>scm:git:git://github.com/MariaDB/mariadb-connector-j.git</connection>
@@ -203,21 +216,21 @@
                 </configuration>
             </plugin>
             <!--<plugin>-->
-                <!--<groupId>pl.project13.maven</groupId>-->
-                <!--<artifactId>git-commit-id-plugin</artifactId>-->
-                <!--<version>2.2.1</version>-->
-                <!--<executions>-->
-                    <!--<execution>-->
-                        <!--<id>get-the-git-infos</id>-->
-                        <!--<goals>-->
-                            <!--<goal>revision</goal>-->
-                        <!--</goals>-->
-                    <!--</execution>-->
-                <!--</executions>-->
+            <!--<groupId>pl.project13.maven</groupId>-->
+            <!--<artifactId>git-commit-id-plugin</artifactId>-->
+            <!--<version>2.2.1</version>-->
+            <!--<executions>-->
+            <!--<execution>-->
+            <!--<id>get-the-git-infos</id>-->
+            <!--<goals>-->
+            <!--<goal>revision</goal>-->
+            <!--</goals>-->
+            <!--</execution>-->
+            <!--</executions>-->
 
-                <!--<configuration>-->
-                    <!--<prefix>git</prefix>-->
-                <!--</configuration>-->
+            <!--<configuration>-->
+            <!--<prefix>git</prefix>-->
+            <!--</configuration>-->
             <!--</plugin>-->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

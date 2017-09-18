@@ -178,13 +178,13 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                         if (traceCache != null && permitTrace) {
                             //trace last packets
                             if (remainingData.length != 0) {
-                                traceCache.put(System.currentTimeMillis(), new TraceObject(true, COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
+                                traceCache.put(System.nanoTime(), new TraceObject(true, COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
                                         Arrays.copyOfRange(header, 0, 7),
                                         Arrays.copyOfRange(remainingData, 0, remainingData.length),
                                         Arrays.copyOfRange(subHeader, 0, 4),
                                         Arrays.copyOfRange(buf, 0, (uncompressSize > 1000 ? 1000 : uncompressSize) - (remainingData.length + 4))));
                             } else {
-                                traceCache.put(System.currentTimeMillis(), new TraceObject(true, COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
+                                traceCache.put(System.nanoTime(), new TraceObject(true, COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
                                         Arrays.copyOfRange(header, 0, 7),
                                         Arrays.copyOfRange(subHeader, 0, 4),
                                         Arrays.copyOfRange(buf, 0, (uncompressSize > 1000 ? 1000 : uncompressSize) - (remainingData.length + 4))));
@@ -250,16 +250,16 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             if (traceCache != null && permitTrace) {
                 //trace last packets
                 if (remainingData.length != 0) {
-                    traceCache.put(System.currentTimeMillis(), new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
+                    traceCache.put(System.nanoTime(), new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
                             Arrays.copyOfRange(header, 0, 7),
                             Arrays.copyOfRange(remainingData, 0, remainingData.length),
                             Arrays.copyOfRange(subHeader, 0, 4),
                             Arrays.copyOfRange(buf, 0, (uncompressSize > 1000 ? 1000 : uncompressSize) - (remainingData.length + 4))));
                 } else {
-                    traceCache.put(System.currentTimeMillis(), new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
+                    traceCache.put(System.nanoTime(), new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
                             Arrays.copyOfRange(header, 0, 7),
                             Arrays.copyOfRange(subHeader, 0, 4),
-                            Arrays.copyOfRange(buf, 0, (uncompressSize > 1000 ? 1000 : uncompressSize) - (remainingData.length + 4))));
+                            Arrays.copyOfRange(buf, 0, (uncompressSize > 1000 ? 1000 : uncompressSize) - 4)));
                 }
             }
 
@@ -332,7 +332,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
 
                     if (traceCache != null && permitTrace) {
-                        traceCache.put(System.currentTimeMillis(), new TraceObject(true, COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
+                        traceCache.put(System.nanoTime(), new TraceObject(true, COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
                                 Arrays.copyOfRange(header, 0, 7),
                                 Arrays.copyOfRange(remainingData, 0, (uncompressSize > 1000 ? 1000 : uncompressSize))));
                     }
@@ -372,7 +372,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             remainingData = EMPTY_ARRAY;
 
             if (traceCache != null && permitTrace) {
-                traceCache.put(System.currentTimeMillis(), new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
+                traceCache.put(System.nanoTime(), new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
                         Arrays.copyOfRange(header, 0, 7),
                         Arrays.copyOfRange(remainingData, 0, (remainingData.length > 1000 ? 1000 : remainingData.length))));
             }
@@ -412,7 +412,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
         out.write(buf, 0, 11);
 
         if (traceCache != null && permitTrace) {
-            traceCache.put(System.currentTimeMillis(), new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
+            traceCache.put(System.nanoTime(), new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
                     Arrays.copyOfRange(buf, 0, 11)));
         }
 

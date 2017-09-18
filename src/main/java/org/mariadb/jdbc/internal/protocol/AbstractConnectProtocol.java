@@ -110,7 +110,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     public static final byte[] SESSION_QUERY = ("SELECT @@max_allowed_packet,"
             + "@@system_time_zone,"
             + "@@time_zone,"
-            + "@@sql_mode,"
             + "@@auto_increment_increment").getBytes(Buffer.UTF_8);
     public static final byte[] IS_MASTER_QUERY = "show global variables like 'innodb_read_only'".getBytes(Buffer.UTF_8);
     private static Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
@@ -143,7 +142,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private int majorVersion;
     private int minorVersion;
     private int patchVersion;
-    private Map<String, String> serverData;
     private TimeZone timeZone;
     private LruTraceCache traceCache = new LruTraceCache();
 
@@ -405,7 +403,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
             handleConnectionPhases();
 
             connected = true;
-            serverData = new TreeMap<String, String>();
 
             if (options.useCompression) {
                 writer = new CompressPacketOutputStream(writer.getOutputStream(), options.maxQuerySizeToLog);
@@ -416,21 +413,23 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 }
             }
 
+            Map<String, String> serverData = new TreeMap<String, String>();
+
             if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
                 try {
                     sendPipelineAdditionalData();
-                    readPipelineAdditionalData();
+                    readPipelineAdditionalData(serverData);
                 } catch (SQLException sqle) {
                     //in case pipeline is not supported
                     //(proxy flush socket after reading first packet)
-                    additionalData();
+                    additionalData(serverData);
                 }
-            } else additionalData();
+            } else additionalData(serverData);
 
             writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
             autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
 
-            loadCalendar();
+            loadCalendar(serverData);
 
             // Extract socketTimeout URL parameter
             if (options.socketTimeout != null) socket.setSoTimeout(options.socketTimeout);
@@ -438,7 +437,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
             reader.setServerThreadId(this.serverThreadId, isMasterConnection());
             writer.setServerThreadId(this.serverThreadId, isMasterConnection());
 
-            serverData = null;
             activeStreamingResult = null;
             hostFailed = false;
         } catch (IOException ioException) {
@@ -499,7 +497,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         writer.flush();
     }
 
-    private void readRequestSessionVariables() throws IOException, SQLException {
+    private void readRequestSessionVariables(Map<String, String> serverData) throws IOException, SQLException {
         Results results = new Results();
         getResult(results);
 
@@ -511,8 +509,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             serverData.put("max_allowed_packet", resultSet.getString(1));
             serverData.put("system_time_zone", resultSet.getString(2));
             serverData.put("time_zone", resultSet.getString(3));
-            serverData.put("sql_mode", resultSet.getString(4));
-            serverData.put("auto_increment_increment", resultSet.getString(5));
+            serverData.put("auto_increment_increment", resultSet.getString(4));
 
         } else {
             throw new SQLException("Error reading SessionVariables results. Socket is connected ? "
@@ -534,7 +531,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         writer.flush();
     }
 
-    private void readPipelineAdditionalData() throws IOException, SQLException {
+    private void readPipelineAdditionalData(Map<String, String> serverData) throws IOException, SQLException {
 
         SQLException resultingException = null;
         //read set session OKPacket
@@ -547,7 +544,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         boolean sessionDataRead;
         try {
-            readRequestSessionVariables();
+            readRequestSessionVariables(serverData);
             sessionDataRead = true;
         } catch (SQLException sqlException) {
             if (resultingException == null) {
@@ -572,18 +569,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (!sessionDataRead) {
             //fallback in case of galera non primary nodes that permit only show / set command,
             //not SELECT when not part of quorum
-            requestSessionDataWithShow();
+            requestSessionDataWithShow(serverData);
         }
     }
 
-    private void requestSessionDataWithShow() throws IOException, SQLException {
+    private void requestSessionDataWithShow(Map<String, String> serverData) throws IOException, SQLException {
         try {
             Results results = new Results();
             executeQuery(true, results, "SHOW VARIABLES WHERE Variable_name in ("
                     + "'max_allowed_packet',"
                     + "'system_time_zone',"
                     + "'time_zone',"
-                    + "'sql_mode',"
                     + "'auto_increment_increment')");
             results.commandEnd();
             ResultSet resultSet = results.getResultSet();
@@ -600,16 +596,16 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void additionalData() throws IOException, SQLException {
+    private void additionalData(Map<String, String> serverData) throws IOException, SQLException {
 
         sendSessionInfos();
         getResult(new Results());
 
         try {
             sendRequestSessionVariables();
-            readRequestSessionVariables();
+            readRequestSessionVariables(serverData);
         } catch (SQLException sqlException) {
-            requestSessionDataWithShow();
+            requestSessionDataWithShow(serverData);
         }
 
         //for aurora, check that connection is master
@@ -823,7 +819,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return capabilities;
     }
 
-    private void loadCalendar() throws SQLException {
+    private void loadCalendar(Map<String, String> serverData) throws SQLException {
         if (options.useLegacyDatetimeCode) {
             //legacy use client timezone
             timeZone = Calendar.getInstance().getTimeZone();
@@ -863,10 +859,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
         }
 
-    }
-
-    public String getServerData(String code) {
-        return serverData.get(code);
     }
 
     /**

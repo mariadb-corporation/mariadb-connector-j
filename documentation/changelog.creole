@@ -1,4 +1,5 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#164|1.6.4]] Released on 05 sept. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#163|1.6.3]] Released on 29 Jul. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#162|1.6.2]] Released on 27 Jun. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#161|1.6.1]] Released on 05 Jun. 2017
@@ -24,6 +25,18 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+
+== 1.6.4
+
+Bug :
+* [CONJ-517] Result-set identification of OK_Packet with 0xFE header when using option useCompression
+* [CONJ-514] ResultSet method wasNull() always return true after a call on a "null-date" field binary protocol handling
+* [CONJ-515] Improve MariaDB driver stability in case JNA errors
+
+misc :
+* correct typo in error message when setting wrong parameter
+* handling connection error when no database is provided
+* correcting possible race condition when using Statement/PrepareStatement in multi-thread with fetch size set
 
 == 1.6.3
 Bug

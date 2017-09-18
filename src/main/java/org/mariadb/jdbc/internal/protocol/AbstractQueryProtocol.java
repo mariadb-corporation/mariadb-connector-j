@@ -121,13 +121,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     public AbstractQueryProtocol(final UrlParser urlParser, final ReentrantLock lock) {
         super(urlParser, lock);
-        if (options.useBatchMultiSend && readScheduler == null) {
-            synchronized (AbstractQueryProtocol.class) {
-                if (readScheduler == null) {
-                    readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
-                }
-            }
-        }
         logQuery = new LogQueryTool(options);
     }
 
