@@ -11,14 +11,15 @@ install:
   - ps: |
       Add-Type -AssemblyName System.IO.Compression.FileSystem
       if (!(Test-Path -Path "C:\maven" )) {
-        (new-object System.Net.WebClient).DownloadFile('http://www.us.apache.org/dist/maven/maven-3/3.2.5/binaries/apache-maven-3.2.5-bin.zip', 'C:\maven-bin.zip')
+        (new-object System.Net.WebClient).DownloadFile('http://www.us.apache.org/dist/maven/maven-3/3.5.0/binaries/apache-maven-3.5.0-bin.zip', 'C:\maven-bin.zip')
         [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\maven-bin.zip", "C:\maven")
       }
   # Prepend Java entry, remove Ruby entry (C:\Ruby193\bin;) from PATH
-  - cmd: SET PATH=C:\maven\apache-maven-3.2.5\bin;%JAVA_HOME%\bin;%PATH:C:\Ruby193\bin;=%;
-  - cmd: SET MAVEN_OPTS=-Xms256m -Xmx2g
-  - cmd: SET JAVA_OPTS=-Xms256m -Xmx2g
-  - cmd: SET M2_HOME=C:\maven\apache-maven-3.2.5
+  - cmd: systeminfo
+  - cmd: SET PATH=C:\maven\apache-maven-3.5.0\bin;%JAVA_HOME%\bin;%PATH:C:\Ruby193\bin;=%;
+  - cmd: SET MAVEN_OPTS=-Xms512m -Xms768m
+  - cmd: SET JAVA_OPTS=-Xms512m -Xmx768m
+  - cmd: SET M2_HOME=C:\maven\apache-maven-3.5.0
   - cmd: SET M
   - cmd: mvn --version
   - cmd: java -version
