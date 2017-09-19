@@ -94,21 +94,21 @@ public class CancelTest extends BaseTest {
 
     }
 
-    @Test(timeout = 2000, expected = SQLTimeoutException.class)
+    @Test(timeout = 20000, expected = SQLTimeoutException.class)
     public void timeoutSleep() throws Exception {
         try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
             Statement stmt = tmpConnection.createStatement();
-            stmt.setQueryTimeout(1);
+            stmt.setQueryTimeout(5); //query take more than 20 seconds (local DB)
             stmt.execute("select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2");
         }
     }
 
-    @Test(timeout = 2000, expected = SQLTimeoutException.class)
+    @Test(timeout = 20000, expected = SQLTimeoutException.class)
     public void timeoutPrepareSleep() throws Exception {
         try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
             try (PreparedStatement stmt = tmpConnection.prepareStatement(
                     "select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2")) {
-                stmt.setQueryTimeout(1);
+                stmt.setQueryTimeout(5); //query take more than 20 seconds (local DB)
                 stmt.execute();
             }
         }
