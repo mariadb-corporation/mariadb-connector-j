@@ -716,7 +716,7 @@ public class SelectResultSet implements ResultSet {
         checkClose();
         fetchRemaining();
         rowPointer = dataSize - 1;
-        return rowPointer > 0;
+        return dataSize > 0;
     }
 
     @Override
