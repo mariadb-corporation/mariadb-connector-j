@@ -103,6 +103,11 @@ public class CmdInformationSingle implements CmdInformation {
     }
 
     @Override
+    public void clearErrorStat() {
+        //not expected
+    }
+
+    @Override
     public void addResultSetStat() {
         //not expected
     }

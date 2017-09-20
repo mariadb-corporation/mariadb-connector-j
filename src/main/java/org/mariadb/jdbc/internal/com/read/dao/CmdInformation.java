@@ -71,6 +71,8 @@ public interface CmdInformation {
 
     void addErrorStat();
 
+    void clearErrorStat();
+
     void addResultSetStat();
 
     ResultSet getGeneratedKeys(Protocol protocol);
