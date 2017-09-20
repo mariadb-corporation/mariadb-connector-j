@@ -101,7 +101,7 @@ public class CmdInformationBatch implements CmdInformation {
      */
     @Override
     public void clearErrorStat() {
-        hasException = true;
+        hasException = false;
         this.updateCounts.remove((long) Statement.EXECUTE_FAILED);
     }
 
