@@ -71,7 +71,7 @@ public interface CmdInformation {
 
     void addErrorStat();
 
-    void clearErrorStat();
+    void reset();
 
     void addResultSetStat();
 

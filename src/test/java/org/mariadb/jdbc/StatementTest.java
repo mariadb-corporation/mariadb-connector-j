@@ -367,17 +367,34 @@ public class StatementTest extends BaseTest {
         Assume.assumeTrue(doPrecisionTest);
 
         createTable("testFallbackBatchUpdate", "col int");
-        int[] results;
-        int queriesInBatch = 2;
+        Statement statement = sharedConnection.createStatement();
+
+        //add 100 data
+        StringBuilder sb = new StringBuilder("INSERT INTO testFallbackBatchUpdate(col) VALUES (0)");
+        for (int i = 1; i < 100; i++) sb.append(",(").append(i).append(")");
+        statement.execute(sb.toString());
+
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-                "DELETE FROM testFallbackBatchUpdate WHERE col = ? ")) {
-            for (int i = 0; i < queriesInBatch; i++) {
-                preparedStatement.setInt(1, 0);
-                preparedStatement.addBatch();
-            }
-            results = preparedStatement.executeBatch();
+                "DELETE FROM testFallbackBatchUpdate WHERE col = ?")) {
+            preparedStatement.setInt(1, 10);
+            preparedStatement.addBatch();
+
+            preparedStatement.setInt(1, 15);
+            preparedStatement.addBatch();
+
+            int[] results = preparedStatement.executeBatch();
+            assertEquals(2, results.length);
         }
-        assertEquals(results.length, queriesInBatch);
+
+        //check results
+        try (ResultSet rs = statement.executeQuery("SELECT * FROM testFallbackBatchUpdate")) {
+            for (int i = 0; i < 100; i++) {
+                if (i == 10 || i == 15) continue;
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+            }
+            assertFalse(rs.next());
+        }
     }
 
     @Test
@@ -385,17 +402,35 @@ public class StatementTest extends BaseTest {
         Assume.assumeTrue(doPrecisionTest);
 
         createTable("testProperBatchUpdate", "col int, col2 int");
-        int[] results;
-        int queriesInBatch = 3;
+        Statement statement = sharedConnection.createStatement();
+
+        //add 100 data
+        StringBuilder sb = new StringBuilder("INSERT INTO testProperBatchUpdate(col, col2) VALUES (0,0)");
+        for (int i = 1; i < 100; i++) sb.append(",(").append(i).append(",0)");
+        statement.execute(sb.toString());
+
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
                 "UPDATE testProperBatchUpdate set col2 = ? WHERE col = ? ")) {
-            for (int i = 0; i < queriesInBatch; i++) {
-                preparedStatement.setInt(1, i);
-                preparedStatement.setInt(2, i);
-                preparedStatement.addBatch();
-            }
-            results = preparedStatement.executeBatch();
+            preparedStatement.setInt(1, 10);
+            preparedStatement.setInt(2, 10);
+            preparedStatement.addBatch();
+
+            preparedStatement.setInt(1, 15);
+            preparedStatement.setInt(2, 15);
+            preparedStatement.addBatch();
+
+            int[] results = preparedStatement.executeBatch();
+            assertEquals(2, results.length);
         }
-        assertEquals(results.length, queriesInBatch);
+
+        //check results
+        try (ResultSet rs = statement.executeQuery("SELECT * FROM testProperBatchUpdate")) {
+            for (int i = 0; i < 100; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+                assertEquals((i == 10 || i == 15) ? i : 0, rs.getInt(2));
+            }
+            assertFalse(rs.next());
+        }
     }
 }

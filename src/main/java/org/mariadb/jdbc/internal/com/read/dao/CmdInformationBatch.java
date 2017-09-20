@@ -64,8 +64,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class CmdInformationBatch implements CmdInformation {
 
-    private final Queue<Long> insertIds;
-    private final Queue<Long> updateCounts;
+    private final Queue<Long> insertIds = new ConcurrentLinkedQueue<>();
+    private final Queue<Long> updateCounts = new ConcurrentLinkedQueue<>();
     private final int expectedSize;
     private final int autoIncrement;
     private int insertIdNumber = 0;
@@ -84,15 +84,13 @@ public class CmdInformationBatch implements CmdInformation {
      */
     public CmdInformationBatch(int expectedSize, int autoIncrement) {
         this.expectedSize = expectedSize;
-        this.insertIds = new ConcurrentLinkedQueue<>();
-        this.updateCounts = new ConcurrentLinkedQueue<>();
         this.autoIncrement = autoIncrement;
     }
 
     @Override
     public void addErrorStat() {
         hasException = true;
-        this.updateCounts.add((long) Statement.EXECUTE_FAILED);
+        updateCounts.add((long) Statement.EXECUTE_FAILED);
     }
 
     /**
@@ -100,9 +98,12 @@ public class CmdInformationBatch implements CmdInformation {
      *
      */
     @Override
-    public void clearErrorStat() {
+    public void reset() {
+        insertIds.clear();
+        updateCounts.clear();
+        insertIdNumber = 0;
         hasException = false;
-        this.updateCounts.remove((long) Statement.EXECUTE_FAILED);
+        rewritten = false;
     }
 
     public void addResultSetStat() {
@@ -111,9 +112,9 @@ public class CmdInformationBatch implements CmdInformation {
 
     @Override
     public void addSuccessStat(long updateCount, long insertId) {
-        this.insertIds.add(insertId);
+        insertIds.add(insertId);
         insertIdNumber += updateCount;
-        this.updateCounts.add(updateCount);
+        updateCounts.add(updateCount);
     }
 
     @Override

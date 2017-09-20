@@ -80,16 +80,16 @@ public class CmdInformationMultiple implements CmdInformation {
      * @param autoIncrement connection auto increment value.
      */
     public CmdInformationMultiple(int expectedSize, int autoIncrement) {
+        insertIds = new ArrayList<>(expectedSize);
+        updateCounts = new ArrayList<>(expectedSize);
         this.expectedSize = expectedSize;
-        this.insertIds = new ArrayList<>(expectedSize);
-        this.updateCounts = new ArrayList<>(expectedSize);
         this.autoIncrement = autoIncrement;
     }
 
     @Override
     public void addErrorStat() {
         hasException = true;
-        this.updateCounts.add((long) Statement.EXECUTE_FAILED);
+        updateCounts.add((long) Statement.EXECUTE_FAILED);
     }
 
     /**
@@ -97,21 +97,25 @@ public class CmdInformationMultiple implements CmdInformation {
      *
      */
     @Override
-    public void clearErrorStat() {
+    public void reset() {
+        insertIds.clear();
+        updateCounts.clear();
+        insertIdNumber = 0;
+        moreResults = 0;
         hasException = false;
-        this.updateCounts.remove((long) Statement.EXECUTE_FAILED);
+        rewritten = false;
     }
 
 
     public void addResultSetStat() {
-        this.updateCounts.add((long) RESULT_SET_VALUE);
+        updateCounts.add((long) RESULT_SET_VALUE);
     }
 
     @Override
     public void addSuccessStat(long updateCount, long insertId) {
-        this.insertIds.add(insertId);
+        insertIds.add(insertId);
         insertIdNumber += updateCount;
-        this.updateCounts.add(updateCount);
+        updateCounts.add(updateCount);
     }
 
     @Override

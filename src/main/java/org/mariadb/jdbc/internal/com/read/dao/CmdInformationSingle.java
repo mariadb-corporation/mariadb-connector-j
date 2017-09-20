@@ -103,7 +103,7 @@ public class CmdInformationSingle implements CmdInformation {
     }
 
     @Override
-    public void clearErrorStat() {
+    public void reset() {
         //not expected
     }
 
