@@ -68,6 +68,7 @@ import java.sql.Statement;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -117,6 +118,8 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             Statement st = connection.createStatement();
 
             int firstServerId = getServerId(connection);
+            int blackListSize = getProtocolFromConnection(connection)
+                    .getProxy().getListener().getBlacklistKeys().size();
             stopProxy(firstServerId);
 
             try {
@@ -129,7 +132,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             //check blacklist size
             try {
                 Protocol protocol = getProtocolFromConnection(connection);
-                assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == 1);
+                assertEquals(blackListSize + 1, protocol.getProxy().getListener().getBlacklistKeys().size());
 
                 //replace proxified HostAddress by normal one
                 UrlParser urlParser = UrlParser.parse(defaultUrl);

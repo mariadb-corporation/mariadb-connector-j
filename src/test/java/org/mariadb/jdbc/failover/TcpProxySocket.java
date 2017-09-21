@@ -168,10 +168,12 @@ public class TcpProxySocket implements Runnable {
                         int bytesRead;
                         try {
                             while ((bytesRead = fromClient.read(request)) != -1) {
-                                try {
-                                    Thread.sleep(delay);
-                                } catch (InterruptedException e) {
-                                    e.printStackTrace();
+                                if (delay > 0) {
+                                    try {
+                                        Thread.sleep(delay);
+                                    } catch (InterruptedException e) {
+                                        e.printStackTrace();
+                                    }
                                 }
                                 toServer.write(request, 0, bytesRead);
                                 toServer.flush();

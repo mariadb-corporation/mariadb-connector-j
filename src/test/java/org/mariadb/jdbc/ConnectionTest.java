@@ -396,6 +396,9 @@ public class ConnectionTest extends BaseTest {
     public void testValidTimeout() throws Throwable {
         Assume.assumeFalse(sharedIsAurora());
         try (Connection connection = createProxyConnection(new Properties())) {
+
+            assertTrue(connection.isValid(1)); //1 second
+
             //ensuring to reactivate proxy
             Timer timer = new Timer();
             timer.schedule(new TimerTask() {
@@ -416,8 +419,11 @@ public class ConnectionTest extends BaseTest {
     @Test(timeout = 15_000L)
     public void testValidFailedTimeout() throws Throwable {
         Properties properties = new Properties();
-        properties.setProperty("profileSql", "true");
+        properties.setProperty("usePipelineAuth", "false");
         try (Connection connection = createProxyConnection(properties)) {
+
+            assertTrue(connection.isValid(1)); //1 second
+
             //ensuring to reactivate proxy
             Timer timer = new Timer();
             timer.schedule(new TimerTask() {
