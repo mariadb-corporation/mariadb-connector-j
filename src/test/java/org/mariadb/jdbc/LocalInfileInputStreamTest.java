@@ -303,12 +303,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
         ResultSet rs = sharedConnection.createStatement().executeQuery("select @@max_allowed_packet");
         rs.next();
         long maxAllowedPacket = rs.getLong(1);
-        try {
-            checkBigLocalInfile(maxAllowedPacket * 2);
-            fail("must have fail");
-        } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("Could not send query: query size is >= to max_allowed_packet"));
-        }
+        checkBigLocalInfile(maxAllowedPacket * 2);
     }
 
 }
