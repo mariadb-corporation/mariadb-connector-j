@@ -272,13 +272,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
         ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
         assertTrue(rs.next());
         long maxAllowedPacket = rs.getLong(1);
-        try {
-            checkBigLocalInfile(maxAllowedPacket * 2);
-            fail("must have fail");
-        } catch (SQLException sqle) {
-            assertTrue(sqle.getMessage().contains("Could not send query: query size ")
-                    && sqle.getMessage().contains(" is >= to max_allowed_packet"));
-        }
+        checkBigLocalInfile(maxAllowedPacket * 2);
     }
 
 }

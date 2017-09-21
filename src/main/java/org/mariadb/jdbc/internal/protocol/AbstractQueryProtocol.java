@@ -1513,22 +1513,22 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             }
 
             try {
-                writer.startPacket(seq);
-                writer.write(is, false, false);
-                writer.flush();
+
+                byte[] buf = new byte[8192];
+                int len;
+                while ((len = is.read(buf)) > 0) {
+                    writer.startPacket(seq++);
+                    writer.write(buf, 0, len);
+                    writer.flush();
+                }
                 writer.writeEmptyPacket();
-            } catch (MaxAllowedPacketException ioe) {
-                //particular case : error has been throw before sending packets.
-                //must finished exchanges before throwing error
-                writer.writeEmptyPacket();
-                reader.getPacket(true);
-                throw handleIoException(ioe);
 
             } catch (IOException ioe) {
                 throw handleIoException(ioe);
             } finally {
                 is.close();
             }
+
             getResult(results);
 
         } catch (IOException e) {
