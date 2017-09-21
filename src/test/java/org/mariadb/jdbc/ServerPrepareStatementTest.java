@@ -111,7 +111,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         try {
             connection = setConnection();
             Statement statement = connection.createStatement();
-            ResultSet rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
+            ResultSet rs = statement.executeQuery("show session status like 'Prepared_stmt_count'");
             assertTrue(rs.next());
             final int nbStatementCount = rs.getInt(2);
 
@@ -121,7 +121,7 @@ public class ServerPrepareStatementTest extends BaseTest {
             ps.addBatch();
             ps.execute();
 
-            rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
+            rs = statement.executeQuery("show session status like 'Prepared_stmt_count'");
             assertTrue(rs.next());
             assertEquals(rs.getInt(2), nbStatementCount + 1);
         } finally {
