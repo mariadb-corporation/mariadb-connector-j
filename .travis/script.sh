@@ -122,6 +122,17 @@ cmd+=( -DdbUrl="$urlString" )
 cmd+=( -DtestSingleHost="$testSingleHost" )
 echo $cmd
 
+if [ "2.0.6" = "$MAXSCALE_VERSION" ]
+then
+    docker-compose -f $COMPOSE_FILE exec maxscale tail -n 500 /var/log/maxscale/maxscale1.log
+fi
+
+if [ "2.1.4" = "$MAXSCALE_VERSION" ]
+then
+    docker-compose -f $COMPOSE_FILE exec maxscale tail -n 500 /var/log/maxscale/maxscale.log
+fi
+
+
 "${cmd[@]}"
 if [ -n "$PROFILE" ]
 then
