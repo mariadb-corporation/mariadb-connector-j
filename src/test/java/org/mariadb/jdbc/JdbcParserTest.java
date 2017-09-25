@@ -443,6 +443,30 @@ public class JdbcParserTest {
         assertTrue(jdbc == null);
     }
 
+    @Test
+    public void checkHaMode() throws SQLException {
+        checkHaMode("jdbc:mysql://localhost/test", HaMode.NONE);
+        checkHaMode("jdbc:mariadb://localhost/test", HaMode.NONE);
+        checkHaMode("jdbc:mariadb:replication://localhost/test", HaMode.REPLICATION);
+        checkHaMode("jdbc:mariadb:replication//localhost/test", HaMode.REPLICATION);
+        checkHaMode("jdbc:mariadb:aurora://localhost/test", HaMode.AURORA);
+
+        try {
+            checkHaMode("jdbc:mariadb:replicati//localhost/test", HaMode.REPLICATION);
+            fail();
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("wrong failover parameter format in connection String"));
+        }
+
+
+    }
+
+    private void checkHaMode(String url, HaMode expectedHaMode) throws SQLException {
+        UrlParser jdbc = UrlParser.parse(url);
+        assertEquals(expectedHaMode, jdbc.getHaMode());
+
+    }
+
     /**
      * CONJ-452 : correcting line break in connection url.
      *

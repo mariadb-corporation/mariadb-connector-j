@@ -208,7 +208,7 @@ public class UrlParser implements Cloneable {
                 throw new IllegalArgumentException("url parsing error : '//' is not present in the url " + url);
             }
 
-            setHaMode(urlParser, url, separator);
+            urlParser.haMode = parseHaMode(url, separator);
 
             String urlSecondPart = url.substring(separator + 2);
             int dbIndex = urlSecondPart.indexOf("/");
@@ -327,18 +327,25 @@ public class UrlParser implements Cloneable {
         return false;
     }
 
-    private static void setHaMode(UrlParser urlParser, String url, int separator) {
-        String[] baseTokens = url.substring(0, separator).split(":");
 
-        //parse HA mode
-        urlParser.haMode = HaMode.NONE;
-        if (baseTokens.length > 2) {
-            try {
-                urlParser.haMode = HaMode.valueOf(baseTokens[2].toUpperCase());
-            } catch (IllegalArgumentException i) {
-                throw new IllegalArgumentException("url parameter error '" + baseTokens[2] + "' is a unknown parameter in the url " + url);
-            }
+    private static HaMode parseHaMode(String url, int separator) {
+        //parser is sure to have at least 2 colon, since jdbc:[mysql|mariadb]: is tested.
+        int firstColonPos = url.indexOf(':');
+        int secondColonPos = url.indexOf(':', firstColonPos + 1);
+        int thirdColonPos = url.indexOf(':', secondColonPos + 1);
+
+        if (thirdColonPos > separator) return HaMode.NONE;
+        if (thirdColonPos == -1) {
+            if (secondColonPos == separator - 1) return HaMode.NONE;
+            thirdColonPos = separator;
         }
+
+        try {
+            return HaMode.valueOf(url.substring(secondColonPos + 1, thirdColonPos).toUpperCase());
+        } catch (IllegalArgumentException i) {
+            throw new IllegalArgumentException("wrong failover parameter format in connection String " + url);
+        }
+
     }
 
     private static void setDefaultHostAddressType(UrlParser urlParser) {
