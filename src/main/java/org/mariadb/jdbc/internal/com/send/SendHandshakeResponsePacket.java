@@ -188,31 +188,39 @@ public class SendHandshakeResponsePacket {
         pos.permitTrace(true);
     }
 
+    private static final byte[] _CLIENT_NAME = "_client_name".getBytes();
+    private static final byte[] _CLIENT_VERSION = "_client_version".getBytes();
+    private static final byte[] _OS = "_os".getBytes();
+    private static final byte[] _PID = "_pid".getBytes();
+    private static final byte[] _THREAD = "_thread".getBytes();
+    private static final byte[] _JAVA_VENDOR = "_java_vendor".getBytes();
+    private static final byte[] _JAVA_VERSION = "_java_version".getBytes();
+
     private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes) throws IOException {
         Buffer buffer = new Buffer(new byte[200]);
 
-        buffer.writeStringLength("_client_name");
+        buffer.writeStringSmallLength(_CLIENT_NAME);
         buffer.writeStringLength(MariaDbDatabaseMetaData.DRIVER_NAME);
 
-        buffer.writeStringLength("_client_version");
+        buffer.writeStringSmallLength(_CLIENT_VERSION);
         buffer.writeStringLength(Version.version);
 
-        buffer.writeStringLength("_os");
+        buffer.writeStringSmallLength(_OS);
         buffer.writeStringLength(System.getProperty("os.name"));
 
         String pid = PidFactory.getInstance().getPid();
         if (pid != null) {
-            buffer.writeStringLength("_pid");
+            buffer.writeStringSmallLength(_PID);
             buffer.writeStringLength(pid);
         }
 
-        buffer.writeStringLength("_thread");
+        buffer.writeStringSmallLength(_THREAD);
         buffer.writeStringLength(Long.toString(Thread.currentThread().getId()));
 
-        buffer.writeStringLength("_java_vendor");
+        buffer.writeStringLength(_JAVA_VENDOR);
         buffer.writeStringLength(System.getProperty("java.vendor"));
 
-        buffer.writeStringLength("_java_version");
+        buffer.writeStringSmallLength(_JAVA_VERSION);
         buffer.writeStringLength(System.getProperty("java.version"));
 
         if (connectionAttributes != null) {

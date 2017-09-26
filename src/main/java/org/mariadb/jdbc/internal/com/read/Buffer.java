@@ -336,8 +336,34 @@ public class Buffer {
         writeLength(length);
         System.arraycopy(bytes, 0, buf, position, length);
         position += length;
-
     }
+
+    /**
+     * Write value with length encoded prefix.
+     *
+     * @param bytes value to write
+     */
+    public void writeStringLength(byte[] bytes) {
+        int length = bytes.length;
+        while (remaining() < length + 9) grow();
+        writeLength(length);
+        System.arraycopy(bytes, 0, buf, position, length);
+        position += length;
+    }
+
+    /**
+     * Write value with length encoded prefix.
+     * value length MUST be less than 251 char
+     * @param value value to write
+     */
+    public void writeStringSmallLength(byte[] value) {
+        int length = value.length;
+        while (remaining() < length + 1) grow();
+        buf[position++] = (byte) length;
+        System.arraycopy(value, 0, buf, position, length);
+        position += length;
+    }
+
 
     /**
      * Write bytes.

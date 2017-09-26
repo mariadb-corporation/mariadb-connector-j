@@ -54,9 +54,8 @@ package org.mariadb.jdbc.internal.util;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
+import com.sun.jna.Platform;
+import com.sun.jna.platform.win32.Kernel32;
 
 public class PidFactory {
 
@@ -74,30 +73,15 @@ public class PidFactory {
                 if (pidRequest == null) {
                     //initialize JNA methods
                     try {
-                        Class platformClass = Class.forName("com.sun.jna.Platform");
-                        @SuppressWarnings("unchecked")
-                        Method isLinuxMethod = platformClass.getMethod("isLinux");
-                        Boolean isLinux = (Boolean) isLinuxMethod.invoke(platformClass);
-                        if (isLinux) {
-
+                        if (Platform.isLinux()) {
                             //Linux pid implementation
                             pidRequest = () -> String.valueOf(CLibrary.INSTANCE.getpid());
-
                         } else {
-
-                            @SuppressWarnings("unchecked")
-                            Method isWindowsMethod = platformClass.getMethod("isWindows");
-                            Boolean isWindows = (Boolean) isWindowsMethod.invoke(platformClass);
-                            if (isWindows) {
-
+                            if (Platform.isWindows()) {
                                 //Windows pid implementation
                                 pidRequest = () -> {
                                     try {
-                                        Class kernel32Class = Class.forName("com.sun.jna.platform.win32.Kernel32");
-                                        Field field = kernel32Class.getField("INSTANCE");
-                                        Object fieldinstance = field.get(kernel32Class);
-                                        Method getCurrentProcessIdMethod = fieldinstance.getClass().getMethod("GetCurrentProcessId");
-                                        return String.valueOf(getCurrentProcessIdMethod.invoke(fieldinstance));
+                                        return String.valueOf(Kernel32.INSTANCE.GetCurrentProcessId());
                                     } catch (Throwable cle) {
                                         //jna plateform jar's are not in classpath, no PID returned
                                     }
@@ -126,7 +110,6 @@ public class PidFactory {
 
     private interface CLibrary extends Library {
         CLibrary INSTANCE = (CLibrary) Native.loadLibrary("c", CLibrary.class);
-
         int getpid();
     }
 }

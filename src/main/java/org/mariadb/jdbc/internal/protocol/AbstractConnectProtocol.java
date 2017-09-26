@@ -936,19 +936,15 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return isMasterConnection();
     }
 
-    private boolean isServerLanguageUtf8mb4(byte serverLanguage) {
-        Byte[] utf8mb4Languages = {
-                (byte) 45, (byte) 46, (byte) 224, (byte) 225, (byte) 226, (byte) 227, (byte) 228,
-                (byte) 229, (byte) 230, (byte) 231, (byte) 232, (byte) 233, (byte) 234, (byte) 235,
-                (byte) 236, (byte) 237, (byte) 238, (byte) 239, (byte) 240, (byte) 241, (byte) 242,
-                (byte) 243, (byte) 245, (byte) 246, (byte) 247
-        };
-        return Arrays.asList(utf8mb4Languages).contains(serverLanguage);
-    }
-
     private byte decideLanguage(byte serverLanguage) {
         //force UTF8mb4 if possible, UTF8 if not.
-        return (isServerLanguageUtf8mb4(serverLanguage) ? serverLanguage : 33);
+        if (serverLanguage == 45        //utf8mb4_general_ci
+                || serverLanguage == 46 //utf8mb4_bin
+                || (serverLanguage >= 224 && serverLanguage <= 247)) {
+            return serverLanguage;
+        }
+        return 33; //utf8_general_ci
+
     }
 
     /**
@@ -1140,25 +1136,31 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private void parseVersion() {
-        String[] versionArray = serverVersion.split("[^0-9]");
-
-        //standard version
-        if (versionArray.length > 2) {
-            majorVersion = Integer.parseInt(versionArray[0]);
-            minorVersion = Integer.parseInt(versionArray[1]);
-            patchVersion = Integer.parseInt(versionArray[2]);
-            return;
+        int length = serverVersion.length();
+        char car;
+        int offset = 0;
+        int type = 0;
+        int val = 0;
+        for (;offset < length; offset++) {
+            car = serverVersion.charAt(offset);
+            if (car < '0' || car > '9') {
+                switch (type) {
+                    case 0:
+                        majorVersion = val;
+                        break;
+                    case 1:
+                        minorVersion = val;
+                        break;
+                    case 2:
+                        patchVersion = val;
+                        return;
+                }
+                type++;
+                val = 0;
+            } else {
+                val = val * 10 + car - 48;
+            }
         }
-
-        // in case version string has been forced
-        if (versionArray.length > 0) {
-            majorVersion = Integer.parseInt(versionArray[0]);
-        }
-
-        if (versionArray.length > 1) {
-            minorVersion = Integer.parseInt(versionArray[1]);
-        }
-
     }
 
     public int getMajorServerVersion() {
