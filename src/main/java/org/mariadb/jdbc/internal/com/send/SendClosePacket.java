@@ -58,17 +58,20 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import java.io.IOException;
 
 
-public class SendClosePacket implements InterfaceSendPacket {
+public class SendClosePacket {
 
     /**
      * Send close stream to server.
      *
      * @param pos write outputStream
-     * @throws IOException if connection problem occur
      */
-    public void send(final PacketOutputStream pos) throws IOException {
-        pos.startPacket(0);
-        pos.write(Packet.COM_QUIT);
-        pos.flush();
+    public static void send(final PacketOutputStream pos) {
+        try {
+            pos.startPacket(0);
+            pos.write(Packet.COM_QUIT);
+            pos.flush();
+        } catch (IOException ioe) {
+            //eat
+        }
     }
 }

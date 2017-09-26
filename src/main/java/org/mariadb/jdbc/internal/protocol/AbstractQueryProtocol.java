@@ -159,7 +159,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             getResult(results);
 
         } catch (SQLException sqlException) {
-            throw logQuery.exceptionWithQuery(sql, sqlException);
+            throw logQuery.exceptionWithQuery(sql, sqlException, explicitClosed);
         } catch (IOException e) {
             throw handleIoException(e);
         }
@@ -178,7 +178,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             getResult(results);
 
         } catch (SQLException sqlException) {
-            throw logQuery.exceptionWithQuery(sql, sqlException);
+            throw logQuery.exceptionWithQuery(sql, sqlException, explicitClosed);
         } catch (IOException e) {
             throw handleIoException(e);
         }
@@ -437,7 +437,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         return false;
                     }
                     if (exception == null) {
-                        exception = logQuery.exceptionWithQuery(sql, sqle);
+                        exception = logQuery.exceptionWithQuery(sql, sqle, explicitClosed);
                         if (!options.continueBatchOnError) throw exception;
                     }
                 }
@@ -463,7 +463,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         return false;
                     }
                     if (exception == null) {
-                        exception = logQuery.exceptionWithQuery(sql, sqle);
+                        exception = logQuery.exceptionWithQuery(sql, sqle, explicitClosed);
                         if (!options.continueBatchOnError) throw exception;
                     }
                 }
@@ -533,7 +533,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     sql.append(parameters[i].toString()).append(new String(queryParts.get(i + 1)));
                 }
 
-                return logQuery.exceptionWithQuery(sql.toString(), qex);
+                return logQuery.exceptionWithQuery(sql.toString(), qex, explicitClosed);
             }
 
 
@@ -618,7 +618,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                 } catch (SQLException sqlException) {
                     if (exception == null) {
-                        exception = logQuery.exceptionWithQuery(sql, sqlException);
+                        exception = logQuery.exceptionWithQuery(sql, sqlException, explicitClosed);
                         if (!options.continueBatchOnError) throw exception;
                     }
                 } catch (IOException e) {
@@ -655,7 +655,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                                       int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
 
                 String sql = queries.get(currentCounter + sendCmdCounter);
-                return logQuery.exceptionWithQuery(sql, qex);
+                return logQuery.exceptionWithQuery(sql, qex, explicitClosed);
 
             }
 
@@ -752,7 +752,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             } catch (SQLException sqlException) {
                 if (exception == null) {
-                    exception = logQuery.exceptionWithQuery(firstSql, sqlException);
+                    exception = logQuery.exceptionWithQuery(firstSql, sqlException, explicitClosed);
                     if (!options.continueBatchOnError) throw exception;
                 }
             } catch (IOException e) {
@@ -1155,7 +1155,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         this.explicitClosed = true;
         close();
     }
-
 
     /**
      * Deallocate prepare statement if not used anymore.

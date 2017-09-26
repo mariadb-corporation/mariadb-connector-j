@@ -1548,12 +1548,7 @@ public class MariaDbConnection implements Connection {
         }
 
         executor.execute(() -> {
-            try {
-                close();
-                pooledConnection = null;
-            } catch (SQLException sqle) {
-                //eat
-            }
+            protocol.abort();
         });
     }
 

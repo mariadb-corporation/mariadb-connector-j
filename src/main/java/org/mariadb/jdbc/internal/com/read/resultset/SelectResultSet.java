@@ -559,6 +559,23 @@ public class SelectResultSet implements ResultSet {
     }
 
     /**
+     * Connection.abort() has been called, abort result-set.
+     * @throws SQLException exception
+     */
+    public void abort() throws SQLException {
+        isClosed = true;
+        resetVariables();
+
+        //keep garbage easy
+        for (int i = 0; i < data.length; i++) data[i] = null;
+
+        if (statement != null) {
+            statement.checkCloseOnCompletion(this);
+            statement = null;
+        }
+    }
+
+    /**
      * Close resultSet.
      */
     public void close() throws SQLException {

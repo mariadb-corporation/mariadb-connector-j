@@ -100,6 +100,8 @@ public interface Protocol {
 
     void close();
 
+    void abort();
+
     void closeExplicit();
 
     boolean isClosed();

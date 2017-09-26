@@ -172,11 +172,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
         setDataTypeMappingFlags();
     }
 
-    private static void close(PacketInputStream packetInputStream, PacketOutputStream packetOutputStream, Socket socket) throws SQLException {
-        SendClosePacket closePacket = new SendClosePacket();
+    private static void closeSocket(PacketInputStream packetInputStream, PacketOutputStream packetOutputStream, Socket socket) {
         try {
             try {
-                closePacket.send(packetOutputStream);
                 socket.shutdownOutput();
                 socket.setSoTimeout(3);
                 InputStream is = socket.getInputStream();
@@ -190,7 +188,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             packetOutputStream.close();
             packetInputStream.close();
         } catch (IOException e) {
-            throw ExceptionMapper.connException("Could not close connection: " + e.getMessage(), e);
+            //eat
         } finally {
             try {
                 socket.close();
@@ -212,19 +210,63 @@ public abstract class AbstractConnectProtocol implements Protocol {
         } catch (Exception e) {
             /* eat exception */
         }
-        try {
-            if (options.cachePrepStmts) {
-                serverPrepareStatementCache.clear();
+
+        SendClosePacket.send(writer);
+        closeSocket(reader, writer, socket);
+        cleanMemory();
+        if (lock != null) lock.unlock();
+    }
+
+    /**
+     * Force closes socket and stream readers/writers.
+     */
+    public void abort() {
+        this.explicitClosed = true;
+
+        boolean lockStatus = false;
+        if (lock != null) lockStatus = lock.tryLock();
+        this.connected = false;
+
+        abortActiveStream();
+
+        if (!lockStatus) {
+            //lock not available : query is running
+            // force end by executing an KILL connection
+            forceAbort();
+            try {
+                socket.setSoLinger(true, 0);
+            } catch (IOException ioException) {
+                //eat
             }
-            close(reader, writer, socket);
-        } catch (Exception e) {
-            // socket is closed, so it is ok to ignore exception
-        } finally {
-            if (lock != null) lock.unlock();
+        } else {
+            SendClosePacket.send(writer);
         }
 
-        if (options.enablePacketDebug) {
-            traceCache.clearMemory();
+        closeSocket(reader, writer, socket);
+        cleanMemory();
+        if (lockStatus) lock.unlock();
+    }
+
+    private void forceAbort() {
+        try (MasterProtocol copiedProtocol = new MasterProtocol(urlParser, new ReentrantLock())) {
+            copiedProtocol.setHostAddress(getHostAddress());
+            copiedProtocol.connect();
+            //no lock, because there is already a query running that possessed the lock.
+            copiedProtocol.executeQuery("KILL " + serverThreadId);
+        } catch (SQLException sqle) {
+            //eat
+        }
+    }
+
+    private void abortActiveStream() {
+        try {
+            /* If a streaming result set is open, abort it.*/
+            if (activeStreamingResult != null) {
+                activeStreamingResult.abort();
+                activeStreamingResult = null;
+            }
+        } catch (Exception e) {
+            /* eat exception */
         }
     }
 
@@ -242,6 +284,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
             activeStreamingResult.loadFully(true, this);
             activeStreamingResult = null;
         }
+    }
+
+    private void cleanMemory() {
+        if (options.cachePrepStmts) serverPrepareStatementCache.clear();
+        if (options.enablePacketDebug) traceCache.clearMemory();
     }
 
     public void setServerStatus(short serverStatus) {
@@ -1001,9 +1048,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      * @throws SQLException exception
      */
     public void connectWithoutProxy() throws SQLException {
-        if (!isClosed()) {
-            close();
-        }
+        if (!isClosed()) close();
 
         List<HostAddress> addrs = urlParser.getHostAddresses();
         LinkedList<HostAddress> hosts = new LinkedList<>(addrs);

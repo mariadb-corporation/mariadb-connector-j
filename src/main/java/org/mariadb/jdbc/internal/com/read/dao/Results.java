@@ -325,6 +325,24 @@ public class Results {
     }
 
     /**
+     * Connection.abort() has been called, abort remaining active result-set
+     * @throws SQLException exception
+     */
+    public void abort() throws SQLException {
+        if (fetchSize != 0) {
+            fetchSize = 0;
+            if (resultSet != null) {
+                resultSet.abort();
+            } else {
+                SelectResultSet firstResult = executionResults.peekFirst();
+                if (firstResult != null) {
+                    firstResult.abort();
+                }
+            }
+        }
+    }
+
+    /**
      * Position to next resultSet.
      *
      * @param current  one of the following <code>Statement</code> constants indicating what should happen to current
