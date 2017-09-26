@@ -334,8 +334,7 @@ public class UrlParser implements Cloneable {
         int secondColonPos = url.indexOf(':', firstColonPos + 1);
         int thirdColonPos = url.indexOf(':', secondColonPos + 1);
 
-        if (thirdColonPos > separator) return HaMode.NONE;
-        if (thirdColonPos == -1) {
+        if (thirdColonPos > separator || thirdColonPos == -1) {
             if (secondColonPos == separator - 1) return HaMode.NONE;
             thirdColonPos = separator;
         }
