@@ -56,9 +56,7 @@ import org.mariadb.jdbc.internal.util.Utils;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class LruTraceCache extends LinkedHashMap<Instant, TraceObject> {
 
@@ -76,7 +74,7 @@ public class LruTraceCache extends LinkedHashMap<Instant, TraceObject> {
      *
      * @return trace cache value
      */
-    public String printStack() {
+    public synchronized String printStack() {
         StringBuilder sb = new StringBuilder();
         Set<Map.Entry<Instant, TraceObject>> set = entrySet();
         for (Map.Entry<Instant, TraceObject> entry : set) {
@@ -118,10 +116,10 @@ public class LruTraceCache extends LinkedHashMap<Instant, TraceObject> {
     /**
      * Permit to clear array's of array, to help garbage.
      */
-    public void clearMemory() {
-        Set<Map.Entry<Instant, TraceObject>> set = entrySet();
-        for (Map.Entry<Instant, TraceObject> entry : set) {
-            entry.getValue().remove();
+    public synchronized void clearMemory() {
+        Collection<TraceObject> traceObjects = values();
+        for (TraceObject traceObject : traceObjects) {
+            traceObject.remove();
         }
         this.clear();
     }
