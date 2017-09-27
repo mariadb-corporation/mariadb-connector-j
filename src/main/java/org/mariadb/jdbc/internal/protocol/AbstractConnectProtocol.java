@@ -1163,6 +1163,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 val = val * 10 + car - 48;
             }
         }
+
+        //serverVersion finished by number like "5.5.57", assign patchVersion
+        if (type == 2) patchVersion = val;
     }
 
     public int getMajorServerVersion() {
