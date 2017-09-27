@@ -820,6 +820,43 @@ public class BaseTest {
     }
 
     /**
+     * Cancel if Maxscale version isn't required minimum.
+     *
+     * @param major     minimum maxscale major version
+     * @param minor     minimum maxscale minor version
+     */
+    public void ifMaxscaleRequireMinimumVersion(int major, int minor) {
+        String maxscaleVersion = System.getenv("MAXSCALE_VERSION");
+        if (maxscaleVersion == null) return;
+
+        String[] versionArray = maxscaleVersion.split("[^0-9]");
+
+        int majorVersion = 0;
+        int minorVersion = 0;
+
+        //standard version
+        if (versionArray.length > 2) {
+
+            majorVersion = Integer.parseInt(versionArray[0]);
+            minorVersion = Integer.parseInt(versionArray[1]);
+
+        } else {
+
+            if (versionArray.length > 0) {
+                majorVersion = Integer.parseInt(versionArray[0]);
+            }
+
+            if (versionArray.length > 1) {
+                minorVersion = Integer.parseInt(versionArray[1]);
+            }
+
+        }
+
+        Assume.assumeTrue(majorVersion > major
+                || (majorVersion == major && minorVersion >= minor));
+    }
+
+    /**
      * Change session time zone.
      *
      * @param connection connection

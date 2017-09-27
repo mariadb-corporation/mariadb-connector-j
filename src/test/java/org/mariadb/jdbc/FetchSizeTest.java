@@ -204,6 +204,7 @@ public class FetchSizeTest extends BaseTest {
      */
     @Test
     public void fetchSizeCancel() throws SQLException {
+        ifMaxscaleRequireMinimumVersion(2, 2);
         Assume.assumeTrue(!sharedOptions().profileSql);
         long start = System.currentTimeMillis();
         try (Statement stmt = sharedConnection.createStatement()) {
@@ -228,6 +229,7 @@ public class FetchSizeTest extends BaseTest {
 
     @Test
     public void fetchSizePrepareCancel() throws SQLException {
+        ifMaxscaleRequireMinimumVersion(2, 2);
         Assume.assumeTrue(!sharedOptions().profileSql);
 
         long start;
