@@ -702,7 +702,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             this.serverMariaDb = greetingPacket.isServerMariaDb();
             this.serverCapabilities = greetingPacket.getServerCapabilities();
 
-            byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage());
+            byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage() & 0xFF);
             parseVersion();
             long clientCapabilities = initializeClientCapabilities(serverCapabilities);
 
@@ -936,12 +936,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return isMasterConnection();
     }
 
-    private byte decideLanguage(byte serverLanguage) {
+    private byte decideLanguage(int serverLanguage) {
         //force UTF8mb4 if possible, UTF8 if not.
         if (serverLanguage == 45        //utf8mb4_general_ci
                 || serverLanguage == 46 //utf8mb4_bin
                 || (serverLanguage >= 224 && serverLanguage <= 247)) {
-            return serverLanguage;
+            return (byte) serverLanguage;
         }
         return 33; //utf8_general_ci
 
