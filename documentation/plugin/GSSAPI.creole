@@ -76,7 +76,10 @@ The driver will use the native ticket cache to get the TGT available in it using
 If the System property "java.security.auth.login.config" is empty, driver will use the following configuration :
 {{{
     Krb5ConnectorContext {
-        com.sun.security.auth.module.Krb5LoginModule required useTicketCache=true renewTGT=true doNotPrompt=true; 
+        com.sun.security.auth.module.Krb5LoginModule required 
+        useTicketCache=true 
+        renewTGT=true 
+        doNotPrompt=true; 
     };
 }}}
 
