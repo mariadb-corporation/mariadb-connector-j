@@ -1154,6 +1154,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     case 2:
                         patchVersion = val;
                         return;
+                    default:
+                        break;
                 }
                 type++;
                 val = 0;
