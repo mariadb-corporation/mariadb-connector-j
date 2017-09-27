@@ -198,7 +198,7 @@ public class FetchSizeTest extends BaseTest {
     }
 
     /**
-     * CONJ-315/CONJ-531 : statement interruption
+     * CONJ-315/CONJ-531 : statement interruption.
      *
      * @throws SQLException sqle
      */

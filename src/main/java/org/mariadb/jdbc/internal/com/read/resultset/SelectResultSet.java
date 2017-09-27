@@ -439,13 +439,8 @@ public class SelectResultSet implements ResultSet {
             protocol.setHasWarnings(false);
             ErrorPacket errorPacket = new ErrorPacket(new Buffer(buf));
             resetVariables();
-            if (statement != null) {
-                throw ExceptionMapper.getException(new SQLException("(conn=" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
-                        errorPacket.getSqlState(), errorPacket.getErrorNumber()), null, statement, false);
-            } else {
-                throw ExceptionMapper.getException(new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(),
-                        errorPacket.getErrorNumber()), null, statement, false);
-            }
+            throw ExceptionMapper.get(errorPacket.getMessage(), errorPacket.getSqlState(),
+                    errorPacket.getErrorNumber(), null,false);
         }
 
         //is end of stream
