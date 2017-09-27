@@ -64,7 +64,7 @@ If AES is being used, output like the following is displayed after you type the 
 
 On windows GSSAPI implementation is SSPI. The java 8 native implementation as many limitations ([[http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6722928|see java ticket]]).
 
-There is 2 Different implementations:
+Driver contain 2 Different implementations:
 * a java standard implementation will use JAAS to allow java to access TGT.
 * a windows native implementation based on [[https://github.com/dblock/waffle|Waffle]]
 
