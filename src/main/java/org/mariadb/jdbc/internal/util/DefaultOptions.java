@@ -437,12 +437,6 @@ public enum DefaultOptions {
     PIPELINE_AUTH("usePipelineAuth", (Boolean) null, "1.6.0"),
 
     /**
-     * When closing a statement that is fetching result-set (using setFetchSize),
-     * kill query to avoid having to read remaining rows.
-     */
-    KILL_FETCH_STMT("killFetchStmtOnClose", Boolean.TRUE, "1.6.0"),
-
-    /**
      * Driver will save the last 16 MySQL packet exchanges (limited to first 1000 bytes).
      * Hexadecimal value of those packet will be added to stacktrace when an IOException occur.
      * This options has no performance incidence (&lt; 1 microseconds per query) but driver will then take 16kb more memory.

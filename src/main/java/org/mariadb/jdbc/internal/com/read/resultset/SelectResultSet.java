@@ -338,6 +338,15 @@ public class SelectResultSet implements ResultSet {
                 TYPE_SCROLL_SENSITIVE);
     }
 
+    /**
+     * Indicate if result-set is still streaming results from server.
+     * @return true if streaming is finished
+     */
+    public boolean isFullyLoaded() {
+        //result-set is fully loaded when reaching EOF packet.
+        return isEof;
+    }
+
     private void fetchAllResults() throws IOException, SQLException {
 
         dataSize = 0;

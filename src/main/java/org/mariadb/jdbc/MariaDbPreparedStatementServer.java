@@ -389,14 +389,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
             closed = true;
 
             if (results.getFetchSize() != 0) {
-                if (options.killFetchStmtOnClose) {
-                    try {
-                        protocol.cancelCurrentQuery();
-                        skipMoreResults();
-                    } catch (SQLException sqle) {
-                        //eat exception
-                    }
-                } else skipMoreResults();
+                skipMoreResults();
             }
             results.close();
 

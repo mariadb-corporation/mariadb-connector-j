@@ -115,7 +115,6 @@ public class Options implements Cloneable {
     public Boolean useBatchMultiSend;
     public int useBatchMultiSendNumber = 100;
     public Boolean usePipelineAuth;
-    public boolean killFetchStmtOnClose = true;
     public boolean enablePacketDebug;
     public boolean useBulkStmts = true;
     public boolean disableSslHostnameVerification;
@@ -194,7 +193,6 @@ public class Options implements Cloneable {
         if (jdbcCompliantTruncation != opt.jdbcCompliantTruncation) return false;
         if (cacheCallableStmts != opt.cacheCallableStmts) return false;
         if (useBatchMultiSendNumber != opt.useBatchMultiSendNumber) return false;
-        if (killFetchStmtOnClose != opt.killFetchStmtOnClose) return false;
         if (enablePacketDebug != opt.enablePacketDebug) return false;
         if (useBulkStmts != opt.useBulkStmts) return false;
         if (disableSslHostnameVerification != opt.disableSslHostnameVerification) return false;
@@ -314,7 +312,6 @@ public class Options implements Cloneable {
         result = 31 * result + (useBatchMultiSend != null ? useBatchMultiSend.hashCode() : 0);
         result = 31 * result + useBatchMultiSendNumber;
         result = 31 * result + (usePipelineAuth != null ? usePipelineAuth.hashCode() : 0);
-        result = 31 * result + (killFetchStmtOnClose ? 1 : 0);
         result = 31 * result + (enablePacketDebug ? 1 : 0);
         result = 31 * result + (useBulkStmts ? 1 : 0);
         result = 31 * result + (disableSslHostnameVerification ? 1 : 0);
