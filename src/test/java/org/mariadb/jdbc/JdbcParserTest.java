@@ -60,6 +60,7 @@ import java.util.Properties;
 
 import static org.junit.Assert.*;
 
+@SuppressWarnings("ConstantConditions")
 public class JdbcParserTest {
 
     @Test
@@ -157,9 +158,16 @@ public class JdbcParserTest {
     }
 
     @Test
-    public void testNAmePipeUrl() throws Throwable {
+    public void testNamePipeUrl() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb:///test?useSSL=true");
         assertTrue(jdbc.getOptions().useSsl);
+    }
+
+    @Test
+    public void testBooleanDefault() throws Throwable {
+        assertFalse(UrlParser.parse("jdbc:mariadb:///test").getOptions().useSsl);
+        assertTrue(UrlParser.parse("jdbc:mariadb:///test?useSSL=true").getOptions().useSsl);
+        assertTrue(UrlParser.parse("jdbc:mariadb:///test?useSSL").getOptions().useSsl);
     }
 
     @Test
@@ -182,7 +190,7 @@ public class JdbcParserTest {
         assertFalse(jdbc.getOptions().autoReconnect);
         assertNull(jdbc.getOptions().user);
         assertFalse(jdbc.getOptions().createDatabaseIfNotExist);
-        assertTrue(jdbc.getOptions().socketTimeout.intValue() == 10000);
+        assertTrue(jdbc.getOptions().socketTimeout == 10000);
     }
 
     @Test
@@ -433,6 +441,31 @@ public class JdbcParserTest {
     public void checkDisable() throws SQLException {
         UrlParser jdbc = UrlParser.parse("jdbc:mysql://localhost/test?disableMariaDbDriver");
         assertTrue(jdbc == null);
+    }
+
+    @Test
+    public void checkHaMode() throws SQLException {
+        checkHaMode("jdbc:mysql://localhost/test", HaMode.NONE);
+        checkHaMode("jdbc:mariadb://localhost/test", HaMode.NONE);
+        checkHaMode("jdbc:mariadb:replication://localhost/test", HaMode.REPLICATION);
+        checkHaMode("jdbc:mariadb:replication//localhost/test", HaMode.REPLICATION);
+        checkHaMode("jdbc:mariadb:aurora://localhost/test", HaMode.AURORA);
+        checkHaMode("jdbc:mariadb:failover//localhost:3306/test", HaMode.FAILOVER);
+
+        try {
+            checkHaMode("jdbc:mariadb:replicati//localhost/test", HaMode.REPLICATION);
+            fail();
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("wrong failover parameter format in connection String"));
+        }
+
+
+    }
+
+    private void checkHaMode(String url, HaMode expectedHaMode) throws SQLException {
+        UrlParser jdbc = UrlParser.parse(url);
+        assertEquals(expectedHaMode, jdbc.getHaMode());
+
     }
 
     /**

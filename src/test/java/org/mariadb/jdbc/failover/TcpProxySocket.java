@@ -61,15 +61,16 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class TcpProxySocket implements Runnable {
-    private static Logger logger = LoggerFactory.getLogger(TcpProxy.class);
+    private static final Logger logger = LoggerFactory.getLogger(TcpProxy.class);
 
-    String host;
-    int remoteport;
-    int localport;
-    boolean stop = false;
-    Socket client = null;
-    Socket server = null;
-    ServerSocket ss;
+    private final String host;
+    private final int remoteport;
+    private int localport;
+    private boolean stop = false;
+    private Socket client = null;
+    private Socket server = null;
+    private ServerSocket ss;
+    private int delay;
 
     /**
      * Creation of proxy.
@@ -91,6 +92,10 @@ public class TcpProxySocket implements Runnable {
 
     public boolean isClosed() {
         return ss.isClosed();
+    }
+
+    public void setDelay(int delay) {
+        this.delay = delay;
     }
 
     /**
@@ -164,6 +169,13 @@ public class TcpProxySocket implements Runnable {
                             int bytesRead;
                             try {
                                 while ((bytesRead = fromClient.read(request)) != -1) {
+                                    if (delay > 0) {
+                                        try {
+                                            Thread.sleep(delay);
+                                        } catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
                                     toServer.write(request, 0, bytesRead);
                                     toServer.flush();
                                 }
@@ -210,5 +222,9 @@ public class TcpProxySocket implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public int getLocalport() {
+        return localport;
     }
 }

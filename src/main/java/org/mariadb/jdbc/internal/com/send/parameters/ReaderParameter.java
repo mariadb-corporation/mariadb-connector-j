@@ -60,9 +60,9 @@ import java.io.Reader;
 
 public class ReaderParameter implements Cloneable, ParameterHolder {
 
-    private Reader reader;
-    private long length;
-    private boolean noBackslashEscapes;
+    private final Reader reader;
+    private final long length;
+    private final boolean noBackslashEscapes;
 
     /**
      * Constructor.

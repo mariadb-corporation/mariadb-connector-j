@@ -59,7 +59,7 @@ import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 
-import java.io.IOException;
+import java.net.SocketException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -80,7 +80,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      * @param listener       aurora failover to call back if master is found
      * @param probableMaster probable master host
      */
-    public static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster) {
+    private static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster) {
         AuroraProtocol protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
         try {
 
@@ -107,17 +107,19 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     /**
      * loop until found the failed connection.
      *
-     * @param listener     current failover
-     * @param addresses    list of HostAddress to loop
-     * @param searchFilter search parameter
+     * @param listener              current failover
+     * @param addresses             list of HostAddress to loop
+     * @param initialSearchFilter   search parameter
      * @throws SQLException if not found
      */
-    public static void loop(AuroraListener listener, final List<HostAddress> addresses, SearchFilter searchFilter)
+    public static void loop(AuroraListener listener, final List<HostAddress> addresses, SearchFilter initialSearchFilter)
             throws SQLException {
 
+        SearchFilter searchFilter = initialSearchFilter;
         AuroraProtocol protocol;
         Deque<HostAddress> loopAddresses = new ArrayDeque<HostAddress>(addresses);
         if (loopAddresses.isEmpty()) resetHostList(listener, loopAddresses);
+
         int maxConnectionTry = listener.getRetriesAllDown();
         SQLException lastQueryException = null;
         HostAddress probableMasterHost = null;
@@ -289,7 +291,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     }
 
     @Override
-    public void readPipelineCheckMaster() throws IOException, SQLException {
+    public void readPipelineCheckMaster() throws SQLException {
         Results results = new Results();
         getResult(results);
         results.commandEnd();
@@ -306,9 +308,28 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     }
 
     @Override
-    public boolean isValid() throws SQLException {
-        if (isMasterConnection()) return checkIfMaster();
-        return ping();
+    public boolean isValid(int timeout) throws SQLException {
+
+        try {
+
+            this.socket.setSoTimeout(timeout);
+
+            if (isMasterConnection()) return checkIfMaster();
+            return ping();
+
+        } catch (SocketException socketException) {
+            throw new SQLException("Could not valid connection : " + socketException.getMessage(),
+                    CONNECTION_EXCEPTION.getSqlState(),
+                    socketException);
+        } finally {
+
+            //set back initial socket timeout
+            try {
+                this.socket.setSoTimeout(options.socketTimeout == null ? 0 : options.socketTimeout);
+            } catch (SocketException socketException) {
+                //eat
+            }
+        }
     }
 
     /**

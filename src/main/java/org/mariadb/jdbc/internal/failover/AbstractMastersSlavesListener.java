@@ -67,16 +67,16 @@ import java.util.concurrent.atomic.AtomicReference;
 public abstract class AbstractMastersSlavesListener extends AbstractMastersListener {
 
 
-    private static Logger logger = LoggerFactory.getLogger(AbstractMastersSlavesListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractMastersSlavesListener.class);
     //These reference are when failloop reconnect failing connection, but lock is already held by
     //another thread (query in progress), so switching the connection wait for the query to be finish.
     //next query will reconnect those during preExecute method, or if actual used connection failed
     //during reconnection phase.
-    protected AtomicReference<Protocol> waitNewSecondaryProtocol = new AtomicReference<Protocol>();
-    protected AtomicReference<Protocol> waitNewMasterProtocol = new AtomicReference<Protocol>();
+    protected final AtomicReference<Protocol> waitNewSecondaryProtocol = new AtomicReference<Protocol>();
+    protected final AtomicReference<Protocol> waitNewMasterProtocol = new AtomicReference<Protocol>();
     /* =========================== Failover variables ========================================= */
     private volatile long secondaryHostFailNanos = 0;
-    private AtomicBoolean secondaryHostFail = new AtomicBoolean();
+    private final AtomicBoolean secondaryHostFail = new AtomicBoolean();
 
     protected AbstractMastersSlavesListener(UrlParser urlParser) {
         super(urlParser);
@@ -96,27 +96,37 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
         if (isExplicitClosed()) {
             throw new SQLException("Connection has been closed !");
         }
+
+        //check that failover is due to kill command
+        boolean killCmd = qe != null
+                && qe.getSQLState() != null
+                && qe.getSQLState().equals("70100")
+                && 1927 == qe.getErrorCode();
+
         if (protocol.mustBeMasterConnection()) {
             if (!protocol.isMasterConnection()) {
-                logger.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString()
-                        + ", conn " + this.currentProtocol.getServerThreadId()
-                        + " ] is now in read-only mode. Exception : " + qe.getMessage());
+                logger.warn("SQL Primary node [{}, conn={}] is now in read-only mode. Exception : {}",
+                        this.currentProtocol.getHostAddress().toString(),
+                        this.currentProtocol.getServerThreadId(),
+                        qe.getMessage());
             } else if (setMasterHostFail()) {
-                logger.warn("SQL Primary node [" + this.currentProtocol.getHostAddress().toString()
-                        + ", conn " + this.currentProtocol.getServerThreadId()
-                        + " ] connection fail. Reason : " + qe.getMessage());
+                logger.warn("SQL Primary node [{}, conn={}] connection fail. Reason : {}",
+                        this.currentProtocol.getHostAddress().toString(),
+                        this.currentProtocol.getServerThreadId(),
+                        qe.getMessage());
 
                 addToBlacklist(protocol.getHostAddress());
             }
-            return primaryFail(method, args);
+            return primaryFail(method, args, killCmd);
         } else {
             if (setSecondaryHostFail()) {
-                logger.warn("SQL secondary node [" + this.currentProtocol.getHostAddress().toString()
-                        + ", conn " + this.currentProtocol.getServerThreadId()
-                        + " ] connection fail. Reason : " + qe.getMessage());
+                logger.warn("SQL secondary node [{}, conn={}] connection fail. Reason : {}",
+                        this.currentProtocol.getHostAddress().toString(),
+                        this.currentProtocol.getServerThreadId(),
+                        qe.getMessage());
                 addToBlacklist(protocol.getHostAddress());
             }
-            return secondaryFail(method, args);
+            return secondaryFail(method, args, killCmd);
         }
     }
 
@@ -182,7 +192,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
         return new SearchFilter(isMasterHostFail(), isSecondaryHostFail());
     }
 
-    public abstract HandleErrorResult secondaryFail(Method method, Object[] args) throws Throwable;
+    public abstract HandleErrorResult secondaryFail(Method method, Object[] args, boolean killCmd) throws Throwable;
 
     public abstract void foundActiveSecondary(Protocol newSecondaryProtocol) throws SQLException;
 

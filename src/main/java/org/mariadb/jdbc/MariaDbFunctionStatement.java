@@ -67,15 +67,21 @@ public class MariaDbFunctionStatement extends CallableFunctionStatement implemen
      * Specific implementation of CallableStatement to handle function call, represent by call like
      * {?= call procedure-name[(arg1,arg2, ...)]}.
      *
-     * @param connection    current connection
-     * @param databaseName  database name
-     * @param procedureName function name
-     * @param arguments     function args
+     * @param connection            current connection
+     * @param databaseName          database name
+     * @param procedureName         function name
+     * @param arguments             function args
+     * @param resultSetType         a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                              <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency  a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                              <code>ResultSet.CONCUR_UPDATABLE</code>
      * @throws SQLException exception
      */
-    public MariaDbFunctionStatement(MariaDbConnection connection, String databaseName, String procedureName, String arguments) throws SQLException {
+    public MariaDbFunctionStatement(MariaDbConnection connection, String databaseName, String procedureName,
+                                    String arguments, int resultSetType, final int resultSetConcurrency) throws SQLException {
         super(connection, "SELECT " + procedureName + ((arguments == null) ? "()" : arguments),
-                ResultSet.TYPE_FORWARD_ONLY);
+                resultSetType, resultSetConcurrency);
         parameterMetadata = new CallableParameterMetaData(connection, databaseName, procedureName, true);
         super.initFunctionData(getParameterCount() + 1);
     }

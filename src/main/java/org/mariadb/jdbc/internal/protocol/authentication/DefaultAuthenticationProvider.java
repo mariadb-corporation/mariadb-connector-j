@@ -62,8 +62,8 @@ public class DefaultAuthenticationProvider {
     public static final String MYSQL_NATIVE_PASSWORD = "mysql_native_password";
     public static final String MYSQL_OLD_PASSWORD = "mysql_old_password";
     public static final String MYSQL_CLEAR_PASSWORD = "mysql_clear_password";
-    public static final String GSSAPI_CLIENT = "auth_gssapi_client";
-    public static final String DIALOG = "dialog";
+    private static final String GSSAPI_CLIENT = "auth_gssapi_client";
+    private static final String DIALOG = "dialog";
 
     /**
      * Process AuthenticationSwitch.

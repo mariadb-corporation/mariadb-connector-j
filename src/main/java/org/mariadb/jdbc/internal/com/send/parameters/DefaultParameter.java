@@ -50,16 +50,56 @@
  *
  */
 
-package org.mariadb.jdbc.internal.util;
+package org.mariadb.jdbc.internal.com.send.parameters;
 
-public enum ExceptionCode {
-    CREATE_RESULTSET_DURING_ACTIVE_RESULT("01001"),
-    WRONG_NUMBER_OF_ARGUMENT("07001"),
-    INVALID_PARAMETER_VALUE("22023");
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-    public final String sqlState;
+import java.io.IOException;
 
-    ExceptionCode(String sqlState) {
-        this.sqlState = sqlState;
+
+public class DefaultParameter implements Cloneable, ParameterHolder {
+    private static final byte[] defaultBytes = "DEFAULT".getBytes();
+
+    /**
+     * Send escaped String to outputStream.
+     *
+     * @param pos outpustream.
+     */
+    public void writeTo(final PacketOutputStream pos) throws IOException {
+        pos.write(defaultBytes);
+    }
+
+    public long getApproximateTextProtocolLength() {
+        return 7;
+    }
+
+    /**
+     * Write data to socket in binary format.
+     *
+     * @param pos socket output stream
+     * @throws IOException if socket error occur
+     */
+
+    public void writeBinary(final PacketOutputStream pos) throws IOException {
+        pos.writeFieldLength(defaultBytes.length);
+        pos.write(defaultBytes);
+    }
+
+    public ColumnType getColumnType() {
+        return ColumnType.VARCHAR;
+    }
+
+    @Override
+    public String toString() {
+        return "DEFAULT";
+    }
+
+    public boolean isNullData() {
+        return false;
+    }
+
+    public boolean isLongData() {
+        return false;
     }
 }

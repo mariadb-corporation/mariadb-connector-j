@@ -66,17 +66,15 @@ public class TimeoutTest extends BaseTest {
 
         Statement stmt = conn.createStatement();
         ResultSet rs = stmt.executeQuery("select " + value);
-        rs.next();
+        assertTrue(rs.next());
         return rs.getInt(1);
     }
 
     /**
      * Conj-79.
-     *
-     * @throws SQLException exception
      */
     @Test
-    public void resultSetAfterSocketTimeoutTest() throws Throwable {
+    public void resultSetAfterSocketTimeoutTest() throws SQLException {
         Assume.assumeFalse(sharedIsAurora());
         int went = 0;
         for (int j = 0; j < 100; j++) {
@@ -94,7 +92,6 @@ public class TimeoutTest extends BaseTest {
                             bugReproduced = true;
                             break;
                         }
-                        assertTrue(v1 == 1 && v2 == 2);
                         went++;
                     } catch (SQLNonTransientConnectionException e) {
                         //error due to socketTimeout
@@ -126,8 +123,8 @@ public class TimeoutTest extends BaseTest {
             connection = setConnection("&connectTimeout=500&socketTimeout=500");
             PreparedStatement ps = connection.prepareStatement("SELECT 1");
             ResultSet rs = ps.executeQuery();
-            rs.next();
-            logInfo(rs.getString(1));
+            assertTrue(rs.next());
+            logInfo(rs. getString(1));
 
             // wait for the connection to time out
             ps = connection.prepareStatement("SELECT sleep(1)");
@@ -194,7 +191,7 @@ public class TimeoutTest extends BaseTest {
             Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT 1");
 
-            rs.next();
+            assertTrue(rs.next());
 
             stmt.execute("set session wait_timeout=1");
             Thread.sleep(3000); // Wait for the server to kill the connection
@@ -203,7 +200,7 @@ public class TimeoutTest extends BaseTest {
             // "Could not read resultset: unexpected end of stream, ..."
             try {
                 rs = stmt.executeQuery("SELECT 2");
-                rs.next();
+                assertTrue(rs.next());
                 fail("Connection must have thrown error");
             } catch (SQLException e) {
                 //normal exception

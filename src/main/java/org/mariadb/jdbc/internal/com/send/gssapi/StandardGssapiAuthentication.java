@@ -85,14 +85,12 @@ public class StandardGssapiAuthentication extends GssapiAuth {
                 PrintStream bos = null;
                 try {
                     bos = new PrintStream(new FileOutputStream(jaasConfFile));
-                    bos.print(String.format(
-                            "Krb5ConnectorContext {\n"
-                                    + "com.sun.security.auth.module.Krb5LoginModule required "
-                                    + "useTicketCache=true "
-                                    + "debug=true "
-                                    + "renewTGT=true "
-                                    + "doNotPrompt=true; };"
-                    ));
+                    bos.print("Krb5ConnectorContext {\n"
+                            + "com.sun.security.auth.module.Krb5LoginModule required "
+                            + "useTicketCache=true "
+                            + "debug=true "
+                            + "renewTGT=true "
+                            + "doNotPrompt=true; };");
                 } finally {
                     if (bos != null) bos.close();
                 }

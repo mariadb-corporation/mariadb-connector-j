@@ -100,21 +100,51 @@ public class AllowMultiQueriesTest extends BaseTest {
     }
 
     @Test
+    public void checkMultiGeneratedKeys() throws SQLException {
+        Connection connection = null;
+        try {
+            connection = setConnection("&allowMultiQueries=true");
+            Statement stmt = connection.createStatement();
+            stmt.execute("SELECT 1; SET @TOTO=3; SELECT 2", Statement.RETURN_GENERATED_KEYS);
+            ResultSet rs = stmt.getResultSet();
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+            assertFalse(stmt.getMoreResults());
+            stmt.getGeneratedKeys();
+            assertTrue(stmt.getMoreResults());
+            rs = stmt.getResultSet();
+            assertTrue(rs.next());
+            assertEquals(2, rs.getInt(1));
+        } finally {
+            if (connection != null) connection.close();
+        }
+    }
+
+    @Test
     public void allowMultiQueriesFetchTest() throws SQLException {
         Connection connection = null;
         try {
             connection = setConnection("&allowMultiQueries=true");
-            Statement statement = connection.createStatement();
-            statement.setFetchSize(1);
-            statement.execute("SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;");
-            do {
-                ResultSet resultSet = statement.getResultSet();
-                assertEquals(-1, statement.getUpdateCount());
-                assertTrue(resultSet.next());
-                assertEquals("a", resultSet.getString(2));
-            } while (statement.getMoreResults());
-
-            statement.execute("SELECT 1");
+            Statement statement = null;
+            try {
+                statement = connection.createStatement();
+                statement.setFetchSize(1);
+                statement.execute("SELECT * from AllowMultiQueriesTest;SELECT * from AllowMultiQueriesTest;");
+                do {
+                    ResultSet resultSet = statement.getResultSet();
+                    assertEquals(-1, statement.getUpdateCount());
+                    assertTrue(resultSet.next());
+                    assertEquals("a", resultSet.getString(2));
+                } while (statement.getMoreResults());
+            } finally {
+                if (statement != null) statement.close();
+            }
+            try {
+                statement = connection.createStatement();
+                statement.execute("SELECT 1");
+            } finally {
+                if (statement != null) statement.close();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         } finally {

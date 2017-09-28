@@ -73,17 +73,18 @@ import java.util.Map;
 public class SharedMemorySocket extends Socket {
 
     //SDDL string for mutex security flags (Everyone group has SYNCHRONIZE right)
-    public static final String EVERYONE_SYNCHRONIZE_SDDL = "D:(A;;0x100000;;;WD)";
-    static final Map<String, Object> WIN32API_OPTIONS = new HashMap<String, Object>() {
-        {
-            put(Library.OPTION_FUNCTION_MAPPER, W32APIFunctionMapper.UNICODE);
-            put(Library.OPTION_TYPE_MAPPER, W32APITypeMapper.UNICODE);
-        }
-    };
+    private static final String EVERYONE_SYNCHRONIZE_SDDL = "D:(A;;0x100000;;;WD)";
+    private static final Map<String, Object> WIN32API_OPTIONS = new HashMap<String, Object>();
+
+    static {
+        WIN32API_OPTIONS.put(Library.OPTION_FUNCTION_MAPPER, W32APIFunctionMapper.UNICODE);
+        WIN32API_OPTIONS.put(Library.OPTION_TYPE_MAPPER, W32APITypeMapper.UNICODE);
+    }
+
     // Size of memory mapped region
-    static int BUFFERLEN = 16004;
-    InputStream is;
-    OutputStream os;
+    private static final int BUFFERLEN = 16004;
+    private InputStream is;
+    private OutputStream os;
     private String memoryName;
     private HANDLE serverRead;
     private HANDLE serverWrote;
@@ -108,7 +109,7 @@ public class SharedMemorySocket extends Socket {
         memoryName = name;
     }
 
-    public static HANDLE openEvent(String name) {
+    private static HANDLE openEvent(String name) {
         return Kernel32.INSTANCE.OpenEvent(Kernel32.EVENT_MODIFY_STATE | Kernel32.SYNCHRONIZE, false, name);
     }
 
@@ -120,7 +121,7 @@ public class SharedMemorySocket extends Socket {
      * @param size    size
      * @return Pointer
      */
-    public static Pointer mapMemory(String mapName, int mode, int size) {
+    private static Pointer mapMemory(String mapName, int mode, int size) {
         HANDLE mapping = Kernel32.INSTANCE.OpenFileMapping(mode, false, mapName);
         Pointer v = Kernel32.INSTANCE.MapViewOfFile(mapping, mode, 0, 0, new SIZE_T(size));
         Kernel32.INSTANCE.CloseHandle(mapping);
@@ -153,7 +154,7 @@ public class SharedMemorySocket extends Socket {
         return mutex;
     }
 
-    public int getConnectNumber() throws IOException {
+    private int getConnectNumber() throws IOException {
         HANDLE connectRequest;
         try {
             connectRequest = openEvent(memoryName + "_CONNECT_REQUEST");
@@ -178,8 +179,7 @@ public class SharedMemorySocket extends Socket {
             if (ret != 0) {
                 throw new IOException("WaitForSingleObject returned " + ret + ", last error " + Kernel32.INSTANCE.GetLastError());
             }
-            int nr = connectData.getInt(0);
-            return nr;
+            return connectData.getInt(0);
         } finally {
             Kernel32.INSTANCE.ReleaseMutex(mutex);
             Kernel32.INSTANCE.CloseHandle(mutex);
@@ -277,54 +277,54 @@ public class SharedMemorySocket extends Socket {
     }
 
     public interface Kernel32 extends StdCallLibrary {
-        public Kernel32 INSTANCE = (Kernel32) Native.loadLibrary("Kernel32", Kernel32.class, WIN32API_OPTIONS);
-        public static final int FILE_MAP_WRITE = 0x0002;
-        public static final int FILE_MAP_READ = 0x0004;
-        public static final int EVENT_MODIFY_STATE = 0x0002;
-        public static final int SYNCHRONIZE = 0x00100000;
-        public static final int INFINITE = -1;
+        Kernel32 INSTANCE = (Kernel32) Native.loadLibrary("Kernel32", Kernel32.class, WIN32API_OPTIONS);
+        int FILE_MAP_WRITE = 0x0002;
+        int FILE_MAP_READ = 0x0004;
+        int EVENT_MODIFY_STATE = 0x0002;
+        int SYNCHRONIZE = 0x00100000;
+        int INFINITE = -1;
 
-        public HANDLE OpenEvent(int dwDesiredAccess, boolean bInheritHandle, String name) throws LastErrorException;
+        HANDLE OpenEvent(int dwDesiredAccess, boolean bInheritHandle, String name) throws LastErrorException;
 
-        public HANDLE OpenFileMapping(int dwDesiredAccess, boolean bInheritHandle, String name) throws LastErrorException;
+        HANDLE OpenFileMapping(int dwDesiredAccess, boolean bInheritHandle, String name) throws LastErrorException;
 
-        public Pointer MapViewOfFile(HANDLE hFileMappingObject, int dwDesiredAccess, int dwFileOffsetHigh, int dwFileOffsetLow,
+        Pointer MapViewOfFile(HANDLE hFileMappingObject, int dwDesiredAccess, int dwFileOffsetHigh, int dwFileOffsetLow,
                                      SIZE_T dwNumberOfBytesToMap) throws LastErrorException;
 
-        public boolean UnmapViewOfFile(Pointer view) throws LastErrorException;
+        boolean UnmapViewOfFile(Pointer view) throws LastErrorException;
 
-        public boolean SetEvent(HANDLE handle) throws LastErrorException;
+        boolean SetEvent(HANDLE handle) throws LastErrorException;
 
-        public boolean CloseHandle(HANDLE handle) throws LastErrorException;
+        boolean CloseHandle(HANDLE handle) throws LastErrorException;
 
-        public int WaitForSingleObject(HANDLE handle, int timeout) throws LastErrorException;
+        int WaitForSingleObject(HANDLE handle, int timeout) throws LastErrorException;
 
-        public int WaitForMultipleObjects(int count, HANDLE[] handles, boolean waitAll, int millis) throws LastErrorException;
+        int WaitForMultipleObjects(int count, HANDLE[] handles, boolean waitAll, int millis) throws LastErrorException;
 
-        public int GetLastError() throws LastErrorException;
+        int GetLastError() throws LastErrorException;
 
-        public HANDLE CreateMutex(Advapi32.SECURITY_ATTRIBUTES sa, boolean initialOwner, String name);
+        HANDLE CreateMutex(Advapi32.SECURITY_ATTRIBUTES sa, boolean initialOwner, String name);
 
-        public boolean ReleaseMutex(HANDLE hMutex);
+        boolean ReleaseMutex(HANDLE hMutex);
 
-        public Pointer LocalFree(Pointer p);
+        Pointer LocalFree(Pointer p);
 
 
     }
 
     public interface Advapi32 extends StdCallLibrary {
-        public Advapi32 INSTANCE = (Advapi32) Native.loadLibrary("advapi32", Advapi32.class, WIN32API_OPTIONS);
+        Advapi32 INSTANCE = (Advapi32) Native.loadLibrary("advapi32", Advapi32.class, WIN32API_OPTIONS);
 
         boolean ConvertStringSecurityDescriptorToSecurityDescriptor(String sddl, int sddlVersion, PointerByReference psd,
                                                                     IntByReference length);
 
-        public static class SECURITY_ATTRIBUTES extends Structure {
+        class SECURITY_ATTRIBUTES extends Structure {
             public int nLength;
             public Pointer lpSecurityDescriptor;
             public boolean bInheritHandle;
 
             protected java.util.List getFieldOrder() {
-                return Arrays.asList(new String[]{"nLength", "lpSecurityDescriptor", "bInheritHandle"});
+                return Arrays.asList("nLength", "lpSecurityDescriptor", "bInheritHandle");
             }
         }
 

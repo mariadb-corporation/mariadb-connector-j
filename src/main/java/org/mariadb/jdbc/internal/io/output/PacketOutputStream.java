@@ -53,12 +53,14 @@
 package org.mariadb.jdbc.internal.io.output;
 
 import org.mariadb.jdbc.internal.io.LruTraceCache;
+import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 
+@SuppressWarnings("RedundantThrows")
 public interface PacketOutputStream {
 
     void startPacket(int seqNo);
@@ -93,7 +95,7 @@ public interface PacketOutputStream {
 
     boolean checkRemainingSize(int len);
 
-    boolean isAllowedCmdLength();
+    boolean exceedMaxLength();
 
     OutputStream getOutputStream();
 
@@ -117,4 +119,17 @@ public interface PacketOutputStream {
 
     void setTraceCache(LruTraceCache traceCache);
 
+    void mark() throws MaxAllowedPacketException;
+
+    boolean isMarked();
+
+    void flushBufferStopAtMark() throws IOException;
+
+    boolean bufferIsDataAfterMark();
+
+    byte[] resetMark();
+
+    int initialPacketPos();
+
+    void checkMaxAllowedLength(int length) throws MaxAllowedPacketException;
 }

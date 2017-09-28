@@ -173,7 +173,7 @@ public class DateTest extends BaseTest {
     public void dateTest2() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("select 1");
-        rs.next();
+        assertTrue(rs.next());
         rs.getDate(1);
     }
 
@@ -181,7 +181,7 @@ public class DateTest extends BaseTest {
     public void dateTest3() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("select 1 as a");
-        rs.next();
+        assertTrue(rs.next());
         rs.getDate("a");
     }
 
@@ -189,7 +189,7 @@ public class DateTest extends BaseTest {
     public void timeTest3() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("select 'aaa' as a");
-        rs.next();
+        assertTrue(rs.next());
         rs.getTimestamp("a");
     }
 
@@ -250,6 +250,10 @@ public class DateTest extends BaseTest {
             PreparedStatement pstmt2 = connection.prepareStatement("select TIME('11:11:11') ");
             rs = pstmt2.executeQuery();
             testTime11(rs);
+
+        } catch (SQLException sqle) {
+            sqle.printStackTrace();
+            fail();
         } finally {
             if (connection != null) connection.close();
         }
@@ -278,6 +282,10 @@ public class DateTest extends BaseTest {
             PreparedStatement pstmt2 = connection.prepareStatement("select TIME('11:11:11') ");
             rs = pstmt2.executeQuery();
             testTime11(rs);
+
+        } catch (SQLException sqle) {
+            sqle.printStackTrace();
+            fail();
         } finally {
             if (connection != null) connection.close();
         }
@@ -294,7 +302,7 @@ public class DateTest extends BaseTest {
     }
 
     private void testTime11(ResultSet rs) throws SQLException {
-        rs.next();
+        assertTrue(rs.next());
         Calendar cal = Calendar.getInstance();
         assertEquals("11:11:11", rs.getTime(1, cal).toString());
     }
@@ -385,7 +393,7 @@ public class DateTest extends BaseTest {
                 rs.getTime(3);
                 fail();
             } catch (SQLException e) {
-                e.getMessage().contains("Cannot read Time using a Types.DATE field");
+                assertTrue(e.getMessage().contains("Cannot read Time using a Types.DATE field"));
             }
         } else {
             fail("Must have a result");
@@ -401,7 +409,7 @@ public class DateTest extends BaseTest {
         ps.setObject(1, currentDate, Types.TIMESTAMP);
         ps.executeUpdate();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from dtest");
-        rs.next();
+        assertTrue(rs.next());
         /* Check that time is correct, up to seconds precision */
         assertTrue(Math.abs((currentDate.getTime() - rs.getTimestamp(1).getTime())) <= 1000);
     }
@@ -411,7 +419,7 @@ public class DateTest extends BaseTest {
         PreparedStatement ps = sharedConnection.prepareStatement("insert into dtest2 values(null)");
         ps.executeUpdate();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from dtest2 where d is null");
-        rs.next();
+        assertTrue(rs.next());
         Calendar cal = new GregorianCalendar();
         assertEquals(null, rs.getTimestamp(1, cal));
     }
@@ -424,7 +432,7 @@ public class DateTest extends BaseTest {
         ps.setObject(1, currentDate, Types.DATE);
         ps.executeUpdate();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from dtest3");
-        rs.next();
+        assertTrue(rs.next());
           /* Check that time is correct, up to seconds precision */
         assertEquals(currentDate.getYear(), rs.getDate(1).getYear());
         assertEquals(currentDate.getMonth(), rs.getDate(1).getMonth());
@@ -439,7 +447,7 @@ public class DateTest extends BaseTest {
         ps.setObject(1, currentDate, Types.TIME);
         ps.executeUpdate();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from dtest4");
-        rs.next();
+        assertTrue(rs.next());
 
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(currentDate);
@@ -467,7 +475,7 @@ public class DateTest extends BaseTest {
             long totalOffset = serverOffset - clientOffset;
             PreparedStatement ps = connection.prepareStatement("select now()");
             ResultSet rs = ps.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             Timestamp ts = rs.getTimestamp(1);
             long differenceToServer = ts.getTime() - now.getTime();
             long diff = Math.abs(differenceToServer - totalOffset);
@@ -477,7 +485,7 @@ public class DateTest extends BaseTest {
             ps = connection.prepareStatement("select utc_timestamp(), ?");
             ps.setObject(1, now);
             rs = ps.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             ts = rs.getTimestamp(1);
             Timestamp ts2 = rs.getTimestamp(2);
             long diff2 = Math.abs(ts.getTime() - ts2.getTime()) - clientOffset;
@@ -539,7 +547,7 @@ public class DateTest extends BaseTest {
             PreparedStatement pst2 = connection.prepareStatement("select x from date_test3 WHERE x = ?");
             pst2.setDate(1, date);
             ResultSet rs = pst2.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             Date dd = rs.getDate(1);
             assertEquals(dd, date);
         } finally {
@@ -560,7 +568,7 @@ public class DateTest extends BaseTest {
             PreparedStatement pst2 = connection.prepareStatement("/*CLIENT*/ select x from date_test4 WHERE x = ?");
             pst2.setDate(1, date);
             ResultSet rs = pst2.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             Date dd = rs.getDate(1);
             assertEquals(dd, date);
         } finally {

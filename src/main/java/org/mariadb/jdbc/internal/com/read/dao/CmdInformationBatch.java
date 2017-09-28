@@ -64,12 +64,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class CmdInformationBatch implements CmdInformation {
 
-    private Queue<Long> insertIds;
-    private Queue<Long> updateCounts;
+    private final Queue<Long> insertIds = new ConcurrentLinkedQueue<Long>();
+    private final Queue<Long> updateCounts = new ConcurrentLinkedQueue<Long>();
+    private final int expectedSize;
+    private final int autoIncrement;
     private int insertIdNumber = 0;
-    private int expectedSize;
-    private int autoIncrement;
     private boolean hasException;
+    private boolean rewritten;
 
     /**
      * CmdInformationBatch is similar to CmdInformationMultiple, but knowing it's for batch,
@@ -83,15 +84,26 @@ public class CmdInformationBatch implements CmdInformation {
      */
     public CmdInformationBatch(int expectedSize, int autoIncrement) {
         this.expectedSize = expectedSize;
-        this.insertIds = new ConcurrentLinkedQueue<Long>();
-        this.updateCounts = new ConcurrentLinkedQueue<Long>();
         this.autoIncrement = autoIncrement;
     }
 
     @Override
     public void addErrorStat() {
         hasException = true;
-        this.updateCounts.add((long) Statement.EXECUTE_FAILED);
+        updateCounts.add((long) Statement.EXECUTE_FAILED);
+    }
+
+    /**
+     * Clear error state, used for clear exception after first batch query, when fall back to per-query execution.
+     *
+     */
+    @Override
+    public void reset() {
+        insertIds.clear();
+        updateCounts.clear();
+        insertIdNumber = 0;
+        hasException = false;
+        rewritten = false;
     }
 
     public void addResultSetStat() {
@@ -100,13 +112,18 @@ public class CmdInformationBatch implements CmdInformation {
 
     @Override
     public void addSuccessStat(long updateCount, long insertId) {
-        this.insertIds.add(insertId);
+        insertIds.add(insertId);
         insertIdNumber += updateCount;
-        this.updateCounts.add(updateCount);
+        updateCounts.add(updateCount);
     }
 
     @Override
     public int[] getUpdateCounts() {
+        if (rewritten) {
+            int[] ret = new int[expectedSize];
+            Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
+            return ret;
+        }
 
         int[] ret = new int[Math.max(updateCounts.size(), expectedSize)];
 
@@ -126,6 +143,12 @@ public class CmdInformationBatch implements CmdInformation {
 
     @Override
     public long[] getLargeUpdateCounts() {
+        if (rewritten) {
+            long[] ret = new long[expectedSize];
+            Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
+            return ret;
+        }
+
         long[] ret = new long[Math.max(updateCounts.size(), expectedSize)];
 
         Iterator<Long> iterator = updateCounts.iterator();
@@ -139,29 +162,6 @@ public class CmdInformationBatch implements CmdInformation {
             ret[pos++] = Statement.EXECUTE_FAILED;
         }
 
-        return ret;
-    }
-
-    /**
-     * Will return an array filled with Statement.EXECUTE_FAILED if any error occur,
-     * or Statement.SUCCESS_NO_INFO, if execution succeed.
-     *
-     * @return update count array.
-     */
-    public int[] getRewriteUpdateCounts() {
-        int[] ret = new int[expectedSize];
-        Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
-        return ret;
-    }
-
-    /**
-     * Same than getRewriteUpdateCounts, returning long array.
-     *
-     * @return update count array.
-     */
-    public long[] getRewriteLargeUpdateCounts() {
-        long[] ret = new long[expectedSize];
-        Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
         return ret;
     }
 
@@ -183,12 +183,11 @@ public class CmdInformationBatch implements CmdInformation {
         int position = 0;
         long insertId;
         Iterator<Long> idIterator = insertIds.iterator();
-        Iterator<Long> updateIterator = updateCounts.iterator();
-        while (updateIterator.hasNext()) {
-            int updateCount = updateIterator.next().intValue();
+        for (Long updateCountLong : updateCounts) {
+            int updateCount = updateCountLong.intValue();
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
-                    && (insertId = idIterator.next().longValue()) > 0) {
+                    && (insertId = idIterator.next()) > 0) {
                 for (int i = 0; i < updateCount; i++) {
                     ret[position++] = insertId + i * autoIncrement;
                 }
@@ -209,13 +208,12 @@ public class CmdInformationBatch implements CmdInformation {
         int position = 0;
         long insertId;
         Iterator<Long> idIterator = insertIds.iterator();
-        Iterator<Long> updateIterator = updateCounts.iterator();
 
-        while (updateIterator.hasNext()) {
-            int updateCount = updateIterator.next().intValue();
+        for (Long updateCountLong : updateCounts) {
+            int updateCount = updateCountLong.intValue();
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
-                    && (insertId = idIterator.next().longValue()) > 0) {
+                    && (insertId = idIterator.next()) > 0) {
                 for (int i = 0; i < updateCount; i++) {
                     ret[position++] = insertId + i * autoIncrement;
                 }
@@ -239,5 +237,8 @@ public class CmdInformationBatch implements CmdInformation {
         return false;
     }
 
+    public void setRewrite(boolean rewritten) {
+        this.rewritten = rewritten;
+    }
 }
 

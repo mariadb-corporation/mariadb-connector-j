@@ -60,7 +60,7 @@ import java.sql.*;
 import static org.junit.Assert.fail;
 
 public class PasswordEncodingTest extends BaseTest {
-    private static String exoticPwd = "abéï你好";
+    private static final String exoticPwd = "abéï你好";
 
     @Test
     public void testPwdCharset() throws Exception {

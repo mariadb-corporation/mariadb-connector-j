@@ -70,21 +70,17 @@ public class MonoServerFailoverTest extends BaseMonoServer {
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @BeforeClass()
-    public static void beforeClass2() throws SQLException {
+    public static void beforeClass2() {
         Assume.assumeTrue(initialUrl != null);
     }
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @Before
-    public void init() throws SQLException {
+    public void init() {
         Assume.assumeTrue(initialUrl != null);
         defaultUrl = initialUrl;
         currentType = HaMode.NONE;

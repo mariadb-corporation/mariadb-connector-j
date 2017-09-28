@@ -64,9 +64,9 @@ import java.util.TimeZone;
 
 public class TimestampParameter implements Cloneable, ParameterHolder {
 
-    private Timestamp ts;
-    private TimeZone timeZone;
-    private boolean fractionalSeconds;
+    private final Timestamp ts;
+    private final TimeZone timeZone;
+    private final boolean fractionalSeconds;
 
     /**
      * Constructor.

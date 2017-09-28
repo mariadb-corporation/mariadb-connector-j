@@ -201,7 +201,8 @@ public class DriverTest extends BaseTest {
         //statement that cannot be prepared
         PreparedStatement pstmt = null;
         try {
-            pstmt = sharedConnection.prepareStatement("select  TMP.field1 from (select ? from dual) TMP");
+            pstmt = sharedConnection.prepareStatement(
+                    "select  TMP.field1 from (select ? from dual) TMP");
             try {
                 ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
                 fail();
@@ -217,6 +218,7 @@ public class DriverTest extends BaseTest {
         assertEquals((Integer) (initValues.get("Com_stmt_prepare") + 1), endingValues.get("Com_stmt_prepare"));
         assertEquals(initValues.get("Com_stmt_close"), endingValues.get("Com_stmt_close"));
     }
+
 
     @Test
     public void parameterMetaDataReturnException() throws SQLException {
@@ -858,7 +860,7 @@ public class DriverTest extends BaseTest {
         ResultSet rs = null;
         try {
             rs = st.executeQuery("select * from streamingtest");
-            rs.next();
+            assertTrue(rs.next());
             Statement st2 = sharedConnection.createStatement();
             ResultSet rs2 = null;
             try {
@@ -882,7 +884,7 @@ public class DriverTest extends BaseTest {
 
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@global.sql_mode");
-        rs.next();
+        assertTrue(rs.next());
         String originalSqlMode = rs.getString(1);
         st.execute("set @@global.sql_mode = '" + originalSqlMode + ",NO_BACKSLASH_ESCAPES'");
 
@@ -918,7 +920,7 @@ public class DriverTest extends BaseTest {
 
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@global.sql_mode");
-        rs.next();
+        assertTrue(rs.next());
         String originalSqlMode = rs.getString(1);
         st.execute("set @@global.sql_mode = '" + originalSqlMode + ",NO_BACKSLASH_ESCAPES'");
 
@@ -934,13 +936,13 @@ public class DriverTest extends BaseTest {
 
                 preparedStatement = connection.prepareStatement("select * from testString2");
                 rs = preparedStatement.executeQuery();
-                rs.next();
+                assertTrue(rs.next());
                 String out = rs.getString(1);
                 assertEquals(out, "'\\");
 
                 Statement st2 = connection.createStatement();
                 rs = st2.executeQuery("select 'a\\b\\c'");
-                rs.next();
+                assertTrue(rs.next());
                 assertEquals("a\\b\\c", rs.getString(1));
             } finally {
                 if (connection != null) connection.close();
@@ -959,7 +961,7 @@ public class DriverTest extends BaseTest {
 
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@global.sql_mode");
-        rs.next();
+        assertTrue(rs.next());
         String originalSqlMode = rs.getString(1);
         st.execute("set @@global.sql_mode = '" + originalSqlMode + ",ANSI_QUOTES'");
 
@@ -1046,7 +1048,7 @@ public class DriverTest extends BaseTest {
 
     /* Check that exception contains SQL statement, for queries with syntax errors */
     @Test
-    public void dumpQueryOnSyntaxException() throws Exception {
+    public void dumpQueryOnSyntaxException() {
         String syntacticallyWrongQuery = "banana";
         try {
             Statement st = sharedConnection.createStatement();
@@ -1134,7 +1136,7 @@ public class DriverTest extends BaseTest {
             assertTrue(st.getResultSet() != null);
             
             /* Next result is no ResultSet */
-            assertTrue(st.getMoreResults());
+            assertFalse(st.getMoreResults());
             assertNull(st.getResultSet());
             assertEquals(0, st.getUpdateCount());
 
@@ -1149,20 +1151,14 @@ public class DriverTest extends BaseTest {
 
     @Test
     public void conj25() throws Exception {
-        Statement stmt = null;
-        try {
-            stmt = sharedConnection.createStatement();
-            StringBuilder st = new StringBuilder("INSERT INTO conj25 VALUES (REPEAT('a',1024))");
-            for (int i = 1; i <= 100; i++) {
-                st.append(",(REPEAT('a',1024))");
-            }
-            stmt.setFetchSize(Integer.MIN_VALUE);
-            stmt.execute(st.toString());
-            stmt.executeQuery("SELECT * FROM conj25 a, conj25 b");
-        } finally {
-            stmt.close();
+        Statement stmt = sharedConnection.createStatement();
+        StringBuilder st = new StringBuilder("INSERT INTO conj25 VALUES (REPEAT('a',1024))");
+        for (int i = 1; i <= 100; i++) {
+            st.append(",(REPEAT('a',1024))");
         }
-
+        stmt.setFetchSize(Integer.MIN_VALUE);
+        stmt.execute(st.toString());
+        stmt.executeQuery("SELECT * FROM conj25 a, conj25 b");
     }
 
     @Test
@@ -1170,7 +1166,7 @@ public class DriverTest extends BaseTest {
         ResultSet rs = null;
         try {
             rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket");
-            rs.next();
+            assertTrue(rs.next());
             if (rs.getBoolean(1)) {
                 String namedPipeName = rs.getString(2);
                 //skip test if no namedPipeName was obtained because then we do not use a socket connection

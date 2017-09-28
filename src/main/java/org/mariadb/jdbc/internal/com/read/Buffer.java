@@ -223,14 +223,17 @@ public class Buffer {
         switch (type) {
             case 251:
                 break;
+
             case 252:
                 position += 2 + (0xffff & (((buf[position] & 0xff) + ((buf[position + 1] & 0xff) << 8))));
                 break;
+
             case 253:
                 position += 3 + (0xffffff & ((buf[position] & 0xff)
                         + ((buf[position + 1] & 0xff) << 8)
                         + ((buf[position + 2] & 0xff) << 16)));
                 break;
+
             case 254:
                 position += 8 + ((buf[position] & 0xff)
                         + ((long) (buf[position + 1] & 0xff) << 8)
@@ -241,8 +244,10 @@ public class Buffer {
                         + ((long) (buf[position + 6] & 0xff) << 48)
                         + ((long) (buf[position + 7] & 0xff) << 56));
                 break;
+
             default:
                 position += type;
+                break;
         }
     }
 
@@ -305,6 +310,7 @@ public class Buffer {
                 break;
             default:
                 length = type;
+                break;
         }
 
         byte[] tmpBuf = new byte[length];
@@ -329,8 +335,34 @@ public class Buffer {
         writeLength(length);
         System.arraycopy(bytes, 0, buf, position, length);
         position += length;
-
     }
+
+    /**
+     * Write value with length encoded prefix.
+     *
+     * @param bytes value to write
+     */
+    public void writeStringLength(byte[] bytes) {
+        int length = bytes.length;
+        while (remaining() < length + 9) grow();
+        writeLength(length);
+        System.arraycopy(bytes, 0, buf, position, length);
+        position += length;
+    }
+
+    /**
+     * Write value with length encoded prefix.
+     * value length MUST be less than 251 char
+     * @param value value to write
+     */
+    public void writeStringSmallLength(byte[] value) {
+        int length = value.length;
+        while (remaining() < length + 1) grow();
+        buf[position++] = (byte) length;
+        System.arraycopy(value, 0, buf, position, length);
+        position += length;
+    }
+
 
     /**
      * Write bytes.
@@ -357,16 +389,16 @@ public class Buffer {
             buf[position++] = (byte) length;
         } else if (length < 65536) {
             buf[position++] = (byte) 0xfc;
-            buf[position++] = (byte) (length >>> 0);
+            buf[position++] = (byte) length;
             buf[position++] = (byte) (length >>> 8);
         } else if (length < 16777216) {
             buf[position++] = (byte) 0xfd;
-            buf[position++] = (byte) (length >>> 0);
+            buf[position++] = (byte) length;
             buf[position++] = (byte) (length >>> 8);
             buf[position++] = (byte) (length >>> 16);
         } else {
             buf[position++] = (byte) 0xfe;
-            buf[position++] = (byte) (length >>> 0);
+            buf[position++] = (byte) length;
             buf[position++] = (byte) (length >>> 8);
             buf[position++] = (byte) (length >>> 16);
             buf[position++] = (byte) (length >>> 24);

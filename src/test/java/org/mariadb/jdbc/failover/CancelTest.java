@@ -61,27 +61,24 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 import java.sql.*;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class CancelTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @BeforeClass()
-    public static void beforeClass2() throws SQLException {
+    public static void beforeClass2() {
         proxyUrl = proxyGaleraUrl;
         Assume.assumeTrue(initialGaleraUrl != null);
     }
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @Before
-    public void init() throws SQLException {
+    public void init() {
         defaultUrl = initialGaleraUrl;
         currentType = HaMode.FAILOVER;
     }
@@ -125,7 +122,7 @@ public class CancelTest extends BaseMultiHostTest {
             Statement stmt = connection.createStatement();
             stmt.cancel();
             ResultSet rs = stmt.executeQuery("select 1");
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(rs.getInt(1), 1);
         } finally {
             if (connection != null) connection.close();

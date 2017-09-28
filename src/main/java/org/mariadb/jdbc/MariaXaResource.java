@@ -245,7 +245,7 @@ public class MariaXaResource implements XAResource {
 
         try {
             ResultSet rs = connection.createStatement().executeQuery("XA RECOVER");
-            ArrayList<MariaDbXid> xidList = new ArrayList<MariaDbXid>();
+            ArrayList<MariaDbXid> xidList = new ArrayList<>();
 
             while (rs.next()) {
                 int formatId = rs.getInt(1);

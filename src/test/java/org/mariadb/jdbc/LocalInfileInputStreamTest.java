@@ -85,18 +85,16 @@ public class LocalInfileInputStreamTest extends BaseTest {
         try {
             st = sharedConnection.createStatement();
             // Build a tab-separated record file
-            StringBuilder builder = new StringBuilder();
-            builder.append("1\thello\n");
-            builder.append("2\tworld\n");
+            String builder = "1\thello\n"
+                    + "2\tworld\n";
 
-            InputStream inputStream = new ByteArrayInputStream(builder.toString().getBytes());
+            InputStream inputStream = new ByteArrayInputStream(builder.getBytes());
             ((MariaDbStatement) st).setLocalInfileInputStream(inputStream);
 
             st.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE LocalInfileInputStreamTest (id, test)");
 
             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM LocalInfileInputStreamTest");
-            boolean next = rs.next();
-            assertTrue(next);
+            assertTrue(rs.next());
 
             int count = rs.getInt(1);
             assertEquals(2, count);
@@ -149,7 +147,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
         //check that connection state is correct
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("SELECT 1");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
     }
 
@@ -164,9 +162,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
                     + "  (id, test)");
 
             ResultSet rs = st.executeQuery("SELECT COUNT(*) FROM ttlocal");
-            boolean next = rs.next();
-
-            assertTrue(next);
+            assertTrue(rs.next());
             assertEquals(2, rs.getInt(1));
 
             rs = st.executeQuery("SELECT * FROM ttlocal");
@@ -178,6 +174,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
         }
     }
 
+    @SuppressWarnings("ResultOfMethodCallIgnored")
     @Test
     public void loadDataInfileEmpty() throws SQLException, IOException {
         // Create temp file.
@@ -214,8 +211,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
     }
 
     private void validateRecord(ResultSet rs, int expectedId, String expectedTest) throws SQLException {
-        boolean next = rs.next();
-        assertTrue(next);
+        assertTrue(rs.next());
 
         int id = rs.getInt(1);
         String test = rs.getString(2);
@@ -300,8 +296,10 @@ public class LocalInfileInputStreamTest extends BaseTest {
 
     @Test
     public void test2xMaxAllowedPacketLocalInfileInputStream() throws Exception {
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select @@max_allowed_packet");
-        rs.next();
+        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
+        assertTrue(rs.next());
         long maxAllowedPacket = rs.getLong(1);
         checkBigLocalInfile(maxAllowedPacket * 2);
     }

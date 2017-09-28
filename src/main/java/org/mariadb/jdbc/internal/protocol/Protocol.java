@@ -100,11 +100,15 @@ public interface Protocol {
 
     void close();
 
+    void abort();
+
     void closeExplicit();
 
     boolean isClosed();
 
     void setCatalog(String database) throws SQLException;
+
+    String getCatalog() throws SQLException;
 
     String getServerVersion();
 
@@ -112,6 +116,7 @@ public interface Protocol {
 
     boolean getReadonly();
 
+    @SuppressWarnings("RedundantThrows")
     void setReadonly(boolean readOnly) throws SQLException;
 
     boolean isMasterConnection();
@@ -132,11 +137,9 @@ public interface Protocol {
 
     String getUsername();
 
-    String getPassword();
-
     boolean ping() throws SQLException;
 
-    boolean isValid() throws SQLException;
+    boolean isValid(int timeout) throws SQLException;
 
     void executeQuery(String sql) throws SQLException;
 
@@ -150,32 +153,23 @@ public interface Protocol {
     void executeQuery(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
                       ParameterHolder[] parameters, int timeout) throws SQLException;
 
-    void executeBatchMulti(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
-                           List<ParameterHolder[]> parameterList) throws SQLException;
+    boolean executeBatchClient(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult prepareResult,
+                               final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException;
 
-    void executeBatch(boolean mustExecuteOnMaster, Results results, List<String> queries) throws SQLException;
-
-    void executeBatchMultiple(boolean mustExecuteOnMaster, Results results, List<String> queries) throws SQLException;
-
-    void executeBatchRewrite(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult prepareResult,
-                             List<ParameterHolder[]> parameterList, boolean rewriteValues) throws SQLException;
-
+    void executeBatchStmt(boolean mustExecuteOnMaster, Results results, final List<String> queries) throws SQLException;
 
     void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
                               Results results, ParameterHolder[] parameters) throws SQLException;
 
-    ServerPrepareResult prepareAndExecutes(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                                           Results results, String sql,
-                                           List<ParameterHolder[]> parameterList) throws SQLException;
-
-    ServerPrepareResult prepareAndExecute(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                                          Results results, String sql, ParameterHolder[] parameters) throws SQLException;
+    boolean executeBatchServer(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
+                               Results results, String sql, List<ParameterHolder[]> parameterList,
+                               boolean hasLongData) throws SQLException;
 
     void getResult(Results results) throws SQLException;
 
-    void cancelCurrentQuery() throws SQLException, IOException;
+    void cancelCurrentQuery() throws SQLException;
 
-    void skip() throws SQLException, SQLException;
+    void skip() throws SQLException;
 
     boolean checkIfMaster() throws SQLException;
 
@@ -251,7 +245,7 @@ public interface Protocol {
 
     void skipEofPacket() throws SQLException, IOException;
 
-    void changeSocketTcpNoDelay(boolean setTcpNoDelay) throws SocketException;
+    void changeSocketTcpNoDelay(boolean setTcpNoDelay);
 
     void changeSocketSoTimeout(int setSoTimeout) throws SocketException;
 
@@ -272,7 +266,7 @@ public interface Protocol {
 
     boolean isEofDeprecated();
 
-    int getAutoIncrementIncrement();
+    int getAutoIncrementIncrement() throws SQLException;
 
     boolean sessionStateAware();
 

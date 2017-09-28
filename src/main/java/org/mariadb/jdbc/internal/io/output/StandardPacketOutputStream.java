@@ -53,6 +53,8 @@
 package org.mariadb.jdbc.internal.io.output;
 
 import org.mariadb.jdbc.internal.io.TraceObject;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.Utils;
 
 import java.io.IOException;
@@ -62,6 +64,7 @@ import java.util.Arrays;
 import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
 
 public class StandardPacketOutputStream extends AbstractPacketOutputStream {
+    private static final Logger logger = LoggerFactory.getLogger(StandardPacketOutputStream.class);
 
     private static final int MAX_PACKET_LENGTH = 0x00ffffff + 4;
     private int maxPacketLength = MAX_PACKET_LENGTH;
@@ -87,6 +90,10 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
         maxPacketLength = Math.min(MAX_PACKET_LENGTH, maxAllowedPacket + 4);
     }
 
+    public int initialPacketPos() {
+        return 4;
+    }
+
     /**
      * Flush the internal buffer.
      *
@@ -95,12 +102,13 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
      */
     protected void flushBuffer(boolean commandEnd) throws IOException {
         if (pos > 4) {
-            buf[0] = (byte) ((pos - 4) >>> 0);
+            buf[0] = (byte) (pos - 4);
             buf[1] = (byte) ((pos - 4) >>> 8);
             buf[2] = (byte) ((pos - 4) >>> 16);
             buf[3] = (byte) this.seqNo++;
             checkMaxAllowedLength(pos - 4);
             out.write(buf, 0, pos);
+            cmdLength += pos - 4;
 
             if (traceCache != null && permitTrace) {
                 //trace last packets
@@ -110,13 +118,13 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
             if (logger.isTraceEnabled()) {
                 if (permitTrace) {
-                    logger.trace("send:"
-                            + serverThreadLog
-                            + Utils.hexdump(maxQuerySizeToLog, 0, pos, buf));
+                    logger.trace("send: {}{}",
+                            serverThreadLog,
+                            Utils.hexdump(maxQuerySizeToLog, 0, pos, buf));
                 } else {
-                    logger.trace("send: content length:" + (pos - 4)
-                            + serverThreadLog
-                            + " com:<hidden>");
+                    logger.trace("send: content length={} {} com=<hidden>",
+                            pos - 4,
+                            serverThreadLog);
                 }
             }
 
@@ -145,9 +153,9 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
         }
 
         if (logger.isTraceEnabled()) {
-            logger.trace("send com : content length:0 "
-                    + serverThreadLog
-                    + Utils.hexdump(maxQuerySizeToLog, 0, 4, buf));
+            logger.trace("send com : content length=0 {}{}",
+                    serverThreadLog,
+                    Utils.hexdump(maxQuerySizeToLog, 0, 4, buf));
         }
     }
 

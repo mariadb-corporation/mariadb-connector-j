@@ -63,11 +63,9 @@ public class OldFailoverTest extends BaseTest {
 
     /**
      * Check old connection way before multihost was handle.
-     *
-     * @throws Exception exception
      */
     @Test
-    public void isOldConfigurationValid() throws Exception {
+    public void isOldConfigurationValid() {
         String falseUrl = "jdbc:mariadb://localhost:1111," + ((hostname == null) ? "localhost" : hostname) + ":"
                 + port + "/" + database + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
@@ -77,9 +75,14 @@ public class OldFailoverTest extends BaseTest {
             //the first host doesn't exist, so with the random host selection, verifying that we connect to the good
             //host
             for (int i = 0; i < 10; i++) {
-                Connection tmpConnection = openNewConnection(falseUrl);
-                Statement tmpStatement = tmpConnection.createStatement();
-                tmpStatement.execute("SELECT 1");
+                Connection tmpConnection = null;
+                try {
+                    tmpConnection = openNewConnection(falseUrl);
+                    Statement tmpStatement = tmpConnection.createStatement();
+                    tmpStatement.execute("SELECT 1");
+                } finally {
+                    if (tmpConnection != null) tmpConnection.close();
+                }
             }
         } catch (Exception e) {
             Assert.fail();
@@ -88,7 +91,7 @@ public class OldFailoverTest extends BaseTest {
 
 
     @Test
-    public void errorUrl() throws Exception {
+    public void errorUrl() {
         String falseUrl = "jdbc:mariadb://localhost:1111/test";
 
         try {

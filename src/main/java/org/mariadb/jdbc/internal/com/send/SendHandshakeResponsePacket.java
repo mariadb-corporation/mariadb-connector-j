@@ -55,6 +55,7 @@ package org.mariadb.jdbc.internal.com.send;
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.util.Options;
@@ -100,37 +101,35 @@ public class SendHandshakeResponsePacket {
      * @param clientCapabilities client capabilities
      * @param serverCapabilities server capabilities
      * @param serverLanguage     server language (utf8 / utf8mb4 collation)
-     * @param seed               seed
      * @param packetSeq          packet sequence
-     * @param plugin             plugin name
      * @param options            user options
+     * @param greetingPacket     server handshake packet information
      * @throws IOException if socket exception occur
      * @see <a href="https://mariadb.com/kb/en/mariadb/1-connecting-connecting/#handshake-response-packet">protocol documentation</a>
      */
     public static void send(final PacketOutputStream pos,
-                            String username,
+                            final String username,
                             final String password,
                             final String database,
                             final long clientCapabilities,
                             final long serverCapabilities,
                             final byte serverLanguage,
-                            final byte[] seed,
                             final byte packetSeq,
-                            final String plugin,
-                            final Options options) throws IOException {
+                            final Options options,
+                            final ReadInitialHandShakePacket greetingPacket) throws IOException {
 
         pos.startPacket(packetSeq);
 
         final byte[] authData;
-        if (DefaultAuthenticationProvider.MYSQL_NATIVE_PASSWORD.equals(plugin)
-                || "".equals(plugin)) { //CONJ-274 : permit connection mysql 5.1 db
+        if (greetingPacket.getPluginName().isEmpty() || DefaultAuthenticationProvider.MYSQL_NATIVE_PASSWORD.equals(greetingPacket.getPluginName())) {
             pos.permitTrace(false);
             try {
-                authData = Utils.encryptPassword(password, seed, options.passwordCharacterEncoding);
+                authData = Utils.encryptPassword(password, greetingPacket.getSeed(), options.passwordCharacterEncoding);
             } catch (NoSuchAlgorithmException e) {
-                throw new RuntimeException("Could not use SHA-1, failing", e);
+                //cannot occur :
+                throw new IOException("Unknown algorithm SHA-1. Cannot encrypt password", e);
             }
-        } else if (DefaultAuthenticationProvider.MYSQL_CLEAR_PASSWORD.equals(plugin)) {
+        } else if (DefaultAuthenticationProvider.MYSQL_CLEAR_PASSWORD.equals(greetingPacket.getPluginName())) {
             pos.permitTrace(false);
             if (options.passwordCharacterEncoding != null && !options.passwordCharacterEncoding.isEmpty()) {
                 authData = password.getBytes(options.passwordCharacterEncoding);
@@ -148,9 +147,12 @@ public class SendHandshakeResponsePacket {
         pos.writeBytes((byte) 0, 19);    //19
         pos.writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
 
-        if (username == null || "".equals(username)) username = System.getProperty("user.name"); //permit SSO
+        if (username == null || username.isEmpty()) {
+            pos.write(System.getProperty("user.name").getBytes()); //to permit SSO
+        } else {
+            pos.write(username.getBytes());     //strlen username
+        }
 
-        pos.write(username.getBytes());     //strlen username
         pos.write((byte) 0);        //1
 
         if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
@@ -170,7 +172,7 @@ public class SendHandshakeResponsePacket {
         }
 
         if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-            pos.write(plugin);
+            pos.write(greetingPacket.getPluginName());
             pos.write((byte) 0);
         }
 
@@ -182,31 +184,39 @@ public class SendHandshakeResponsePacket {
         pos.permitTrace(true);
     }
 
+    private static final byte[] _CLIENT_NAME = "_client_name".getBytes();
+    private static final byte[] _CLIENT_VERSION = "_client_version".getBytes();
+    private static final byte[] _OS = "_os".getBytes();
+    private static final byte[] _PID = "_pid".getBytes();
+    private static final byte[] _THREAD = "_thread".getBytes();
+    private static final byte[] _JAVA_VENDOR = "_java_vendor".getBytes();
+    private static final byte[] _JAVA_VERSION = "_java_version".getBytes();
+
     private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes) throws IOException {
         Buffer buffer = new Buffer(new byte[200]);
 
-        buffer.writeStringLength("_client_name");
+        buffer.writeStringSmallLength(_CLIENT_NAME);
         buffer.writeStringLength(MariaDbDatabaseMetaData.DRIVER_NAME);
 
-        buffer.writeStringLength("_client_version");
+        buffer.writeStringSmallLength(_CLIENT_VERSION);
         buffer.writeStringLength(Version.version);
 
-        buffer.writeStringLength("_os");
+        buffer.writeStringSmallLength(_OS);
         buffer.writeStringLength(System.getProperty("os.name"));
 
         String pid = PidFactory.getInstance().getPid();
         if (pid != null) {
-            buffer.writeStringLength("_pid");
+            buffer.writeStringSmallLength(_PID);
             buffer.writeStringLength(pid);
         }
 
-        buffer.writeStringLength("_thread");
+        buffer.writeStringSmallLength(_THREAD);
         buffer.writeStringLength(Long.toString(Thread.currentThread().getId()));
 
-        buffer.writeStringLength("_java_vendor");
+        buffer.writeStringLength(_JAVA_VENDOR);
         buffer.writeStringLength(System.getProperty("java.vendor"));
 
-        buffer.writeStringLength("_java_version");
+        buffer.writeStringSmallLength(_JAVA_VERSION);
         buffer.writeStringLength(System.getProperty("java.version"));
 
         if (connectionAttributes != null) {

@@ -62,7 +62,7 @@ import java.sql.SQLException;
 import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public class LogQueryTool {
-    Options options;
+    private final Options options;
 
     public LogQueryTool(Options options) {
         this.options = options;
@@ -87,7 +87,7 @@ public class LogQueryTool {
      * @param buffer current query buffer
      * @return possibly truncated query if too big
      */
-    public String subQuery(ByteBuffer buffer) {
+    private String subQuery(ByteBuffer buffer) {
         String queryString;
         if (options.maxQuerySizeToLog == 0) {
             queryString = new String(buffer.array(), 5, buffer.limit());
@@ -103,11 +103,17 @@ public class LogQueryTool {
     /**
      * Return exception with query information's.
      *
-     * @param sql          current sql command
-     * @param sqlException current exception
+     * @param sql               current sql command
+     * @param sqlException      current exception
+     * @param explicitClosed    has connection been explicitly closed
      * @return exception with query information
      */
-    public SQLException exceptionWithQuery(String sql, SQLException sqlException) {
+    public SQLException exceptionWithQuery(String sql, SQLException sqlException, boolean explicitClosed) {
+        if (explicitClosed) {
+            return new SQLException("Connection has explicitly been closed/aborted.\nQuery is: " + subQuery(sql), sqlException.getSQLState(),
+                    sqlException.getErrorCode(), sqlException.getCause());
+        }
+
         if (options.dumpQueriesOnException || sqlException.getErrorCode() == 1064) {
             return new SQLException(sqlException.getMessage() + "\nQuery is: " + subQuery(sql), sqlException.getSQLState(),
                     sqlException.getErrorCode(), sqlException.getCause());
@@ -118,13 +124,14 @@ public class LogQueryTool {
     /**
      * Return exception with query information's.
      *
-     * @param buffer query buffer
-     * @param sqlEx  current exception
+     * @param buffer            query buffer
+     * @param sqlEx             current exception
+     * @param explicitClosed    has connection been explicitly closed
      * @return exception with query information
      */
-    public SQLException exceptionWithQuery(ByteBuffer buffer, SQLException sqlEx) {
-        if (options.dumpQueriesOnException || sqlEx.getErrorCode() == 1064) {
-            return exceptionWithQuery(subQuery(buffer), sqlEx);
+    public SQLException exceptionWithQuery(ByteBuffer buffer, SQLException sqlEx, boolean explicitClosed) {
+        if (options.dumpQueriesOnException || sqlEx.getErrorCode() == 1064 || explicitClosed) {
+            return exceptionWithQuery(subQuery(buffer), sqlEx, explicitClosed);
         }
         return sqlEx;
     }
@@ -178,24 +185,24 @@ public class LogQueryTool {
      * @param parameters          query parameters
      * @return exception message with query
      */
-    public String exWithQuery(String message, PrepareResult serverPrepareResult, ParameterHolder[] parameters) {
+    private String exWithQuery(String message, PrepareResult serverPrepareResult, ParameterHolder[] parameters) {
         if (options.dumpQueriesOnException) {
-            String sql = serverPrepareResult.getSql();
+            StringBuilder sql = new StringBuilder(serverPrepareResult.getSql());
             if (serverPrepareResult.getParamCount() > 0) {
-                sql += ", parameters [";
+                sql.append(", parameters [");
                 if (parameters.length > 0) {
                     for (int i = 0; i < Math.min(parameters.length, serverPrepareResult.getParamCount()); i++) {
-                        sql += parameters[i].toString() + ",";
+                        sql.append(parameters[i].toString()).append(",");
                     }
-                    sql = sql.substring(0, sql.length() - 1);
+                    sql = new StringBuilder(sql.substring(0, sql.length() - 1));
                 }
-                sql += "]";
+                sql.append("]");
             }
 
             if (options.maxQuerySizeToLog != 0 && sql.length() > options.maxQuerySizeToLog - 3) {
-                message += "\nQuery is: " + sql.substring(0, options.maxQuerySizeToLog - 3) + "...";
+                return message + "\nQuery is: " + sql.substring(0, options.maxQuerySizeToLog - 3) + "...";
             } else {
-                message += "\nQuery is: " + sql;
+                return message + "\nQuery is: " + sql;
             }
         }
         return message;

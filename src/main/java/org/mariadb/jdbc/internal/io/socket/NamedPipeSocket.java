@@ -52,20 +52,21 @@
 
 package org.mariadb.jdbc.internal.io.socket;
 
+import com.sun.jna.platform.win32.Kernel32;
+
 import java.io.*;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.concurrent.TimeUnit;
 
+@SuppressWarnings("UnnecessaryInitCause")
 public class NamedPipeSocket extends Socket {
-    String host;
-    String name;
+    private final String host;
+    private final String name;
 
-    RandomAccessFile file;
-    InputStream is;
-    OutputStream os;
+    private RandomAccessFile file;
+    private InputStream is;
+    private OutputStream os;
 
     public NamedPipeSocket(String host, String name) {
         this.host = host;
@@ -110,19 +111,9 @@ public class NamedPipeSocket extends Socket {
             } catch (FileNotFoundException fileNotFoundException) {
                 try {
                     //using JNA if available
-                    Class kernel32Class = Class.forName("com.sun.jna.platform.win32.Kernel32");
-                    Field field = kernel32Class.getField("INSTANCE");
-                    Object fieldInstance = field.get(kernel32Class);
-                    Method waitNamedPipe = fieldInstance.getClass().getMethod("WaitNamedPipe");
-                    waitNamedPipe.invoke(fieldInstance, filename, timeout);
-
+                    Kernel32.INSTANCE.WaitNamedPipe(filename, timeout);
                     //then retry connection
-                    try {
-                        file = new RandomAccessFile(filename, "rw");
-                    } catch (FileNotFoundException secondException) {
-                        throw secondException;
-                    }
-
+                    file = new RandomAccessFile(filename, "rw");
                 } catch (Throwable cle) {
                     // in case JNA not on classpath, then wait 10ms before next try.
                     if (System.nanoTime() - initialNano > TimeUnit.MILLISECONDS.toNanos(usedTimeout)) {

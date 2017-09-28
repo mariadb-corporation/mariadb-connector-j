@@ -73,7 +73,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class MastersFailoverListener extends AbstractMastersListener {
-    private static Logger logger = LoggerFactory.getLogger(MastersFailoverListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(MastersFailoverListener.class);
     private final HaMode mode;
 
     /**
@@ -116,7 +116,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
 
     @Override
-    public void preClose() throws SQLException {
+    public void preClose() {
         if (explicitClosed.compareAndSet(false, true)) {
             proxy.lock.lock();
             try {
@@ -129,13 +129,13 @@ public class MastersFailoverListener extends AbstractMastersListener {
     }
 
     @Override
-    public HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable {
+    public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) throws Throwable {
         boolean alreadyClosed = !currentProtocol.isConnected();
         boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();
 
         proxy.lock.lock();
         try {
-            if (currentProtocol != null && currentProtocol.isConnected() && currentProtocol.isValid()) {
+            if (currentProtocol != null && currentProtocol.isConnected() && currentProtocol.isValid(0)) {
                 //connection re-established
                 //if in transaction cannot be sure that the last query has been received by server of not,
                 // so rollback.and throw exception
@@ -156,9 +156,13 @@ public class MastersFailoverListener extends AbstractMastersListener {
         try {
             reconnectFailedConnection(new SearchFilter(true, false));
             handleFailLoop();
-            if (alreadyClosed || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args))) {
-                logger.info("Connection to master lost, new master " + currentProtocol.getHostAddress() + " found"
-                        + ", query type permit to be re-execute on new server without throwing exception");
+
+            if (killCmd) return new HandleErrorResult(true, false);
+
+            if (alreadyClosed || !inTransaction && isQueryRelaunchable(method, args)) {
+                logger.info("Connection to master lost, new master {} found"
+                        + ", query type permit to be re-execute on new server without throwing exception",
+                        currentProtocol.getHostAddress());
                 return relaunchOperation(method, args);
             }
             return new HandleErrorResult(true);

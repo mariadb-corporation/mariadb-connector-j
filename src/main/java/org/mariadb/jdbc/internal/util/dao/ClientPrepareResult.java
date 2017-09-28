@@ -58,12 +58,12 @@ import java.util.List;
 
 public class ClientPrepareResult implements PrepareResult {
 
-    private String sql;
-    private List<byte[]> queryParts;
+    private final String sql;
+    private final List<byte[]> queryParts;
     private boolean isQueryMultiValuesRewritable = true;
     private boolean isQueryMultipleRewritable = true;
-    private boolean rewriteType;
-    private int paramCount;
+    private final boolean rewriteType;
+    private final int paramCount;
 
     private ClientPrepareResult(String sql, List<byte[]> queryParts, boolean isQueryMultiValuesRewritable,
                                 boolean isQueryMultipleRewritable, boolean rewriteType) {
@@ -215,7 +215,7 @@ public class ClientPrepareResult implements PrepareResult {
      * @param noBackslashEscapes escape
      * @return valid flag
      */
-    public static boolean isRewritableBatch(String queryString, boolean noBackslashEscapes) {
+    public static boolean canAggregateSemiColon(String queryString, boolean noBackslashEscapes) {
 
         LexState state = LexState.Normal;
         char lastChar = '\0';
@@ -223,12 +223,11 @@ public class ClientPrepareResult implements PrepareResult {
         boolean singleQuotes = false;
         boolean endingSemicolon = false;
         char[] query = queryString.toCharArray();
-        int queryLength = query.length;
-        for (int i = 0; i < queryLength; i++) {
+
+        for (char car : query) {
 
             if (state == LexState.Escape) state = LexState.String;
 
-            char car = query[i];
             switch (car) {
                 case '*':
                     if (state == LexState.Normal && lastChar == '/') state = LexState.SlashStarComment;
@@ -322,8 +321,8 @@ public class ClientPrepareResult implements PrepareResult {
      * <li>After value and first parameter part</li>
      * <li>for each parameters :
      * <ul>
-     *      <li>part after parameter and before last parenthesis</li>
-     *      <li>Last query part</li>
+     * <li>part after parameter and before last parenthesis</li>
+     * <li>Last query part</li>
      * </ul>
      * </li>
      * </ul>
@@ -474,71 +473,68 @@ public class ClientPrepareResult implements PrepareResult {
 
                     case 's':
                     case 'S':
-                        if (state == LexState.Normal) {
-                            if (postValuePart == null
-                                    && queryLength > i + 7
-                                    && (query[i + 1] == 'e' || query[i + 1] == 'E')
-                                    && (query[i + 2] == 'l' || query[i + 2] == 'L')
-                                    && (query[i + 3] == 'e' || query[i + 3] == 'E')
-                                    && (query[i + 4] == 'c' || query[i + 4] == 'C')
-                                    && (query[i + 5] == 't' || query[i + 5] == 'T')) {
+                        if (state == LexState.Normal
+                                && postValuePart == null
+                                && queryLength > i + 7
+                                && (query[i + 1] == 'e' || query[i + 1] == 'E')
+                                && (query[i + 2] == 'l' || query[i + 2] == 'L')
+                                && (query[i + 3] == 'e' || query[i + 3] == 'E')
+                                && (query[i + 4] == 'c' || query[i + 4] == 'C')
+                                && (query[i + 5] == 't' || query[i + 5] == 'T')) {
 
-                                //field/table name might contain 'select'
-                                if (i > 0 && (query[i - 1] > ' ' && "();><=-+,".indexOf(query[i - 1]) == -1)) break;
-                                if (query[i + 6] > ' ' && "();><=-+,".indexOf(query[i + 6]) == -1) break;
+                            //field/table name might contain 'select'
+                            if (i > 0 && (query[i - 1] > ' ' && "();><=-+,".indexOf(query[i - 1]) == -1)) break;
+                            if (query[i + 6] > ' ' && "();><=-+,".indexOf(query[i + 6]) == -1) break;
 
-                                //SELECT queries, INSERT FROM SELECT not rewritable
-                                reWritablePrepare = false;
-                            }
+                            //SELECT queries, INSERT FROM SELECT not rewritable
+                            reWritablePrepare = false;
                         }
                         break;
                     case 'v':
                     case 'V':
-                        if (state == LexState.Normal) {
-                            if (preValuePart1 == null
-                                    && (lastChar == ')' || ((byte) lastChar <= 40))
-                                    && queryLength > i + 7
-                                    && (query[i + 1] == 'a' || query[i + 1] == 'A')
-                                    && (query[i + 2] == 'l' || query[i + 2] == 'L')
-                                    && (query[i + 3] == 'u' || query[i + 3] == 'U')
-                                    && (query[i + 4] == 'e' || query[i + 4] == 'E')
-                                    && (query[i + 5] == 's' || query[i + 5] == 'S')
-                                    && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40))) {
-                                sb.append(car);
-                                sb.append(query[i + 1]);
-                                sb.append(query[i + 2]);
-                                sb.append(query[i + 3]);
-                                sb.append(query[i + 4]);
-                                sb.append(query[i + 5]);
-                                i = i + 5;
-                                preValuePart1 = sb.toString();
-                                sb.setLength(0);
-                                skipChar = true;
-                            }
+                        if (state == LexState.Normal
+                                && preValuePart1 == null
+                                && (lastChar == ')' || ((byte) lastChar <= 40))
+                                && queryLength > i + 7
+                                && (query[i + 1] == 'a' || query[i + 1] == 'A')
+                                && (query[i + 2] == 'l' || query[i + 2] == 'L')
+                                && (query[i + 3] == 'u' || query[i + 3] == 'U')
+                                && (query[i + 4] == 'e' || query[i + 4] == 'E')
+                                && (query[i + 5] == 's' || query[i + 5] == 'S')
+                                && (query[i + 6] == '(' || ((byte) query[i + 6] <= 40))) {
+                            sb.append(car);
+                            sb.append(query[i + 1]);
+                            sb.append(query[i + 2]);
+                            sb.append(query[i + 3]);
+                            sb.append(query[i + 4]);
+                            sb.append(query[i + 5]);
+                            i = i + 5;
+                            preValuePart1 = sb.toString();
+                            sb.setLength(0);
+                            skipChar = true;
                         }
                         break;
                     case 'l':
                     case 'L':
-                        if (state == LexState.Normal) {
-                            if (queryLength > i + 14
-                                    && (query[i + 1] == 'a' || query[i + 1] == 'A')
-                                    && (query[i + 2] == 's' || query[i + 2] == 'S')
-                                    && (query[i + 3] == 't' || query[i + 3] == 'T')
-                                    && query[i + 4] == '_'
-                                    && (query[i + 5] == 'i' || query[i + 5] == 'I')
-                                    && (query[i + 6] == 'n' || query[i + 6] == 'N')
-                                    && (query[i + 7] == 's' || query[i + 7] == 'S')
-                                    && (query[i + 8] == 'e' || query[i + 8] == 'E')
-                                    && (query[i + 9] == 'r' || query[i + 9] == 'R')
-                                    && (query[i + 10] == 't' || query[i + 10] == 'T')
-                                    && query[i + 11] == '_'
-                                    && (query[i + 12] == 'i' || query[i + 12] == 'I')
-                                    && (query[i + 13] == 'd' || query[i + 13] == 'D')
-                                    && query[i + 14] == '(') {
-                                sb.append(car);
-                                reWritablePrepare = false;
-                                skipChar = true;
-                            }
+                        if (state == LexState.Normal
+                                && queryLength > i + 14
+                                && (query[i + 1] == 'a' || query[i + 1] == 'A')
+                                && (query[i + 2] == 's' || query[i + 2] == 'S')
+                                && (query[i + 3] == 't' || query[i + 3] == 'T')
+                                && query[i + 4] == '_'
+                                && (query[i + 5] == 'i' || query[i + 5] == 'I')
+                                && (query[i + 6] == 'n' || query[i + 6] == 'N')
+                                && (query[i + 7] == 's' || query[i + 7] == 'S')
+                                && (query[i + 8] == 'e' || query[i + 8] == 'E')
+                                && (query[i + 9] == 'r' || query[i + 9] == 'R')
+                                && (query[i + 10] == 't' || query[i + 10] == 'T')
+                                && query[i + 11] == '_'
+                                && (query[i + 12] == 'i' || query[i + 12] == 'I')
+                                && (query[i + 13] == 'd' || query[i + 13] == 'D')
+                                && query[i + 14] == '(') {
+                            sb.append(car);
+                            reWritablePrepare = false;
+                            skipChar = true;
                         }
                         break;
                     case '(':
@@ -602,7 +598,7 @@ public class ClientPrepareResult implements PrepareResult {
 
         } catch (UnsupportedEncodingException u) {
             //cannot happen
-            return null;
+            throw new IllegalStateException("UTF-8 is an unknown encoding !?");
         }
     }
 
@@ -635,7 +631,6 @@ public class ClientPrepareResult implements PrepareResult {
         String, /* inside string */
         SlashStarComment, /* inside slash-star comment */
         Escape, /* found backslash */
-        Parameter, /* parameter placeholder found */
         EOLComment, /* # comment, or // comment, or -- comment */
         Backtick /* found backtick */
     }

@@ -54,8 +54,8 @@
 package org.mariadb.jdbc.internal.util.dao;
 
 public class CallableStatementCacheKey {
-    private String database;
-    private String query;
+    private final String database;
+    private final String query;
 
     public CallableStatementCacheKey(String database, String query) {
         this.database = database;

@@ -65,9 +65,9 @@ import java.sql.Types;
 
 public class MariaDbResultSetMetaData implements ResultSetMetaData {
 
-    private ColumnInformation[] fieldPackets;
-    private int datatypeMappingflags;
-    private boolean returnTableAlias;
+    private final ColumnInformation[] fieldPackets;
+    private final int datatypeMappingflags;
+    private final boolean returnTableAlias;
 
     /**
      * Constructor.
@@ -215,7 +215,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
      * @throws SQLException if a database access error occurs
      */
     public String getCatalogName(int column) throws SQLException {
-        return getColumnInformation(column).getDb();
+        return getColumnInformation(column).getDatabase();
     }
 
     /**

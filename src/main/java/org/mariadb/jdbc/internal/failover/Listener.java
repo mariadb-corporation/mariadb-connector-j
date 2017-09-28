@@ -71,13 +71,13 @@ public interface Listener {
 
     void preExecute() throws SQLException;
 
-    void preClose() throws SQLException;
+    void preClose();
 
     void reconnectFailedConnection(SearchFilter filter) throws SQLException;
 
     void switchReadOnlyConnection(Boolean readonly) throws SQLException;
 
-    HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable;
+    HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) throws Throwable;
 
     Object invoke(Method method, Object[] args, Protocol specificProtocol) throws Throwable;
 

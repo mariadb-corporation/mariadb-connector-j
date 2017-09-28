@@ -57,7 +57,6 @@ import org.mariadb.jdbc.internal.com.send.parameters.NullParameter;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
@@ -69,23 +68,28 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
      * Specific implementation of CallableStatement to handle function call, represent by call like
      * {?= call procedure-name[(arg1,arg2, ...)]}.
      *
-     * @param query         query
-     * @param connection    current connection
-     * @param procedureName procedure name
-     * @param database      database
-     * @throws SQLException exception
+     * @param query                 query
+     * @param connection            current connection
+     * @param procedureName         procedure name
+     * @param database              database
+     * @param resultSetType         a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+     *                              <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency  a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                              <code>ResultSet.CONCUR_UPDATABLE</code>
+     *@throws SQLException exception
      */
     public MariaDbProcedureStatement(String query, MariaDbConnection connection,
-                                     String procedureName, String database) throws SQLException {
-        super(connection, query, ResultSet.TYPE_FORWARD_ONLY);
+                                     String procedureName, String database, int resultSetType, int resultSetConcurrency) throws SQLException {
+        super(connection, query, resultSetType, resultSetConcurrency);
         this.parameterMetadata = new CallableParameterMetaData(connection, database, procedureName, false);
         setParamsAccordingToSetArguments();
         setParametersVariables();
     }
 
-    private void setParamsAccordingToSetArguments() throws SQLException {
-        params = new ArrayList<CallParameter>(this.parameterCount);
-        for (int index = 0; index < this.parameterCount; index++) {
+    private void setParamsAccordingToSetArguments() {
+        params = new ArrayList<CallParameter>(parameterCount);
+        for (int index = 0; index < parameterCount; index++) {
             params.add(new CallParameter());
         }
     }
@@ -96,7 +100,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
             int currentOutputMapper = 1;
 
             for (int index = 0; index < params.size(); index++) {
-                outputParameterMapper[index] = params.get(index).isOutput ? currentOutputMapper++ : -1;
+                outputParameterMapper[index] = params.get(index).isOutput() ? currentOutputMapper++ : -1;
             }
         }
     }
@@ -137,8 +141,8 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
         }
     }
 
-    protected void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
-        params.get(parameterIndex - 1).isInput = true;
+    public void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
+        params.get(parameterIndex - 1).setInput(true);
         super.setParameter(parameterIndex, holder);
     }
 
@@ -166,7 +170,7 @@ public class MariaDbProcedureStatement extends CallableProcedureStatement implem
         setInputOutputParameterMap();
         //Set value for OUT parameters
         for (int index = 0; index < params.size(); index++) {
-            if (!params.get(index).isInput) {
+            if (!params.get(index).isInput()) {
                 super.setParameter(index + 1, new NullParameter());
             }
         }

@@ -52,14 +52,9 @@
 
 package org.mariadb.jdbc.internal.logging;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 public class LoggerFactory {
-    public static final Logger NO_LOGGER = new NoLogger();
-    public static Boolean hasToLog = null;
-    public static Class loggerClass = null;
-    public static Method method = null;
+    private static final Logger NO_LOGGER = new NoLogger();
+    private static Boolean hasToLog = null;
 
     /**
      * Initialize factory.
@@ -68,21 +63,15 @@ public class LoggerFactory {
      */
     @SuppressWarnings("unchecked")
     public static void init(boolean mustLog) {
-        if (hasToLog == null || hasToLog != mustLog) {
-            if (mustLog) {
-                synchronized (LoggerFactory.class) {
-                    if (hasToLog == null || hasToLog != mustLog) {
-                        try {
-                            loggerClass = Class.forName("org.slf4j.LoggerFactory");
-                            method = loggerClass.getMethod("getLogger", Class.class);
-                            hasToLog = Boolean.TRUE;
-                        } catch (ClassNotFoundException classNotFound) {
-                            System.out.println("Logging cannot be activated, missing slf4j dependency");
-                            hasToLog = Boolean.FALSE;
-                        } catch (NoSuchMethodException classNotFound) {
-                            System.out.println("Logging cannot be activated, missing slf4j dependency");
-                            hasToLog = Boolean.FALSE;
-                        }
+        if ((hasToLog == null || hasToLog != mustLog) && mustLog)  {
+            synchronized (LoggerFactory.class) {
+                if (hasToLog == null || hasToLog != mustLog) {
+                    try {
+                        Class.forName("org.slf4j.LoggerFactory");
+                        hasToLog = Boolean.TRUE;
+                    } catch (ClassNotFoundException classNotFound) {
+                        System.out.println("Logging cannot be activated, missing slf4j dependency");
+                        hasToLog = Boolean.FALSE;
                     }
                 }
             }
@@ -98,13 +87,7 @@ public class LoggerFactory {
      */
     public static Logger getLogger(Class<?> clazz) {
         if (hasToLog != null && hasToLog) {
-            try {
-                return new Slf4JLogger((org.slf4j.Logger) method.invoke(loggerClass, clazz));
-            } catch (IllegalAccessException illegalAccess) {
-                return null;
-            } catch (InvocationTargetException invocationException) {
-                return null;
-            }
+            return new Slf4JLogger(org.slf4j.LoggerFactory.getLogger(clazz));
         } else {
             return NO_LOGGER;
         }

@@ -108,7 +108,7 @@ public class AuthenticationProviderHolder {
      * Provider to handle authentication.
      */
     public interface AuthenticationProvider {
-        public InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
+        InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
                                                                        byte[] authData, int seqNo, String passwordCharacterEncoding)
                 throws SQLException;
     }

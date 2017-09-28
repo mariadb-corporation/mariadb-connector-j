@@ -69,7 +69,6 @@ import static org.junit.Assert.*;
 public class DatatypeTest extends BaseTest {
 
     private ResultSet resultSet;
-    private String str = "\u4f60\u597d(hello in Chinese)";
 
     /**
      * Initialisation.
@@ -134,7 +133,7 @@ public class DatatypeTest extends BaseTest {
         requireMinimumVersion(5, 0);
     }
 
-    void checkClass(String column, Class<?> clazz, String mysqlType, int javaSqlType) throws Exception {
+    private void checkClass(String column, Class<?> clazz, String mysqlType, int javaSqlType) throws Exception {
         int index = resultSet.findColumn(column);
         Object obj = resultSet.getObject(column);
         if (obj != null) {
@@ -151,16 +150,7 @@ public class DatatypeTest extends BaseTest {
                 resultSet.getMetaData().getColumnType(index));
     }
 
-    /**
-     * Testing different date parameters.
-     *
-     * @param connection     current connection
-     * @param tinyInt1isBit  tiny bit must be consider as boolean
-     * @param yearIsDateType year must be consider as Date or int
-     * @throws Exception exception
-     */
-    public void datatypes(Connection connection, boolean tinyInt1isBit, boolean yearIsDateType) throws Exception {
-
+    private void createDataTypeTables() throws SQLException {
         createTable("datatypetest",
                 "bit1 BIT(1) default 0,"
                         + "bit2 BIT(2) default 1,"
@@ -200,7 +190,19 @@ public class DatatypeTest extends BaseTest {
                         + "longtext0 LONGTEXT,"
                         + "enum0 ENUM('a','b') default 'a',"
                         + "set0 SET('a','b') default 'a' ");
+    }
 
+    /**
+     * Testing different date parameters.
+     *
+     * @param connection     current connection
+     * @param tinyInt1isBit  tiny bit must be consider as boolean
+     * @param yearIsDateType year must be consider as Date or int
+     * @throws Exception exception
+     */
+    public void datatypes(Connection connection, boolean tinyInt1isBit, boolean yearIsDateType) throws Exception {
+
+        createDataTypeTables();
 
         connection.createStatement().execute("insert into datatypetest (tinyblob0,mediumblob0,blob0,longblob0,"
                 + "tinytext0,mediumtext0,text0, longtext0) values(0x1,0x1,0x1,0x1, 'a', 'a', 'a', 'a')");
@@ -315,7 +317,7 @@ public class DatatypeTest extends BaseTest {
         stmt.setCharacterStream(2, reader);
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from Driverstreamtest");
-        rs.next();
+        assertTrue(rs.next());
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
         int ch;
@@ -361,7 +363,7 @@ public class DatatypeTest extends BaseTest {
     }
 
     private void testCharacterStreamWithLength(ResultSet rs, String toInsert) throws SQLException, IOException {
-        rs.next();
+        assertTrue(rs.next());
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
         int ch;
@@ -383,9 +385,9 @@ public class DatatypeTest extends BaseTest {
     @Test
     public void testLongColName() throws SQLException {
         DatabaseMetaData dbmd = sharedConnection.getMetaData();
-        String str = "";
+        StringBuilder str = new StringBuilder();
         for (int i = 0; i < dbmd.getMaxColumnNameLength(); i++) {
-            str += "x";
+            str.append("x");
         }
         createTable("longcol", str + " int not null primary key");
         sharedConnection.createStatement().execute("insert into longcol values (1)");
@@ -393,20 +395,19 @@ public class DatatypeTest extends BaseTest {
         ResultSet rs = getResultSet("select * from longcol", false);
         assertEquals(true, rs.next());
         assertEquals(1, rs.getInt(1));
-        assertEquals(1, rs.getInt(str));
+        assertEquals(1, rs.getInt(str.toString()));
         assertEquals("1", rs.getString(1));
 
         rs = getResultSet("select * from longcol", true);
         assertEquals(true, rs.next());
         assertEquals(1, rs.getInt(1));
-        assertEquals(1, rs.getInt(str));
+        assertEquals(1, rs.getInt(str.toString()));
         assertEquals("1", rs.getString(1));
     }
 
     @Test(expected = SQLException.class)
     public void testBadParamlist() throws SQLException {
-        PreparedStatement ps = null;
-        ps = sharedConnection.prepareStatement("insert into blah values (?)");
+        PreparedStatement ps = sharedConnection.prepareStatement("insert into blah values (?)");
         ps.execute();
     }
 
@@ -415,7 +416,7 @@ public class DatatypeTest extends BaseTest {
      */
 
     @Test
-    public void setBitBoolObjectTest() throws SQLException, IOException, ClassNotFoundException {
+    public void setBitBoolObjectTest() throws SQLException {
         PreparedStatement ps = sharedConnection.prepareStatement("insert into bitBoolTest values (?,?)");
         ps.setObject(1, 0);
         ps.setObject(2, 0);
@@ -526,7 +527,7 @@ public class DatatypeTest extends BaseTest {
     }
 
     @Test
-    public void setObjectBitInt() throws SQLException, IOException {
+    public void setObjectBitInt() throws SQLException {
 
         PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO TestBigIntType "
                 + "(t1, t2, t3, t4) VALUES (?, ?, ?, ?)");
@@ -606,7 +607,7 @@ public class DatatypeTest extends BaseTest {
     }
 
     @Test
-    public void binTest2() throws SQLException, IOException {
+    public void binTest2() throws SQLException {
         createTable("bintest2", "bin1 longblob", "engine=innodb");
 
         byte[] buf = new byte[1000000];
@@ -624,19 +625,52 @@ public class DatatypeTest extends BaseTest {
             is = new ByteArrayInputStream(buf);
             ps.setBinaryStream(1, is);
             ps.execute();
+
             ResultSet rs = getResultSet("select bin1 from bintest2", false);
             binTest2Result(rs, buf);
 
-
-            ResultSet rs2 = getResultSet("select bin1 from bintest2", true);
-            binTest2Result(rs2, buf);
+            rs = getResultSet("select bin1 from bintest2", true);
+            binTest2Result(rs, buf);
         } finally {
             if (connection != null) connection.close();
         }
-
     }
 
-    private void binTest2Result(ResultSet rs, byte[] buf) throws SQLException, IOException {
+    @Test
+    public void binTest3() throws SQLException {
+        byte[] buf = new byte[1000000];
+        for (int i = 0; i < 1000000; i++) {
+            buf[i] = (byte) i;
+        }
+        InputStream is = new ByteArrayInputStream(buf);
+
+        Connection connection = null;
+        try {
+            connection = setConnection();
+            createTable("bintest3", "bin1 longblob", "engine=innodb");
+            Statement stmt = connection.createStatement();
+            PreparedStatement ps = null;
+            try {
+                ps = connection.prepareStatement("insert into bintest3 (bin1) values (?)");
+                ps.setBinaryStream(1, is);
+                ps.execute();
+            } finally {
+                if (ps != null) ps.close();
+            }
+
+            ResultSet rs = stmt.executeQuery("select bin1 from bintest3");
+            assertTrue(rs.next());
+            byte[] buf2 = rs.getBytes(1);
+            assertEquals(1000000, buf2.length);
+            for (int i = 0; i < 1000000; i++) {
+                assertEquals(buf[i], buf2[i]);
+            }
+        } finally {
+            if (connection != null) connection.close();
+        }
+    }
+
+    private void binTest2Result(ResultSet rs, byte[] buf) throws SQLException {
         if (rs.next()) {
             byte[] buf2 = rs.getBytes(1);
             for (int i = 0; i < 1000000; i++) {
@@ -698,7 +732,7 @@ public class DatatypeTest extends BaseTest {
     public void byteTest() throws SQLException {
         PreparedStatement ps = sharedConnection.prepareStatement("insert into bytetest (a) values (?)");
         ps.setByte(1, Byte.MAX_VALUE);
-        ps.execute();
+        assertFalse(ps.execute());
         ResultSet rs = getResultSet("select a from bytetest", false);
         byteTestResult(rs);
 
@@ -934,13 +968,14 @@ public class DatatypeTest extends BaseTest {
         Connection connection = null;
         try {
             connection = DriverManager.getConnection(connU + "?user=" + username
-                    + (password != null && !"".equals(password) ? "&password=" + password : "") + "&useServerPrepStmts=true");
+                    + ((password != null && !password.isEmpty()) ? "&password=" + password : "") + "&useServerPrepStmts=true");
             checkCharactersInsert(connection);
         } finally {
             if (connection != null) connection.close();
         }
 
-        sharedConnection.createStatement().execute("truncate LatinTable");
+        Statement stmt = sharedConnection.createStatement();
+        assertFalse(stmt.execute("truncate LatinTable"));
 
         try {
             connection = DriverManager.getConnection(connU + "?user=" + username
@@ -955,6 +990,7 @@ public class DatatypeTest extends BaseTest {
         PreparedStatement preparedStatement = null;
         try {
             preparedStatement = connection.prepareStatement("INSERT INTO LatinTable(t1)  values (?)");
+            String str = "\u4f60\u597d(hello in Chinese)";
             try {
                 preparedStatement.setString(1, str);
                 preparedStatement.execute();

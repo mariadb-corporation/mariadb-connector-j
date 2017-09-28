@@ -58,6 +58,7 @@ import org.junit.Test;
 import java.sql.*;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class ResultSetMetaDataTest extends BaseTest {
     /**
@@ -81,7 +82,7 @@ public class ResultSetMetaDataTest extends BaseTest {
         stmt.execute("insert into test_rsmd (id_col,nullable_col,unikey_col) values (null, 'hej', 9)");
         ResultSet rs = stmt
                 .executeQuery("select id_col, nullable_col, unikey_col as something, char_col,us from test_rsmd");
-        assertEquals(true, rs.next());
+        assertTrue(rs.next());
         ResultSetMetaData rsmd = rs.getMetaData();
 
         assertEquals(true, rsmd.isAutoIncrement(1));
@@ -118,7 +119,7 @@ public class ResultSetMetaDataTest extends BaseTest {
         requireMinimumVersion(5, 0);
         ResultSet rs = sharedConnection.createStatement().executeQuery(
                 "select count(*),1 from information_schema.tables");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getMetaData().getColumnName(1), "count(*)");
         assertEquals(rs.getMetaData().getColumnName(2), "1");
     }
@@ -132,7 +133,7 @@ public class ResultSetMetaDataTest extends BaseTest {
         stmt.execute("INSERT INTO t2 VALUES (2, 'bar')");
         ResultSet rs = sharedConnection.createStatement().executeQuery(
                 "select t1.*, t2.* FROM t1 join t2");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.findColumn("id"), 1);
         assertEquals(rs.findColumn("name"), 2);
         assertEquals(rs.findColumn("t1.id"), 1);

@@ -63,7 +63,7 @@ public class SchedulerServiceProviderHolder {
     /**
      * The default provider will construct a new pool on every request.
      */
-    public static SchedulerProvider DEFAULT_PROVIDER = new SchedulerProvider() {
+    public static final SchedulerProvider DEFAULT_PROVIDER = new SchedulerProvider() {
         @Override
         public DynamicSizedSchedulerInterface getScheduler(int minimumThreads, String poolName, int maximumPoolSize) {
             return new DynamicSizedSchedulerImpl(minimumThreads, poolName, maximumPoolSize);
@@ -76,14 +76,14 @@ public class SchedulerServiceProviderHolder {
 
         @Override
         public ScheduledThreadPoolExecutor getTimeoutScheduler() {
-            ScheduledThreadPoolExecutor timeoutScheduler = new ScheduledThreadPoolExecutor(1, new MariaDbThreadFactory("timeout"));
+            ScheduledThreadPoolExecutor timeoutScheduler = new ScheduledThreadPoolExecutor(1, new MariaDbThreadFactory("MariaDb-timeout"));
             return timeoutScheduler;
         }
 
         @Override
         @SuppressWarnings("unchecked")
         public ThreadPoolExecutor getBulkScheduler() {
-            return new ThreadPoolExecutor(5, 100, 1, TimeUnit.MINUTES, new SynchronousQueue(), new MariaDbThreadFactory("bulk"));
+            return new ThreadPoolExecutor(5, 100, 1, TimeUnit.MINUTES, new SynchronousQueue(), new MariaDbThreadFactory("MariaDb-bulk"));
         }
 
     };
@@ -165,9 +165,9 @@ public class SchedulerServiceProviderHolder {
          * @param maximumPoolSize maximum pool size
          * @return A new scheduler that is ready to accept tasks
          */
-        public DynamicSizedSchedulerInterface getScheduler(int minimumThreads, String poolName, int maximumPoolSize);
+        DynamicSizedSchedulerInterface getScheduler(int minimumThreads, String poolName, int maximumPoolSize);
 
-        public ScheduledExecutorService getFixedSizeScheduler(int minimumThreads, String poolName);
+        ScheduledExecutorService getFixedSizeScheduler(int minimumThreads, String poolName);
 
         /**
          * Default Timeout scheduler.
@@ -178,9 +178,9 @@ public class SchedulerServiceProviderHolder {
          *
          * @return A new scheduler that is ready to accept tasks
          */
-        public ScheduledThreadPoolExecutor getTimeoutScheduler();
+        ScheduledThreadPoolExecutor getTimeoutScheduler();
 
-        public ThreadPoolExecutor getBulkScheduler();
+        ThreadPoolExecutor getBulkScheduler();
     }
 
 

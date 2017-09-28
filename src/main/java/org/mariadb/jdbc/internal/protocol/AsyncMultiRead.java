@@ -74,9 +74,9 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
     private final AbstractMultiSend bulkSend;
     private final List<ParameterHolder[]> parametersList;
     private final List<String> queries;
-    private Results results;
-    private int paramCount;
-    private AsyncMultiReadResult asyncMultiReadResult;
+    private final Results results;
+    private final int paramCount;
+    private final AsyncMultiReadResult asyncMultiReadResult;
 
 
     /**

@@ -442,9 +442,22 @@ public class ResultSetTest extends BaseTest {
     public void generatedKeyNpe() throws SQLException {
         createTable("generatedKeyNpe", "id int not null primary key auto_increment, val int");
         Statement statement = sharedConnection.createStatement();
-        statement.execute("INSERT INTO generatedKeyNpe(val) values (0)");
+        statement.execute("INSERT INTO generatedKeyNpe(val) values (0)", Statement.RETURN_GENERATED_KEYS);
         ResultSet rs = statement.getGeneratedKeys();
         assertTrue(rs.next());
+    }
+
+    @Test
+    public void generatedKeyError() throws SQLException {
+        createTable("generatedKeyNpe", "id int not null primary key auto_increment, val int");
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("INSERT INTO generatedKeyNpe(val) values (0)");
+        try {
+            statement.getGeneratedKeys();
+            fail();
+        } catch (SQLException sqle) {
+            assertEquals("Cannot return generated keys : query was not set with Statement.RETURN_GENERATED_KEYS", sqle.getMessage());
+        }
     }
 
     @Test
@@ -857,7 +870,7 @@ public class ResultSetTest extends BaseTest {
             ResultSet rs = null;
             try {
                 rs = stmt.executeQuery("select * from numericTypeTable");
-                rs.next();
+                assertTrue(rs.next());
                 floatDoubleCheckResult(rs);
             } finally {
                 rs.close();
@@ -869,7 +882,7 @@ public class ResultSetTest extends BaseTest {
         try {
             preparedStatement = sharedConnection.prepareStatement("select * from numericTypeTable");
             ResultSet rs = preparedStatement.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             floatDoubleCheckResult(rs);
         } finally {
             preparedStatement.close();
@@ -883,10 +896,19 @@ public class ResultSetTest extends BaseTest {
         //TINYINT, SMALLINT, INTEGER, BIGINT, REAL, FLOAT, DOUBLE, DECIMAL, NUMERIC, BIT, BOOLEAN, CHAR, VARCHAR, LONGVARCHAR
         for (int i = 1; i < 11; i++) {
             rs.getDouble(i);
+            rs.getFloat(i);
         }
+
         for (int i = 11; i < 16; i++) {
             try {
                 rs.getDouble(i);
+                fail();
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("Incorrect format "));
+            }
+            try {
+                rs.getFloat(i);
+                fail();
             } catch (SQLException sqle) {
                 assertTrue(sqle.getMessage().contains("Incorrect format "));
             }
@@ -897,24 +919,9 @@ public class ResultSetTest extends BaseTest {
             } catch (SQLException sqle) {
                 assertTrue(sqle.getMessage().contains("not available"));
             }
-        }
-
-        //getFloat
-        //supported JDBC type :
-        //TINYINT, SMALLINT, INTEGER, BIGINT, REAL, FLOAT, DOUBLE, DECIMAL, NUMERIC, BIT, BOOLEAN, CHAR, VARCHAR, LONGVARCHAR
-        for (int i = 1; i < 11; i++) {
-            rs.getDouble(i);
-        }
-        for (int i = 11; i < 16; i++) {
             try {
                 rs.getFloat(i);
-            } catch (SQLException sqle) {
-                assertTrue(sqle.getMessage().contains("Incorrect format "));
-            }
-        }
-        for (int i = 16; i < 18; i++) {
-            try {
-                rs.getFloat(i);
+                fail();
             } catch (SQLException sqle) {
                 assertTrue(sqle.getMessage().contains("not available"));
             }
@@ -930,13 +937,13 @@ public class ResultSetTest extends BaseTest {
     public void numericTestWithDecimal() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT 1 as test");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getInt("test") == 1);
         assertTrue(rs.getByte("test") == 1);
         assertTrue(rs.getShort("test") == 1);
 
         rs = stmt.executeQuery("SELECT 1.3333 as test");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getInt("test") == 1);
         assertTrue(rs.getByte("test") == 1);
         assertTrue(rs.getShort("test") == 1);
@@ -944,7 +951,7 @@ public class ResultSetTest extends BaseTest {
         assertTrue(rs.getFloat("test") == 1.3333F);
 
         rs = stmt.executeQuery("SELECT 1.0 as test");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getInt("test") == 1);
         assertTrue(rs.getByte("test") == 1);
         assertTrue(rs.getShort("test") == 1);
@@ -952,14 +959,14 @@ public class ResultSetTest extends BaseTest {
         assertTrue(rs.getFloat("test") == 1.0F);
 
         rs = stmt.executeQuery("SELECT -1 as test");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getInt("test") == -1);
         assertTrue(rs.getByte("test") == -1);
         assertTrue(rs.getShort("test") == -1);
         assertTrue(rs.getLong("test") == -1);
 
         rs = stmt.executeQuery("SELECT -1.0 as test");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getInt("test") == -1);
         assertTrue(rs.getByte("test") == -1);
         assertTrue(rs.getShort("test") == -1);
@@ -967,7 +974,7 @@ public class ResultSetTest extends BaseTest {
         assertTrue(rs.getFloat("test") == -1.0F);
 
         rs = stmt.executeQuery("SELECT -1.3333 as test");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getInt("test") == -1);
         assertTrue(rs.getByte("test") == -1);
         assertTrue(rs.getShort("test") == -1);

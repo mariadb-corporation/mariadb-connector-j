@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -143,7 +142,7 @@ public class BlobTest extends BaseTest {
         stmt.execute();
 
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTeststreamtest2");
-        rs.next();
+        assertTrue(rs.next());
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
         int ch;
@@ -163,7 +162,7 @@ public class BlobTest extends BaseTest {
         stmt.setCharacterStream(2, reader);
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTeststreamtest3");
-        rs.next();
+        assertTrue(rs.next());
         Reader rdr = rs.getCharacterStream("strm");
         StringBuilder sb = new StringBuilder();
         int ch;
@@ -185,10 +184,11 @@ public class BlobTest extends BaseTest {
         stmt.setCharacterStream(2, new StringReader(clob), 20000);
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest5");
-        rs.next();
+        assertTrue(rs.next());
         Reader readStuff = rs.getCharacterStream("strm");
 
         char[] chars = new char[50000];
+        //noinspection ResultOfMethodCallIgnored
         readStuff.read(chars);
 
         byte[] arrResult = new byte[20000];
@@ -223,7 +223,7 @@ public class BlobTest extends BaseTest {
         assertEquals(12000, remainRead);
 
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestblobtest2");
-        rs.next();
+        assertTrue(rs.next());
         InputStream readStuff = rs.getBlob("strm").getBinaryStream();
         int pos = 0;
         int ch;
@@ -245,6 +245,7 @@ public class BlobTest extends BaseTest {
         if (rs.next()) {
             Reader readStuff = rs.getClob("strm").getCharacterStream();
             char[] chars = new char[5];
+            //noinspection ResultOfMethodCallIgnored
             readStuff.read(chars);
             assertEquals(new String(chars), clob);
         } else {
@@ -263,7 +264,7 @@ public class BlobTest extends BaseTest {
         stmt.setClob(1, clob);
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest2");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getObject(1) instanceof String);
         String result = rs.getString(1);
         assertEquals("\u00D8hello", result);
@@ -278,7 +279,7 @@ public class BlobTest extends BaseTest {
         stmt.setBlob(2, stream);
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestblobtest");
-        rs.next();
+        assertTrue(rs.next());
         InputStream readStuff = rs.getBlob("strm").getBinaryStream();
         int ch;
         int pos = 0;
@@ -303,11 +304,12 @@ public class BlobTest extends BaseTest {
         stmt.setClob(2, new StringReader(clob));
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest3");
-        rs.next();
+        assertTrue(rs.next());
         Reader readStuff = rs.getClob("strm").getCharacterStream();
         char[] chars = new char[4];
+        //noinspection ResultOfMethodCallIgnored
         readStuff.read(chars);
-        Assert.assertEquals(new String(chars), clob);
+        assertEquals(new String(chars), clob);
     }
 
     @Test
@@ -321,7 +323,7 @@ public class BlobTest extends BaseTest {
         stmt.setClob(2, clob);
         stmt.execute();
         ResultSet rs = sharedConnection.createStatement().executeQuery("select * from BlobTestclobtest4");
-        rs.next();
+        assertTrue(rs.next());
         assertTrue(rs.getObject(2) instanceof String);
         assertTrue(rs.getString(2).equals("hello"));
     }
@@ -372,23 +374,36 @@ public class BlobTest extends BaseTest {
 
     @Test
     public void conj77() throws Exception {
+
+        byte[][] values = new byte[3][];
+        values[0] = "".getBytes();
+        values[1] = "hello".getBytes();
+        values[2] = null;
+
         Statement sta1 = sharedConnection.createStatement();
-        PreparedStatement pre = sharedConnection.prepareStatement("INSERT INTO conj77_test (Name,Archive) VALUES (?,?)");
-        pre.setString(1, "Empty String");
-        pre.setBytes(2, "".getBytes());
-        pre.addBatch();
+        PreparedStatement pre = null;
+        try {
+            pre = sharedConnection.prepareStatement("INSERT INTO conj77_test (Name,Archive) VALUES (?,?)");
+            pre.setString(1, "1-Empty String");
+            pre.setBytes(2, values[0]);
+            pre.addBatch();
 
-        pre.setString(1, "Data Hello");
-        pre.setBytes(2, "hello".getBytes());
-        pre.addBatch();
+            pre.setString(1, "2-Data Hello");
+            pre.setBytes(2, values[1]);
+            pre.addBatch();
 
-        pre.setString(1, "Empty Data null");
-        pre.setBytes(2, null);
-        pre.addBatch();
+            pre.setString(1, "3-Empty Data null");
+            pre.setBytes(2, values[2]);
+            pre.addBatch();
 
-        pre.executeBatch();
+            pre.executeBatch();
+        } finally {
+            if (pre != null) pre.close();
+        }
 
-        ResultSet set = sta1.executeQuery("Select name,archive as text FROM conj77_test");
+        Statement sta2 = sharedConnection.createStatement();
+        ResultSet set = sta2.executeQuery("Select name,archive as text FROM conj77_test");
+        int pos = 0;
         while (set.next()) {
             final Blob blob = set.getBlob("text");
             if (blob != null) {
@@ -405,11 +420,15 @@ public class BlobTest extends BaseTest {
                     } finally {
                         bin.close();
                     }
+                    assertArrayEquals(bout.toByteArray(), values[pos++]);
                 } finally {
                     bout.close();
                 }
+            } else {
+                assertNull(values[pos++]);
             }
         }
+        assertEquals(pos, 3);
     }
 
     @Test
@@ -427,7 +446,7 @@ public class BlobTest extends BaseTest {
 
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery("select * from emptyBlob");
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(0, rs.getBytes(1).length);
             assertEquals("a 'a ", rs.getString(2));
             assertNull(rs.getBytes(3));

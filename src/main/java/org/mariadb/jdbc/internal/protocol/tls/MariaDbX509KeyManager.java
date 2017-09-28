@@ -85,9 +85,9 @@ public class MariaDbX509KeyManager extends X509ExtendedKeyManager {
                 try {
                     privateKeyHash.put(alias, (KeyStore.PrivateKeyEntry) keyStore.getEntry(alias, new KeyStore.PasswordProtection(pwd)));
                 } catch (UnrecoverableEntryException unrecoverableEntryEx) {
-                    //password invalid
-                } catch (NoSuchAlgorithmException noSuchAlgorithmEx) {
-                    //algorithm error
+                    //password invalid | algorithm error
+                } catch (NoSuchAlgorithmException noSuchAlgorithm) {
+                    //eat
                 }
             }
         }

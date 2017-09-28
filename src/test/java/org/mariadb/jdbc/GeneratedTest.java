@@ -94,7 +94,7 @@ public class GeneratedTest extends BaseTest {
         assertEquals(rs.getInt(1), 2);
         try {
             assertEquals(rs.getInt(2), 2);
-            assertFalse("should never get here", true);
+            fail("should never get here");
         } catch (SQLException e) {
             // eat
         }

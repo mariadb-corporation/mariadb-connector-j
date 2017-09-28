@@ -2,6 +2,10 @@
 sudo: false
 language: java
 services: docker
+addons:
+  hosts:
+    - mariadb.example.com
+
 before_install:
     - chmod +x .travis/script.sh
     # java 6 require maven 3.2.5

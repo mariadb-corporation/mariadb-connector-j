@@ -64,6 +64,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class CancelTest extends BaseTest {
 
@@ -145,11 +146,11 @@ public class CancelTest extends BaseTest {
     public void timeoutPrepareBatch() throws Exception {
         Assume.assumeFalse(sharedIsAurora());
         Assume.assumeTrue(!sharedOptions().allowMultiQueries && !sharedIsRewrite());
+        Assume.assumeTrue(!(sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10,2)));
         createTable("timeoutBatch", "aa text");
         Connection tmpConnection = null;
         try {
             tmpConnection = openNewConnection(connUri, new Properties());
-
 
             char[] arr = new char[1000];
             Arrays.fill(arr, 'a');
@@ -179,7 +180,7 @@ public class CancelTest extends BaseTest {
         Statement stmt = sharedConnection.createStatement();
         stmt.cancel();
         ResultSet rs = stmt.executeQuery("select 1");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getInt(1), 1);
     }
 
@@ -194,9 +195,7 @@ public class CancelTest extends BaseTest {
         public void run() {
             try {
                 Thread.sleep(100);
-
                 stmt.cancel();
-
             } catch (SQLException e) {
                 e.printStackTrace();
                 throw new RuntimeException(e);

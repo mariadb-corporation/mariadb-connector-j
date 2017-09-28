@@ -59,8 +59,6 @@ import org.mariadb.jdbc.internal.util.CallableStatementCache;
 import org.mariadb.jdbc.internal.util.ClientPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
@@ -76,22 +74,23 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
+@SuppressWarnings("Annotator")
 public class MariaDbConnection implements Connection {
-    private static Logger logger = LoggerFactory.getLogger(MariaDbConnection.class);
+    private static final Logger logger = LoggerFactory.getLogger(MariaDbConnection.class);
 
     /**
      * Pattern  to check the correctness of callable statement query string
      * Legal queries, as documented in JDK have the form:
      * {[?=]call[(arg1,..,,argn)]}
      */
-    private static Pattern CALLABLE_STATEMENT_PATTERN =
+    private static final Pattern CALLABLE_STATEMENT_PATTERN =
             Pattern.compile("^\\s*(\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
                             + "((((`[^`]+`)|([^`]+))\\.)?((`[^`]+`)|([^`\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(#.*)?$",
                     Pattern.CASE_INSENSITIVE);
     /**
      * Check that query can be executed with PREPARE.
      */
-    private static Pattern PREPARABLE_STATEMENT_PATTERN =
+    private static final Pattern PREPARABLE_STATEMENT_PATTERN =
             Pattern.compile("^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(SELECT|UPDATE|INSERT|DELETE|REPLACE|DO|CALL)",
                     Pattern.CASE_INSENSITIVE);
     public final ReentrantLock lock;
@@ -99,11 +98,10 @@ public class MariaDbConnection implements Connection {
      * the protocol to communicate with.
      */
     private final Protocol protocol;
-    private final String initialUrl;
     private final ClientPrepareStatementCache clientPrepareStatementCache;
     public MariaDbPooledConnection pooledConnection;
-    protected CallableStatementCache callableStatementCache;
-    protected boolean noBackslashEscapes;
+    private CallableStatementCache callableStatementCache;
+
     protected boolean nullCatalogMeansCurrent = true;
     private volatile int lowercaseTableNames = -1;
     private boolean canUseServerTimeout = false;
@@ -116,28 +114,24 @@ public class MariaDbConnection implements Connection {
     /**
      * the properties for the client.
      */
-    private Options options;
+    private final Options options;
     private boolean warningsCleared;
 
     /**
      * Creates a new connection with a given protocol and query factory.
      *
-     * @param initialUrl initial url
      * @param protocol   the protocol to use.
-     * @param lock       lock
      */
-    private MariaDbConnection(String initialUrl, Protocol protocol, ReentrantLock lock) throws SQLException {
+    public MariaDbConnection(Protocol protocol) {
         this.protocol = protocol;
-        this.initialUrl = initialUrl;
         options = protocol.getOptions();
         canUseServerTimeout = protocol.versionGreaterOrEqual(10, 1, 2);
-        noBackslashEscapes = protocol.noBackslashEscapes();
         sessionStateAware = protocol.sessionStateAware();
         nullCatalogMeansCurrent = options.nullCatalogMeansCurrent;
         if (options.cacheCallableStmts) {
             callableStatementCache = CallableStatementCache.newInstance(options.callableStmtCacheSize);
         }
-        this.lock = lock;
+        this.lock = protocol.getLock();
 
         if (options.cachePrepStmts) {
             this.clientPrepareStatementCache = ClientPrepareStatementCache.newInstance(options.prepStmtCacheSize);
@@ -146,8 +140,9 @@ public class MariaDbConnection implements Connection {
         }
     }
 
-    public static MariaDbConnection newConnection(String initialUrl, Protocol protocol, ReentrantLock lock) throws SQLException {
-        return new MariaDbConnection(initialUrl, protocol, lock);
+    public static MariaDbConnection newConnection(UrlParser urlParser) throws SQLException {
+        Protocol protocol = Utils.retrieveProxy(urlParser);
+        return new MariaDbConnection(protocol);
     }
 
     public static String quoteIdentifier(String string) {
@@ -169,7 +164,7 @@ public class MariaDbConnection implements Connection {
         return string;
     }
 
-    Protocol getProtocol() {
+    protected Protocol getProtocol() {
         return protocol;
     }
 
@@ -181,7 +176,7 @@ public class MariaDbConnection implements Connection {
      */
     public Statement createStatement() throws SQLException {
         checkConnection();
-        return new MariaDbStatement(this, ResultSet.TYPE_FORWARD_ONLY);
+        return new MariaDbStatement(this, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
     }
 
     /**
@@ -201,7 +196,7 @@ public class MariaDbConnection implements Connection {
      *                      parameters are not <code>ResultSet</code> constants indicating type and concurrency
      */
     public Statement createStatement(final int resultSetType, final int resultSetConcurrency) throws SQLException {
-        return new MariaDbStatement(this, resultSetType);
+        return new MariaDbStatement(this, resultSetType, resultSetConcurrency);
     }
 
     /**
@@ -233,14 +228,10 @@ public class MariaDbConnection implements Connection {
      */
     public Statement createStatement(final int resultSetType, final int resultSetConcurrency, final int resultSetHoldability)
             throws SQLException {
-        if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
-            throw ExceptionMapper.getFeatureNotSupportedException("Only read-only result sets allowed");
-        }
-
-        return createStatement();
+        return new MariaDbStatement(this, resultSetType, resultSetConcurrency);
     }
 
-    protected void checkConnection() throws SQLException {
+    private void checkConnection() throws SQLException {
         if (protocol.isExplicitClosed()) {
             throw new SQLException("createStatement() is called on closed connection");
         }
@@ -255,14 +246,33 @@ public class MariaDbConnection implements Connection {
     }
 
     /**
-     * creates a new client prepared statement.
+     * Create a new client prepared statement.
      *
      * @param sql the query.
-     * @return a prepared statement.
+     * @return a client prepared statement.
      * @throws SQLException if there is a problem preparing the statement.
      */
-    protected MariaDbPreparedStatementClient clientPrepareStatement(final String sql) throws SQLException {
-        return new MariaDbPreparedStatementClient(this, sql, ResultSet.TYPE_FORWARD_ONLY);
+    public MariaDbPreparedStatementClient clientPrepareStatement(final String sql) throws SQLException {
+        return new MariaDbPreparedStatementClient(this,
+                sql,
+                ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY,
+                Statement.RETURN_GENERATED_KEYS);
+    }
+
+    /**
+     * Create a new server prepared statement.
+     *
+     * @param sql the query.
+     * @return a server prepared statement.
+     * @throws SQLException if there is a problem preparing the statement.
+     */
+    public MariaDbPreparedStatementServer serverPrepareStatement(final String sql) throws SQLException {
+        return new MariaDbPreparedStatementServer(this,
+                sql,
+                ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY,
+                Statement.RETURN_GENERATED_KEYS);
     }
 
     /**
@@ -273,7 +283,10 @@ public class MariaDbConnection implements Connection {
      * @throws SQLException if there is a problem preparing the statement.
      */
     public PreparedStatement prepareStatement(final String sql) throws SQLException {
-        return internalPrepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY);
+        return internalPrepareStatement(sql,
+                ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY,
+                Statement.NO_GENERATED_KEYS);
     }
 
 
@@ -297,7 +310,10 @@ public class MariaDbConnection implements Connection {
      */
     public PreparedStatement prepareStatement(final String sql, final int resultSetType, final int resultSetConcurrency)
             throws SQLException {
-        return internalPrepareStatement(sql, resultSetType);
+        return internalPrepareStatement(sql,
+                resultSetType,
+                resultSetConcurrency,
+                Statement.NO_GENERATED_KEYS);
     }
 
     /**
@@ -368,7 +384,10 @@ public class MariaDbConnection implements Connection {
      * @since 1.4
      */
     public PreparedStatement prepareStatement(final String sql, final int autoGeneratedKeys) throws SQLException {
-        return internalPrepareStatement(sql, ResultSet.TYPE_FORWARD_ONLY);
+        return internalPrepareStatement(sql,
+                ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY,
+                autoGeneratedKeys);
     }
 
     /**
@@ -431,24 +450,36 @@ public class MariaDbConnection implements Connection {
      * Send ServerPrepareStatement or ClientPrepareStatement depending on SQL query and options
      * If server side and PREPARE can be delayed, a facade will be return, to have a fallback on client prepareStatement.
      *
-     * @param sql                 sql query
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param sql                   sql query
+     * @param resultSetScrollType   one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency  a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                              <code>ResultSet.CONCUR_UPDATABLE</code>
+     * @param autoGeneratedKeys     a flag indicating whether auto-generated keys should be returned; one of
+     *                              <code>Statement.RETURN_GENERATED_KEYS</code>
+     *                              or <code>Statement.NO_GENERATED_KEYS</code>
      * @return PrepareStatement
      * @throws SQLException if a connection error occur during the server preparation.
      */
-    public PreparedStatement internalPrepareStatement(final String sql, final int resultSetScrollType)
+    private PreparedStatement internalPrepareStatement(final String sql,
+                                                       final int resultSetScrollType,
+                                                       final int resultSetConcurrency,
+                                                       final int autoGeneratedKeys)
             throws SQLException {
 
         if (sql != null) {
 
-            String sqlQuery = Utils.nativeSql(sql, noBackslashEscapes);
+            String sqlQuery = Utils.nativeSql(sql, protocol.noBackslashEscapes());
 
             if (options.useServerPrepStmts && PREPARABLE_STATEMENT_PATTERN.matcher(sqlQuery).find()) {
                 //prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?
                 checkConnection();
                 try {
-                    return new MariaDbPreparedStatementServer(this, sqlQuery, resultSetScrollType, true);
+                    return new MariaDbPreparedStatementServer(this,
+                            sqlQuery,
+                            resultSetScrollType,
+                            resultSetConcurrency,
+                            autoGeneratedKeys);
                 } catch (SQLNonTransientConnectionException e) {
                     throw e;
                 } catch (SQLException e) {
@@ -456,7 +487,11 @@ public class MariaDbConnection implements Connection {
                     //will use clientPreparedStatement
                 }
             }
-            return new MariaDbPreparedStatementClient(this, sqlQuery, resultSetScrollType);
+            return new MariaDbPreparedStatementClient(this,
+                    sqlQuery,
+                    resultSetScrollType,
+                    resultSetConcurrency,
+                    autoGeneratedKeys);
         } else {
             throw new SQLException("SQL value can not be NULL");
         }
@@ -484,41 +519,7 @@ public class MariaDbConnection implements Connection {
      *                      or this method is called on a closed connection
      */
     public CallableStatement prepareCall(final String sql) throws SQLException {
-        checkConnection();
-
-        String query = Utils.nativeSql(sql, noBackslashEscapes);
-        Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(query);
-        if (!matcher.matches()) {
-            throw new SQLSyntaxErrorException(
-                    "invalid callable syntax. must be like {? = call <procedure/function name>[(?,?, ...)]}\n but was : "
-                            + query);
-        }
-        boolean isFunction = (matcher.group(1) != null);
-        String databaseAndProcedure = matcher.group(6);
-        String database = matcher.group(8);
-        String procedureName = matcher.group(11);
-        String arguments = matcher.group(14);
-        if (database == null && sessionStateAware) database = getDatabase();
-
-        if (database != null && options.cacheCallableStmts) {
-
-            if (callableStatementCache.containsKey(new CallableStatementCacheKey(database, query))) {
-                try {
-                    CallableStatement callableStatement = callableStatementCache.get(new CallableStatementCacheKey(database, query));
-                    if (callableStatement != null) {
-                        //Clone to avoid side effect like having some open resultSet.
-                        return ((CloneableCallableStatement) callableStatement).clone(this);
-                    }
-                } catch (CloneNotSupportedException cloneNotSupportedException) {
-                    cloneNotSupportedException.printStackTrace();
-                }
-            }
-            CallableStatement callableStatement = createNewCallableStatement(query, procedureName, isFunction, databaseAndProcedure, database,
-                    arguments);
-            callableStatementCache.put(new CallableStatementCacheKey(database, query), callableStatement);
-            return callableStatement;
-        }
-        return createNewCallableStatement(query, procedureName, isFunction, databaseAndProcedure, database, arguments);
+        return prepareCall(sql, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
     }
 
 
@@ -545,7 +546,54 @@ public class MariaDbConnection implements Connection {
      *                                         specified result set type and result set concurrency.
      */
     public CallableStatement prepareCall(final String sql, final int resultSetType, final int resultSetConcurrency) throws SQLException {
-        return prepareCall(sql);
+        checkConnection();
+
+        String query = Utils.nativeSql(sql, protocol.noBackslashEscapes());
+        Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(query);
+        if (!matcher.matches()) {
+            throw new SQLSyntaxErrorException(
+                    "invalid callable syntax. must be like {? = call <procedure/function name>[(?,?, ...)]}\n but was : "
+                            + query);
+        }
+        boolean isFunction = (matcher.group(1) != null);
+        String databaseAndProcedure = matcher.group(6);
+        String database = matcher.group(8);
+        String procedureName = matcher.group(11);
+        String arguments = matcher.group(14);
+        if (database == null && sessionStateAware) database = getDatabase();
+
+        if (database != null && options.cacheCallableStmts) {
+
+            if (callableStatementCache.containsKey(new CallableStatementCacheKey(database, query))) {
+                try {
+                    CallableStatement callableStatement = callableStatementCache.get(new CallableStatementCacheKey(database, query));
+                    if (callableStatement != null) {
+                        //Clone to avoid side effect like having some open resultSet.
+                        return ((CloneableCallableStatement) callableStatement).clone(this);
+                    }
+                } catch (CloneNotSupportedException cloneNotSupportedException) {
+                    cloneNotSupportedException.printStackTrace();
+                }
+            }
+            CallableStatement callableStatement = createNewCallableStatement(query,
+                    procedureName,
+                    isFunction,
+                    databaseAndProcedure,
+                    database,
+                    arguments,
+                    resultSetType,
+                    resultSetConcurrency);
+            callableStatementCache.put(new CallableStatementCacheKey(database, query), callableStatement);
+            return callableStatement;
+        }
+        return createNewCallableStatement(query,
+                procedureName,
+                isFunction,
+                databaseAndProcedure,
+                database,
+                arguments,
+                resultSetType,
+                resultSetConcurrency);
     }
 
     /**
@@ -584,21 +632,29 @@ public class MariaDbConnection implements Connection {
         return prepareCall(sql);
     }
 
-    private CallableStatement createNewCallableStatement(String query, String procedureName, boolean isFunction, String databaseAndProcedure,
-                                                         String database, String arguments) throws SQLException {
-        if (arguments == null) {
-            arguments = "()";
-        }
+    private CallableStatement createNewCallableStatement(String query, String procedureName, boolean isFunction,
+                                                         String databaseAndProcedure, String database, String arguments,
+                                                         int resultSetType, final int resultSetConcurrency) throws SQLException {
         if (isFunction) {
-            return new MariaDbFunctionStatement(this, database, databaseAndProcedure, arguments);
+            return new MariaDbFunctionStatement(this,
+                    database,
+                    databaseAndProcedure,
+                    (arguments == null) ? "()" : arguments,
+                    resultSetType,
+                    resultSetConcurrency);
         } else {
-            return new MariaDbProcedureStatement(query, this, procedureName, database);
+            return new MariaDbProcedureStatement(query,
+                    this,
+                    procedureName,
+                    database,
+                    resultSetType,
+                    resultSetConcurrency);
         }
     }
 
     @Override
     public String nativeSQL(final String sql) throws SQLException {
-        return Utils.nativeSql(sql, noBackslashEscapes);
+        return Utils.nativeSql(sql, protocol.noBackslashEscapes());
     }
 
     /**
@@ -707,7 +763,10 @@ public class MariaDbConnection implements Connection {
      * @throws SQLException if there is a problem creating the meta data.
      */
     public DatabaseMetaData getMetaData() throws SQLException {
-        return new MariaDbDatabaseMetaData(this, protocol.getUsername(), initialUrl);
+        return new MariaDbDatabaseMetaData(
+                this,
+                protocol.getUsername(),
+                protocol.getUrlParser().getInitialUrl());
     }
 
     /**
@@ -728,7 +787,7 @@ public class MariaDbConnection implements Connection {
      */
     public void setReadOnly(final boolean readOnly) throws SQLException {
         try {
-            logger.debug("setReadOnly to value " + readOnly);
+            logger.debug("set read-only to value {}", readOnly);
             protocol.setReadonly(readOnly);
         } catch (SQLException e) {
             ExceptionMapper.throwException(e, this, null);
@@ -743,10 +802,7 @@ public class MariaDbConnection implements Connection {
      * @see #setCatalog
      */
     public String getCatalog() throws SQLException {
-        Statement st = createStatement();
-        ResultSet rs = st.executeQuery("select database()");
-        rs.next();
-        return rs.getString(1);
+        return protocol.getCatalog();
     }
 
     /**
@@ -784,16 +840,17 @@ public class MariaDbConnection implements Connection {
         ResultSet rs = stmt.executeQuery("SELECT @@tx_isolation");
         rs.next();
         final String response = rs.getString(1);
-        if (response.equals("REPEATABLE-READ")) {
+
+        if ("REPEATABLE-READ".equals(response)) {
             return Connection.TRANSACTION_REPEATABLE_READ;
         }
-        if (response.equals("READ-UNCOMMITTED")) {
+        if ("READ-UNCOMMITTED".equals(response)) {
             return Connection.TRANSACTION_READ_UNCOMMITTED;
         }
-        if (response.equals("READ-COMMITTED")) {
+        if ("READ-COMMITTED".equals(response)) {
             return Connection.TRANSACTION_READ_COMMITTED;
         }
-        if (response.equals("SERIALIZABLE")) {
+        if ("SERIALIZABLE".equals(response)) {
             return Connection.TRANSACTION_SERIALIZABLE;
         }
         throw ExceptionMapper.getSqlException("Could not get transaction isolation level");
@@ -947,6 +1004,7 @@ public class MariaDbConnection implements Connection {
      */
     @Override
     public void setHoldability(final int holdability) throws SQLException {
+        //not handled
     }
 
     /**
@@ -1083,8 +1141,8 @@ public class MariaDbConnection implements Connection {
      * transaction.</p>
      *
      * @param timeout - The time in seconds to wait for the database operation used to validate the connection to
-     *                complete.  If the timeout period expires before the operation completes, this method returns
-     *                false.  A value of 0 indicates a timeout is not applied to thedatabase operation.
+     *                complete. If the timeout period expires before the operation completes, this method returns
+     *                false.  A value of 0 indicates a timeout is not applied to the database operation.
      * @return true if the connection is valid, false otherwise
      * @throws SQLException if the value supplied for <code>timeout</code> is less then 0
      * @see DatabaseMetaData#getClientInfoProperties
@@ -1097,8 +1155,9 @@ public class MariaDbConnection implements Connection {
         if (isClosed()) return false;
 
         try {
-            return protocol.isValid();
+            return protocol.isValid(timeout * 1000);
         } catch (SQLException e) {
+            ExceptionMapper.checkConnectionException(e, this);
             return false;
         }
     }
@@ -1165,12 +1224,29 @@ public class MariaDbConnection implements Connection {
      * @since 1.6
      */
     public void setClientInfo(final String name, final String value) throws SQLClientInfoException {
+        checkClientClose(name);
+        checkClientReconnect(name);
+        checkClientValidProperty(name);
+
+        try {
+            Statement statement = createStatement();
+            statement.execute(buildClientQuery(name, value));
+        } catch (SQLException sqle) {
+            Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
+            failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
+            throw new SQLClientInfoException("unexpected error during setClientInfo", failures, sqle);
+        }
+    }
+
+    private void checkClientClose(final String name) throws SQLClientInfoException {
         if (protocol.isExplicitClosed()) {
             Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
             failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
             throw new SQLClientInfoException("setClientInfo() is called on closed connection", failures);
         }
+    }
 
+    private void checkClientReconnect(final String name) throws SQLClientInfoException {
         if (protocol.isClosed() && protocol.getProxy() != null) {
             lock.lock();
             try {
@@ -1183,7 +1259,9 @@ public class MariaDbConnection implements Connection {
                 lock.unlock();
             }
         }
+    }
 
+    private void checkClientValidProperty(final String name) throws SQLClientInfoException {
         if (name == null || (!"ApplicationName".equals(name)
                 && !"ClientUser".equals(name)
                 && !"ClientHostname".equals(name))) {
@@ -1192,7 +1270,9 @@ public class MariaDbConnection implements Connection {
             throw new SQLClientInfoException("setClientInfo() parameters can only be \"ApplicationName\",\"ClientUser\" or \"ClientHostname\", "
                     + "but was : " + name, failures);
         }
+    }
 
+    private String buildClientQuery(final String name, final String value) {
         StringBuilder escapeQuery = new StringBuilder("SET @").append(name).append("=");
         if (value == null) {
             escapeQuery.append("null");
@@ -1201,7 +1281,7 @@ public class MariaDbConnection implements Connection {
             int charsOffset = 0;
             int charsLength = value.length();
             char charValue;
-            if (noBackslashEscapes) {
+            if (protocol.noBackslashEscapes()) {
                 while (charsOffset < charsLength) {
                     charValue = value.charAt(charsOffset);
                     if (charValue == '\'') escapeQuery.append('\''); //add a single escape quote
@@ -1221,16 +1301,7 @@ public class MariaDbConnection implements Connection {
             }
             escapeQuery.append("'");
         }
-
-        try {
-            Statement statement = createStatement();
-            statement.execute(escapeQuery.toString());
-        } catch (SQLException sqle) {
-            Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
-            failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
-            throw new SQLClientInfoException("unexpected error during setClientInfo", failures, sqle);
-
-        }
+        return escapeQuery.toString();
     }
 
     /**
@@ -1247,18 +1318,17 @@ public class MariaDbConnection implements Connection {
         checkConnection();
         Statement statement = createStatement();
         ResultSet rs = statement.executeQuery("SELECT @ApplicationName, @ClientUser, @ClientHostname");
+        Properties properties = new Properties();
         if (rs.next()) {
-            Properties properties = new Properties();
             if (rs.getString(1) != null) properties.setProperty("ApplicationName", rs.getString(1));
             if (rs.getString(2) != null) properties.setProperty("ClientUser", rs.getString(2));
             if (rs.getString(3) != null) properties.setProperty("ClientHostname", rs.getString(3));
             return properties;
         }
-        Properties properties = new Properties();
         properties.setProperty("ApplicationName", null);
         properties.setProperty("ClientUser", null);
         properties.setProperty("ClientHostname", null);
-        return new Properties();
+        return properties;
     }
 
     /**
@@ -1376,15 +1446,6 @@ public class MariaDbConnection implements Connection {
     }
 
     /**
-     * returns the password for the connection.
-     *
-     * @return the password.
-     */
-    public String getPassword() {
-        return protocol.getPassword();
-    }
-
-    /**
      * returns the hostname for the connection.
      *
      * @return the hostname.
@@ -1407,7 +1468,7 @@ public class MariaDbConnection implements Connection {
      *
      * @return the database
      */
-    public String getDatabase() {
+    private String getDatabase() {
         return protocol.getDatabase();
     }
 
@@ -1454,7 +1515,7 @@ public class MariaDbConnection implements Connection {
 
         SQLPermission sqlPermission = new SQLPermission("callAbort");
         SecurityManager securityManager = System.getSecurityManager();
-        if (securityManager != null && sqlPermission != null) {
+        if (securityManager != null) {
             securityManager.checkPermission(sqlPermission);
         }
         if (executor == null) {
@@ -1464,12 +1525,7 @@ public class MariaDbConnection implements Connection {
         executor.execute(new Runnable() {
             @Override
             public void run() {
-                try {
-                    close();
-                    pooledConnection = null;
-                } catch (SQLException sqle) {
-                    throw new RuntimeException(sqle);
-                }
+                protocol.abort();
             }
         });
     }
@@ -1514,7 +1570,7 @@ public class MariaDbConnection implements Connection {
         }
         SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
         SecurityManager securityManager = System.getSecurityManager();
-        if (securityManager != null && sqlPermission != null) {
+        if (securityManager != null) {
             securityManager.checkPermission(sqlPermission);
         }
         try {
@@ -1522,14 +1578,6 @@ public class MariaDbConnection implements Connection {
         } catch (SocketException se) {
             throw ExceptionMapper.getSqlException("Cannot set the network timeout", se);
         }
-    }
-
-    protected String getServerTimezone() {
-        return options.serverTimezone;
-    }
-
-    protected Options getOptions() {
-        return options;
     }
 
     public ClientPrepareStatementCache getClientPrepareStatementCache() {

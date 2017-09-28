@@ -76,11 +76,9 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @BeforeClass()
-    public static void beforeClass2() throws SQLException {
+    public static void beforeClass2() {
         proxyUrl = proxyAuroraUrl;
         System.out.println("environment variable \"AURORA\" value : " + System.getenv("AURORA"));
         Assume.assumeTrue(initialAuroraUrl != null && System.getenv("AURORA") != null && amazonRDSClient != null);
@@ -88,11 +86,9 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @Before
-    public void init() throws SQLException {
+    public void init() {
         defaultUrl = initialAuroraUrl;
         currentType = HaMode.AURORA;
     }
@@ -118,9 +114,9 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
                     + "FROM information_schema.replica_host_status)");
 
             while (resultSet.next()) {
-                String values = "";
+                StringBuilder values = new StringBuilder();
                 for (int i = 1; i < 4; i++) {
-                    values += (i == 1) ? "'localhost'" : ",'" + resultSet.getString(i) + "'";
+                    values.append((i == 1) ? "'localhost'" : ",'" + resultSet.getString(i) + "'");
                 }
                 statement.executeQuery("INSERT INTO replica_host_status (SERVER_ID, SESSION_ID, LAST_UPDATE_TIMESTAMP) "
                         + "VALUES (" + values + ")");
@@ -128,12 +124,6 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
             if (insertEntryQuery != null) {
                 statement.executeQuery(insertEntryQuery);
-            }
-
-            try {
-                setDbName(connection, "testj");
-            } catch (Throwable t) {
-                fail("Unable to set database for testing");
             }
 
             int serverId = getServerId(connection);
@@ -277,7 +267,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             statement.executeQuery("select 1");
 
             String newHost = getProtocolFromConnection(connection).getHost();
-            assertTrue("Connected to new writer", !initialHost.equals(newHost));
+            assertFalse("Connected to new writer", initialHost.equals(newHost));
             assertEquals(System.getProperty("newlyCreatedInstance"), newHost.substring(0, newHost.indexOf(".")));
         } finally {
             if (connection != null) connection.close();
@@ -345,7 +335,7 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
     private boolean foundHostInList(Collection<HostAddress> hostAddresses, String hostIdentifier) {
         for (HostAddress hostAddress : hostAddresses) {
-            if (hostAddress.host.indexOf(hostIdentifier) > -1) {
+            if (hostAddress.host.contains(hostIdentifier)) {
                 return true;
             }
         }

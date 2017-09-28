@@ -56,10 +56,7 @@ import org.mariadb.jdbc.internal.util.Utils;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
 
@@ -77,7 +74,7 @@ public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
      *
      * @return trace cache value
      */
-    public String printStack() {
+    public synchronized String printStack() {
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
         StringBuilder sb = new StringBuilder();
         Set<Map.Entry<Long, TraceObject>> set = entrySet();
@@ -125,10 +122,10 @@ public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
     /**
      * Permit to clear array's of array, to help garbage.
      */
-    public void clearMemory() {
-        Set<Map.Entry<Long, TraceObject>> set = entrySet();
-        for (Map.Entry<Long, TraceObject> entry : set) {
-            entry.getValue().remove();
+    public synchronized void clearMemory() {
+        Collection<TraceObject> traceObjects = values();
+        for (TraceObject traceObject : traceObjects) {
+            traceObject.remove();
         }
         this.clear();
     }

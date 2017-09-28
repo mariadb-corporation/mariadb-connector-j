@@ -66,14 +66,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AuroraListener extends MastersSlavesListener {
 
-    private final Logger log = Logger.getLogger(AuroraListener.class.getName());
+    private static final Logger logger = Logger.getLogger(AuroraListener.class.getName());
     private final Pattern auroraDnsPattern = Pattern.compile("(.+)\\.(cluster-)?([a-zA-Z0-9]+\\.[a-zA-Z0-9\\-]+\\.rds\\.amazonaws\\.com)",
             Pattern.CASE_INSENSITIVE);
     private final HostAddress clusterHostAddress;
@@ -123,7 +122,7 @@ public class AuroraListener extends MastersSlavesListener {
                     return hostAddress;
                 }
             } else {
-                if (clusterDnsSuffix == null && hostAddress.host.indexOf(".") > -1) {
+                if (clusterDnsSuffix == null && hostAddress.host.contains(".")) {
                     clusterDnsSuffix = hostAddress.host.substring(hostAddress.host.indexOf(".") + 1);
                 }
             }
@@ -141,10 +140,12 @@ public class AuroraListener extends MastersSlavesListener {
      * so search for each host until found all the failed connection.
      * By default, search for the host not down, and recheck the down one after if not found valid connections.
      *
+     * @param initialSearchFilter initial search filter
      * @throws SQLException if a connection asked is not found
      */
     @Override
-    public void reconnectFailedConnection(SearchFilter searchFilter) throws SQLException {
+    public void reconnectFailedConnection(SearchFilter initialSearchFilter) throws SQLException {
+        SearchFilter searchFilter = initialSearchFilter;
         if (!searchFilter.isInitialConnection()
                 && (isExplicitClosed()
                 || (searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
@@ -267,9 +268,9 @@ public class AuroraListener extends MastersSlavesListener {
                 proxy.lock.unlock();
             }
         } catch (SQLException qe) {
-            log.log(Level.WARNING, "SQL exception occurred: " + qe.getMessage());
+            logger.warning("SQL exception occurred: " + qe.getMessage());
             if (protocol.getProxy().hasToHandleFailover(qe)) {
-                if (masterProtocol.equals(protocol)) {
+                if (masterProtocol == null || masterProtocol.equals(protocol)) {
                     setMasterHostFail();
                 } else if (secondaryProtocol.equals(protocol)) {
                     setSecondaryHostFail();
@@ -358,7 +359,7 @@ public class AuroraListener extends MastersSlavesListener {
      * @throws SQLException if any connection error occur
      */
     private HostAddress searchForMasterHostAddress(Protocol protocol, List<HostAddress> loopAddress) throws SQLException {
-        String masterHostName = null;
+        String masterHostName;
         proxy.lock.lock();
         try {
             Results results = new Results();
@@ -376,9 +377,6 @@ public class AuroraListener extends MastersSlavesListener {
                 queryResult.next();
                 masterHostName = queryResult.getString(1);
             }
-
-        } catch (SQLException sqle) {
-            //eat exception because cannot happen in this getString()
         } finally {
             proxy.lock.unlock();
         }
@@ -393,7 +391,7 @@ public class AuroraListener extends MastersSlavesListener {
             }
 
             HostAddress masterHostAddress;
-            if (clusterDnsSuffix == null && protocol.getHost().indexOf(".") > -1) {
+            if (clusterDnsSuffix == null && protocol.getHost().contains(".")) {
                 clusterDnsSuffix = protocol.getHost().substring(protocol.getHost().indexOf(".") + 1);
             } else {
                 return null;

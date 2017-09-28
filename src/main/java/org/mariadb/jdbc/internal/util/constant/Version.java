@@ -53,9 +53,9 @@
 package org.mariadb.jdbc.internal.util.constant;
 
 public final class Version {
-    public static final String version = "1.6.5";
+    public static final String version = "1.6.6-SNAPSHOT";
     public static final int majorVersion = 1;
     public static final int minorVersion = 6;
-    public static final int patchVersion = 5;
-    public static final String qualifier = "";
+    public static final int patchVersion = 6;
+    public static final String qualifier = "-SNAPSHOT";
 }

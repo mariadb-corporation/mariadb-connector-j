@@ -52,17 +52,16 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.*;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import static org.junit.Assert.*;
 
@@ -89,36 +88,121 @@ public class ConnectionTest extends BaseTest {
         try {
             DriverManager.getConnection("jdbc:mariadb://" + ((hostname != null) ? hostname : "localhost")
                     + ":" + port + "/" + database + "?user=foo");
-            Assert.fail();
+            fail();
         } catch (SQLException e) {
             switch (e.getErrorCode()) {
                 case (1524):
                     //GSSAPI plugin not loaded
-                    Assert.assertTrue("HY000".equals(e.getSQLState()));
+                    assertTrue("HY000".equals(e.getSQLState()));
                     break;
 
                 case (1045):
-                    Assert.assertTrue("28000".equals(e.getSQLState()));
+                    assertTrue("28000".equals(e.getSQLState()));
                     break;
 
                 case (1044):
                     //mysql
-                    Assert.assertTrue("42000".equals(e.getSQLState()));
+                    assertTrue("42000".equals(e.getSQLState()));
                     break;
 
                 default:
                     e.printStackTrace();
+                    break;
             }
         }
     }
 
     /**
-     * Conj-120 Fix Connection.isValid method.
+     * Conj-75 (corrected with CONJ-156)
+     * Needs permission java.sql.SQLPermission "abort" or will be skipped.
      *
      * @throws SQLException exception
      */
     @Test
-    public void isValidShouldThrowExceptionWithNegativeTimeout() throws SQLException {
+    public void abortTest() throws Throwable {
+        MariaDbConnection connection = null;
+        try {
+            connection = (MariaDbConnection) setConnection();
+            Statement stmt = connection.createStatement();
+
+            SQLPermission sqlPermission = new SQLPermission("callAbort");
+            SecurityManager securityManager = System.getSecurityManager();
+            if (securityManager != null) {
+                try {
+                    securityManager.checkPermission(sqlPermission);
+                } catch (SecurityException se) {
+                    System.out.println("test 'abortTest' skipped  due to missing policy");
+                    return;
+                }
+            }
+
+            Executor executor = Executors.newFixedThreadPool(1);
+
+            connection.abort(executor);
+            Thread.sleep(10);
+            assertTrue(connection.isClosed());
+            try {
+                stmt.executeQuery("SELECT 1");
+                fail();
+            } catch (SQLException sqle) {
+                //normal exception
+            }
+        } finally {
+            if (connection != null) connection.close();
+        }
+    }
+
+    /**
+     * Conj-121: implemented Connection.getNetworkTimeout and Connection.setNetworkTimeout.
+     *
+     * @throws SQLException exception
+     */
+    @Test
+    public void networkTimeoutTest() throws SQLException {
+        MariaDbConnection connection = null;
+        try {
+            connection = (MariaDbConnection) setConnection();
+            int timeout = 1000;
+            SQLPermission sqlPermission = new SQLPermission("setNetworkTimeout");
+            SecurityManager securityManager = System.getSecurityManager();
+            if (securityManager != null) {
+                try {
+                    securityManager.checkPermission(sqlPermission);
+                } catch (SecurityException se) {
+                    System.out.println("test 'setNetworkTimeout' skipped  due to missing policy");
+                    return;
+                }
+            }
+            Executor executor = Executors.newFixedThreadPool(1);
+            try {
+                connection.setNetworkTimeout(executor, timeout);
+            } catch (SQLException sqlex) {
+                sqlex.printStackTrace();
+                fail(sqlex.getMessage());
+            }
+            try {
+                int networkTimeout = connection.getNetworkTimeout();
+                assertEquals(timeout, networkTimeout);
+            } catch (SQLException sqlex) {
+                sqlex.printStackTrace();
+                fail(sqlex.getMessage());
+            }
+            try {
+                connection.createStatement().execute("select sleep(2)");
+                fail("Network timeout is " + timeout / 1000 + "sec, but slept for 2sec");
+            } catch (SQLException sqlex) {
+                assertTrue(connection.isClosed());
+            }
+        } finally {
+            if (connection != null) connection.close();
+        }
+    }
+
+    /**
+     * Conj-120 Fix Connection.isValid method.
+     */
+    @Test
+    public void isValidShouldThrowExceptionWithNegativeTimeout() {
         try {
             sharedConnection.isValid(-1);
             fail("The above row should have thrown an SQLException");
@@ -137,7 +221,7 @@ public class ConnectionTest extends BaseTest {
     public void checkMaxAllowedPacket() throws Throwable {
         Statement statement = sharedConnection.createStatement();
         ResultSet rs = statement.executeQuery("show variables like 'max_allowed_packet'");
-        rs.next();
+        assertTrue(rs.next());
         int maxAllowedPacket = rs.getInt(2);
 
         //Create a SQL stream bigger than maxAllowedPacket
@@ -307,4 +391,142 @@ public class ConnectionTest extends BaseTest {
             assertEquals(1, failedProperties.size());
         }
     }
+
+    @Test
+    public void retrieveCatalogTest() throws SQLException {
+        String db = sharedConnection.getCatalog();
+        Statement stmt = sharedConnection.createStatement();
+
+
+        stmt.execute("CREATE DATABASE gogogo");
+        stmt.execute("USE gogogo");
+        String db2 = sharedConnection.getCatalog();
+        assertEquals("gogogo", db2);
+        assertNotEquals(db, db2);
+        stmt.execute("DROP DATABASE gogogo");
+
+        String db3 = sharedConnection.getCatalog();
+        assertNull(db3);
+        stmt.execute("USE " + db);
+
+    }
+
+
+    @Test(timeout = 15000L)
+    public void testValidTimeout() throws Throwable {
+        Assume.assumeFalse(sharedIsAurora());
+        Connection connection = null;
+        try {
+            connection = createProxyConnection(new Properties());
+            assertTrue(connection.isValid(1)); //1 second
+
+            //ensuring to reactivate proxy
+            Timer timer = new Timer();
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    removeDelayProxy();
+                }
+            }, 1000);
+
+            delayProxy(200);
+            assertTrue(connection.isValid(1)); //1 second
+            Thread.sleep(2000);
+        } finally {
+            if (connection != null) connection.close();
+            closeProxy();
+        }
+    }
+
+    @Test(timeout = 15000L)
+    public void testValidFailedTimeout() throws Throwable {
+        Properties properties = new Properties();
+        properties.setProperty("usePipelineAuth", "false");
+        Connection connection = null;
+        try {
+            connection = createProxyConnection(properties);
+            assertTrue(connection.isValid(1)); //1 second
+
+            //ensuring to reactivate proxy
+            Timer timer = new Timer();
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    removeDelayProxy();
+                }
+            }, 2000);
+
+            delayProxy(1500);
+            long start = System.currentTimeMillis();
+            assertFalse(connection.isValid(1)); //1 second
+            assertTrue(System.currentTimeMillis() - start < 1050);
+            Thread.sleep(5000);
+        } finally {
+            if (connection != null) connection.close();
+            closeProxy();
+        }
+    }
+
+    @Test
+    public void standardClose() throws Throwable {
+        Connection connection = setConnection();
+        Statement stmt = connection.createStatement();
+        stmt.setFetchSize(1);
+        ResultSet rs = stmt.executeQuery("select * from information_schema.columns as c1");
+        assertTrue(rs.next());
+        connection.close();
+        //must still work
+        try {
+            assertTrue(rs.next());
+            fail();
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+    }
+
+    @Test(timeout = 5000L)
+    public void abortClose() throws Throwable {
+        MariaDbConnection connection = (MariaDbConnection) setConnection();
+        Statement stmt = connection.createStatement();
+        stmt.setFetchSize(1);
+        ResultSet rs = stmt.executeQuery("select * from information_schema.columns as c1, "
+                + "information_schema.tables, information_schema.tables as t2");
+        assertTrue(rs.next());
+        connection.abort(SchedulerServiceProviderHolder.getBulkScheduler());
+        //must still work
+
+        Thread.sleep(20);
+        try {
+            assertTrue(rs.next());
+            fail();
+        } catch (SQLException sqle) {
+            sqle.printStackTrace();
+            assertTrue(sqle.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+    }
+
+    @Test(timeout = 5000L)
+    public void verificationAbort() throws Throwable {
+        Timer timer = new Timer();
+        final MariaDbConnection connection = (MariaDbConnection) setConnection();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    connection.abort(SchedulerServiceProviderHolder.getBulkScheduler());
+                } catch (SQLException sqle) {
+                    fail(sqle.getMessage());
+                }
+            }
+        }, 10);
+
+        Statement stmt = connection.createStatement();
+        try {
+            stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2");
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Connection has explicitly been closed/aborted"));
+        }
+        connection.close();
+    }
+
 }

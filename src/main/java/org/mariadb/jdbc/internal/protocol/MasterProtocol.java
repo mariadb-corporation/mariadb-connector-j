@@ -84,7 +84,7 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
      * @param urlParser url connection object
      * @return new instance
      */
-    public static MasterProtocol getNewProtocol(FailoverProxy proxy, UrlParser urlParser) {
+    private static MasterProtocol getNewProtocol(FailoverProxy proxy, UrlParser urlParser) {
         MasterProtocol newProtocol = new MasterProtocol(urlParser, proxy.lock);
         newProtocol.setProxy(proxy);
         return newProtocol;
@@ -102,8 +102,9 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
                             SearchFilter searchFilter) throws SQLException {
 
         MasterProtocol protocol;
-        Deque<HostAddress> loopAddresses = new ArrayDeque<HostAddress>(addresses);
+        ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<HostAddress>(addresses);
         if (loopAddresses.isEmpty()) resetHostList(listener, loopAddresses);
+
         int maxConnectionTry = listener.getRetriesAllDown();
         SQLException lastQueryException = null;
         while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
@@ -140,6 +141,7 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
             if (loopAddresses.isEmpty() && !searchFilter.isFailoverLoop() && maxConnectionTry > 0) {
                 resetHostList(listener, loopAddresses);
             }
+
         }
         if (lastQueryException != null) {
             throw new SQLException("No active connection found for master : " + lastQueryException.getMessage(),

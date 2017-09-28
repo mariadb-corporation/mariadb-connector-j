@@ -64,8 +64,8 @@ import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 public abstract class AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
     protected int packSeq = 0;
     protected byte[] authData;
-    protected String password;
-    protected String passwordCharacterEncoding;
+    protected final String password;
+    protected final String passwordCharacterEncoding;
 
     /**
      * Handle Authentication.

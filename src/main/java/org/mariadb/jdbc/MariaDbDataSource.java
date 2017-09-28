@@ -78,9 +78,8 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @param hostname hostname (ipv4, ipv6, dns name)
      * @param port     server port
      * @param database database name
-     * @throws SQLException exception if connection failed
      */
-    public MariaDbDataSource(String hostname, int port, String database) throws SQLException {
+    public MariaDbDataSource(String hostname, int port, String database) {
         ArrayList<HostAddress> hostAddresses = new ArrayList<HostAddress>();
         hostAddresses.add(new HostAddress(hostname, port));
         urlParser = new UrlParser(database, hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
@@ -132,7 +131,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @param userName the username
      */
     public void setUser(String userName) {
-        setUserName(userName);
+        urlParser.setUsername(userName);
     }
 
     /**
@@ -141,7 +140,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @return the username to use when connecting to the database
      */
     public String getUserName() {
-        return urlParser.getUsername();
+        return getUser();
     }
 
     /**
@@ -150,7 +149,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @param userName the username
      */
     public void setUserName(String userName) {
-        urlParser.setUsername(userName);
+        setUser(userName);
     }
 
     /**
@@ -255,9 +254,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      */
     public Connection getConnection() throws SQLException {
         try {
-            ReentrantLock lock = new ReentrantLock();
-            Protocol proxyfiedProtocol = Utils.retrieveProxy(urlParser, lock);
-            return MariaDbConnection.newConnection(urlParser.getInitialUrl(), proxyfiedProtocol, lock);
+            return MariaDbConnection.newConnection(urlParser);
         } catch (SQLException e) {
             ExceptionMapper.throwException(e, null, null);
             return null;
