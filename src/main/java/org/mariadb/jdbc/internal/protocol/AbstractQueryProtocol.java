@@ -1581,7 +1581,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 selectResultSet = new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated);
             }
 
-            results.addResultSet(selectResultSet, hasMoreResults());
+            results.addResultSet(selectResultSet, hasMoreResults() || results.getFetchSize() > 0);
 
         } catch (IOException e) {
             throw handleIoException(e);

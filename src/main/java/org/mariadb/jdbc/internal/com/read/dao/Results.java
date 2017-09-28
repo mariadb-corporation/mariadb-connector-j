@@ -394,14 +394,14 @@ public class Results {
         if (cmdInformation.moreResults() && !batch) {
 
             if (current == Statement.CLOSE_CURRENT_RESULT && resultSet != null) resultSet.close();
-            resultSet = null;
-            return true;
+            if (executionResults != null) resultSet = executionResults.poll();
+            return resultSet != null;
 
         } else {
 
             if (current == Statement.CLOSE_CURRENT_RESULT && resultSet != null) resultSet.close();
-            if (executionResults != null) resultSet = executionResults.poll();
-            return resultSet != null;
+            resultSet = null;
+            return false;
 
         }
 

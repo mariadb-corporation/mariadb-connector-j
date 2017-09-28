@@ -172,10 +172,12 @@ public class MultiTest extends BaseTest {
             }
             assertTrue(count > 0);
 
-            assertTrue(statement.getMoreResults());
+            assertFalse(statement.getMoreResults());
             assertEquals(1, statement.getUpdateCount());
             assertNull(statement.getResultSet());
             assertFalse(statement.getMoreResults());
+            assertEquals(-1, statement.getUpdateCount());
+
         }
     }
 
@@ -1141,7 +1143,7 @@ public class MultiTest extends BaseTest {
             assertTrue(rs.next());
             assertEquals(1, rs.getInt(1));
             assertFalse(rs.next());
-            assertTrue(preparedStatement.getMoreResults());
+            assertFalse(preparedStatement.getMoreResults());
 
             assertEquals(1, preparedStatement.getUpdateCount());
             rs = preparedStatement.getGeneratedKeys();
@@ -1171,7 +1173,7 @@ public class MultiTest extends BaseTest {
             assertEquals(7, rs.getInt(1));
             assertFalse(rs.next());
 
-            assertTrue(stmt.getMoreResults());
+            assertFalse(stmt.getMoreResults());
             assertEquals(2, stmt.getUpdateCount());
 
             rs = stmt.getGeneratedKeys();
@@ -1182,6 +1184,7 @@ public class MultiTest extends BaseTest {
             assertFalse(rs.next());
 
             assertFalse(stmt.getMoreResults());
+            assertEquals(-1, stmt.getUpdateCount());
 
             update = stmt.executeUpdate("INSERT INTO testMultiGeneratedKey (text) VALUES ('data11')", Statement.RETURN_GENERATED_KEYS);
             assertEquals(1, update);
