@@ -118,6 +118,7 @@ public class Options implements Cloneable {
     public boolean enablePacketDebug;
     public boolean useBulkStmts = true;
     public boolean disableSslHostnameVerification;
+    public boolean autocommit = true;
 
     //logging options
     public boolean log;
@@ -250,6 +251,7 @@ public class Options implements Cloneable {
         if (slowQueryThresholdNanos != null ? !slowQueryThresholdNanos.equals(opt.slowQueryThresholdNanos) : opt.slowQueryThresholdNanos != null) {
             return false;
         }
+        if (autocommit != opt.autocommit) return false;
         return true;
     }
 
@@ -324,6 +326,8 @@ public class Options implements Cloneable {
         result = 31 * result + validConnectionTimeout;
         result = 31 * result + loadBalanceBlacklistTimeout;
         result = 31 * result + failoverLoopRetries;
+        result = 31 * result + (autocommit ? 1 : 0);
+
         return result;
     }
 

@@ -153,7 +153,7 @@ The following options are currently supported.
 |=connectionAttributes| When performance_schema is active, permit to send server some client information in a key;value pair format (example: connectionAttributes=key1:value1,key2,value2).\\Those informations can be retrieved on server within tables performance_schema.session_connect_attrs and performance_schema.session_account_connect_attrs.\\This can permit from server an identification of client/application\\//Since 1.4.0//|
 |=continueBatchOnError| When executing batch queries, must batch continue on error and throw exception when ended, or stop immediately \\//Default: true. Since 1.4.0//
 |=disableSslHostnameVerification| When using ssl, driver check hostname against the server's identity as presented in the server's Certificate (checking alternative names or certificate CN) to prevent man-in-the-middle attack. This option permit to deactivate this validation.\\//Default: false. Since 2.1.0//
-
+|=autocommit|Set default autocommit value.\\//Default: true. Since 2.2.0//
 
 \\\\
 == Failover/High availability URL parameters
