@@ -96,6 +96,10 @@ import java.util.regex.Pattern;
 public class UrlParser implements Cloneable {
 
     private static final String DISABLE_MYSQL_URL = "disableMariaDbDriver";
+    private static final Pattern URL_PARAMETER = Pattern.compile("(\\/([^\\?]*))?(\\?(.+))*", Pattern.DOTALL);
+    private static final Pattern AWS_PATTERN = Pattern.compile("(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)",
+            Pattern.CASE_INSENSITIVE);
+
     private String database;
     private Options options = null;
     private List<HostAddress> addresses;
@@ -249,9 +253,7 @@ public class UrlParser implements Cloneable {
 
         if (additionalParameters != null) {
             //noinspection Annotator
-            String regex = "(\\/([^\\?]*))?(\\?(.+))*";
-            Pattern pattern = Pattern.compile(regex, Pattern.DOTALL);
-            Matcher matcher = pattern.matcher(additionalParameters);
+            Matcher matcher = URL_PARAMETER.matcher(additionalParameters);
 
             if (matcher.find()) {
 
@@ -318,9 +320,8 @@ public class UrlParser implements Cloneable {
     public boolean isAurora() {
         if (haMode == HaMode.AURORA) return true;
         if (addresses != null) {
-            Pattern clusterPattern = Pattern.compile("(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)", Pattern.CASE_INSENSITIVE);
             for (HostAddress hostAddress : addresses) {
-                Matcher matcher = clusterPattern.matcher(hostAddress.host);
+                Matcher matcher = AWS_PATTERN.matcher(hostAddress.host);
                 if (matcher.find()) return true;
             }
         }
