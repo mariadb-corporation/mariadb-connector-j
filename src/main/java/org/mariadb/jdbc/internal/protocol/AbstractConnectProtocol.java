@@ -439,7 +439,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             if (!socket.isConnected()) {
                 InetSocketAddress sockAddr = urlParser.getOptions().pipe == null ? new InetSocketAddress(host, port) : null;
-                if (options.connectTimeout != null) {
+                if (options.connectTimeout != 0) {
                     socket.connect(sockAddr, options.connectTimeout);
                 } else {
                     socket.connect(sockAddr);
