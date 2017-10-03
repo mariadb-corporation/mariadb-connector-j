@@ -1355,4 +1355,22 @@ public class DriverTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testRollbackOnClose() throws SQLException {
+        createTable("testRollbackOnClose", "id int not null primary key auto_increment, test varchar(20)");
+        try (Connection connection = setConnection()) {
+            Statement stmt = connection.createStatement();
+            stmt.executeUpdate("INSERT INTO testRollbackOnClose (test) VALUES ('heja')");
+            connection.setAutoCommit(false);
+            stmt.executeUpdate("INSERT INTO testRollbackOnClose (test) VALUES ('japp')");
+        }
+
+        try (Connection connection = setConnection()) {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT count(*) FROM testRollbackOnClose");
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+        }
+    }
+
 }
