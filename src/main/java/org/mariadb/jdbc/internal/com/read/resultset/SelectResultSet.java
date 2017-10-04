@@ -3308,7 +3308,7 @@ public class SelectResultSet implements ResultSet {
         long val = 0;
         int ind = 0;
         do {
-            val += (row.buf[row.pos + ind] & 0xff) << (8 * (row.length - ++ind));
+            val += ((long)(row.buf[row.pos + ind] & 0xff)) << (8 * (row.length - ++ind));
         } while (ind < row.length);
         return val;
     }

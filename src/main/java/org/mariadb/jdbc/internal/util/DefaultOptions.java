@@ -72,7 +72,7 @@ public enum DefaultOptions {
      * The connect timeout value, in milliseconds, or zero for no timeout.
      * Default: 30000 (30 seconds) (was 0 before 2.1.2)
      */
-    CONNECT_TIMEOUT("connectTimeout", 30_000, 0, "1.1.8"),
+    CONNECT_TIMEOUT("connectTimeout", 30000, 0, "1.1.8"),
 
     /**
      * On Windows, specify named pipe name to connect to mysqld.exe.

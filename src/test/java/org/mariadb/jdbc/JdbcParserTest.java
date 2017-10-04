@@ -173,7 +173,7 @@ public class JdbcParserTest {
     @Test
     public void testOptionTakeDefault() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
-        assertEquals(30_000, jdbc.getOptions().connectTimeout);
+        assertEquals(30000, jdbc.getOptions().connectTimeout);
         assertTrue(jdbc.getOptions().validConnectionTimeout == 0);
         assertFalse(jdbc.getOptions().autoReconnect);
         assertNull(jdbc.getOptions().user);

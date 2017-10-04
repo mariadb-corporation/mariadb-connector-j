@@ -1454,18 +1454,25 @@ public class DriverTest extends BaseTest {
     @Test
     public void testRollbackOnClose() throws SQLException {
         createTable("testRollbackOnClose", "id int not null primary key auto_increment, test varchar(20)");
-        try (Connection connection = setConnection()) {
+        Connection connection = null;
+        try {
+            connection = setConnection();
             Statement stmt = connection.createStatement();
             stmt.executeUpdate("INSERT INTO testRollbackOnClose (test) VALUES ('heja')");
             connection.setAutoCommit(false);
             stmt.executeUpdate("INSERT INTO testRollbackOnClose (test) VALUES ('japp')");
+        } finally {
+            if (connection != null) connection.close();
         }
 
-        try (Connection connection = setConnection()) {
+        try {
+            connection = setConnection();
             Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT count(*) FROM testRollbackOnClose");
             assertTrue(rs.next());
             assertEquals(1, rs.getInt(1));
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
@@ -1473,13 +1480,18 @@ public class DriverTest extends BaseTest {
     public void testAutoCommit() throws SQLException {
         createTable("testAutoCommit", "id int not null primary key auto_increment, test varchar(20)");
 
-        try (Connection connection = setConnection()) {
+        Connection connection = null;
+        try {
+            connection = setConnection();
             assertTrue(connection.getAutoCommit());
             Statement stmt = connection.createStatement();
             stmt.executeUpdate("INSERT INTO testAutoCommit (test) VALUES ('heja')");
+        } finally {
+            if (connection != null) connection.close();
         }
 
-        try (Connection connection = setConnection("&autocommit=false")) {
+        try {
+            connection = setConnection("&autocommit=false");
             assertFalse(connection.getAutoCommit());
 
             Statement stmt = connection.createStatement();
@@ -1488,14 +1500,18 @@ public class DriverTest extends BaseTest {
             ResultSet rs = stmt.executeQuery("SELECT count(*) FROM testAutoCommit");
             assertTrue(rs.next());
             assertEquals(2, rs.getInt(1));
+        } finally {
+            if (connection != null) connection.close();
         }
 
-        try (Connection connection = setConnection()) {
-
+        try {
+            connection = setConnection();
             Statement stmt = connection.createStatement();
             ResultSet rs = stmt.executeQuery("SELECT count(*) FROM testAutoCommit");
             assertTrue(rs.next());
             assertEquals(1, rs.getInt(1));
+        } finally {
+            if (connection != null) connection.close();
         }
 
     }
