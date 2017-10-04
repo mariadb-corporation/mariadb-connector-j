@@ -1006,10 +1006,7 @@ public class SelectResultSet implements ResultSet {
                 return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
 
             case BIT:
-                if (options.tinyInt1isBit && columnInfo.getLength() == 1) {
-                    return (row.buf[row.pos] == 0) ? "0" : "1";
-                }
-                break;
+                return String.valueOf(parseBit());
             case TINYINT:
                 if (this.isBinaryEncoded) {
                     return zeroFillingIfNeeded(String.valueOf(getInternalTinyInt(columnInfo)), columnInfo);
@@ -1145,13 +1142,14 @@ public class SelectResultSet implements ResultSet {
     private int getInternalInt(ColumnInformation columnInfo) throws SQLException {
         if (lastValueWasNull()) return 0;
 
+        long value;
         if (!this.isBinaryEncoded) {
-            return parseInt(columnInfo);
+            value = parseLong(columnInfo);
         } else {
-            long value;
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos];
+                    value = parseBit();
+                    break;
                 case TINYINT:
                     value = getInternalTinyInt(columnInfo);
                     break;
@@ -1181,11 +1179,12 @@ public class SelectResultSet implements ResultSet {
                     value = (long) getInternalDouble(columnInfo);
                     break;
                 default:
-                    return parseInt(columnInfo);
+                    value = parseLong(columnInfo);
+                    break;
             }
-            rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
-            return (int) value;
         }
+        rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
+        return (int) value;
     }
 
     /**
@@ -1219,7 +1218,7 @@ public class SelectResultSet implements ResultSet {
             long value;
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos];
+                    return parseBit();
                 case TINYINT:
                     value = getInternalTinyInt(columnInfo);
                     break;
@@ -1304,7 +1303,7 @@ public class SelectResultSet implements ResultSet {
         if (!this.isBinaryEncoded) {
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos];
+                    return parseBit();
                 case TINYINT:
                 case SMALLINT:
                 case YEAR:
@@ -1335,7 +1334,7 @@ public class SelectResultSet implements ResultSet {
             long value;
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos];
+                    return parseBit();
                 case TINYINT:
                     value = getInternalTinyInt(columnInfo);
                     break;
@@ -1428,7 +1427,7 @@ public class SelectResultSet implements ResultSet {
         if (!this.isBinaryEncoded) {
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos];
+                    return parseBit();
                 case TINYINT:
                 case SMALLINT:
                 case YEAR:
@@ -1458,7 +1457,7 @@ public class SelectResultSet implements ResultSet {
         } else {
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos];
+                    return parseBit();
                 case TINYINT:
                     return getInternalTinyInt(columnInfo);
                 case SMALLINT:
@@ -1560,11 +1559,14 @@ public class SelectResultSet implements ResultSet {
         if (lastValueWasNull()) return null;
 
         if (!this.isBinaryEncoded) {
+            if (columnInfo.getColumnType() == ColumnType.BIT) {
+                return BigDecimal.valueOf(parseBit());
+            }
             return new BigDecimal(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
         } else {
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return BigDecimal.valueOf((long) row.buf[row.pos]);
+                    return BigDecimal.valueOf(parseBit());
                 case TINYINT:
                     return BigDecimal.valueOf((long) getInternalTinyInt(columnInfo));
                 case SMALLINT:
@@ -3101,15 +3103,13 @@ public class SelectResultSet implements ResultSet {
         if (lastValueWasNull()) return false;
 
         if (!this.isBinaryEncoded) {
-            if (row.length == 1 && row.buf[row.pos] == 0) {
-                return false;
-            }
+            if (columnInfo.getColumnType() == ColumnType.BIT) return parseBit() != 0;
             final String rawVal = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
             return !("false".equals(rawVal) || "0".equals(rawVal));
         } else {
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos] != 0;
+                    return parseBit() != 0;
                 case TINYINT:
                     return getInternalTinyInt(columnInfo) != 0;
                 case SMALLINT:
@@ -3140,17 +3140,11 @@ public class SelectResultSet implements ResultSet {
      */
     private byte getInternalByte(ColumnInformation columnInfo) throws SQLException {
         if (lastValueWasNull()) return 0;
-
+        long value;
         if (!this.isBinaryEncoded) {
-            if (columnInfo.getColumnType() == ColumnType.BIT) {
-                return row.buf[row.pos];
-            }
-            return parseByte(columnInfo);
+            value = parseLong(columnInfo);
         } else {
-            long value;
             switch (columnInfo.getColumnType()) {
-                case BIT:
-                    return row.buf[row.pos];
                 case TINYINT:
                     value = getInternalTinyInt(columnInfo);
                     break;
@@ -3172,11 +3166,11 @@ public class SelectResultSet implements ResultSet {
                     value = (long) getInternalDouble(columnInfo);
                     break;
                 default:
-                    return parseByte(columnInfo);
+                    value = parseLong(columnInfo);
             }
-            rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
-            return (byte) value;
         }
+        rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
+        return (byte) value;
     }
 
     /**
@@ -3189,13 +3183,14 @@ public class SelectResultSet implements ResultSet {
     private short getInternalShort(ColumnInformation columnInfo) throws SQLException {
         if (lastValueWasNull()) return 0;
 
+        long value;
         if (!this.isBinaryEncoded) {
-            return parseShort(columnInfo);
+            value = parseLong(columnInfo);
         } else {
-            long value;
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos];
+                    value = parseBit();
+                    break;
                 case TINYINT:
                     value = getInternalTinyInt(columnInfo);
                     break;
@@ -3221,11 +3216,12 @@ public class SelectResultSet implements ResultSet {
                     value = (long) getInternalDouble(columnInfo);
                     break;
                 default:
-                    return parseShort(columnInfo);
+                    value = parseLong(columnInfo);
+                    break;
             }
-            rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
-            return (short) value;
         }
+        rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
+        return (short) value;
     }
 
     /**
@@ -3361,188 +3357,14 @@ public class SelectResultSet implements ResultSet {
         return value;
     }
 
-
-    private byte parseByte(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return 0;
-        try {
-            switch (columnInfo.getColumnType()) {
-                case FLOAT:
-                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    if (floatValue.compareTo((float) Byte.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Byte range", "22003", 1264);
-                    }
-                    return floatValue.byteValue();
-                case DOUBLE:
-                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    if (doubleValue.compareTo((double) Byte.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Byte range", "22003", 1264);
-                    }
-                    return doubleValue.byteValue();
-                case TINYINT:
-                case SMALLINT:
-                case YEAR:
-                case INTEGER:
-                case MEDIUMINT:
-                    long result = 0;
-                    int length = row.length;
-                    boolean negate = false;
-                    int begin = row.pos;
-                    if (length > 0 && row.buf[begin] == 45) { //minus sign
-                        negate = true;
-                        begin++;
-                    }
-                    for (; begin < row.pos + length; begin++) {
-                        result = result * 10 + row.buf[begin] - 48;
-                    }
-                    result = (negate ? -1 * result : result);
-                    rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, result, columnInfo);
-                    return (byte) result;
-                default:
-                    return Byte.parseByte(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-            }
-        } catch (NumberFormatException nfe) {
-            //parse error.
-            //if its a decimal retry without the decimal part.
-            String value = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-            if (isIntegerRegex.matcher(value).find()) {
-                try {
-                    return Byte.parseByte(value.substring(0, value.indexOf(".")));
-                } catch (NumberFormatException nfee) {
-                    //eat exception
-                }
-            }
-            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
-                    + " is not in Byte range",
-                    "22003", 1264);
-        }
-    }
-
-    private short parseShort(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return 0;
-        try {
-            switch (columnInfo.getColumnType()) {
-                case FLOAT:
-                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    if (floatValue.compareTo((float) Short.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Short range", "22003", 1264);
-                    }
-                    return floatValue.shortValue();
-                case DOUBLE:
-                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    if (doubleValue.compareTo((double) Short.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Short range", "22003", 1264);
-                    }
-                    return doubleValue.shortValue();
-                case BIT:
-                case TINYINT:
-                case SMALLINT:
-                case YEAR:
-                case INTEGER:
-                case MEDIUMINT:
-                    long result = 0;
-                    int length = row.length;
-                    boolean negate = false;
-                    int begin = row.pos;
-                    if (length > 0 && row.buf[begin] == 45) { //minus sign
-                        negate = true;
-                        begin++;
-                    }
-                    for (; begin < row.pos + length; begin++) {
-                        result = result * 10 + row.buf[begin] - 48;
-                    }
-                    result = (negate ? -1 * result : result);
-                    rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, result, columnInfo);
-                    return (short) result;
-                default:
-                    return Short.parseShort(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-            }
-        } catch (NumberFormatException nfe) {
-            //parse error.
-            //if its a decimal retry without the decimal part.
-            String value = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-            if (isIntegerRegex.matcher(value).find()) {
-                try {
-                    return Short.parseShort(value.substring(0, value.indexOf(".")));
-                } catch (NumberFormatException numberFormatException) {
-                    //eat exception
-                }
-            }
-            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
-                    + " is not in Short range", "22003", 1264);
-        }
-    }
-
-
-    private int parseInt(ColumnInformation columnInfo) throws SQLException {
-        try {
-            switch (columnInfo.getColumnType()) {
-                case FLOAT:
-                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    if (floatValue.compareTo((float) Integer.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Integer range", "22003", 1264);
-                    }
-                    return floatValue.intValue();
-                case DOUBLE:
-                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    if (doubleValue.compareTo((double) Integer.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Integer range", "22003", 1264);
-                    }
-                    return doubleValue.intValue();
-                case BIT:
-                case TINYINT:
-                case SMALLINT:
-                case YEAR:
-                case INTEGER:
-                case MEDIUMINT:
-                case BIGINT:
-                    long result = 0;
-                    boolean negate = false;
-                    int begin = row.pos;
-                    if (row.length > 0 && row.buf[begin] == 45) { //minus sign
-                        negate = true;
-                        begin++;
-                    }
-                    for (; begin < row.pos + row.length; begin++) {
-                        result = result * 10 + row.buf[begin] - 48;
-                    }
-                    //specific for BIGINT : if value > Long.MAX_VALUE will become negative.
-                    if (result < 0) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Integer range", "22003", 1264);
-                    }
-                    result = (negate ? -1 * result : result);
-                    rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, result, columnInfo);
-                    return (int) result;
-                default:
-                    return Integer.parseInt(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-            }
-        } catch (NumberFormatException nfe) {
-            //parse error.
-            //if its a decimal retry without the decimal part.
-            String value = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-            if (isIntegerRegex.matcher(value).find()) {
-                try {
-                    return Integer.parseInt(value.substring(0, value.indexOf(".")));
-                } catch (NumberFormatException numberFormatException) {
-                    //eat exception
-                }
-            }
-            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
-                    + " is not in Integer range", "22003", 1264);
-        }
+    private long parseBit() {
+        if (row.length == 1) return row.buf[row.pos];
+        long val = 0;
+        int ind = 0;
+        do {
+            val += (row.buf[row.pos + ind] & 0xff) << (8 * (row.length - ++ind));
+        } while (ind < row.length);
+        return val;
     }
 
     private long parseLong(ColumnInformation columnInfo) throws SQLException {
@@ -3565,6 +3387,7 @@ public class SelectResultSet implements ResultSet {
                     }
                     return doubleValue.longValue();
                 case BIT:
+                    return parseBit();
                 case TINYINT:
                 case SMALLINT:
                 case YEAR:
@@ -3586,9 +3409,8 @@ public class SelectResultSet implements ResultSet {
                     if (result < 0) {
                         //CONJ-399 : handle specifically Long.MIN_VALUE that has absolute value +1 compare to LONG.MAX_VALUE
                         if (result == Long.MIN_VALUE && negate) return Long.MIN_VALUE;
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Long range", "22003", 1264);
+                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' for value "
+                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8), "22003", 1264);
                     }
                     return (negate ? -1 * result : result);
                 default:
@@ -3606,8 +3428,7 @@ public class SelectResultSet implements ResultSet {
                     //eat exception
                 }
             }
-            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
-                    + " is not in Long range", "22003", 1264);
+            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value, "22003", 1264);
         }
     }
 
