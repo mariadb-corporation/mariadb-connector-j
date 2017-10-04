@@ -73,7 +73,7 @@ public class Options implements Cloneable {
     public boolean useFractionalSeconds = true;
     public boolean pinGlobalTxToPhysicalConnection;
     public String socketFactory;
-    public Integer connectTimeout;
+    public int connectTimeout = 30_000;
     public String pipe;
     public String localSocket;
     public String sharedMemory;
@@ -103,7 +103,7 @@ public class Options implements Cloneable {
     public boolean allowLocalInfile = true;
     public boolean cachePrepStmts = true;
     public int prepStmtCacheSize = 250;
-    public Integer prepStmtCacheSqlLimit = 2048;
+    public int prepStmtCacheSqlLimit = 2048;
     public boolean useLegacyDatetimeCode = true;
     public boolean maximizeMysqlCompatibility;
     public boolean useServerPrepStmts;
@@ -118,6 +118,7 @@ public class Options implements Cloneable {
     public boolean enablePacketDebug;
     public boolean useBulkStmts = true;
     public boolean disableSslHostnameVerification;
+    public boolean autocommit = true;
 
     //logging options
     public boolean log;
@@ -219,7 +220,7 @@ public class Options implements Cloneable {
             return false;
         }
         if (socketFactory != null ? !socketFactory.equals(opt.socketFactory) : opt.socketFactory != null) return false;
-        if (connectTimeout != null ? !connectTimeout.equals(opt.connectTimeout) : opt.connectTimeout != null) return false;
+        if (connectTimeout != opt.connectTimeout) return false;
         if (pipe != null ? !pipe.equals(opt.pipe) : opt.pipe != null) return false;
         if (localSocket != null ? !localSocket.equals(opt.localSocket) : opt.localSocket != null) return false;
         if (sharedMemory != null ? !sharedMemory.equals(opt.sharedMemory) : opt.sharedMemory != null) return false;
@@ -239,9 +240,7 @@ public class Options implements Cloneable {
         if (sessionVariables != null ? !sessionVariables.equals(opt.sessionVariables) : opt.sessionVariables != null) return false;
         if (serverTimezone != null ? !serverTimezone.equals(opt.serverTimezone) : opt.serverTimezone != null) return false;
         if (prepStmtCacheSize != opt.prepStmtCacheSize) return false;
-        if (prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(opt.prepStmtCacheSqlLimit) : opt.prepStmtCacheSqlLimit != null) {
-            return false;
-        }
+        if (prepStmtCacheSqlLimit != opt.prepStmtCacheSqlLimit) return false;
         if (callableStmtCacheSize != opt.callableStmtCacheSize) return false;
         if (connectionAttributes != null ? !connectionAttributes.equals(opt.connectionAttributes) : opt.connectionAttributes != null) {
             return false;
@@ -252,6 +251,7 @@ public class Options implements Cloneable {
         if (slowQueryThresholdNanos != null ? !slowQueryThresholdNanos.equals(opt.slowQueryThresholdNanos) : opt.slowQueryThresholdNanos != null) {
             return false;
         }
+        if (autocommit != opt.autocommit) return false;
         return true;
     }
 
@@ -271,7 +271,7 @@ public class Options implements Cloneable {
         result = 31 * result + (useFractionalSeconds ? 1 : 0);
         result = 31 * result + (pinGlobalTxToPhysicalConnection ? 1 : 0);
         result = 31 * result + (socketFactory != null ? socketFactory.hashCode() : 0);
-        result = 31 * result + (connectTimeout != null ? connectTimeout.hashCode() : 0);
+        result = 31 * result + connectTimeout;
         result = 31 * result + (pipe != null ? pipe.hashCode() : 0);
         result = 31 * result + (localSocket != null ? localSocket.hashCode() : 0);
         result = 31 * result + (sharedMemory != null ? sharedMemory.hashCode() : 0);
@@ -300,7 +300,7 @@ public class Options implements Cloneable {
         result = 31 * result + (allowLocalInfile ? 1 : 0);
         result = 31 * result + (cachePrepStmts ? 1 : 0);
         result = 31 * result + prepStmtCacheSize;
-        result = 31 * result + (prepStmtCacheSqlLimit != null ? prepStmtCacheSqlLimit.hashCode() : 0);
+        result = 31 * result + prepStmtCacheSqlLimit;
         result = 31 * result + (useLegacyDatetimeCode ? 1 : 0);
         result = 31 * result + (maximizeMysqlCompatibility ? 1 : 0);
         result = 31 * result + (useServerPrepStmts ? 1 : 0);
@@ -326,6 +326,8 @@ public class Options implements Cloneable {
         result = 31 * result + validConnectionTimeout;
         result = 31 * result + loadBalanceBlacklistTimeout;
         result = 31 * result + failoverLoopRetries;
+        result = 31 * result + (autocommit ? 1 : 0);
+
         return result;
     }
 

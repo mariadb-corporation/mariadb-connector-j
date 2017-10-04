@@ -442,7 +442,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             if (!socket.isConnected()) {
                 InetSocketAddress sockAddr = urlParser.getOptions().pipe == null ? new InetSocketAddress(host, port) : null;
-                if (options.connectTimeout != null) {
+                if (options.connectTimeout != 0) {
                     socket.connect(sockAddr, options.connectTimeout);
                 } else {
                     socket.connect(sockAddr);
@@ -515,7 +515,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         // [CONJ-269] we cannot rely on serverStatus & ServerStatus.AUTOCOMMIT before this command to avoid this command.
         // if autocommit=0 is set on server configuration, DB always send Autocommit on serverStatus flag
         // after setting autocommit, we can rely on serverStatus value
-        StringBuilder sessionOption = new StringBuilder("autocommit=1");
+        StringBuilder sessionOption = new StringBuilder("autocommit=").append(options.autocommit ? "1" : "0");
         if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_SESSION_TRACK) != 0) {
             sessionOption.append(", session_track_schema=1");
             if (options.rewriteBatchedStatements) {

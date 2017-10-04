@@ -1451,4 +1451,54 @@ public class DriverTest extends BaseTest {
         assertFalse(rs.next());
     }
 
+    @Test
+    public void testRollbackOnClose() throws SQLException {
+        createTable("testRollbackOnClose", "id int not null primary key auto_increment, test varchar(20)");
+        try (Connection connection = setConnection()) {
+            Statement stmt = connection.createStatement();
+            stmt.executeUpdate("INSERT INTO testRollbackOnClose (test) VALUES ('heja')");
+            connection.setAutoCommit(false);
+            stmt.executeUpdate("INSERT INTO testRollbackOnClose (test) VALUES ('japp')");
+        }
+
+        try (Connection connection = setConnection()) {
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT count(*) FROM testRollbackOnClose");
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+        }
+    }
+
+    @Test
+    public void testAutoCommit() throws SQLException {
+        createTable("testAutoCommit", "id int not null primary key auto_increment, test varchar(20)");
+
+        try (Connection connection = setConnection()) {
+            assertTrue(connection.getAutoCommit());
+            Statement stmt = connection.createStatement();
+            stmt.executeUpdate("INSERT INTO testAutoCommit (test) VALUES ('heja')");
+        }
+
+        try (Connection connection = setConnection("&autocommit=false")) {
+            assertFalse(connection.getAutoCommit());
+
+            Statement stmt = connection.createStatement();
+            stmt.executeUpdate("INSERT INTO testAutoCommit (test) VALUES ('japp')");
+
+            ResultSet rs = stmt.executeQuery("SELECT count(*) FROM testAutoCommit");
+            assertTrue(rs.next());
+            assertEquals(2, rs.getInt(1));
+        }
+
+        try (Connection connection = setConnection()) {
+
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT count(*) FROM testAutoCommit");
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt(1));
+        }
+
+    }
+
+
 }

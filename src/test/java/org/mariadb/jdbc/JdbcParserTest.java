@@ -173,7 +173,7 @@ public class JdbcParserTest {
     @Test
     public void testOptionTakeDefault() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
-        assertNull(jdbc.getOptions().connectTimeout);
+        assertEquals(30_000, jdbc.getOptions().connectTimeout);
         assertTrue(jdbc.getOptions().validConnectionTimeout == 0);
         assertFalse(jdbc.getOptions().autoReconnect);
         assertNull(jdbc.getOptions().user);
@@ -185,7 +185,7 @@ public class JdbcParserTest {
     @Test
     public void testOptionTakeDefaultAurora() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb:aurora://cluster-identifier.cluster-customerID.region.rds.amazonaws.com/test");
-        assertNull(jdbc.getOptions().connectTimeout);
+        assertEquals(30000, jdbc.getOptions().connectTimeout);
         assertTrue(jdbc.getOptions().validConnectionTimeout == 0);
         assertFalse(jdbc.getOptions().autoReconnect);
         assertNull(jdbc.getOptions().user);

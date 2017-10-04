@@ -70,8 +70,9 @@ public enum DefaultOptions {
 
     /**
      * The connect timeout value, in milliseconds, or zero for no timeout.
+     * Default: 30000 (30 seconds) (was 0 before 2.1.2)
      */
-    CONNECT_TIMEOUT("connectTimeout", (Integer) null, 0, "1.1.8"),
+    CONNECT_TIMEOUT("connectTimeout", 30_000, 0, "1.1.8"),
 
     /**
      * On Windows, specify named pipe name to connect to mysqld.exe.
@@ -455,7 +456,15 @@ public enum DefaultOptions {
      * (batch without Statement.RETURN_GENERATED_KEYS and streams) to have faster batch.
      * (significant only if server MariaDB &ge; 10.2.7)
      */
-    USE_BULK_PROTOCOL("useBulkStmts", Boolean.TRUE, "2.1.0");
+    USE_BULK_PROTOCOL("useBulkStmts", Boolean.TRUE, "2.1.0"),
+
+    /**
+     * Set default autocommit value.
+     * Default: true
+     */
+    AUTOCOMMIT("autocommit", Boolean.TRUE, "2.2.0");
+
+
 
     private final String optionName;
     private final Object objType;
@@ -467,10 +476,10 @@ public enum DefaultOptions {
     DefaultOptions(final String optionName, final String implementationVersion) {
         this.optionName = optionName;
         this.implementationVersion = implementationVersion;
-        this.objType = String.class;
-        this.defaultValue = null;
-        this.minValue = null;
-        this.maxValue = null;
+        objType = String.class;
+        defaultValue = null;
+        minValue = null;
+        maxValue = null;
     }
 
     DefaultOptions(final String optionName, final Boolean defaultValue, final String implementationVersion) {
@@ -478,8 +487,8 @@ public enum DefaultOptions {
         this.objType = Boolean.class;
         this.defaultValue = defaultValue;
         this.implementationVersion = implementationVersion;
-        this.minValue = null;
-        this.maxValue = null;
+        minValue = null;
+        maxValue = null;
     }
 
     DefaultOptions(final String optionName, final Integer defaultValue, final Integer minValue, final String implementationVersion) {
