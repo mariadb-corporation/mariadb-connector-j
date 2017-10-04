@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -1018,28 +1017,28 @@ public class DatatypeTest extends BaseTest {
     }
 
     private void validResultSetBitValue(ResultSet rs) throws SQLException {
-        Assert.assertTrue(rs.next());
+        assertTrue(rs.next());
 
         checkAllDataType(rs, 1, 0);
         checkAllDataType(rs, 2, 0);
 
-        Assert.assertTrue(rs.next());
+        assertTrue(rs.next());
         checkAllDataType(rs, 1, 1);
         checkAllDataType(rs, 2, 1);
 
-        Assert.assertTrue(rs.next());
+        assertTrue(rs.next());
         checkAllDataType(rs, 1, 1);
         checkAllDataType(rs, 2, 85);
 
-        Assert.assertTrue(rs.next());
+        assertTrue(rs.next());
         checkAllDataType(rs, 1, 1);
         checkAllDataType(rs, 2, 21845);
 
-        Assert.assertTrue(rs.next());
+        assertTrue(rs.next());
         checkAllDataType(rs, 1, 1);
         checkAllDataType(rs, 2, 54613);
 
-        Assert.assertTrue(rs.next());
+        assertTrue(rs.next());
         checkAllDataType(rs, 1, 1);
         checkAllDataType(rs, 2, 2147483648L);
 
@@ -1047,33 +1046,33 @@ public class DatatypeTest extends BaseTest {
 
     private void checkAllDataType(ResultSet rs, int index, long expectedValue) throws SQLException {
         try {
-            Assert.assertEquals((byte) expectedValue, rs.getByte(index));
+            assertEquals((byte) expectedValue, rs.getByte(index));
             if (expectedValue > Byte.MAX_VALUE) fail();
         } catch (SQLException sqle) {
             if (expectedValue < Byte.MAX_VALUE) fail();
             assertTrue(sqle.getMessage().contains("Out of range"));
         }
         try {
-            Assert.assertEquals((short) expectedValue, rs.getShort(index));
+            assertEquals((short) expectedValue, rs.getShort(index));
             if (expectedValue > Short.MAX_VALUE) fail();
         } catch (SQLException sqle) {
             if (expectedValue < Short.MAX_VALUE) fail();
             assertTrue(sqle.getMessage().contains("Out of range"));
         }
         try {
-            Assert.assertEquals((int) expectedValue, rs.getInt(index));
+            assertEquals((int) expectedValue, rs.getInt(index));
             if (expectedValue > Integer.MAX_VALUE) fail();
         } catch (SQLException sqle) {
             if (expectedValue < Integer.MAX_VALUE) fail();
             assertTrue(sqle.getMessage().contains("Out of range"));
         }
-        Assert.assertEquals(expectedValue != 0, rs.getBoolean(index));
+        assertEquals(expectedValue != 0, rs.getBoolean(index));
 
-        Assert.assertEquals(expectedValue, rs.getLong(index));
-        Assert.assertEquals((float) expectedValue, rs.getFloat(index), 0.01);
-        Assert.assertEquals((double) expectedValue, rs.getDouble(index), 0.01);
-        Assert.assertEquals(new BigDecimal(expectedValue), rs.getBigDecimal(index));
-        Assert.assertEquals(String.valueOf(expectedValue), rs.getString(index));
+        assertEquals(expectedValue, rs.getLong(index));
+        assertEquals((float) expectedValue, rs.getFloat(index), 0.01);
+        assertEquals((double) expectedValue, rs.getDouble(index), 0.01);
+        assertEquals(new BigDecimal(expectedValue), rs.getBigDecimal(index));
+        assertEquals(String.valueOf(expectedValue), rs.getString(index));
 
     }
 }
