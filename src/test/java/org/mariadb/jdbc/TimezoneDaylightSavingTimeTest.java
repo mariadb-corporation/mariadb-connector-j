@@ -1038,8 +1038,8 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     }
 
     /**
-     * CONJ-533:
-     * @throws SQLException
+     * CONJ-533: ensure PrepareStatement.setTime() may insert correct time value.
+     * @throws SQLException if any occur
      */
     @Test
     public void timeVerificationWithTimezone() throws SQLException {
