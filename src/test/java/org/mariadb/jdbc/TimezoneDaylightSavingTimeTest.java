@@ -915,7 +915,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             stmt.setString(1, "-05:00:00");
             stmt.executeUpdate();
 
-            PreparedStatement stmt = conn.prepareStatement("select * from timeVerificationWithTimezone");
+            stmt = conn.prepareStatement("select * from timeVerificationWithTimezone");
             ResultSet rs = stmt.executeQuery();
 
             assertTrue(rs.next());
