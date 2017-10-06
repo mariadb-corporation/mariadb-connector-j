@@ -266,6 +266,7 @@ public class DistributedTransactionTest extends BaseTest {
                 xaConn1.close();
             }
 
+            xid = newXid();
             ds.setProperties("pinGlobalTxToPhysicalConnection=true");
             xaConn1 = ds.getXAConnection();
             xaRes1 = xaConn1.getXAResource();
