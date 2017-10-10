@@ -175,6 +175,10 @@ public class ConnectionTest extends BaseTest {
                 sqlex.printStackTrace();
                 fail(sqlex.getMessage());
             }
+
+            connection.isValid(2);
+            assertEquals(timeout, connection.getNetworkTimeout());
+
             try {
                 int networkTimeout = connection.getNetworkTimeout();
                 assertEquals(timeout, networkTimeout);

@@ -115,7 +115,8 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
         // since technically, getResult can be called before the write is send.
         // Other solution would have been to synchronised write and read, but would have been less performant,
         // just to have this timeout according to set value
-        if (protocol.getOptions().socketTimeout != null) protocol.changeSocketSoTimeout(0);
+        int initialTimeout = protocol.getTimeout();
+        if (initialTimeout != 0) protocol.changeSocketSoTimeout(0);
 
         if (readPrepareStmtResult) {
             try {
@@ -150,8 +151,8 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
             }
         }
 
-        if (protocol.getOptions().socketTimeout != null) {
-            protocol.changeSocketSoTimeout(protocol.getOptions().socketTimeout);
+        if (initialTimeout != 0) {
+            protocol.changeSocketSoTimeout(initialTimeout);
         }
 
         return asyncMultiReadResult;

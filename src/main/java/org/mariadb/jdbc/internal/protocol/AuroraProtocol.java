@@ -309,9 +309,9 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
     @Override
     public boolean isValid(int timeout) throws SQLException {
-
+        int initialTimeout = -1;
         try {
-
+            initialTimeout = socket.getSoTimeout();
             this.socket.setSoTimeout(timeout);
 
             if (isMasterConnection()) return checkIfMaster();
@@ -325,7 +325,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
             //set back initial socket timeout
             try {
-                this.socket.setSoTimeout(options.socketTimeout == null ? 0 : options.socketTimeout);
+                if (initialTimeout != -1) socket.setSoTimeout(initialTimeout);
             } catch (SocketException socketException) {
                 //eat
             }

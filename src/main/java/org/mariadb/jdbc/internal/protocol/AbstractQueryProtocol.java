@@ -1034,9 +1034,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     @Override
     public boolean isValid(int timeout) throws SQLException {
 
+        int initialTimeout = -1;
         try {
-
-            this.socket.setSoTimeout(timeout);
+            initialTimeout = socket.getSoTimeout();
+            socket.setSoTimeout(timeout);
             if (isMasterConnection() && urlParser.isMultiMaster()) {
                 //this is a galera node.
                 //checking not only that node is responding, but that this node is in primary mode too.
@@ -1059,7 +1060,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             //set back initial socket timeout
             try {
-                this.socket.setSoTimeout(options.socketTimeout == null ? 0 : options.socketTimeout);
+                if (initialTimeout != -1) socket.setSoTimeout(initialTimeout);
             } catch (SocketException socketException) {
                 //eat
             }
@@ -1225,7 +1226,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     public void setTimeout(int timeout) throws SocketException {
         lock.lock();
         try {
-            this.getOptions().socketTimeout = timeout;
             this.socket.setSoTimeout(timeout);
         } finally {
             lock.unlock();
