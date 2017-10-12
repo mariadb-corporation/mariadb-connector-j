@@ -26,7 +26,10 @@ public class DefaultOptionsTest {
         }
     }
 
-
+    /**
+     * Ensure that default value of new Options() correspond to DefaultOption Enumeration.
+     * @throws Exception if any value differ.
+     */
     @Test
     public void parseOption() throws Exception {
         Options option = new Options();
@@ -34,40 +37,42 @@ public class DefaultOptionsTest {
         for (HaMode haMode : HaMode.values()) {
             Options resultOptions = DefaultOptions.parse(haMode, param, new Properties(), null);
             for (Field field : Options.class.getFields()) {
-                switch (field.getType().getName()) {
-                    case "java.lang.String":
-                        assertEquals("field " + field.getName() + " value error for param" + param,
-                                field.get(resultOptions), field.getName() + "1");
-                        break;
-                    case "int":
-                        assertEquals("field " + field.getName() + " value error for param" + param,
-                                field.getInt(resultOptions), 9999);
-                        break;
-                    case "java.lang.Integer":
-                        assertEquals("field " + field.getName() + " value error for param" + param,
-                                ((Integer) field.get(resultOptions)).intValue(), 9999);
-                        break;
-                    case "java.lang.Long":
-                        assertEquals("field " + field.getName() + " value error for param" + param,
-                                ((Long) field.get(resultOptions)).intValue(), 9999);
-                        break;
-                    case "java.lang.Boolean":
-                        Boolean bool = (Boolean) field.get(option);
-                        if (bool == null) {
-                            assertTrue("field " + field.getName() + " value error for param" + param,
-                                    (Boolean) field.get(resultOptions));
-                        } else {
+                if (!java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+                    switch (field.getType().getName()) {
+                        case "java.lang.String":
                             assertEquals("field " + field.getName() + " value error for param" + param,
-                                    (Boolean) field.get(resultOptions), !bool);
-                        }
-                        break;
-                    case "boolean":
-                        System.out.println(field.getName() + ": " + field.getBoolean(resultOptions) + " " + field.get(resultOptions));
-                        assertEquals("field " + field.getName() + " value error for param" + param,
-                                field.getBoolean(resultOptions), !field.getBoolean(option));
-                        break;
-                    default:
-                        fail("type not used normally ! " + field.getType().getName());
+                                    field.get(resultOptions), field.getName() + "1");
+                            break;
+                        case "int":
+                            assertEquals("field " + field.getName() + " value error for param" + param,
+                                    field.getInt(resultOptions), 9999);
+                            break;
+                        case "java.lang.Integer":
+                            assertEquals("field " + field.getName() + " value error for param" + param,
+                                    ((Integer) field.get(resultOptions)).intValue(), 9999);
+                            break;
+                        case "java.lang.Long":
+                            assertEquals("field " + field.getName() + " value error for param" + param,
+                                    ((Long) field.get(resultOptions)).intValue(), 9999);
+                            break;
+                        case "java.lang.Boolean":
+                            Boolean bool = (Boolean) field.get(option);
+                            if (bool == null) {
+                                assertTrue("field " + field.getName() + " value error for param" + param,
+                                        (Boolean) field.get(resultOptions));
+                            } else {
+                                assertEquals("field " + field.getName() + " value error for param" + param,
+                                        (Boolean) field.get(resultOptions), !bool);
+                            }
+                            break;
+                        case "boolean":
+                            System.out.println(field.getName() + ": " + field.getBoolean(resultOptions) + " " + field.get(resultOptions));
+                            assertEquals("field " + field.getName() + " value error for param" + param,
+                                    field.getBoolean(resultOptions), !field.getBoolean(option));
+                            break;
+                        default:
+                            fail("type not used normally ! " + field.getType().getName());
+                    }
                 }
             }
         }

@@ -85,6 +85,7 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 import javax.net.ssl.*;
 import java.io.FileInputStream;
@@ -149,15 +150,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private int patchVersion;
     private TimeZone timeZone;
     private final LruTraceCache traceCache = new LruTraceCache();
+    private final GlobalStateInfo globalInfo;
 
     /**
      * Get a protocol instance.
      *
-     * @param urlParser connection URL infos
-     * @param lock      the lock for thread synchronisation
+     * @param urlParser     connection URL information
+     * @param globalInfo    server global variables information
+     * @param lock          the lock for thread synchronisation
      */
 
-    public AbstractConnectProtocol(final UrlParser urlParser, final ReentrantLock lock) {
+    public AbstractConnectProtocol(final UrlParser urlParser, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
         urlParser.auroraPipelineQuirks();
         this.lock = lock;
         this.urlParser = urlParser;
@@ -165,6 +168,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         this.database = (urlParser.getDatabase() == null ? "" : urlParser.getDatabase());
         this.username = (urlParser.getUsername() == null ? "" : urlParser.getUsername());
         this.password = (urlParser.getPassword() == null ? "" : urlParser.getPassword());
+        this.globalInfo = globalInfo;
         if (options.cachePrepStmts) {
             serverPrepareStatementCache = ServerPrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
         }
@@ -248,7 +252,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private void forceAbort() {
-        try (MasterProtocol copiedProtocol = new MasterProtocol(urlParser, new ReentrantLock())) {
+        try (MasterProtocol copiedProtocol = new MasterProtocol(urlParser, new GlobalStateInfo(), new ReentrantLock())) {
             copiedProtocol.setHostAddress(getHostAddress());
             copiedProtocol.connect();
             //no lock, because there is already a query running that possessed the lock.
@@ -459,25 +463,36 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 }
             }
 
-            Map<String, String> serverData = new TreeMap<>();
-            if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
-                try {
-                    sendPipelineAdditionalData();
-                    readPipelineAdditionalData(serverData);
-                } catch (SQLException sqle) {
-                    //in case pipeline is not supported
-                    //(proxy flush socket after reading first packet)
-                    additionalData(serverData);
-                }
-            } else additionalData(serverData);
+            boolean mustLoadAdditionalInfo = true;
+            if (globalInfo != null) {
+                if (globalInfo.isAutocommit() == options.autocommit) mustLoadAdditionalInfo = false;
+            }
 
-            // Extract socketTimeout URL parameter
+            if (mustLoadAdditionalInfo) {
+                Map<String, String> serverData = new TreeMap<>();
+                if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
+                    try {
+                        sendPipelineAdditionalData();
+                        readPipelineAdditionalData(serverData);
+                    } catch (SQLException sqle) {
+                        //in case pipeline is not supported
+                        //(proxy flush socket after reading first packet)
+                        additionalData(serverData);
+                    }
+                } else additionalData(serverData);
+
+                writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
+                autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
+                loadCalendar(serverData.get("time_zone"), serverData.get("system_time_zone"));
+
+            } else {
+
+                writer.setMaxAllowedPacket((int) globalInfo.getMaxAllowedPacket());
+                autoIncrementIncrement = globalInfo.getAutoIncrementIncrement();
+                loadCalendar(globalInfo.getTimeZone(), globalInfo.getSystemTimeZone());
+            }
+
             if (options.socketTimeout != null) socket.setSoTimeout(options.socketTimeout);
-
-            writer.setMaxAllowedPacket(Integer.parseInt(serverData.get("max_allowed_packet")));
-            autoIncrementIncrement = Integer.parseInt(serverData.get("auto_increment_increment"));
-
-            loadCalendar(serverData);
 
             reader.setServerThreadId(this.serverThreadId, isMasterConnection());
             writer.setServerThreadId(this.serverThreadId, isMasterConnection());
@@ -884,21 +899,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return capabilities;
     }
 
-    private void loadCalendar(Map<String, String> serverData) throws SQLException {
+    private void loadCalendar(final String srvTimeZone, final String srvSystemTimeZone) throws SQLException {
         if (options.useLegacyDatetimeCode) {
             //legacy use client timezone
             timeZone = Calendar.getInstance().getTimeZone();
         } else {
             //use server time zone
-            String tz = null;
-            if (options.serverTimezone != null) {
-                tz = options.serverTimezone;
-            }
-
+            String tz = options.serverTimezone;
             if (tz == null) {
-                tz = serverData.get("time_zone");
+                tz = srvTimeZone;
                 if ("SYSTEM".equals(tz)) {
-                    tz = serverData.get("system_time_zone");
+                    tz = srvSystemTimeZone;
                 }
             }
             //handle custom timezone id

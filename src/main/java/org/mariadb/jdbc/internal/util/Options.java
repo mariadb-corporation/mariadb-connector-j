@@ -57,6 +57,8 @@ import java.lang.reflect.Field;
 @SuppressWarnings("ConstantConditions")
 public class Options implements Cloneable {
 
+    public static final int MIN_VALUE__MAX_IDLE_TIME = 60;
+
     //standard options
     public String user;
     public String password;
@@ -135,6 +137,18 @@ public class Options implements Cloneable {
     public int loadBalanceBlacklistTimeout = 50;
     public int failoverLoopRetries = 120;
 
+    //Pool options
+    public boolean pool;
+    public String poolName;
+    public int maxPoolSize = 8;
+    public Integer minPoolSize;
+    public int maxIdleTime = 600;
+    public boolean staticGlobal;
+    public boolean registerJmxPool = true;
+    public int poolValidMinDelay = 1000;
+    public boolean useResetConnection;
+
+
     @Override
     public String toString() {
         StringBuilder result = new StringBuilder();
@@ -206,6 +220,13 @@ public class Options implements Cloneable {
         if (validConnectionTimeout != opt.validConnectionTimeout) return false;
         if (loadBalanceBlacklistTimeout != opt.loadBalanceBlacklistTimeout) return false;
         if (failoverLoopRetries != opt.failoverLoopRetries) return false;
+        if (pool != opt.pool) return false;
+        if (staticGlobal != opt.staticGlobal) return false;
+        if (registerJmxPool != opt.registerJmxPool) return false;
+        if (useResetConnection != opt.useResetConnection) return false;
+        if (maxPoolSize != opt.maxPoolSize) return false;
+        if (maxIdleTime != opt.maxIdleTime) return false;
+        if (poolValidMinDelay != opt.poolValidMinDelay) return false;
         if (user != null ? !user.equals(opt.user) : opt.user != null) return false;
         if (password != null ? !password.equals(opt.password) : opt.password != null) return false;
         if (serverSslCert != null ? !serverSslCert.equals(opt.serverSslCert) : opt.serverSslCert != null) return false;
@@ -252,7 +273,8 @@ public class Options implements Cloneable {
             return false;
         }
         if (autocommit != opt.autocommit) return false;
-        return true;
+        if (poolName != null ? !poolName.equals(opt.poolName) : opt.poolName != null) return false;
+        return minPoolSize != null ? minPoolSize.equals(opt.minPoolSize) : opt.minPoolSize == null;
     }
 
     @SuppressWarnings("SimplifiableIfStatement")
@@ -326,6 +348,15 @@ public class Options implements Cloneable {
         result = 31 * result + validConnectionTimeout;
         result = 31 * result + loadBalanceBlacklistTimeout;
         result = 31 * result + failoverLoopRetries;
+        result = 31 * result + (pool ? 1 : 0);
+        result = 31 * result + (registerJmxPool ? 1 : 0);
+        result = 31 * result + (useResetConnection ? 1 : 0);
+        result = 31 * result + (staticGlobal ? 1 : 0);
+        result = 31 * result + (poolName != null ? poolName.hashCode() : 0);
+        result = 31 * result + maxPoolSize;
+        result = 31 * result + (minPoolSize != null ? minPoolSize.hashCode() : 0);
+        result = 31 * result + maxIdleTime;
+        result = 31 * result + poolValidMinDelay;
         result = 31 * result + (autocommit ? 1 : 0);
 
         return result;

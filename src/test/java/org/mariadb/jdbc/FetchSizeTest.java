@@ -230,13 +230,13 @@ public class FetchSizeTest extends BaseTest {
     @Test
     public void fetchSizePrepareCancel() throws SQLException {
         ifMaxscaleRequireMinimumVersion(2, 2);
-        Assume.assumeTrue(!sharedOptions().profileSql);
+        Assume.assumeTrue(!sharedOptions().profileSql && !sharedOptions().pool);
 
         long start;
         long normalExecutionTime;
 
         try (PreparedStatement stmt = sharedConnection.prepareStatement(
-                "select * from information_schema.columns as c1,  information_schema.tables LIMIT 50000")) {
+                "select * from information_schema.columns as c1,  information_schema.tables, mysql.user LIMIT 50000")) {
             start = System.currentTimeMillis();
             stmt.executeQuery();
             normalExecutionTime = System.currentTimeMillis() - start;
@@ -249,6 +249,8 @@ public class FetchSizeTest extends BaseTest {
 
         long interruptedExecutionTime = System.currentTimeMillis() - start;
 
+        System.out.println(normalExecutionTime);
+        System.out.println(interruptedExecutionTime);
         //normalExecutionTime = 1500
         //interruptedExecutionTime = 77
         assertTrue("interruptedExecutionTime:" + interruptedExecutionTime

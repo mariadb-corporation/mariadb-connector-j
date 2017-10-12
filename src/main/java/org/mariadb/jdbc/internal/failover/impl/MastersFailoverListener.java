@@ -65,6 +65,7 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
@@ -79,10 +80,11 @@ public class MastersFailoverListener extends AbstractMastersListener {
     /**
      * Initialisation.
      *
-     * @param urlParser url options.
+     * @param urlParser     url options.
+     * @param globalInfo    server global variables information
      */
-    public MastersFailoverListener(final UrlParser urlParser) {
-        super(urlParser);
+    public MastersFailoverListener(final UrlParser urlParser, final GlobalStateInfo globalInfo) {
+        super(urlParser, globalInfo);
         this.mode = urlParser.getHaMode();
         setMasterHostFail();
     }
@@ -216,7 +218,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 //loopAddress.add(currentProtocol.getHostAddress());
             }
 
-            MasterProtocol.loop(this, loopAddress, searchFilter);
+            MasterProtocol.loop(this, globalInfo, loopAddress, searchFilter);
             //close loop if all connection are retrieved
             if (!isMasterHostFail()) {
                 FailoverLoop.removeListener(this);
@@ -331,4 +333,19 @@ public class MastersFailoverListener extends AbstractMastersListener {
     public void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnSlave) {
         //no slave
     }
+
+    /**
+     * Reset state of master connection.
+     *
+     * @throws SQLException if command fail.
+     */
+    public void reset() throws SQLException {
+
+        if (!isMasterHostFail()) {
+            currentProtocol.reset();
+        }
+
+    }
+
+
 }

@@ -131,4 +131,6 @@ public interface Listener {
     boolean checkMasterStatus(SearchFilter searchFilter);
 
     void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnMaster) throws SQLException;
+
+    void reset() throws SQLException ;
 }

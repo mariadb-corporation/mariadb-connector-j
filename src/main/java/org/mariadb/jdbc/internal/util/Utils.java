@@ -65,6 +65,7 @@ import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
 import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 import javax.net.SocketFactory;
 import java.io.IOException;
@@ -74,6 +75,7 @@ import java.lang.reflect.Proxy;
 import java.net.Socket;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
@@ -460,11 +462,12 @@ public class Utils {
      * if no failover option, protocol will not be proxied.
      * if a failover option is precised, protocol will be proxied so that any connection error will be handle directly.
      *
-     * @param urlParser urlParser corresponding to connection url string.
+     * @param urlParser     urlParser corresponding to connection url string.
+     * @param globalInfo    global variable information
      * @return protocol
      * @throws SQLException if any error occur during connection
      */
-    public static Protocol retrieveProxy(final UrlParser urlParser) throws SQLException {
+    public static Protocol retrieveProxy(final UrlParser urlParser, final GlobalStateInfo globalInfo) throws SQLException {
         final ReentrantLock lock = new ReentrantLock();
         Protocol protocol;
         switch (urlParser.getHaMode()) {
@@ -472,21 +475,21 @@ public class Utils {
                 return getProxyLoggingIfNeeded(urlParser, (Protocol) Proxy.newProxyInstance(
                         AuroraProtocol.class.getClassLoader(),
                         new Class[]{Protocol.class},
-                        new FailoverProxy(new AuroraListener(urlParser), lock)));
+                        new FailoverProxy(new AuroraListener(urlParser, globalInfo), lock)));
             case REPLICATION:
                 return getProxyLoggingIfNeeded(urlParser,
                         (Protocol) Proxy.newProxyInstance(
                                 MastersSlavesProtocol.class.getClassLoader(),
                                 new Class[]{Protocol.class},
-                                new FailoverProxy(new MastersSlavesListener(urlParser), lock)));
+                                new FailoverProxy(new MastersSlavesListener(urlParser, globalInfo), lock)));
             case FAILOVER:
             case SEQUENTIAL:
                 return getProxyLoggingIfNeeded(urlParser, (Protocol) Proxy.newProxyInstance(
                         MasterProtocol.class.getClassLoader(),
                         new Class[]{Protocol.class},
-                        new FailoverProxy(new MastersFailoverListener(urlParser), lock)));
+                        new FailoverProxy(new MastersFailoverListener(urlParser, globalInfo), lock)));
             default:
-                protocol = getProxyLoggingIfNeeded(urlParser, new MasterProtocol(urlParser, lock));
+                protocol = getProxyLoggingIfNeeded(urlParser, new MasterProtocol(urlParser, globalInfo, lock));
                 protocol.connectWithoutProxy();
                 return protocol;
         }
@@ -825,4 +828,31 @@ public class Utils {
         Escape /* found backslash */
     }
 
+
+    /**
+     * Traduce a String value of @@tx_isolation to corresponding java value.
+     *
+     * @param txIsolation   String value
+     * @return java corresponding value (Connection.TRANSACTION_READ_UNCOMMITTED, Connection.TRANSACTION_READ_COMMITTED,
+     *         Connection.TRANSACTION_REPEATABLE_READ or Connection.TRANSACTION_SERIALIZABLE)
+     * @throws SQLException if String value doesn't correspond to @tx_isolation possible value
+     */
+    public static int transactionFromString(String txIsolation) throws SQLException {
+        switch (txIsolation) { //tx_isolation
+            case "READ-UNCOMMITTED":
+                return Connection.TRANSACTION_READ_UNCOMMITTED;
+
+            case "READ-COMMITTED":
+                return Connection.TRANSACTION_READ_COMMITTED;
+
+            case "REPEATABLE-READ":
+                return Connection.TRANSACTION_REPEATABLE_READ;
+
+            case "SERIALIZABLE":
+                return Connection.TRANSACTION_SERIALIZABLE;
+
+            default:
+                throw new SQLException("unknown transaction isolation level");
+        }
+    }
 }

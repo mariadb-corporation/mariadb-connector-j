@@ -98,10 +98,11 @@ public class JdbcParserTest {
                 .auroraPipelineQuirks().getOptions().useBatchMultiSend);
 
         MariaDbDataSource datasource = new MariaDbDataSource();
+        datasource.initialize();
         assertNull(datasource.getUrlParser().getOptions().useBatchMultiSend);
         datasource.setUrl(hostAurora);
         assertFalse(datasource.getUrlParser().auroraPipelineQuirks().getOptions().useBatchMultiSend);
-        datasource.setProperties("useBatchMultiSend=true");
+        datasource.setUrl(hostAurora + "?useBatchMultiSend=true");
         assertTrue(datasource.getUrlParser().auroraPipelineQuirks().getOptions().useBatchMultiSend);
     }
 
@@ -130,10 +131,11 @@ public class JdbcParserTest {
         assertTrue(UrlParser.parse(hostAuroraUpper + "?usePipelineAuth=true").getOptions().usePipelineAuth);
 
         MariaDbDataSource datasource = new MariaDbDataSource();
+        datasource.initialize();
         assertNull(datasource.getUrlParser().getOptions().usePipelineAuth);
         datasource.setUrl(hostAurora);
         assertFalse(datasource.getUrlParser().auroraPipelineQuirks().getOptions().usePipelineAuth);
-        datasource.setProperties("usePipelineAuth=true");
+        datasource.setUrl(hostAurora + "?usePipelineAuth=true");
         assertTrue(datasource.getUrlParser().auroraPipelineQuirks().getOptions().usePipelineAuth);
     }
 

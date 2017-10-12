@@ -78,6 +78,8 @@ public class FailoverProxy implements InvocationHandler {
     private static final String METHOD_EXECUTE_PREPARED_QUERY = "executePreparedQuery";
     private static final String METHOD_COM_MULTI_PREPARE_EXECUTES = "prepareAndExecutesComMulti";
     private static final String METHOD_PROLOG_PROXY = "prologProxy";
+    private static final String METHOD_RESET = "reset";
+
     private static final Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
     public final ReentrantLock lock;
 
@@ -206,7 +208,10 @@ public class FailoverProxy implements InvocationHandler {
                     }
                     throw e;
                 }
-
+            case METHOD_RESET:
+                //listener will report reset on any active connections (Master/slave)
+                listener.reset();
+                return null;
             default:
         }
 

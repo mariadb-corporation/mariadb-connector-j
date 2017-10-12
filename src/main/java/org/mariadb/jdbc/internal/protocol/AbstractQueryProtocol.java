@@ -81,6 +81,7 @@ import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.FileInputStream;
@@ -121,9 +122,39 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @param lock      the lock for thread synchronisation
      */
 
-    AbstractQueryProtocol(final UrlParser urlParser, final ReentrantLock lock) {
-        super(urlParser, lock);
+    AbstractQueryProtocol(final UrlParser urlParser, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
+        super(urlParser, globalInfo, lock);
         logQuery = new LogQueryTool(options);
+    }
+
+    /**
+     * Reset connection state.
+     *
+     * <ol>
+     *     <li>Transaction will be rollback</li>
+     *     <li>transaction isolation will be reset</li>
+     *     <li>user variables will be removed</li>
+     *     <li>sessions variables will be reset to global values</li>
+     * </ol>
+     *
+     * @throws SQLException if command failed
+     */
+    @Override
+    public void reset() throws SQLException {
+        cmdPrologue();
+        try {
+
+            writer.startPacket(0);
+            writer.write(COM_RESET_CONNECTION);
+            writer.flush();
+            getResult(new Results());
+
+        } catch (SQLException sqlException) {
+            throw logQuery.exceptionWithQuery("COM_RESET_CONNECTION failed.", sqlException, explicitClosed);
+        } catch (IOException e) {
+            throw handleIoException(e);
+        }
+
     }
 
     /**
@@ -1121,6 +1152,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
+    @Override
+    public void resetDatabase() throws SQLException {
+        if (!database.equals(urlParser.getDatabase())) {
+            setCatalog(urlParser.getDatabase());
+        }
+    }
+
     /**
      * Cancels the current query - clones the current protocol and executes a query using the new connection.
      *
@@ -1128,7 +1166,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      */
     @Override
     public void cancelCurrentQuery() throws SQLException {
-        try (MasterProtocol copiedProtocol = new MasterProtocol(urlParser, new ReentrantLock())) {
+        try (MasterProtocol copiedProtocol = new MasterProtocol(urlParser, new GlobalStateInfo(), new ReentrantLock())) {
             copiedProtocol.setHostAddress(getHostAddress());
             copiedProtocol.connect();
             //no lock, because there is already a query running that possessed the lock.

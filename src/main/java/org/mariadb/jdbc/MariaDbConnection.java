@@ -55,13 +55,12 @@ package org.mariadb.jdbc;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.CallableStatementCache;
-import org.mariadb.jdbc.internal.util.ClientPrepareStatementCache;
-import org.mariadb.jdbc.internal.util.Options;
-import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.*;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.internal.util.pool.Pools;
 
 import java.net.SocketException;
 import java.sql.*;
@@ -106,6 +105,8 @@ public class MariaDbConnection implements Connection {
     private volatile int lowercaseTableNames = -1;
     private boolean canUseServerTimeout = false;
     private boolean sessionStateAware = true;
+    private int stateFlag = 0;
+    private int defaultTransactionIsolation = 0;
 
     /**
      * save point count - to generate good names for the savepoints.
@@ -140,8 +141,19 @@ public class MariaDbConnection implements Connection {
         }
     }
 
-    public static MariaDbConnection newConnection(UrlParser urlParser) throws SQLException {
-        Protocol protocol = Utils.retrieveProxy(urlParser);
+    /**
+     * Create new connection Object.
+     * @param urlParser     parser
+     * @param globalInfo    global info
+     * @return connection object
+     * @throws SQLException if any connection error occur
+     */
+    public static MariaDbConnection newConnection(UrlParser urlParser, GlobalStateInfo globalInfo) throws SQLException {
+        if (urlParser.getOptions().pool) {
+            return Pools.retrievePool(urlParser).getConnection();
+        }
+
+        Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
         return new MariaDbConnection(protocol);
     }
 
@@ -664,7 +676,7 @@ public class MariaDbConnection implements Connection {
      * @throws SQLException if there is an error
      */
     public boolean getAutoCommit() throws SQLException {
-        return protocol.getAutocommit();
+        return protocol != null && protocol.getAutocommit();
     }
 
     /**
@@ -677,6 +689,7 @@ public class MariaDbConnection implements Connection {
         if (autoCommit == getAutoCommit()) return;
 
         try (Statement stmt = createStatement()) {
+            stateFlag |= ConnectionState.STATE_AUTOCOMMIT;
             stmt.executeUpdate("set autocommit=" + ((autoCommit) ? "1" : "0"));
         }
     }
@@ -707,8 +720,17 @@ public class MariaDbConnection implements Connection {
      * @throws SQLException if there is an error rolling back.
      */
     public void rollback() throws SQLException {
-        try (Statement st = createStatement()) {
-            st.execute("ROLLBACK");
+        if (!getAutoCommit()) {
+            lock.lock();
+            try {
+                if (!getAutoCommit() && protocol.inTransaction()) {
+                    try (Statement st = createStatement()) {
+                        st.execute("ROLLBACK");
+                    }
+                }
+            } finally {
+                lock.unlock();
+            }
         }
     }
 
@@ -740,15 +762,7 @@ public class MariaDbConnection implements Connection {
      */
     public void close() throws SQLException {
         if (pooledConnection != null) {
-            lock.lock();
-            try {
-                if (protocol != null && protocol.inTransaction()) {
-                    /* Rollback transaction prior to returning physical connection to the pool */
-                    rollback();
-                }
-            } finally {
-                lock.unlock();
-            }
+            rollback();
             pooledConnection.fireConnectionClosed();
             return;
         }
@@ -797,6 +811,7 @@ public class MariaDbConnection implements Connection {
     public void setReadOnly(final boolean readOnly) throws SQLException {
         try {
             logger.debug("set read-only to value {}", readOnly);
+            stateFlag |= ConnectionState.STATE_READ_ONLY;
             protocol.setReadonly(readOnly);
         } catch (SQLException e) {
             ExceptionMapper.throwException(e, this, null);
@@ -828,6 +843,7 @@ public class MariaDbConnection implements Connection {
             throw new SQLException("The catalog name may not be null", "XAE05");
         }
         try {
+            stateFlag |= ConnectionState.STATE_DATABASE;
             protocol.setCatalog(catalog);
         } catch (SQLException e) {
             ExceptionMapper.throwException(e, this, null);
@@ -892,6 +908,7 @@ public class MariaDbConnection implements Connection {
      */
     public void setTransactionIsolation(final int level) throws SQLException {
         try {
+            stateFlag |= ConnectionState.STATE_TRANSACTION_ISOLATION;
             protocol.setTransactionIsolation(level);
         } catch (SQLException e) {
             ExceptionMapper.throwException(e, this, null);
@@ -1547,9 +1564,7 @@ public class MariaDbConnection implements Connection {
             throw ExceptionMapper.getSqlException("Cannot abort the connection: null executor passed");
         }
 
-        executor.execute(() -> {
-            protocol.abort();
-        });
+        executor.execute(protocol::abort);
     }
 
     /**
@@ -1596,6 +1611,7 @@ public class MariaDbConnection implements Connection {
             securityManager.checkPermission(sqlPermission);
         }
         try {
+            stateFlag |= ConnectionState.STATE_NETWORK_TIMEOUT;
             protocol.setTimeout(milliseconds);
         } catch (SocketException se) {
             throw ExceptionMapper.getSqlException("Cannot set the network timeout", se);
@@ -1612,5 +1628,67 @@ public class MariaDbConnection implements Connection {
 
     public boolean canUseServerTimeout() {
         return canUseServerTimeout;
+    }
+
+
+    public void setDefaultTransactionIsolation(int defaultTransactionIsolation) {
+        this.defaultTransactionIsolation = defaultTransactionIsolation;
+    }
+
+    /**
+     * Reset connection set has it was after creating a "fresh" new connection.
+     * defaultTransactionIsolation must have been initialized.
+     *
+     * BUT :
+     * - session variable state are reset only if option useResetConnection is set and
+     * - if using the option "useServerPrepStmts", PREPARE statement are still prepared
+     *
+     * @throws SQLException if resetting operation failed
+     */
+    public void reset() throws SQLException {
+        boolean useComReset = options.useResetConnection
+                && ((protocol.isServerMariaDb() && protocol.versionGreaterOrEqual(10, 2, 4))
+                || (!protocol.isServerMariaDb() && protocol.versionGreaterOrEqual(5, 7, 3)));
+
+        if (useComReset) {
+            // COM_RESET_CONNECTION Will rollback any remaining transaction
+            protocol.reset();
+        } else {
+            rollback(); //execute a ROLLBACK query (only if there is an active transaction)
+        }
+
+        if (stateFlag != 0) {
+
+            try {
+
+                if ((stateFlag & ConnectionState.STATE_NETWORK_TIMEOUT) != 0) {
+                    setNetworkTimeout(null, options.socketTimeout);
+                }
+
+                if ((stateFlag & ConnectionState.STATE_AUTOCOMMIT) != 0) {
+                    setAutoCommit(options.autocommit);
+                }
+
+                if ((stateFlag & ConnectionState.STATE_DATABASE) != 0) {
+                    protocol.resetDatabase();
+                }
+
+                if ((stateFlag & ConnectionState.STATE_READ_ONLY) != 0) {
+                    setReadOnly(false); //default to master connection
+                }
+
+                //COM_RESET_CONNECTION reset transaction isolation
+                if (!useComReset && (stateFlag & ConnectionState.STATE_TRANSACTION_ISOLATION) != 0) {
+                    setTransactionIsolation(defaultTransactionIsolation);
+                }
+
+                stateFlag = 0;
+
+            } catch (SQLException sqle) {
+                throw ExceptionMapper.getSqlException("error resetting connection");
+            }
+        }
+
+        warningsCleared = true;
     }
 }

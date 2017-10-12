@@ -462,9 +462,72 @@ public enum DefaultOptions {
      * Set default autocommit value.
      * Default: true
      */
-    AUTOCOMMIT("autocommit", Boolean.TRUE, "2.2.0");
+    AUTOCOMMIT("autocommit", Boolean.TRUE, "2.2.0"),
 
+    /**
+     * Enable pool.
+     * This option is usefull only if not using a DataSource object, but only connection.
+     */
+    POOL("pool", Boolean.FALSE, "2.2.0"),
 
+    /**
+     * Pool name that will permit to identify thread.
+     * default : auto-generated as MariaDb-pool-&le;pool-index&ge;
+     */
+    POOL_NAME("poolName", "2.2.0"),
+
+    /**
+     * The maximum number of physical connections that
+     * the pool should contain.
+     * default: 8
+     */
+    MAX_POOL_SIZE("maxPoolSize", 8, 1, "2.2.0"),
+
+    /**
+     * The number of physical connections the pool should keep available at all times.
+     * default: maxPoolSize value
+     */
+    MIN_POOL_SIZE("minPoolSize", (Integer) null, 0, "2.2.0"),
+
+    /**
+     * The maximum amount of time in seconds that a connection can stay in pool when not used.
+     * This value must always be below @wait_timeout value - 45s
+     *
+     * Default: 600 (10 minutes). minimum value is 60 seconds.
+     */
+    MAX_IDLE_TIME("maxIdleTime", 600, Options.MIN_VALUE__MAX_IDLE_TIME, "2.2.0"),
+
+    /**
+     *
+     * When asking a connection to pool, Pool will validate connection state.
+     * "poolValidMinDelay" permit to disable this validation if connection has been borrowed recently avoiding useless
+     * verification in case of frequent reuse of connection
+     *
+     * 0 meaning validation is done each time connection is asked.
+     *
+     * Default: 1000 (in milliseconds)
+     */
+    POOL_VALID_MIN_DELAY("poolValidMinDelay", 1000, 0, "2.2.0"),
+
+    /**
+     * Indicate that global variable aren't changed by application, permitting to pool faster connection.
+     * Default: false
+     */
+    STATIC_GLOBAL("staticGlobal", Boolean.FALSE, "2.2.0"),
+
+    /**
+     * Register JMX monitoring pools.
+     * Default: true
+     */
+    REGISTER_POOL_JMX("registerJmxPool", Boolean.TRUE, "2.2.0"),
+
+    /**
+     * Use COM_RESET_CONNECTION when resetting connection for pools when server permit it (MariaDB &gt; 10.2.4, MySQL &gt; 5.7.3)
+     * This permit to reset session and user variables.
+     *
+     * Default: false
+     */
+    USE_RESET_CONNECTION("useResetConnection", Boolean.FALSE, "2.2.0");
 
     private final String optionName;
     private final Object objType;
@@ -525,6 +588,21 @@ public enum DefaultOptions {
 
     public static Options defaultValues(final HaMode haMode) {
         return parse(haMode, "", new Properties());
+    }
+
+    /**
+     * Generate an Options object with default value corresponding to High Availability mode.
+     *
+     * @param haMode    current high Availability mode
+     * @param pool      is for pool
+     * @return Options object initialized
+     */
+    public static Options defaultValues(HaMode haMode, boolean pool) {
+        Properties properties = new Properties();
+        properties.setProperty("pool", String.valueOf(pool));
+        Options options = parse(haMode, "", properties);
+        optionCoherenceValidation(options);
+        return options;
     }
 
     /**
@@ -678,6 +756,9 @@ public enum DefaultOptions {
             options.useBatchMultiSend = false;
             options.usePipelineAuth = false;
         }
+
+        //if min pool size default to maximum pool size if not set
+        options.minPoolSize = options.minPoolSize == null ? options.maxPoolSize : Math.min(options.minPoolSize, options.maxPoolSize);
 
     }
 

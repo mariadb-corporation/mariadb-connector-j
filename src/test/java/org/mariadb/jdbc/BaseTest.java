@@ -117,7 +117,7 @@ public class BaseTest {
 
         //execute another query to ensure connection is stable
         protected void finished(Description description) {
-            if (testSingleHost) {
+            if ( testSingleHost) {
                 Random random = new Random();
                 int randInt = random.nextInt();
                 try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT " + randInt)) {
@@ -158,7 +158,7 @@ public class BaseTest {
         testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
 
         if (testSingleHost) {
-            urlParser = UrlParser.parse(url);
+            urlParser = UrlParser.parse(url + "&pool=true&maxPoolSize=4&minPoolSize=1");
             if (urlParser.getHostAddresses().size() > 0) {
                 hostname = urlParser.getHostAddresses().get(0).host;
                 port = urlParser.getHostAddresses().get(0).port;
@@ -198,8 +198,9 @@ public class BaseTest {
 
             setUri();
             urlParser.auroraPipelineQuirks();
-            sharedConnection = DriverManager.getConnection(url);
 
+            sharedConnection = DriverManager.getConnection(url);
+            
             String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
             doPrecisionTest = isMariadbServer() || !dbVersion.startsWith("5.5"); //MySQL 5.5 doesn't support precision
         }
@@ -934,4 +935,35 @@ public class BaseTest {
     public boolean sharedIsAurora() {
         return urlParser.isAurora();
     }
+
+    /**
+     * List current connections to server.
+     * @return number of thread connected.
+     * @throws SQLException if queries failed
+     */
+    public static int getCurrentConnections() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+
+        ResultSet rs = stmt.executeQuery("SHOW FULL PROCESSLIST");
+
+        ResultSetMetaData rsMeta = rs.getMetaData();
+        for (int i = 0 ; i < rsMeta.getColumnCount(); i++) {
+            System.out.print("| " + rsMeta.getColumnName(i + 1));
+        }
+        System.out.println("");
+
+        while (rs.next()) {
+            for (int i = 0 ; i < rsMeta.getColumnCount(); i++) {
+                System.out.print("| " + rs.getString(i + 1));
+            }
+            System.out.println("");
+        }
+        System.out.println("__________________________________________________________");
+
+
+        rs = stmt.executeQuery("show status where `variable_name` = 'Threads_connected'");
+        assertTrue(rs.next());
+        return rs.getInt(2);
+    }
+
 }

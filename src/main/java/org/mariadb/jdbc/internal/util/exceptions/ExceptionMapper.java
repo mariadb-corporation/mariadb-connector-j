@@ -75,6 +75,10 @@ public class ExceptionMapper {
         throw getException(exception, connection, statement, false);
     }
 
+    public static SQLException connException(String message) {
+        return connException(message, null);
+    }
+
     public static SQLException connException(String message, Throwable cause) {
         return get(message, CONNECTION_EXCEPTION.getSqlState(), -1, cause, false);
     }
