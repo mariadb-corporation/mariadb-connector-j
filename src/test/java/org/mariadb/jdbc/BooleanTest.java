@@ -157,7 +157,7 @@ public class BooleanTest extends BaseTest {
     }
 
     private void checkBooleanValue(ResultSet rs, boolean expectedValue, Boolean expectedNull) throws SQLException {
-        rs.next();
+        assertTrue(rs.next());
         for (int i = 1; i <= 14; i++) {
             assertEquals(expectedValue, rs.getBoolean(i));
             if (i == 1 || i == 2) {

@@ -64,6 +64,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class CancelTest extends BaseTest {
 
@@ -75,7 +76,7 @@ public class CancelTest extends BaseTest {
     }
 
     @Test
-    public void cancelTest() throws SQLException {
+    public void cancelTest() {
         Connection tmpConnection = null;
         try {
             tmpConnection = openNewConnection(connUri, new Properties());
@@ -97,27 +98,27 @@ public class CancelTest extends BaseTest {
 
     }
 
-    @Test(timeout = 2000, expected = SQLTimeoutException.class)
+    @Test(timeout = 20000, expected = SQLTimeoutException.class)
     public void timeoutSleep() throws Exception {
         Connection tmpConnection = null;
         try {
             tmpConnection = openNewConnection(connUri, new Properties());
             Statement stmt = tmpConnection.createStatement();
-            stmt.setQueryTimeout(1);
+            stmt.setQueryTimeout(1); //query take more than 20 seconds (local DB)
             stmt.execute("select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2");
         } finally {
             tmpConnection.close();
         }
     }
 
-    @Test(timeout = 2000, expected = SQLTimeoutException.class)
+    @Test(timeout = 20000, expected = SQLTimeoutException.class)
     public void timeoutPrepareSleep() throws Exception {
         Connection tmpConnection = null;
         try {
             tmpConnection = openNewConnection(connUri, new Properties());
             PreparedStatement stmt = tmpConnection.prepareStatement(
                 "select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2");
-            stmt.setQueryTimeout(1);
+            stmt.setQueryTimeout(1); //query take more than 20 seconds (local DB)
             stmt.execute();
         } finally {
             tmpConnection.close();
@@ -145,6 +146,7 @@ public class CancelTest extends BaseTest {
     public void timeoutPrepareBatch() throws Exception {
         Assume.assumeFalse(sharedIsAurora());
         Assume.assumeTrue(!sharedOptions().allowMultiQueries && !sharedIsRewrite());
+        Assume.assumeTrue(!(sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10,2)));
         createTable("timeoutBatch", "aa text");
         Connection tmpConnection = null;
         try {
@@ -179,7 +181,7 @@ public class CancelTest extends BaseTest {
         Statement stmt = sharedConnection.createStatement();
         stmt.cancel();
         ResultSet rs = stmt.executeQuery("select 1");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getInt(1), 1);
     }
 
@@ -194,13 +196,8 @@ public class CancelTest extends BaseTest {
         public void run() {
             try {
                 Thread.sleep(100);
-
                 stmt.cancel();
-
-            } catch (SQLException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            } catch (InterruptedException e) {
+            } catch (SQLException | InterruptedException e) {
                 e.printStackTrace();
             }
         }

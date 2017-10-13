@@ -132,8 +132,8 @@ public class StatementTest extends BaseTest {
                 stmt = connection.prepareStatement("SELECT 1");
                 stmt.setFetchSize(Integer.MIN_VALUE);
                 ResultSet rs = stmt.executeQuery();
-                rs.next();
-                rs = stmt.executeQuery();
+                assertTrue(rs.next());
+                stmt.executeQuery();
             } finally {
                 if (stmt != null) stmt.close();
             }
@@ -149,7 +149,7 @@ public class StatementTest extends BaseTest {
         st1.close();
         conn2.close();
         Statement st2 = conn2.createStatement();
-        assertTrue(false);
+        fail();
         st2.close();
     }
 
@@ -278,7 +278,7 @@ public class StatementTest extends BaseTest {
             if (statement.isWrapperFor(MariaDbStatement.class)) {
                 mysqlStatement = statement.unwrap(MariaDbStatement.class);
             } else {
-                throw new RuntimeException("Mariadb JDBC adaptor must be used");
+                throw new SQLException("Mariadb JDBC adaptor must be used");
             }
             try {
                 String data = "\"1\", \"string1\"\n"
@@ -312,6 +312,7 @@ public class StatementTest extends BaseTest {
         Assume.assumeTrue(sharedOptions().socketTimeout == null);
         Properties infos = new Properties();
         infos.put("socketTimeout", 1000);
+        infos.put("usePipelineAuth", "false");
         Connection connection = null;
         try {
             connection = createProxyConnection(infos);
@@ -322,7 +323,7 @@ public class StatementTest extends BaseTest {
                 stopProxy();
                 otherStatement.execute("SELECT 1");
             } catch (SQLException e) {
-                assertTrue(otherStatement.isClosed());
+                assertTrue(otherStatement != null ? otherStatement.isClosed() : false);
                 assertTrue(connection.isClosed());
                 try {
                     statement.execute("SELECT 1");
@@ -333,6 +334,7 @@ public class StatementTest extends BaseTest {
             }
         } finally {
             if (connection != null) connection.close();
+            closeProxy();
         }
     }
 
@@ -367,5 +369,81 @@ public class StatementTest extends BaseTest {
         ResultSet resultSet = statement.executeQuery("SELECT * from testFractionalTimeBatch");
         assertTrue(resultSet.next());
         assertEquals(resultSet.getTimestamp(1).getNanos(), currTime.getNanos());
+    }
+
+    @Test
+    public void testFallbackBatchUpdate() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
+
+        createTable("testFallbackBatchUpdate", "col int");
+        Statement statement = sharedConnection.createStatement();
+
+        //add 100 data
+        StringBuilder sb = new StringBuilder("INSERT INTO testFallbackBatchUpdate(col) VALUES (0)");
+        for (int i = 1; i < 100; i++) sb.append(",(").append(i).append(")");
+        statement.execute(sb.toString());
+
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = sharedConnection.prepareStatement(
+                    "DELETE FROM testFallbackBatchUpdate WHERE col = ?");
+            preparedStatement.setInt(1, 10);
+            preparedStatement.addBatch();
+
+            preparedStatement.setInt(1, 15);
+            preparedStatement.addBatch();
+
+            int[] results = preparedStatement.executeBatch();
+            assertEquals(2, results.length);
+        } finally {
+            if (preparedStatement != null) preparedStatement.close();
+        }
+
+        //check results
+        ResultSet rs = statement.executeQuery("SELECT * FROM testFallbackBatchUpdate");
+        for (int i = 0; i < 100; i++) {
+            if (i == 10 || i == 15) continue;
+            assertTrue(rs.next());
+            assertEquals(i, rs.getInt(1));
+        }
+        assertFalse(rs.next());
+
+    }
+
+    @Test
+    public void testProperBatchUpdate() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
+
+        createTable("testProperBatchUpdate", "col int, col2 int");
+        Statement statement = sharedConnection.createStatement();
+
+        //add 100 data
+        StringBuilder sb = new StringBuilder("INSERT INTO testProperBatchUpdate(col, col2) VALUES (0,0)");
+        for (int i = 1; i < 100; i++) sb.append(",(").append(i).append(",0)");
+        statement.execute(sb.toString());
+
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                "UPDATE testProperBatchUpdate set col2 = ? WHERE col = ? ")) {
+            preparedStatement.setInt(1, 10);
+            preparedStatement.setInt(2, 10);
+            preparedStatement.addBatch();
+
+            preparedStatement.setInt(1, 15);
+            preparedStatement.setInt(2, 15);
+            preparedStatement.addBatch();
+
+            int[] results = preparedStatement.executeBatch();
+            assertEquals(2, results.length);
+        }
+
+        //check results
+        try (ResultSet rs = statement.executeQuery("SELECT * FROM testProperBatchUpdate")) {
+            for (int i = 0; i < 100; i++) {
+                assertTrue(rs.next());
+                assertEquals(i, rs.getInt(1));
+                assertEquals((i == 10 || i == 15) ? i : 0, rs.getInt(2));
+            }
+            assertFalse(rs.next());
+        }
     }
 }

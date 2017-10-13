@@ -56,15 +56,13 @@ import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 import java.io.IOException;
-import java.sql.SQLException;
-
 
 public class StringParameter implements Cloneable, ParameterHolder {
 
-    private String stringValue;
-    private boolean noBackslashEscapes;
+    private final String stringValue;
+    private final boolean noBackslashEscapes;
 
-    public StringParameter(String str, boolean noBackslashEscapes) throws SQLException {
+    public StringParameter(String str, boolean noBackslashEscapes) {
         this.stringValue = str;
         this.noBackslashEscapes = noBackslashEscapes;
     }

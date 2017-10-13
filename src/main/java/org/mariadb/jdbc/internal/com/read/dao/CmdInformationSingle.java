@@ -59,9 +59,9 @@ import java.sql.ResultSet;
 
 public class CmdInformationSingle implements CmdInformation {
 
-    private long insertId;
+    private final long insertId;
     private long updateCount;
-    private int autoIncrement;
+    private final int autoIncrement;
 
     /**
      * Object containing update / insert ids, optimized for only one result.
@@ -99,6 +99,11 @@ public class CmdInformationSingle implements CmdInformation {
 
     @Override
     public void addErrorStat() {
+        //not expected
+    }
+
+    @Override
+    public void reset() {
         //not expected
     }
 
@@ -149,20 +154,14 @@ public class CmdInformationSingle implements CmdInformation {
         return updateCount != RESULT_SET_VALUE;
     }
 
-    public int[] getRewriteUpdateCounts() {
-        //cannot occur
-        return null;
-    }
-
-    @Override
-    public long[] getRewriteLargeUpdateCounts() {
-        //cannot occur
-        return null;
-    }
-
     @Override
     public void addSuccessStat(long updateCount, long insertId) {
         //cannot occur
+    }
+
+
+    public void setRewrite(boolean rewritten) {
+        //no need
     }
 }
 

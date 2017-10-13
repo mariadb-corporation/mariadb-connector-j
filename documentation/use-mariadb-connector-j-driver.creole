@@ -98,6 +98,22 @@ The following options are currently supported.
 |=useBatchMultiSend|*Not compatible with aurora* Driver will can send queries by batch. \\If disable, queries are send one by one, waiting for result before sending next one. \\If enable, queries will be send by batch corresponding to option useBatchMultiSendNumber value (default 100) or according to server variable @@max_allowed_packet if packet size cannot permit to send as many queries. Results will be read afterwhile, avoiding a lot of network latency when client and server aren't on same host. \\\\ There is 2 differents use case : JDBC executeBatch() and when option useServerPrepStmts is enable and MariaDB server >= 10.2.1, PREPARE commands will be delayed, to send PREPARE + EXECUTE in the same packet. This option if mainly effective when client is distant from server. [[./use-batch-multi-send-description.creole|more information]]\\//Default: true (false if using aurora failover). Since 1.5.0//|
 \\
 
+=== Pooling
+
+See [[use-mariadb-connector-j-driver.creole#using-pooling|using pooling]] for more information.
+
+|=pool|Use pool. This option is useful only if not using a DataSource object, but only connection. \\//Default: false. since 2.2.0//|
+|=poolName|Pool name that will permit to identify thread.\\default: auto-generated as MariaDb-pool-<pool-index>//since 2.2.0//|
+|=maxPoolSize| The maximum number of physical connections that the pool should contain. \\//Default: 8. since 2.2.0//|
+|=minPoolSize| When connection are removed since not used since more than "maxIdleTime", connections are closed and removed from pool. "minPoolSize" indicate the number of physical connections the pool should keep available at all times. Should be less or equal to maxPoolSize.\\//Default: maxPoolSize value. Since 2.2.0//|
+|=poolValidMinDelay| When asking a connection to pool, Pool will validate connection state. "poolValidMinDelay" permit to disable this validation if connection has been borrowed recently avoiding useless verification in case of frequent reuse of connection. 0 meaning validation is done each time connection is asked.\\//Default: 1000 (in milliseconds). Since 2.2.0//|
+|=maxIdleTime|The maximum amount of time in seconds that a connection can stay in pool when not used. This value must always be below @wait_timeout value - 45s \\//Default: 600 in seconds (=10 minutes), minimum value is 60 seconds. Since 2.2.0//|
+|=staticGlobal|Indicate the following global variable (@@max_allowed_packet,@@wait_timeout,@@autocommit,@@auto_increment_increment,@@time_zone,@@system_time_zone,@@tx_isolation) values won't changed, permitting to pool to create new connection faster.\\//Default: false. Since 2.2.0//|
+|=useResetConnection|When a connection is closed() (give back to pool), pool reset connection state. Setting this option, session variables change will be reset, and user variables will be destroyed when server permit it (MariaDB >= 10.2.4, MySQL >= 5.7.3), permitting to save memory on server if application make extensive use of variables\\//Default: false. Since 2.2.0//|
+
+\\
+
+
 === TLS (SSL)
 
 |=useSSL|Force [[https://mariadb.com/kb/en/mariadb/secure-connections-overview/secure-connections-overview|SSL/TLS on  connection]].\\//Default: false. Since 1.1.0//|
@@ -152,7 +168,8 @@ The following options are currently supported.
 |=useBatchMultiSendNumber| When option useBatchMultiSend is active, indicate the maximum query send in a row before reading results.\\//Default: 100. Since 1.5.0//|
 |=connectionAttributes| When performance_schema is active, permit to send server some client information in a key;value pair format (example: connectionAttributes=key1:value1,key2,value2).\\Those informations can be retrieved on server within tables performance_schema.session_connect_attrs and performance_schema.session_account_connect_attrs.\\This can permit from server an identification of client/application\\//Since 1.4.0//|
 |=continueBatchOnError| When executing batch queries, must batch continue on error and throw exception when ended, or stop immediately \\//Default: true. Since 1.4.0//
-
+|=disableSslHostnameVerification| When using ssl, driver check hostname against the server's identity as presented in the server's Certificate (checking alternative names or certificate CN) to prevent man-in-the-middle attack. This option permit to deactivate this validation.\\//Default: false. Since 2.1.0//
+|=autocommit|Set default autocommit value.\\//Default: true. Since 2.2.0//
 
 \\\\
 == Failover/High availability URL parameters
@@ -230,6 +247,155 @@ Using the previous example, just add {{{@AutoService(LocalInfileInterceptor.clas
  }
 }}}
 
+
+== Using pooling
+
+MariaDB has 2 different Datasource implementation :
+* MariaDbDataSource : Basic implementation. A new connection each time method getConnection() is called.
+* MariaDbPoolDataSource : Connection pooling implementation (since 2.2.0 version). MariaDB Driver will keep a pool of connection and borrow Connections when asked for it.
+
+
+When using MariaDbPoolDataSource, different options permit to indicate how pooling will handle pool. See [[use-mariadb-connector-j-driver.creole#pooling|pooling options]] for detail information of options.
+
+Example of use :
+{{{
+    MariaDbPoolDataSource pool = new MariaDbPoolDataSource("jdbc:mariadb://server/db?user=myUser&maxPoolSize=10");
+
+    try (Connection connection = pool.getConnection()) {
+        Statement statement = connection.createStatement();
+        statement.execute("SELECT * FROM mysql.user");
+    }
+
+    try (Connection connection = pool.getConnection()) {
+        Statement statement = connection.createStatement();
+        statement.execute("SELECT * FROM mysql.user");
+    }
+
+    pool.close();
+}}}
+
+Pooling can be configured at connection level using the "pool" option: (The main difference is that there is no accessible object to close pool if needed.)
+{{{
+    //indicating &pool(=true) indicate that pool will be initialized
+    String connectionString = "jdbc:mariadb://server/db?user=myUser&maxPoolSize=10&pool";
+    try (Connection connection = DriverManager.getConnection(connectionString)) {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("SELECT * FROM mysql.user");
+        }
+    }
+
+    //since reusing the same connection string, connection will be get from pool
+    try (Connection connection = DriverManager.getConnection(connectionString)) {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("SELECT 'another query'");
+        }
+    }
+}}}
+
+
+
+==== Pool connection handling :
+When a new connection is asked to pool, if there is an existing connection not used, Connection validation is done then borrowed directly.
+If no connection is available, the request for a connection will be put in a queue until connection timeout.
+When a connection is available (new creation or released to the pool), it will be use to satisfy queued request in FIFO order.
+
+A dedicated thread will handle new connection creation (one by one) to avoid connection burst.
+This thread will create connections until "maxPoolSize" if needed with a minimum connection of "minPoolSize".
+
+99.99% of the time, connection is created, a few queries are executed, then connection is released.
+Creating connection one after another permit to handle sudden peak of connection, to avoid creating lot of connections immediately and drop them after idle timeout:
+
+EXAMPLE
+
+Configuration
+* minPoolSize=2
+* maxPoolSize=20
+
+Pool with no activity (only 2 connection in pool).
+* Average query executing : 0.1 milliseconds
+* Connection creation : 5 milliseconds
+
+
+If a sudden peak of 50 connections are needed to execute one query, that mean that there will be 2 connection borrowed and released 25 times each.
+So all queries will be handled in 2.5 milliseconds, less than one Connection creation. 2.5 milliseconds after that pike of demand, there will be 3 connections in pool.
+
+If peak continue, then connections in pool will quickly increase.
+
+
+==== Connection close:
+On connection closing, borrowed connection state will be reset, then give back to pool.
+This reset goal is that next Connection get from pool has the same state as a newly "fresh" created connection.
+
+Reset operations :
+* rollback remaining active transaction
+* reuse the configured database if changed
+* default connection read-only state to false (master in a masters/slaves configuration) if changed
+* re-initialize socket timeout if changed
+* autocommit reset to default
+* Transaction Isolation if changed
+
+If server version is >= 10.2.4 (5.7.3 for MySQL server), then option "useResetConnection" can be used. This option will delete all user variables, and reset session variables to their initial state.
+\\
+
+==== Idle timeout Thread
+An additional thread will periodically close idle connections not used for a time corresponding to option "maxIdleTime".
+Pool will ensure to recreate connection to satisfy the option "minPoolSize" value.
+
+This avoids keeping unused connection in pool, overloading server uselessly.
+If option "staticGlobal" is set, driver will ensure that option "maxIdleTime" is less than server @@wait_timeout.
+
+\\
+
+==== Connection performance boost.
+Driver has the advantage to know current server state, permitting fast pooling :
+When creating a connection, java driver need to execute 1 or 2 additional query after socket initialization / ssl initialization.
+If the following variables don't change (rarely changed) :
+* @@max_allowed_packet
+* @@wait_timeout
+* @@autocommit
+* @@auto_increment_increment
+* @@time_zone
+* @@system_time_zone
+* @@tx_isolation
+, using the option "staticGlobal", those value will be kept in memory, avoiding any additional queries when establishing a new connection (connection creation can be 30% faster, depending on network)
+
+Statement.cancel, Connection.abort() methods using pool are super fast, because of reusing a connection from pool.
+
+Each time a connection is asked, pool validate the connection exchanging an empty MySQL packet with the server to ensure connection state. But pool reuse connection intensively, so this validation is done only if Connection has not been use since some time (option "poolValidMinDelay" with the default value of 1000ms).
+\\
+
+==== JMX
+JMX give some information. MBeans name are like "org.mariadb.jdbc.pool:type=*".
+
+Some statistics of current pool :
+* long getActiveConnections();  -> indicate current used connection
+* long getTotalConnections();   -> indicate current number of connections in pool
+* long getIdleConnections();    -> indicate the number of connection currently not used
+* long getConnectionRequests(); -> indicate threads number that wait for a connection.
+
+One method to reset "staticGlobal" value :
+    void resetStaticGlobal(); -> method to reset staticGlobal values in memory.
+
+Example accessing JMX through java :
+{{{
+try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "jdbc:mariadb://localhost/testj?user=root&maxPoolSize=5&minPoolSize=3&poolName=PoolTestJmx")) {
+
+    try (Connection connection = pool.getConnection()) {
+
+        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+        ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=PoolTest*");
+        Set<ObjectName> objectNames = server.queryNames(filter, null);
+        ObjectName name = objectNames.iterator().next();
+
+        System.out.println(server.getAttribute(name, "ActiveConnections"));  //1
+        System.out.println(server.getAttribute(name, "TotalConnections"));   //3
+        System.out.println(server.getAttribute(name, "IdleConnections"));    //2
+        System.out.println(server.getAttribute(name, "ConnectionRequests")); //0
+    }
+}
+}}}
+
+\\
 
 
 == Streaming result sets

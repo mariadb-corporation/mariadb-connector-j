@@ -66,9 +66,8 @@ public class MySQLDataSource extends MariaDbDataSource {
      * @param hostname hostname (ipv4, ipv6, dns name)
      * @param port     server port
      * @param database database name
-     * @throws SQLException exception if connection failed
      */
-    public MySQLDataSource(String hostname, int port, String database) throws SQLException {
+    public MySQLDataSource(String hostname, int port, String database) {
         super(hostname, port, database);
     }
 

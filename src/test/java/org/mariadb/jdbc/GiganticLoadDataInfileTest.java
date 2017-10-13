@@ -93,7 +93,7 @@ public class GiganticLoadDataInfileTest extends BaseTest {
                     + " FIELDS TERMINATED BY '\\t' ENCLOSED BY ''"
                     + " ESCAPED BY '\\\\' LINES TERMINATED BY '\\n'";
 
-            statement.execute(sql);
+            assertTrue(statement.execute(sql));
             ResultSet resultSet = statement.executeQuery("select count(*) from gigantic_load_data_infile");
             assertTrue(resultSet.next());
             int numberOfRowsInTable = resultSet.getInt(1);
@@ -129,7 +129,7 @@ public class GiganticLoadDataInfileTest extends BaseTest {
             if (buffer == null) {
                 currentRow++;
                 currentPosInBuffer = 0;
-                buffer = new String(currentRow + "\tname" + currentRow + "\n").getBytes();
+                buffer = (currentRow + "\tname" + currentRow + "\n").getBytes();
             }
             return buffer[currentPosInBuffer++];
         }

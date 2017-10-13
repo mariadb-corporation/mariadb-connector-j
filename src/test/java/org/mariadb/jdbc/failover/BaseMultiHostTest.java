@@ -64,7 +64,6 @@ import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbPreparedStatementServer;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
-import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
@@ -105,7 +104,7 @@ public class BaseMultiHostTest {
     private static String auroraClusterIdentifier;
     private static String hostname;
     //hosts
-    private static HashMap<HaMode, TcpProxy[]> proxySet = new HashMap<HaMode, TcpProxy[]>();
+    private static final HashMap<HaMode, TcpProxy[]> proxySet = new HashMap<HaMode, TcpProxy[]>();
     public HaMode currentType;
     @Rule
     public TestRule watcher = new TestWatcher() {
@@ -127,10 +126,9 @@ public class BaseMultiHostTest {
      * Initialize parameters.
      *
      * @throws SQLException exception
-     * @throws IOException  exception
      */
     @BeforeClass
-    public static void beforeClass() throws SQLException, IOException {
+    public static void beforeClass() throws SQLException {
 
         initialUrl = System.getProperty("dbFailoverUrl");
         initialGaleraUrl = System.getProperty("defaultGaleraUrl");
@@ -195,14 +193,14 @@ public class BaseMultiHostTest {
         TcpProxy[] tcpProxies = new TcpProxy[tmpUrlParser.getHostAddresses().size()];
         username = tmpUrlParser.getUsername();
         hostname = tmpUrlParser.getHostAddresses().get(0).host;
-        String sockethosts = "";
+        StringBuilder sockethosts = new StringBuilder();
         HostAddress hostAddress;
         for (int i = 0; i < tmpUrlParser.getHostAddresses().size(); i++) {
             try {
                 hostAddress = tmpUrlParser.getHostAddresses().get(i);
                 tcpProxies[i] = new TcpProxy(hostAddress.host, hostAddress.port);
-                sockethosts += ",address=(host=localhost)(port=" + tcpProxies[i].getLocalPort() + ")"
-                        + ((hostAddress.type != null) ? "(type=" + hostAddress.type + ")" : "");
+                sockethosts.append(",address=(host=localhost)(port=").append(tcpProxies[i].getLocalPort()).append(")")
+                        .append((hostAddress.type != null) ? "(type=" + hostAddress.type + ")" : "");
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -223,8 +221,7 @@ public class BaseMultiHostTest {
             connection.setReadOnly(true);
             try {
                 Protocol protocol = (new BaseMultiHostTest().getProtocolFromConnection(connection));
-                UrlParser urlParser = protocol.getUrlParser();
-                return urlParser;
+                return protocol.getUrlParser();
             } catch (Throwable throwable) {
                 if (connection != null) connection.close();
                 return UrlParser.parse(tmpUrl);
@@ -236,19 +233,15 @@ public class BaseMultiHostTest {
 
     /**
      * Clean proxies.
-     *
-     * @throws SQLException exception
      */
     @AfterClass
-    public static void afterClass() throws SQLException {
-        if (proxySet != null) {
-            for (TcpProxy[] tcpProxies : proxySet.values()) {
-                for (TcpProxy tcpProxy : tcpProxies) {
-                    try {
-                        tcpProxy.stop();
-                    } catch (Exception e) {
-                        //Eat exception
-                    }
+    public static void afterClass() {
+        for (TcpProxy[] tcpProxies : proxySet.values()) {
+            for (TcpProxy tcpProxy : tcpProxies) {
+                try {
+                    tcpProxy.stop();
+                } catch (Exception e) {
+                    //Eat exception
                 }
             }
         }
@@ -257,11 +250,9 @@ public class BaseMultiHostTest {
     /**
      * Delete table and procedure if created.
      * Close connection if needed
-     *
-     * @throws SQLException exception
      */
     @After
-    public void afterBaseTest() throws SQLException {
+    public void afterBaseTest() {
         assureProxy();
         assureBlackList();
     }
@@ -399,16 +390,9 @@ public class BaseMultiHostTest {
 
     protected Protocol getProtocolFromConnection(Connection conn) throws Throwable {
 
-        Method getProtocol = MariaDbConnection.class.getDeclaredMethod("getProtocol", new Class[0]);
+        Method getProtocol = MariaDbConnection.class.getDeclaredMethod("getProtocol");
         getProtocol.setAccessible(true);
         return (Protocol) getProtocol.invoke(conn);
-    }
-
-    void setDbName(Connection connection, String newDbName) throws Throwable {
-        AuroraListener auroraListener = (AuroraListener) getProtocolFromConnection(connection).getProxy().getListener();
-        Field dbName = auroraListener.getClass().getDeclaredField("dbName");
-        dbName.setAccessible(true);
-        dbName.set(auroraListener, newDbName);
     }
 
     /**
@@ -442,13 +426,14 @@ public class BaseMultiHostTest {
         return protocol.inTransaction();
     }
 
-    boolean isMariaDbServer(Connection connection) throws SQLException {
+    protected boolean isMariaDbServer(Connection connection) throws SQLException {
         DatabaseMetaData md = connection.getMetaData();
-        return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
+        return md.getDatabaseProductVersion().contains("MariaDB");
     }
 
-    ServerPrepareResult getPrepareResult(MariaDbPreparedStatementServer preparedStatement) throws IllegalAccessException, NoSuchFieldException {
-        Field prepareResultField = MariaDbPreparedStatementServer.class.getDeclaredField("serverPrepareResult"); //NoSuchFieldException
+    protected ServerPrepareResult getPrepareResult(MariaDbPreparedStatementServer preparedStatement)
+            throws IllegalAccessException, NoSuchFieldException {
+        Field prepareResultField = MariaDbPreparedStatementServer.class.getDeclaredField("serverPrepareResult");
         prepareResultField.setAccessible(true);
         return (ServerPrepareResult) prepareResultField.get(preparedStatement); //IllegalAccessException
     }

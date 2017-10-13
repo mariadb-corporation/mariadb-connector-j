@@ -67,8 +67,6 @@ import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.RowProtocol;
 import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtocol;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
-import org.mariadb.jdbc.internal.logging.Logger;
-import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
@@ -95,16 +93,17 @@ import static org.mariadb.jdbc.internal.util.constant.ServerStatus.PS_OUT_PARAME
 
 @SuppressWarnings("deprecation")
 public class SelectResultSet implements ResultSet {
-    private static Logger logger = LoggerFactory.getLogger(SelectResultSet.class);
+
+    private static final String NOT_UPDATABLE_ERROR = "Updates are not supported when using ResultSet.CONCUR_READ_ONLY";
+    private static final int BIT_LAST_FIELD_NOT_NULL = 0;
+    private static final int BIT_LAST_FIELD_NULL     = 1;
+    private static final int BIT_LAST_ZERO_DATE      = 2;
+
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
     private static final ColumnInformation[] INSERT_ID_COLUMNS;
     private static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.[0-9]+$");
     private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
-
-    private static final int BIT_LAST_FIELD_NOT_NULL = 0;
-    private static final int BIT_LAST_FIELD_NULL     = 1;
-    private static final int BIT_LAST_ZERO_DATE      = 2;
 
     static {
         INSERT_ID_COLUMNS = new ColumnInformation[1];
@@ -114,16 +113,17 @@ public class SelectResultSet implements ResultSet {
     protected boolean isBinaryEncoded;
     protected TimeZone timeZone;
     protected Options options;
-    private boolean callableResult;
     private Protocol protocol;
     private PacketInputStream reader;
+    protected ColumnInformation[] columnsInformation;
+    private boolean isEof;
+    protected int columnInformationLength;
+    protected boolean noBackslashEscapes;
+    private boolean callableResult;
     private MariaDbStatement statement;
     private RowProtocol row;
-    private ColumnInformation[] columnsInformation;
-    private boolean isEof;
     private int dataFetchTime;
     private boolean streaming;
-    private int columnInformationLength;
     private byte[][] data;
     private int dataSize;
     private int fetchSize;
@@ -157,6 +157,7 @@ public class SelectResultSet implements ResultSet {
         this.isClosed = false;
         this.protocol = protocol;
         this.options = protocol.getOptions();
+        this.noBackslashEscapes = protocol.noBackslashEscapes();
         this.timeZone = protocol.getTimeZone();
         this.dataTypeMappingFlags = protocol.getDataTypeMappingFlags();
         this.returnTableAlias = this.options.useOldAliasMetadataBehavior;
@@ -291,9 +292,7 @@ public class SelectResultSet implements ResultSet {
         List<byte[]> rows = new ArrayList<byte[]>();
 
         for (String[] rowData : data) {
-            if (rowData.length != columnNameLength) {
-                throw new RuntimeException("Number of elements in the row != number of columns :" + rowData.length + " vs " + columnNameLength);
-            }
+            assert rowData.length == columnNameLength;
             byte[][] rowBytes = new byte[rowData.length][];
             for (int i = 0; i < rowData.length; i++) {
                 if (rowData[i] != null) rowBytes[i] = rowData[i].getBytes();
@@ -304,8 +303,17 @@ public class SelectResultSet implements ResultSet {
     }
 
     public static SelectResultSet createEmptyResultSet() {
-        return new SelectResultSet(INSERT_ID_COLUMNS, new ArrayList<byte[]>(), null,
+        return new SelectResultSet(INSERT_ID_COLUMNS, new ArrayList<>(), null,
                 TYPE_SCROLL_SENSITIVE);
+    }
+
+    /**
+     * Indicate if result-set is still streaming results from server.
+     * @return true if streaming is finished
+     */
+    public boolean isFullyLoaded() {
+        //result-set is fully loaded when reaching EOF packet.
+        return isEof;
     }
 
     private void fetchAllResults() throws IOException, SQLException {
@@ -390,7 +398,7 @@ public class SelectResultSet implements ResultSet {
      * @throws IOException  exception
      * @throws SQLException exception
      */
-    public boolean readNextValue() throws IOException, SQLException {
+    private boolean readNextValue() throws IOException, SQLException {
         byte[] buf = reader.getPacketArray(false);
 
         //is error Packet
@@ -400,13 +408,8 @@ public class SelectResultSet implements ResultSet {
             protocol.setHasWarnings(false);
             ErrorPacket errorPacket = new ErrorPacket(new Buffer(buf));
             resetVariables();
-            if (statement != null) {
-                throw ExceptionMapper.getException(new SQLException("(conn:" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
-                        errorPacket.getSqlState(), errorPacket.getErrorNumber()), null, statement, false);
-            } else {
-                throw ExceptionMapper.getException(new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(),
-                        errorPacket.getErrorNumber()), null, statement, false);
-            }
+            throw ExceptionMapper.get(errorPacket.getMessage(), errorPacket.getSqlState(),
+                    errorPacket.getErrorNumber(), null,false);
         }
 
         //is end of stream
@@ -436,7 +439,7 @@ public class SelectResultSet implements ResultSet {
                 int pos = skipLengthEncodedValue(buf, 1); //skip update count
                 pos = skipLengthEncodedValue(buf, pos); //skip insert id
                 serverStatus = ((buf[pos++] & 0xff) + ((buf[pos++] & 0xff) << 8));
-                warnings = (buf[pos++] & 0xff) + ((buf[pos++] & 0xff) << 8);
+                warnings = (buf[pos++] & 0xff) + ((buf[pos] & 0xff) << 8);
                 callableResult = (serverStatus & PS_OUT_PARAMETERS) != 0;
             }
             protocol.setServerStatus((short) serverStatus);
@@ -444,7 +447,6 @@ public class SelectResultSet implements ResultSet {
             if ((serverStatus & MORE_RESULTS_EXISTS) == 0) protocol.removeActiveStreamingResult();
 
             resetVariables();
-
             return false;
         }
 
@@ -454,33 +456,70 @@ public class SelectResultSet implements ResultSet {
         return true;
     }
 
+    /**
+     * Get current row's raw bytes.
+     * @return row's raw bytes
+     */
+    protected byte[] getCurrentRowData() {
+        return data[rowPointer];
+    }
+
+    /**
+     * Update row's raw bytes.
+     * in case of row update, refresh the data.
+     * (format must correspond to current resultset binary/text row encryption)
+     *
+     * @param rawData new row's raw data.
+     */
+    protected void updateRowData(byte[] rawData) {
+        data[rowPointer] = rawData;
+        row.resetRow(data[rowPointer]);
+    }
+
+    /**
+     * Delete current data.
+     * Position cursor to the previous row.
+     * @throws SQLException if previous() fail.
+     */
+    protected void deleteCurrentRowData() throws SQLException {
+        //move data
+        System.arraycopy(data, rowPointer + 1, data, rowPointer, dataSize - 1 - rowPointer);
+        data[dataSize - 1] = null;
+        dataSize--;
+        lastRowPointer = -1;
+        previous();
+    }
+
+    protected void addRowData(byte[] rawData) {
+        if (dataSize + 1 >= data.length) growDataArray();
+        data[dataSize] = rawData;
+        rowPointer = dataSize;
+        dataSize++;
+    }
+
     private int skipLengthEncodedValue(byte[] buf, int pos) {
         int type = buf[pos++] & 0xff;
         switch (type) {
             case 251:
-                break;
+                return pos;
             case 252:
-                pos += 2 + (0xffff & (((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8))));
-                break;
+                return pos + 2 + (0xffff & (((buf[pos] & 0xff) + ((buf[pos + 1] & 0xff) << 8))));
             case 253:
-                pos += 3 + (0xffffff & ((buf[pos] & 0xff)
+                return pos + 3 + (0xffffff & ((buf[pos] & 0xff)
                         + ((buf[pos + 1] & 0xff) << 8)
                         + ((buf[pos + 2] & 0xff) << 16)));
-                break;
             case 254:
-                pos += 8 + ((buf[pos] & 0xff)
+                return (int) (pos + 8 + ((buf[pos] & 0xff)
                         + ((long) (buf[pos + 1] & 0xff) << 8)
                         + ((long) (buf[pos + 2] & 0xff) << 16)
                         + ((long) (buf[pos + 3] & 0xff) << 24)
                         + ((long) (buf[pos + 4] & 0xff) << 32)
                         + ((long) (buf[pos + 5] & 0xff) << 40)
                         + ((long) (buf[pos + 6] & 0xff) << 48)
-                        + ((long) (buf[pos + 7] & 0xff) << 56));
-                break;
+                        + ((long) (buf[pos + 7] & 0xff) << 56)));
             default:
-                pos += type;
+                return pos + type;
         }
-        return pos;
     }
 
     /**
@@ -490,6 +529,23 @@ public class SelectResultSet implements ResultSet {
         int newCapacity = data.length + (data.length >> 1);
         if (newCapacity - MAX_ARRAY_SIZE > 0) newCapacity = MAX_ARRAY_SIZE;
         data = Arrays.copyOf(data, newCapacity);
+    }
+
+    /**
+     * Connection.abort() has been called, abort result-set.
+     * @throws SQLException exception
+     */
+    public void abort() throws SQLException {
+        isClosed = true;
+        resetVariables();
+
+        //keep garbage easy
+        for (int i = 0; i < data.length; i++) data[i] = null;
+
+        if (statement != null) {
+            statement.checkCloseOnCompletion(this);
+            statement = null;
+        }
     }
 
     /**
@@ -716,7 +772,7 @@ public class SelectResultSet implements ResultSet {
         checkClose();
         fetchRemaining();
         rowPointer = dataSize - 1;
-        return rowPointer > 0;
+        return dataSize > 0;
     }
 
     @Override
@@ -922,10 +978,7 @@ public class SelectResultSet implements ResultSet {
                 return new String(row.buf, row.pos, row.length, Buffer.UTF_8);
 
             case BIT:
-                if (options.tinyInt1isBit && columnInfo.getLength() == 1) {
-                    return (row.buf[row.pos] == 0) ? "0" : "1";
-                }
-                break;
+                return String.valueOf(parseBit());
             case TINYINT:
                 if (this.isBinaryEncoded) {
                     return zeroFillingIfNeeded(String.valueOf(getInternalTinyInt(columnInfo)), columnInfo);
@@ -961,7 +1014,6 @@ public class SelectResultSet implements ResultSet {
                     Date date = getInternalDate(columnInfo, cal);
                     if (date == null) {
                         if (!isBinaryEncoded) {
-                            //row data is not null but result is null -> this is "zero-date"
                             //specific for "zero-date", getString will return "zero-date" value -> wasNull() must then return false
                             lastValueNull ^= BIT_LAST_ZERO_DATE;
                             return new String(row.buf, row.pos, row.length, Buffer.UTF_8);
@@ -985,7 +1037,6 @@ public class SelectResultSet implements ResultSet {
                 Timestamp timestamp = getInternalTimestamp(columnInfo, cal);
                 if (timestamp == null) {
                     if (!isBinaryEncoded) {
-                        //row data is not null but result is null -> this is "zero-date"
                         //specific for "zero-date", getString will return "zero-date" value -> wasNull() must then return false
                         lastValueNull ^= BIT_LAST_ZERO_DATE;
                         return new String(row.buf, row.pos, row.length, Buffer.UTF_8);
@@ -1063,13 +1114,14 @@ public class SelectResultSet implements ResultSet {
     private int getInternalInt(ColumnInformation columnInfo) throws SQLException {
         if (lastValueWasNull()) return 0;
 
+        long value;
         if (!this.isBinaryEncoded) {
-            return parseInt(columnInfo);
+            value = parseLong(columnInfo);
         } else {
-            long value;
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos];
+                    value = parseBit();
+                    break;
                 case TINYINT:
                     value = getInternalTinyInt(columnInfo);
                     break;
@@ -1099,11 +1151,12 @@ public class SelectResultSet implements ResultSet {
                     value = (long) getInternalDouble(columnInfo);
                     break;
                 default:
-                    return parseInt(columnInfo);
+                    value = parseLong(columnInfo);
+                    break;
             }
-            rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
-            return (int) value;
         }
+        rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
+        return (int) value;
     }
 
     /**
@@ -1137,7 +1190,7 @@ public class SelectResultSet implements ResultSet {
             long value;
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos];
+                    return parseBit();
                 case TINYINT:
                     value = getInternalTinyInt(columnInfo);
                     break;
@@ -1164,7 +1217,7 @@ public class SelectResultSet implements ResultSet {
                     BigInteger unsignedValue = new BigInteger(1, new byte[]{(byte) (value >> 56),
                             (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
                             (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                            (byte) (value >> 0)});
+                            (byte) value});
                     if (unsignedValue.compareTo(new BigInteger(String.valueOf(Long.MAX_VALUE))) > 0) {
                         throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
                                 + unsignedValue + " is not in Long range", "22003", 1264);
@@ -1215,13 +1268,14 @@ public class SelectResultSet implements ResultSet {
      * @return float
      * @throws SQLException id any error occur
      */
+    @SuppressWarnings("UnnecessaryInitCause")
     private float getInternalFloat(ColumnInformation columnInfo) throws SQLException {
         if (lastValueWasNull()) return 0;
 
         if (!this.isBinaryEncoded) {
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos];
+                    return parseBit();
                 case TINYINT:
                 case SMALLINT:
                 case YEAR:
@@ -1241,6 +1295,7 @@ public class SelectResultSet implements ResultSet {
                         SQLException sqlException = new SQLException("Incorrect format \""
                                 + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
                                 + "\" for getFloat for data field with type " + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
+                        //noinspection UnnecessaryInitCause
                         sqlException.initCause(nfe);
                         throw sqlException;
                     }
@@ -1251,7 +1306,7 @@ public class SelectResultSet implements ResultSet {
             long value;
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos];
+                    return parseBit();
                 case TINYINT:
                     value = getInternalTinyInt(columnInfo);
                     break;
@@ -1278,7 +1333,7 @@ public class SelectResultSet implements ResultSet {
                     BigInteger unsignedValue = new BigInteger(1, new byte[]{(byte) (value >> 56),
                             (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
                             (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                            (byte) (value >> 0)});
+                            (byte) value});
                     return unsignedValue.floatValue();
                 case FLOAT:
                     int valueFloat = ((row.buf[row.pos] & 0xff)
@@ -1344,7 +1399,7 @@ public class SelectResultSet implements ResultSet {
         if (!this.isBinaryEncoded) {
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos];
+                    return parseBit();
                 case TINYINT:
                 case SMALLINT:
                 case YEAR:
@@ -1364,6 +1419,7 @@ public class SelectResultSet implements ResultSet {
                         SQLException sqlException = new SQLException("Incorrect format \""
                                 + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
                                 + "\" for getDouble for data field with type " + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
+                        //noinspection UnnecessaryInitCause
                         sqlException.initCause(nfe);
                         throw sqlException;
                     }
@@ -1373,7 +1429,7 @@ public class SelectResultSet implements ResultSet {
         } else {
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos];
+                    return parseBit();
                 case TINYINT:
                     return getInternalTinyInt(columnInfo);
                 case SMALLINT:
@@ -1398,7 +1454,7 @@ public class SelectResultSet implements ResultSet {
                         return new BigInteger(1, new byte[]{(byte) (valueLong >> 56),
                                 (byte) (valueLong >> 48), (byte) (valueLong >> 40), (byte) (valueLong >> 32),
                                 (byte) (valueLong >> 24), (byte) (valueLong >> 16), (byte) (valueLong >> 8),
-                                (byte) (valueLong >> 0)}).doubleValue();
+                                (byte) valueLong}).doubleValue();
                     }
                 case FLOAT:
                     return getInternalFloat(columnInfo);
@@ -1422,6 +1478,7 @@ public class SelectResultSet implements ResultSet {
                     } catch (NumberFormatException nfe) {
                         SQLException sqlException = new SQLException("Incorrect format for getDouble for data field with type "
                                 + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
+                        //noinspection UnnecessaryInitCause
                         sqlException.initCause(nfe);
                         throw sqlException;
                     }
@@ -1474,11 +1531,14 @@ public class SelectResultSet implements ResultSet {
         if (lastValueWasNull()) return null;
 
         if (!this.isBinaryEncoded) {
+            if (columnInfo.getColumnType() == ColumnType.BIT) {
+                return BigDecimal.valueOf(parseBit());
+            }
             return new BigDecimal(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
         } else {
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return BigDecimal.valueOf((long) row.buf[row.pos]);
+                    return BigDecimal.valueOf(parseBit());
                 case TINYINT:
                     return BigDecimal.valueOf((long) getInternalTinyInt(columnInfo));
                 case SMALLINT:
@@ -1503,7 +1563,7 @@ public class SelectResultSet implements ResultSet {
                         return new BigDecimal(String.valueOf(new BigInteger(1, new byte[]{(byte) (value >> 56),
                                 (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
                                 (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                                (byte) (value >> 0)}))).setScale(columnInfo.getDecimals());
+                                (byte) value}))).setScale(columnInfo.getDecimals());
                     }
                 case FLOAT:
                     return BigDecimal.valueOf(getInternalFloat(columnInfo));
@@ -1578,7 +1638,6 @@ public class SelectResultSet implements ResultSet {
 
         if (!this.isBinaryEncoded) {
             String rawValue = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
-
             switch (columnInfo.getColumnType()) {
                 case TIMESTAMP:
                 case DATETIME:
@@ -1702,7 +1761,7 @@ public class SelectResultSet implements ResultSet {
                         calendar.setLenient(true);
                     }
                     calendar.clear();
-                    calendar.set(1970, 0, 1, (negate ? -1 : 1) * hour, minutes, seconds);
+                    calendar.set(1970, Calendar.JANUARY, 1, (negate ? -1 : 1) * hour, minutes, seconds);
                     int nanoseconds = extractNanos(raw);
                     calendar.set(Calendar.MILLISECOND, nanoseconds / 1000000);
 
@@ -1755,6 +1814,7 @@ public class SelectResultSet implements ResultSet {
      * @return timestamp.
      * @throws SQLException if text value cannot be parse
      */
+    @SuppressWarnings("ConstantConditions")
     private Timestamp getInternalTimestamp(ColumnInformation columnInfo, Calendar userCalendar) throws SQLException {
         if (lastValueWasNull()) return null;
 
@@ -1810,9 +1870,7 @@ public class SelectResultSet implements ResultSet {
                         }
                         timestamp.setNanos(nanoseconds);
                         return timestamp;
-                    } catch (NumberFormatException n) {
-                        throw new SQLException("Value \"" + rawValue + "\" cannot be parse as Timestamp");
-                    } catch (StringIndexOutOfBoundsException s) {
+                    } catch (NumberFormatException | StringIndexOutOfBoundsException n) {
                         throw new SQLException("Value \"" + rawValue + "\" cannot be parse as Timestamp");
                     }
             }
@@ -1937,7 +1995,7 @@ public class SelectResultSet implements ResultSet {
         } else if (type.equals(Boolean.class)) {
             return (T) (Boolean) getInternalBoolean(col);
 
-        } else if (type.equals(java.util.Calendar.class)) {
+        } else if (type.equals(Calendar.class)) {
             Calendar calendar = Calendar.getInstance(timeZone);
             Timestamp timestamp = getInternalTimestamp(col, null);
             if (timestamp == null) return null;
@@ -1983,7 +2041,7 @@ public class SelectResultSet implements ResultSet {
      * @param columnInfo           current column information
      * @param dataTypeMappingFlags dataTypeflag (year is date or int, bit boolean or int,  ...)
      * @return the object value.
-     * @throws ParseException if data cannot be parse
+     * @throws SQLException if any read error occur
      */
     private Object getInternalObject(ColumnInformation columnInfo, int dataTypeMappingFlags)
             throws SQLException {
@@ -2119,432 +2177,13 @@ public class SelectResultSet implements ResultSet {
         return getCharacterStream(findColumn(columnLabel));
     }
 
-    /**
-     * {inheritDoc}.
-     */
-    public boolean rowUpdated() throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Detecting row updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public boolean rowInserted() throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Detecting inserts are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public boolean rowDeleted() throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Row deletes are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateNull(int columnIndex) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateNull(String columnLabel) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBoolean(int columnIndex, boolean bool) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBoolean(String columnLabel, boolean value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateByte(int columnIndex, byte value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateByte(String columnLabel, byte value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateShort(int columnIndex, short value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateShort(String columnLabel, short value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateInt(int columnIndex, int value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateInt(String columnLabel, int value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateFloat(int columnIndex, float value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateFloat(String columnLabel, float value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateDouble(int columnIndex, double value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateDouble(String columnLabel, double value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBigDecimal(int columnIndex, BigDecimal value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBigDecimal(String columnLabel, BigDecimal value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateString(int columnIndex, String value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateString(String columnLabel, String value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBytes(int columnIndex, byte[] value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBytes(String columnLabel, byte[] value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateDate(int columnIndex, Date date) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateDate(String columnLabel, Date value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateTime(int columnIndex, Time time) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateTime(String columnLabel, Time value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateTimestamp(int columnIndex, Timestamp timeStamp) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateTimestamp(String columnLabel, Timestamp value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateAsciiStream(int columnIndex, InputStream inputStream, int length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateAsciiStream(String columnLabel, InputStream inputStream) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateAsciiStream(String columnLabel, InputStream value, int length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateAsciiStream(int columnIndex, InputStream inputStream, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateAsciiStream(String columnLabel, InputStream inputStream, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateAsciiStream(int columnIndex, InputStream inputStream) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBinaryStream(int columnIndex, InputStream inputStream, int length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBinaryStream(int columnIndex, InputStream inputStream, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBinaryStream(String columnLabel, InputStream value, int length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBinaryStream(String columnLabel, InputStream inputStream, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBinaryStream(int columnIndex, InputStream inputStream) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBinaryStream(String columnLabel, InputStream inputStream) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateCharacterStream(int columnIndex, Reader value, int length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateCharacterStream(int columnIndex, Reader value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateCharacterStream(String columnLabel, Reader reader, int length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateCharacterStream(int columnIndex, Reader value, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateObject(int columnIndex, Object value, int scaleOrLength) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateObject(int columnIndex, Object value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateObject(String columnLabel, Object value, int scaleOrLength) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateObject(String columnLabel, Object value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateLong(String columnLabel, long value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateLong(int columnIndex, long value) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void insertRow() throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateRow() throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void deleteRow() throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void refreshRow() throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Row refresh is not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void cancelRowUpdates() throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void moveToInsertRow() throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void moveToCurrentRow() throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
 
     /**
      * {inheritDoc}.
      */
     public Ref getRef(int columnIndex) throws SQLException {
         // TODO: figure out what REF's are and implement this method
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
     }
 
     /**
@@ -2629,117 +2268,6 @@ public class SelectResultSet implements ResultSet {
         return getURL(findColumn(columnLabel));
     }
 
-    /**
-     * {inheritDoc}.
-     */
-    public void updateRef(int columnIndex, Ref ref) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateRef(String columnLabel, Ref ref) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBlob(int columnIndex, Blob blob) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBlob(String columnLabel, Blob blob) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBlob(int columnIndex, InputStream inputStream, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateBlob(String columnLabel, InputStream inputStream, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateClob(int columnIndex, Clob clob) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateClob(String columnLabel, Clob clob) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateClob(int columnIndex, Reader reader, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateClob(String columnLabel, Reader reader, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateClob(int columnIndex, Reader reader) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateClob(String columnLabel, Reader reader) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateArray(int columnIndex, Array array) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateArray(String columnLabel, Array array) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
 
     /**
      * {inheritDoc}.
@@ -2753,85 +2281,6 @@ public class SelectResultSet implements ResultSet {
      */
     public RowId getRowId(String columnLabel) throws SQLException {
         throw ExceptionMapper.getFeatureNotSupportedException("RowIDs not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateRowId(int columnIndex, RowId rowId) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateRowId(String columnLabel, RowId rowId) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public int getHoldability() throws SQLException {
-        return ResultSet.HOLD_CURSORS_OVER_COMMIT;
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateNString(int columnIndex, String nstring) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateNString(String columnLabel, String nstring) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateNClob(int columnIndex, NClob nclob) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateNClob(String columnLabel, NClob nclob) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates are not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateNClob(int columnIndex, Reader reader) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateNClob(String columnLabel, Reader reader) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateNClob(int columnIndex, Reader reader, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateNClob(String columnLabel, Reader reader, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2872,22 +2321,6 @@ public class SelectResultSet implements ResultSet {
     /**
      * {inheritDoc}.
      */
-    @Override
-    public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    @Override
-    public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
     public String getNString(int columnIndex) throws SQLException {
         return getString(columnIndex);
     }
@@ -2897,34 +2330,6 @@ public class SelectResultSet implements ResultSet {
      */
     public String getNString(String columnLabel) throws SQLException {
         return getString(findColumn(columnLabel));
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateNCharacterStream(int columnIndex, Reader value, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateNCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateNCharacterStream(int columnIndex, Reader reader) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public void updateNCharacterStream(String columnLabel, Reader reader) throws SQLException {
-        throw ExceptionMapper.getFeatureNotSupportedException("Updates not supported");
     }
 
     /**
@@ -2944,6 +2349,691 @@ public class SelectResultSet implements ResultSet {
 
 
     /**
+     * {inheritDoc}.
+     */
+    public byte getByte(int index) throws SQLException {
+        checkObjectRange(index);
+        return getInternalByte(columnsInformation[index - 1]);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public byte getByte(String columnLabel) throws SQLException {
+        return getByte(findColumn(columnLabel));
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public short getShort(int index) throws SQLException {
+        checkObjectRange(index);
+        return getInternalShort(columnsInformation[index - 1]);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public short getShort(String columnLabel) throws SQLException {
+        return getShort(findColumn(columnLabel));
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public boolean rowUpdated() throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException("Detecting row updates are not supported");
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public boolean rowInserted() throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException("Detecting inserts are not supported");
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public boolean rowDeleted() throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException("Row deletes are not supported");
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void insertRow() throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException("insertRow are not supported when using ResultSet.CONCUR_READ_ONLY");
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void deleteRow() throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException("deleteRow are not supported when using ResultSet.CONCUR_READ_ONLY");
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void refreshRow() throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException("refreshRow are not supported when using ResultSet.CONCUR_READ_ONLY");
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void cancelRowUpdates() throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void moveToInsertRow() throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void moveToCurrentRow() throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateNull(int columnIndex) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateNull(String columnLabel) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBoolean(int columnIndex, boolean bool) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBoolean(String columnLabel, boolean value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateByte(int columnIndex, byte value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateByte(String columnLabel, byte value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateShort(int columnIndex, short value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateShort(String columnLabel, short value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateInt(int columnIndex, int value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateInt(String columnLabel, int value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateFloat(int columnIndex, float value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateFloat(String columnLabel, float value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateDouble(int columnIndex, double value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateDouble(String columnLabel, double value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBigDecimal(int columnIndex, BigDecimal value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBigDecimal(String columnLabel, BigDecimal value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateString(int columnIndex, String value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateString(String columnLabel, String value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBytes(int columnIndex, byte[] value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBytes(String columnLabel, byte[] value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateDate(int columnIndex, Date date) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateDate(String columnLabel, Date value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateTime(int columnIndex, Time time) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateTime(String columnLabel, Time value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateTimestamp(int columnIndex, Timestamp timeStamp) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateTimestamp(String columnLabel, Timestamp value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateAsciiStream(int columnIndex, InputStream inputStream, int length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateAsciiStream(String columnLabel, InputStream inputStream) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateAsciiStream(String columnLabel, InputStream value, int length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateAsciiStream(int columnIndex, InputStream inputStream, long length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateAsciiStream(String columnLabel, InputStream inputStream, long length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateAsciiStream(int columnIndex, InputStream inputStream) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBinaryStream(int columnIndex, InputStream inputStream, int length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBinaryStream(int columnIndex, InputStream inputStream, long length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBinaryStream(String columnLabel, InputStream value, int length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBinaryStream(String columnLabel, InputStream inputStream, long length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBinaryStream(int columnIndex, InputStream inputStream) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBinaryStream(String columnLabel, InputStream inputStream) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateCharacterStream(int columnIndex, Reader value, int length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateCharacterStream(int columnIndex, Reader value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateCharacterStream(String columnLabel, Reader reader, int length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateCharacterStream(int columnIndex, Reader value, long length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateCharacterStream(String columnLabel, Reader reader) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateObject(int columnIndex, Object value, int scaleOrLength) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateObject(int columnIndex, Object value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateObject(String columnLabel, Object value, int scaleOrLength) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateObject(String columnLabel, Object value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateLong(String columnLabel, long value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateLong(int columnIndex, long value) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateRow() throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException("updateRow are not supported when using ResultSet.CONCUR_READ_ONLY");
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateRef(int columnIndex, Ref ref) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateRef(String columnLabel, Ref ref) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBlob(int columnIndex, Blob blob) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBlob(String columnLabel, Blob blob) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBlob(int columnIndex, InputStream inputStream) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBlob(String columnLabel, InputStream inputStream) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBlob(int columnIndex, InputStream inputStream, long length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateBlob(String columnLabel, InputStream inputStream, long length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateClob(int columnIndex, Clob clob) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateClob(String columnLabel, Clob clob) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateClob(int columnIndex, Reader reader, long length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateClob(String columnLabel, Reader reader, long length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateClob(int columnIndex, Reader reader) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateClob(String columnLabel, Reader reader) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateArray(int columnIndex, Array array) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateArray(String columnLabel, Array array) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateRowId(int columnIndex, RowId rowId) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateRowId(String columnLabel, RowId rowId) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateNString(int columnIndex, String nstring) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateNString(String columnLabel, String nstring) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateNClob(int columnIndex, NClob nclob) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateNClob(String columnLabel, NClob nclob) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateNClob(int columnIndex, Reader reader) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateNClob(String columnLabel, Reader reader) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateNClob(int columnIndex, Reader reader, long length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateNClob(String columnLabel, Reader reader, long length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    @Override
+    public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    @Override
+    public void updateSQLXML(String columnLabel, SQLXML xmlObject) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException("SQLXML not supported");
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateNCharacterStream(int columnIndex, Reader value, long length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateNCharacterStream(String columnLabel, Reader reader, long length) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateNCharacterStream(int columnIndex, Reader reader) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public void updateNCharacterStream(String columnLabel, Reader reader) throws SQLException {
+        throw ExceptionMapper.getFeatureNotSupportedException(NOT_UPDATABLE_ERROR);
+    }
+
+    /**
+     * {inheritDoc}.
+     */
+    public int getHoldability() throws SQLException {
+        return ResultSet.HOLD_CURSORS_OVER_COMMIT;
+    }
+
+    /**
      * Get boolean value from raw data.
      *
      * @param columnInfo current column information
@@ -2954,15 +3044,13 @@ public class SelectResultSet implements ResultSet {
         if (lastValueWasNull()) return false;
 
         if (!this.isBinaryEncoded) {
-            if (row.length == 1 && row.buf[row.pos] == 0) {
-                return false;
-            }
+            if (columnInfo.getColumnType() == ColumnType.BIT) return parseBit() != 0;
             final String rawVal = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
             return !("false".equals(rawVal) || "0".equals(rawVal));
         } else {
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos] != 0;
+                    return parseBit() != 0;
                 case TINYINT:
                     return getInternalTinyInt(columnInfo) != 0;
                 case SMALLINT:
@@ -2985,21 +3073,6 @@ public class SelectResultSet implements ResultSet {
     }
 
     /**
-     * {inheritDoc}.
-     */
-    public byte getByte(int index) throws SQLException {
-        checkObjectRange(index);
-        return getInternalByte(columnsInformation[index - 1]);
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public byte getByte(String columnLabel) throws SQLException {
-        return getByte(findColumn(columnLabel));
-    }
-
-    /**
      * Get byte from raw data.
      *
      * @param columnInfo current column information
@@ -3008,17 +3081,11 @@ public class SelectResultSet implements ResultSet {
      */
     private byte getInternalByte(ColumnInformation columnInfo) throws SQLException {
         if (lastValueWasNull()) return 0;
-
+        long value;
         if (!this.isBinaryEncoded) {
-            if (columnInfo.getColumnType() == ColumnType.BIT) {
-                return row.buf[row.pos];
-            }
-            return parseByte(columnInfo);
+            value = parseLong(columnInfo);
         } else {
-            long value;
             switch (columnInfo.getColumnType()) {
-                case BIT:
-                    return row.buf[row.pos];
                 case TINYINT:
                     value = getInternalTinyInt(columnInfo);
                     break;
@@ -3040,26 +3107,11 @@ public class SelectResultSet implements ResultSet {
                     value = (long) getInternalDouble(columnInfo);
                     break;
                 default:
-                    return parseByte(columnInfo);
+                    value = parseLong(columnInfo);
             }
-            rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
-            return (byte) value;
         }
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public short getShort(int index) throws SQLException {
-        checkObjectRange(index);
-        return getInternalShort(columnsInformation[index - 1]);
-    }
-
-    /**
-     * {inheritDoc}.
-     */
-    public short getShort(String columnLabel) throws SQLException {
-        return getShort(findColumn(columnLabel));
+        rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
+        return (byte) value;
     }
 
     /**
@@ -3072,13 +3124,14 @@ public class SelectResultSet implements ResultSet {
     private short getInternalShort(ColumnInformation columnInfo) throws SQLException {
         if (lastValueWasNull()) return 0;
 
+        long value;
         if (!this.isBinaryEncoded) {
-            return parseShort(columnInfo);
+            value = parseLong(columnInfo);
         } else {
-            long value;
             switch (columnInfo.getColumnType()) {
                 case BIT:
-                    return row.buf[row.pos];
+                    value = parseBit();
+                    break;
                 case TINYINT:
                     value = getInternalTinyInt(columnInfo);
                     break;
@@ -3104,11 +3157,12 @@ public class SelectResultSet implements ResultSet {
                     value = (long) getInternalDouble(columnInfo);
                     break;
                 default:
-                    return parseShort(columnInfo);
+                    value = parseLong(columnInfo);
+                    break;
             }
-            rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
-            return (short) value;
         }
+        rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
+        return (short) value;
     }
 
     /**
@@ -3144,10 +3198,10 @@ public class SelectResultSet implements ResultSet {
             if (columnInfo.getDecimals() == 0) {
                 return "00:00:00";
             } else {
-                String value = "00:00:00.";
+                StringBuilder value = new StringBuilder("00:00:00.");
                 int decimal = columnInfo.getDecimals();
-                while (decimal-- > 0) value += "0";
-                return value;
+                while (decimal-- > 0) value.append("0");
+                return value.toString();
             }
         }
         String rawValue = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
@@ -3197,9 +3251,9 @@ public class SelectResultSet implements ResultSet {
                     | (row.buf[row.pos + 11] & 0xff) << 24);
         }
 
-        String microsecondString = Integer.toString(microseconds);
+        StringBuilder microsecondString = new StringBuilder(Integer.toString(microseconds));
         while (microsecondString.length() < 6) {
-            microsecondString = "0" + microsecondString;
+            microsecondString.insert(0, "0");
         }
         boolean negative = (row.buf[row.pos] == 0x01);
         return (negative ? "-" : "") + (hourString + ":" + minuteString + ":" + secondString + "." + microsecondString);
@@ -3213,7 +3267,7 @@ public class SelectResultSet implements ResultSet {
         }
     }
 
-    private int getInternalTinyInt(ColumnInformation columnInfo) throws SQLException {
+    private int getInternalTinyInt(ColumnInformation columnInfo) {
         if (lastValueWasNull()) return 0;
         int value = row.buf[row.pos];
         if (!columnInfo.isSigned()) {
@@ -3222,7 +3276,7 @@ public class SelectResultSet implements ResultSet {
         return value;
     }
 
-    private int getInternalSmallInt(ColumnInformation columnInfo) throws SQLException {
+    private int getInternalSmallInt(ColumnInformation columnInfo) {
         if (lastValueWasNull()) return 0;
         int value = ((row.buf[row.pos] & 0xff) + ((row.buf[row.pos + 1] & 0xff) << 8));
         if (!columnInfo.isSigned()) {
@@ -3232,7 +3286,7 @@ public class SelectResultSet implements ResultSet {
         return (short) value;
     }
 
-    private long getInternalMediumInt(ColumnInformation columnInfo) throws SQLException {
+    private long getInternalMediumInt(ColumnInformation columnInfo) {
         if (lastValueWasNull()) return 0;
         long value = ((row.buf[row.pos] & 0xff)
                 + ((row.buf[row.pos + 1] & 0xff) << 8)
@@ -3244,188 +3298,14 @@ public class SelectResultSet implements ResultSet {
         return value;
     }
 
-
-    private byte parseByte(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return 0;
-        try {
-            switch (columnInfo.getColumnType()) {
-                case FLOAT:
-                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
-                    if (floatValue.compareTo((float) Byte.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
-                                + " is not in Byte range", "22003", 1264);
-                    }
-                    return floatValue.byteValue();
-                case DOUBLE:
-                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
-                    if (doubleValue.compareTo((double) Byte.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
-                                + " is not in Byte range", "22003", 1264);
-                    }
-                    return doubleValue.byteValue();
-                case TINYINT:
-                case SMALLINT:
-                case YEAR:
-                case INTEGER:
-                case MEDIUMINT:
-                    long result = 0;
-                    int length = row.length;
-                    boolean negate = false;
-                    int begin = row.pos;
-                    if (length > 0 && row.buf[begin] == 45) { //minus sign
-                        negate = true;
-                        begin++;
-                    }
-                    for (; begin < row.pos + length; begin++) {
-                        result = result * 10 + row.buf[begin] - 48;
-                    }
-                    result = (negate ? -1 * result : result);
-                    rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, result, columnInfo);
-                    return (byte) result;
-                default:
-                    return Byte.parseByte(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
-            }
-        } catch (NumberFormatException nfe) {
-            //parse error.
-            //if its a decimal retry without the decimal part.
-            String value = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
-            if (isIntegerRegex.matcher(value).find()) {
-                try {
-                    return Byte.parseByte(value.substring(0, value.indexOf(".")));
-                } catch (NumberFormatException nfee) {
-                    //eat exception
-                }
-            }
-            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
-                    + " is not in Byte range",
-                    "22003", 1264);
-        }
-    }
-
-    private short parseShort(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return 0;
-        try {
-            switch (columnInfo.getColumnType()) {
-                case FLOAT:
-                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
-                    if (floatValue.compareTo((float) Short.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
-                                + " is not in Short range", "22003", 1264);
-                    }
-                    return floatValue.shortValue();
-                case DOUBLE:
-                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
-                    if (doubleValue.compareTo((double) Short.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
-                                + " is not in Short range", "22003", 1264);
-                    }
-                    return doubleValue.shortValue();
-                case BIT:
-                case TINYINT:
-                case SMALLINT:
-                case YEAR:
-                case INTEGER:
-                case MEDIUMINT:
-                    long result = 0;
-                    int length = row.length;
-                    boolean negate = false;
-                    int begin = row.pos;
-                    if (length > 0 && row.buf[begin] == 45) { //minus sign
-                        negate = true;
-                        begin++;
-                    }
-                    for (; begin < row.pos + length; begin++) {
-                        result = result * 10 + row.buf[begin] - 48;
-                    }
-                    result = (negate ? -1 * result : result);
-                    rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, result, columnInfo);
-                    return (short) result;
-                default:
-                    return Short.parseShort(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
-            }
-        } catch (NumberFormatException nfe) {
-            //parse error.
-            //if its a decimal retry without the decimal part.
-            String value = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
-            if (isIntegerRegex.matcher(value).find()) {
-                try {
-                    return Short.parseShort(value.substring(0, value.indexOf(".")));
-                } catch (NumberFormatException numberFormatException) {
-                    //eat exception
-                }
-            }
-            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
-                    + " is not in Short range", "22003", 1264);
-        }
-    }
-
-
-    private int parseInt(ColumnInformation columnInfo) throws SQLException {
-        try {
-            switch (columnInfo.getColumnType()) {
-                case FLOAT:
-                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
-                    if (floatValue.compareTo((float) Integer.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
-                                + " is not in Integer range", "22003", 1264);
-                    }
-                    return floatValue.intValue();
-                case DOUBLE:
-                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
-                    if (doubleValue.compareTo((double) Integer.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
-                                + " is not in Integer range", "22003", 1264);
-                    }
-                    return doubleValue.intValue();
-                case BIT:
-                case TINYINT:
-                case SMALLINT:
-                case YEAR:
-                case INTEGER:
-                case MEDIUMINT:
-                case BIGINT:
-                    long result = 0;
-                    boolean negate = false;
-                    int begin = row.pos;
-                    if (row.length > 0 && row.buf[begin] == 45) { //minus sign
-                        negate = true;
-                        begin++;
-                    }
-                    for (; begin < row.pos + row.length; begin++) {
-                        result = result * 10 + row.buf[begin] - 48;
-                    }
-                    //specific for BIGINT : if value > Long.MAX_VALUE will become negative.
-                    if (result < 0) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
-                                + " is not in Integer range", "22003", 1264);
-                    }
-                    result = (negate ? -1 * result : result);
-                    rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, result, columnInfo);
-                    return (int) result;
-                default:
-                    return Integer.parseInt(new String(row.buf, row.pos, row.length, Buffer.UTF_8));
-            }
-        } catch (NumberFormatException nfe) {
-            //parse error.
-            //if its a decimal retry without the decimal part.
-            String value = new String(row.buf, row.pos, row.length, Buffer.UTF_8);
-            if (isIntegerRegex.matcher(value).find()) {
-                try {
-                    return Integer.parseInt(value.substring(0, value.indexOf(".")));
-                } catch (NumberFormatException numberFormatException) {
-                    //eat exception
-                }
-            }
-            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
-                    + " is not in Integer range", "22003", 1264);
-        }
+    private long parseBit() {
+        if (row.length == 1) return row.buf[row.pos];
+        long val = 0;
+        int ind = 0;
+        do {
+            val += ((long) (row.buf[row.pos + ind] & 0xff)) << (8 * (row.length - ++ind));
+        } while (ind < row.length);
+        return val;
     }
 
     private long parseLong(ColumnInformation columnInfo) throws SQLException {
@@ -3448,6 +3328,7 @@ public class SelectResultSet implements ResultSet {
                     }
                     return doubleValue.longValue();
                 case BIT:
+                    return parseBit();
                 case TINYINT:
                 case SMALLINT:
                 case YEAR:
@@ -3469,9 +3350,8 @@ public class SelectResultSet implements ResultSet {
                     if (result < 0) {
                         //CONJ-399 : handle specifically Long.MIN_VALUE that has absolute value +1 compare to LONG.MAX_VALUE
                         if (result == Long.MIN_VALUE && negate) return Long.MIN_VALUE;
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8)
-                                + " is not in Long range", "22003", 1264);
+                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' for value "
+                                + new String(row.buf, row.pos, row.length, Buffer.UTF_8), "22003", 1264);
                     }
                     return (negate ? -1 * result : result);
                 default:
@@ -3489,8 +3369,7 @@ public class SelectResultSet implements ResultSet {
                     //eat exception
                 }
             }
-            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
-                    + " is not in Long range", "22003", 1264);
+            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value, "22003", 1264);
         }
     }
 
@@ -3539,7 +3418,7 @@ public class SelectResultSet implements ResultSet {
                         return new BigInteger(1, new byte[]{(byte) (value >> 56),
                                 (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
                                 (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                                (byte) (value >> 0)});
+                                (byte) value});
                     }
                 case FLOAT:
                     return BigInteger.valueOf((long) getInternalFloat(columnInfo));
@@ -3551,7 +3430,6 @@ public class SelectResultSet implements ResultSet {
         }
 
     }
-
 
     private Date binaryDate(ColumnInformation columnInfo, Calendar cal) throws SQLException {
         switch (columnInfo.getColumnType()) {
@@ -3634,7 +3512,7 @@ public class SelectResultSet implements ResultSet {
                     minutes = row.buf[row.pos + 6];
                     seconds = row.buf[row.pos + 7];
                 }
-                calendar.set(1970, 0, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
+                calendar.set(1970, Calendar.JANUARY, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
 
                 int nanoseconds = 0;
                 if (row.length > 8) {
@@ -3651,7 +3529,7 @@ public class SelectResultSet implements ResultSet {
     }
 
 
-    private Timestamp binaryTimestamp(ColumnInformation columnInfo, Calendar userCalendar) throws SQLException {
+    private Timestamp binaryTimestamp(ColumnInformation columnInfo, Calendar userCalendar) {
         if (row.length == 0) {
             lastValueNull |= BIT_LAST_FIELD_NULL;
             return null;
@@ -3694,7 +3572,7 @@ public class SelectResultSet implements ResultSet {
             Timestamp tt;
             synchronized (calendar) {
                 calendar.clear();
-                calendar.set(1970, 0, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
+                calendar.set(1970, Calendar.JANUARY, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
                 tt = new Timestamp(calendar.getTimeInMillis());
             }
             tt.setNanos(microseconds * 1000);
@@ -3737,7 +3615,7 @@ public class SelectResultSet implements ResultSet {
         return tt;
     }
 
-    protected int extractNanos(String timestring) throws SQLException {
+    private int extractNanos(String timestring) throws SQLException {
         int index = timestring.indexOf('.');
         if (index == -1) {
             return 0;
@@ -3759,4 +3637,15 @@ public class SelectResultSet implements ResultSet {
         return nanos;
     }
 
+    public int getRowPointer() {
+        return rowPointer;
+    }
+
+    protected void setRowPointer(int pointer) {
+        rowPointer = pointer;
+    }
+
+    public int getDataSize() {
+        return dataSize;
+    }
 }

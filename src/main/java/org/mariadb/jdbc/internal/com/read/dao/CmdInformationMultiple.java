@@ -64,13 +64,14 @@ import java.util.Iterator;
 public class CmdInformationMultiple implements CmdInformation {
 
 
-    private ArrayList<Long> insertIds;
-    private ArrayList<Long> updateCounts;
+    private final ArrayList<Long> insertIds;
+    private final ArrayList<Long> updateCounts;
+    private final int expectedSize;
+    private final int autoIncrement;
     private int insertIdNumber = 0;
-    private int expectedSize;
-    private int autoIncrement;
     private int moreResults;
     private boolean hasException;
+    private boolean rewritten;
 
     /**
      * Object containing update / insert ids, optimized for only multiple result.
@@ -79,32 +80,51 @@ public class CmdInformationMultiple implements CmdInformation {
      * @param autoIncrement connection auto increment value.
      */
     public CmdInformationMultiple(int expectedSize, int autoIncrement) {
+        insertIds = new ArrayList<Long>(expectedSize);
+        updateCounts = new ArrayList<Long>(expectedSize);
         this.expectedSize = expectedSize;
-        this.insertIds = new ArrayList<Long>(expectedSize);
-        this.updateCounts = new ArrayList<Long>(expectedSize);
         this.autoIncrement = autoIncrement;
     }
 
     @Override
     public void addErrorStat() {
         hasException = true;
-        this.updateCounts.add((long) Statement.EXECUTE_FAILED);
+        updateCounts.add((long) Statement.EXECUTE_FAILED);
     }
 
+    /**
+     * Clear error state, used for clear exception after first batch query, when fall back to per-query execution.
+     *
+     */
+    @Override
+    public void reset() {
+        insertIds.clear();
+        updateCounts.clear();
+        insertIdNumber = 0;
+        moreResults = 0;
+        hasException = false;
+        rewritten = false;
+    }
+
+
     public void addResultSetStat() {
-        this.updateCounts.add((long) RESULT_SET_VALUE);
+        updateCounts.add((long) RESULT_SET_VALUE);
     }
 
     @Override
     public void addSuccessStat(long updateCount, long insertId) {
-        this.insertIds.add(insertId);
+        insertIds.add(insertId);
         insertIdNumber += updateCount;
-        this.updateCounts.add(updateCount);
+        updateCounts.add(updateCount);
     }
 
     @Override
     public int[] getUpdateCounts() {
-
+        if (rewritten) {
+            int[] ret = new int[expectedSize];
+            Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
+            return ret;
+        }
         int[] ret = new int[Math.max(updateCounts.size(), expectedSize)];
 
         Iterator<Long> iterator = updateCounts.iterator();
@@ -124,6 +144,11 @@ public class CmdInformationMultiple implements CmdInformation {
 
     @Override
     public long[] getLargeUpdateCounts() {
+        if (rewritten) {
+            long[] ret = new long[expectedSize];
+            Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
+            return ret;
+        }
 
         long[] ret = new long[Math.max(updateCounts.size(), expectedSize)];
 
@@ -138,38 +163,6 @@ public class CmdInformationMultiple implements CmdInformation {
             ret[pos++] = Statement.EXECUTE_FAILED;
         }
 
-        return ret;
-    }
-
-    /**
-     * Will return an array filled with Statement.EXECUTE_FAILED if any error occur,
-     * or Statement.SUCCESS_NO_INFO, if execution succeed.
-     *
-     * @return update count array.
-     */
-    public long[] getLargeRewriteUpdateCounts() {
-        long[] ret = new long[expectedSize];
-        Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
-        return ret;
-    }
-
-
-    /**
-     * Will return an array filled with Statement.EXECUTE_FAILED if any error occur,
-     * or Statement.SUCCESS_NO_INFO, if execution succeed.
-     *
-     * @return update count array.
-     */
-    public int[] getRewriteUpdateCounts() {
-        int[] ret = new int[expectedSize];
-        Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
-        return ret;
-    }
-
-    @Override
-    public long[] getRewriteLargeUpdateCounts() {
-        long[] ret = new long[expectedSize];
-        Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : Statement.SUCCESS_NO_INFO);
         return ret;
     }
 
@@ -191,12 +184,10 @@ public class CmdInformationMultiple implements CmdInformation {
         int position = 0;
         long insertId;
         Iterator<Long> idIterator = insertIds.iterator();
-        Iterator<Long> updateIterator = updateCounts.iterator();
-        while (updateIterator.hasNext()) {
-            long updateCount = updateIterator.next();
+        for (Long updateCount : updateCounts) {
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
-                    && (insertId = idIterator.next().longValue()) > 0) {
+                    && (insertId = idIterator.next()) > 0) {
                 for (int i = 0; i < updateCount; i++) {
                     ret[position++] = insertId + i * autoIncrement;
                 }
@@ -223,11 +214,10 @@ public class CmdInformationMultiple implements CmdInformation {
             long updateCount = updateIterator.next();
             if (updateCount != Statement.EXECUTE_FAILED
                     && updateCount != RESULT_SET_VALUE
-                    && (insertId = idIterator.next()) > 0) {
-                if (element == moreResults) {
-                    for (int i = 0; i < updateCount; i++) {
-                        ret[position++] = insertId + i * autoIncrement;
-                    }
+                    && (insertId = idIterator.next()) > 0
+                    && element == moreResults) {
+                for (int i = 0; i < updateCount; i++) {
+                    ret[position++] = insertId + i * autoIncrement;
                 }
             }
         }
@@ -241,18 +231,16 @@ public class CmdInformationMultiple implements CmdInformation {
 
     @Override
     public boolean moreResults() {
-
-        if (moreResults++ < updateCounts.size() - 1) {
-            return updateCounts.get(moreResults) != RESULT_SET_VALUE;
-        }
-        return false;
+        return moreResults++ < updateCounts.size() - 1 && updateCounts.get(moreResults) == RESULT_SET_VALUE;
     }
 
     @Override
     public boolean isCurrentUpdateCount() {
-        if (updateCounts.size() >= 0) return updateCounts.get(moreResults) != RESULT_SET_VALUE;
-        return true;
+        return updateCounts.get(moreResults) != RESULT_SET_VALUE;
     }
 
+    public void setRewrite(boolean rewritten) {
+        this.rewritten = rewritten;
+    }
 }
 

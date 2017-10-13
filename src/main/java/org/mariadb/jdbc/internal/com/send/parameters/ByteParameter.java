@@ -59,8 +59,7 @@ import java.io.IOException;
 
 public class ByteParameter implements Cloneable, ParameterHolder {
 
-
-    private byte value;
+    private final byte value;
 
     public ByteParameter(byte value) {
         this.value = value;

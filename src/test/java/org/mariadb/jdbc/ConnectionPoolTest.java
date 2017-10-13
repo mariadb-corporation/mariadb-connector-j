@@ -86,7 +86,7 @@ public class ConnectionPoolTest extends BaseTest {
         if (password != null) ds.addDataSourceProperty("password", password);
         ds.setAutoCommit(false);
         Assert.assertTrue(validateDataSource(ds));
-
+        ds.close();
     }
 
     @Test

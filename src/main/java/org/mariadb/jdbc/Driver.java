@@ -52,14 +52,10 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.sql.*;
 import java.util.Properties;
-import java.util.concurrent.locks.ReentrantLock;
 
 
 public final class Driver implements java.sql.Driver {
@@ -70,15 +66,6 @@ public final class Driver implements java.sql.Driver {
         } catch (SQLException e) {
             throw new RuntimeException("Could not register driver", e);
         }
-    }
-
-    /*
-        Provide a "cleanup" method that can be called after unloading driver, to fix Tomcat's obscure classpath handling.
-
-        See CONJ-61.
-     */
-    public static void unloadDriver() {
-        MariaDbStatement.unloadDriver();
     }
 
     /**
@@ -92,25 +79,17 @@ public final class Driver implements java.sql.Driver {
      */
     public Connection connect(final String url, final Properties props) throws SQLException {
 
-        //log.debug("Connecting to: " + url);
-        try {
-            UrlParser urlParser = UrlParser.parse(url, props);
-            if (urlParser == null) {
-                return null;
-            }
-            if (urlParser.getHostAddresses() == null) {
-                //log.info("MariaDB connector : missing Host address");
-                return null;
-            } else {
-                ReentrantLock lock = new ReentrantLock();
-                Protocol protocol = Utils.retrieveProxy(urlParser, lock);
-                return MariaDbConnection.newConnection(url, protocol, lock);
-            }
-
-        } catch (SQLException e) {
-            ExceptionMapper.throwException(e, null, null);
+        UrlParser urlParser = UrlParser.parse(url, props);
+        if (urlParser == null) {
             return null;
         }
+        if (urlParser.getHostAddresses() == null) {
+            //log.info("MariaDB connector : missing Host address");
+            return null;
+        } else {
+            return MariaDbConnection.newConnection(urlParser, null);
+        }
+
     }
 
     /**

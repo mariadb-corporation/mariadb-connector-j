@@ -60,6 +60,7 @@ import java.util.Properties;
 
 import static org.junit.Assert.*;
 
+@SuppressWarnings("ConstantConditions")
 public class JdbcParserTest {
 
     @Test
@@ -97,10 +98,11 @@ public class JdbcParserTest {
                 .auroraPipelineQuirks().getOptions().useBatchMultiSend);
 
         MariaDbDataSource datasource = new MariaDbDataSource();
+        datasource.initialize();
         assertNull(datasource.getUrlParser().getOptions().useBatchMultiSend);
         datasource.setUrl(hostAurora);
         assertFalse(datasource.getUrlParser().auroraPipelineQuirks().getOptions().useBatchMultiSend);
-        datasource.setProperties("useBatchMultiSend=true");
+        datasource.setUrl(hostAurora + "?useBatchMultiSend=true");
         assertTrue(datasource.getUrlParser().auroraPipelineQuirks().getOptions().useBatchMultiSend);
     }
 
@@ -129,10 +131,11 @@ public class JdbcParserTest {
         assertTrue(UrlParser.parse(hostAuroraUpper + "?usePipelineAuth=true").getOptions().usePipelineAuth);
 
         MariaDbDataSource datasource = new MariaDbDataSource();
+        datasource.initialize();
         assertNull(datasource.getUrlParser().getOptions().usePipelineAuth);
         datasource.setUrl(hostAurora);
         assertFalse(datasource.getUrlParser().auroraPipelineQuirks().getOptions().usePipelineAuth);
-        datasource.setProperties("usePipelineAuth=true");
+        datasource.setUrl(hostAurora + "?usePipelineAuth=true");
         assertTrue(datasource.getUrlParser().auroraPipelineQuirks().getOptions().usePipelineAuth);
     }
 
@@ -157,15 +160,22 @@ public class JdbcParserTest {
     }
 
     @Test
-    public void testNAmePipeUrl() throws Throwable {
+    public void testNamePipeUrl() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb:///test?useSSL=true");
         assertTrue(jdbc.getOptions().useSsl);
     }
 
     @Test
+    public void testBooleanDefault() throws Throwable {
+        assertFalse(UrlParser.parse("jdbc:mariadb:///test").getOptions().useSsl);
+        assertTrue(UrlParser.parse("jdbc:mariadb:///test?useSSL=true").getOptions().useSsl);
+        assertTrue(UrlParser.parse("jdbc:mariadb:///test?useSSL").getOptions().useSsl);
+    }
+
+    @Test
     public void testOptionTakeDefault() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
-        assertNull(jdbc.getOptions().connectTimeout);
+        assertEquals(30_000, jdbc.getOptions().connectTimeout);
         assertTrue(jdbc.getOptions().validConnectionTimeout == 0);
         assertFalse(jdbc.getOptions().autoReconnect);
         assertNull(jdbc.getOptions().user);
@@ -177,12 +187,12 @@ public class JdbcParserTest {
     @Test
     public void testOptionTakeDefaultAurora() throws Throwable {
         UrlParser jdbc = UrlParser.parse("jdbc:mariadb:aurora://cluster-identifier.cluster-customerID.region.rds.amazonaws.com/test");
-        assertNull(jdbc.getOptions().connectTimeout);
+        assertEquals(30000, jdbc.getOptions().connectTimeout);
         assertTrue(jdbc.getOptions().validConnectionTimeout == 0);
         assertFalse(jdbc.getOptions().autoReconnect);
         assertNull(jdbc.getOptions().user);
         assertFalse(jdbc.getOptions().createDatabaseIfNotExist);
-        assertTrue(jdbc.getOptions().socketTimeout.intValue() == 10000);
+        assertTrue(jdbc.getOptions().socketTimeout == 10000);
     }
 
     @Test
@@ -433,6 +443,31 @@ public class JdbcParserTest {
     public void checkDisable() throws SQLException {
         UrlParser jdbc = UrlParser.parse("jdbc:mysql://localhost/test?disableMariaDbDriver");
         assertTrue(jdbc == null);
+    }
+
+    @Test
+    public void checkHaMode() throws SQLException {
+        checkHaMode("jdbc:mysql://localhost/test", HaMode.NONE);
+        checkHaMode("jdbc:mariadb://localhost/test", HaMode.NONE);
+        checkHaMode("jdbc:mariadb:replication://localhost/test", HaMode.REPLICATION);
+        checkHaMode("jdbc:mariadb:replication//localhost/test", HaMode.REPLICATION);
+        checkHaMode("jdbc:mariadb:aurora://localhost/test", HaMode.AURORA);
+        checkHaMode("jdbc:mariadb:failover//localhost:3306/test", HaMode.FAILOVER);
+
+        try {
+            checkHaMode("jdbc:mariadb:replicati//localhost/test", HaMode.REPLICATION);
+            fail();
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("wrong failover parameter format in connection String"));
+        }
+
+
+    }
+
+    private void checkHaMode(String url, HaMode expectedHaMode) throws SQLException {
+        UrlParser jdbc = UrlParser.parse(url);
+        assertEquals(expectedHaMode, jdbc.getHaMode());
+
     }
 
     /**

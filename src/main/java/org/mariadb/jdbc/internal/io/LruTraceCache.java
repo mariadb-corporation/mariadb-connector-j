@@ -54,6 +54,7 @@ package org.mariadb.jdbc.internal.io;
 
 import org.mariadb.jdbc.internal.util.Utils;
 
+import java.util.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -61,14 +62,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
+public class LruTraceCache extends LinkedHashMap<Instant, TraceObject> {
 
     public LruTraceCache() {
         super(16, 1.0f, false);
     }
 
     @Override
-    protected boolean removeEldestEntry(Map.Entry<Long, TraceObject> eldest) {
+    protected boolean removeEldestEntry(Map.Entry<Instant, TraceObject> eldest) {
         return size() > 10;
     }
 
@@ -77,8 +78,9 @@ public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
      *
      * @return trace cache value
      */
-    public String printStack() {
+    public synchronized String printStack() {
         DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+
         StringBuilder sb = new StringBuilder();
         Set<Map.Entry<Long, TraceObject>> set = entrySet();
         for (Map.Entry<Long, TraceObject> entry : set) {
@@ -125,10 +127,10 @@ public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
     /**
      * Permit to clear array's of array, to help garbage.
      */
-    public void clearMemory() {
-        Set<Map.Entry<Long, TraceObject>> set = entrySet();
-        for (Map.Entry<Long, TraceObject> entry : set) {
-            entry.getValue().remove();
+    public synchronized void clearMemory() {
+        Collection<TraceObject> traceObjects = values();
+        for (TraceObject traceObject : traceObjects) {
+            traceObject.remove();
         }
         this.clear();
     }

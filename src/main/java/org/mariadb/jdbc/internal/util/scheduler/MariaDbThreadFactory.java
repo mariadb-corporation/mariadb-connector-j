@@ -61,16 +61,16 @@ public class MariaDbThreadFactory implements ThreadFactory {
     // start from DefaultThread factory to get security groups and what not
     private final ThreadFactory parentFactory = Executors.defaultThreadFactory();
     private final AtomicInteger threadId = new AtomicInteger();
-    private final String poolName;
+    private final String threadName;
 
-    public MariaDbThreadFactory(String poolName) {
-        this.poolName = poolName;
+    public MariaDbThreadFactory(String threadName) {
+        this.threadName = threadName;
     }
 
     @Override
     public Thread newThread(Runnable runnable) {
         Thread result = parentFactory.newThread(runnable);
-        result.setName("MariaDb-" + poolName + "-" + threadId.incrementAndGet());
+        result.setName(threadName + "-" + threadId.incrementAndGet());
         result.setDaemon(true); // set as daemon so that mariaDb wont hold up shutdown
 
         return result;

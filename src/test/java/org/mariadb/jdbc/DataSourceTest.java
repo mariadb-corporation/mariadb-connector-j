@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -60,6 +59,8 @@ import org.junit.Test;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Statement;
 
 import static org.junit.Assert.*;
 
@@ -158,7 +159,9 @@ public class DataSourceTest extends BaseTest {
             Connection connection2 = null;
             try {
                 connection2 = ds.getConnection(username, password);
-                //do nothing
+                Statement stmt = connection2.createStatement();
+                assertTrue(stmt.execute("Select 1"));
+
             } finally {
                 connection2.close();
             }
@@ -190,7 +193,7 @@ public class DataSourceTest extends BaseTest {
         //must throw SQLException
         try {
             ds.getConnection(username, password);
-            Assert.fail();
+            fail();
         } catch (SQLException e) {
             //normal error
         }
@@ -233,7 +236,7 @@ public class DataSourceTest extends BaseTest {
     @Test
     public void setLoginTimeOut() throws SQLException {
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
-        assertEquals(0, ds.getLoginTimeout());
+        assertEquals(30, ds.getLoginTimeout());
         ds.setLoginTimeout(10);
         assertEquals(10, ds.getLoginTimeout());
     }

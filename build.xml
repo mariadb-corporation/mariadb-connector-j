@@ -56,6 +56,7 @@
 <!-- Ant build file (http://ant.apache.org/) for Ant 1.6.2 or above.        -->
 <!-- ====================================================================== -->
 
+<!--suppress XmlUnboundNsPrefix -->
 <project name="mariadb-java-client" default="package" basedir=".">
 
     <!-- ====================================================================== -->

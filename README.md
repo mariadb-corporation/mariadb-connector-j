@@ -1,6 +1,6 @@
 <p align="center">
   <a href="http://mariadb.org/">
-    <img height="129" width="413" src="http://badges.mariadb.org/logo/Mariadb-seal-shaded-browntext.png">
+    <img src="https://mariadb.com/themes/custom/mariadb/logo.svg">
   </a>
 </p>
 
@@ -16,14 +16,15 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client/badge.svg)](https://maven-badges.herokuapp.com/maven-central/org.mariadb.jdbc/mariadb-java-client)
 [![License (LGPL version 2.1)](https://img.shields.io/badge/license-GNU%20LGPL%20version%202.1-green.svg?style=flat-square)](http://opensource.org/licenses/LGPL-2.1)
 [![Known Vulnerabilities](https://snyk.io/test/github/mariadb/mariadb-connector-j/badge.svg)](https://snyk.io/test/github/mariadb/mariadb-connector-j)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/be7f4c89d63e496d824e8f365478e8c8)](https://www.codacy.com/app/diego-dupin/mariadb-connector-j?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=MariaDB/mariadb-connector-j&amp;utm_campaign=Badge_Grade)
 
 ## Obtaining the driver
 
-| Java version | driver compatible version |
+| Java version | current version |
 |:------------:|:-------------------------:|
-| 6 | < 2.0 version |
-| 7 | < 2.0 version |
-| 8 | all version |
+| 6 | 1.6.4 |
+| 7 | 1.6.4 |
+| 8 | 2.1.2 |
 
 The driver (jar) can be downloaded from [mariadb connector download](https://mariadb.com/products/connectors-plugins)
 or maven : 
@@ -31,7 +32,7 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>2.0.3</version>
+	<version>2.1.2</version>
 </dependency>
 ```
 
@@ -49,7 +50,7 @@ Development snapshot are available on sonatype nexus repository
     <dependency>
         <groupId>org.mariadb.jdbc</groupId>
         <artifactId>mariadb-java-client</artifactId>
-        <version>2.1.0-SNAPSHOT</version>
+        <version>2.2.0-SNAPSHOT</version>
     </dependency>
 </dependencies>
 ```

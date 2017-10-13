@@ -63,10 +63,10 @@ import java.io.ObjectOutputStream;
 public class SerializableParameter implements Cloneable, ParameterHolder {
 
     private Object object;
-    private boolean noBackSlashEscapes;
+    private final boolean noBackSlashEscapes;
     private byte[] loadedStream = null;
 
-    public SerializableParameter(Object object, boolean noBackslashEscapes) throws IOException {
+    public SerializableParameter(Object object, boolean noBackslashEscapes) {
         this.object = object;
         this.noBackSlashEscapes = noBackslashEscapes;
     }

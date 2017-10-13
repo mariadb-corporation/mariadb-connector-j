@@ -81,10 +81,12 @@ import static org.junit.Assert.*;
  * mvn test -DdbUrl=jdbc:mariadb://localhost:3306/testj?user=root -DlogLevel=FINEST
  */
 @Ignore
+@SuppressWarnings("Annotator")
 public class BaseTest {
     protected static final String mDefUrl = "jdbc:mariadb://localhost:3306/testj?user=root";
     protected static String connU;
     protected static String connUri;
+    protected static String connDnsUri;
     protected static String hostname;
     protected static int port;
     protected static String database;
@@ -95,10 +97,10 @@ public class BaseTest {
     protected static Connection sharedConnection;
     protected static boolean runLongTest = false;
     protected static boolean doPrecisionTest = true;
-    private static Deque<String> tempTableList = new ArrayDeque<String>();
-    private static Deque<String> tempViewList = new ArrayDeque<String>();
-    private static Deque<String> tempProcedureList = new ArrayDeque<String>();
-    private static Deque<String> tempFunctionList = new ArrayDeque<String>();
+    private static final Set<String> tempTableList = new HashSet<String>();
+    private static final Set<String> tempViewList = new HashSet<String>();
+    private static final Set<String> tempProcedureList = new HashSet<String>();
+    private static final Set<String> tempFunctionList = new HashSet<String>();
     private static TcpProxy proxy = null;
     private static UrlParser urlParser;
     private static final NumberFormat numberFormat = DecimalFormat.getInstance();
@@ -115,7 +117,7 @@ public class BaseTest {
 
         //execute another query to ensure connection is stable
         protected void finished(Description description) {
-            if (testSingleHost) {
+            if ( testSingleHost) {
                 Random random = new Random();
                 int randInt = random.nextInt();
                 PreparedStatement preparedStatement = null;
@@ -164,7 +166,7 @@ public class BaseTest {
         testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
 
         if (testSingleHost) {
-            urlParser = UrlParser.parse(url);
+            urlParser = UrlParser.parse(url + "&pool=true&maxPoolSize=4&minPoolSize=1");
             if (urlParser.getHostAddresses().size() > 0) {
                 hostname = urlParser.getHostAddresses().get(0).host;
                 port = urlParser.getHostAddresses().get(0).port;
@@ -195,7 +197,7 @@ public class BaseTest {
                 if (matcher.find()) {
                     String options1 = (matcher.group(2) != null) ? matcher.group(2).substring(1) : "";
                     String options2 = (matcher.group(3) != null) ? matcher.group(3).substring(1) : "";
-                    parameters = (!options1.equals("")) ? options1 : options2;
+                    parameters = (options1.isEmpty()) ? options2 : options1;
                 }
             } else {
                 parameters = null;
@@ -204,6 +206,7 @@ public class BaseTest {
 
             setUri();
             urlParser.auroraPipelineQuirks();
+
             sharedConnection = DriverManager.getConnection(url);
 
             String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
@@ -212,8 +215,12 @@ public class BaseTest {
     }
 
     private static void setUri() {
-        connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
+        connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/"
+                + ((database == null) ? "" : database);
         connUri = connU + "?user=" + username
+                + (password != null && !"".equals(password) ? "&password=" + password : "")
+                + (parameters != null ? "&" + parameters : "");
+        connDnsUri = "jdbc:mariadb://mariadb.example.com:" + port + "/" + database + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
                 + (parameters != null ? "&" + parameters : "");
     }
@@ -225,58 +232,52 @@ public class BaseTest {
      */
     @AfterClass
     public static void afterClassBaseTest() throws SQLException {
-        if (testSingleHost) {
-            if (sharedConnection != null && !sharedConnection.isClosed()) {
-                if (!tempViewList.isEmpty()) {
-                    Statement stmt = sharedConnection.createStatement();
-                    String viewName;
-                    while ((viewName = tempViewList.poll()) != null) {
-                        try {
-                            stmt.execute("DROP VIEW IF EXISTS " + viewName);
-                        } catch (SQLException e) {
-                            //eat exception
-                        }
+        if (testSingleHost && sharedConnection != null && !sharedConnection.isClosed()) {
+            if (!tempViewList.isEmpty()) {
+                Statement stmt = sharedConnection.createStatement();
+                for (String viewName : tempViewList) {
+                    try {
+                        stmt.execute("DROP VIEW IF EXISTS " + viewName);
+                    } catch (SQLException e) {
+                        //eat exception
                     }
                 }
-                if (!tempTableList.isEmpty()) {
-                    Statement stmt = sharedConnection.createStatement();
-                    String tableName;
-                    while ((tableName = tempTableList.poll()) != null) {
-                        try {
-                            stmt.execute("DROP TABLE IF EXISTS " + tableName);
-                        } catch (SQLException e) {
-                            //eat exception
-                        }
+            }
+            if (!tempTableList.isEmpty()) {
+                Statement stmt = sharedConnection.createStatement();
+                for (String tableName : tempTableList) {
+                    try {
+                        stmt.execute("DROP TABLE IF EXISTS " + tableName);
+                    } catch (SQLException e) {
+                        //eat exception
                     }
                 }
-                if (!tempProcedureList.isEmpty()) {
-                    Statement stmt = sharedConnection.createStatement();
-                    String procedureName;
-                    while ((procedureName = tempProcedureList.poll()) != null) {
-                        try {
-                            stmt.execute("DROP procedure IF EXISTS " + procedureName);
-                        } catch (SQLException e) {
-                            //eat exception
-                        }
+            }
+            if (!tempProcedureList.isEmpty()) {
+                Statement stmt = sharedConnection.createStatement();
+                for (String procedureName : tempProcedureList) {
+                    try {
+                        stmt.execute("DROP procedure IF EXISTS " + procedureName);
+                    } catch (SQLException e) {
+                        //eat exception
                     }
                 }
-                if (!tempFunctionList.isEmpty()) {
-                    Statement stmt = sharedConnection.createStatement();
-                    String functionName;
-                    while ((functionName = tempFunctionList.poll()) != null) {
-                        try {
-                            stmt.execute("DROP FUNCTION IF EXISTS " + functionName);
-                        } catch (SQLException e) {
-                            //eat exception
-                        }
+            }
+            if (!tempFunctionList.isEmpty()) {
+                Statement stmt = sharedConnection.createStatement();
+                for (String functionName : tempFunctionList) {
+                    try {
+                        stmt.execute("DROP FUNCTION IF EXISTS " + functionName);
+                    } catch (SQLException e) {
+                        //eat exception
                     }
                 }
+            }
 
-                try {
-                    sharedConnection.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+            try {
+                sharedConnection.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -370,7 +371,7 @@ public class BaseTest {
      */
     static boolean isMariadbServer() throws SQLException {
         DatabaseMetaData md = sharedConnection.getMetaData();
-        return md.getDatabaseProductVersion().indexOf("MariaDB") != -1;
+        return md.getDatabaseProductVersion().contains("MariaDB");
     }
 
     /**
@@ -415,6 +416,15 @@ public class BaseTest {
         proxy.stop();
     }
 
+    public void delayProxy(int millissecond) {
+        proxy.setDelay(millissecond);
+    }
+
+    public void removeDelayProxy() {
+        proxy.removeDelay();
+    }
+
+
     /**
      * Restart proxy.
      */
@@ -424,19 +434,18 @@ public class BaseTest {
 
     /**
      * Clean proxies.
-     *
-     * @throws SQLException exception
      */
-    public void closeProxy() throws SQLException {
+    public void closeProxy() {
         try {
             proxy.stop();
+            proxy = null;
         } catch (Exception e) {
             //Eat exception
         }
     }
 
     @Before
-    public void init() throws SQLException {
+    public void init() {
         Assume.assumeTrue(testSingleHost);
     }
 
@@ -451,7 +460,7 @@ public class BaseTest {
 
     protected Protocol getProtocolFromConnection(Connection conn) throws Throwable {
 
-        Method getProtocol = MariaDbConnection.class.getDeclaredMethod("getProtocol", new Class[0]);
+        Method getProtocol = MariaDbConnection.class.getDeclaredMethod("getProtocol");
         getProtocol.setAccessible(true);
         Object obj = getProtocol.invoke(conn);
         return (Protocol) obj;
@@ -514,12 +523,36 @@ public class BaseTest {
         return openConnection(connUri + parameters, null);
     }
 
-    protected Connection setConnection(String additionnallParameters, String database) throws SQLException {
-        String connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/" + database;
+    protected Connection setConnection(String additionalParameters, String database) throws SQLException {
+        StringBuilder sb = new StringBuilder();
+        sb.append("jdbc:mariadb://");
+        if (hostname == null) {
+            sb.append("localhost");
+        } else {
+            sb.append(hostname);
+        }
+        sb.append(":").append(port).append("/");
+        if (database != null) {
+            sb.append(database);
+        }
+        sb.append("?user=").append(username);
+        if (password != null && !password.isEmpty()) {
+            sb.append("&password=").append(password);
+        }
+        if (parameters != null && !parameters.isEmpty()) {
+            sb.append("&").append(parameters);
+        }
+        sb.append(additionalParameters);
+        return openConnection(sb.toString(), null);
+    }
+
+    protected Connection setDnsConnection(String parameters) throws SQLException {
+        String connU = "jdbc:mariadb://mariadb.example.com:" + port + "/"
+                + ((database == null) ? "" : database);
         String connUri = connU + "?user=" + username
                 + (password != null && !"".equals(password) ? "&password=" + password : "")
                 + (parameters != null ? "&" + parameters : "");
-        return openConnection(connUri + additionnallParameters, null);
+        return openConnection(connUri + parameters, null);
     }
 
     /**
@@ -546,14 +579,20 @@ public class BaseTest {
         return DriverManager.getConnection(url, info);
     }
 
-    boolean checkMaxAllowedPacketMore8m(String testName) throws SQLException {
+    /**
+     * Check if max_allowed_packet value is equal or greater then 8m.
+     * @param testName          test method name
+     * @return true if max_allowed_packet value is equal or greater then 8m.
+     * @throws SQLException if connection fail
+     */
+    public boolean checkMaxAllowedPacketMore8m(String testName) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
-        rs.next();
+        assertTrue(rs.next());
         long maxAllowedPacket = rs.getLong(1);
 
         rs = st.executeQuery("select @@innodb_log_file_size");
-        rs.next();
+        assertTrue(rs.next());
         long innodbLogFileSize = rs.getLong(1);
 
         if (maxAllowedPacket < 8 * 1024 * 1024L) {
@@ -568,18 +607,31 @@ public class BaseTest {
         return true;
     }
 
-    boolean checkMaxAllowedPacketMore20m(String testName) throws SQLException {
+    /**
+     * Check if max_allowed_packet value is equal or greater then 20m.
+     * @param testName          test method name
+     * @return true if max_allowed_packet value is equal or greater then 20m.
+     * @throws SQLException if connection fail
+     */
+    public boolean checkMaxAllowedPacketMore20m(String testName) throws SQLException {
         return checkMaxAllowedPacketMore20m(testName, true);
     }
 
-    boolean checkMaxAllowedPacketMore20m(String testName, boolean displayMessage) throws SQLException {
+    /**
+     * Check if max_allowed_packet value is equal or greater then 20m.
+     * @param testName          test method name
+     * @param displayMessage    message to display in case of error.
+     * @return true if max_allowed_packet value is equal or greater then 20m.
+     * @throws SQLException if connection fail
+     */
+    public boolean checkMaxAllowedPacketMore20m(String testName, boolean displayMessage) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
-        rs.next();
+        assertTrue(rs.next());
         long maxAllowedPacket = rs.getLong(1);
 
         rs = st.executeQuery("select @@innodb_log_file_size");
-        rs.next();
+        assertTrue(rs.next());
         long innodbLogFileSize = rs.getLong(1);
 
         if (maxAllowedPacket < 20 * 1024 * 1024L) {
@@ -598,18 +650,31 @@ public class BaseTest {
         return true;
     }
 
-    boolean checkMaxAllowedPacketMore40m(String testName) throws SQLException {
+    /**
+     * Check if max_allowed_packet value is equal or greater then 40m.
+     * @param testName      test method name
+     * @return true if max_allowed_packet value is equal or greater then 40m.
+     * @throws SQLException if connection fail
+     */
+    public boolean checkMaxAllowedPacketMore40m(String testName) throws SQLException {
         return checkMaxAllowedPacketMore40m(testName, true);
     }
 
-    boolean checkMaxAllowedPacketMore40m(String testName, boolean displayMsg) throws SQLException {
+    /**
+     * Check if max_allowed_packet value is equal or greater then 40m.
+     * @param testName      test method name
+     * @param displayMsg    message to display in case of error.
+     * @return true if max_allowed_packet value is equal or greater then 40m.
+     * @throws SQLException if connection fail
+     */
+    public boolean checkMaxAllowedPacketMore40m(String testName, boolean displayMsg) throws SQLException {
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@max_allowed_packet");
-        rs.next();
+        assertTrue(rs.next());
         long maxAllowedPacket = rs.getLong(1);
 
         rs = st.executeQuery("select @@innodb_log_file_size");
-        rs.next();
+        assertTrue(rs.next());
         long innodbLogFileSize = rs.getLong(1);
 
 
@@ -629,8 +694,14 @@ public class BaseTest {
         return true;
     }
 
-    //does the user have super privileges or not?
-    boolean hasSuperPrivilege(String testName) throws SQLException {
+    /**
+     * Does the user have super privileges.
+     *
+     * @param testName test name
+     * @return true if super user
+     * @throws SQLException in any connection occur
+     */
+    public boolean hasSuperPrivilege(String testName) throws SQLException {
         boolean superPrivilege = false;
         Statement st = sharedConnection.createStatement();
         // first test for specific user and host combination
@@ -650,8 +721,13 @@ public class BaseTest {
         return superPrivilege;
     }
 
-    //is the connection local?
-    boolean isLocalConnection(String testName) {
+    /**
+     * Is the connection local.
+     *
+     * @param testName test method name
+     * @return true if local
+     */
+    public boolean isLocalConnection(String testName) {
         boolean isLocal = false;
 
         try {
@@ -670,12 +746,17 @@ public class BaseTest {
         return isLocal;
     }
 
-    boolean haveSsl(Connection connection) {
+    /**
+     * Indicate if server has ssl configured.
+     *
+     * @param connection connection to check
+     * @return true if SSL is enabled
+     */
+    public boolean haveSsl(Connection connection) {
         try {
             ResultSet rs = connection.createStatement().executeQuery("select @@have_ssl");
-            rs.next();
-            String value = rs.getString(1);
-            return value.equals("YES");
+            assertTrue(rs.next());
+            return "YES".equals(rs.getString(1));
         } catch (Exception e) {
             return false; /* maybe 4.x ? */
         }
@@ -739,9 +820,46 @@ public class BaseTest {
         Assume.assumeFalse(dbVersion.startsWith(major + "." + minor + "." + patch));
     }
 
-    void requireMinimumVersion(int major, int minor) throws SQLException {
+    public void requireMinimumVersion(int major, int minor) throws SQLException {
         Assume.assumeTrue(minVersion(major, minor));
 
+    }
+
+    /**
+     * Cancel if Maxscale version isn't required minimum.
+     *
+     * @param major     minimum maxscale major version
+     * @param minor     minimum maxscale minor version
+     */
+    public void ifMaxscaleRequireMinimumVersion(int major, int minor) {
+        String maxscaleVersion = System.getenv("MAXSCALE_VERSION");
+        if (maxscaleVersion == null) return;
+
+        String[] versionArray = maxscaleVersion.split("[^0-9]");
+
+        int majorVersion = 0;
+        int minorVersion = 0;
+
+        //standard version
+        if (versionArray.length > 2) {
+
+            majorVersion = Integer.parseInt(versionArray[0]);
+            minorVersion = Integer.parseInt(versionArray[1]);
+
+        } else {
+
+            if (versionArray.length > 0) {
+                majorVersion = Integer.parseInt(versionArray[0]);
+            }
+
+            if (versionArray.length > 1) {
+                minorVersion = Integer.parseInt(versionArray[1]);
+            }
+
+        }
+
+        Assume.assumeTrue(majorVersion > major
+                || (majorVersion == major && minorVersion >= minor));
     }
 
     /**
@@ -821,4 +939,35 @@ public class BaseTest {
     public boolean sharedIsAurora() {
         return urlParser.isAurora();
     }
+
+    /**
+     * List current connections to server.
+     * @return number of thread connected.
+     * @throws SQLException if queries failed
+     */
+    public static int getCurrentConnections() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+
+        ResultSet rs = stmt.executeQuery("SHOW FULL PROCESSLIST");
+
+        ResultSetMetaData rsMeta = rs.getMetaData();
+        for (int i = 0 ; i < rsMeta.getColumnCount(); i++) {
+            System.out.print("| " + rsMeta.getColumnName(i + 1));
+        }
+        System.out.println("");
+
+        while (rs.next()) {
+            for (int i = 0 ; i < rsMeta.getColumnCount(); i++) {
+                System.out.print("| " + rs.getString(i + 1));
+            }
+            System.out.println("");
+        }
+        System.out.println("__________________________________________________________");
+
+
+        rs = stmt.executeQuery("show status where `variable_name` = 'Threads_connected'");
+        assertTrue(rs.next());
+        return rs.getInt(2);
+    }
+
 }

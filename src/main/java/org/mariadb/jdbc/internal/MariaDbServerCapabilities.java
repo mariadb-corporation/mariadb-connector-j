@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc.internal;
 
+@SuppressWarnings("unused")
 public class MariaDbServerCapabilities {
     public static final int CLIENT_MYSQL = 1;
     public static final int FOUND_ROWS = 2;       /* Found instead of affected rows */

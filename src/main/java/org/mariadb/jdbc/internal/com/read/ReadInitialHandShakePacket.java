@@ -66,7 +66,7 @@ public class ReadInitialHandShakePacket {
     /* MDEV-4088/CONJ-32 :  in 10.0, the real version string maybe prefixed with "5.5.5-",
      * to workaround bugs in Oracle MySQL replication
      */
-    static final String MARIADB_RPL_HACK_PREFIX = "5.5.5-";
+    private static final String MARIADB_RPL_HACK_PREFIX = "5.5.5-";
     private final byte protocolVersion;
     private final long serverThreadId;
     private final long serverCapabilities;
@@ -137,7 +137,7 @@ public class ReadInitialHandShakePacket {
             serverMariaDb = true;
             serverVersion = serverVersion.substring(MARIADB_RPL_HACK_PREFIX.length());
         } else {
-            serverMariaDb = this.serverVersion.indexOf("MariaDB") != -1;
+            serverMariaDb = this.serverVersion.contains("MariaDB");
         }
 
         //since MariaDB 10.2

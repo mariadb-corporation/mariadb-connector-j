@@ -68,6 +68,7 @@ import java.sql.Statement;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -79,22 +80,18 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @BeforeClass()
-    public static void beforeClass2() throws SQLException {
+    public static void beforeClass2() {
         proxyUrl = proxySequentialUrl;
         Assume.assumeTrue(initialGaleraUrl != null);
     }
 
     /**
      * Initialisation.
-     *
-     * @throws SQLException exception
      */
     @Before
-    public void init() throws SQLException {
+    public void init() {
         defaultUrl = initialGaleraUrl;
         currentType = HaMode.SEQUENTIAL;
     }
@@ -125,9 +122,10 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
         try {
             connection = getNewConnection("&loadBalanceBlacklistTimeout=500", true);
             Statement st = connection.createStatement();
-            Protocol protocol = getProtocolFromConnection(connection);
-            int blackListNumber = protocol.getProxy().getListener().getBlacklistKeys().size();
+
             int firstServerId = getServerId(connection);
+            int blackListSize = getProtocolFromConnection(connection)
+                    .getProxy().getListener().getBlacklistKeys().size();
             stopProxy(firstServerId);
 
             try {
@@ -139,8 +137,8 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
             //check blacklist size
             try {
-                protocol = getProtocolFromConnection(connection);
-                assertTrue(protocol.getProxy().getListener().getBlacklistKeys().size() == blackListNumber + 1);
+                Protocol protocol = getProtocolFromConnection(connection);
+                assertEquals(blackListSize + 1, protocol.getProxy().getListener().getBlacklistKeys().size());
 
                 //replace proxified HostAddress by normal one
                 UrlParser urlParser = UrlParser.parse(defaultUrl);
@@ -151,7 +149,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             }
 
             //add first Host to blacklist
-            protocol = getProtocolFromConnection(connection);
+            Protocol protocol = getProtocolFromConnection(connection);
             TestableScheduler scheduler = new TestableScheduler();
 
             //check blacklist shared
@@ -214,8 +212,8 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
     }
 
     protected class CheckBlacklist implements Runnable {
-        private int firstServerId;
-        private Set<HostAddress> blacklistKeys;
+        private final int firstServerId;
+        private final Set<HostAddress> blacklistKeys;
 
         public CheckBlacklist(int firstServerId, Set<HostAddress> blacklistKeys) {
             this.firstServerId = firstServerId;
@@ -246,7 +244,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
     }
 
     class MutableInt {
-        int value = 1; // note that we start at 1 since we're counting
+        private int value = 1; // note that we start at 1 since we're counting
 
         public void increment() {
             ++value;

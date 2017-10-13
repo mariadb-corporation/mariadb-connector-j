@@ -65,6 +65,7 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
@@ -73,16 +74,17 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class MastersFailoverListener extends AbstractMastersListener {
-    private static Logger logger = LoggerFactory.getLogger(MastersFailoverListener.class);
+    private static final Logger logger = LoggerFactory.getLogger(MastersFailoverListener.class);
     private final HaMode mode;
 
     /**
      * Initialisation.
      *
-     * @param urlParser url options.
+     * @param urlParser     url options.
+     * @param globalInfo    server global variables information
      */
-    public MastersFailoverListener(final UrlParser urlParser) {
-        super(urlParser);
+    public MastersFailoverListener(final UrlParser urlParser, final GlobalStateInfo globalInfo) {
+        super(urlParser, globalInfo);
         this.mode = urlParser.getHaMode();
         setMasterHostFail();
     }
@@ -116,7 +118,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
 
 
     @Override
-    public void preClose() throws SQLException {
+    public void preClose() {
         if (explicitClosed.compareAndSet(false, true)) {
             proxy.lock.lock();
             try {
@@ -129,13 +131,13 @@ public class MastersFailoverListener extends AbstractMastersListener {
     }
 
     @Override
-    public HandleErrorResult primaryFail(Method method, Object[] args) throws Throwable {
+    public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) throws Throwable {
         boolean alreadyClosed = !currentProtocol.isConnected();
         boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();
 
         proxy.lock.lock();
         try {
-            if (currentProtocol != null && currentProtocol.isConnected() && currentProtocol.isValid()) {
+            if (currentProtocol != null && currentProtocol.isConnected() && currentProtocol.isValid(0)) {
                 //connection re-established
                 //if in transaction cannot be sure that the last query has been received by server of not,
                 // so rollback.and throw exception
@@ -156,9 +158,13 @@ public class MastersFailoverListener extends AbstractMastersListener {
         try {
             reconnectFailedConnection(new SearchFilter(true, false));
             handleFailLoop();
-            if (alreadyClosed || (!alreadyClosed && !inTransaction && isQueryRelaunchable(method, args))) {
-                logger.info("Connection to master lost, new master " + currentProtocol.getHostAddress() + " found"
-                        + ", query type permit to be re-execute on new server without throwing exception");
+
+            if (killCmd) return new HandleErrorResult(true, false);
+
+            if (alreadyClosed || !inTransaction && isQueryRelaunchable(method, args)) {
+                logger.info("Connection to master lost, new master {} found"
+                        + ", query type permit to be re-execute on new server without throwing exception",
+                        currentProtocol.getHostAddress());
                 return relaunchOperation(method, args);
             }
             return new HandleErrorResult(true);
@@ -212,7 +218,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
                 //loopAddress.add(currentProtocol.getHostAddress());
             }
 
-            MasterProtocol.loop(this, loopAddress, searchFilter);
+            MasterProtocol.loop(this, globalInfo, loopAddress, searchFilter);
             //close loop if all connection are retrieved
             if (!isMasterHostFail()) {
                 FailoverLoop.removeListener(this);
@@ -327,4 +333,19 @@ public class MastersFailoverListener extends AbstractMastersListener {
     public void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnSlave) {
         //no slave
     }
+
+    /**
+     * Reset state of master connection.
+     *
+     * @throws SQLException if command fail.
+     */
+    public void reset() throws SQLException {
+
+        if (!isMasterHostFail()) {
+            currentProtocol.reset();
+        }
+
+    }
+
+
 }

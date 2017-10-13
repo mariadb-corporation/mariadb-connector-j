@@ -53,7 +53,7 @@
 package org.mariadb.jdbc.internal.logging;
 
 public class Slf4JLogger implements Logger {
-    org.slf4j.Logger logger;
+    private final org.slf4j.Logger logger;
 
     public Slf4JLogger(org.slf4j.Logger logger) {
         this.logger = logger;

@@ -57,15 +57,11 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import java.sql.ResultSet;
 
 public interface CmdInformation {
-    public static final int RESULT_SET_VALUE = -1;
+    int RESULT_SET_VALUE = -1;
 
     int[] getUpdateCounts();
 
     long[] getLargeUpdateCounts();
-
-    int[] getRewriteUpdateCounts();
-
-    long[] getRewriteLargeUpdateCounts();
 
     int getUpdateCount();
 
@@ -74,6 +70,8 @@ public interface CmdInformation {
     void addSuccessStat(long updateCount, long insertId);
 
     void addErrorStat();
+
+    void reset();
 
     void addResultSetStat();
 
@@ -86,5 +84,7 @@ public interface CmdInformation {
     boolean moreResults();
 
     boolean isCurrentUpdateCount();
+
+    void setRewrite(boolean rewritten);
 
 }

@@ -68,14 +68,14 @@ import java.util.UUID;
 
 import static org.junit.Assert.*;
 
-public class DistributedTransaction extends BaseTest {
+public class DistributedTransactionTest extends BaseTest {
 
-    MariaDbDataSource dataSource;
+    private final MariaDbDataSource dataSource;
 
     /**
      * Initialisation.
      */
-    public DistributedTransaction() {
+    public DistributedTransactionTest() throws SQLException {
         dataSource = new MariaDbDataSource();
         dataSource.setServerName(hostname);
         dataSource.setPortNumber(port);
@@ -94,11 +94,11 @@ public class DistributedTransaction extends BaseTest {
         requireMinimumVersion(5, 0);
     }
 
-    Xid newXid() {
+    private Xid newXid() {
         return new MariaDbXid(1, UUID.randomUUID().toString().getBytes(), UUID.randomUUID().toString().getBytes());
     }
 
-    Xid newXid(Xid branchFrom) {
+    private Xid newXid(Xid branchFrom) {
         return new MariaDbXid(1, branchFrom.getGlobalTransactionId(), UUID.randomUUID().toString().getBytes());
     }
 
@@ -108,7 +108,7 @@ public class DistributedTransaction extends BaseTest {
      * @param doCommit must commit
      * @throws Exception exception
      */
-    void test2PhaseCommit(boolean doCommit) throws Exception {
+    private int test2PhaseCommit(boolean doCommit) throws Exception {
 
         int connectionNumber = 1;
 
@@ -140,16 +140,6 @@ public class DistributedTransaction extends BaseTest {
                 }
             }
 
-            // check the completion
-            ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i");
-            if (doCommit) {
-                for (int i = 0; i < connectionNumber; i++) {
-                    rs.next();
-                    assertEquals(rs.getInt(1), i);
-                }
-            } else {
-                assertFalse(rs.next());
-            }
         } finally {
             for (int i = 0; i < connectionNumber; i++) {
                 try {
@@ -161,6 +151,7 @@ public class DistributedTransaction extends BaseTest {
                 }
             }
         }
+        return connectionNumber;
     }
 
     private void startAllResources(int connectionNumber, XAResource[] xaResources, Xid[] xids) throws XAException {
@@ -190,12 +181,24 @@ public class DistributedTransaction extends BaseTest {
 
     @Test
     public void testCommit() throws Exception {
-        test2PhaseCommit(true);
+        int connectionNumber = test2PhaseCommit(true);
+
+        // check the completion
+        try (ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
+            for (int i = 0; i < connectionNumber; i++) {
+                assertTrue(rs.next());
+                assertEquals(rs.getInt(1), i);
+            }
+        }
     }
 
     @Test
     public void testRollback() throws Exception {
         test2PhaseCommit(false);
+        // check the completion
+        try (ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
+            assertFalse(rs.next());
+        }
     }
 
     @Test
@@ -228,7 +231,7 @@ public class DistributedTransaction extends BaseTest {
 
     @Test
     public void resumeAndJoinTest() throws Exception {
-        Connection conn1 = null;
+        Connection conn1;
         MariaDbDataSource ds = new MariaDbDataSource();
         ds.setUrl(connU);
         ds.setDatabaseName(database);
@@ -260,12 +263,11 @@ public class DistributedTransaction extends BaseTest {
                 xaRes1.start(xid, XAResource.TMJOIN);
                 fail(); // without pinGlobalTxToPhysicalConnection=true
             } catch (XAException xaex) {
-                if (xaConn1 != null) {
-                    xaConn1.close();
-                }
+                xaConn1.close();
             }
 
-            ds.setProperties("pinGlobalTxToPhysicalConnection=true");
+            xid = newXid();
+            ds.setUrl(connU + "?pinGlobalTxToPhysicalConnection=true");
             xaConn1 = ds.getXAConnection();
             xaRes1 = xaConn1.getXAResource();
             conn1 = xaConn1.getConnection();

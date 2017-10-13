@@ -54,31 +54,14 @@ package org.mariadb.jdbc.internal.util.exceptions;
 
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
-import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.util.SqlStates;
 
 import java.sql.*;
 
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
+
 
 public class ExceptionMapper {
-
-    /**
-     * Helper to throw exception. Exception is logged.
-     *
-     * @param exception  exception
-     * @param connection current connection
-     * @param statement  current statement
-     * @param logger     logger
-     * @param timeout    was timeout on query
-     * @throws SQLException exception
-     */
-    public static void throwAndLogException(SQLException exception, MariaDbConnection connection,
-                                            MariaDbStatement statement, Logger logger, boolean timeout)
-            throws SQLException {
-        SQLException sqlException = getException(exception, connection, statement, timeout);
-        logger.error("error executing query", sqlException);
-        throw sqlException;
-    }
 
     /**
      * Helper to throw exception.
@@ -91,6 +74,15 @@ public class ExceptionMapper {
     public static void throwException(SQLException exception, MariaDbConnection connection, MariaDbStatement statement) throws SQLException {
         throw getException(exception, connection, statement, false);
     }
+
+    public static SQLException connException(String message) {
+        return connException(message, null);
+    }
+
+    public static SQLException connException(String message, Throwable cause) {
+        return get(message, CONNECTION_EXCEPTION.getSqlState(), -1, cause, false);
+    }
+
 
     /**
      * Helper to decorate exception with associate subclass of {@link SQLException} exception.
@@ -105,9 +97,9 @@ public class ExceptionMapper {
                                             MariaDbStatement statement, boolean timeout) {
         String message = exception.getMessage();
         if (connection != null) {
-            message = "(conn:" + connection.getServerThreadId() + ") " + message;
+            message = "(conn=" + connection.getServerThreadId() + ") " + message;
         } else if (statement != null) {
-            message = "(conn:" + statement.getServerThreadId() + ") " + message;
+            message = "(conn=" + statement.getServerThreadId() + ") " + message;
         }
 
         SQLException sqlException;
@@ -115,7 +107,7 @@ public class ExceptionMapper {
 
         if (exception.getSQLState() != null) {
             if (message.contains("\n")) message = message.substring(0, message.indexOf("\n"));
-            sqlException = get(message, exception, timeout);
+            sqlException = get(message, exception.getSQLState(), exception.getErrorCode(), exception, timeout);
             String sqlState = exception.getSQLState();
             state = SqlStates.fromString(sqlState);
             SQLException nextException = exception.getNextException();
@@ -140,43 +132,70 @@ public class ExceptionMapper {
         return sqlException;
     }
 
-    private static SQLException get(final String message, final SQLException exception, boolean timeout) {
-        final String sqlState = exception.getSQLState();
+    /**
+     * Check connection exception to report to poolConnection listeners.
+     *
+     * @param exception current exception
+     * @param connection current connection
+     */
+    public static void checkConnectionException(SQLException exception, MariaDbConnection connection) {
+        if (exception.getSQLState() != null) {
+            SqlStates state = SqlStates.fromString(exception.getSQLState());
+            if (SqlStates.CONNECTION_EXCEPTION.equals(state)) {
+                connection.setHostFailed();
+                if (connection.pooledConnection != null) {
+                    connection.pooledConnection.fireConnectionErrorOccured(exception);
+                }
+            }
+        }
+    }
+
+    /**
+     * Helper to decorate exception with associate subclass of {@link SQLException} exception.
+     *
+     * @param message       exception message
+     * @param sqlState      sqlstate
+     * @param errorCode     errorCode
+     * @param exception     cause
+     * @param timeout       was timeout on query
+     * @return SQLException exception
+     */
+    public static SQLException get(final String message, String sqlState, int errorCode, final Throwable exception, boolean timeout) {
         final SqlStates state = SqlStates.fromString(sqlState);
         switch (state) {
             case DATA_EXCEPTION:
-                return new SQLDataException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLDataException(message, sqlState, errorCode, exception);
             case FEATURE_NOT_SUPPORTED:
-                return new SQLFeatureNotSupportedException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLFeatureNotSupportedException(message, sqlState, errorCode, exception);
             case CONSTRAINT_VIOLATION:
-                return new SQLIntegrityConstraintViolationException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLIntegrityConstraintViolationException(message, sqlState, errorCode, exception);
             case INVALID_AUTHORIZATION:
-                return new SQLInvalidAuthorizationSpecException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLInvalidAuthorizationSpecException(message, sqlState, errorCode, exception);
             case CONNECTION_EXCEPTION:
-                return new SQLNonTransientConnectionException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLNonTransientConnectionException(message, sqlState, errorCode, exception);
             case SYNTAX_ERROR_ACCESS_RULE:
-                return new SQLSyntaxErrorException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLSyntaxErrorException(message, sqlState, errorCode, exception);
             case TRANSACTION_ROLLBACK:
-                return new SQLTransactionRollbackException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLTransactionRollbackException(message, sqlState, errorCode, exception);
             case WARNING:
-                return new SQLWarning(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLWarning(message, sqlState, errorCode, exception);
             case INTERRUPTED_EXCEPTION:
                 if (timeout && "70100".equals(sqlState)) {
-                    return new SQLTimeoutException(message, sqlState, exception.getErrorCode(), exception);
+                    return new SQLTimeoutException(message, sqlState, errorCode, exception);
                 }
                 if (exception instanceof SQLNonTransientConnectionException) {
-                    return new SQLNonTransientConnectionException(message, exception.getSQLState(), exception.getErrorCode(), exception);
+                    return new SQLNonTransientConnectionException(message, sqlState, errorCode, exception);
                 }
-                return new SQLTransientException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLTransientException(message, sqlState, errorCode, exception);
             case TIMEOUT_EXCEPTION:
-                return new SQLTimeoutException(message, sqlState, exception.getErrorCode(), exception);
+                return new SQLTimeoutException(message, sqlState, errorCode, exception);
             case UNDEFINED_SQLSTATE:
                 if (exception instanceof SQLNonTransientConnectionException) {
-                    return new SQLNonTransientConnectionException(message, exception.getSQLState(), exception.getErrorCode(), exception);
+                    return new SQLNonTransientConnectionException(message, sqlState, errorCode, exception);
                 }
             default:
                 // DISTRIBUTED_TRANSACTION_ERROR,
-                return new SQLException(message, exception.getSQLState(), exception.getErrorCode(), exception);
+                return new SQLException(message, sqlState, errorCode, exception);
         }
     }
 

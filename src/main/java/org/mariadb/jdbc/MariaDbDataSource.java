@@ -53,24 +53,35 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.DefaultOptions;
-import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.internal.util.pool.Pool;
 
 import javax.sql.*;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.util.ArrayList;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.Collections;
+import java.util.Properties;
 import java.util.logging.Logger;
 
 
 public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
-    private final UrlParser urlParser;
+
+    private UrlParser urlParser;
+    private Pool pool;
+
+    private String hostname;
+    private Integer port = 3306;
+    private Integer connectTimeoutInMs = 30_000;
+    private String database;
+    private String url;
+    private String user;
+    private String password;
+    private String properties;
 
     /**
      * Constructor.
@@ -78,25 +89,22 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @param hostname hostname (ipv4, ipv6, dns name)
      * @param port     server port
      * @param database database name
-     * @throws SQLException exception if connection failed
      */
-    public MariaDbDataSource(String hostname, int port, String database) throws SQLException {
-        ArrayList<HostAddress> hostAddresses = new ArrayList<HostAddress>();
-        hostAddresses.add(new HostAddress(hostname, port));
-        urlParser = new UrlParser(database, hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
+    public MariaDbDataSource(String hostname, int port, String database) {
+        this.hostname = hostname;
+        this.port = port;
+        this.database = database;
     }
 
-    public MariaDbDataSource(String url) throws SQLException {
-        this.urlParser = UrlParser.parse(url);
+    public MariaDbDataSource(String url) {
+        this.url = url;
     }
 
     /**
      * Default constructor. hostname will be localhost, port 3306.
      */
     public MariaDbDataSource() {
-        ArrayList<HostAddress> hostAddresses = new ArrayList<HostAddress>();
-        hostAddresses.add(new HostAddress("localhost", 3306));
-        urlParser = new UrlParser("", hostAddresses, DefaultOptions.defaultValues(HaMode.NONE), HaMode.NONE);
+
     }
 
     /**
@@ -105,16 +113,19 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @return the name of the database for this data source
      */
     public String getDatabaseName() {
-        return (urlParser.getDatabase() != null) ? urlParser.getDatabase() : "";
+        if (database != null) return database;
+        return (urlParser != null && urlParser.getDatabase() != null) ? urlParser.getDatabase() : "";
     }
 
     /**
      * Sets the database name.
      *
-     * @param dbName the name of the database
+     * @param database the name of the database
+     * @throws SQLException if connection information are erroneous
      */
-    public void setDatabaseName(String dbName) {
-        urlParser.setDatabase(dbName);
+    public void setDatabaseName(String database) throws SQLException {
+        this.database = database;
+        reInitializeIfNeeded();
     }
 
     /**
@@ -123,16 +134,19 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @return the username to use when connecting to the database
      */
     public String getUser() {
-        return urlParser.getUsername();
+        if (user != null) return user;
+        return urlParser != null ? urlParser.getUsername() : null;
     }
 
     /**
      * Sets the username.
      *
-     * @param userName the username
+     * @param user the username
+     * @throws SQLException if connection information are erroneous
      */
-    public void setUser(String userName) {
-        setUserName(userName);
+    public void setUser(String user) throws SQLException {
+        this.user = user;
+        reInitializeIfNeeded();
     }
 
     /**
@@ -141,25 +155,28 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @return the username to use when connecting to the database
      */
     public String getUserName() {
-        return urlParser.getUsername();
+        return getUser();
     }
 
     /**
      * Sets the username.
      *
      * @param userName the username
+     * @throws SQLException if connection information are erroneous
      */
-    public void setUserName(String userName) {
-        urlParser.setUsername(userName);
+    public void setUserName(String userName) throws SQLException {
+        setUser(userName);
     }
 
     /**
      * Sets the password.
      *
-     * @param pass the password
+     * @param password the password
+     * @throws SQLException if connection information are erroneous
      */
-    public void setPassword(String pass) {
-        urlParser.setPassword(pass);
+    public void setPassword(String password) throws SQLException {
+        this.password = password;
+        reInitializeIfNeeded();
     }
 
     /**
@@ -168,16 +185,19 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @return the port number
      */
     public int getPort() {
-        return urlParser.getHostAddresses().get(0).port;
+        if (port != 0) return port;
+        return urlParser != null ? urlParser.getHostAddresses().get(0).port : 3306;
     }
 
     /**
      * Sets the database port.
      *
      * @param port the port
+     * @throws SQLException if connection information are erroneous
      */
-    public void setPort(int port) {
-        urlParser.getHostAddresses().get(0).port = port;
+    public void setPort(int port) throws SQLException {
+        this.port = port;
+        reInitializeIfNeeded();
     }
 
     /**
@@ -193,16 +213,19 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * Sets the port number.
      *
      * @param port the port
+     * @throws SQLException if connection information are erroneous
      * @see #setPort
      */
-    public void setPortNumber(int port) {
+    public void setPortNumber(int port) throws SQLException {
         if (port > 0) {
             setPort(port);
         }
     }
 
-    public void setProperties(String properties) {
-        urlParser.setProperties(properties);
+    @Deprecated
+    public void setProperties(String properties) throws SQLException {
+        this.properties = properties;
+        reInitializeIfNeeded();
     }
 
     /**
@@ -224,7 +247,8 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @throws SQLException if error in URL
      */
     public void setUrl(String url) throws SQLException {
-        this.urlParser.parseUrl(url);
+        this.url = url;
+        reInitializeIfNeeded();
     }
 
     /**
@@ -233,18 +257,20 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @return the name of the database server
      */
     public String getServerName() {
-        return (this.urlParser.getHostAddresses().get(0).host != null) ? this.urlParser.getHostAddresses().get(0).host : "";
+        if (hostname != null) return hostname;
+        boolean hasHost = urlParser != null && this.urlParser.getHostAddresses().get(0).host != null;
+        return (hasHost) ? this.urlParser.getHostAddresses().get(0).host : "localhost";
     }
 
     /**
      * Sets the server name.
      *
      * @param serverName the server name
+     * @throws SQLException if connection information are erroneous
      */
-    public void setServerName(String serverName) {
-        if (serverName != null && !serverName.isEmpty()) {
-            urlParser.getHostAddresses().get(0).host = serverName;
-        }
+    public void setServerName(String serverName) throws SQLException {
+        hostname = serverName;
+        reInitializeIfNeeded();
     }
 
     /**
@@ -255,12 +281,13 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      */
     public Connection getConnection() throws SQLException {
         try {
-            ReentrantLock lock = new ReentrantLock();
-            Protocol proxyfiedProtocol = Utils.retrieveProxy(urlParser, lock);
-            return MariaDbConnection.newConnection(urlParser.getInitialUrl(), proxyfiedProtocol, lock);
+            if (urlParser == null) {
+                initialize();
+            }
+
+            return MariaDbConnection.newConnection(urlParser, null);
         } catch (SQLException e) {
-            ExceptionMapper.throwException(e, null, null);
-            return null;
+            throw ExceptionMapper.getException(e, null, null, false);
         }
     }
 
@@ -271,13 +298,25 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @param password the user's password
      * @return a connection to the data source
      * @throws SQLException if a database access error occurs
-     * @since 1.4
      */
     public Connection getConnection(final String username, final String password) throws SQLException {
-        urlParser.setUsername(username);
-        urlParser.setPassword(password);
-        //if (log.isDebugEnabled()) log.debug("connection : " +urlParser.toString());
-        return getConnection();
+        try {
+            if (urlParser == null) {
+                this.user = username;
+                this.password = password;
+                initialize();
+            }
+
+            UrlParser urlParser = (UrlParser) this.urlParser.clone();
+            urlParser.setUsername(username);
+            urlParser.setPassword(password);
+            return MariaDbConnection.newConnection(urlParser, null);
+
+        } catch (SQLException e) {
+            throw ExceptionMapper.getException(e, null, null, false);
+        } catch (CloneNotSupportedException cloneException) {
+            throw new SQLException("Error in configuration");
+        }
     }
 
     /**
@@ -330,7 +369,8 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @since 1.4
      */
     public int getLoginTimeout() throws SQLException {
-        return urlParser.getOptions().connectTimeout == null ? 0 : urlParser.getOptions().connectTimeout / 1000;
+        if (connectTimeoutInMs != null) return connectTimeoutInMs / 1000;
+        return (urlParser != null) ? urlParser.getOptions().connectTimeout / 1000 : 0;
     }
 
     /**
@@ -345,7 +385,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      */
     @Override
     public void setLoginTimeout(final int seconds) throws SQLException {
-        urlParser.getOptions().connectTimeout = seconds * 1000;
+        connectTimeoutInMs = seconds * 1000;
     }
 
     /**
@@ -388,7 +428,6 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @return true if this implements the interface or directly or indirectly wraps an object that does.
      * @throws SQLException if an error occurs while determining whether this is a wrapper for an object with
      *                      the given interface.
-     * @since 1.6
      */
     public boolean isWrapperFor(final Class<?> interfaceOrWrapper) throws SQLException {
         return interfaceOrWrapper.isInstance(this);
@@ -404,7 +443,6 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @throws SQLException if a database access error occurs
      *                      if the JDBC driver does not support
      *                      this method
-     * @since 1.4
      */
     public PooledConnection getPooledConnection() throws SQLException {
         return new MariaDbPooledConnection((MariaDbConnection) getConnection());
@@ -420,7 +458,6 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * connection to the database that this
      * <code>ConnectionPoolDataSource</code> object represents
      * @throws SQLException if a database access error occurs
-     * @since 1.4
      */
     public PooledConnection getPooledConnection(String user, String password) throws SQLException {
         return new MariaDbPooledConnection((MariaDbConnection) getConnection(user, password));
@@ -446,5 +483,37 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      */
     protected UrlParser getUrlParser() {
         return urlParser;
+    }
+
+    private void reInitializeIfNeeded() throws SQLException {
+        if (urlParser != null) {
+            initialize();
+        }
+    }
+
+    protected synchronized void initialize() throws SQLException {
+        if (url != null && !url.isEmpty()) {
+            Properties props = new Properties();
+            if (user != null) props.setProperty("user", user);
+            if (password != null) props.setProperty("password", password);
+            if (database != null) props.setProperty("database", database);
+            if (connectTimeoutInMs != null) props.setProperty("connectTimeout", String.valueOf(connectTimeoutInMs));
+
+            urlParser = UrlParser.parse(url, props);
+
+        } else {
+            Options options = DefaultOptions.defaultValues(HaMode.NONE);
+            options.user = user;
+            options.password = password;
+
+            urlParser = new UrlParser(database,
+                    Collections.singletonList(
+                            new HostAddress(
+                                    (hostname == null || hostname.isEmpty()) ? "localhost" : hostname,
+                                    port == null ? 3306 : port)),
+                    options ,
+                    HaMode.NONE);
+            if (properties != null) urlParser.setProperties(properties);
+        }
     }
 }

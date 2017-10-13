@@ -64,6 +64,6 @@ public class MariaXaConnection extends MariaDbPooledConnection implements XAConn
 
     @Override
     public XAResource getXAResource() throws SQLException {
-        return new MariaXaResource(connection);
+        return new MariaXaResource(getConnection());
     }
 }

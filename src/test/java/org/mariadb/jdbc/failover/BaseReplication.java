@@ -94,7 +94,7 @@ public abstract class BaseReplication extends BaseMonoServer {
             //test failover
             preparedStatement.setInt(1, 1);
             ResultSet rs = preparedStatement.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             assertEquals("Harriba !", rs.getString(1));
             assertNotEquals(currentPrepareId, getPrepareResult((MariaDbPreparedStatementServer) preparedStatement).getStatementId());
 
@@ -109,7 +109,7 @@ public abstract class BaseReplication extends BaseMonoServer {
                 Thread.sleep(1000);
                 preparedStatement.setInt(1, 1);
                 rs = preparedStatement.executeQuery();
-                rs.next();
+                assertTrue(rs.next());
                 assertEquals("Harriba !", rs.getString(1));
 
                 currentServerId = getServerId(connection);
@@ -381,7 +381,7 @@ public abstract class BaseReplication extends BaseMonoServer {
         Connection connection = null;
         try {
             connection = getNewConnection("&retriesAllDown=6", true);
-            int masterServerId = -1;
+            int masterServerId;
             masterServerId = getServerId(connection);
 
             stopProxy(masterServerId);

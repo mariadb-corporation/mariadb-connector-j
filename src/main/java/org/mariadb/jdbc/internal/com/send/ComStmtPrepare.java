@@ -79,9 +79,8 @@ public class ComStmtPrepare {
      *
      * @param pos the writer
      * @throws IOException  if connection error occur
-     * @throws SQLException if packet max size is to big.
      */
-    public void send(PacketOutputStream pos) throws IOException, SQLException {
+    public void send(PacketOutputStream pos) throws IOException {
         pos.startPacket(0);
         pos.write(COM_STMT_PREPARE);
         pos.write(this.sql);
@@ -101,18 +100,7 @@ public class ComStmtPrepare {
         Buffer buffer = reader.getPacket(true);
         byte firstByte = buffer.getByteAt(buffer.position);
 
-        if (firstByte == ERROR) {
-            ErrorPacket ep = new ErrorPacket(buffer);
-            String message = ep.getMessage();
-            if (1054 == ep.getErrorNumber()) {
-                throw new SQLException("Error preparing query: " + message
-                        + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
-                        + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
-                        ep.getSqlState(), ep.getErrorNumber());
-            } else {
-                throw new SQLException("Error preparing query: " + message, ep.getSqlState(), ep.getErrorNumber());
-            }
-        }
+        if (firstByte == ERROR) throw buildErrorException(buffer);
 
         if (firstByte == OK) {
 
@@ -152,7 +140,7 @@ public class ComStmtPrepare {
 
             ServerPrepareResult serverPrepareResult = new ServerPrepareResult(sql, statementId, columns, params, protocol);
             if (protocol.getOptions().cachePrepStmts && sql != null && sql.length() < protocol.getOptions().prepStmtCacheSqlLimit) {
-                String key = new StringBuilder(protocol.getDatabase()).append("-").append(sql).toString();
+                String key = protocol.getDatabase() + "-" + sql;
                 ServerPrepareResult cachedServerPrepareResult = protocol.addPrepareInCache(key, serverPrepareResult);
                 return cachedServerPrepareResult != null ? cachedServerPrepareResult : serverPrepareResult;
             }
@@ -160,6 +148,19 @@ public class ComStmtPrepare {
 
         } else {
             throw new SQLException("Unexpected packet returned by server, first byte " + firstByte);
+        }
+    }
+
+    private SQLException buildErrorException(Buffer buffer) {
+        ErrorPacket ep = new ErrorPacket(buffer);
+        String message = ep.getMessage();
+        if (1054 == ep.getErrorNumber()) {
+            return new SQLException(message
+                    + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
+                    + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
+                    ep.getSqlState(), ep.getErrorNumber());
+        } else {
+            return new SQLException(message, ep.getSqlState(), ep.getErrorNumber());
         }
     }
 

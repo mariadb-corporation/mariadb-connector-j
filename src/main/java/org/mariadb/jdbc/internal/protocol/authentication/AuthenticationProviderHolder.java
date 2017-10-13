@@ -67,14 +67,7 @@ public class AuthenticationProviderHolder {
     /**
      * The default provider will construct a new pool on every request.
      */
-    public static AuthenticationProvider DEFAULT_PROVIDER = new AuthenticationProvider() {
-        @Override
-        public InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
-                                                                       byte[] authData, int seqNo, String passwordCharacterEncoding)
-                throws SQLException {
-            return DefaultAuthenticationProvider.processAuthPlugin(reader, plugin, password, authData, seqNo, passwordCharacterEncoding);
-        }
-    };
+    public static final AuthenticationProvider DEFAULT_PROVIDER = DefaultAuthenticationProvider::processAuthPlugin;
 
     private static volatile AuthenticationProvider currentProvider = null;
 
@@ -108,7 +101,7 @@ public class AuthenticationProviderHolder {
      * Provider to handle authentication.
      */
     public interface AuthenticationProvider {
-        public InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
+        InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
                                                                        byte[] authData, int seqNo, String passwordCharacterEncoding)
                 throws SQLException;
     }

@@ -59,7 +59,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 
 public class BigDecimalParameter implements Cloneable, ParameterHolder {
-    private BigDecimal bigDecimal;
+    private final BigDecimal bigDecimal;
 
     public BigDecimalParameter(final BigDecimal bigDecimal) {
         this.bigDecimal = bigDecimal;

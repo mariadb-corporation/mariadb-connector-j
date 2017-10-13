@@ -53,11 +53,14 @@
 package org.mariadb.jdbc.internal.io.output;
 
 import org.mariadb.jdbc.internal.io.TraceObject;
+import org.mariadb.jdbc.internal.logging.Logger;
+import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.Utils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.zip.DeflaterOutputStream;
 
@@ -65,6 +68,7 @@ import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_COMPR
 import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET;
 
 public class CompressPacketOutputStream extends AbstractPacketOutputStream {
+    private static final Logger logger = LoggerFactory.getLogger(CompressPacketOutputStream.class);
 
     private static final int MAX_PACKET_LENGTH = 0x00ffffff;
     private static final byte[] EMPTY_ARRAY = new byte[0];
@@ -72,8 +76,8 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
     private static final float MIN_COMPRESSION_RATIO = 0.9f;
     private int maxPacketLength = MAX_PACKET_LENGTH;
     private int compressSeqNo;
-    private byte[] header = new byte[7];
-    private byte[] subHeader = new byte[4];
+    private final byte[] header = new byte[7];
+    private final byte[] subHeader = new byte[4];
     private byte[] remainingData = new byte[0];
     private boolean lastPacketExactMaxPacketLength = false;
 
@@ -99,6 +103,10 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
         cmdLength = 0;
         remainingData = EMPTY_ARRAY;
         lastPacketExactMaxPacketLength = false;
+    }
+
+    public int initialPacketPos() {
+        return 0;
     }
 
     /**
@@ -141,6 +149,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                 byte[] compressedBytes;
                 int uncompressSize = Math.min(MAX_PACKET_LENGTH, remainingData.length + 4 + pos);
                 checkMaxAllowedLength(uncompressSize);
+
                 ByteArrayOutputStream baos = null;
                 try {
                     baos = new ByteArrayOutputStream();
@@ -148,7 +157,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                     try {
                         deflater = new DeflaterOutputStream(baos);
                         if (remainingData.length != 0) deflater.write(remainingData);
-                        subHeader[0] = (byte) (pos >>> 0);
+                        subHeader[0] = (byte) pos;
                         subHeader[1] = (byte) (pos >>> 8);
                         subHeader[2] = (byte) (pos >>> 16);
                         subHeader[3] = (byte) this.seqNo++;
@@ -164,16 +173,16 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                     if (compressedBytes.length < (int) (MIN_COMPRESSION_RATIO * pos)) {
                         int compressedLength = compressedBytes.length;
 
-                        header[0] = (byte) (compressedLength >>> 0);
+                        header[0] = (byte) compressedLength;
                         header[1] = (byte) (compressedLength >>> 8);
                         header[2] = (byte) (compressedLength >>> 16);
                         header[3] = (byte) this.compressSeqNo++;
-                        header[4] = (byte) (uncompressSize >>> 0);
+                        header[4] = (byte) uncompressSize;
                         header[5] = (byte) (uncompressSize >>> 8);
                         header[6] = (byte) (uncompressSize >>> 16);
                         out.write(header, 0, 7);
                         out.write(compressedBytes, 0, compressedLength);
-
+                        cmdLength += uncompressSize;
 
                         if (traceCache != null && permitTrace) {
                             //trace last packets
@@ -194,17 +203,17 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                         if (logger.isTraceEnabled()) {
                             if (permitTrace) {
                                 if (remainingData.length != 0) {
-                                    logger.trace("send compress:" + serverThreadLog
-                                            + Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),
-                                            0,
-                                            compressedLength, header, remainingData, subHeader, buf));
+                                    logger.trace("send compress: {}{}",
+                                            serverThreadLog,
+                                            Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),0,
+                                                    compressedLength, header, remainingData, subHeader, buf));
                                 } else {
-                                    logger.trace("send compress:" + serverThreadLog
-                                            + Utils.hexdump(maxQuerySizeToLog - 11, 0, compressedLength, header, subHeader, buf));
+                                    logger.trace("send compress: {}{}",
+                                            serverThreadLog,
+                                            Utils.hexdump(maxQuerySizeToLog - 11, 0, compressedLength, header, subHeader, buf));
                                 }
                             } else {
-                                logger.trace("send compress:" + serverThreadLog
-                                        + " packet:<hidden>");
+                                logger.trace("send compress: {} packet=<hidden>", serverThreadLog);
                             }
                         }
                         if (pos + remainingData.length + 4 - uncompressSize > 0) {
@@ -228,9 +237,10 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
             int uncompressSize = Math.min(MAX_PACKET_LENGTH, remainingData.length + 4 + pos);
             checkMaxAllowedLength(uncompressSize);
+            cmdLength += uncompressSize;
 
             //send packet without compression
-            header[0] = (byte) (uncompressSize >>> 0);
+            header[0] = (byte) uncompressSize;
             header[1] = (byte) (uncompressSize >>> 8);
             header[2] = (byte) (uncompressSize >>> 16);
             header[3] = (byte) this.compressSeqNo++;
@@ -239,13 +249,16 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             header[6] = (byte) 0x00;
             out.write(header, 0, 7);
 
+            cmdLength += uncompressSize;
+
             if (remainingData.length != 0) out.write(remainingData);
-            subHeader[0] = (byte) (pos >>> 0);
+            subHeader[0] = (byte) pos;
             subHeader[1] = (byte) (pos >>> 8);
             subHeader[2] = (byte) (pos >>> 16);
             subHeader[3] = (byte) this.seqNo++;
             out.write(subHeader, 0, 4);
             out.write(buf, 0, uncompressSize - (remainingData.length + 4));
+            cmdLength += remainingData.length;
 
             if (traceCache != null && permitTrace) {
                 //trace last packets
@@ -266,19 +279,17 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             if (logger.isTraceEnabled()) {
                 if (permitTrace) {
                     if (remainingData.length != 0) {
-                        logger.trace("send uncompress:"
-                                + serverThreadLog
-                                + Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),
+                        logger.trace("send uncompress: {}{}",
+                                serverThreadLog,
+                                Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),
                                 0, pos, header, remainingData, subHeader, buf));
                     } else {
-                        logger.trace("send uncompress:"
-                                + serverThreadLog
-                                + Utils.hexdump(maxQuerySizeToLog - 11, 0, pos, header, subHeader, buf));
+                        logger.trace("send uncompress: {}{}",
+                                serverThreadLog,
+                                Utils.hexdump(maxQuerySizeToLog - 11, 0, pos, header, subHeader, buf));
                     }
                 } else {
-                    logger.trace("send compress: length:(zlib:0,std:" + uncompressSize + ")"
-                            + serverThreadLog
-                            + " packet:<hidden>");
+                    logger.trace("send uncompress: length:(zlib:0,std:{}) {} packet:<hidden>", uncompressSize, serverThreadLog);
                 }
             }
 
@@ -300,12 +311,12 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                 byte[] compressedBytes;
                 int uncompressSize = Math.min(MAX_PACKET_LENGTH, remainingData.length);
                 checkMaxAllowedLength(uncompressSize);
+                cmdLength += uncompressSize;
                 ByteArrayOutputStream baos = null;
                 try {
                     baos = new ByteArrayOutputStream();
                     DeflaterOutputStream deflater = null;
                     try {
-                        deflater = new DeflaterOutputStream(baos);
                         deflater.write(remainingData);
                         deflater.finish();
                     } finally {
@@ -320,11 +331,11 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                 if (compressedBytes.length < (int) (MIN_COMPRESSION_RATIO * pos)) {
                     int compressedLength = compressedBytes.length;
 
-                    header[0] = (byte) (compressedLength >>> 0);
+                    header[0] = (byte) compressedLength;
                     header[1] = (byte) (compressedLength >>> 8);
                     header[2] = (byte) (compressedLength >>> 16);
                     header[3] = (byte) this.compressSeqNo++;
-                    header[4] = (byte) (uncompressSize >>> 0);
+                    header[4] = (byte) uncompressSize;
                     header[5] = (byte) (uncompressSize >>> 8);
                     header[6] = (byte) (uncompressSize >>> 16);
                     out.write(header, 0, 7);
@@ -339,13 +350,11 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
                     if (logger.isTraceEnabled()) {
                         if (permitTrace) {
-                            logger.trace("send compress:"
-                                    + serverThreadLog
-                                    + Utils.hexdump(maxQuerySizeToLog - 7, 0, uncompressSize, header, remainingData));
+                            logger.trace("send compress: {}{}",
+                                    serverThreadLog,
+                                    Utils.hexdump(maxQuerySizeToLog - 7, 0, uncompressSize, header, remainingData));
                         } else {
-                            logger.trace("send compress:"
-                                    + serverThreadLog
-                                    + " packet:<hidden>");
+                            logger.trace("send compress: {} packet:<hidden>", serverThreadLog);
                         }
                     }
 
@@ -357,9 +366,10 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
             int uncompressSize = Math.min(MAX_PACKET_LENGTH, remainingData.length);
             checkMaxAllowedLength(uncompressSize);
+            cmdLength += uncompressSize;
 
             //send packet without compression
-            header[0] = (byte) (uncompressSize >>> 0);
+            header[0] = (byte) uncompressSize;
             header[1] = (byte) (uncompressSize >>> 8);
             header[2] = (byte) (uncompressSize >>> 16);
             header[3] = (byte) this.compressSeqNo++;
@@ -379,13 +389,11 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
 
             if (logger.isTraceEnabled()) {
                 if (permitTrace) {
-                    logger.trace("send uncompress:"
-                            + serverThreadLog
-                            + Utils.hexdump(maxQuerySizeToLog - 7, 0, remainingData.length, header, remainingData));
+                    logger.trace("send uncompress: {}{}",
+                            serverThreadLog,
+                            Utils.hexdump(maxQuerySizeToLog - 7, 0, remainingData.length, header, remainingData));
                 } else {
-                    logger.trace("send uncompress:"
-                            + serverThreadLog
-                            + " packet:<hidden>");
+                    logger.trace("send uncompress: {} packet:<hidden>", serverThreadLog);
                 }
             }
             if (commandEnd && lastPacketExactMaxPacketLength) writeEmptyPacket();
@@ -398,7 +406,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
      * @throws IOException if socket error occur.
      */
     public void writeEmptyPacket() throws IOException {
-        buf[0] = (byte) (4 >>> 0);
+        buf[0] = (byte) 4;
         buf[1] = (byte) 0x00;
         buf[2] = (byte) 0x00;
         buf[3] = (byte) this.compressSeqNo++;
@@ -416,16 +424,13 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                     Arrays.copyOfRange(buf, 0, 11)));
         }
 
-
         if (logger.isTraceEnabled()) {
             if (permitTrace) {
-                logger.trace("send compress:"
-                        + serverThreadLog
-                        + Utils.hexdump(maxQuerySizeToLog, 0, 11, buf));
+                logger.trace("send uncompress:{}{}",
+                        serverThreadLog,
+                        Utils.hexdump(maxQuerySizeToLog, 0, 11, buf));
             } else {
-                logger.trace("send compress:"
-                        + serverThreadLog
-                        + " packet:<hidden>");
+                logger.trace("send uncompress: {} packet:<hidden>", serverThreadLog);
             }
         }
     }

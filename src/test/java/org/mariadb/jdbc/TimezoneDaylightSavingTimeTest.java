@@ -74,7 +74,6 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
     public static TimeZone canadaTimeZone;
     private static Locale previousFormatLocale;
     private static TimeZone previousTimeZone;
-    private static TimeZone utcTimeZone;
 
     /**
      * Initialisation.
@@ -87,7 +86,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             Statement st = sharedConnection.createStatement();
             ResultSet rs = st.executeQuery("SELECT count(*) from mysql.time_zone_name "
                     + "where Name in ('Europe/Paris','Canada/Atlantic')");
-            rs.next();
+            assertTrue(rs.next());
             if (rs.getInt(1) == 0) {
                 ResultSet rs2 = st.executeQuery("SELECT DATABASE()");
                 rs2.next();
@@ -105,7 +104,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             previousTimeZone = TimeZone.getDefault();
 
             //I have tried to represent all times written in the code in the UTC time zone
-            utcTimeZone = TimeZone.getTimeZone("UTC");
+            final TimeZone utcTimeZone = TimeZone.getTimeZone("UTC");
 
             parisTimeZone = TimeZone.getTimeZone("Europe/Paris");
             canadaTimeZone = TimeZone.getTimeZone("Canada/Atlantic");
@@ -132,11 +131,9 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     /**
      * Put the TimeZone to previous state.
-     *
-     * @throws SQLException exception
      */
     @AfterClass()
-    public static void endClass() throws SQLException {
+    public static void endClass() {
         if (testSingleHost || !"true".equals(System.getenv("AURORA"))) {
             TimeZone.setDefault(previousTimeZone);
             if (previousFormatLocale != null) Locale.setDefault(previousFormatLocale);
@@ -195,7 +192,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             PreparedStatement st = connection.prepareStatement("SELECT ?");
             st.setTimestamp(1, currentTimeParis);
             ResultSet rs = st.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(rs.getTimestamp(1), currentTimeParis);
         } finally {
             connection.close();
@@ -215,7 +212,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             PreparedStatement st = connection.prepareStatement("SELECT ?");
             st.setTimestamp(1, currentTimeParis);
             ResultSet rs = st.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             Timestamp t1 = rs.getTimestamp(1);
             assertEquals(t1, currentTimeParis);
         } finally {
@@ -236,7 +233,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             Timestamp currentTimeParis = new Timestamp(System.currentTimeMillis());
             PreparedStatement st = connection.prepareStatement("SELECT NOW()");
             ResultSet rs = st.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             int offset = parisTimeZone.getOffset(System.currentTimeMillis());
             long timeDifference = currentTimeParis.getTime() - offset - rs.getTimestamp(1).getTime();
 
@@ -275,7 +272,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             st = connection.prepareStatement("SELECT tt FROM timeZoneTime");
             st.executeQuery();
             ResultSet rs = st.getResultSet();
-            rs.next();
+            assertTrue(rs.next());
             assertEquals("90:00:00.123456", rs.getString(1));
             Time tit = rs.getTime(1);
             Time tt2 = Time.valueOf("90:00:00");
@@ -284,26 +281,26 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             int offset = 3600000;//paris timezone offset 1970-01-01
             assertEquals(tit.getTime(), (long) 90 * 3600000 + 123 - offset);
             assertEquals(rs.getTimestamp(1), new Timestamp(70, 0, 1, 90, 0, 0, 123456000));
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(rs.getString(1), "800:00:00.000000");
             assertEquals(rs.getTime(1).getTime(), (long) 800 * 3600000 - offset);
             assertEquals(rs.getTimestamp(1), new Timestamp(70, 0, 1, 800, 0, 0, 0));
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(rs.getString(1), "00:08:00.000000");
             assertEquals(rs.getTime(1).getTime(), (long) 8 * 60000 - offset);
             assertEquals(rs.getTimestamp(1), new Timestamp(70, 0, 1, 0, 8, 0, 0));
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(rs.getString(1), "-00:00:22.000000");
             assertEquals(rs.getTimestamp(1), new Timestamp(70, 0, 1, 0, 0, 22, 0));
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(rs.getString(1), "15:14:13.000000");
             assertEquals(rs.getTime(1).getTime(), (long) 15 * 3600000 + 14 * 60000 + 13 * 1000 - offset);
             assertEquals(rs.getTimestamp(1), new Timestamp(70, 0, 1, 15, 14, 13, 0));
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(rs.getString(1), "09:06:03.000000");
             assertEquals(rs.getTime(1).getTime(), (long) 9 * 3600000 + 6 * 60000 + 3 * 1000 - offset);
             assertEquals(rs.getTimestamp(1), new Timestamp(70, 0, 1, 9, 6, 3, 0));
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(rs.getString(1), "00:00:01.000000");
             Time tt = rs.getTime(1);
             assertEquals(tt.getTime(), (long) 1000 - offset);
@@ -325,7 +322,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             setSessionTimeZone(connection, "+00:00");
             Calendar initTime = Calendar.getInstance(TimeZone.getTimeZone("Europe/Paris"));
             initTime.clear();
-            initTime.set(1970, 0, 1, 1, 45, 23);
+            initTime.set(1970, Calendar.JANUARY, 1, 1, 45, 23);
             initTime.set(Calendar.MILLISECOND, 123);
 
             Time timeParis = new Time(initTime.getTimeInMillis());
@@ -339,7 +336,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
             PreparedStatement st = connection.prepareStatement("SELECT dd, dd2 from ttimeTest");
             ResultSet rs = st.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(rs.getTime(1).getTime(), timeParis.getTime());
             assertEquals(rs.getTime(1), timeParis);
             assertEquals(rs.getTime(2).getTime(), timeParis2.getTime());
@@ -362,7 +359,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             Time currentTimeParis = new Time(System.currentTimeMillis());
             PreparedStatement st = sharedConnection.prepareStatement("SELECT NOW()");
             ResultSet rs = st.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             int offset = parisTimeZone.getOffset(System.currentTimeMillis());
             long timeDifference = currentTimeParis.getTime() - offset - rs.getTimestamp(1).getTime();
 
@@ -383,7 +380,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             Time currentTimeParis = new Time(System.currentTimeMillis());
             PreparedStatement st = connection.prepareStatement("SELECT NOW()");
             ResultSet rs = st.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             Timestamp nowServer = rs.getTimestamp(1);
             long timeDifference = currentTimeParis.getTime() - nowServer.getTime();
             assertTrue(timeDifference < 1000); // must have less than one second difference
@@ -403,7 +400,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             Time currentTimeParis = new Time(System.currentTimeMillis());
             PreparedStatement st = sharedConnection.prepareStatement("SELECT NOW()");
             ResultSet rs = st.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             int offset = parisTimeZone.getOffset(System.currentTimeMillis());
             long timeDifference = currentTimeParis.getTime() - offset - rs.getTimestamp(1).getTime();
             assertTrue(timeDifference < 1000); // must have less than one second difference
@@ -423,7 +420,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             Timestamp currentTimeParis = new Timestamp(System.currentTimeMillis());
             PreparedStatement st = connection.prepareStatement("SELECT NOW()");
             ResultSet rs = st.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             int offset = parisTimeZone.getOffset(System.currentTimeMillis());
             long timeDifference = currentTimeParis.getTime() - offset - rs.getTimestamp(1).getTime();
             assertTrue(timeDifference < 1000); // must have less than one second difference
@@ -456,7 +453,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
             Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
             quarterBeforeChangingHour.clear();
-            quarterBeforeChangingHour.set(2015, 2, 29, 0, 45, 0);
+            quarterBeforeChangingHour.set(2015, Calendar.MARCH, 29, 0, 45, 0);
 
             //check that paris is UTC+1, canada is UTC-3
             assertEquals(3600000, parisTimeZone.getOffset(quarterBeforeChangingHour.getTimeInMillis()));
@@ -467,7 +464,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
             Calendar quarterAfterChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
             quarterAfterChangingHour.clear();
-            quarterAfterChangingHour.set(2015, 2, 29, 1, 15, 0);
+            quarterAfterChangingHour.set(2015, Calendar.MARCH, 29, 1, 15, 0);
 
             //check that paris is UTC+2, canada is UTC-3
             assertEquals(2 * 3600000, parisTimeZone.getOffset(quarterAfterChangingHour.getTimeInMillis()));
@@ -565,12 +562,13 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             pst = connection.prepareStatement("SELECT * from daylight where 1 = ?", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
         } else {
             MariaDbConnection mariaDbConnection = (MariaDbConnection) connection;
-            pst = new MariaDbPreparedStatementClient(mariaDbConnection, "SELECT * from daylight where 1 = ?", ResultSet.TYPE_SCROLL_INSENSITIVE);
+            pst = new MariaDbPreparedStatementClient(mariaDbConnection, "SELECT * from daylight where 1 = ?",
+                    ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY, Statement.NO_GENERATED_KEYS);
         }
         pst.setInt(1, 1);
         rs = (SelectResultSet) pst.executeQuery();
 
-        rs.next();
+        assertTrue(rs.next());
 
 
         //test timestamp(6)
@@ -635,7 +633,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         assertEquals(rs.getString(5), "2015-03-29");
 
 
-        rs.next();
+        assertTrue(rs.next());
         //test timestamp(6)
         assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getTimestamp(2)));
         assertEquals("2015-03-29T03:15:00.012+0200", formatter.format(rs.getObject(2, Timestamp.class)));
@@ -690,7 +688,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
         assertEquals(rs.getString(5), "2015-03-29");
 
 
-        rs.next();
+        assertTrue(rs.next());
         //test timestamp(6)
         for (int i = 2; i < 6; i++) {
             assertNull(rs.getTimestamp(i));
@@ -725,12 +723,12 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             try {
                 st.executeQuery("SET GLOBAL time_zone = 'Europe/Paris'");
                 rs = st.executeQuery("SHOW GLOBAL VARIABLES LIKE 'time_zone';");
-                rs.next();
+                assertTrue(rs.next());
                 createTable("daylightCanada", "id int, tt TIMESTAMP(6)");
 
                 Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("Canada/Atlantic"));
                 quarterBeforeChangingHour.clear();
-                quarterBeforeChangingHour.set(2015, 2, 28, 21, 45, 0);
+                quarterBeforeChangingHour.set(2015, Calendar.MARCH, 28, 21, 45, 0);
 
                 int offsetBefore = parisTimeZone.getOffset(quarterBeforeChangingHour.getTimeInMillis());
                 assertEquals(offsetBefore, 3600000);
@@ -740,7 +738,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
                 Calendar quarterAfterChangingHour = Calendar.getInstance(TimeZone.getTimeZone("Canada/Atlantic"));
                 quarterAfterChangingHour.clear();
-                quarterAfterChangingHour.set(2015, 2, 28, 22, 15, 0);
+                quarterAfterChangingHour.set(2015, Calendar.MARCH, 28, 22, 15, 0);
 
                 int offsetAfter = parisTimeZone.getOffset(quarterAfterChangingHour.getTimeInMillis());
                 assertEquals(offsetAfter, 7200000);
@@ -758,12 +756,12 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
                 pst.executeBatch();
 
                 rs = st.executeQuery("SELECT * from daylightCanada");
-                rs.next();
+                assertTrue(rs.next());
                 Timestamp tt = rs.getTimestamp(2);
                 assertEquals(tt.getTime(), quarterBeforeChangingHour.getTimeInMillis());
                 assertEquals("2015-03-29T01:45:00.000+0100", formatter.format(tt));
 
-                rs.next();
+                assertTrue(rs.next());
                 tt = rs.getTimestamp(2);
                 assertEquals(tt.getTime(), quarterAfterChangingHour.getTimeInMillis());
                 assertEquals("2015-03-29T03:15:00.000+0200", formatter.format(tt));
@@ -789,13 +787,13 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             connection = setConnection("&serverTimezone=UTC");
             Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
             quarterBeforeChangingHour.clear();
-            quarterBeforeChangingHour.set(2015, 2, 29, 0, 45, 0);
+            quarterBeforeChangingHour.set(2015, Calendar.MARCH, 29, 0, 45, 0);
             int offsetBefore = parisTimeZone.getOffset(quarterBeforeChangingHour.getTimeInMillis());
             assertEquals(offsetBefore, 3600000);
 
             Calendar quarterAfterChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
             quarterAfterChangingHour.clear();
-            quarterAfterChangingHour.set(2015, 2, 29, 1, 15, 0);
+            quarterAfterChangingHour.set(2015, Calendar.MARCH, 29, 1, 15, 0);
             int offsetAfter = parisTimeZone.getOffset(quarterAfterChangingHour.getTimeInMillis());
             assertEquals(offsetAfter, 7200000);
 
@@ -816,22 +814,22 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
             Statement st = connection.createStatement();
             ResultSet rs = st.executeQuery("SELECT * from daylight2");
-            rs.next();
+            assertTrue(rs.next());
             assertEquals("2015-03-29T01:45:00.123+0100", formatter.format(rs.getTimestamp(2)));
 
-            rs.next();
+            assertTrue(rs.next());
             assertEquals("2015-03-29T03:15:00.000+0200", formatter.format(rs.getTimestamp(2)));
 
             //test with binary protocol
             pst = connection.prepareStatement("SELECT * from daylight2 where id = ?");
             pst.setInt(1, 1);
             rs = pst.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             assertEquals("2015-03-29T01:45:00.123+0100", formatter.format(rs.getTimestamp(2)));
 
             pst.setInt(1, 2);
             rs = pst.executeQuery();
-            rs.next();
+            assertTrue(rs.next());
             assertEquals("2015-03-29T03:15:00.000+0200", formatter.format(rs.getTimestamp(2)));
         } finally {
             if (connection != null) connection.close();
@@ -851,7 +849,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             setSessionTimeZone(connection, "Canada/Atlantic");
             Calendar quarterBeforeChangingHour = Calendar.getInstance(TimeZone.getTimeZone("utc"));
             quarterBeforeChangingHour.clear();
-            quarterBeforeChangingHour.set(2015, 2, 29, 0, 45, 0);
+            quarterBeforeChangingHour.set(2015, Calendar.MARCH, 29, 0, 45, 0);
             int offsetBefore = parisTimeZone.getOffset(quarterBeforeChangingHour.getTimeInMillis());
             assertEquals(offsetBefore, 3600000);
 
@@ -885,6 +883,50 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
             fail("Error, must have thrown exception, but result object is : " + obj);
         } catch (SQLException sqle) {
             assertTrue("msg:" + sqle.getMessage() + "-exp:" + expectedMsg, sqle.getMessage().contains(expectedMsg));
+        }
+
+    }
+
+    /**
+     * CONJ-533: ensure PrepareStatement.setTime() may insert correct time value.
+     * @throws SQLException if any occur
+     */
+    @Test
+    public void timeVerificationWithTimezone() throws SQLException {
+        TimeZone timeZone = TimeZone.getTimeZone("Asia/Kuala_Lumpur");
+        TimeZone.setDefault(timeZone);
+        SimpleDateFormat df = new SimpleDateFormat( "HH:mm:ss" );
+        createTable("timeVerificationWithTimezone", "time_field TIME");
+
+        Connection conn = null;
+        try {
+            conn = setConnection();
+            Calendar cal = Calendar.getInstance();
+            cal.clear();
+            cal.set( Calendar.HOUR, 5 );
+            cal.set( Calendar.MINUTE, 0 );
+            cal.set( Calendar.AM_PM, Calendar.AM );
+
+            PreparedStatement stmt = conn.prepareStatement("insert into timeVerificationWithTimezone (time_field) values (?)");
+
+            stmt.setTime(1, new java.sql.Time( cal.getTimeInMillis() ));
+            stmt.executeUpdate();
+
+            stmt.setString(1, "-05:00:00");
+            stmt.executeUpdate();
+
+            stmt.close();
+
+            stmt = conn.prepareStatement("select * from timeVerificationWithTimezone");
+            ResultSet rs = stmt.executeQuery();
+
+            assertTrue(rs.next());
+            assertEquals("05:00:00", df.format(rs.getTime(1)));
+
+            assertTrue(rs.next());
+            assertEquals("19:00:00", df.format(rs.getTime(1)));
+        } finally {
+            TimeZone.setDefault(parisTimeZone);
         }
 
     }

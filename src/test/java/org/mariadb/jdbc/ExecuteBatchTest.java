@@ -67,8 +67,8 @@ import static org.junit.Assert.*;
 
 public class ExecuteBatchTest extends BaseTest {
 
-    static String oneHundredLengthString = "";
-    static boolean profileSql = true;
+    private static final String oneHundredLengthString;
+    private static final boolean profileSql = false;
 
     static {
         char[] chars = new char[100];
@@ -96,7 +96,7 @@ public class ExecuteBatchTest extends BaseTest {
      */
     @Test
     public void interruptExecuteBatch() throws Exception {
-        Assume.assumeTrue(sharedOptions().useBatchMultiSend);
+        Assume.assumeTrue(sharedOptions().useBatchMultiSend && !(sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10,2)));
         ExecutorService service = Executors.newFixedThreadPool(1);
 
         final CyclicBarrier barrier = new CyclicBarrier(2);
@@ -267,27 +267,6 @@ public class ExecuteBatchTest extends BaseTest {
         }
     }
 
-    @Test
-    public void clientRewriteValuesPossibleTest() throws SQLException {
-        // 8mb
-        // 20mb
-        // 40mb
-    }
-
-    @Test
-    public void clientRewriteMultiTest() throws SQLException {
-        // 8mb
-        // 20mb
-        // 40mb
-    }
-
-    @Test
-    public void clientStdMultiTest() throws SQLException {
-        // 8mb
-        // 20mb
-        // 40mb
-    }
-
     private void addBatchData(PreparedStatement preparedStatement, int batchNumber, Connection connection) throws SQLException {
         addBatchData(preparedStatement, batchNumber, connection, false);
     }
@@ -335,8 +314,15 @@ public class ExecuteBatchTest extends BaseTest {
                 }
                 int[] updateCounts = pstmt.executeBatch();
                 assertEquals(10, updateCounts.length);
-                for (int i = 0; i < updateCounts.length; i++) {
-                    assertEquals(sharedIsRewrite() ? Statement.SUCCESS_NO_INFO : 1, updateCounts[i]);
+                for (int updateCount : updateCounts) {
+                    if ((sharedIsRewrite()
+                            || (sharedOptions().useBulkStmts
+                            && isMariadbServer()
+                            && minVersion(10, 2)))) {
+                        assertEquals(Statement.SUCCESS_NO_INFO, updateCount);
+                    } else {
+                        assertEquals(1, updateCount);
+                    }
                 }
             } finally {
                 pstmt.close();

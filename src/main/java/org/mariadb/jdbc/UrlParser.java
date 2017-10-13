@@ -59,6 +59,7 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
@@ -92,9 +93,13 @@ import java.util.regex.Pattern;
  * {@code jdbc:mariadb://address=(type=master)(host=master1),address=(port=3307)(type=slave)(host=slave1)/database?user=greg&password=pass}<br>
  * </p>
  */
-public class UrlParser {
+public class UrlParser implements Cloneable {
 
     private static final String DISABLE_MYSQL_URL = "disableMariaDbDriver";
+    private static final Pattern URL_PARAMETER = Pattern.compile("(\\/([^\\?]*))?(\\?(.+))*", Pattern.DOTALL);
+    private static final Pattern AWS_PATTERN = Pattern.compile("(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)",
+            Pattern.CASE_INSENSITIVE);
+
     private String database;
     private Options options = null;
     private List<HostAddress> addresses;
@@ -121,7 +126,34 @@ public class UrlParser {
                 }
             }
         }
+
+        DefaultOptions.optionCoherenceValidation(options);
+        StringBuilder sb = new StringBuilder();
+        sb.append("jdbc:mariadb:");
+        if (haMode != HaMode.NONE) {
+            sb.append(haMode).append(":");
+        }
+        sb.append("//");
+        boolean first = true;
+        for (HostAddress hostAddress : addresses) {
+            if (first) {
+                first = false;
+            } else {
+                sb.append(",");
+            }
+            sb.append("address=(host=").append(hostAddress.host).append(")")
+                    .append("(port=").append(hostAddress.port).append(")");
+            if (hostAddress.type != null) {
+                sb.append("(type=").append(hostAddress.type).append(")");
+            }
+        }
+
+        sb.append("/");
+        if (database != null) sb.append(database);
+        DefaultOptions.propertyString(options, haMode, sb);
+        initialUrl = sb.toString();
         multiMaster = loadMultiMasterValue();
+
     }
 
     /**
@@ -149,15 +181,11 @@ public class UrlParser {
      * @throws SQLException if parsing exception occur
      */
     public static UrlParser parse(final String url, Properties prop) throws SQLException {
-        if (url != null) {
-
-            if (prop == null) prop = new Properties();
-
-            if (url.startsWith("jdbc:mariadb:") || url.startsWith("jdbc:mysql:") && !url.contains(DISABLE_MYSQL_URL)) {
-                UrlParser urlParser = new UrlParser();
-                parseInternal(urlParser, url, prop);
-                return urlParser;
-            }
+        if (url != null
+                && (url.startsWith("jdbc:mariadb:") || url.startsWith("jdbc:mysql:") && !url.contains(DISABLE_MYSQL_URL))) {
+            UrlParser urlParser = new UrlParser();
+            parseInternal(urlParser, url, (prop == null) ? new Properties() : prop);
+            return urlParser;
         }
         return null;
     }
@@ -184,7 +212,7 @@ public class UrlParser {
                 throw new IllegalArgumentException("url parsing error : '//' is not present in the url " + url);
             }
 
-            setHaMode(urlParser, url, separator);
+            urlParser.haMode = parseHaMode(url, separator);
 
             String urlSecondPart = url.substring(separator + 2);
             int dbIndex = urlSecondPart.indexOf("/");
@@ -207,7 +235,7 @@ public class UrlParser {
             setDefaultHostAddressType(urlParser);
 
         } catch (IllegalArgumentException i) {
-            throw new SQLException(i.getMessage());
+            throw new SQLException("error parsing url : " + i.getMessage(), i);
         }
     }
 
@@ -224,20 +252,21 @@ public class UrlParser {
                                                   String additionalParameters) {
 
         if (additionalParameters != null) {
-            String regex = "(\\/([^\\?]*))?(\\?(.+))*";
-            Pattern pattern = Pattern.compile(regex, Pattern.DOTALL);
-            Matcher matcher = pattern.matcher(additionalParameters);
+            //noinspection Annotator
+            Matcher matcher = URL_PARAMETER.matcher(additionalParameters);
 
             if (matcher.find()) {
 
                 urlParser.database = matcher.group(2);
                 urlParser.options = DefaultOptions.parse(urlParser.haMode, matcher.group(4), properties, urlParser.options);
+                DefaultOptions.optionCoherenceValidation(urlParser.options);
                 if (urlParser.database != null && urlParser.database.isEmpty()) urlParser.database = null;
 
             } else {
 
                 urlParser.database = null;
                 urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
+                DefaultOptions.optionCoherenceValidation(urlParser.options);
 
             }
 
@@ -245,6 +274,7 @@ public class UrlParser {
 
             urlParser.database = null;
             urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
+            DefaultOptions.optionCoherenceValidation(urlParser.options);
 
         }
 
@@ -290,27 +320,32 @@ public class UrlParser {
     public boolean isAurora() {
         if (haMode == HaMode.AURORA) return true;
         if (addresses != null) {
-            Pattern clusterPattern = Pattern.compile("(.+)\\.([a-z0-9\\-]+\\.rds\\.amazonaws\\.com)", Pattern.CASE_INSENSITIVE);
             for (HostAddress hostAddress : addresses) {
-                Matcher matcher = clusterPattern.matcher(hostAddress.host);
+                Matcher matcher = AWS_PATTERN.matcher(hostAddress.host);
                 if (matcher.find()) return true;
             }
         }
         return false;
     }
 
-    private static void setHaMode(UrlParser urlParser, String url, int separator) {
-        String[] baseTokens = url.substring(0, separator).split(":");
 
-        //parse HA mode
-        urlParser.haMode = HaMode.NONE;
-        if (baseTokens.length > 2) {
-            try {
-                urlParser.haMode = HaMode.valueOf(baseTokens[2].toUpperCase());
-            } catch (IllegalArgumentException i) {
-                throw new IllegalArgumentException("url parameter error '" + baseTokens[2] + "' is a unknown parameter in the url " + url);
-            }
+    private static HaMode parseHaMode(String url, int separator) {
+        //parser is sure to have at least 2 colon, since jdbc:[mysql|mariadb]: is tested.
+        int firstColonPos = url.indexOf(':');
+        int secondColonPos = url.indexOf(':', firstColonPos + 1);
+        int thirdColonPos = url.indexOf(':', secondColonPos + 1);
+
+        if (thirdColonPos > separator || thirdColonPos == -1) {
+            if (secondColonPos == separator - 1) return HaMode.NONE;
+            thirdColonPos = separator;
         }
+
+        try {
+            return HaMode.valueOf(url.substring(secondColonPos + 1, thirdColonPos).toUpperCase());
+        } catch (IllegalArgumentException i) {
+            throw new IllegalArgumentException("wrong failover parameter format in connection String " + url);
+        }
+
     }
 
     private static void setDefaultHostAddressType(UrlParser urlParser) {
@@ -343,7 +378,7 @@ public class UrlParser {
         return options.user;
     }
 
-    protected void setUsername(String username) {
+    public void setUsername(String username) {
         options.user = username;
     }
 
@@ -351,7 +386,7 @@ public class UrlParser {
         return options.password;
     }
 
-    protected void setPassword(String password) {
+    public void setPassword(String password) {
         options.password = password;
     }
 
@@ -359,7 +394,7 @@ public class UrlParser {
         return database;
     }
 
-    protected void setDatabase(String database) {
+    public void setDatabase(String database) {
         this.database = database;
     }
 
@@ -402,14 +437,17 @@ public class UrlParser {
         if (!(parser instanceof UrlParser)) return false;
 
         UrlParser urlParser = (UrlParser) parser;
-        if (initialUrl != null ? !initialUrl.equals(urlParser.getInitialUrl()) : urlParser.getInitialUrl() != null) {
-            return false;
-        }
-        if (getUsername() != null ? !getUsername().equals(urlParser.getUsername()) : urlParser.getUsername() != null) {
-            return false;
-        }
-        return getPassword() != null ? getPassword().equals(urlParser.getPassword()) : urlParser.getPassword() == null;
+        return (initialUrl != null ? initialUrl.equals(urlParser.getInitialUrl()) : urlParser.getInitialUrl() == null)
+                && (getUsername() != null ? getUsername().equals(urlParser.getUsername()) : urlParser.getUsername() == null)
+                && (getPassword() != null ? getPassword().equals(urlParser.getPassword()) : urlParser.getPassword() == null);
+    }
 
+    @Override
+    public int hashCode() {
+        int result = options.password != null ? options.password.hashCode() : 0;
+        result = 31 * result + (options.user != null ? options.user.hashCode() : 0);
+        result = 31 * result + initialUrl.hashCode();
+        return result;
     }
 
     private boolean loadMultiMasterValue() {
@@ -418,7 +456,7 @@ public class UrlParser {
                 || haMode == HaMode.FAILOVER) {
             boolean firstMaster = false;
             for (HostAddress host : addresses) {
-                if (host.type == ParameterConstant.TYPE_MASTER) {
+                if (host.type.equals(ParameterConstant.TYPE_MASTER)) {
                     if (firstMaster) {
                         return true;
                     } else {
@@ -432,5 +470,14 @@ public class UrlParser {
 
     public boolean isMultiMaster() {
         return multiMaster;
+    }
+
+    @Override
+    public Object clone() throws CloneNotSupportedException {
+        UrlParser tmpUrlParser = (UrlParser) super.clone();
+        tmpUrlParser.options = (Options) options.clone();
+        tmpUrlParser.addresses = new ArrayList<>();
+        tmpUrlParser.addresses.addAll(addresses);
+        return tmpUrlParser;
     }
 }

@@ -100,7 +100,8 @@ public class ParserTest extends BaseTest {
         Connection connection = null;
         try {
             connection = datasource.getConnection();
-            //ok
+            Statement stmt = connection.createStatement();
+            assertTrue(stmt.execute("SELECT 10"));
         } finally {
             if (connection != null) connection.close();
         }

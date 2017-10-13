@@ -138,6 +138,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
                 new BigInteger("FFFFFFFFFFFFFFFF", 16));
     }
 
+    @SuppressWarnings("BigDecimalMethodWithoutRoundingCalled")
     @Test
     public void testFixedPointTypes() throws SQLException {
         requireMinimumVersion(5, 0);
@@ -205,7 +206,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
         PreparedStatement ps = sharedConnection.prepareStatement("SELECT CONVERT(?, TIME)");
         ps.setTime(1, testTime);
         ResultSet rs = ps.executeQuery();
-        rs.next();
+        assertTrue(rs.next());
         Timestamp ts = rs.getTimestamp(1);
         Time time = rs.getTime(1);
         assertEquals(testTime, ts);
@@ -290,6 +291,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
 
     @Test
     public void testTimePrepareStatement() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         Connection connection = null;
         try {
             connection = setConnection("&useServerPrepStmts=true");
@@ -297,6 +299,9 @@ public class DatatypeCompatibilityTest extends BaseTest {
             testPreparedStatementGetTime(connection);
             testStatementGetString(connection);
             testPreparedStatementGetString(connection);
+        } catch (Exception e) {
+            e.printStackTrace();
+            fail();
         } finally {
             if (connection != null) connection.close();
         }
@@ -304,6 +309,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
 
     @Test
     public void testTimeNotPrepareStatement() throws SQLException {
+        Assume.assumeTrue(doPrecisionTest);
         Connection connection = null;
         try {
             connection = setConnection("&useServerPrepStmts=false");

@@ -50,34 +50,53 @@
  *
  */
 
-package org.mariadb.jdbc.internal.util.dao;
+package org.mariadb.jdbc.internal.com.read.resultset;
 
-public class PrepareStatementCacheKey {
-    private String database;
-    private String query;
+public class UpdatableColumnInformation extends ColumnInformation {
 
-    public PrepareStatementCacheKey(String database, String query) {
-        this.database = database;
-        this.query = query;
+    private final boolean canBeNull;
+    private final boolean primary;
+    private final boolean hasDefault;
+    private final boolean generated;
+    private final boolean autoIncrement;
+
+    /**
+     * Constructor of Column metadata.
+     *
+     * @param columnInformation column meta information
+     * @param canBeNull         can column be null
+     * @param hasDefault        has default
+     * @param generated         is automatically generated
+     * @param primary           is column part of primary key
+     * @param autoIncrement     column has AUTO_INCREMENT attribute
+     */
+    public UpdatableColumnInformation(ColumnInformation columnInformation, boolean canBeNull, boolean hasDefault,
+                                      boolean generated, boolean primary, boolean autoIncrement) {
+        super(columnInformation);
+        this.canBeNull = canBeNull;
+        this.hasDefault = hasDefault;
+        this.generated = generated;
+        this.primary = primary;
+        this.autoIncrement = autoIncrement;
     }
 
-    @Override
-    public boolean equals(Object object) {
-        if (this == object) {
-            return true;
-        }
-        if (object == null || getClass() != object.getClass()) {
-            return false;
-        }
-        PrepareStatementCacheKey that = (PrepareStatementCacheKey) object;
-        return database.equals(that.database) && query.equals(that.query);
-
+    public boolean canBeNull() {
+        return canBeNull;
     }
 
-    @Override
-    public int hashCode() {
-        int result = database.hashCode();
-        result = 31 * result + query.hashCode();
-        return result;
+    public boolean hasDefault() {
+        return hasDefault;
+    }
+
+    public boolean isGenerated() {
+        return generated;
+    }
+
+    public boolean isPrimary() {
+        return primary;
+    }
+
+    public boolean isAutoIncrement() {
+        return autoIncrement;
     }
 }

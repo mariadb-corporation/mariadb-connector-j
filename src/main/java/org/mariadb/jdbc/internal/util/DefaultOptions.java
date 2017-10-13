@@ -54,9 +54,11 @@ package org.mariadb.jdbc.internal.util;
 
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
+import java.lang.reflect.Field;
 import java.util.Properties;
 
 public enum DefaultOptions {
+
     /**
      * Database user name.
      */
@@ -66,7 +68,11 @@ public enum DefaultOptions {
      */
     PASSWORD("password", "1.0.0"),
 
-    CONNECT_TIMEOUT("connectTimeout", (Integer) null, 0, Integer.MAX_VALUE, "1.1.8"),
+    /**
+     * The connect timeout value, in milliseconds, or zero for no timeout.
+     * Default: 30000 (30 seconds) (was 0 before 2.1.2)
+     */
+    CONNECT_TIMEOUT("connectTimeout", 30_000, 0, "1.1.8"),
 
     /**
      * On Windows, specify named pipe name to connect to mysqld.exe.
@@ -103,7 +109,7 @@ public enum DefaultOptions {
      * Defined the network socket timeout (SO_TIMEOUT) in milliseconds.
      * 0 (default) disable this timeout
      */
-    SOCKET_TIMEOUT("socketTimeout", new Integer[]{10000, null, null, null, null, null}, 0, Integer.MAX_VALUE, "1.1.8"),
+    SOCKET_TIMEOUT("socketTimeout", new Integer[]{10000, null, null, null, null, null}, 0, "1.1.8"),
 
     /**
      * Session timeout is defined by the wait_timeout server variable.
@@ -189,12 +195,12 @@ public enum DefaultOptions {
     /**
      * set buffer size for TCP buffer (SO_RCVBUF).
      */
-    TCP_RCV_BUF("tcpRcvBuf", (Integer) null, 0, Integer.MAX_VALUE, "1.0.0"),
+    TCP_RCV_BUF("tcpRcvBuf", (Integer) null, 0, "1.0.0"),
 
     /**
      * set buffer size for TCP buffer (SO_SNDBUF).
      */
-    TCP_SND_BUF("tcpSndBuf", (Integer) null, 0, Integer.MAX_VALUE, "1.0.0"),
+    TCP_SND_BUF("tcpSndBuf", (Integer) null, 0, "1.0.0"),
 
     /**
      * to use custom socket factory, set it to full name of the class that implements javax.net.SocketFactory.
@@ -234,26 +240,26 @@ public enum DefaultOptions {
      * When using loadbalancing, the number of times the driver should cycle through available hosts, attempting to connect.
      * Between cycles, the driver will pause for 250ms if no servers are available.
      */
-    RETRY_ALL_DOWN("retriesAllDown", 120, 0, Integer.MAX_VALUE, "1.2.0"),
+    RETRY_ALL_DOWN("retriesAllDown", 120, 0, "1.2.0"),
 
     /**
      * When using failover, the number of times the driver should cycle silently through available hosts, attempting to connect.
      * Between cycles, the driver will pause for 250ms if no servers are available.
      * if set to 0, there will be no silent reconnection
      */
-    FAILOVER_LOOP_RETRIES("failoverLoopRetries", 120, 0, Integer.MAX_VALUE, "1.2.0"),
+    FAILOVER_LOOP_RETRIES("failoverLoopRetries", 120, 0, "1.2.0"),
 
 
     /**
      * When in multiple hosts, after this time in second without used, verification that the connections haven't been lost.
      * When 0, no verification will be done. Defaults to 0 (120 before 1.5.8 version)
      */
-    VALID_CONNECTION_TIMEOUT("validConnectionTimeout", 0, 0, Integer.MAX_VALUE, "1.2.0"),
+    VALID_CONNECTION_TIMEOUT("validConnectionTimeout", 0, 0, "1.2.0"),
 
     /**
      * time in second a server is blacklisted after a connection failure.  default to 50s
      */
-    LOAD_BALANCE_BLACKLIST_TIMEOUT("loadBalanceBlacklistTimeout", 50, 0, Integer.MAX_VALUE, "1.2.0"),
+    LOAD_BALANCE_BLACKLIST_TIMEOUT("loadBalanceBlacklistTimeout", 50, 0, "1.2.0"),
 
     /**
      * enable/disable prepare Statement cache, default true.
@@ -264,13 +270,13 @@ public enum DefaultOptions {
      * This sets the number of prepared statements that the driver will cache per VM if "cachePrepStmts" is enabled.
      * default to 250.
      */
-    PREPSTMTCACHESIZE("prepStmtCacheSize", 250, 0, Integer.MAX_VALUE, "1.3.0"),
+    PREPSTMTCACHESIZE("prepStmtCacheSize", 250, 0, "1.3.0"),
 
     /**
      * This is the maximum length of a prepared SQL statement that the driver will cache  if "cachePrepStmts" is enabled.
      * default to 2048.
      */
-    PREPSTMTCACHESQLLIMIT("prepStmtCacheSqlLimit", 2048, 0, Integer.MAX_VALUE, "1.3.0"),
+    PREPSTMTCACHESQLLIMIT("prepStmtCacheSqlLimit", 2048, 0, "1.3.0"),
 
     /**
      * when in high availability, and switching to a read-only host, assure that this host is in read-only mode by
@@ -308,7 +314,7 @@ public enum DefaultOptions {
      * <p>
      * (legacy alias trustCertificateKeyStoreUrl)
      */
-    TRUST_CERTIFICATE_KEYSTORE_URL("trustStore", "1.3.0"),
+    TRUSTSTORE("trustStore", "1.3.0"),
 
     /**
      * Password for the trusted root certificate file (similar to java System property "javax.net.ssl.trustStorePassword").
@@ -322,13 +328,13 @@ public enum DefaultOptions {
      * (similar to java System property "javax.net.ssl.keyStore", but ensure that only the private key's entries are used).
      * (legacy alias clientCertificateKeyStoreUrl)
      */
-    CLIENT_CERTIFICATE_KEYSTORE_URL("keyStore", "1.3.0"),
+    KEYSTORE("keyStore", "1.3.0"),
 
     /**
      * Password for the client certificate keystore  (similar to java System property "javax.net.ssl.keyStorePassword").
      * (legacy alias clientCertificateKeyStorePassword)
      */
-    CLIENT_CERTIFICATE_KEYSTORE_PASSWORD("keyStorePassword", "1.3.0"),
+    KEYSTORE_PASSWORD("keyStorePassword", "1.3.0"),
 
     /**
      * Password for the private key contain in client certificate keystore.
@@ -369,7 +375,7 @@ public enum DefaultOptions {
      * This sets the number of callable statements that the driver will cache per VM if "cacheCallableStmts" is enabled.
      * default to 150.
      */
-    CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", 150, 0, Integer.MAX_VALUE, "1.4.0"),
+    CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", 150, 0, "1.4.0"),
 
     /**
      * Indicate to server some client information in a key;value pair.
@@ -390,7 +396,7 @@ public enum DefaultOptions {
      * When using useBatchMultiSend, indicate maximum query that can be send at a time.
      * default to 100
      */
-    USE_BATCH_MULTI_SEND_NUMBER("useBatchMultiSendNumber", 100, 1, Integer.MAX_VALUE, "1.5.0"),
+    USE_BATCH_MULTI_SEND_NUMBER("useBatchMultiSendNumber", 100, 1, "1.5.0"),
 
     /**
      * Enable log information. require Slf4j version &gt; 1.4 dependency.
@@ -410,13 +416,13 @@ public enum DefaultOptions {
      * Max query log size.
      * default to 1024.
      */
-    MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", 1024, 0, Integer.MAX_VALUE, "1.5.0"),
+    MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", 1024, 0, "1.5.0"),
 
     /**
      * Will log query with execution time superior to this value (if defined )
      * default to null.
      */
-    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, 0L, Long.MAX_VALUE, "1.5.0"),
+    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, 0L, "1.5.0"),
 
     /**
      * Indicate password encoding charset. If not set, driver use platform's default charset.
@@ -432,29 +438,106 @@ public enum DefaultOptions {
     PIPELINE_AUTH("usePipelineAuth", (Boolean) null, "1.6.0"),
 
     /**
-     * When closing a statement that is fetching result-set (using setFetchSize),
-     * kill query to avoid having to read remaining rows.
-     */
-    KILL_FETCH_STMT("killFetchStmtOnClose", Boolean.TRUE, "1.6.0"),
-
-    /**
      * Driver will save the last 16 MySQL packet exchanges (limited to first 1000 bytes).
      * Hexadecimal value of those packet will be added to stacktrace when an IOException occur.
      * This options has no performance incidence (&lt; 1 microseconds per query) but driver will then take 16kb more memory.
      */
-    ENABLE_PACKET_DEBUG("enablePacketDebug", Boolean.FALSE, "1.6.0");
+    ENABLE_PACKET_DEBUG("enablePacketDebug", Boolean.FALSE, "1.6.0"),
 
+    /**
+     * When using ssl, driver check hostname against the server's identity as presented in the server's Certificate
+     * (checking alternative names or certificate CN) to prevent man-in-the-middle attack.
+     * This option permit to deactivate this validation.
+     */
+    SSL_HOSTNAME_VERIFICATION("disableSslHostnameVerification", Boolean.FALSE, "2.1.0"),
 
-    protected final String name;
-    protected final Object objType;
-    protected final Object defaultValue;
-    protected final Object minValue;
-    protected final Object maxValue;
-    protected final String implementationVersion;
-    protected Object value = null;
+    /**
+     * Use dedicated COM_STMT_BULK_EXECUTE protocol for batch insert when possible.
+     * (batch without Statement.RETURN_GENERATED_KEYS and streams) to have faster batch.
+     * (significant only if server MariaDB &ge; 10.2.7)
+     */
+    USE_BULK_PROTOCOL("useBulkStmts", Boolean.TRUE, "2.1.0"),
 
-    DefaultOptions(String name, String implementationVersion) {
-        this.name = name;
+    /**
+     * Set default autocommit value.
+     * Default: true
+     */
+    AUTOCOMMIT("autocommit", Boolean.TRUE, "2.2.0"),
+
+    /**
+     * Enable pool.
+     * This option is usefull only if not using a DataSource object, but only connection.
+     */
+    POOL("pool", Boolean.FALSE, "2.2.0"),
+
+    /**
+     * Pool name that will permit to identify thread.
+     * default : auto-generated as MariaDb-pool-&le;pool-index&ge;
+     */
+    POOL_NAME("poolName", "2.2.0"),
+
+    /**
+     * The maximum number of physical connections that
+     * the pool should contain.
+     * default: 8
+     */
+    MAX_POOL_SIZE("maxPoolSize", 8, 1, "2.2.0"),
+
+    /**
+     * The number of physical connections the pool should keep available at all times.
+     * default: maxPoolSize value
+     */
+    MIN_POOL_SIZE("minPoolSize", (Integer) null, 0, "2.2.0"),
+
+    /**
+     * The maximum amount of time in seconds that a connection can stay in pool when not used.
+     * This value must always be below @wait_timeout value - 45s
+     *
+     * Default: 600 (10 minutes). minimum value is 60 seconds.
+     */
+    MAX_IDLE_TIME("maxIdleTime", 600, Options.MIN_VALUE__MAX_IDLE_TIME, "2.2.0"),
+
+    /**
+     *
+     * When asking a connection to pool, Pool will validate connection state.
+     * "poolValidMinDelay" permit to disable this validation if connection has been borrowed recently avoiding useless
+     * verification in case of frequent reuse of connection
+     *
+     * 0 meaning validation is done each time connection is asked.
+     *
+     * Default: 1000 (in milliseconds)
+     */
+    POOL_VALID_MIN_DELAY("poolValidMinDelay", 1000, 0, "2.2.0"),
+
+    /**
+     * Indicate that global variable aren't changed by application, permitting to pool faster connection.
+     * Default: false
+     */
+    STATIC_GLOBAL("staticGlobal", Boolean.FALSE, "2.2.0"),
+
+    /**
+     * Register JMX monitoring pools.
+     * Default: true
+     */
+    REGISTER_POOL_JMX("registerJmxPool", Boolean.TRUE, "2.2.0"),
+
+    /**
+     * Use COM_RESET_CONNECTION when resetting connection for pools when server permit it (MariaDB &gt; 10.2.4, MySQL &gt; 5.7.3)
+     * This permit to reset session and user variables.
+     *
+     * Default: false
+     */
+    USE_RESET_CONNECTION("useResetConnection", Boolean.FALSE, "2.2.0");
+
+    private final String optionName;
+    private final Object objType;
+    private final Object defaultValue;
+    private final Object minValue;
+    private final Object maxValue;
+    private final String implementationVersion;
+
+    DefaultOptions(final String optionName, final String implementationVersion) {
+        this.optionName = optionName;
         this.implementationVersion = implementationVersion;
         objType = String.class;
         defaultValue = null;
@@ -462,8 +545,8 @@ public enum DefaultOptions {
         maxValue = null;
     }
 
-    DefaultOptions(String name, Boolean defaultValue, String implementationVersion) {
-        this.name = name;
+    DefaultOptions(final String optionName, final Boolean defaultValue, final String implementationVersion) {
+        this.optionName = optionName;
         this.objType = Boolean.class;
         this.defaultValue = defaultValue;
         this.implementationVersion = implementationVersion;
@@ -471,45 +554,74 @@ public enum DefaultOptions {
         maxValue = null;
     }
 
-    DefaultOptions(String name, Integer defaultValue, Integer minValue, Integer maxValue, String implementationVersion) {
-        this.name = name;
+    DefaultOptions(final String optionName, final Integer defaultValue, final Integer minValue, final String implementationVersion) {
+        this.optionName = optionName;
         this.objType = Integer.class;
         this.defaultValue = defaultValue;
         this.minValue = minValue;
-        this.maxValue = maxValue;
+        this.maxValue = Integer.MAX_VALUE;
         this.implementationVersion = implementationVersion;
     }
 
-    DefaultOptions(String name, Long defaultValue, Long minValue, Long maxValue, String implementationVersion) {
-        this.name = name;
+    DefaultOptions(final String optionName, final Long defaultValue, final Long minValue, final String implementationVersion) {
+        this.optionName = optionName;
         this.objType = Long.class;
         this.defaultValue = defaultValue;
         this.minValue = minValue;
-        this.maxValue = maxValue;
+        this.maxValue = Long.MAX_VALUE;
         this.implementationVersion = implementationVersion;
     }
 
 
-    DefaultOptions(String name, Integer[] defaultValue, Integer minValue, Integer maxValue, String implementationVersion) {
-        this.name = name;
+    DefaultOptions(final String optionName, final Integer[] defaultValue, final Integer minValue, final String implementationVersion) {
+        this.optionName = optionName;
         this.objType = Integer.class;
         this.defaultValue = defaultValue;
         this.minValue = minValue;
-        this.maxValue = maxValue;
+        this.maxValue = Integer.MAX_VALUE;
         this.implementationVersion = implementationVersion;
     }
 
-    public static Options defaultValues(HaMode haMode) {
+    public String getOptionName() {
+        return optionName;
+    }
+
+    public static Options defaultValues(final HaMode haMode) {
         return parse(haMode, "", new Properties());
     }
 
-    public static Options parse(HaMode haMode, String urlParameters, Options options) {
-        Properties prop = new Properties();
-        return parse(haMode, urlParameters, prop, options);
+    /**
+     * Generate an Options object with default value corresponding to High Availability mode.
+     *
+     * @param haMode    current high Availability mode
+     * @param pool      is for pool
+     * @return Options object initialized
+     */
+    public static Options defaultValues(HaMode haMode, boolean pool) {
+        Properties properties = new Properties();
+        properties.setProperty("pool", String.valueOf(pool));
+        Options options = parse(haMode, "", properties);
+        optionCoherenceValidation(options);
+        return options;
     }
 
-    public static Options parse(HaMode haMode, String urlParameters, Properties properties) {
-        return parse(haMode, urlParameters, properties, null);
+    /**
+     * Parse additional properties.
+     *
+     * @param haMode        current haMode.
+     * @param urlParameters options defined in url
+     * @param options       initial options
+     */
+    public static void parse(final HaMode haMode, final String urlParameters, final Options options) {
+        Properties prop = new Properties();
+        parse(haMode, urlParameters, prop, options);
+        optionCoherenceValidation(options);
+    }
+
+    private static Options parse(final HaMode haMode, final String urlParameters, final Properties properties) {
+        Options options = parse(haMode, urlParameters, properties, null);
+        optionCoherenceValidation(options);
+        return options;
     }
 
     /**
@@ -521,103 +633,92 @@ public enum DefaultOptions {
      * @param options       initial options
      * @return options
      */
-    public static Options parse(HaMode haMode, String urlParameters, Properties properties, Options options) {
+    public static Options parse(final HaMode haMode, final String urlParameters, final Properties properties, final Options options) {
         if (urlParameters != null && !urlParameters.isEmpty()) {
             String[] parameters = urlParameters.split("&");
             for (String parameter : parameters) {
                 int pos = parameter.indexOf('=');
                 if (pos == -1) {
-                    throw new IllegalArgumentException("Invalid connection URL, expected key=value pairs, found " + parameter);
-                }
-                if (!properties.containsKey(parameter.substring(0, pos))) {
-                    properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+                    if (!properties.containsKey(parameter)) {
+                        properties.setProperty(parameter, "");
+                    }
+                } else {
+                    if (!properties.containsKey(parameter.substring(0, pos))) {
+                        properties.setProperty(parameter.substring(0, pos), parameter.substring(pos + 1));
+                    }
+
                 }
             }
         }
         return parse(haMode, properties, options);
     }
 
-    private static Options parse(HaMode haMode, Properties properties, Options options) {
-        boolean initial = false;
-        if (options == null) {
-            options = new Options();
-            initial = true;
-        }
+    private static Options parse(final HaMode haMode, final Properties properties, final Options paramOptions) {
+        final Options options = paramOptions != null ? paramOptions : new Options();
 
         try {
-            for (DefaultOptions o : DefaultOptions.values()) {
-
-                String propertyValue = properties.getProperty(o.name);
-
-                //Handle alias
-                if (propertyValue == null) {
-                    if ("createDatabaseIfNotExist".equals(o.name)) {
-                        propertyValue = properties.getProperty("createDB");
-                    } else if ("useSsl".equals(o.name)) {
-                        propertyValue = properties.getProperty("useSSL");
-                    } else if ("profileSql".equals(o.name)) {
-                        propertyValue = properties.getProperty("profileSQL");
-                    } else if ("enabledSslCipherSuites".equals(o.name)) {
-                        propertyValue = properties.getProperty("enabledSSLCipherSuites");
-                    } else if ("trustStorePassword".equals(o.name)) {
-                        propertyValue = properties.getProperty("trustCertificateKeyStorePassword");
-                    } else if ("trustStore".equals(o.name)) {
-                        propertyValue = properties.getProperty("trustCertificateKeyStoreUrl");
-                    } else if ("keyStorePassword".equals(o.name)) {
-                        propertyValue = properties.getProperty("clientCertificateKeyStorePassword");
-                    } else if ("keyStore".equals(o.name)) {
-                        propertyValue = properties.getProperty("clientCertificateKeyStoreUrl");
-                    }
-                }
-
-                if (propertyValue != null) {
+            //Option object is already initialized to default values.
+            //loop on properties,
+            // - check DefaultOption to check that property value correspond to type (and range)
+            // - set values
+            for (final String key : properties.stringPropertyNames()) {
+                final String propertyValue = properties.getProperty(key);
+                final DefaultOptions o = OptionUtils.OPTIONS_MAP.get(key);
+                if (o != null && propertyValue != null) {
+                    final Field field = Options.class.getField(o.optionName);
                     if (o.objType.equals(String.class)) {
-                        Options.class.getField(o.name).set(options, propertyValue);
+                        field.set(options, propertyValue);
                     } else if (o.objType.equals(Boolean.class)) {
                         String lower = propertyValue.toLowerCase();
-                        if ("1".equals(lower) || "true".equals(lower)) {
-                            Options.class.getField(o.name).set(options, Boolean.TRUE);
+                        if ("".equals(lower) || "1".equals(lower) || "true".equals(lower)) {
+                            field.set(options, Boolean.TRUE);
                         } else if ("0".equals(lower) || "false".equals(lower)) {
-                            Options.class.getField(o.name).set(options, Boolean.FALSE);
+                            field.set(options, Boolean.FALSE);
                         } else {
-                            throw new IllegalArgumentException("Optional parameter " + o.name
-                                        + " must be boolean (true/false or 0/1) was \"" + propertyValue + "\"");
+                            throw new IllegalArgumentException("Optional parameter " + o.optionName
+                                    + " must be boolean (true/false or 0/1) was \"" + propertyValue + "\"");
                         }
                     } else if (o.objType.equals(Integer.class)) {
                         try {
-                            Integer value = Integer.parseInt(propertyValue);
+                            final Integer value = Integer.parseInt(propertyValue);
+                            assert o.minValue != null;
+                            assert o.maxValue != null;
                             if (value.compareTo((Integer) o.minValue) < 0 || value.compareTo((Integer) o.maxValue) > 0) {
-                                throw new IllegalArgumentException("Optional parameter " + o.name + " must be greater or equal to " + o.minValue
-                                        + ((((Integer) o.maxValue).intValue() != Integer.MAX_VALUE) ? " and smaller than " + o.maxValue : " ")
+                                throw new IllegalArgumentException("Optional parameter " + o.optionName
+                                        + " must be greater or equal to " + o.minValue
+                                        + (((Integer) o.maxValue != Integer.MAX_VALUE) ? " and smaller than " + o.maxValue : " ")
                                         + ", was \"" + propertyValue + "\"");
                             }
-                            Options.class.getField(o.name).set(options, value);
+                            field.set(options, value);
                         } catch (NumberFormatException n) {
-                            throw new IllegalArgumentException("Optional parameter " + o.name + " must be Integer, was \"" + propertyValue + "\"");
+                            throw new IllegalArgumentException("Optional parameter " + o.optionName
+                                    + " must be Integer, was \"" + propertyValue + "\"");
                         }
                     } else if (o.objType.equals(Long.class)) {
                         try {
-                            Long value = Long.parseLong(propertyValue);
+                            final Long value = Long.parseLong(propertyValue);
+                            assert o.minValue != null;
+                            assert o.maxValue != null;
                             if (value.compareTo((Long) o.minValue) < 0 || value.compareTo((Long) o.maxValue) > 0) {
-                                throw new IllegalArgumentException("Optional parameter " + o.name + " must be greater or equal to " + o.minValue
-                                        + ((((Long) o.maxValue).intValue() != Long.MAX_VALUE) ? " and smaller than " + o.maxValue : " ")
+                                throw new IllegalArgumentException("Optional parameter " + o.optionName
+                                        + " must be greater or equal to " + o.minValue
+                                        + (((Long) o.maxValue != Long.MAX_VALUE) ? " and smaller than " + o.maxValue : " ")
                                         + ", was \"" + propertyValue + "\"");
                             }
-                            Options.class.getField(o.name).set(options, value);
+                            field.set(options, value);
                         } catch (NumberFormatException n) {
-                            throw new IllegalArgumentException("Optional parameter " + o.name + " must be Long, was \"" + propertyValue + "\"");
-                        }
-                    }
-                } else {
-                    if (initial) {
-                        if (o.defaultValue instanceof Integer[]) {
-                            Options.class.getField(o.name).set(options, ((Integer[]) o.defaultValue)[haMode.ordinal()]);
-                        } else {
-                            Options.class.getField(o.name).set(options, o.defaultValue);
+                            throw new IllegalArgumentException("Optional parameter " + o.optionName
+                                    + " must be Long, was \"" + propertyValue + "\"");
                         }
                     }
                 }
             }
+
+            //special case : field with multiple default according to HA_MODE
+            if (options.socketTimeout == null) {
+                options.socketTimeout = ((Integer[]) SOCKET_TIMEOUT.defaultValue)[haMode.ordinal()];
+            }
+
         } catch (NoSuchFieldException n) {
             n.printStackTrace();
         } catch (IllegalAccessException n) {
@@ -627,7 +728,14 @@ public enum DefaultOptions {
             throw new IllegalArgumentException("Security too restrictive : " + s.getMessage());
         }
 
-        //not compatible options
+        return options;
+    }
+
+    /**
+     * Option initialisation end : set option value to a coherent state.
+     * @param options options
+     */
+    public static void optionCoherenceValidation(final Options options) {
 
         //disable use server prepare id using client rewrite
         if (options.rewriteBatchedStatements) {
@@ -644,7 +752,46 @@ public enum DefaultOptions {
             options.usePipelineAuth = false;
         }
 
-        return options;
+        //if min pool size default to maximum pool size if not set
+        options.minPoolSize = options.minPoolSize == null ? options.maxPoolSize : Math.min(options.minPoolSize, options.maxPoolSize);
+
     }
 
+    /**
+     * Generate parameter String equivalent to options.
+     *
+     * @param options   options
+     * @param haMode    high availability Mode
+     * @param sb        String builder
+     */
+    public static void propertyString(final Options options, final HaMode haMode, final StringBuilder sb) {
+        try {
+            boolean first = true;
+            for (DefaultOptions o : DefaultOptions.values()) {
+                final Object value = Options.class.getField(o.optionName).get(options);
+
+                if (value != null && !value.equals(o.defaultValue)) {
+                    if (first) {
+                        first = false;
+                        sb.append('?');
+                    } else {
+                        sb.append('&');
+                    }
+                    sb.append(o.optionName)
+                            .append('=');
+                    if (o.objType.equals(String.class)) {
+                        sb.append((String) value);
+                    } else if (o.objType.equals(Boolean.class)) {
+                        sb.append(((Boolean) value).toString());
+                    } else if (o.objType.equals(Integer.class)) {
+                        sb.append((Integer) value);
+                    } else if (o.objType.equals(Long.class)) {
+                        sb.append((Long) value);
+                    }
+                }
+            }
+        } catch (NoSuchFieldException | IllegalAccessException n) {
+            n.printStackTrace();
+        }
+    }
 }

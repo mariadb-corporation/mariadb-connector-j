@@ -79,15 +79,17 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
     /**
      * Constructor for getter/setter of callableStatement.
      *
-     * @param connection          current connection
-     * @param sql                 query
-     * @param resultSetScrollType one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                            <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param connection            current connection
+     * @param sql                   query
+     * @param resultSetScrollType   one of the following <code>ResultSet</code> constants: <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+     * @param resultSetConcurrency  a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+     *                              <code>ResultSet.CONCUR_UPDATABLE</code>
      * @throws SQLException is prepareStatement connection throw any error
      */
-    public CallableProcedureStatement(MariaDbConnection connection, String sql, int resultSetScrollType)
+    public CallableProcedureStatement(MariaDbConnection connection, String sql, int resultSetScrollType, int resultSetConcurrency)
             throws SQLException {
-        super(connection, sql, resultSetScrollType, true);
+        super(connection, sql, resultSetScrollType, resultSetConcurrency, Statement.NO_GENERATED_KEYS);
     }
 
     /**
@@ -112,13 +114,9 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
     public void setParametersVariables() {
         hasInOutParameters = false;
         for (CallParameter param : params) {
-            if (param != null) {
-                if (param.isOutput) {
-                    if (param.isInput) {
-                        hasInOutParameters = true;
-                        break;
-                    }
-                }
+            if (param != null && param.isOutput() && param.isInput()) {
+                hasInOutParameters = true;
+                break;
             }
         }
     }
@@ -137,7 +135,7 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
      * @return index
      * @throws SQLException exception
      */
-    protected int nameToIndex(String parameterName) throws SQLException {
+    private int nameToIndex(String parameterName) throws SQLException {
         parameterMetadata.readMetadataFromDbIfRequired();
         for (int i = 1; i <= parameterMetadata.getParameterCount(); i++) {
             String name = parameterMetadata.getName(i);
@@ -376,7 +374,7 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
 
     @Override
     public Object getObject(int parameterIndex) throws SQLException {
-        Class<?> classType = ColumnType.classFromJavaType(getParameter(parameterIndex).outputSqlType);
+        Class<?> classType = ColumnType.classFromJavaType(getParameter(parameterIndex).getOutputSqlType());
         if (classType != null) {
             return getOutputResult().getObject(indexToOutputIndex(parameterIndex), classType);
         }
@@ -386,7 +384,7 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
     @Override
     public Object getObject(String parameterName) throws SQLException {
         int index = nameToIndex(parameterName);
-        Class<?> classType = ColumnType.classFromJavaType(getParameter(index).outputSqlType);
+        Class<?> classType = ColumnType.classFromJavaType(getParameter(index).getOutputSqlType());
         if (classType != null) {
             return getOutputResult().getObject(indexToOutputIndex(index), classType);
         }
@@ -559,9 +557,9 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
      */
     public void registerOutParameter(int parameterIndex, int sqlType, String typeName) throws SQLException {
         CallParameter callParameter = getParameter(parameterIndex);
-        callParameter.outputSqlType = sqlType;
-        callParameter.typeName = typeName;
-        callParameter.isOutput = true;
+        callParameter.setOutputSqlType(sqlType);
+        callParameter.setTypeName(typeName);
+        callParameter.setOutput(true);
     }
 
     @Override
@@ -601,9 +599,9 @@ public abstract class CallableProcedureStatement extends MariaDbPreparedStatemen
     @Override
     public void registerOutParameter(int parameterIndex, int sqlType, int scale) throws SQLException {
         CallParameter callParameter = getParameter(parameterIndex);
-        callParameter.isOutput = true;
-        callParameter.outputSqlType = sqlType;
-        callParameter.scale = scale;
+        callParameter.setOutput(true);
+        callParameter.setOutputSqlType(sqlType);
+        callParameter.setScale(scale);
     }
 
     @Override

@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
+import com.sun.jna.Platform;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.send.gssapi.GssapiAuth;
@@ -68,7 +69,7 @@ import java.sql.SQLException;
 import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 
 public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
-    private PacketInputStream reader;
+    private final PacketInputStream reader;
 
     public SendGssApiAuthPacket(PacketInputStream reader, String password, byte[] authData, int packSeq, String passwordCharacterEncoding) {
         super(packSeq, authData, password, passwordCharacterEncoding);
@@ -83,9 +84,9 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
      */
     public void send(PacketOutputStream pos) throws IOException, SQLException {
         Buffer buffer = new Buffer(authData);
-        final String serverPrincipalName = buffer.readStringNullEnd(Buffer.UTF_8);
+        final String serverPrincipalName = buffer.readStringNullEnd(StandardCharsets.UTF_8);
         String mechanisms = buffer.readStringNullEnd(Buffer.UTF_8);
-        if (mechanisms.equals("")) mechanisms = "Kerberos";
+        if (mechanisms.isEmpty()) mechanisms = "Kerberos";
 
         GssapiAuth gssapiAuth = getAuthenticationMethod();
         gssapiAuth.authenticate(pos, serverPrincipalName, mechanisms);
@@ -115,11 +116,7 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
     private GssapiAuth getAuthenticationMethod() {
         try {
             //Waffle-jna has jna as dependency, so if not available on classpath, just use standard authentication
-            Class platformClass = Class.forName("com.sun.jna.Platform");
-            @SuppressWarnings("unchecked")
-            Method method = platformClass.getMethod("isWindows");
-            Boolean isWindows = (Boolean) method.invoke(platformClass);
-            if (isWindows.booleanValue()) {
+            if (Platform.isWindows()) {
                 try {
                     Class.forName("waffle.windows.auth.impl.WindowsAuthProviderImpl");
                     return new WindowsNativeSspiAuthentication(reader, packSeq);
@@ -127,7 +124,7 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
                     //waffle not in the classpath
                 }
             }
-        } catch (Exception cle) {
+        } catch (Throwable cle) {
             //jna jar's are not in classpath
         }
         return new StandardGssapiAuthentication(reader, packSeq);

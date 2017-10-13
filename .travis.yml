@@ -2,6 +2,10 @@
 sudo: false
 language: java
 services: docker
+addons:
+  hosts:
+    - mariadb.example.com
+
 before_install:
     - chmod +x .travis/script.sh
     # java 6 require maven 3.2.5
@@ -30,8 +34,6 @@ cache:
 jdk:
     - openjdk6
     - openjdk7
-    - oraclejdk8
-
 env:
     - AURORA=true
     - DB=mysql:5.5 PACKET=8M
@@ -53,6 +55,5 @@ env:
     - DB=mariadb:10.2 PACKET=40M TYPE=NO_BULK_SERVER
     - DB=mariadb:10.2 PACKET=40M COMPRESSION=true
     - DB=mariadb:10.3 PACKET=8M
-    - DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.0.6
-    - DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.1.4
+    - DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.1.8
 script: .travis/script.sh

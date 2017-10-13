@@ -62,8 +62,10 @@ import java.io.*;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
-import java.sql.Date;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.TimeZone;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -123,7 +125,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
             rs = statement.executeQuery("show global status like 'Prepared_stmt_count'");
             assertTrue(rs.next());
-            assertEquals(rs.getInt(2), nbStatementCount + 1);
+            assertEquals(nbStatementCount + 1, rs.getInt(2));
         } finally {
             if (connection != null) connection.close();
         }
@@ -135,25 +137,21 @@ public class ServerPrepareStatementTest extends BaseTest {
         Connection connection = null;
         try {
             connection = setConnection();
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)  ");
-            ps.setBoolean(1, true);
-            ps.addBatch();
-            ps.executeBatch();
+            Protocol protocol = getProtocolFromConnection(connection);
+            int cacheSize = protocol.prepareStatementCache().size();
+
+            PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
+            preparedStatement.setBoolean(1, true);
+            preparedStatement.execute();
+            assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
+
+            PreparedStatement preparedStatement2 = connection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
+            preparedStatement2.setBoolean(1, true);
+            preparedStatement2.execute();
+            assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
         } finally {
             if (connection != null) connection.close();
         }
-
-        Protocol protocol = getProtocolFromConnection(sharedConnection);
-        int cacheSize = protocol.prepareStatementCache().size();
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
-        preparedStatement.setBoolean(1, true);
-        preparedStatement.execute();
-        assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
-
-        PreparedStatement preparedStatement2 = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
-        preparedStatement2.setBoolean(1, true);
-        preparedStatement2.execute();
-        assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
     }
 
     @Test
@@ -322,7 +320,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                 assertEquals(rs.getTime(1), time1);
                 assertEquals(rs.getTimestamp(2), timestamp1);
                 assertEquals(rs.getTimestamp(3), timestamp1);
-                rs.next();
+                assertTrue(rs.next());
                 assertEquals(rs.getTime(1), time1);
                 assertEquals(rs.getTimestamp(2), timestamp1);
                 assertEquals(rs.getTimestamp(3), timestamp1);
@@ -358,7 +356,7 @@ public class ServerPrepareStatementTest extends BaseTest {
                         + "date0 DATE default '2001-01-01',"
                         + "datetime0 DATETIME(6) default '2001-01-01 00:00:00',"
                         + "timestamp0 TIMESTAMP(6) default  '2001-01-01 00:00:00',"
-                        + "timestamp1 TIMESTAMP(0) default  '2001-01-01 00:00:00',"
+                        + "timestamp1 TIMESTAMP(0) null default  '2001-01-01 00:00:00',"
                         + "timestamp_zero TIMESTAMP  null, "
                         + "time0 TIME(6) default '22:11:00',"
                         + ((!isMariadbServer() && minVersion(5, 6)) ? "year2 YEAR(4) default 99," : "year2 YEAR(2) default 99,")
@@ -368,10 +366,12 @@ public class ServerPrepareStatementTest extends BaseTest {
                         + "varchar0 VARCHAR(1) default '1',"
                         + "varchar_binary VARCHAR(10) BINARY default 0x1,"
                         + "binary0 BINARY(10) default 0x1,"
-                        + "varbinary0 VARBINARY(10) default 0x1"
+                        + "varbinary0 VARBINARY(10) default 0x1, "
+                        + "id int not null AUTO_INCREMENT, PRIMARY KEY (id)"
         );
     }
 
+    @SuppressWarnings("ConstantConditions")
     @Test
     public void dataConformity() throws SQLException {
         Assume.assumeTrue(doPrecisionTest);
@@ -455,7 +455,8 @@ public class ServerPrepareStatementTest extends BaseTest {
 
             ps.addBatch();
             ps.executeBatch();
-            ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from preparetest");
+            ResultSet rs = sharedConnection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)
+                    .executeQuery("SELECT * from preparetest");
             if (rs.next()) {
                 assertEquals(rs.getBoolean(1), bit1);
                 assertEquals(rs.getByte(2), bit2);
@@ -474,9 +475,6 @@ public class ServerPrepareStatementTest extends BaseTest {
                 assertEquals(rs.getDouble(15), double0, 10000);
                 assertEquals(rs.getBigDecimal(16), decimal0);
                 assertEquals(rs.getBigDecimal(17), decimal1);
-                Calendar cc = new GregorianCalendar();
-                cc.setTimeInMillis(date0.getTime());
-                cc.setTimeInMillis(date0.getTime());
                 assertEquals(rs.getDate(18), date0);
                 assertEquals(rs.getTimestamp(19), datetime0);
                 assertEquals(rs.getTimestamp(20), timestamp0);
@@ -508,9 +506,9 @@ public class ServerPrepareStatementTest extends BaseTest {
         } else {
             if (minVersion(5, 6)) {
                 //year on 2 bytes is deprecated since 5.5.27
-                assertEquals(rs.getInt(fieldNumber), 2030);
+                assertEquals(rs.getInt(fieldNumber), comparaison + 2000);
             } else {
-                assertEquals(rs.getInt(fieldNumber), 30);
+                assertEquals(rs.getInt(fieldNumber), comparaison);
             }
         }
     }
@@ -600,7 +598,7 @@ public class ServerPrepareStatementTest extends BaseTest {
 
         Statement statement = sharedConnection.createStatement();
         ResultSet rs = statement.executeQuery("select * from ServerPrepareStatementCacheSize4");
-        rs.next();
+        assertTrue(rs.next());
         byte[] newBytes = rs.getBytes(2);
         assertEquals(arr.length, newBytes.length);
         for (int i = 0; i < arr.length; i++) {
@@ -613,7 +611,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         PreparedStatement ps = prepareInsert();
         ps.execute();
         ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getInt(1), 1);
     }
 
@@ -624,7 +622,7 @@ public class ServerPrepareStatementTest extends BaseTest {
             ps = prepareInsert();
             ps.executeBatch();
             ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
-            rs.next();
+            assertTrue(rs.next());
             assertEquals(rs.getInt(1), 3);
         } finally {
             ps.close();
@@ -657,7 +655,7 @@ public class ServerPrepareStatementTest extends BaseTest {
         ps.setShort(2, (short) 1);
         ps.execute();
         ResultSet rs = ps.executeQuery("select count(*) from ServerPrepareStatementParameters");
-        rs.next();
+        assertTrue(rs.next());
         assertEquals(rs.getInt(1), 1);
     }
 
@@ -824,15 +822,15 @@ public class ServerPrepareStatementTest extends BaseTest {
     @Test
     public void testRewriteMultiPacket() throws SQLException {
         createTable("PreparedStatementTest3", "id int");
-        String sql = "INSERT INTO PreparedStatementTest3 VALUES (?)";
+        StringBuilder sql = new StringBuilder("INSERT INTO PreparedStatementTest3 VALUES (?)");
         for (int i = 1; i < 65535; i++) {
-            sql += ",(?)";
+            sql.append(",(?)");
         }
-        PreparedStatement pstmt = sharedConnection.prepareStatement(sql);
+        PreparedStatement pstmt = sharedConnection.prepareStatement(sql.toString());
         for (int i = 1; i < 65536; i++) {
             pstmt.setInt(i, i);
         }
-        pstmt.execute();
+        assertFalse(pstmt.execute());
     }
 
     /**
@@ -852,9 +850,9 @@ public class ServerPrepareStatementTest extends BaseTest {
             try {
                 connection2 = setConnection();
                 PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-                        "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, false) ");
+                        "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, false) ", Statement.RETURN_GENERATED_KEYS);
                 PreparedStatement preparedStatement2 = connection2.prepareStatement(
-                        "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, true) ");
+                        "INSERT INTO ServerPrepareStatementSync(test, tt) values (?, true) ", Statement.RETURN_GENERATED_KEYS);
                 char[] thousandChars = new char[1000];
                 Arrays.fill(thousandChars, 'a');
                 String thousandLength = new String(thousandChars);
@@ -968,8 +966,8 @@ public class ServerPrepareStatementTest extends BaseTest {
             stmt.execute(sql);
 
             final PreparedStatement preparedStatement = tmpConnection.prepareStatement(sql);
-            ResultSet rs = preparedStatement.executeQuery();
-            rs.next();
+                ResultSet rs = preparedStatement.executeQuery();
+                assertTrue(rs.next());
 
             String columnOne = rs.getString("COLUMN_1");
             String columnTwo = rs.getString("COLUMN_2");
