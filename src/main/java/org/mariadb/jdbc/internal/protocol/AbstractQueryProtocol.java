@@ -1756,7 +1756,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             try {
                 connect();
             } catch (SQLException queryException) {
-                return new SQLNonTransientConnectionException("Could not send query: " + initialException.getMessage()
+                return new SQLNonTransientConnectionException(initialException.getMessage()
                         + "\nError during reconnection" + getTraces(), CONNECTION_EXCEPTION.getSqlState(), initialException);
             }
 
@@ -1771,7 +1771,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     + writer.getMaxAllowedPacket() + ")" + getTraces(), UNDEFINED_SQLSTATE.getSqlState(), initialException);
         }
 
-        return new SQLException("Could not send query: " + initialException.getMessage() + getTraces(),
+        return new SQLException(initialException.getMessage() + getTraces(),
                 driverPreventError ? UNDEFINED_SQLSTATE.getSqlState() : CONNECTION_EXCEPTION.getSqlState(), initialException);
 
     }

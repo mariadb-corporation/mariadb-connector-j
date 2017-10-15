@@ -191,7 +191,8 @@ public class DecompressPacketInputStream implements PacketInputStream {
         do {
             int count = inputStream.read(arr, off, remaining);
             if (count < 0) {
-                throw new EOFException("unexpected end of stream, read " + (length - remaining) + " bytes from " + length);
+                throw new EOFException("unexpected end of stream, read " + (length - remaining) + " bytes from " + length
+                        + " (socket was closed by server)");
             }
             remaining -= count;
             off += count;
