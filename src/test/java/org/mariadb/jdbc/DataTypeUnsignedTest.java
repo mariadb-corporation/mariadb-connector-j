@@ -225,6 +225,7 @@ public class DataTypeUnsignedTest extends BaseTest {
         sharedConnection.createStatement().execute("insert into yearTest values (2155)");
         sharedConnection.createStatement().execute("insert into yearTest values (0)");
         sharedConnection.createStatement().execute("insert into yearTest values (null)");
+
         Connection connection = null;
         try {
             connection = setConnection("&yearIsDateType=false");

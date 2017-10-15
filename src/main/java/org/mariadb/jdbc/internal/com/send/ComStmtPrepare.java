@@ -83,7 +83,7 @@ public class ComStmtPrepare {
     public void send(PacketOutputStream pos) throws IOException {
         pos.startPacket(0);
         pos.write(COM_STMT_PREPARE);
-        pos.write(this.sql);
+        pos.write(sql);
         pos.flush();
     }
 
