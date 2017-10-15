@@ -39,8 +39,8 @@ public class GlobalStateInfo {
      * ! To be used for Connection that will only Kill query/connection !
      */
     public GlobalStateInfo() {
-        this.maxAllowedPacket = 1_000_000;
-        this.waitTimeout = 28_800;
+        this.maxAllowedPacket = 1000000;
+        this.waitTimeout = 28800;
         this.autocommit = true;
         this.autoIncrementIncrement = 1;
         this.timeZone = "+00:00";

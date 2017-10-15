@@ -97,7 +97,6 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.URL;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -117,7 +116,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             + "@@system_time_zone,"
             + "@@time_zone,"
             + "@@auto_increment_increment").getBytes(Buffer.UTF_8);
-    private static final byte[] IS_MASTER_QUERY = "show global variables like 'innodb_read_only'".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] IS_MASTER_QUERY = "show global variables like 'innodb_read_only'".getBytes(Buffer.UTF_8);
     private static final Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
     protected final ReentrantLock lock;
     protected final UrlParser urlParser;
@@ -473,7 +472,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             }
 
             if (mustLoadAdditionalInfo) {
-                Map<String, String> serverData = new TreeMap<>();
+                Map<String, String> serverData = new TreeMap<String, String>();
                 if (options.usePipelineAuth && !options.createDatabaseIfNotExist) {
                     try {
                         sendPipelineAdditionalData();
@@ -503,9 +502,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             activeStreamingResult = null;
             hostFailed = false;
-        } catch (IOException | SQLException ioException) {
+        } catch (IOException ioException) {
             ensureClosingSocketOnException();
             throw ioException;
+        } catch (SQLException sqlException) {
+            ensureClosingSocketOnException();
+            throw sqlException;
         }
     }
 

@@ -245,7 +245,7 @@ public class FetchSizeTest extends BaseTest {
         PreparedStatement stmt = null;
         try {
             stmt = sharedConnection.prepareStatement(
-                "select * from information_schema.columns as c1,  information_schema.tables, mysql.user LIMIT 50000")) {
+                "select * from information_schema.columns as c1,  information_schema.tables, mysql.user LIMIT 50000");
             start = System.currentTimeMillis();
             stmt.executeQuery();
             normalExecutionTime = System.currentTimeMillis() - start;
@@ -255,7 +255,7 @@ public class FetchSizeTest extends BaseTest {
             stmt.executeQuery();
             stmt.cancel();
         } finally {
-            stmt.close();
+            if (stmt != null) stmt.close();
         }
 
         long interruptedExecutionTime = System.currentTimeMillis() - start;

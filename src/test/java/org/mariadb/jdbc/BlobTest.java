@@ -416,9 +416,13 @@ public class BlobTest extends BaseTest {
                     } finally {
                         bin.close();
                     }
+                    assertArrayEquals(bout.toByteArray(), values[pos++]);
+
                 } finally {
                     bout.close();
                 }
+            } else {
+                assertNull(values[pos++]);
             }
         }
         assertEquals(pos, 3);

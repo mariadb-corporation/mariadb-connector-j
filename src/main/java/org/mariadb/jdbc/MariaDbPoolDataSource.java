@@ -44,7 +44,7 @@ import java.util.Properties;
 import java.util.logging.Logger;
 
 
-public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeable, AutoCloseable {
+public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeable {
 
     private UrlParser urlParser;
     private Pool pool;
@@ -513,11 +513,7 @@ public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeabl
      * Close datasource.
      */
     public void close() {
-        try {
-            if (pool != null) pool.close();
-        } catch (InterruptedException interrupted) {
-            //eat
-        }
+        if (pool != null) pool.close();
     }
 
     /**

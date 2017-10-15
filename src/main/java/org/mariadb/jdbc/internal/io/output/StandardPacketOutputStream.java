@@ -59,7 +59,6 @@ import org.mariadb.jdbc.internal.util.Utils;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.time.Instant;
 import java.util.Arrays;
 
 import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;

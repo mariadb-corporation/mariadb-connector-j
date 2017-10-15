@@ -38,6 +38,7 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
+import java.io.Closeable;
 import java.lang.management.ManagementFactory;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -50,7 +51,7 @@ import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class Pool implements AutoCloseable, PoolMBean {
+public class Pool implements Closeable, PoolMBean {
 
     private static final Logger logger = LoggerFactory.getLogger(Pool.class);
 
@@ -90,11 +91,17 @@ public class Pool implements AutoCloseable, PoolMBean {
         this.maxIdleTime = options.maxIdleTime;
         poolTag = generatePoolTag(poolIndex);
 
-        idleConnections = new LinkedBlockingDeque<>();
+        idleConnections = new LinkedBlockingDeque<MariaDbPooledConnection>();
 
         int scheduleDelay = Math.min(30, maxIdleTime / 2);
         this.poolExecutor = poolExecutor;
-        scheduledFuture = poolExecutor.scheduleAtFixedRate(this::removeIdleTimeoutConnection, scheduleDelay, scheduleDelay, TimeUnit.SECONDS);
+        scheduledFuture = poolExecutor.scheduleAtFixedRate(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        removeIdleTimeoutConnection();
+                    }
+                }, scheduleDelay, scheduleDelay, TimeUnit.SECONDS);
 
         if (options.registerJmxPool) {
             try {
@@ -110,7 +117,9 @@ public class Pool implements AutoCloseable, PoolMBean {
             for (int i = 0; i < options.minPoolSize; i++) {
                 addConnection(false);
             }
-        } catch (InterruptedException | SQLException e) {
+        } catch (InterruptedException e) {
+            //eat
+        } catch (SQLException e) {
             //eat
         } finally {
             lock.release(100);
@@ -435,24 +444,26 @@ public class Pool implements AutoCloseable, PoolMBean {
 
     /**
      * Close pool and underlying connections.
-     *
-     * @throws InterruptedException if interrupted
      */
-    public void close() throws InterruptedException {
+    public void close() {
         synchronized (this) {
             Pools.remove(this);
             poolState.set(POOL_STATE_CLOSING);
             scheduledFuture.cancel(true);
 
             ExecutorService connectionRemover = new ThreadPoolExecutor(totalConnection.get(), options.maxPoolSize, 10, TimeUnit.SECONDS,
-                    new LinkedBlockingQueue<>(options.maxPoolSize), new MariaDbThreadFactory(poolTag + "-destroyer"));
+                    new LinkedBlockingQueue<Runnable>(options.maxPoolSize), new MariaDbThreadFactory(poolTag + "-destroyer"));
 
             //loop for up to 10 seconds to close not used connection
             long start = System.nanoTime();
             do {
                 closeAll(connectionRemover, idleConnections);
                 if (totalConnection.get() > 0) {
-                    Thread.sleep(0, 10_00);
+                    try {
+                        Thread.sleep(0, 1000);
+                    } catch (InterruptedException i) {
+                        //eat
+                    }
                 }
             } while (totalConnection.get() > 0 && TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start) < 10);
 
@@ -467,7 +478,11 @@ public class Pool implements AutoCloseable, PoolMBean {
             } catch (Exception exception) {
                 //eat
             }
-            connectionRemover.awaitTermination(10, TimeUnit.SECONDS);
+            try {
+                connectionRemover.awaitTermination(10, TimeUnit.SECONDS);
+            } catch (InterruptedException i) {
+                //eat
+            }
         }
     }
 
@@ -486,34 +501,34 @@ public class Pool implements AutoCloseable, PoolMBean {
     }
 
     private void initializePoolGlobalState(MariaDbConnection connection) throws SQLException {
-        try (Statement stmt = connection.createStatement()) {
-            try (ResultSet rs = stmt.executeQuery(
-                    "SELECT @@max_allowed_packet,"
-                            + "@@wait_timeout,"
-                            + "@@autocommit,"
-                            + "@@auto_increment_increment,"
-                            + "@@time_zone,"
-                            + "@@system_time_zone,"
-                            + "@@tx_isolation")) {
+        Statement stmt = connection.createStatement();
+        ResultSet rs = stmt.executeQuery(
+                "SELECT @@max_allowed_packet,"
+                        + "@@wait_timeout,"
+                        + "@@autocommit,"
+                        + "@@auto_increment_increment,"
+                        + "@@time_zone,"
+                        + "@@system_time_zone,"
+                        + "@@tx_isolation");
 
-                rs.next();
+        if (rs.next()) {
 
-                int transactionIsolation = Utils.transactionFromString(rs.getString(7)); // tx_isolation
+            int transactionIsolation = Utils.transactionFromString(rs.getString(7)); // tx_isolation
 
-                globalInfo = new GlobalStateInfo(
-                        rs.getLong(1),      // max_allowed_packet
-                        rs.getInt(2),       // wait_timeout
-                        rs.getBoolean(3),   // autocommit
-                        rs.getInt(4),       // autoIncrementIncrement
-                        rs.getString(5),    // time_zone
-                        rs.getString(6),    // system_time_zone
-                        transactionIsolation);
+            globalInfo = new GlobalStateInfo(
+                    rs.getLong(1),      // max_allowed_packet
+                    rs.getInt(2),       // wait_timeout
+                    rs.getBoolean(3),   // autocommit
+                    rs.getInt(4),       // autoIncrementIncrement
+                    rs.getString(5),    // time_zone
+                    rs.getString(6),    // system_time_zone
+                    transactionIsolation);
 
-                //ensure that the options "maxIdleTime" is not > to server wait_timeout
-                //removing 45s since scheduler check  status every 30s
-                maxIdleTime = Math.min(options.maxIdleTime, globalInfo.getWaitTimeout() - 45);
-            }
+            //ensure that the options "maxIdleTime" is not > to server wait_timeout
+            //removing 45s since scheduler check  status every 30s
+            maxIdleTime = Math.min(options.maxIdleTime, globalInfo.getWaitTimeout() - 45);
         }
+
     }
 
     public String getPoolTag() {
@@ -580,7 +595,7 @@ public class Pool implements AutoCloseable, PoolMBean {
      * @return current thread id's
      */
     public List<Long> testGetConnectionIdleThreadIds() {
-        List<Long> threadIds = new ArrayList<>();
+        List<Long> threadIds = new ArrayList<Long>();
         for (MariaDbPooledConnection pooledConnection : idleConnections) {
             threadIds.add(pooledConnection.getConnection().getServerThreadId());
         }

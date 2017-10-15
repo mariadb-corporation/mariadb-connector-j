@@ -223,7 +223,9 @@ public class ResultSetTest extends BaseTest {
 
     private void isFirstTwoRowsTest(boolean fetching) throws SQLException {
         insertRows(2);
-        try (Statement statement = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY)) {
+        Statement statement = null;
+        try {
+            statement = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             if (fetching) statement.setFetchSize(1);
             ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test");
             assertFalse(resultSet.isFirst());
@@ -243,6 +245,8 @@ public class ResultSetTest extends BaseTest {
                 //Make sure an exception has been thrown informing us that the ResultSet was closed
                 assertTrue(e.getMessage().contains("closed"));
             }
+        } finally {
+            if (statement != null) statement.close();
         }
     }
 
@@ -294,7 +298,9 @@ public class ResultSetTest extends BaseTest {
 
     private void isLastTwoRowsTest(boolean fetching) throws SQLException {
         insertRows(2);
-        try (Statement statement = sharedConnection.createStatement()) {
+        Statement statement = null;
+        try {
+            statement = sharedConnection.createStatement();
             if (fetching) statement.setFetchSize(1);
             ResultSet resultSet = statement.executeQuery("SELECT * FROM result_set_test");
             assertFalse(resultSet.isLast());
@@ -314,6 +320,8 @@ public class ResultSetTest extends BaseTest {
                 //Make sure an exception has been thrown informing us that the ResultSet was closed
                 assertTrue(e.getMessage().contains("closed"));
             }
+        } finally {
+            if (statement != null) statement.close();
         }
     }
 

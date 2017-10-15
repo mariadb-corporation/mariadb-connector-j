@@ -76,7 +76,7 @@ public class CancelTest extends BaseTest {
     }
 
     @Test
-    public void cancelTest() {
+    public void cancelTest() throws SQLException {
         Connection tmpConnection = null;
         try {
             tmpConnection = openNewConnection(connUri, new Properties());
@@ -93,7 +93,7 @@ public class CancelTest extends BaseTest {
         } catch (SQLException e) {
             //normal exception
         } finally {
-            tmpConnection.close();
+            if (tmpConnection != null) tmpConnection.close();
         }
 
     }
@@ -197,7 +197,7 @@ public class CancelTest extends BaseTest {
             try {
                 Thread.sleep(100);
                 stmt.cancel();
-            } catch (SQLException | InterruptedException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }

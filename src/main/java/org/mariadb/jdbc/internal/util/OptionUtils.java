@@ -8,7 +8,7 @@ public class OptionUtils {
     public static final Map<String, DefaultOptions> OPTIONS_MAP;
 
     static {
-        OPTIONS_MAP = new HashMap<>();
+        OPTIONS_MAP = new HashMap<String, DefaultOptions>();
         for (DefaultOptions defaultOption : DefaultOptions.values()) {
             OPTIONS_MAP.put(defaultOption.getOptionName(), defaultOption);
         }

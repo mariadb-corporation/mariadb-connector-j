@@ -164,29 +164,31 @@ public class TcpProxySocket implements Runnable {
                     }
                     final InputStream fromServer = server.getInputStream();
                     final OutputStream toServer = server.getOutputStream();
-                    new Thread(() -> {
-                        int bytesRead;
-                        try {
-                            while ((bytesRead = fromClient.read(request)) != -1) {
-                                if (delay > 0) {
-                                    try {
-                                        Thread.sleep(delay);
-                                    } catch (InterruptedException e) {
-                                        e.printStackTrace();
+                    new Thread() {
+                        public void run() {
+                            int bytesRead;
+                            try {
+                                while ((bytesRead = fromClient.read(request)) != -1) {
+                                    if (delay > 0) {
+                                        try {
+                                            Thread.sleep(delay);
+                                        } catch (InterruptedException e) {
+                                            e.printStackTrace();
+                                        }
                                     }
+                                    toServer.write(request, 0, bytesRead);
+                                    toServer.flush();
                                 }
-                                toServer.write(request, 0, bytesRead);
-                                toServer.flush();
+                            } catch (IOException e) {
+                                //eat exception
                             }
-                        } catch (IOException e) {
-                            //eat exception
+                            try {
+                                toServer.close();
+                            } catch (IOException e) {
+                                //eat exception
+                            }
                         }
-                        try {
-                            toServer.close();
-                        } catch (IOException e) {
-                            //eat exception
-                        }
-                    }).start();
+                    }.start();
                     int bytesRead;
                     try {
                         while ((bytesRead = fromServer.read(reply)) != -1) {

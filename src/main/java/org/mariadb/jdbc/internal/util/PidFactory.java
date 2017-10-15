@@ -75,19 +75,27 @@ public class PidFactory {
                     try {
                         if (Platform.isLinux()) {
                             //Linux pid implementation
-                            pidRequest = () -> String.valueOf(CLibrary.INSTANCE.getpid());
+                            pidRequest = new PidRequestInter() {
+                                @Override
+                                public String getPid() {
+                                    return String.valueOf(CLibrary.INSTANCE.getpid());
+                                }
+                            };
+
                         } else {
                             if (Platform.isWindows()) {
                                 //Windows pid implementation
-                                pidRequest = () -> {
-                                    try {
-                                        return String.valueOf(Kernel32.INSTANCE.GetCurrentProcessId());
-                                    } catch (Throwable cle) {
-                                        //jna plateform jar's are not in classpath, no PID returned
+                                pidRequest = new PidRequestInter() {
+                                    @Override
+                                    public String getPid() {
+                                        try {
+                                            return String.valueOf(Kernel32.INSTANCE.GetCurrentProcessId());
+                                        } catch (Throwable cle) {
+                                            //jna plateform jar's are not in classpath, no PID returned
+                                        }
+                                        return null;
                                     }
-                                    return null;
                                 };
-
                             }
                         }
                     } catch (Throwable cle) {
@@ -96,7 +104,12 @@ public class PidFactory {
 
                     //No JNA, or environment not Linux/windows -> return no PID
                     if (pidRequest == null) {
-                        pidRequest = () -> null;
+                        pidRequest = new PidRequestInter() {
+                            @Override
+                            public String getPid() {
+                                return null;
+                            }
+                        };
                     }
                 }
             }

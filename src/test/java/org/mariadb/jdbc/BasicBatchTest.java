@@ -336,19 +336,23 @@ public class BasicBatchTest extends BaseTest {
         Assume.assumeTrue(runLongTest && (sharedOptions().useBulkStmts || sharedIsRewrite())); //if not will be too long.
         createTable("testBatchString", "charValue VARCHAR(100) NOT NULL");
         Statement stmt = sharedConnection.createStatement();
-        String[] datas = new String[1_000_000];
+        String[] datas = new String[1000000];
         String empty = "____________________________________________________________________________________________________";
 
         for (int i = 0; i < datas.length; i++) {
             datas[i] = (String.valueOf(i) + empty).substring(0, 100);
         }
 
-        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO testBatchString (charValue) values (?)")) {
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = sharedConnection.prepareStatement("INSERT INTO testBatchString (charValue) values (?)");
             for (String data : datas) {
                 preparedStatement.setString(1, data); //a random 100 byte data
                 preparedStatement.addBatch();
             }
             preparedStatement.executeBatch();
+        } finally {
+            if (preparedStatement != null) preparedStatement.close();
         }
 
         stmt.setFetchSize(100);

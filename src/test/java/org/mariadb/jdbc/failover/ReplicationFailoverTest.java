@@ -184,6 +184,8 @@ public class ReplicationFailoverTest extends BaseReplication {
 
             connection.createStatement().executeQuery("SELECT CONNECTION_ID()");
             fail();
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 

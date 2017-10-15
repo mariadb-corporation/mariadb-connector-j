@@ -56,8 +56,6 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.*;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
@@ -1251,7 +1249,7 @@ public class MariaDbConnection implements Connection {
             Statement statement = createStatement();
             statement.execute(buildClientQuery(name, value));
         } catch (SQLException sqle) {
-            Map<String, ClientInfoStatus> failures = new HashMap<>();
+            Map<String, ClientInfoStatus> failures = new HashMap<String, ClientInfoStatus>();
             failures.put(name, ClientInfoStatus.REASON_UNKNOWN);
             throw new SQLClientInfoException("unexpected error during setClientInfo", failures, sqle);
         }
@@ -1541,7 +1539,12 @@ public class MariaDbConnection implements Connection {
             throw ExceptionMapper.getSqlException("Cannot abort the connection: null executor passed");
         }
 
-        executor.execute(protocol::abort);
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                protocol.abort();
+            }
+        });
     }
 
     /**

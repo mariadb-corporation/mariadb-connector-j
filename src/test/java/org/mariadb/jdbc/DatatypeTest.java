@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -395,13 +394,13 @@ public class DatatypeTest extends BaseTest {
         ResultSet rs = getResultSet("select * from longcol", false);
         assertEquals(true, rs.next());
         assertEquals(1, rs.getInt(1));
-        assertEquals(1, rs.getInt(str));
+        assertEquals(1, rs.getInt(str.toString()));
         assertEquals("1", rs.getString(1));
 
         rs = getResultSet("select * from longcol", true);
         assertEquals(true, rs.next());
         assertEquals(1, rs.getInt(1));
-        assertEquals(1, rs.getInt(str));
+        assertEquals(1, rs.getInt(str.toString()));
         assertEquals("1", rs.getString(1));
     }
 
@@ -644,15 +643,15 @@ public class DatatypeTest extends BaseTest {
             buf[i] = (byte) i;
         }
         InputStream is = new ByteArrayInputStream(buf);
-
-        try (Connection connection = setConnection()) {
+        Connection connection = null;
+        try {
+            connection = setConnection();
             createTable("bintest3", "bin1 longblob", "engine=innodb");
             Statement stmt = connection.createStatement();
 
-            try (PreparedStatement ps = connection.prepareStatement("insert into bintest3 (bin1) values (?)")) {
-                ps.setBinaryStream(1, is);
-                ps.execute();
-            }
+            PreparedStatement ps = connection.prepareStatement("insert into bintest3 (bin1) values (?)");
+            ps.setBinaryStream(1, is);
+            ps.execute();
 
             ResultSet rs = stmt.executeQuery("select bin1 from bintest3");
             assertTrue(rs.next());
@@ -661,7 +660,8 @@ public class DatatypeTest extends BaseTest {
             for (int i = 0; i < 1000000; i++) {
                 assertEquals(buf[i], buf2[i]);
             }
-
+        } finally {
+            if (connection == null) connection.close();
         }
     }
 
@@ -1022,9 +1022,12 @@ public class DatatypeTest extends BaseTest {
                 + ", (1, b'10000000000000000000000000000000')");
 
         validResultSetBitValue(stmt.executeQuery("SELECT * FROM testShortBit"));
-
-        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT * FROM testShortBit")) {
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = sharedConnection.prepareStatement("SELECT * FROM testShortBit");
             validResultSetBitValue(preparedStatement.executeQuery());
+        } finally {
+            if (preparedStatement != null) preparedStatement.close();
         }
     }
 

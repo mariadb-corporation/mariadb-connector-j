@@ -83,7 +83,7 @@ public class AverageEvictingQueue {
         for (int i = 0; i < maxElements; i++) {
             total += elements[0];
         }
-        average = size() == 0 ? 0 : total / (size() * 1_000_000);
+        average = size() == 0 ? 0 : total / (size() * 1000000);
         return average;
     }
 

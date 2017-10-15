@@ -80,16 +80,23 @@ public class ColumnNameMap {
         // ResultSet.getXXX(String name) should use column alias (AS in the query). If label is not found, we use 
         // original table name.
         if (labelMap == null) {
-            labelMap = new HashMap<>();
+            labelMap = new HashMap<String, Integer>();
             int counter = 0;
             for (ColumnInformation ci : columnInfo) {
                 String columnAlias = ci.getName().toLowerCase();
-                labelMap.putIfAbsent(columnAlias, counter);
-
-                String tableName = ci.getTable();
-                if (tableName != null && !tableName.isEmpty()) {
-                    labelMap.putIfAbsent(tableName.toLowerCase() + "." + columnAlias, counter);
+                if (!labelMap.containsKey(columnAlias)) {
+                    labelMap.put(columnAlias, counter);
                 }
+
+                if (ci.getTable() != null) {
+                    String tableName = ci.getTable().toLowerCase();
+                    if (!tableName.equals("")) {
+                        if (!labelMap.containsKey(tableName + "." + columnAlias)) {
+                            labelMap.put(tableName + "." + columnAlias, counter);
+                        }
+                    }
+                }
+
                 counter++;
             }
         }

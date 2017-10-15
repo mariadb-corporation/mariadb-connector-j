@@ -69,7 +69,10 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 
@@ -105,7 +108,6 @@ public class MariaDbStatement implements Statement, Cloneable {
     private boolean warningsCleared;
     private boolean mustCloseOnCompletion = false;
     private List<String> batchQueries;
-    private Future<?> timerTaskFuture;
     private boolean isTimedout;
     private int maxFieldSize;
 

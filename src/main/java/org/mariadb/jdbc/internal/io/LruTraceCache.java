@@ -54,22 +54,18 @@ package org.mariadb.jdbc.internal.io;
 
 import org.mariadb.jdbc.internal.util.Utils;
 
-import java.util.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
-public class LruTraceCache extends LinkedHashMap<Instant, TraceObject> {
+public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
 
     public LruTraceCache() {
         super(16, 1.0f, false);
     }
 
     @Override
-    protected boolean removeEldestEntry(Map.Entry<Instant, TraceObject> eldest) {
+    protected boolean removeEldestEntry(Map.Entry<Long, TraceObject> eldest) {
         return size() > 10;
     }
 

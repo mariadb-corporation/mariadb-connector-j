@@ -126,7 +126,6 @@ public class SendHandshakeResponsePacket {
             pos.permitTrace(false);
             try {
                 authData = Utils.encryptPassword(password, greetingPacket.getSeed(), options.passwordCharacterEncoding);
-                break;
             } catch (NoSuchAlgorithmException e) {
                 //cannot occur :
                 throw new IOException("Unknown algorithm SHA-1. Cannot encrypt password", e);

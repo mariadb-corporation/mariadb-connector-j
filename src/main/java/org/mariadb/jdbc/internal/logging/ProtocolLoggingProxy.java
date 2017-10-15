@@ -148,35 +148,35 @@ public class ProtocolLoggingProxy implements InvocationHandler {
                     clientPrepareResult.getParamCount());
 
         } else if ("executeBatchStmt".equals(methodName)) {
-                List<String> multipleQueries = (List<String>) args[2];
-                if (multipleQueries.size() == 1) {
-                    return multipleQueries.get(0);
-                } else {
-                    StringBuilder sb = new StringBuilder();
-                    for (String multipleQuery : multipleQueries) {
-                        if (maxQuerySizeToLog > 0 && (sb.length() + multipleQuery.length() + 1) > maxQuerySizeToLog) {
-                            sb.append(multipleQuery.substring(1, Math.max(1, maxQuerySizeToLog - sb.length())));
-                            break;
-                        }
-                        sb.append(multipleQuery).append(";");
-                        if (maxQuerySizeToLog > 0 && sb.length() >= maxQuerySizeToLog) break;
+            List<String> multipleQueries = (List<String>) args[2];
+            if (multipleQueries.size() == 1) {
+                return multipleQueries.get(0);
+            } else {
+                StringBuilder sb = new StringBuilder();
+                for (String multipleQuery : multipleQueries) {
+                    if (maxQuerySizeToLog > 0 && (sb.length() + multipleQuery.length() + 1) > maxQuerySizeToLog) {
+                        sb.append(multipleQuery.substring(1, Math.max(1, maxQuerySizeToLog - sb.length())));
+                        break;
                     }
-                    return sb.toString();
+                    sb.append(multipleQuery).append(";");
+                    if (maxQuerySizeToLog > 0 && sb.length() >= maxQuerySizeToLog) break;
                 }
+                return sb.toString();
+            }
 
         } else if ("executeBatchServer".equals(methodName)) {
-                List<ParameterHolder[]> parameterList = (List<ParameterHolder[]>) args[4];
-                ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
-                return getQueryFromPrepareParameters(serverPrepareResult.getSql(), parameterList, serverPrepareResult.getParamCount());
+            List<ParameterHolder[]> parameterList = (List<ParameterHolder[]>) args[4];
+            ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
+            return getQueryFromPrepareParameters(serverPrepareResult.getSql(), parameterList, serverPrepareResult.getParamCount());
 
         } else if ("executePreparedQuery".equals(methodName)) {
-                ServerPrepareResult prepareResult = (ServerPrepareResult) args[1];
-                if (args[3] instanceof ParameterHolder[]) {
-                    return getQueryFromPrepareParameters(prepareResult, (ParameterHolder[]) args[3], prepareResult.getParamCount());
-                } else {
-                    return getQueryFromPrepareParameters(prepareResult.getSql(), (List<ParameterHolder[]>) args[3],
-                            prepareResult.getParameters().length);
-                }
+            ServerPrepareResult prepareResult = (ServerPrepareResult) args[1];
+            if (args[3] instanceof ParameterHolder[]) {
+                return getQueryFromPrepareParameters(prepareResult, (ParameterHolder[]) args[3], prepareResult.getParamCount());
+            } else {
+                return getQueryFromPrepareParameters(prepareResult.getSql(), (List<ParameterHolder[]>) args[3],
+                        prepareResult.getParameters().length);
+            }
         }
         return "-unknown-";
     }

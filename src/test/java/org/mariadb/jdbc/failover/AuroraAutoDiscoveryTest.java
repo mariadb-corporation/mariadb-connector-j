@@ -282,19 +282,21 @@ public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
             final String initialHost = getProtocolFromConnection(connection).getHost();
 
             final Statement statement = connection.createStatement();
-            Thread queryThread = new Thread(() -> {
-                long startTime = System.nanoTime();
-                long stopTime = System.nanoTime();
-                try {
-                    while (Math.abs(TimeUnit.NANOSECONDS.toMillis(stopTime - startTime)) < 1000) {
-                        stopTime = System.nanoTime();
-                        statement.executeQuery("SELECT 1");
-                        startTime = System.nanoTime();
+            Thread queryThread = new Thread() {
+                public void run() {
+                    long startTime = System.nanoTime();
+                    long stopTime = System.nanoTime();
+                    try {
+                        while (Math.abs(TimeUnit.NANOSECONDS.toMillis(stopTime - startTime)) < 1000) {
+                            stopTime = System.nanoTime();
+                            statement.executeQuery("SELECT 1");
+                            startTime = System.nanoTime();
+                        }
+                    } catch (SQLException se) {
+                        se.printStackTrace();
                     }
-                } catch (SQLException se) {
-                    se.printStackTrace();
                 }
-            });
+            };
 
             Thread failoverThread = new Thread() {
                 public void run() {

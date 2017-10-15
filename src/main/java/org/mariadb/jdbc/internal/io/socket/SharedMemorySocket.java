@@ -74,7 +74,7 @@ public class SharedMemorySocket extends Socket {
 
     //SDDL string for mutex security flags (Everyone group has SYNCHRONIZE right)
     private static final String EVERYONE_SYNCHRONIZE_SDDL = "D:(A;;0x100000;;;WD)";
-    private static final Map<String, Object> WIN32API_OPTIONS = new HashMap<>();
+    private static final Map<String, Object> WIN32API_OPTIONS = new HashMap<String, Object>();
 
     static {
         WIN32API_OPTIONS.put(Library.OPTION_FUNCTION_MAPPER, W32APIFunctionMapper.UNICODE);

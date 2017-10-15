@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset;
 
-import org.mariadb.jdbc.BasePrepareStatement;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbPreparedStatementClient;
 import org.mariadb.jdbc.MariaDbPreparedStatementServer;
@@ -68,7 +67,6 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.sql.*;
-import java.time.*;
 import java.util.Arrays;
 import java.util.TimeZone;
 
@@ -725,22 +723,6 @@ public class UpdatableResultSet extends SelectResultSet {
                     case Types.TIME:
                         updateTime(parameterIndex, Time.valueOf((String) obj));
                         break;
-                    case Types.TIME_WITH_TIMEZONE:
-                        parameterHolders[parameterIndex - 1] = new OffsetTimeParameter(
-                                OffsetTime.parse(str),
-                                timeZone.toZoneId(),
-                                options.useFractionalSeconds,
-                                options);
-                        break;
-                    case Types.TIMESTAMP_WITH_TIMEZONE:
-
-                        parameterHolders[parameterIndex - 1] =
-                                new ZonedDateTimeParameter(
-                                        ZonedDateTime.parse(str, BasePrepareStatement.SPEC_ISO_ZONED_DATE_TIME),
-                                        timeZone.toZoneId(),
-                                        options.useFractionalSeconds,
-                                        options);
-                        break;
                     default:
                         throw ExceptionMapper.getSqlException("Could not convert [" + str + "] to " + targetSqlType);
                 }
@@ -822,35 +804,6 @@ public class UpdatableResultSet extends SelectResultSet {
             updateBinaryStream(parameterIndex, (InputStream) obj, scaleOrLength);
         } else if (obj instanceof Reader) {
             updateCharacterStream(parameterIndex, (Reader) obj, scaleOrLength);
-        } else if (LocalDateTime.class.isInstance(obj)) {
-            updateTimestamp(parameterIndex, Timestamp.valueOf(LocalDateTime.class.cast(obj)));
-        } else if (Instant.class.isInstance(obj)) {
-            updateTimestamp(parameterIndex, Timestamp.from(Instant.class.cast(obj)));
-        } else if (LocalDate.class.isInstance(obj)) {
-            updateDate(parameterIndex, Date.valueOf(LocalDate.class.cast(obj)));
-        } else if (OffsetDateTime.class.isInstance(obj)) {
-            parameterHolders[parameterIndex - 1] =
-                    new ZonedDateTimeParameter(
-                            OffsetDateTime.class.cast(obj).toZonedDateTime(),
-                            timeZone.toZoneId(),
-                            options.useFractionalSeconds,
-                            options);
-        } else if (OffsetTime.class.isInstance(obj)) {
-            parameterHolders[parameterIndex - 1] =
-                    new OffsetTimeParameter(
-                            OffsetTime.class.cast(obj),
-                            timeZone.toZoneId(),
-                            options.useFractionalSeconds,
-                            options);
-        } else if (ZonedDateTime.class.isInstance(obj)) {
-            parameterHolders[parameterIndex - 1] =
-                    new ZonedDateTimeParameter(
-                            ZonedDateTime.class.cast(obj),
-                            timeZone.toZoneId(),
-                            options.useFractionalSeconds,
-                            options);
-        } else if (LocalTime.class.isInstance(obj)) {
-            updateTime(parameterIndex, Time.valueOf(LocalTime.class.cast(obj)));
         } else {
             throw ExceptionMapper.getSqlException("Could not set parameter in setObject, could not convert: " + obj.getClass() + " to "
                     + targetSqlType);

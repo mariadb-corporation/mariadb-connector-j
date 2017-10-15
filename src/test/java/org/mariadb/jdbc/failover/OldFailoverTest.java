@@ -75,9 +75,13 @@ public class OldFailoverTest extends BaseTest {
             //the first host doesn't exist, so with the random host selection, verifying that we connect to the good
             //host
             for (int i = 0; i < 10; i++) {
-                try (Connection tmpConnection = openNewConnection(falseUrl)) {
+                Connection tmpConnection = null;
+                try {
+                    tmpConnection = openNewConnection(falseUrl);
                     Statement tmpStatement = tmpConnection.createStatement();
                     tmpStatement.execute("SELECT 1");
+                } finally {
+                    if (tmpConnection != null) tmpConnection.close();
                 }
             }
         } catch (Exception e) {

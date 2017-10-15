@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Pools {
 
     private static final AtomicInteger poolIndex = new AtomicInteger();
-    private static final Map<UrlParser, Pool> poolMap = new ConcurrentHashMap<>();
+    private static final Map<UrlParser, Pool> poolMap = new ConcurrentHashMap<UrlParser, Pool>();
     private static ScheduledThreadPoolExecutor poolExecutor = null;
 
     /**
@@ -81,11 +81,7 @@ public class Pools {
     public static void close() {
         synchronized (poolMap) {
             for (Pool pool : poolMap.values()) {
-                try {
-                    pool.close();
-                } catch (InterruptedException exception) {
-                    //eat
-                }
+                pool.close();
             }
             shutdownExecutor();
             poolMap.clear();
@@ -102,11 +98,7 @@ public class Pools {
         synchronized (poolMap) {
             for (Pool pool : poolMap.values()) {
                 if (poolName.equals(pool.getUrlParser().getOptions().poolName)) {
-                    try {
-                        pool.close();
-                    } catch (InterruptedException exception) {
-                        //eat
-                    }
+                    pool.close();
                     poolMap.remove(pool.getUrlParser());
                     return;
                 }

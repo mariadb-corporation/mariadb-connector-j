@@ -542,14 +542,14 @@ public class DateTest extends BaseTest {
             pst.setDate(1, date);
             pst.execute();
 
-                PreparedStatement pst2 = connection.prepareStatement("select x from date_test3 WHERE x = ?");
-                    pst2.setDate(1, date);
-                    ResultSet rs = pst2.executeQuery();
-                        assertTrue(rs.next());
-                        Date dd = rs.getDate(1);
-                        assertEquals(dd, date);
-                    }finally {
-                if (connection != null) connection.close();
+            PreparedStatement pst2 = connection.prepareStatement("select x from date_test3 WHERE x = ?");
+            pst2.setDate(1, date);
+            ResultSet rs = pst2.executeQuery();
+            assertTrue(rs.next());
+            Date dd = rs.getDate(1);
+            assertEquals(dd, date);
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
@@ -563,14 +563,14 @@ public class DateTest extends BaseTest {
             pst.setDate(1, date);
             pst.execute();
 
-                PreparedStatement pst2 = connection.prepareStatement("/*CLIENT*/ select x from date_test4 WHERE x = ?");
-                    pst2.setDate(1, date);
-                    ResultSet rs = pst2.executeQuery();
-                        assertTrue(rs.next());
-                        Date dd = rs.getDate(1);
-                        assertEquals(dd, date);
-                    }finally {
-                if (connection != null) connection.close();
+            PreparedStatement pst2 = connection.prepareStatement("/*CLIENT*/ select x from date_test4 WHERE x = ?");
+            pst2.setDate(1, date);
+            ResultSet rs = pst2.executeQuery();
+            assertTrue(rs.next());
+            Date dd = rs.getDate(1);
+            assertEquals(dd, date);
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
@@ -650,17 +650,18 @@ public class DateTest extends BaseTest {
         Assume.assumeTrue(isMariadbServer());
         createTable("zeroTimestamp", "ts timestamp NULL ");
         Statement statement = sharedConnection.createStatement();
-            statement.execute("INSERT INTO zeroTimestamp values ('0000-00-00 00:00:00')");
-            PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT * from zeroTimestamp");
-                ResultSet resultSet = preparedStatement.executeQuery();
-                assertTrue(resultSet.next());
-                assertEquals(null, resultSet.getDate(1));
-                if (sharedUsePrepare()) {
-                    assertEquals(null, resultSet.getString(1));
-            assertTrue(resultSet.wasNull());    } else {
-                    assertTrue(resultSet.getString(1).contains("0000-00-00 00:00:00"));assertFalse(resultSet.wasNull());
-                assertFalse(resultSet.wasNull());
-            }
+        statement.execute("INSERT INTO zeroTimestamp values ('0000-00-00 00:00:00')");
+        PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT * from zeroTimestamp");
+        ResultSet resultSet = preparedStatement.executeQuery();
+        assertTrue(resultSet.next());
+        assertEquals(null, resultSet.getDate(1));
+        if (sharedUsePrepare()) {
+            assertEquals(null, resultSet.getString(1));
+            assertTrue(resultSet.wasNull());
+        } else {
+            assertTrue(resultSet.getString(1).contains("0000-00-00 00:00:00"));
+            assertFalse(resultSet.wasNull());
+        }
 
         resultSet = statement.executeQuery("SELECT * from zeroTimestamp");
         assertTrue(resultSet.next());

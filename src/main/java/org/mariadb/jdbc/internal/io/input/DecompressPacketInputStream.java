@@ -62,7 +62,6 @@ import org.mariadb.jdbc.internal.util.Utils;
 import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;

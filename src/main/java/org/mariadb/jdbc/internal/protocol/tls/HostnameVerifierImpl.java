@@ -301,7 +301,7 @@ public class HostnameVerifierImpl implements HostnameVerifier {
     }
 
     private class SubjectAltNames {
-        private final List<GeneralName> generalNames = new ArrayList<>();
+        private final List<GeneralName> generalNames = new ArrayList<GeneralName>();
 
         @Override
         public String toString() {

@@ -74,7 +74,7 @@ public class TimeoutTest extends BaseTest {
      * Conj-79.
      */
     @Test
-    public void resultSetAfterSocketTimeoutTest() {
+    public void resultSetAfterSocketTimeoutTest() throws SQLException {
         Assume.assumeFalse(sharedIsAurora());
         int went = 0;
         for (int j = 0; j < 100; j++) {

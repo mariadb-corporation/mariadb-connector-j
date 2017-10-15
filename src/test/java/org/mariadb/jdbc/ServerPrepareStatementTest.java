@@ -966,8 +966,8 @@ public class ServerPrepareStatementTest extends BaseTest {
             stmt.execute(sql);
 
             final PreparedStatement preparedStatement = tmpConnection.prepareStatement(sql);
-                ResultSet rs = preparedStatement.executeQuery();
-                assertTrue(rs.next());
+            ResultSet rs = preparedStatement.executeQuery();
+            assertTrue(rs.next());
 
             String columnOne = rs.getString("COLUMN_1");
             String columnTwo = rs.getString("COLUMN_2");

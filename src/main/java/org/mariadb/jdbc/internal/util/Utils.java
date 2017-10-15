@@ -842,21 +842,15 @@ public class Utils {
      * @throws SQLException if String value doesn't correspond to @tx_isolation possible value
      */
     public static int transactionFromString(String txIsolation) throws SQLException {
-        switch (txIsolation) { //tx_isolation
-            case "READ-UNCOMMITTED":
-                return Connection.TRANSACTION_READ_UNCOMMITTED;
-
-            case "READ-COMMITTED":
-                return Connection.TRANSACTION_READ_COMMITTED;
-
-            case "REPEATABLE-READ":
-                return Connection.TRANSACTION_REPEATABLE_READ;
-
-            case "SERIALIZABLE":
-                return Connection.TRANSACTION_SERIALIZABLE;
-
-            default:
-                throw new SQLException("unknown transaction isolation level");
+        if ("READ-UNCOMMITTED".equals(txIsolation)) { //tx_isolation
+            return Connection.TRANSACTION_READ_UNCOMMITTED;
+        } else if ("READ-COMMITTED".equals(txIsolation)) {
+            return Connection.TRANSACTION_READ_COMMITTED;
+        } else if ("REPEATABLE-READ".equals(txIsolation)) {
+            return Connection.TRANSACTION_REPEATABLE_READ;
+        } else if ("SERIALIZABLE".equals(txIsolation)) {
+            return Connection.TRANSACTION_SERIALIZABLE;
         }
+        throw new SQLException("unknown transaction isolation level");
     }
 }

@@ -303,7 +303,7 @@ public class SelectResultSet implements ResultSet {
     }
 
     public static SelectResultSet createEmptyResultSet() {
-        return new SelectResultSet(INSERT_ID_COLUMNS, new ArrayList<>(), null,
+        return new SelectResultSet(INSERT_ID_COLUMNS, new ArrayList<byte[]>(), null,
                 TYPE_SCROLL_SENSITIVE);
     }
 
@@ -540,7 +540,9 @@ public class SelectResultSet implements ResultSet {
         resetVariables();
 
         //keep garbage easy
-        for (int i = 0; i < data.length; i++) data[i] = null;
+        for (int i = 0; i < data.length; i++) {
+            data[i] = null;
+        }
 
         if (statement != null) {
             statement.checkCloseOnCompletion(this);
@@ -1870,7 +1872,9 @@ public class SelectResultSet implements ResultSet {
                         }
                         timestamp.setNanos(nanoseconds);
                         return timestamp;
-                    } catch (NumberFormatException | StringIndexOutOfBoundsException n) {
+                    } catch (NumberFormatException n) {
+                        throw new SQLException("Value \"" + rawValue + "\" cannot be parse as Timestamp");
+                    } catch (StringIndexOutOfBoundsException n) {
                         throw new SQLException("Value \"" + rawValue + "\" cannot be parse as Timestamp");
                     }
             }

@@ -380,7 +380,9 @@ public class StatementTest extends BaseTest {
 
         //add 100 data
         StringBuilder sb = new StringBuilder("INSERT INTO testFallbackBatchUpdate(col) VALUES (0)");
-        for (int i = 1; i < 100; i++) sb.append(",(").append(i).append(")");
+        for (int i = 1; i < 100; i++) {
+            sb.append(",(").append(i).append(")");
+        }
         statement.execute(sb.toString());
 
         PreparedStatement preparedStatement = null;
@@ -419,11 +421,15 @@ public class StatementTest extends BaseTest {
 
         //add 100 data
         StringBuilder sb = new StringBuilder("INSERT INTO testProperBatchUpdate(col, col2) VALUES (0,0)");
-        for (int i = 1; i < 100; i++) sb.append(",(").append(i).append(",0)");
+        for (int i = 1; i < 100; i++) {
+            sb.append(",(").append(i).append(",0)");
+        }
         statement.execute(sb.toString());
 
-        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-                "UPDATE testProperBatchUpdate set col2 = ? WHERE col = ? ")) {
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = sharedConnection.prepareStatement(
+                    "UPDATE testProperBatchUpdate set col2 = ? WHERE col = ? ");
             preparedStatement.setInt(1, 10);
             preparedStatement.setInt(2, 10);
             preparedStatement.addBatch();
@@ -434,16 +440,18 @@ public class StatementTest extends BaseTest {
 
             int[] results = preparedStatement.executeBatch();
             assertEquals(2, results.length);
+        } finally {
+            if (preparedStatement != null) preparedStatement.close();
         }
 
         //check results
-        try (ResultSet rs = statement.executeQuery("SELECT * FROM testProperBatchUpdate")) {
-            for (int i = 0; i < 100; i++) {
-                assertTrue(rs.next());
-                assertEquals(i, rs.getInt(1));
-                assertEquals((i == 10 || i == 15) ? i : 0, rs.getInt(2));
-            }
-            assertFalse(rs.next());
+        ResultSet rs = statement.executeQuery("SELECT * FROM testProperBatchUpdate");
+        for (int i = 0; i < 100; i++) {
+            assertTrue(rs.next());
+            assertEquals(i, rs.getInt(1));
+            assertEquals((i == 10 || i == 15) ? i : 0, rs.getInt(2));
         }
+        assertFalse(rs.next());
+
     }
 }

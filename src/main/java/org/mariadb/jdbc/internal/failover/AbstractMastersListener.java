@@ -296,41 +296,36 @@ public abstract class AbstractMastersListener implements Listener {
     public HandleErrorResult relaunchOperation(Method method, Object[] args) throws IllegalAccessException, InvocationTargetException {
         HandleErrorResult handleErrorResult = new HandleErrorResult(true);
         if (method != null) {
-            switch (method.getName()) {
-
-                case "executeQuery":
-                    if (args[2] instanceof String) {
-                        String query = ((String) args[2]).toUpperCase();
-                        if (!"ALTER SYSTEM CRASH".equals(query)
-                                && !query.startsWith("KILL")) {
-                            logger.debug("relaunch query to new connection {}",
-                                    ((currentProtocol != null) ? "(conn=" + currentProtocol.getServerThreadId() + ")" : ""));
-                            handleErrorResult.resultObject = method.invoke(currentProtocol, args);
-                            handleErrorResult.mustThrowError = false;
-                        }
-                    }
-                    break;
-
-                case "executePreparedQuery":
-                    //the statementId has been discarded with previous session
-                    try {
-                        boolean mustBeOnMaster = (Boolean) args[0];
-                        ServerPrepareResult oldServerPrepareResult = (ServerPrepareResult) args[1];
-                        ServerPrepareResult serverPrepareResult = currentProtocol.prepare(oldServerPrepareResult.getSql(), mustBeOnMaster);
-                        oldServerPrepareResult.failover(serverPrepareResult.getStatementId(), currentProtocol);
-                        logger.debug("relaunch query to new connection "
-                                + ((currentProtocol != null) ? "server thread id " + currentProtocol.getServerThreadId() : ""));
+            if ("executeQuery".equals(method.getName())) {
+                if (args[2] instanceof String) {
+                    String query = ((String) args[2]).toUpperCase();
+                    if (!"ALTER SYSTEM CRASH".equals(query)
+                            && !query.startsWith("KILL")) {
+                        logger.debug("relaunch query to new connection {}",
+                                ((currentProtocol != null) ? "(conn=" + currentProtocol.getServerThreadId() + ")" : ""));
                         handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                         handleErrorResult.mustThrowError = false;
-                    } catch (Exception e) {
-                        //if retry prepare fail, discard error. execution error will indicate the error.
                     }
-                    break;
-
-                default:
+                }
+            } else if ("executePreparedQuery".equals(method.getName())) {
+                //the statementId has been discarded with previous session
+                try {
+                    boolean mustBeOnMaster = (Boolean) args[0];
+                    ServerPrepareResult oldServerPrepareResult = (ServerPrepareResult) args[1];
+                    ServerPrepareResult serverPrepareResult = currentProtocol.prepare(oldServerPrepareResult.getSql(), mustBeOnMaster);
+                    oldServerPrepareResult.failover(serverPrepareResult.getStatementId(), currentProtocol);
+                    logger.debug("relaunch query to new connection "
+                            + ((currentProtocol != null) ? "server thread id " + currentProtocol.getServerThreadId() : ""));
                     handleErrorResult.resultObject = method.invoke(currentProtocol, args);
                     handleErrorResult.mustThrowError = false;
-                    break;
+                } catch (Exception e) {
+                    //if retry prepare fail, discard error. execution error will indicate the error.
+                }
+            } else {
+
+                handleErrorResult.resultObject = method.invoke(currentProtocol, args);
+                handleErrorResult.mustThrowError = false;
+
             }
         }
         return handleErrorResult;
@@ -345,27 +340,26 @@ public abstract class AbstractMastersListener implements Listener {
      */
     public boolean isQueryRelaunchable(Method method, Object[] args) {
         if (method != null) {
-            switch (method.getName()) {
-                case "executeQuery":
-                    if (!((Boolean) args[0])) return true; //launched on slave connection
-                    if (args[2] instanceof String) {
-                        return ((String) args[2]).toUpperCase().startsWith("SELECT");
-                    } else if (args[2] instanceof ClientPrepareResult) {
-                        @SuppressWarnings("unchecked")
-                        String query = new String(((ClientPrepareResult) args[2]).getQueryParts().get(0)).toUpperCase();
-                        return query.startsWith("SELECT");
-                    }
-                    break;
-                case "executePreparedQuery":
-                    if (!((Boolean) args[0])) return true; //launched on slave connection
-                    ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
-                    return (serverPrepareResult.getSql()).toUpperCase().startsWith("SELECT");
-                case "executeBatchStmt":
-                case "executeBatchClient":
-                case "executeBatchServer":
-                    return !((Boolean) args[0]);
-                default:
-                    return false;
+            if ("executeQuery".equals(method.getName())) {
+                if (!((Boolean) args[0])) return true; //launched on slave connection
+                if (args[2] instanceof String) {
+                    return ((String) args[2]).toUpperCase().startsWith("SELECT");
+                } else if (args[2] instanceof ClientPrepareResult) {
+                    @SuppressWarnings("unchecked")
+                    String query = new String(((ClientPrepareResult) args[2]).getQueryParts().get(0)).toUpperCase();
+                    return query.startsWith("SELECT");
+                }
+
+            } else if ("executePreparedQuery".equals(method.getName())) {
+                if (!((Boolean) args[0])) return true; //launched on slave connection
+                ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
+                return (serverPrepareResult.getSql()).toUpperCase().startsWith("SELECT");
+
+            } else if ("executeBatchStmt".equals(method.getName())
+                    || "executeBatchClient".equals(method.getName())
+                    || "executeBatchServer".equals(method.getName())) {
+                return !((Boolean) args[0]);
+
             }
         }
         return false;

@@ -476,7 +476,7 @@ public class UrlParser implements Cloneable {
     public Object clone() throws CloneNotSupportedException {
         UrlParser tmpUrlParser = (UrlParser) super.clone();
         tmpUrlParser.options = (Options) options.clone();
-        tmpUrlParser.addresses = new ArrayList<>();
+        tmpUrlParser.addresses = new ArrayList<HostAddress>();
         tmpUrlParser.addresses.addAll(addresses);
         return tmpUrlParser;
     }

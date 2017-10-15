@@ -64,6 +64,7 @@ import java.sql.*;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 public class MariaDbDatabaseMetaData implements DatabaseMetaData {
@@ -281,18 +282,21 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         String[][] arr = data.toArray(new String[0][]);
 
          /* Sort array by PKTABLE_CAT, PKTABLE_NAME, and KEY_SEQ.*/
-        Arrays.sort(arr, (row1, row2) -> {
-            int result = row1[0].compareTo(row2[0]);   //PKTABLE_CAT
-            if (result == 0) {
-                result = row1[2].compareTo(row2[2]);   //PKTABLE_NAME
+        Arrays.sort(arr, new Comparator<String[]>() {
+            @Override
+            public int compare(String[] row1, String[] row2) {
+                int result = row1[0].compareTo(row2[0]);   //PKTABLE_CAT
                 if (result == 0) {
-                    result = row1[8].length() - row2[8].length();  // KEY_SEQ
+                    result = row1[2].compareTo(row2[2]);   //PKTABLE_NAME
                     if (result == 0) {
-                        result = row1[8].compareTo(row2[8]);
+                        result = row1[8].length() - row2[8].length();  // KEY_SEQ
+                        if (result == 0) {
+                            result = row1[8].compareTo(row2[8]);
+                        }
                     }
                 }
+                return result;
             }
-            return result;
         });
         return SelectResultSet.createResultSet(columnNames, columnTypes, arr, connection.getProtocol());
     }
@@ -382,25 +386,22 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         if (actionKey == null) {
             return DatabaseMetaData.importedKeyRestrict;
         }
-        switch (actionKey) {
-            case "NO ACTION":
-                return DatabaseMetaData.importedKeyNoAction;
-
-            case "CASCADE":
-                return DatabaseMetaData.importedKeyCascade;
-
-            case "SET NULL":
-                return DatabaseMetaData.importedKeySetNull;
-
-            case "SET DEFAULT":
-                return DatabaseMetaData.importedKeySetDefault;
-
-            case "RESTRICT":
-                return DatabaseMetaData.importedKeyRestrict;
-
-            default:
-                throw new AssertionError("should not happen");
+        if (actionKey.equals("NO ACTION")) {
+            return DatabaseMetaData.importedKeyNoAction;
         }
+        if (actionKey.equals("CASCADE")) {
+            return DatabaseMetaData.importedKeyCascade;
+        }
+        if (actionKey.equals("SET NULL")) {
+            return DatabaseMetaData.importedKeySetNull;
+        }
+        if (actionKey.equals("SET DEFAULT")) {
+            return DatabaseMetaData.importedKeySetDefault;
+        }
+        if (actionKey.equals("RESTRICT")) {
+            return DatabaseMetaData.importedKeyRestrict;
+        }
+        throw new AssertionError("should not happen");
     }
 
     private String dataTypeClause(String fullTypeColumnName) {
@@ -917,8 +918,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * <LI><B>COLUMN_NAME</B> String {@code =>} column name <LI><B>DATA_TYPE</B> int {@code =>} SQL type from java.sql.Types <LI><B>COLUMN_SIZE</B>
      * int {@code =>} column size. <LI><B>DECIMAL_DIGITS</B> int {@code =>} the number of fractional digits. Null is returned for data types where
      * DECIMAL_DIGITS is not applicable. <LI><B>NUM_PREC_RADIX</B> int {@code =>} Radix (typically either 10 or 2) <LI><B>COLUMN_USAGE</B> String
-     * {@code =>} The allowed usage for the column.  The value returned will correspond to the enum name returned by {@link PseudoColumnUsage#name
-     * PseudoColumnUsage.name()} <LI><B>REMARKS</B> String {@code =>} comment describing column (may be <code>null</code>)
+     * {@code =>} The allowed usage for the column.  The value returned will correspond to the enum name returned by PseudoColumnUsage#name
+     * PseudoColumnUsage.name() <LI><B>REMARKS</B> String {@code =>} comment describing column (may be <code>null</code>)
      * <LI><B>CHAR_OCTET_LENGTH</B> int {@code =>} for char types the maximum number of bytes in the column <LI><B>IS_NULLABLE</B> String  {@code =>}
      * ISO rules are used to determine the nullability for a column. <UL> <LI> YES           --- if the column can include NULLs <LI> NO --- if the
      * column cannot include NULLs <LI> empty string  --- if the nullability for the column is unknown </UL> </OL>
@@ -937,8 +938,6 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * @param columnNamePattern a column name pattern; must match the column name as it is stored in the database
      * @return <code>ResultSet</code> - each row is a column description
      * @throws SQLException if a database access error occurs
-     * @see PseudoColumnUsage
-     * @since 1.7
      */
     public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern,
                                       String columnNamePattern) throws SQLException {

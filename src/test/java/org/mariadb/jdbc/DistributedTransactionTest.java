@@ -184,21 +184,21 @@ public class DistributedTransactionTest extends BaseTest {
         int connectionNumber = test2PhaseCommit(true);
 
         // check the completion
-        try (ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
-            for (int i = 0; i < connectionNumber; i++) {
-                assertTrue(rs.next());
-                assertEquals(rs.getInt(1), i);
-            }
+        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i");
+        for (int i = 0; i < connectionNumber; i++) {
+            assertTrue(rs.next());
+            assertEquals(rs.getInt(1), i);
         }
+
     }
 
     @Test
     public void testRollback() throws Exception {
         test2PhaseCommit(false);
         // check the completion
-        try (ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i")) {
-            assertFalse(rs.next());
-        }
+        ResultSet rs = sharedConnection.createStatement().executeQuery("SELECT * from xatable order by i");
+        assertFalse(rs.next());
+
     }
 
     @Test
