@@ -175,7 +175,7 @@ public class Pool implements Closeable, PoolMBean {
         //add connection if minimum connection is not reached
         if (totalConnection.get() < options.minPoolSize && lock.tryAcquire(50)) {
             try {
-                while (totalConnection.get() < options.minPoolSize) {
+                while (totalConnection.get() < options.minPoolSize && !scheduledFuture.isCancelled()) {
                     addConnection(false);
                 }
             } catch (SQLException sqle) {
@@ -449,7 +449,7 @@ public class Pool implements Closeable, PoolMBean {
         synchronized (this) {
             Pools.remove(this);
             poolState.set(POOL_STATE_CLOSING);
-            scheduledFuture.cancel(true);
+            scheduledFuture.cancel(false);
 
             ExecutorService connectionRemover = new ThreadPoolExecutor(totalConnection.get(), options.maxPoolSize, 10, TimeUnit.SECONDS,
                     new LinkedBlockingQueue<Runnable>(options.maxPoolSize), new MariaDbThreadFactory(poolTag + "-destroyer"));

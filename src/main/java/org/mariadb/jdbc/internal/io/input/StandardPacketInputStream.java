@@ -236,7 +236,7 @@ public class StandardPacketInputStream implements PacketInputStream {
         do {
             int count = inputStream.read(header, off, remaining);
             if (count < 0) {
-                throw new EOFException("unexpected end of stream, read " + off + " bytes from 4");
+                throw new EOFException("unexpected end of stream, read " + off + " bytes from 4 (socket was closed by server)");
             }
             remaining -= count;
             off += count;
@@ -259,7 +259,8 @@ public class StandardPacketInputStream implements PacketInputStream {
         do {
             int count = inputStream.read(rawBytes, off, remaining);
             if (count < 0) {
-                throw new EOFException("unexpected end of stream, read " + (lastPacketLength - remaining) + " bytes from " + lastPacketLength);
+                throw new EOFException("unexpected end of stream, read " + (lastPacketLength - remaining) + " bytes from " + lastPacketLength
+                        + " (socket was closed by server)");
             }
             remaining -= count;
             off += count;
