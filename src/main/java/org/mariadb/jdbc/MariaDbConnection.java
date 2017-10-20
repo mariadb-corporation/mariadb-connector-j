@@ -1650,12 +1650,7 @@ public class MariaDbConnection implements Connection {
                 && ((protocol.isServerMariaDb() && protocol.versionGreaterOrEqual(10, 2, 4))
                 || (!protocol.isServerMariaDb() && protocol.versionGreaterOrEqual(5, 7, 3)));
 
-        if (useComReset) {
-            // COM_RESET_CONNECTION Will rollback any remaining transaction
-            protocol.reset();
-        } else {
-            rollback(); //execute a ROLLBACK query (only if there is an active transaction)
-        }
+        if (useComReset) protocol.reset();
 
         if (stateFlag != 0) {
 
