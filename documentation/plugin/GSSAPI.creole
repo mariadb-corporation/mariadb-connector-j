@@ -1,7 +1,7 @@
 
 = GSSAPI Authentication
 
-MariaDB GSSAPI support GSSAPI since the 10.1 version (Server configuration can be found on https://github.com/MariaDB/server/blob/master/plugin/auth_gssapi/README.md).
+MariaDB GSSAPI support GSSAPI since the 10.1 version (Server configuration can be found on https://github.com/MariaDB/server/blob/10.2/plugin/auth_gssapi/README.md).
 
 The following subsections show how to implement GSSAPI Authentication with the java connector. 
 
