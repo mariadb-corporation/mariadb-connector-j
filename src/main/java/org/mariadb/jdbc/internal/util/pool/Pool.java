@@ -144,7 +144,8 @@ public class Pool implements Closeable, PoolMBean {
             connectionAppenderQueue.offer(new Runnable() {
                 @Override
                 public void run() {
-                    if ((totalConnection.get() < options.minPoolSize || pendingRequestNumber.get() > 0) && totalConnection.get() < options.maxPoolSize) {
+                    if ((totalConnection.get() < options.minPoolSize || pendingRequestNumber.get() > 0)
+                            && totalConnection.get() < options.maxPoolSize) {
                         try {
                             addConnection();
                         } catch (SQLException sqle) {
