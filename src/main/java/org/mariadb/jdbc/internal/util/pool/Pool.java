@@ -31,7 +31,6 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-import org.mariadb.jdbc.internal.util.queue.AverageEvictingQueue;
 import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
 
 import javax.management.MBeanServer;
@@ -66,16 +65,17 @@ public class Pool implements Closeable, PoolMBean {
     private final AtomicInteger totalConnection = new AtomicInteger();
 
     private final LinkedBlockingDeque<MariaDbPooledConnection> idleConnections;
+    private final ThreadPoolExecutor connectionAppender;
+    private final BlockingQueue<Runnable> connectionAppenderQueue;
+
     private final String poolTag;
     private final ScheduledThreadPoolExecutor poolExecutor;
     private final ScheduledFuture scheduledFuture;
     private GlobalStateInfo globalInfo;
 
-    private final Semaphore lock = new Semaphore(100, true); //fair lock
     private int maxIdleTime;
     private long timeToConnectNanos;
     private long connectionTime = 0;
-    private final AverageEvictingQueue connectionTimeQueue = new AverageEvictingQueue(10);
 
     /**
      * Create pool from configuration.
@@ -90,6 +90,14 @@ public class Pool implements Closeable, PoolMBean {
         options = urlParser.getOptions();
         this.maxIdleTime = options.maxIdleTime;
         poolTag = generatePoolTag(poolIndex);
+
+        //one thread to add new connection to pool.
+        connectionAppenderQueue = new ArrayBlockingQueue<Runnable>(options.maxPoolSize);
+        connectionAppender = new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS,
+                connectionAppenderQueue, new MariaDbThreadFactory(poolTag + "-appender"));
+        connectionAppender.allowCoreThreadTimeOut(true);
+        //create workers, since driver only interact with queue after that (i.e. not using .execute() )
+        connectionAppender.prestartCoreThread();
 
         idleConnections = new LinkedBlockingDeque<MariaDbPooledConnection>();
 
@@ -113,18 +121,39 @@ public class Pool implements Closeable, PoolMBean {
 
         //create minimal connection in pool
         try {
-            lock.acquire(100);
-            for (int i = 0; i < options.minPoolSize; i++) {
-                addConnection(false);
+            for ( int i = 0 ; i < options.minPoolSize; i++) {
+                addConnection();
             }
-        } catch (InterruptedException e) {
-            //eat
-        } catch (SQLException e) {
-            //eat
-        } finally {
-            lock.release(100);
+        } catch (SQLException sqle) {
+            logger.error("error initializing pool connection", sqle);
         }
 
+    }
+
+
+    /**
+     * Add new connection if needed.
+     * Only one thread create new connection, so new connection request will wait to newly created connection or
+     * for a released connection.
+     */
+    private void addConnectionRequest() {
+        if (totalConnection.get() < options.maxPoolSize && poolState.get() == POOL_STATE_OK) {
+
+            //ensure to have one worker if was timeout
+            connectionAppender.prestartCoreThread();
+            connectionAppenderQueue.offer(new Runnable() {
+                @Override
+                public void run() {
+                    if ((totalConnection.get() < options.minPoolSize || pendingRequestNumber.get() > 0) && totalConnection.get() < options.maxPoolSize) {
+                        try {
+                            addConnection();
+                        } catch (SQLException sqle) {
+                            //eat
+                        }
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -163,7 +192,7 @@ public class Pool implements Closeable, PoolMBean {
 
                 totalConnection.decrementAndGet();
                 silentCloseConnection(item);
-
+                addConnectionRequest();
                 if (logger.isDebugEnabled()) {
                     logger.debug("pool {} connection removed due to inactivity (total:{}, active:{}, pending:{})",
                             poolTag, totalConnection.get(), getActiveConnections(), pendingRequestNumber.get());
@@ -172,67 +201,41 @@ public class Pool implements Closeable, PoolMBean {
             }
         }
 
-        //add connection if minimum connection is not reached
-        if (totalConnection.get() < options.minPoolSize && lock.tryAcquire(50)) {
-            try {
-                while (totalConnection.get() < options.minPoolSize && !scheduledFuture.isCancelled()) {
-                    addConnection(false);
-                }
-            } catch (SQLException sqle) {
-                //eat
-            } finally {
-                lock.release(50);
-            }
-        }
-
     }
 
     /**
      * Create new connection.
      *
-     * !! Lock must be acquired previously to using this method !!
-     *
-     * @param active next connection must be immediately set to active.
-     * @return pool connection
      * @throws SQLException if connection creation failed
      */
-    private MariaDbPooledConnection addConnection(boolean active) throws SQLException {
+    private void addConnection() throws SQLException {
 
         //create new connection
-        long start = System.nanoTime();
-        try {
-            Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
-            MariaDbConnection connection = new MariaDbConnection(protocol);
-            MariaDbPooledConnection pooledConnection = createPoolConnection(connection);
+        Protocol protocol = Utils.retrieveProxy(urlParser, globalInfo);
+        MariaDbConnection connection = new MariaDbConnection(protocol);
+        MariaDbPooledConnection pooledConnection = createPoolConnection(connection);
 
-            if (options.staticGlobal) {
-                //on first connection load initial state
-                if (globalInfo == null) initializePoolGlobalState(connection);
-                //set default transaction isolation level to permit resetting to initial state
-                connection.setDefaultTransactionIsolation(globalInfo.getDefaultTransactionIsolation());
-            } else {
-                //set default transaction isolation level to permit resetting to initial state
-                connection.setDefaultTransactionIsolation(connection.getTransactionIsolation());
-            }
-
-            if (poolState.get() == POOL_STATE_OK && totalConnection.incrementAndGet() <= options.maxPoolSize) {
-                if (!active) {
-                    idleConnections.addFirst(pooledConnection);
-                }
-
-                if (logger.isDebugEnabled()) {
-                    logger.debug("pool {} new physical connection created (total:{}, active:{}, pending:{})",
-                            poolTag, totalConnection.get(), getActiveConnections(), pendingRequestNumber.get());
-                }
-                connectionTimeQueue.add(System.nanoTime() - start);
-                return pooledConnection;
-            }
-
-            silentCloseConnection(pooledConnection);
-        } catch (SQLException sqle) {
-            //eat
+        if (options.staticGlobal) {
+            //on first connection load initial state
+            if (globalInfo == null) initializePoolGlobalState(connection);
+            //set default transaction isolation level to permit resetting to initial state
+            connection.setDefaultTransactionIsolation(globalInfo.getDefaultTransactionIsolation());
+        } else {
+            //set default transaction isolation level to permit resetting to initial state
+            connection.setDefaultTransactionIsolation(connection.getTransactionIsolation());
         }
-        return null;
+
+        if (poolState.get() == POOL_STATE_OK && totalConnection.incrementAndGet() <= options.maxPoolSize) {
+            idleConnections.addFirst(pooledConnection);
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("pool {} new physical connection created (total:{}, active:{}, pending:{})",
+                        poolTag, totalConnection.get(), getActiveConnections(), pendingRequestNumber.get());
+            }
+            return;
+        }
+
+        silentCloseConnection(pooledConnection);
     }
 
     private MariaDbPooledConnection getIdleConnection() throws InterruptedException {
@@ -358,38 +361,23 @@ public class Pool implements Closeable, PoolMBean {
         pendingRequestNumber.incrementAndGet();
 
         MariaDbPooledConnection pooledConnection;
-        long timeoutEnd = TimeUnit.MILLISECONDS.toNanos(options.connectTimeout) + System.nanoTime();
 
         try {
 
             //try to get Idle connection if any (with a very small timeout)
-            if ((pooledConnection = getIdleConnection(50, TimeUnit.MICROSECONDS)) != null) {
+            if ((pooledConnection = getIdleConnection(totalConnection.get() > 4 ? 0 : 50, TimeUnit.MICROSECONDS)) != null) {
                 return pooledConnection.getConnection();
             }
 
-            SQLException savedException = null;
+            // ask for new connection creation if max is not reached
+            addConnectionRequest();
 
             //try to create new connection if semaphore permit it
-            //semaphore will permit between 1-8 simultaneous connection according to connection time and waiting thread number
-            int nbPermit = connectionTimeQueue.averageMs() != 0 ? Math.max(12, Math.min(100, (int) (800 / connectionTimeQueue.averageMs()))) : 100;
-            if (lock.tryAcquire(nbPermit)) {
-                try {
-                    if (totalConnection.get() < options.maxPoolSize
-                            && (pooledConnection = addConnection(true)) != null) {
-                        return pooledConnection.getConnection();
-                    }
-                } catch (SQLException sqlException) {
-                    savedException = sqlException;
-                } finally {
-                    lock.release(nbPermit);
-                }
-            }
-
-            if ((pooledConnection = getIdleConnection(timeoutEnd - System.nanoTime(), TimeUnit.NANOSECONDS)) != null) {
+            if ((pooledConnection = getIdleConnection(TimeUnit.MILLISECONDS.toNanos(options.connectTimeout),
+                    TimeUnit.NANOSECONDS)) != null) {
                 return pooledConnection.getConnection();
             }
 
-            if (savedException != null) throw savedException;
             throw ExceptionMapper.connException("No connection available within the specified time "
                     + "(option 'connectTimeout': " + NumberFormat.getInstance().format(options.connectTimeout) + " ms)");
 
@@ -528,7 +516,6 @@ public class Pool implements Closeable, PoolMBean {
             //removing 45s since scheduler check  status every 30s
             maxIdleTime = Math.min(options.maxIdleTime, globalInfo.getWaitTimeout() - 45);
         }
-
     }
 
     public String getPoolTag() {

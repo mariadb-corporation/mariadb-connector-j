@@ -1691,7 +1691,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             activeFutureTask = null;
         }
 
-        if (!this.connected) throw new SQLException("Connection is close", "08000", 1220);
+        if (!this.connected) throw new SQLException("Connection is closed", "08000", 1220);
         interrupted = false;
 
     }
