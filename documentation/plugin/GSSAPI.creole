@@ -34,15 +34,16 @@ Database also be authenticated back to the driver ("mutual authentication").
 Realm information are generally defined by DNS, but this can be forced using system properties.
 "java.security.krb5.kdc" defined the Key Distribution Center (KDC), realm by "java.security.krb5.realm".
 Example : 
-
+{{{
         System.setProperty("java.security.krb5.kdc", "kdc1.example.com");
         System.setProperty("java.security.krb5.realm", "EXAMPLE.COM");
+}}}
 
 Logging can be set using additional properties:
-
+{{{
         System.setProperty("sun.security.krb5.debug", "true");
         System.setProperty("sun.security.jgss.debug", "true");
-
+}}}
 
 ==== Java JCE
 
@@ -51,19 +52,19 @@ Depending on the kerberos ticket encryption, you may have to install the [[http:
 
 On unix, you can execute the "klist -e" command to view the encryption type in use:
 If AES is being used, output like the following is displayed after you type the klist command (note that AES-256 is included in the output):
-
+{{{
     Ticket cache: FILE:/tmp/krb5cc_0
     Default principal: userOne@EXAMPLE
     Valid starting     Expires            Service principal
     03/30/15 13:25:04  03/31/15 13:25:04  krbtgt/EXAMPLE@EXAMPLE
     Etype (skey, tkt): AES-256 CTS mode with 96-bit SHA-1 HMAC, AES-256 CTS mode with 96-bit SHA-1 HMAC
-
+}}}
 
 === Implementations
 
 On windows GSSAPI implementation is SSPI. The java 8 native implementation as many limitations ([[http://bugs.java.com/bugdatabase/view_bug.do?bug_id=6722928|see java ticket]]).
 
-There is 2 Different implementations:
+Driver contain 2 Different implementations:
 * a java standard implementation will use JAAS to allow java to access TGT.
 * a windows native implementation based on [[https://github.com/dblock/waffle|Waffle]]
 
@@ -73,26 +74,32 @@ There is 2 Different implementations:
 
 The driver will use the native ticket cache to get the TGT available in it using JAAS.
 If the System property "java.security.auth.login.config" is empty, driver will use the following configuration :
-
+{{{
     Krb5ConnectorContext {
-        com.sun.security.auth.module.Krb5LoginModule required useTicketCache=true renewTGT=true doNotPrompt=true; 
+        com.sun.security.auth.module.Krb5LoginModule required 
+        useTicketCache=true 
+        renewTGT=true 
+        doNotPrompt=true; 
     };
+}}}
 
 This permit to use current user TGT cache
 
 ===== limitation on windows
 Main limitation are : 
 * To permit java to retrieve TGT (Ticket-Granting-Ticket), windows host need to have a registry entry set.
-  
+{{{
   HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Lsa\Kerberos\Parameters
   Value Name: AllowTGTSessionKey
   Value Type: REG_DWORD
   Value: 1
+}}}
 * Kinit command must have been executed previously to connection.
 
 === Windows native java implementation
 Implementation is based on [[https://github.com/dblock/waffle|Waffle]] that support windows SSPI based on [[https://github.com/java-native-access/jna|JNA]].
-if on waffle-jna (and dependencies) is on classpath, native implementation will automatically be used. 
+
+if waffle-jna (and dependencies) is in classpath, native implementation will automatically be used. 
 (This permit to avoid any specific problem with admin right, registry, kinit ...)
 
 Dependencies :
@@ -106,8 +113,11 @@ Dependencies :
 ==Possible errors
 
 * "GSSException: Failure unspecified at GSS-API level (Mechanism level: No Kerberos credentials available)"
+
   There is no active credential. Check with klist that there is an existing credential. If not create it with the "kinit" command
+  
 * "java.sql.SQLInvalidAuthorizationSpecException: Could not connect: GSSAPI name mismatch, requested 'userOne@EXAMPLE.COM', actual name 'userTwo@EXEMPLE.COM'"
+
   There is an existing credential, but doesn't correspond to the connection user. 
   example :
     if user is created with a command like 
@@ -115,6 +125,8 @@ Dependencies :
     CREATE USER userOne@'%' IDENTIFIED WITH gssapi AS 'userTwo@EXAMPLE.COM';
     ```
     klist must show the same principal (userTwo@EXAMPLE.COM in this example)
+    
 * "GSSException: No valid credentials provided (Mechanism level: Clock skew too great (37))". The Kerberos protocol requires the time of the client 
+
   and server to match: if the system clocks of the client does not match that of the KDC server, authentication will fail with this kind of error. 
   The simplest way to synchronize the system clocks is to use a Network Time Protocol (NTP) server. 
