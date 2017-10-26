@@ -331,6 +331,7 @@ public class Pool implements Closeable, PoolMBean {
                     } catch (SQLException sqle) {
                         //eat
                     }
+                    totalConnection.decrementAndGet();
                 }
             }
 
@@ -438,7 +439,21 @@ public class Pool implements Closeable, PoolMBean {
         synchronized (this) {
             Pools.remove(this);
             poolState.set(POOL_STATE_CLOSING);
+            pendingRequestNumber.set(0);
+
             scheduledFuture.cancel(false);
+            connectionAppender.shutdown();
+
+            try {
+                connectionAppender.awaitTermination(10, TimeUnit.SECONDS);
+            } catch (InterruptedException i) {
+                //eat
+            }
+
+            if (logger.isInfoEnabled()) {
+                logger.info("closing pool {} (total:{}, active:{}, pending:{})",
+                        poolTag, totalConnection.get(), getActiveConnections(), pendingRequestNumber.get());
+            }
 
             ExecutorService connectionRemover = new ThreadPoolExecutor(totalConnection.get(), options.maxPoolSize, 10, TimeUnit.SECONDS,
                     new LinkedBlockingQueue<Runnable>(options.maxPoolSize), new MariaDbThreadFactory(poolTag + "-destroyer"));

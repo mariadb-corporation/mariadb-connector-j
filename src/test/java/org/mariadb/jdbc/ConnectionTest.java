@@ -442,7 +442,7 @@ public class ConnectionTest extends BaseTest {
         properties.setProperty("usePipelineAuth", "false");
         Connection connection = null;
         try {
-            connection = createProxyConnection(new Properties());
+            connection = createProxyConnection(properties);
 
             assertTrue(connection.isValid(1)); //1 second
 
