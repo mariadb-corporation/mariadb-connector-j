@@ -56,16 +56,28 @@ import org.mariadb.jdbc.internal.util.Utils;
 
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 
-public class LruTraceCache extends LinkedHashMap<Instant, TraceObject> {
+public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
+
+    AtomicLong aLong = new AtomicLong();
+
+    public TraceObject put(TraceObject value) {
+        String key = aLong.incrementAndGet() + "- " + DateTimeFormatter.ISO_INSTANT.format(Instant.now());
+        return put(key, value);
+    }
+
 
     public LruTraceCache() {
         super(16, 1.0f, false);
     }
 
     @Override
-    protected boolean removeEldestEntry(Map.Entry<Instant, TraceObject> eldest) {
+    protected boolean removeEldestEntry(Map.Entry<String, TraceObject> eldest) {
         return size() > 10;
     }
 
@@ -76,10 +88,10 @@ public class LruTraceCache extends LinkedHashMap<Instant, TraceObject> {
      */
     public synchronized String printStack() {
         StringBuilder sb = new StringBuilder();
-        Set<Map.Entry<Instant, TraceObject>> set = entrySet();
-        for (Map.Entry<Instant, TraceObject> entry : set) {
+        Set<Map.Entry<String, TraceObject>> set = entrySet();
+        for (Map.Entry<String, TraceObject> entry : set) {
             TraceObject traceObj = entry.getValue();
-            Instant instant = entry.getKey();
+            String key = entry.getKey();
             String indicator = "";
 
             switch (traceObj.getIndicatorFlag()) {
@@ -99,12 +111,12 @@ public class LruTraceCache extends LinkedHashMap<Instant, TraceObject> {
             }
 
             if (traceObj.isSend()) {
-                sb.append("\nsend at ");
+                sb.append("\nsend at -exchange:");
             } else {
-                sb.append("\nread at ");
+                sb.append("\nread at -exchange:");
             }
-            DateTimeFormatter.ISO_INSTANT.formatTo(instant, sb);
-            sb.append(indicator)
+
+            sb.append(key).append(indicator)
                     .append(Utils.hexdump(traceObj.getBuf()));
 
             traceObj.remove();
