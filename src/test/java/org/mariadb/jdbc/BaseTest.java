@@ -53,6 +53,7 @@
 package org.mariadb.jdbc;
 
 
+import com.sun.jna.Platform;
 import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
@@ -966,4 +967,17 @@ public class BaseTest {
         return rs.getInt(2);
     }
 
+    public boolean hasSameHost() {
+        try {
+            Statement st = sharedConnection.createStatement();
+            ResultSet rs = st.executeQuery("select @@version_compile_os");
+            if (rs.next()) {
+                if ((rs.getString(1).contains("linux") && Platform.isWindows())
+                        || (rs.getString(1).contains("win") && Platform.isLinux())) return false;
+            }
+        } catch (SQLException sqle) {
+            //eat
+        }
+        return true;
+    }
 }

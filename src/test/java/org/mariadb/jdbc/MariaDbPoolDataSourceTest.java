@@ -410,7 +410,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
         }
         connectionAppender.shutdown();
         connectionAppender.awaitTermination(sharedIsAurora() ? 200 : 30, TimeUnit.SECONDS);
-        assertTrue(threadIds.size() <= 8);
+        assertTrue("connection ids must be less than 8 : " + threadIds.size(), threadIds.size() <= 8);
         assertTrue(System.currentTimeMillis() - start < (sharedIsAurora() ? 120_000 : 5_000));
         Pools.close("PoolTest");
     }

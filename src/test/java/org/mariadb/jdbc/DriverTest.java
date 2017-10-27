@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import com.sun.jna.Platform;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -1186,7 +1187,7 @@ public class DriverTest extends BaseTest {
         }
         System.out.println("os:" + rs.getString(1) + " path:" + rs.getString(2));
         String os = rs.getString(1);
-        if (os.toLowerCase().startsWith("win")) {
+        if (os.toLowerCase().startsWith("win") || Platform.isWindows()) {
             return;
         }
 
