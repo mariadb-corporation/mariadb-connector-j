@@ -228,8 +228,8 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
         connection = pool.getConnection();
         assertEquals(Connection.TRANSACTION_REPEATABLE_READ, connection.getTransactionIsolation());
-        pool.close();
         connection.close();
+        pool.close();
     }
 
     @Test

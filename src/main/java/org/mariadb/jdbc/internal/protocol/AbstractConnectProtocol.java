@@ -206,17 +206,19 @@ public abstract class AbstractConnectProtocol implements Protocol {
      */
     public void close() {
         if (lock != null) lock.lock();
-        this.connected = false;
-        try {
+        if (this.connected) {
+            this.connected = false;
+            try {
             /* If a streaming result set is open, close it.*/
-            skip();
-        } catch (Exception e) {
+                skip();
+            } catch (Exception e) {
             /* eat exception */
-        }
+            }
 
-        SendClosePacket.send(writer);
-        closeSocket(reader, writer, socket);
-        cleanMemory();
+            SendClosePacket.send(writer);
+            closeSocket(reader, writer, socket);
+            cleanMemory();
+        }
         if (lock != null) lock.unlock();
     }
 
