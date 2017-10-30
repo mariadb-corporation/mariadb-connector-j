@@ -64,6 +64,15 @@ public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
     private AtomicLong increment = new AtomicLong();
     private DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
+    /**
+     * Add trace.
+     *
+     * @param value traceObject
+     * @return the previous value associated with <tt>key</tt>, or
+     *         <tt>null</tt> if there was no mapping for <tt>key</tt>.
+     *         (A <tt>null</tt> return can also indicate that the map
+     *         previously associated <tt>null</tt> with <tt>key</tt>.)
+     **/
     public TraceObject put(TraceObject value) {
         //since java.time is not available for java version < 8
         //use current time minus the nano second difference

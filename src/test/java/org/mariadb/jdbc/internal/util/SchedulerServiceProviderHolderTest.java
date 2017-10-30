@@ -89,11 +89,15 @@ public class SchedulerServiceProviderHolderTest {
         try {
             assertNotNull(scheduler);
             // verify scheduler works
-            scheduler.execute(() -> {
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException ie) {
-                    //eat
+            scheduler.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException ie) {
+                        //eat
+                    }
+
                 }
             });
             scheduler.shutdown();
@@ -112,7 +116,12 @@ public class SchedulerServiceProviderHolderTest {
     private void testExecuteAfterShutdown(ScheduledExecutorService scheduler) {
         scheduler.shutdown();
         try {
-            scheduler.execute( () -> { } );
+            scheduler.execute(new Runnable() {
+                @Override
+                public void run() {
+                    //do nothing
+                }
+            });
             fail("Exception should have thrown");
         } catch (RejectedExecutionException expected) {
             // ignore
