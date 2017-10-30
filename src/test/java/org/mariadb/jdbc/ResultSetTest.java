@@ -425,6 +425,71 @@ public class ResultSetTest extends BaseTest {
         }
     }
 
+    @Test
+    public void relativeForwardTest() throws SQLException {
+        insertRows(3);
+        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test");
+        assertTrue(rs.isBeforeFirst());
+        assertFalse(rs.isFirst());
+        assertFalse(rs.isLast());
+        assertFalse(rs.isAfterLast());
+
+        assertTrue(rs.relative(2));
+        assertFalse(rs.isBeforeFirst());
+        assertFalse(rs.isFirst());
+        assertFalse(rs.isLast());
+        assertFalse(rs.isAfterLast());
+
+        assertTrue(rs.relative(1));
+        assertFalse(rs.isBeforeFirst());
+        assertFalse(rs.isFirst());
+        assertTrue(rs.isLast());
+        assertFalse(rs.isAfterLast());
+
+        assertFalse(rs.relative(1));
+        assertFalse(rs.isBeforeFirst());
+        assertFalse(rs.isFirst());
+        assertFalse(rs.isLast());
+        assertTrue(rs.isAfterLast());
+
+        assertFalse(rs.next());
+        rs.close();
+    }
+
+    @Test
+    public void relativeBackwardTest() throws SQLException {
+        insertRows(3);
+        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM result_set_test");
+        rs.afterLast();
+        assertFalse(rs.isBeforeFirst());
+        assertFalse(rs.isFirst());
+        assertFalse(rs.isLast());
+        assertTrue(rs.isAfterLast());
+
+        assertTrue(rs.relative(-2));
+        assertFalse(rs.isBeforeFirst());
+        assertFalse(rs.isFirst());
+        assertFalse(rs.isLast());
+        assertFalse(rs.isAfterLast());
+
+        assertTrue(rs.relative(-1));
+        assertFalse(rs.isBeforeFirst());
+        assertTrue(rs.isFirst());
+        assertFalse(rs.isLast());
+        assertFalse(rs.isAfterLast());
+
+        assertFalse(rs.relative(-1));
+        assertTrue(rs.isBeforeFirst());
+        assertFalse(rs.isFirst());
+        assertFalse(rs.isLast());
+        assertFalse(rs.isAfterLast());
+
+        assertFalse(rs.previous());
+        rs.close();
+    }
+
     private void insertRows(int numberOfRowsToInsert) throws SQLException {
         sharedConnection.createStatement().execute("truncate result_set_test ");
         for (int i = 1; i <= numberOfRowsToInsert; i++) {

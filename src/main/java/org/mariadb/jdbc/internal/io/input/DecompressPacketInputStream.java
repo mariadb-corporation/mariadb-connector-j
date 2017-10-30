@@ -136,7 +136,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
             if (traceCache != null) {
                 int length = decompressedLength != 0 ? decompressedLength : compressedLength;
-                traceCache.put(System.nanoTime(), new TraceObject(false,
+                traceCache.put(new TraceObject(false,
                         decompressedLength == 0 ? COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET : COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
                         Arrays.copyOfRange(header, 0, 7),
                         Arrays.copyOfRange(rawBytes, 0, length > 1000 ? 1000 : length)));

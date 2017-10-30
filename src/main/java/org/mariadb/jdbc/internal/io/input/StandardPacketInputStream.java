@@ -267,7 +267,7 @@ public class StandardPacketInputStream implements PacketInputStream {
         } while (remaining > 0);
 
         if (traceCache != null) {
-            traceCache.put(System.nanoTime(), new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
+            traceCache.put(new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
                     Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
         }
 
@@ -317,7 +317,7 @@ public class StandardPacketInputStream implements PacketInputStream {
                 } while (remaining > 0);
 
                 if (traceCache != null) {
-                    traceCache.put(System.nanoTime(), new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
+                    traceCache.put(new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
                             Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
                 }
 

@@ -692,6 +692,7 @@ public class DriverTest extends BaseTest {
         rs.relative(-3);
         assertEquals(1, rs.getInt(1));
         assertEquals(false, rs.relative(-1));
+        rs.next();
         assertEquals(1, rs.getInt(1));
         rs.last();
         assertEquals(4, rs.getInt(1));

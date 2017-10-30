@@ -834,11 +834,16 @@ public class SelectResultSet implements ResultSet {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         }
         int newPos = rowPointer + rows;
-        if (newPos > -1 && newPos <= dataSize) {
+        if ( newPos <= -1 ) {
+            rowPointer = -1;
+            return false;
+        } else if ( newPos >= dataSize ) {
+            rowPointer = dataSize;
+            return false;
+        } else {
             rowPointer = newPos;
             return true;
         }
-        return false;
     }
 
     @Override

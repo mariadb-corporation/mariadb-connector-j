@@ -57,15 +57,28 @@ import org.mariadb.jdbc.internal.util.Utils;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
-public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
+public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
+
+    AtomicLong aLong = new AtomicLong();
+    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+
+    public TraceObject put(TraceObject value) {
+        //since java.time is not available for java version < 8
+        //use current time minus the nano second difference
+        Calendar calendar = Calendar.getInstance();
+        String key = aLong.incrementAndGet() + "- " + dateFormat.format(calendar.getTime());
+        return put(key, value);
+    }
 
     public LruTraceCache() {
         super(16, 1.0f, false);
     }
 
+
     @Override
-    protected boolean removeEldestEntry(Map.Entry<Long, TraceObject> eldest) {
+    protected boolean removeEldestEntry(Map.Entry<String, TraceObject> eldest) {
         return size() > 10;
     }
 
@@ -75,13 +88,11 @@ public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
      * @return trace cache value
      */
     public synchronized String printStack() {
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
-
         StringBuilder sb = new StringBuilder();
-        Set<Map.Entry<Long, TraceObject>> set = entrySet();
-        for (Map.Entry<Long, TraceObject> entry : set) {
+        Set<Map.Entry<String, TraceObject>> set = entrySet();
+        for (Map.Entry<String, TraceObject> entry : set) {
             TraceObject traceObj = entry.getValue();
-            long nano = entry.getKey();
+            String key = entry.getKey();
             String indicator = "";
 
             switch (traceObj.getIndicatorFlag()) {
@@ -101,17 +112,12 @@ public class LruTraceCache extends LinkedHashMap<Long, TraceObject> {
             }
 
             if (traceObj.isSend()) {
-                sb.append("\nsend at ");
+                sb.append("\nsend at -exchange:");
             } else {
-                sb.append("\nread at ");
+                sb.append("\nread at -exchange:");
             }
-            //since java.time is not available for java version < 8
-            //use current time minus the nano second difference
-            Calendar calendar = Calendar.getInstance();
-            calendar.setTimeInMillis(System.currentTimeMillis() - (System.nanoTime() - nano) / 1000000);
 
-            sb.append(dateFormat.format(calendar.getTime()))
-                    .append(indicator)
+            sb.append(key).append(indicator)
                     .append(Utils.hexdump(traceObj.getBuf()));
 
             traceObj.remove();

@@ -413,7 +413,9 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
                         Statement stmt = connection.createStatement();
                         ResultSet rs = stmt.executeQuery("SELECT CONNECTION_ID()");
                         rs.next();
-                        threadIds.add(rs.getInt(1));
+                        Integer connectionId = rs.getInt(1);
+                        if (!threadIds.contains(connectionId)) threadIds.add(connectionId);
+
                         stmt.execute("SELECT * FROM mysql.user");
 
                     } catch (SQLException e) {
@@ -432,7 +434,14 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
         }
         connectionAppender.shutdown();
         connectionAppender.awaitTermination(sharedIsAurora() ? 200 : 30, TimeUnit.SECONDS);
-        assertTrue("connection ids must be less than 8 : " + threadIds.size(), threadIds.size() <= 8);
+        int numberOfConnection = 0;
+
+        for (Integer integer : threadIds) {
+            System.out.println("Connection id : " + integer);
+            numberOfConnection++;
+        }
+        System.out.println("Size : " + threadIds.size() + " " + numberOfConnection);
+        assertTrue("connection ids must be less than 8 : " + numberOfConnection, numberOfConnection <= 8);
         assertTrue(System.currentTimeMillis() - start < (sharedIsAurora() ? 120000 : 5000));
         Pools.close("PoolTest");
     }

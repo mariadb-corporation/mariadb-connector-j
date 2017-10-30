@@ -172,6 +172,7 @@ public class CallStatementTest extends BaseTest {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
         assertFalse(rs.next());
+        assertFalse(stmt.getMoreResults());
     }
 
     @Test
@@ -187,6 +188,7 @@ public class CallStatementTest extends BaseTest {
         assertTrue(rs.next());
         assertEquals(2, rs.getInt(1));
         assertFalse(rs.next());
+        assertFalse(stmt.getMoreResults());
     }
 
     @Test

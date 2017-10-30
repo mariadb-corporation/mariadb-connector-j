@@ -112,7 +112,7 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
             if (traceCache != null && permitTrace) {
                 //trace last packets
-                traceCache.put(System.nanoTime(), new TraceObject(true, NOT_COMPRESSED,
+                traceCache.put(new TraceObject(true, NOT_COMPRESSED,
                         Arrays.copyOfRange(buf, 0, pos > 1000 ? 1000 : pos)));
             }
 
@@ -149,7 +149,7 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 
         if (traceCache != null) {
             //trace last packets
-            traceCache.put(System.nanoTime(), new TraceObject(true, NOT_COMPRESSED, Arrays.copyOfRange(buf, 0, 4)));
+            traceCache.put(new TraceObject(true, NOT_COMPRESSED, Arrays.copyOfRange(buf, 0, 4)));
         }
 
         if (logger.isTraceEnabled()) {
