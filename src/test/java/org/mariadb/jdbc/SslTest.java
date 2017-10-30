@@ -111,7 +111,8 @@ public class SslTest extends BaseTest {
         try {
             InetAddress.getByName("mariadb.example.com").isReachable(3);
         } catch (UnknownHostException hostException) {
-            throw new SQLException("SSL test canceled, database host must be set has \"mariadb.example.com\" to permit SSL certificate Host verification");
+            throw new SQLException("SSL test canceled, database host must be set has "
+                    + "\"mariadb.example.com\" to permit SSL certificate Host verification");
         } catch (IOException ioe) {
 
         }

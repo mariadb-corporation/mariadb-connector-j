@@ -448,9 +448,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
     @Test
     public void ensureClosed() throws Throwable {
-        //to ensure that connection that are finishing closing won't disturb current connection count
-        Thread.sleep(100);
-
+        Thread.sleep(500); //ensure that previous close are effective
         int initialConnection = getCurrentConnections();
 
         MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=10&minPoolSize=1");

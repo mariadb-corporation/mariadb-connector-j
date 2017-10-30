@@ -61,21 +61,20 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
 
-    AtomicLong aLong = new AtomicLong();
-    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+    private AtomicLong increment = new AtomicLong();
+    private DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
     public TraceObject put(TraceObject value) {
         //since java.time is not available for java version < 8
         //use current time minus the nano second difference
         Calendar calendar = Calendar.getInstance();
-        String key = aLong.incrementAndGet() + "- " + dateFormat.format(calendar.getTime());
+        String key = increment.incrementAndGet() + "- " + dateFormat.format(calendar.getTime());
         return put(key, value);
     }
 
     public LruTraceCache() {
         super(16, 1.0f, false);
     }
-
 
     @Override
     protected boolean removeEldestEntry(Map.Entry<String, TraceObject> eldest) {

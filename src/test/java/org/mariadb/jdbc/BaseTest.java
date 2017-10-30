@@ -971,6 +971,10 @@ public class BaseTest {
         return rs.getInt(2);
     }
 
+    /**
+     * Check if server and client are on same host (not using containers).
+     * @return true if server and client are really on same host
+     */
     public boolean hasSameHost() {
         try {
             Statement st = sharedConnection.createStatement();

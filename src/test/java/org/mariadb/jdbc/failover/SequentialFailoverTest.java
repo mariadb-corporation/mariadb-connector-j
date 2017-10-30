@@ -60,12 +60,13 @@ import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
-import org.threadly.test.concurrent.TestableScheduler;
+import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Set;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
@@ -148,14 +149,16 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
 
             //add first Host to blacklist
             Protocol protocol = getProtocolFromConnection(connection);
-            TestableScheduler scheduler = new TestableScheduler();
+            ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(1,
+                    new MariaDbThreadFactory("MariaDB-testable-scheduler"));
 
             //check blacklist shared
             scheduler.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklistKeys()));
             scheduler.execute(new CheckBlacklist(firstServerId, protocol.getProxy().getListener().getBlacklistKeys()));
 
             // deterministically execute CheckBlacklists
-            scheduler.tick();
+            scheduler.shutdown();
+            scheduler.awaitTermination(10, TimeUnit.SECONDS);
         } finally {
             if (connection != null) connection.close();
         }
