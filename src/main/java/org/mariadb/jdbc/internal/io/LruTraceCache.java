@@ -64,10 +64,10 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
 
-    AtomicLong aLong = new AtomicLong();
+    private AtomicLong increment = new AtomicLong();
 
     public TraceObject put(TraceObject value) {
-        String key = aLong.incrementAndGet() + "- " + DateTimeFormatter.ISO_INSTANT.format(Instant.now());
+        String key = increment.incrementAndGet() + "- " + DateTimeFormatter.ISO_INSTANT.format(Instant.now());
         return put(key, value);
     }
 
