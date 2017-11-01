@@ -2264,10 +2264,7 @@ public class SelectResultSet implements ResultSet {
     public Blob getBlob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (lastValueWasNull()) return null;
-        //TODO implement MariaDbBlob with offset
-        byte[] data = new byte[row.getLengthMaxFieldSize()];
-        System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
-        return new MariaDbBlob(data);
+        return new MariaDbBlob(row.buf, row.pos, row.length);
     }
 
     /**
@@ -2283,10 +2280,7 @@ public class SelectResultSet implements ResultSet {
     public Clob getClob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (lastValueWasNull()) return null;
-        //TODO implement MariaDbClob with offset
-        byte[] data = new byte[row.getLengthMaxFieldSize()];
-        System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
-        return new MariaDbClob(data);
+        return new MariaDbClob(row.buf, row.pos, row.length);
     }
 
     /**
@@ -2353,10 +2347,7 @@ public class SelectResultSet implements ResultSet {
     public NClob getNClob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
         if (lastValueWasNull()) return null;
-        //TODO implement MariaDbBlob with offset
-        byte[] data = new byte[row.getLengthMaxFieldSize()];
-        System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
-        return new MariaDbClob(data);
+        return new MariaDbClob(row.buf, row.pos, row.length);
     }
 
     /**
