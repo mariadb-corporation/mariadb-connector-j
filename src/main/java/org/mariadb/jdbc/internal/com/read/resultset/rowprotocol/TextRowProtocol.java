@@ -175,21 +175,8 @@ public class TextRowProtocol extends RowProtocol {
         if (lastValueWasNull()) return null;
 
         switch (columnInfo.getColumnType()) {
-            case STRING:
-                if (getMaxFieldSize() > 0) {
-                    return new String(buf, pos, Math.max(getMaxFieldSize() * 3, length), StandardCharsets.UTF_8)
-                            .substring(0, getMaxFieldSize());
-                }
-                return new String(buf, pos, length, StandardCharsets.UTF_8);
-
             case BIT:
                 return String.valueOf(parseBit());
-            case TINYINT:
-            case SMALLINT:
-            case INTEGER:
-            case MEDIUMINT:
-            case BIGINT:
-                break;
             case DOUBLE:
                 return zeroFillingIfNeeded(String.valueOf(getInternalDouble(columnInfo)), columnInfo);
             case FLOAT:
@@ -227,16 +214,15 @@ public class TextRowProtocol extends RowProtocol {
             case OLDDECIMAL:
                 BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
                 return (bigDecimal == null) ? null : zeroFillingIfNeeded(bigDecimal.toString(), columnInfo);
-            case GEOMETRY:
-                return new String(buf, pos, length);
             case NULL:
                 return null;
             default:
-                if (getMaxFieldSize() > 0) {
-                    return new String(buf, pos, Math.max(getMaxFieldSize() * 3, length), StandardCharsets.UTF_8)
-                            .substring(0, getMaxFieldSize());
-                }
-                return new String(buf, pos, length, StandardCharsets.UTF_8);
+                break;
+        }
+
+        if (maxFieldSize > 0) {
+            return new String(buf, pos, Math.max(maxFieldSize * 3, length), StandardCharsets.UTF_8)
+                    .substring(0, maxFieldSize);
         }
 
         return new String(buf, pos, length, StandardCharsets.UTF_8);
@@ -435,6 +421,7 @@ public class TextRowProtocol extends RowProtocol {
      * @return date value
      * @throws SQLException if column type doesn't permit conversion
      */
+    @SuppressWarnings( "deprecation" )
     public Date getInternalDate(ColumnInformation columnInfo, Calendar cal, TimeZone timeZone) throws SQLException {
         if (lastValueWasNull()) return null;
 

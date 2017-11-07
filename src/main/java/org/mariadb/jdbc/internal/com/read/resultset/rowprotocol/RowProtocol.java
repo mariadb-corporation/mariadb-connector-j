@@ -114,7 +114,7 @@ public abstract class RowProtocol {
 
     public int lastValueNull;
     protected static final int NULL_LENGTH = -1;
-    private final int maxFieldSize;
+    protected final int maxFieldSize;
     public byte[] buf;
     public int pos;
     public int length;
@@ -240,6 +240,12 @@ public abstract class RowProtocol {
         return value;
     }
 
+    protected void rangeCheck(Object className, long minValue, long maxValue, BigDecimal value, ColumnInformation columnInfo) throws SQLException {
+        if (value.compareTo(BigDecimal.valueOf(minValue)) < 0 || value.compareTo(BigDecimal.valueOf(maxValue)) > 0) {
+            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value + " is not in "
+                    + className + " range", "22003", 1264);
+        }
+    }
 
     protected void rangeCheck(Object className, long minValue, long maxValue, long value, ColumnInformation columnInfo) throws SQLException {
         if (value < minValue || value > maxValue) {

@@ -376,6 +376,11 @@ public class BinaryRowProtocol extends RowProtocol {
             case DOUBLE:
                 value = (long) getInternalDouble(columnInfo);
                 break;
+            case DECIMAL:
+            case OLDDECIMAL:
+                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, bigDecimal, columnInfo);
+                return bigDecimal.intValue();
             case VARSTRING:
             case VARCHAR:
             case STRING:
@@ -448,6 +453,11 @@ public class BinaryRowProtocol extends RowProtocol {
                             + " is not in Long range", "22003", 1264);
                 }
                 return doubleValue.longValue();
+            case DECIMAL:
+            case OLDDECIMAL:
+                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, bigDecimal, columnInfo);
+                return bigDecimal.longValue();
             case VARSTRING:
             case VARCHAR:
             case STRING:
@@ -650,8 +660,15 @@ public class BinaryRowProtocol extends RowProtocol {
                 return BigDecimal.valueOf(getInternalFloat(columnInfo));
             case DOUBLE:
                 return BigDecimal.valueOf(getInternalDouble(columnInfo));
-            default:
+            case DECIMAL:
+            case VARSTRING:
+            case VARCHAR:
+            case STRING:
+            case OLDDECIMAL:
                 return new BigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8));
+            default:
+                throw new SQLException("getBigDecimal not available for data field type "
+                        + columnInfo.getColumnType().getJavaTypeName());
         }
     }
 
@@ -989,6 +1006,9 @@ public class BinaryRowProtocol extends RowProtocol {
                 return getInternalFloat(columnInfo) != 0;
             case DOUBLE:
                 return getInternalDouble(columnInfo) != 0;
+            case DECIMAL:
+            case OLDDECIMAL:
+                return getInternalBigDecimal(columnInfo).longValue() != 0;
             default:
                 final String rawVal = new String(buf, pos, length, StandardCharsets.UTF_8);
                 return !("false".equals(rawVal) || "0".equals(rawVal));
@@ -1006,6 +1026,9 @@ public class BinaryRowProtocol extends RowProtocol {
         if (lastValueWasNull()) return 0;
         long value;
         switch (columnInfo.getColumnType()) {
+            case BIT:
+                value = parseBit();
+                break;
             case TINYINT:
                 value = getInternalTinyInt(columnInfo);
                 break;
@@ -1026,6 +1049,11 @@ public class BinaryRowProtocol extends RowProtocol {
             case DOUBLE:
                 value = (long) getInternalDouble(columnInfo);
                 break;
+            case DECIMAL:
+            case OLDDECIMAL:
+                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, bigDecimal, columnInfo);
+                return bigDecimal.byteValue();
             case VARSTRING:
             case VARCHAR:
             case STRING:
@@ -1077,6 +1105,11 @@ public class BinaryRowProtocol extends RowProtocol {
             case DOUBLE:
                 value = (long) getInternalDouble(columnInfo);
                 break;
+            case DECIMAL:
+            case OLDDECIMAL:
+                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
+                rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, bigDecimal, columnInfo);
+                return bigDecimal.shortValue();
             case VARSTRING:
             case VARCHAR:
             case STRING:
@@ -1205,6 +1238,9 @@ public class BinaryRowProtocol extends RowProtocol {
                 return BigInteger.valueOf((long) getInternalFloat(columnInfo));
             case DOUBLE:
                 return BigInteger.valueOf((long) getInternalDouble(columnInfo));
+            case DECIMAL:
+            case OLDDECIMAL:
+                return BigInteger.valueOf(getInternalBigDecimal(columnInfo).longValue());
             default:
                 return new BigInteger(new String(buf, pos, length, StandardCharsets.UTF_8));
         }
