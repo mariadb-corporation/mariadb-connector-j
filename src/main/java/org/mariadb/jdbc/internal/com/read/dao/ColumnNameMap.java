@@ -76,6 +76,7 @@ public class ColumnNameMap {
      * @throws SQLException if no column info exists, or column is unknown
      */
     public int getIndex(String name) throws SQLException {
+        if (name == null) throw new SQLException("Column name cannot be null");
         String lowerName = name.toLowerCase();
         // The specs in JDBC 4.0 specify that ResultSet.findColumn and
         // ResultSet.getXXX(String name) should use column alias (AS in the query). If label is not found, we use 
@@ -99,7 +100,6 @@ public class ColumnNameMap {
                         }
                     }
                 }
-
                 counter++;
             }
         }
@@ -128,7 +128,6 @@ public class ColumnNameMap {
                         }
                     }
                 }
-
                 counter++;
             }
         }
