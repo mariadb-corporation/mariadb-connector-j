@@ -150,18 +150,15 @@ public class ResultSetMetaDataTest extends BaseTest {
         stmt.execute("INSERT INTO testAlias VALUES (1, 'foo')");
         stmt.execute("INSERT INTO testAlias2 VALUES (2, 'bar')");
         ResultSet rs = sharedConnection.createStatement().executeQuery(
-                "select id as idalias1 , name as namealias1, id2 as idalias2 , name2 as namealias2 FROM testAlias as alias1 join testAlias2 as alias2");
+                "select alias1.id as idalias1 , alias1.name as namealias1, id2 as idalias2 , name2, testAlias.id FROM testAlias as alias1 join testAlias2 as alias2 join testAlias");
         assertTrue(rs.next());
 
-        assertEquals(rs.findColumn("id"), 1);
         assertEquals(rs.findColumn("idalias1"), 1);
         assertEquals(rs.findColumn("alias1.idalias1"), 1);
-        assertEquals(rs.findColumn("testAlias.id"), 1);
 
         assertEquals(rs.findColumn("name"), 2);
         assertEquals(rs.findColumn("namealias1"), 2);
         assertEquals(rs.findColumn("alias1.namealias1"), 2);
-        assertEquals(rs.findColumn("testAlias.name"), 2);
 
         assertEquals(rs.findColumn("id2"), 3);
         assertEquals(rs.findColumn("idalias2"), 3);
@@ -169,12 +166,28 @@ public class ResultSetMetaDataTest extends BaseTest {
         assertEquals(rs.findColumn("testAlias2.id2"), 3);
 
         assertEquals(rs.findColumn("name2"), 4);
-        assertEquals(rs.findColumn("namealias2"), 4);
-        assertEquals(rs.findColumn("alias2.namealias2"), 4);
         assertEquals(rs.findColumn("testAlias2.name2"), 4);
+        assertEquals(rs.findColumn("alias2.name2"), 4);
+
+        assertEquals(rs.findColumn("id"), 5);
+        assertEquals(rs.findColumn("testAlias.id"), 5);
 
         try {
-            rs.findColumn("testAlias2.name22");
+            rs.findColumn("alias2.name22");
+            fail("Must have thrown exception");
+        } catch (SQLException sqle) {
+            //normal exception
+        }
+
+        try {
+            assertEquals(rs.findColumn(""), 4);
+            fail("Must have thrown exception");
+        } catch (SQLException sqle) {
+            //normal exception
+        }
+
+        try {
+            assertEquals(rs.findColumn(null), 4);
             fail("Must have thrown exception");
         } catch (SQLException sqle) {
             //normal exception
