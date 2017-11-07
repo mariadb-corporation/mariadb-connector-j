@@ -448,7 +448,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
     @Test
     public void ensureClosed() throws Throwable {
-        Thread.sleep(100); //ensure that previous close are effective
+        Thread.sleep(500); //ensure that previous close are effective
         int initialConnection = getCurrentConnections();
 
         MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=10&minPoolSize=1");
@@ -466,7 +466,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
         assertTrue(getCurrentConnections() > initialConnection);
         pool.close();
-        Thread.sleep(100); //ensure that previous close are effective
+        Thread.sleep(500); //ensure that previous close are effective
         assertEquals(initialConnection, getCurrentConnections());
     }
 
