@@ -136,6 +136,7 @@ public class Options implements Cloneable {
     public int validConnectionTimeout;
     public int loadBalanceBlacklistTimeout = 50;
     public int failoverLoopRetries = 120;
+    public boolean allowMasterDownConnection;
 
     //Pool options
     public boolean pool;
@@ -216,6 +217,7 @@ public class Options implements Cloneable {
         if (assureReadOnly != opt.assureReadOnly) return false;
         if (autoReconnect != opt.autoReconnect) return false;
         if (failOnReadOnly != opt.failOnReadOnly) return false;
+        if (allowMasterDownConnection != opt.allowMasterDownConnection) return false;
         if (retriesAllDown != opt.retriesAllDown) return false;
         if (validConnectionTimeout != opt.validConnectionTimeout) return false;
         if (loadBalanceBlacklistTimeout != opt.loadBalanceBlacklistTimeout) return false;
@@ -344,6 +346,7 @@ public class Options implements Cloneable {
         result = 31 * result + (assureReadOnly ? 1 : 0);
         result = 31 * result + (autoReconnect ? 1 : 0);
         result = 31 * result + (failOnReadOnly ? 1 : 0);
+        result = 31 * result + (allowMasterDownConnection ? 1 : 0);
         result = 31 * result + retriesAllDown;
         result = 31 * result + validConnectionTimeout;
         result = 31 * result + loadBalanceBlacklistTimeout;

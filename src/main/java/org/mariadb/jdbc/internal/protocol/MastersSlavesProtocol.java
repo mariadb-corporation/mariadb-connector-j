@@ -136,6 +136,14 @@ public class MastersSlavesProtocol extends MasterProtocol {
                 return;
             }
 
+            //in case master not found but slave is , and allowing master down
+            if (loopAddresses.isEmpty()
+                    && (listener.isMasterHostFailReconnect()
+                    && listener.urlParser.getOptions().allowMasterDownConnection
+                    && !listener.isSecondaryHostFailReconnect())) {
+                return;
+            }
+
             // if server has try to connect to all host, and there is remaining master or slave that fail
             // add all servers back to continue looping until maxConnectionTry is reached
             if (loopAddresses.isEmpty() && !searchFilter.isFailoverLoop() && maxConnectionTry > 0) {

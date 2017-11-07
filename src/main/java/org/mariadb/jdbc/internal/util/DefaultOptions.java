@@ -527,7 +527,15 @@ public enum DefaultOptions {
      *
      * Default: false
      */
-    USE_RESET_CONNECTION("useResetConnection", Boolean.FALSE, "2.2.0");
+    USE_RESET_CONNECTION("useResetConnection", Boolean.FALSE, "2.2.0"),
+
+    /**
+     * On master/slave configuration, permit to connect Connection defaulting to a slave
+     * when master is down.
+     */
+    ALLOW_MASTER_DOWN("allowMasterDownConnection", Boolean.FALSE, "2.2.0");
+
+
 
     private final String optionName;
     private final Object objType;

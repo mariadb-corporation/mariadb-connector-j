@@ -212,7 +212,8 @@ public class AuroraListener extends MastersSlavesListener {
                         //don't throw an exception for this specific exception
                     }
                 }
-            } while (searchFilter.isInitialConnection() && masterProtocol == null);
+            } while (searchFilter.isInitialConnection()
+                    && !( masterProtocol != null || (urlParser.getOptions().allowMasterDownConnection && secondaryProtocol != null)));
         }
 
         //When reconnecting, search if replicas list has change since first initialisation
@@ -220,6 +221,10 @@ public class AuroraListener extends MastersSlavesListener {
             retrieveAllEndpointsAndSet(getCurrentProtocol());
         }
 
+        if (searchFilter.isInitialConnection() && masterProtocol == null && !currentReadOnlyAsked) {
+            currentProtocol = this.secondaryProtocol;
+            currentReadOnlyAsked = true;
+        }
     }
 
     /**
