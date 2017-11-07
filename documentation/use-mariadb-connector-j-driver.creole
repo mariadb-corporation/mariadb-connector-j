@@ -254,7 +254,6 @@ MariaDB has 2 different Datasource implementation :
 * MariaDbDataSource : Basic implementation. A new connection each time method getConnection() is called.
 * MariaDbPoolDataSource : Connection pooling implementation (since 2.2.0 version). MariaDB Driver will keep a pool of connection and borrow Connections when asked for it.
 
-
 When using MariaDbPoolDataSource, different options permit to indicate how pooling will handle pool. See [[use-mariadb-connector-j-driver.creole#pooling|pooling options]] for detail information of options.
 
 Example of use :

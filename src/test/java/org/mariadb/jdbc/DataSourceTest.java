@@ -204,6 +204,7 @@ public class DataSourceTest extends BaseTest {
      * @throws SQLException exception
      */
     @Test
+    @SuppressWarnings( "deprecation" )
     public void setPropertiesTest() throws SQLException {
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
         ds.setProperties("sessionVariables=sql_mode='PIPES_AS_CONCAT'");
