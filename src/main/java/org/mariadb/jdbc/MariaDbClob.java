@@ -52,8 +52,8 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.io.*;
 import java.sql.Clob;
@@ -215,7 +215,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
      */
     public int setString(long pos, String str) throws SQLException {
         int bytePosition = utf8Position((int) pos - 1);
-        super.setBytes(bytePosition + 1 - offset, str.getBytes(StandardCharsets.UTF_8));
+        super.setBytes(bytePosition + 1 - offset, str.getBytes(Buffer.UTF_8));
         return str.length();
     }
 

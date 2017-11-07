@@ -1,19 +1,19 @@
 package org.mariadb.jdbc;
 
 import org.junit.Test;
+import org.mariadb.jdbc.internal.com.read.Buffer;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
-import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
 import static org.junit.Assert.*;
 
 public class MariaDbClobTest {
 
-    private final byte[] bytes = "abcde\uD83D\uDE4Ffgh".getBytes(StandardCharsets.UTF_8);
+    private final byte[] bytes = "abcde\uD83D\uDE4Ffgh".getBytes(Buffer.UTF_8);
 
     @Test
     public void length() {
@@ -86,7 +86,7 @@ public class MariaDbClobTest {
 
     @Test
     public void setCharacterStream() throws SQLException, IOException {
-        final byte[] bytes = "abcde\uD83D\uDE4Ffgh".getBytes(StandardCharsets.UTF_8);
+        final byte[] bytes = "abcde\uD83D\uDE4Ffgh".getBytes(Buffer.UTF_8);
         MariaDbClob clob = new MariaDbClob(bytes);
         assureReaderEqual("abcde\uD83D\uDE4F", clob.getCharacterStream(1, 7));
 
@@ -116,7 +116,7 @@ public class MariaDbClobTest {
 
     @Test
     public void setString() throws SQLException {
-        final byte[] bytes = "abcde\uD83D\uDE4Ffgh".getBytes(StandardCharsets.UTF_8);
+        final byte[] bytes = "abcde\uD83D\uDE4Ffgh".getBytes(Buffer.UTF_8);
         MariaDbClob clob = new MariaDbClob(bytes);
         assureReaderEqual("abcde\uD83D\uDE4F", clob.getCharacterStream(1, 7));
         clob.setString(2, "zuv");
@@ -125,7 +125,7 @@ public class MariaDbClobTest {
         assertEquals("azuve\uD83D\uDE4Ffgzzz", clob.getSubString(1, 12));
 
 
-        clob = new MariaDbClob("abcde\uD83D\uDE4Ffgh".getBytes(StandardCharsets.UTF_8), 2, 9);
+        clob = new MariaDbClob("abcde\uD83D\uDE4Ffgh".getBytes(Buffer.UTF_8), 2, 9);
         assureReaderEqual("cde\uD83D\uDE4Ffg", clob.getCharacterStream(1, 7));
         assertEquals("cde\uD83D\uDE4Ffg", clob.getSubString(1, 7));
 
@@ -138,7 +138,7 @@ public class MariaDbClobTest {
 
     @Test
     public void setAsciiStream() throws SQLException, IOException {
-        final byte[] bytes = "abcde\uD83D\uDE4Ffgh".getBytes(StandardCharsets.UTF_8);
+        final byte[] bytes = "abcde\uD83D\uDE4Ffgh".getBytes(Buffer.UTF_8);
         MariaDbClob clob = new MariaDbClob(bytes);
         assureReaderEqual("abcde\uD83D\uDE4F", clob.getCharacterStream(1, 7));
 
@@ -159,7 +159,7 @@ public class MariaDbClobTest {
 
     @Test
     public void setBinaryStream() throws SQLException, IOException {
-        final byte[] bytes = "abcde\uD83D\uDE4Ffgh".getBytes(StandardCharsets.UTF_8);
+        final byte[] bytes = "abcde\uD83D\uDE4Ffgh".getBytes(Buffer.UTF_8);
         final byte[] otherBytes = new byte[]{10, 11, 12, 13};
 
         MariaDbClob blob = new MariaDbClob(new byte[]{0, 1, 2, 3, 4, 5});
@@ -193,7 +193,7 @@ public class MariaDbClobTest {
 
     @Test
     public void setBinaryStreamOffset() throws SQLException, IOException {
-        final byte[] bytes = "abcde\uD83D\uDE4Ffgh".getBytes(StandardCharsets.UTF_8);
+        final byte[] bytes = "abcde\uD83D\uDE4Ffgh".getBytes(Buffer.UTF_8);
         final byte[] otherBytes = new byte[]{10, 11, 12, 13};
 
         MariaDbClob blob = new MariaDbClob(new byte[]{0, 1, 2, 3, 4, 5});
@@ -235,7 +235,7 @@ public class MariaDbClobTest {
         clob.truncate(0);
         assertEquals("", clob.getSubString(1, 7));
 
-        MariaDbClob clob2 = new MariaDbClob("abcde\uD83D\uDE4Ffgh".getBytes(StandardCharsets.UTF_8), 2, 8);
+        MariaDbClob clob2 = new MariaDbClob("abcde\uD83D\uDE4Ffgh".getBytes(Buffer.UTF_8), 2, 8);
         clob2.truncate(20);
         assertEquals("cde\uD83D\uDE4Ff", clob2.getSubString(1, 8));
         clob2.truncate(4);

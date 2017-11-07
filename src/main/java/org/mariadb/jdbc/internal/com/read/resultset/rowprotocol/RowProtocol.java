@@ -61,56 +61,20 @@ import java.sql.Date;
 import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.OffsetTime;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 
 public abstract class RowProtocol {
 
-    public static final int BIT_LAST_FIELD_NOT_NULL = 0b000000;
-    public static final int BIT_LAST_FIELD_NULL     = 0b000001;
-    public static final int BIT_LAST_ZERO_DATE      = 0b000010;
+    public static final int BIT_LAST_FIELD_NOT_NULL = 0;
+    public static final int BIT_LAST_FIELD_NULL     = 1;
+    public static final int BIT_LAST_ZERO_DATE      = 2;
 
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
 
-
-    public static final DateTimeFormatter TEXT_LOCAL_DATE_TIME;
-    public static final DateTimeFormatter TEXT_OFFSET_DATE_TIME;
-    public static final DateTimeFormatter TEXT_ZONED_DATE_TIME;
-
     public static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.[0-9]+$");
-
-
-    static {
-        TEXT_LOCAL_DATE_TIME = new DateTimeFormatterBuilder()
-                .parseCaseInsensitive()
-                .append(DateTimeFormatter.ISO_LOCAL_DATE)
-                .appendLiteral(' ')
-                .append(DateTimeFormatter.ISO_LOCAL_TIME)
-                .toFormatter();
-
-        TEXT_OFFSET_DATE_TIME = new DateTimeFormatterBuilder()
-                .parseCaseInsensitive()
-                .append(TEXT_LOCAL_DATE_TIME)
-                .appendOffsetId()
-                .toFormatter();
-
-        TEXT_ZONED_DATE_TIME = new DateTimeFormatterBuilder()
-                .append(TEXT_OFFSET_DATE_TIME)
-                .optionalStart()
-                .appendLiteral('[')
-                .parseCaseSensitive()
-                .appendZoneRegionId()
-                .appendLiteral(']')
-                .toFormatter();
-    }
 
     public int lastValueNull;
     protected static final int NULL_LENGTH = -1;
@@ -173,14 +137,6 @@ public abstract class RowProtocol {
     public abstract String getInternalTimeString(ColumnInformation columnInfo);
 
     public abstract BigInteger getInternalBigInteger(ColumnInformation columnInfo) throws SQLException;
-
-    public abstract ZonedDateTime getInternalZonedDateTime(ColumnInformation columnInfo, Class clazz, TimeZone timeZone) throws SQLException;
-
-    public abstract OffsetTime getInternalOffsetTime(ColumnInformation columnInfo, TimeZone timeZone) throws SQLException;
-
-    public abstract LocalTime getInternalLocalTime(ColumnInformation columnInfo, TimeZone timeZone) throws SQLException;
-
-    public abstract LocalDate getInternalLocalDate(ColumnInformation columnInfo, TimeZone timeZone) throws SQLException ;
 
     public abstract boolean isBinaryEncoded();
 

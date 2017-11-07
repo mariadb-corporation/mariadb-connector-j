@@ -53,17 +53,14 @@
 package org.mariadb.jdbc.internal.com.read.resultset.rowprotocol;
 
 import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.time.*;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
 
@@ -275,10 +272,10 @@ public class BinaryRowProtocol extends RowProtocol {
         switch (columnInfo.getColumnType()) {
             case STRING:
                 if (getMaxFieldSize() > 0) {
-                    return new String(buf, pos, Math.max(getMaxFieldSize() * 3, length), StandardCharsets.UTF_8)
+                    return new String(buf, pos, Math.max(getMaxFieldSize() * 3, length), Buffer.UTF_8)
                             .substring(0, getMaxFieldSize());
                 }
-                return new String(buf, pos, length, StandardCharsets.UTF_8);
+                return new String(buf, pos, length, Buffer.UTF_8);
 
             case BIT:
                 return String.valueOf(parseBit());
@@ -325,10 +322,10 @@ public class BinaryRowProtocol extends RowProtocol {
                 return null;
             default:
                 if (getMaxFieldSize() > 0) {
-                    return new String(buf, pos, Math.max(getMaxFieldSize() * 3, length), StandardCharsets.UTF_8)
+                    return new String(buf, pos, Math.max(getMaxFieldSize() * 3, length), Buffer.UTF_8)
                             .substring(0, getMaxFieldSize());
                 }
-                return new String(buf, pos, length, StandardCharsets.UTF_8);
+                return new String(buf, pos, length, Buffer.UTF_8);
         }
     }
 
@@ -384,7 +381,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case STRING:
-                value =  Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+                value =  Long.parseLong(new String(buf, pos, length, Buffer.UTF_8));
                 break;
             default:
                 throw new SQLException("getInt not available for data field type " + columnInfo.getColumnType().getJavaTypeName());
@@ -461,7 +458,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case STRING:
-                return Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+                return Long.parseLong(new String(buf, pos, length, Buffer.UTF_8));
             default:
                 throw new SQLException("getLong not available for data field type " + columnInfo.getColumnType().getJavaTypeName());
 
@@ -527,7 +524,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case STRING:
             case OLDDECIMAL:
                 try {
-                    return Float.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                    return Float.valueOf(new String(buf, pos, length, Buffer.UTF_8));
                 } catch (NumberFormatException nfe) {
                     SQLException sqlException = new SQLException("Incorrect format for getFloat for data field with type "
                             + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
@@ -603,7 +600,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case STRING:
             case OLDDECIMAL:
                 try {
-                    return Double.valueOf(new String(buf, pos, length, StandardCharsets.UTF_8));
+                    return Double.valueOf(new String(buf, pos, length, Buffer.UTF_8));
                 } catch (NumberFormatException nfe) {
                     SQLException sqlException = new SQLException("Incorrect format for getDouble for data field with type "
                             + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
@@ -665,7 +662,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARCHAR:
             case STRING:
             case OLDDECIMAL:
-                return new BigDecimal(new String(buf, pos, length, StandardCharsets.UTF_8));
+                return new BigDecimal(new String(buf, pos, length, Buffer.UTF_8));
             default:
                 throw new SQLException("getBigDecimal not available for data field type "
                         + columnInfo.getColumnType().getJavaTypeName());
@@ -1010,7 +1007,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case OLDDECIMAL:
                 return getInternalBigDecimal(columnInfo).longValue() != 0;
             default:
-                final String rawVal = new String(buf, pos, length, StandardCharsets.UTF_8);
+                final String rawVal = new String(buf, pos, length, Buffer.UTF_8);
                 return !("false".equals(rawVal) || "0".equals(rawVal));
         }
     }
@@ -1057,7 +1054,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case STRING:
-                value = Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+                value = Long.parseLong(new String(buf, pos, length, Buffer.UTF_8));
                 break;
             default:
                 throw new SQLException("getByte not available for data field type " + columnInfo.getColumnType().getJavaTypeName());
@@ -1113,7 +1110,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case VARSTRING:
             case VARCHAR:
             case STRING:
-                value = Long.parseLong(new String(buf, pos, length, StandardCharsets.UTF_8));
+                value = Long.parseLong(new String(buf, pos, length, Buffer.UTF_8));
                 break;
             default:
                 throw new SQLException("getShort not available for data field type " + columnInfo.getColumnType().getJavaTypeName());
@@ -1141,7 +1138,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 return value.toString();
             }
         }
-        String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
+        String rawValue = new String(buf, pos, length, Buffer.UTF_8);
         if ("0000-00-00".equals(rawValue)) return null;
 
         int day = ((buf[pos + 1] & 0xff)
@@ -1242,284 +1239,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case OLDDECIMAL:
                 return BigInteger.valueOf(getInternalBigDecimal(columnInfo).longValue());
             default:
-                return new BigInteger(new String(buf, pos, length, StandardCharsets.UTF_8));
-        }
-    }
-
-    /**
-     * Get ZonedDateTime from raw binary format.
-     *
-     * @param columnInfo    column information
-     * @param clazz         asked class
-     * @param timeZone      time zone
-     * @return ZonedDateTime value
-     * @throws SQLException if column type doesn't permit conversion
-     */
-    public ZonedDateTime getInternalZonedDateTime(ColumnInformation columnInfo, Class clazz, TimeZone timeZone) throws SQLException {
-        if (lastValueWasNull()) return null;
-        if (length == 0) {
-            lastValueNull |= BIT_LAST_FIELD_NULL;
-            return null;
-        }
-
-        switch (columnInfo.getColumnType().getSqlType()) {
-            case Types.TIMESTAMP:
-
-                int year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
-                int month = buf[pos + 2];
-                int day = buf[pos + 3];
-                int hour = 0;
-                int minutes = 0;
-                int seconds = 0;
-                int microseconds = 0;
-
-                if (length > 4) {
-                    hour = buf[pos + 4];
-                    minutes = buf[pos + 5];
-                    seconds = buf[pos + 6];
-
-                    if (length > 7) {
-                        microseconds = ((buf[pos + 7] & 0xff)
-                                + ((buf[pos + 8] & 0xff) << 8)
-                                + ((buf[pos + 9] & 0xff) << 16)
-                                + ((buf[pos + 10] & 0xff) << 24));
-                    }
-                }
-
-                return ZonedDateTime.of(year, month, day, hour, minutes, seconds, microseconds * 1000, timeZone.toZoneId());
-
-            case Types.VARCHAR:
-            case Types.LONGVARCHAR:
-            case Types.CHAR:
-
-                //string conversion
-                String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
-                if (raw.startsWith("0000-00-00 00:00:00")) return null;
-                try {
-                    return ZonedDateTime.parse(raw, TEXT_ZONED_DATE_TIME);
-                } catch (DateTimeParseException dateParserEx) {
-                    throw new SQLException(raw + " cannot be parse as ZonedDateTime. time must have \"yyyy-MM-dd[T/ ]HH:mm:ss[.S]\" "
-                            + "with offset and timezone format (example : '2011-12-03 10:15:30+01:00[Europe/Paris]')");
-                }
-
-            default:
-                throw new SQLException("Cannot read " + clazz.getName() + " using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
-        }
-
-    }
-
-    /**
-     * Get OffsetTime from raw binary format.
-     *
-     * @param columnInfo    column information
-     * @param timeZone      time zone
-     * @return OffsetTime value
-     * @throws SQLException if column type doesn't permit conversion
-     */
-    public OffsetTime getInternalOffsetTime(ColumnInformation columnInfo, TimeZone timeZone) throws SQLException {
-        if (lastValueWasNull()) return null;
-        if (length == 0) {
-            lastValueNull |= BIT_LAST_FIELD_NULL;
-            return null;
-        }
-
-        ZoneId zoneId = timeZone.toZoneId().normalized();
-        if (ZoneOffset.class.isInstance(zoneId)) {
-            ZoneOffset zoneOffset = ZoneOffset.class.cast(zoneId);
-
-            int day = 0;
-            int hour = 0;
-            int minutes = 0;
-            int seconds = 0;
-            int microseconds = 0;
-
-            switch (columnInfo.getColumnType().getSqlType()) {
-                case Types.TIMESTAMP:
-                    int year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
-                    int month = buf[pos + 2];
-                    day = buf[pos + 3];
-
-                    if (length > 4) {
-                        hour = buf[pos + 4];
-                        minutes = buf[pos + 5];
-                        seconds = buf[pos + 6];
-
-                        if (length > 7) {
-                            microseconds = ((buf[pos + 7] & 0xff)
-                                    + ((buf[pos + 8] & 0xff) << 8)
-                                    + ((buf[pos + 9] & 0xff) << 16)
-                                    + ((buf[pos + 10] & 0xff) << 24));
-                        }
-                    }
-
-                    return ZonedDateTime.of(year, month, day, hour, minutes, seconds, microseconds * 1000, zoneOffset)
-                            .toOffsetDateTime().toOffsetTime();
-
-                case Types.TIME:
-
-                    boolean negate = (buf[pos] & 0xff) == 0x01;
-
-                    if (length > 4) {
-                        day = ((buf[pos + 1] & 0xff)
-                                + ((buf[pos + 2] & 0xff) << 8)
-                                + ((buf[pos + 3] & 0xff) << 16)
-                                + ((buf[pos + 4] & 0xff) << 24));
-                    }
-
-                    if (length > 7) {
-                        hour = buf[pos + 5];
-                        minutes = buf[pos + 6];
-                        seconds = buf[pos + 7];
-                    }
-
-                    if (length > 8) {
-                        microseconds = ((buf[pos + 8] & 0xff)
-                                + ((buf[pos + 9] & 0xff) << 8)
-                                + ((buf[pos + 10] & 0xff) << 16)
-                                + ((buf[pos + 11] & 0xff) << 24));
-                    }
-
-                    return OffsetTime.of((negate ? -1 : 1) * (day * 24 + hour), minutes, seconds, microseconds * 1000, zoneOffset);
-
-                case Types.VARCHAR:
-                case Types.LONGVARCHAR:
-                case Types.CHAR:
-                    String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
-                    try {
-                        return OffsetTime.parse(raw, DateTimeFormatter.ISO_OFFSET_TIME);
-                    } catch (DateTimeParseException dateParserEx) {
-                        throw new SQLException(raw + " cannot be parse as OffsetTime (format is \"HH:mm:ss[.S]\" with offset for data type \""
-                                + columnInfo.getColumnType() + "\")");
-                    }
-
-                default:
-                    throw new SQLException("Cannot read " + OffsetTime.class.getName() + " using a "
-                            + columnInfo.getColumnType().getJavaTypeName() + " field");
-            }
-        }
-
-        if (options.useLegacyDatetimeCode) {
-            //system timezone is not an offset
-            throw new SQLException("Cannot return an OffsetTime for a TIME field when default timezone is '" + zoneId
-                    + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
-        }
-
-        //server timezone is not an offset
-        throw new SQLException("Cannot return an OffsetTime for a TIME field when server timezone '" + zoneId
-                + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
-        
-    }
-
-    /**
-     * Get LocalTime from raw binary format.
-     *
-     * @param columnInfo    column information
-     * @param timeZone      time zone
-     * @return LocalTime value
-     * @throws SQLException if column type doesn't permit conversion
-     */
-    public LocalTime getInternalLocalTime(ColumnInformation columnInfo, TimeZone timeZone) throws SQLException {
-        if (lastValueWasNull()) return null;
-        if (length == 0) {
-            lastValueNull |= BIT_LAST_FIELD_NULL;
-            return null;
-        }
-
-        switch (columnInfo.getColumnType().getSqlType()) {
-            case Types.TIME:
-
-                int day = 0;
-                int hour = 0;
-                int minutes = 0;
-                int seconds = 0;
-                int microseconds = 0;
-
-                boolean negate = (buf[pos] & 0xff) == 0x01;
-
-                if (length > 4) {
-                    day = ((buf[pos + 1] & 0xff)
-                            + ((buf[pos + 2] & 0xff) << 8)
-                            + ((buf[pos + 3] & 0xff) << 16)
-                            + ((buf[pos + 4] & 0xff) << 24));
-                }
-
-                if (length > 7) {
-                    hour = buf[pos + 5];
-                    minutes = buf[pos + 6];
-                    seconds = buf[pos + 7];
-                }
-
-                if (length > 8) {
-                    microseconds = ((buf[pos + 8] & 0xff)
-                            + ((buf[pos + 9] & 0xff) << 8)
-                            + ((buf[pos + 10] & 0xff) << 16)
-                            + ((buf[pos + 11] & 0xff) << 24));
-                }
-
-                return LocalTime.of((negate ? -1 : 1) * (day * 24 + hour), minutes, seconds, microseconds * 1000);
-
-            case Types.VARCHAR:
-            case Types.LONGVARCHAR:
-            case Types.CHAR:
-                //string conversion
-                String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
-                try {
-                    return LocalTime.parse(raw, DateTimeFormatter.ISO_LOCAL_TIME.withZone(timeZone.toZoneId()));
-                } catch (DateTimeParseException dateParserEx) {
-                    throw new SQLException(raw + " cannot be parse as LocalTime (format is \"HH:mm:ss[.S]\" for data type \""
-                            + columnInfo.getColumnType() + "\")");
-                }
-
-            case Types.TIMESTAMP:
-                ZonedDateTime zonedDateTime = getInternalZonedDateTime(columnInfo, LocalTime.class, timeZone);
-                return zonedDateTime == null ? null : zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalTime();
-
-            default:
-                throw new SQLException("Cannot read LocalTime using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
-        }
-
-    }
-
-    /**
-     * Get LocalDate from raw binary format.
-     *
-     * @param columnInfo    column information
-     * @param timeZone      time zone
-     * @return LocalDate value
-     * @throws SQLException if column type doesn't permit conversion
-     */
-    public LocalDate getInternalLocalDate(ColumnInformation columnInfo, TimeZone timeZone) throws SQLException {
-        if (lastValueWasNull()) return null;
-        if (length == 0) {
-            lastValueNull |= BIT_LAST_FIELD_NULL;
-            return null;
-        }
-
-        switch (columnInfo.getColumnType().getSqlType()) {
-            case Types.DATE:
-                int year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
-                int month = buf[pos + 2];
-                int day = buf[pos + 3];
-                return LocalDate.of(year, month, day);
-
-            case Types.TIMESTAMP:
-                ZonedDateTime zonedDateTime = getInternalZonedDateTime(columnInfo, LocalDate.class, timeZone);
-                return zonedDateTime == null ? null : zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalDate();
-
-            case Types.VARCHAR:
-            case Types.LONGVARCHAR:
-            case Types.CHAR:
-                //string conversion
-                String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
-                if (raw.startsWith("0000-00-00")) return null;
-                try {
-                    return LocalDate.parse(raw, DateTimeFormatter.ISO_LOCAL_DATE.withZone(timeZone.toZoneId()));
-                } catch (DateTimeParseException dateParserEx) {
-                    throw new SQLException(raw + " cannot be parse as LocalDate. time must have \"yyyy-MM-dd\" format");
-                }
-
-            default:
-                throw new SQLException("Cannot read LocalDate using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
+                return new BigInteger(new String(buf, pos, length, Buffer.UTF_8));
         }
     }
 
