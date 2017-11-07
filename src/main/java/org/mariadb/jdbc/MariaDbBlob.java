@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.io.*;
@@ -62,24 +61,22 @@ import java.sql.SQLException;
 
 public class MariaDbBlob implements Blob, Serializable {
     private static final long serialVersionUID = 8557003556592493381L;
-    /**
-     * the actual blob content.
-     */
-    protected byte[] blobContent;
-    /**
-     * the size of the blob.
-     */
-    protected int actualSize;
+
+    protected byte[] data;
+    protected int offset;
+    protected int length;
 
     /**
-     * creates an empty blob.
+     * Creates an empty blob.
      */
     public MariaDbBlob() {
-        blobContent = new byte[0];
+        data = new byte[0];
+        offset = 0;
+        length = 0;
     }
 
     /**
-     * creates a blob with content.
+     * Creates a blob with content.
      *
      * @param bytes the content for the blob.
      */
@@ -87,24 +84,44 @@ public class MariaDbBlob implements Blob, Serializable {
         if (bytes == null) {
             throw new AssertionError("byte array is null");
         }
-        this.blobContent = bytes;
-        this.actualSize = bytes.length;
+        data = bytes;
+        offset = 0;
+        length = bytes.length;
+    }
+
+    /**
+     * Creates a blob with content.
+     *
+     * @param bytes     the content for the blob.
+     * @param offset    offset
+     * @param length    length
+     */
+    public MariaDbBlob(byte[] bytes, int offset, int length) {
+        if (bytes == null) {
+            throw new AssertionError("byte array is null");
+        }
+        data = bytes;
+        this.offset = offset;
+        this.length = Math.min(bytes.length - offset, length);
     }
 
     private void writeObject(ObjectOutputStream out)
             throws IOException {
-        out.writeInt(actualSize);
-        if (actualSize > 0) {
-            out.write(blobContent, 0, actualSize);
+        out.writeInt(length);
+        if (length > 0) {
+            out.write(data, offset, length);
+            offset += length;
+            length = 0;
         }
     }
 
     private void readObject(ObjectInputStream in)
             throws IOException {
-        actualSize = in.readInt();
-        blobContent = new byte[actualSize];
-        if (actualSize > 0) {
-            in.readFully(blobContent, 0, actualSize);
+        offset = 0;
+        length = in.readInt();
+        data = new byte[length];
+        if (length > 0) {
+            in.readFully(data, 0, length);
         }
     }
 
@@ -115,7 +132,7 @@ public class MariaDbBlob implements Blob, Serializable {
      * @throws SQLException if there is an error accessing the length of the <code>BLOB</code>
      */
     public long length() throws SQLException {
-        return actualSize;
+        return length;
     }
 
     /**
@@ -137,8 +154,10 @@ public class MariaDbBlob implements Blob, Serializable {
         if (pos < 1) {
             throw ExceptionMapper.getSqlException("Pos starts at 1");
         }
-        final int arrayPos = (int) (pos - 1);
-        return Utils.copyRange(blobContent, arrayPos, arrayPos + length);
+        final int offset = this.offset + (int) (pos - 1);
+        byte[] result = new byte[length];
+        System.arraycopy(data, offset, result, 0, Math.min(this.length - (int) (pos - 1), length));
+        return result;
     }
 
     /**
@@ -149,7 +168,7 @@ public class MariaDbBlob implements Blob, Serializable {
      * @see #setBinaryStream
      */
     public InputStream getBinaryStream() throws SQLException {
-        return getBinaryStream(1, actualSize);
+        return getBinaryStream(1, length);
     }
 
     /**
@@ -168,14 +187,14 @@ public class MariaDbBlob implements Blob, Serializable {
         if (pos < 1) {
             throw ExceptionMapper.getSqlException("Out of range (position should be > 0)");
         }
-        if (pos - 1 > actualSize) {
+        if (pos - 1 > this.length) {
             throw ExceptionMapper.getSqlException("Out of range (position > stream size)");
         }
-        if (pos + length - 1 > actualSize) {
+        if (pos + length - 1 > this.length) {
             throw ExceptionMapper.getSqlException("Out of range (position + length - 1 > streamSize)");
         }
 
-        return new ByteArrayInputStream(blobContent, (int) pos - 1, (int) length);
+        return new ByteArrayInputStream(data, this.offset + (int) pos - 1, (int) length);
     }
 
     /**
@@ -191,23 +210,23 @@ public class MariaDbBlob implements Blob, Serializable {
         if (start < 1) {
             throw ExceptionMapper.getSqlException("Start should be > 0, first position is 1.");
         }
-        if (start > actualSize) {
-            throw ExceptionMapper.getSqlException("Start should be <= " + actualSize);
+        if (start > this.length) {
+            throw ExceptionMapper.getSqlException("Start should be <= " + this.length);
         }
-        final long actualStart = start - 1;
-        for (int i = (int) actualStart; i < actualSize; i++) {
-            if (blobContent[i] == pattern[0]) {
+        final long actualStart = offset + start - 1;
+        for (int i = (int) actualStart; i < offset + this.length; i++) {
+            if (data[i] == pattern[0]) {
                 boolean isEqual = true;
                 for (int j = 1; j < pattern.length; j++) {
-                    if (i + j >= actualSize) {
+                    if (i + j >= offset + this.length) {
                         return -1;
                     }
-                    if (blobContent[i + j] != pattern[j]) {
+                    if (data[i + j] != pattern[j]) {
                         isEqual = false;
                     }
                 }
                 if (isEqual) {
-                    return i + 1;
+                    return i + 1 - offset;
                 }
             }
         }
@@ -231,38 +250,38 @@ public class MariaDbBlob implements Blob, Serializable {
      * starting at position <code>pos</code>, and returns the number of bytes written. The array of bytes will overwrite
      * the existing bytes in the <code>Blob</code> object starting at the position <code>pos</code>.  If the end of the
      * <code>Blob</code> value is reached while writing the array of bytes, then the length of the <code>Blob</code>
-     * value will be increased to accomodate the extra bytes.
-     * <p>
-     * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
-     * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
-     * may support this operation.
+     * value will be increased to accommodate the extra bytes.
      *
      * @param pos   the position in the <code>BLOB</code> object at which to start writing; the first position is 1
      * @param bytes the array of bytes to be written to the <code>BLOB</code> value that this <code>Blob</code> object
      *              represents
      * @return the number of bytes written
      * @see #getBytes
-     * @since 1.4
      */
     public int setBytes(final long pos, final byte[] bytes) throws SQLException {
-        final int arrayPos = (int) pos - 1;
-        final int bytesWritten;
-
-        if (blobContent == null) {
-            this.blobContent = new byte[arrayPos + bytes.length];
-            bytesWritten = blobContent.length;
-            this.actualSize = bytesWritten;
-        } else if (blobContent.length > arrayPos + bytes.length) {
-            bytesWritten = bytes.length;
-        } else {
-            blobContent = Utils.copyWithLength(blobContent, arrayPos + bytes.length);
-            actualSize = blobContent.length;
-            bytesWritten = bytes.length;
+        if (pos < 1) {
+            throw ExceptionMapper.getSqlException("pos should be > 0, first position is 1.");
         }
 
-        System.arraycopy(bytes, 0, this.blobContent, arrayPos, bytes.length);
+        final int arrayPos = (int) pos - 1;
 
-        return bytesWritten;
+        if (length > arrayPos + bytes.length) {
+
+            System.arraycopy(bytes, 0, data, offset + arrayPos, bytes.length);
+
+        } else {
+
+            byte[] newContent = new byte[arrayPos + bytes.length];
+            if ( Math.min(arrayPos, length) > 0) {
+                System.arraycopy(data, this.offset, newContent, 0, Math.min(arrayPos, length));
+            }
+            System.arraycopy(bytes, 0, newContent, arrayPos, bytes.length);
+            data = newContent;
+            length = arrayPos + bytes.length;
+            offset = 0;
+
+        }
+        return bytes.length;
     }
 
     /**
@@ -271,7 +290,7 @@ public class MariaDbBlob implements Blob, Serializable {
      * <code>pos</code> in the <code>BLOB</code> value; <code>len</code> bytes from the given byte array are written.
      * The array of bytes will overwrite the existing bytes in the <code>Blob</code> object starting at the position
      * <code>pos</code>.  If the end of the <code>Blob</code> value is reached while writing the array of bytes, then
-     * the length of the <code>Blob</code> value will be increased to accomodate the extra bytes.
+     * the length of the <code>Blob</code> value will be increased to accommodate the extra bytes.
      * <p>
      * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
      * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
@@ -291,21 +310,31 @@ public class MariaDbBlob implements Blob, Serializable {
                         final byte[] bytes,
                         final int offset,
                         final int len) throws SQLException {
-        int bytesWritten = 0;
-        if (blobContent == null) {
-            this.blobContent = new byte[(int) (pos + bytes.length) - (len - offset)];
-            for (int i = (int) pos + offset; i < len; i++) {
-                this.blobContent[((int) (pos + i))] = bytes[i];
-                bytesWritten++;
-            }
-        } else if (this.blobContent.length < (pos + bytes.length) - (len - offset)) {
-            for (int i = (int) pos + offset; i < len; i++) {
-                this.blobContent[((int) (pos + i))] = bytes[i];
-                bytesWritten++;
-            }
+
+        if (pos < 1) {
+            throw ExceptionMapper.getSqlException("pos should be > 0, first position is 1.");
         }
-        this.actualSize += bytesWritten;
-        return bytesWritten;
+
+        final int arrayPos = (int) pos - 1;
+        final int byteToWrite = Math.min(bytes.length - offset, len);
+
+        if (length > arrayPos + byteToWrite) {
+
+            System.arraycopy(bytes, offset, data, this.offset + arrayPos, byteToWrite);
+
+        } else {
+
+            byte[] newContent = new byte[arrayPos + byteToWrite];
+            if ( Math.min(arrayPos, length) > 0 ) {
+                System.arraycopy(data, this.offset, newContent, 0, Math.min(arrayPos, length));
+            }
+            System.arraycopy(bytes, offset, newContent, arrayPos, byteToWrite);
+            data = newContent;
+            length = arrayPos + byteToWrite;
+            this.offset = 0;
+        }
+
+        return byteToWrite;
     }
 
     /**
@@ -313,7 +342,7 @@ public class MariaDbBlob implements Blob, Serializable {
      * represents.  The stream begins at position <code>pos</code>. The  bytes written to the stream will overwrite the
      * existing bytes in the <code>Blob</code> object starting at the position <code>pos</code>.  If the end of the
      * <code>Blob</code> value is reached while writing to the stream, then the length of the <code>Blob</code> value
-     * will be increased to accomodate the extra bytes.
+     * will be increased to accommodate the extra bytes.
      * <p>
      * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
      * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
@@ -330,16 +359,18 @@ public class MariaDbBlob implements Blob, Serializable {
         if (pos < 1) {
             throw ExceptionMapper.getSqlException("Invalid position in blob");
         }
-        return new BlobOutputStream(this, (int) (pos - 1));
+        if (offset > 0) {
+            byte[] tmp = new byte[length];
+            System.arraycopy(data, offset, tmp, 0, length);
+            data = tmp;
+            offset = 0;
+        }
+        return new BlobOutputStream(this, (int) (pos - 1) + offset);
     }
 
     /**
      * Truncates the <code>BLOB</code> value that this <code>Blob</code> object represents to be <code>len</code> bytes
      * in length.
-     * <p>
-     * <b>Note:</b> If the value specified for <code>pos</code> is greater then the length+1 of the <code>BLOB</code>
-     * value then the behavior is undefined. Some JDBC drivers may throw a <code>SQLException</code> while other drivers
-     * may support this operation.
      *
      * @param len the length, in bytes, to which the <code>BLOB</code> value that this <code>Blob</code> object
      *            represents should be truncated
@@ -347,8 +378,9 @@ public class MariaDbBlob implements Blob, Serializable {
      *                      0
      */
     public void truncate(final long len) throws SQLException {
-        this.blobContent = Utils.copyWithLength(this.blobContent, (int) len);
-        this.actualSize = (int) len;
+        if (len >= 0 && len < this.length) {
+            this.length = (int) len;
+        }
     }
 
     /**
@@ -360,8 +392,9 @@ public class MariaDbBlob implements Blob, Serializable {
      * to <code>free</code> are treated as a no-op.
      */
     public void free() {
-        this.blobContent = null;
-        this.actualSize = 0;
+        this.data = new byte[0];
+        this.offset = 0;
+        this.length = 0;
     }
 
 }

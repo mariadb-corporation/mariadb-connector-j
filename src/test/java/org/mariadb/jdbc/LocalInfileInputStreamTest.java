@@ -301,6 +301,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
         ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
         assertTrue(rs.next());
         long maxAllowedPacket = rs.getLong(1);
+        Assume.assumeTrue(maxAllowedPacket < 100_000_000);
         checkBigLocalInfile(maxAllowedPacket * 2);
     }
 

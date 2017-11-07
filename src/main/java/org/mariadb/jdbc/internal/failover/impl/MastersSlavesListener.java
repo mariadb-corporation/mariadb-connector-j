@@ -314,7 +314,14 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                         //don't throw an exception for this specific exception
                     }
                 }
-            } while (searchFilter.isInitialConnection() && masterProtocol == null);
+            } while (searchFilter.isInitialConnection()
+                && !( masterProtocol != null || (urlParser.getOptions().allowMasterDownConnection && secondaryProtocol != null)));
+
+            if (searchFilter.isInitialConnection() && masterProtocol == null && !currentReadOnlyAsked) {
+                currentProtocol = this.secondaryProtocol;
+                currentReadOnlyAsked = true;
+            }
+
         }
 
     }

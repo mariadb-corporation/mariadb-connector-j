@@ -198,17 +198,21 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                             }
                         }
 
-                    }
-
-                    if (listener.isSecondaryHostFailReconnect()
-                            || (listener.isMasterHostFailReconnect() && probableMasterHost == null)) {
-                        probableMasterHost = listener.searchByStartName(protocol, listener.getUrlParser().getHostAddresses());
-                        if (probableMasterHost != null) {
-                            loopAddresses.remove(probableMasterHost);
-                            AuroraProtocol.searchProbableMaster(listener, globalInfo, probableMasterHost);
-                            if (listener.isMasterHostFailReconnect() && searchFilter.isFineIfFoundOnlySlave()) {
-                                return;
+                    } else {
+                        try {
+                            if (listener.isSecondaryHostFailReconnect()
+                                    || (listener.isMasterHostFailReconnect() && probableMasterHost == null)) {
+                                probableMasterHost = listener.searchByStartName(protocol, listener.getUrlParser().getHostAddresses());
+                                if (probableMasterHost != null) {
+                                    loopAddresses.remove(probableMasterHost);
+                                    AuroraProtocol.searchProbableMaster(listener, globalInfo, probableMasterHost);
+                                    if (listener.isMasterHostFailReconnect() && searchFilter.isFineIfFoundOnlySlave()) {
+                                        return;
+                                    }
+                                }
                             }
+                        } finally {
+                            protocol.close();
                         }
                     }
                 } else {
@@ -221,6 +225,14 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             }
 
             if (!listener.isMasterHostFailReconnect() && !listener.isSecondaryHostFailReconnect()) {
+                return;
+            }
+
+            //in case master not found but slave is , and allowing master down
+            if (loopAddresses.isEmpty()
+                    && (listener.isMasterHostFailReconnect()
+                    && listener.urlParser.getOptions().allowMasterDownConnection
+                    && !listener.isSecondaryHostFailReconnect())) {
                 return;
             }
 

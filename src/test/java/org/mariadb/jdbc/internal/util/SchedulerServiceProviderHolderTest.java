@@ -101,9 +101,9 @@ public class SchedulerServiceProviderHolderTest {
                 }
             });
             scheduler.shutdown();
-            Assert.assertTrue(scheduler.awaitTermination(15, TimeUnit.MILLISECONDS));
+            Assert.assertTrue(scheduler.awaitTermination(50, TimeUnit.MILLISECONDS));
         } catch (InterruptedException ie) {
-            //eat
+            fail();
         }
     }
 
