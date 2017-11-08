@@ -150,7 +150,8 @@ public class ResultSetMetaDataTest extends BaseTest {
         stmt.execute("INSERT INTO testAlias VALUES (1, 'foo')");
         stmt.execute("INSERT INTO testAlias2 VALUES (2, 'bar')");
         ResultSet rs = sharedConnection.createStatement().executeQuery(
-                "select alias1.id as idalias1 , alias1.name as namealias1, id2 as idalias2 , name2, testAlias.id FROM testAlias as alias1 join testAlias2 as alias2 join testAlias");
+                "select alias1.id as idalias1 , alias1.name as namealias1, id2 as idalias2 , name2, testAlias.id "
+                        + "FROM testAlias as alias1 join testAlias2 as alias2 join testAlias");
         assertTrue(rs.next());
 
         assertEquals(rs.findColumn("idalias1"), 1);
