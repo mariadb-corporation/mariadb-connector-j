@@ -58,6 +58,7 @@ import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 import java.net.SocketException;
 import java.sql.ResultSet;
@@ -69,8 +70,8 @@ import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 public class AuroraProtocol extends MastersSlavesProtocol {
 
-    public AuroraProtocol(final UrlParser url, final ReentrantLock lock) {
-        super(url, lock);
+    public AuroraProtocol(final UrlParser url, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
+        super(url, globalInfo, lock);
     }
 
     /**
@@ -78,10 +79,13 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      * Aurora master change in time. The only way to check that a server is a master is to asked him.
      *
      * @param listener       aurora failover to call back if master is found
+     * @param globalInfo    server global variables information
      * @param probableMaster probable master host
      */
-    private static void searchProbableMaster(AuroraListener listener, HostAddress probableMaster) {
-        AuroraProtocol protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
+    private static void searchProbableMaster(AuroraListener listener, final GlobalStateInfo globalInfo,
+                                             HostAddress probableMaster) {
+
+        AuroraProtocol protocol = getNewProtocol(listener.getProxy(), globalInfo, listener.getUrlParser());
         try {
 
             protocol.setHostAddress(probableMaster);
@@ -96,7 +100,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 listener.foundActiveSecondary(protocol);
             } else {
                 protocol.close();
-                protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
+                protocol = getNewProtocol(listener.getProxy(), globalInfo, listener.getUrlParser());
             }
 
         } catch (SQLException e) {
@@ -108,12 +112,13 @@ public class AuroraProtocol extends MastersSlavesProtocol {
      * loop until found the failed connection.
      *
      * @param listener              current failover
+     * @param globalInfo            server global variables information
      * @param addresses             list of HostAddress to loop
      * @param initialSearchFilter   search parameter
      * @throws SQLException if not found
      */
-    public static void loop(AuroraListener listener, final List<HostAddress> addresses, SearchFilter initialSearchFilter)
-            throws SQLException {
+    public static void loop(AuroraListener listener, final GlobalStateInfo globalInfo, final List<HostAddress> addresses,
+                            SearchFilter initialSearchFilter) throws SQLException {
 
         SearchFilter searchFilter = initialSearchFilter;
         AuroraProtocol protocol;
@@ -125,7 +130,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         HostAddress probableMasterHost = null;
 
         while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
-            protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
+            protocol = getNewProtocol(listener.getProxy(), globalInfo, listener.getUrlParser());
 
             if (listener.isExplicitClosed() || (!listener.isSecondaryHostFailReconnect() && !listener.isMasterHostFailReconnect())) {
                 return;
@@ -194,17 +199,21 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                             }
                         }
 
-                    }
-
-                    if (listener.isSecondaryHostFailReconnect()
-                            || (listener.isMasterHostFailReconnect() && probableMasterHost == null)) {
-                        probableMasterHost = listener.searchByStartName(protocol, listener.getUrlParser().getHostAddresses());
-                        if (probableMasterHost != null) {
-                            loopAddresses.remove(probableMasterHost);
-                            AuroraProtocol.searchProbableMaster(listener, probableMasterHost);
-                            if (listener.isMasterHostFailReconnect() && searchFilter.isFineIfFoundOnlySlave()) {
-                                return;
+                    } else {
+                        try {
+                            if (listener.isSecondaryHostFailReconnect()
+                                    || (listener.isMasterHostFailReconnect() && probableMasterHost == null)) {
+                                probableMasterHost = listener.searchByStartName(protocol, listener.getUrlParser().getHostAddresses());
+                                if (probableMasterHost != null) {
+                                    loopAddresses.remove(probableMasterHost);
+                                    AuroraProtocol.searchProbableMaster(listener, globalInfo, probableMasterHost);
+                                    if (listener.isMasterHostFailReconnect() && searchFilter.isFineIfFoundOnlySlave()) {
+                                        return;
+                                    }
+                                }
                             }
+                        } finally {
+                            protocol.close();
                         }
                     }
                 } else {
@@ -217,6 +226,14 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             }
 
             if (!listener.isMasterHostFailReconnect() && !listener.isSecondaryHostFailReconnect()) {
+                return;
+            }
+
+            //in case master not found but slave is , and allowing master down
+            if (loopAddresses.isEmpty()
+                    && (listener.isMasterHostFailReconnect()
+                    && listener.urlParser.getOptions().allowMasterDownConnection
+                    && !listener.isSecondaryHostFailReconnect())) {
                 return;
             }
 
@@ -275,12 +292,13 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     /**
      * Initialize new protocol instance.
      *
-     * @param proxy     proxy
-     * @param urlParser connection string data's
+     * @param proxy         proxy
+     * @param globalInfo    server global variables information
+     * @param urlParser     connection string data's
      * @return new AuroraProtocol
      */
-    public static AuroraProtocol getNewProtocol(FailoverProxy proxy, UrlParser urlParser) {
-        AuroraProtocol newProtocol = new AuroraProtocol(urlParser, proxy.lock);
+    public static AuroraProtocol getNewProtocol(FailoverProxy proxy, final GlobalStateInfo globalInfo, UrlParser urlParser) {
+        AuroraProtocol newProtocol = new AuroraProtocol(urlParser, globalInfo, proxy.lock);
         newProtocol.setProxy(proxy);
         return newProtocol;
     }
@@ -309,9 +327,9 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
     @Override
     public boolean isValid(int timeout) throws SQLException {
-
+        int initialTimeout = -1;
         try {
-
+            initialTimeout = socket.getSoTimeout();
             this.socket.setSoTimeout(timeout);
 
             if (isMasterConnection()) return checkIfMaster();
@@ -325,7 +343,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
 
             //set back initial socket timeout
             try {
-                this.socket.setSoTimeout(options.socketTimeout == null ? 0 : options.socketTimeout);
+                if (initialTimeout != -1) socket.setSoTimeout(initialTimeout);
             } catch (SocketException socketException) {
                 //eat
             }

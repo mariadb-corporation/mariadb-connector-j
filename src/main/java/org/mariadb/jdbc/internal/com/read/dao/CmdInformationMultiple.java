@@ -231,7 +231,7 @@ public class CmdInformationMultiple implements CmdInformation {
 
     @Override
     public boolean moreResults() {
-        return moreResults++ < updateCounts.size() - 1 && updateCounts.get(moreResults) != RESULT_SET_VALUE;
+        return moreResults++ < updateCounts.size() - 1 && updateCounts.get(moreResults) == RESULT_SET_VALUE;
     }
 
     @Override

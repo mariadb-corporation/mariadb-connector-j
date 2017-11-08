@@ -995,6 +995,84 @@ public class DatatypeTest extends BaseTest {
             preparedStatement.setBinaryStream(1, bais);
             preparedStatement.execute();
         }
+    }
+
+    /**
+     * CONJ-535 : BIT data type value with numeric getter.
+     *
+     * @throws SQLException if any exception occur.
+     */
+    @Test
+    public void testBitValues() throws SQLException {
+        createTable("testShortBit", "bitVal BIT(1), bitVal2 BIT(40)");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("INSERT INTO testShortBit VALUES (0,0), (1,1), (1, b'01010101'), (1, 21845), (1, b'1101010101010101')"
+                + ", (1, b'10000000000000000000000000000000')");
+
+        validResultSetBitValue(stmt.executeQuery("SELECT * FROM testShortBit"));
+
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT * FROM testShortBit")) {
+            validResultSetBitValue(preparedStatement.executeQuery());
+        }
+    }
+
+    private void validResultSetBitValue(ResultSet rs) throws SQLException {
+        assertTrue(rs.next());
+
+        checkAllDataType(rs, 1, 0);
+        checkAllDataType(rs, 2, 0);
+
+        assertTrue(rs.next());
+        checkAllDataType(rs, 1, 1);
+        checkAllDataType(rs, 2, 1);
+
+        assertTrue(rs.next());
+        checkAllDataType(rs, 1, 1);
+        checkAllDataType(rs, 2, 85);
+
+        assertTrue(rs.next());
+        checkAllDataType(rs, 1, 1);
+        checkAllDataType(rs, 2, 21845);
+
+        assertTrue(rs.next());
+        checkAllDataType(rs, 1, 1);
+        checkAllDataType(rs, 2, 54613);
+
+        assertTrue(rs.next());
+        checkAllDataType(rs, 1, 1);
+        checkAllDataType(rs, 2, 2147483648L);
+
+    }
+
+    private void checkAllDataType(ResultSet rs, int index, long expectedValue) throws SQLException {
+        try {
+            assertEquals((byte) expectedValue, rs.getByte(index));
+            if (expectedValue > Byte.MAX_VALUE) fail();
+        } catch (SQLException sqle) {
+            if (expectedValue < Byte.MAX_VALUE) fail();
+            assertTrue(sqle.getMessage().contains("Out of range"));
+        }
+        try {
+            assertEquals((short) expectedValue, rs.getShort(index));
+            if (expectedValue > Short.MAX_VALUE) fail();
+        } catch (SQLException sqle) {
+            if (expectedValue < Short.MAX_VALUE) fail();
+            assertTrue(sqle.getMessage().contains("Out of range"));
+        }
+        try {
+            assertEquals((int) expectedValue, rs.getInt(index));
+            if (expectedValue > Integer.MAX_VALUE) fail();
+        } catch (SQLException sqle) {
+            if (expectedValue < Integer.MAX_VALUE) fail();
+            assertTrue(sqle.getMessage().contains("Out of range"));
+        }
+        assertEquals(expectedValue != 0, rs.getBoolean(index));
+
+        assertEquals(expectedValue, rs.getLong(index));
+        assertEquals((float) expectedValue, rs.getFloat(index), 0.01);
+        assertEquals((double) expectedValue, rs.getDouble(index), 0.01);
+        assertEquals(new BigDecimal(expectedValue), rs.getBigDecimal(index));
+        assertEquals(String.valueOf(expectedValue), rs.getString(index));
 
     }
 }

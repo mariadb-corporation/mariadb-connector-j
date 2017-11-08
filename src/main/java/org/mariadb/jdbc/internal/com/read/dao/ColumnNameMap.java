@@ -60,8 +60,8 @@ import java.util.Map;
 
 
 public class ColumnNameMap {
-
-    private Map<String, Integer> labelMap;
+    private Map<String, Integer> originalMap;
+    private Map<String, Integer> aliasMap;
     private final ColumnInformation[] columnInfo;
 
     public ColumnNameMap(ColumnInformation[] columnInformations) {
@@ -76,25 +76,53 @@ public class ColumnNameMap {
      * @throws SQLException if no column info exists, or column is unknown
      */
     public int getIndex(String name) throws SQLException {
+        if (name == null) throw new SQLException("Column name cannot be null");
+        String lowerName = name.toLowerCase();
         // The specs in JDBC 4.0 specify that ResultSet.findColumn and
         // ResultSet.getXXX(String name) should use column alias (AS in the query). If label is not found, we use 
         // original table name.
-        if (labelMap == null) {
-            labelMap = new HashMap<>();
+        if (aliasMap == null) {
+            aliasMap = new HashMap<>();
             int counter = 0;
             for (ColumnInformation ci : columnInfo) {
-                String columnAlias = ci.getName().toLowerCase();
-                labelMap.putIfAbsent(columnAlias, counter);
+                String columnAlias = ci.getName();
+                if (columnAlias != null && !columnAlias.isEmpty()) {
+                    columnAlias = columnAlias.toLowerCase();
+                    aliasMap.putIfAbsent(columnAlias, counter);
 
-                String tableName = ci.getTable();
-                if (tableName != null && !tableName.isEmpty()) {
-                    labelMap.putIfAbsent(tableName.toLowerCase() + "." + columnAlias, counter);
+                    String tableName = ci.getTable();
+                    if (tableName != null && !tableName.isEmpty()) {
+                        aliasMap.putIfAbsent(tableName.toLowerCase() + "." + columnAlias, counter);
+                    }
                 }
                 counter++;
             }
         }
 
-        Integer res = labelMap.get(name.toLowerCase());
+        Integer res = aliasMap.get(lowerName);
+        if (res != null) {
+            return res;
+        }
+
+        if (originalMap == null) {
+            originalMap = new HashMap<>();
+            int counter = 0;
+            for (ColumnInformation ci : columnInfo) {
+                String columnRealName = ci.getOriginalName();
+                if (columnRealName != null && !columnRealName.isEmpty()) {
+                    columnRealName = columnRealName.toLowerCase();
+                    originalMap.putIfAbsent(columnRealName, counter);
+
+                    String tableName = ci.getOriginalTable();
+                    if (tableName != null && !tableName.isEmpty()) {
+                        originalMap.putIfAbsent(tableName.toLowerCase() + "." + columnRealName, counter);
+                    }
+                }
+                counter++;
+            }
+        }
+
+        res = originalMap.get(lowerName);
         if (res == null) throw new SQLException("No such column :" + name);
         return res;
 

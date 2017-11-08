@@ -1,4 +1,5 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#220|2.2.0]] Released on 08 Nov. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#212|2.1.2]] Released on 24 Sept. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#211|2.1.1]] Released on 05 Sept. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#210|2.1.0]] Released on 29 Jul. 2017
@@ -27,6 +28,46 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+== 2.2.0
+
+Evolutions:
+==== [CONJ-522] Pool datasource implementation
+
+MariaDB has now 2 different Datasource implementation :
+* MariaDbDataSource : Basic implementation. A new connection each time method getConnection() is called.
+* MariaDbPoolDataSource : Connection pooling implementation. MariaDB Driver will keep a pool of connection and borrow Connections when asked for it.
+
+New options
+|=pool|Use pool. This option is useful only if not using a DataSource object, but only connection object. \\//Default: false. since 2.2.0//|
+|=poolName|Pool name that will permit to identify thread.\\default: auto-generated as MariaDb-pool-<pool-index>//since 2.2.0//|
+|=maxPoolSize| The maximum number of physical connections that the pool should contain. \\//Default: 8. since 2.2.0//|
+|=minPoolSize| When connection are removed since not used since more than "maxIdleTime", connections are closed and removed from pool. "minPoolSize" indicate the number of physical connections the pool should keep available at all times. Should be less or equal to maxPoolSize.\\//Default: maxPoolSize value. Since 2.2.0//|
+|=poolValidMinDelay| When asking a connection to pool, Pool will validate connection state. "poolValidMinDelay" permit to disable this validation if connection has been borrowed recently avoiding useless verification in case of frequent reuse of connection. 0 meaning validation is done each time connection is asked.\\//Default: 1000 (in milliseconds). Since 2.2.0//|
+|=maxIdleTime|The maximum amount of time in seconds that a connection can stay in pool when not used. This value must always be below @wait_timeout value - 45s \\//Default: 600 in seconds (=10 minutes), minimum value is 60 seconds. Since 2.2.0//|
+|=staticGlobal|Indicate the following global variable (@@max_allowed_packet,@@wait_timeout,@@autocommit,@@auto_increment_increment,@@time_zone,@@system_time_zone,@@tx_isolation) values won't changed, permitting to pool to create new connection faster.\\//Default: false. Since 2.2.0//|
+|=useResetConnection|When a connection is closed() (give back to pool), pool reset connection state. Setting this option, session variables change will be reset, and user variables will be destroyed when server permit it (MariaDB >= 10.2.4, MySQL >= 5.7.3), permitting to save memory on server if application make extensive use of variables\\//Default: false. Since 2.2.0//|
+
+Other evolutions:
+[CONJ-530] Permit Connection.abort() forcing killing the connection, even if connection is stuck in another thread
+[CONJ-531] permit cancelling streaming result-set using Statement.cancel.
+[CONJ-495] Improve reading result-set data
+[CONJ-510] allow execution of read-only statements on slaves when master is down
+
+
+Bug :
+[CONJ-532] correction Statement.getMoreResults() for multi-queries
+[CONJ-533] PrepareStatement.setTime() may insert incorrect time according to current timezone, time and option "useLegacyDatetimeCode"
+[CONJ-535] correction on numerical getter for big BIT data type fields
+[CONJ-541] Fix behavior of ResultSet#relative when crossing result set boundaries
+
+
+Misc:
+[CONJ-469] Improve Blob/Clob implementation (avoiding array copy from result-set row)
+[CONJ-539] better message when server close connection
+[misc] resultset.findColumn method use column name if alias not found
+[misc] default option "connectTimeout" value to 30 seconds (was 0 = no timeout)
+[misc] ensure that enablePacketDebug option works when timer tick is big
+
 == 2.1.2
 
 Bug :

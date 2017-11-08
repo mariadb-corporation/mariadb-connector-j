@@ -198,13 +198,14 @@ public class FetchSizeTest extends BaseTest {
     }
 
     /**
-     * CONJ-315 : interrupt when closing statement.
+     * CONJ-315/CONJ-531 : statement interruption.
      *
      * @throws SQLException sqle
      */
     @Test
-    public void fetchSizeClose() throws SQLException {
-        Assume.assumeTrue(sharedOptions().killFetchStmtOnClose && !sharedOptions().profileSql);
+    public void fetchSizeCancel() throws SQLException {
+        ifMaxscaleRequireMinimumVersion(2, 2);
+        Assume.assumeTrue(!sharedOptions().profileSql);
         long start = System.currentTimeMillis();
         try (Statement stmt = sharedConnection.createStatement()) {
             stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables LIMIT 50000");
@@ -215,6 +216,7 @@ public class FetchSizeTest extends BaseTest {
         try (Statement stmt = sharedConnection.createStatement()) {
             stmt.setFetchSize(1);
             stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables LIMIT 50000");
+            stmt.cancel();
         }
         long interruptedExecutionTime = System.currentTimeMillis() - start;
 
@@ -226,14 +228,15 @@ public class FetchSizeTest extends BaseTest {
     }
 
     @Test
-    public void fetchSizePrepareClose() throws SQLException {
-        Assume.assumeTrue(sharedOptions().killFetchStmtOnClose && !sharedOptions().profileSql);
+    public void fetchSizePrepareCancel() throws SQLException {
+        ifMaxscaleRequireMinimumVersion(2, 2);
+        Assume.assumeTrue(!sharedOptions().profileSql && !sharedOptions().pool);
 
         long start;
         long normalExecutionTime;
 
         try (PreparedStatement stmt = sharedConnection.prepareStatement(
-                "select * from information_schema.columns as c1,  information_schema.tables LIMIT 50000")) {
+                "select * from information_schema.columns as c1,  information_schema.tables, mysql.user LIMIT 50000")) {
             start = System.currentTimeMillis();
             stmt.executeQuery();
             normalExecutionTime = System.currentTimeMillis() - start;
@@ -241,10 +244,13 @@ public class FetchSizeTest extends BaseTest {
             start = System.currentTimeMillis();
             stmt.setFetchSize(1);
             stmt.executeQuery();
+            stmt.cancel();
         }
 
         long interruptedExecutionTime = System.currentTimeMillis() - start;
 
+        System.out.println(normalExecutionTime);
+        System.out.println(interruptedExecutionTime);
         //normalExecutionTime = 1500
         //interruptedExecutionTime = 77
         assertTrue("interruptedExecutionTime:" + interruptedExecutionTime

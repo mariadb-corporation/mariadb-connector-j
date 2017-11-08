@@ -92,9 +92,6 @@ public class TimeParameter implements Cloneable, ParameterHolder {
         SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
         sdf.setTimeZone(timeZone);
         String dateString = sdf.format(time);
-        if (time.getTime() < 0) {
-            dateString = "-" + dateString;
-        }
 
         pos.write(QUOTE);
         pos.write(dateString.getBytes());

@@ -62,7 +62,6 @@ import org.mariadb.jdbc.internal.util.Utils;
 import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
@@ -137,7 +136,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
 
             if (traceCache != null) {
                 int length = decompressedLength != 0 ? decompressedLength : compressedLength;
-                traceCache.put(Instant.now(), new TraceObject(false,
+                traceCache.put(new TraceObject(false,
                         decompressedLength == 0 ? COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET : COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
                         Arrays.copyOfRange(header, 0, 7),
                         Arrays.copyOfRange(rawBytes, 0, length > 1000 ? 1000 : length)));
@@ -191,7 +190,8 @@ public class DecompressPacketInputStream implements PacketInputStream {
         do {
             int count = inputStream.read(arr, off, remaining);
             if (count < 0) {
-                throw new EOFException("unexpected end of stream, read " + (length - remaining) + " bytes from " + length);
+                throw new EOFException("unexpected end of stream, read " + (length - remaining) + " bytes from " + length
+                        + " (socket was closed by server)");
             }
             remaining -= count;
             off += count;

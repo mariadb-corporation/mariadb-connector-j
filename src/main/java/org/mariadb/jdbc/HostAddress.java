@@ -115,7 +115,8 @@ public class HostAddress {
             return new ArrayList<>(0);
         }
         String[] tokens = spec.trim().split(",");
-        List<HostAddress> arr = new ArrayList<>(tokens.length);
+        int size = tokens.length;
+        List<HostAddress> arr = new ArrayList<>(size);
 
         // Aurora using cluster end point mustn't have any other host
         if (haMode == HaMode.AURORA) {
@@ -137,21 +138,13 @@ public class HostAddress {
             }
         }
 
-        int defaultPort = arr.get(arr.size() - 1).port;
-        if (defaultPort == 0) {
-            defaultPort = 3306;
-        }
-
-        for (int i = 0; i < arr.size(); i++) {
-            if (haMode == HaMode.REPLICATION) {
+        if (haMode == HaMode.REPLICATION) {
+            for (int i = 0; i < size; i++) {
                 if (i == 0 && arr.get(i).type == null) {
                     arr.get(i).type = ParameterConstant.TYPE_MASTER;
                 } else if (i != 0 && arr.get(i).type == null) {
                     arr.get(i).type = ParameterConstant.TYPE_SLAVE;
                 }
-            }
-            if (arr.get(i).port == 0) {
-                arr.get(i).port = defaultPort;
             }
         }
         return arr;
@@ -174,6 +167,7 @@ public class HostAddress {
         } else {
               /* Just host name is given */
             result.host = str;
+            result.port = 3306;
         }
         return result;
     }

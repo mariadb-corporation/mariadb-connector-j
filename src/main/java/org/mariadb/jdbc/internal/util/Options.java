@@ -57,6 +57,8 @@ import java.lang.reflect.Field;
 @SuppressWarnings("ConstantConditions")
 public class Options implements Cloneable {
 
+    public static final int MIN_VALUE__MAX_IDLE_TIME = 60;
+
     //standard options
     public String user;
     public String password;
@@ -73,7 +75,7 @@ public class Options implements Cloneable {
     public boolean useFractionalSeconds = true;
     public boolean pinGlobalTxToPhysicalConnection;
     public String socketFactory;
-    public Integer connectTimeout;
+    public int connectTimeout = 30_000;
     public String pipe;
     public String localSocket;
     public String sharedMemory;
@@ -103,7 +105,7 @@ public class Options implements Cloneable {
     public boolean allowLocalInfile = true;
     public boolean cachePrepStmts = true;
     public int prepStmtCacheSize = 250;
-    public Integer prepStmtCacheSqlLimit = 2048;
+    public int prepStmtCacheSqlLimit = 2048;
     public boolean useLegacyDatetimeCode = true;
     public boolean maximizeMysqlCompatibility;
     public boolean useServerPrepStmts;
@@ -115,10 +117,10 @@ public class Options implements Cloneable {
     public Boolean useBatchMultiSend;
     public int useBatchMultiSendNumber = 100;
     public Boolean usePipelineAuth;
-    public boolean killFetchStmtOnClose = true;
     public boolean enablePacketDebug;
     public boolean useBulkStmts = true;
     public boolean disableSslHostnameVerification;
+    public boolean autocommit = true;
 
     //logging options
     public boolean log;
@@ -134,6 +136,19 @@ public class Options implements Cloneable {
     public int validConnectionTimeout;
     public int loadBalanceBlacklistTimeout = 50;
     public int failoverLoopRetries = 120;
+    public boolean allowMasterDownConnection;
+
+    //Pool options
+    public boolean pool;
+    public String poolName;
+    public int maxPoolSize = 8;
+    public Integer minPoolSize;
+    public int maxIdleTime = 600;
+    public boolean staticGlobal;
+    public boolean registerJmxPool = true;
+    public int poolValidMinDelay = 1000;
+    public boolean useResetConnection;
+
 
     @Override
     public String toString() {
@@ -194,7 +209,6 @@ public class Options implements Cloneable {
         if (jdbcCompliantTruncation != opt.jdbcCompliantTruncation) return false;
         if (cacheCallableStmts != opt.cacheCallableStmts) return false;
         if (useBatchMultiSendNumber != opt.useBatchMultiSendNumber) return false;
-        if (killFetchStmtOnClose != opt.killFetchStmtOnClose) return false;
         if (enablePacketDebug != opt.enablePacketDebug) return false;
         if (useBulkStmts != opt.useBulkStmts) return false;
         if (disableSslHostnameVerification != opt.disableSslHostnameVerification) return false;
@@ -203,10 +217,18 @@ public class Options implements Cloneable {
         if (assureReadOnly != opt.assureReadOnly) return false;
         if (autoReconnect != opt.autoReconnect) return false;
         if (failOnReadOnly != opt.failOnReadOnly) return false;
+        if (allowMasterDownConnection != opt.allowMasterDownConnection) return false;
         if (retriesAllDown != opt.retriesAllDown) return false;
         if (validConnectionTimeout != opt.validConnectionTimeout) return false;
         if (loadBalanceBlacklistTimeout != opt.loadBalanceBlacklistTimeout) return false;
         if (failoverLoopRetries != opt.failoverLoopRetries) return false;
+        if (pool != opt.pool) return false;
+        if (staticGlobal != opt.staticGlobal) return false;
+        if (registerJmxPool != opt.registerJmxPool) return false;
+        if (useResetConnection != opt.useResetConnection) return false;
+        if (maxPoolSize != opt.maxPoolSize) return false;
+        if (maxIdleTime != opt.maxIdleTime) return false;
+        if (poolValidMinDelay != opt.poolValidMinDelay) return false;
         if (user != null ? !user.equals(opt.user) : opt.user != null) return false;
         if (password != null ? !password.equals(opt.password) : opt.password != null) return false;
         if (serverSslCert != null ? !serverSslCert.equals(opt.serverSslCert) : opt.serverSslCert != null) return false;
@@ -221,7 +243,7 @@ public class Options implements Cloneable {
             return false;
         }
         if (socketFactory != null ? !socketFactory.equals(opt.socketFactory) : opt.socketFactory != null) return false;
-        if (connectTimeout != null ? !connectTimeout.equals(opt.connectTimeout) : opt.connectTimeout != null) return false;
+        if (connectTimeout != opt.connectTimeout) return false;
         if (pipe != null ? !pipe.equals(opt.pipe) : opt.pipe != null) return false;
         if (localSocket != null ? !localSocket.equals(opt.localSocket) : opt.localSocket != null) return false;
         if (sharedMemory != null ? !sharedMemory.equals(opt.sharedMemory) : opt.sharedMemory != null) return false;
@@ -241,9 +263,7 @@ public class Options implements Cloneable {
         if (sessionVariables != null ? !sessionVariables.equals(opt.sessionVariables) : opt.sessionVariables != null) return false;
         if (serverTimezone != null ? !serverTimezone.equals(opt.serverTimezone) : opt.serverTimezone != null) return false;
         if (prepStmtCacheSize != opt.prepStmtCacheSize) return false;
-        if (prepStmtCacheSqlLimit != null ? !prepStmtCacheSqlLimit.equals(opt.prepStmtCacheSqlLimit) : opt.prepStmtCacheSqlLimit != null) {
-            return false;
-        }
+        if (prepStmtCacheSqlLimit != opt.prepStmtCacheSqlLimit) return false;
         if (callableStmtCacheSize != opt.callableStmtCacheSize) return false;
         if (connectionAttributes != null ? !connectionAttributes.equals(opt.connectionAttributes) : opt.connectionAttributes != null) {
             return false;
@@ -254,7 +274,9 @@ public class Options implements Cloneable {
         if (slowQueryThresholdNanos != null ? !slowQueryThresholdNanos.equals(opt.slowQueryThresholdNanos) : opt.slowQueryThresholdNanos != null) {
             return false;
         }
-        return true;
+        if (autocommit != opt.autocommit) return false;
+        if (poolName != null ? !poolName.equals(opt.poolName) : opt.poolName != null) return false;
+        return minPoolSize != null ? minPoolSize.equals(opt.minPoolSize) : opt.minPoolSize == null;
     }
 
     @SuppressWarnings("SimplifiableIfStatement")
@@ -273,7 +295,7 @@ public class Options implements Cloneable {
         result = 31 * result + (useFractionalSeconds ? 1 : 0);
         result = 31 * result + (pinGlobalTxToPhysicalConnection ? 1 : 0);
         result = 31 * result + (socketFactory != null ? socketFactory.hashCode() : 0);
-        result = 31 * result + (connectTimeout != null ? connectTimeout.hashCode() : 0);
+        result = 31 * result + connectTimeout;
         result = 31 * result + (pipe != null ? pipe.hashCode() : 0);
         result = 31 * result + (localSocket != null ? localSocket.hashCode() : 0);
         result = 31 * result + (sharedMemory != null ? sharedMemory.hashCode() : 0);
@@ -302,7 +324,7 @@ public class Options implements Cloneable {
         result = 31 * result + (allowLocalInfile ? 1 : 0);
         result = 31 * result + (cachePrepStmts ? 1 : 0);
         result = 31 * result + prepStmtCacheSize;
-        result = 31 * result + (prepStmtCacheSqlLimit != null ? prepStmtCacheSqlLimit.hashCode() : 0);
+        result = 31 * result + prepStmtCacheSqlLimit;
         result = 31 * result + (useLegacyDatetimeCode ? 1 : 0);
         result = 31 * result + (maximizeMysqlCompatibility ? 1 : 0);
         result = 31 * result + (useServerPrepStmts ? 1 : 0);
@@ -314,7 +336,6 @@ public class Options implements Cloneable {
         result = 31 * result + (useBatchMultiSend != null ? useBatchMultiSend.hashCode() : 0);
         result = 31 * result + useBatchMultiSendNumber;
         result = 31 * result + (usePipelineAuth != null ? usePipelineAuth.hashCode() : 0);
-        result = 31 * result + (killFetchStmtOnClose ? 1 : 0);
         result = 31 * result + (enablePacketDebug ? 1 : 0);
         result = 31 * result + (useBulkStmts ? 1 : 0);
         result = 31 * result + (disableSslHostnameVerification ? 1 : 0);
@@ -325,10 +346,22 @@ public class Options implements Cloneable {
         result = 31 * result + (assureReadOnly ? 1 : 0);
         result = 31 * result + (autoReconnect ? 1 : 0);
         result = 31 * result + (failOnReadOnly ? 1 : 0);
+        result = 31 * result + (allowMasterDownConnection ? 1 : 0);
         result = 31 * result + retriesAllDown;
         result = 31 * result + validConnectionTimeout;
         result = 31 * result + loadBalanceBlacklistTimeout;
         result = 31 * result + failoverLoopRetries;
+        result = 31 * result + (pool ? 1 : 0);
+        result = 31 * result + (registerJmxPool ? 1 : 0);
+        result = 31 * result + (useResetConnection ? 1 : 0);
+        result = 31 * result + (staticGlobal ? 1 : 0);
+        result = 31 * result + (poolName != null ? poolName.hashCode() : 0);
+        result = 31 * result + maxPoolSize;
+        result = 31 * result + (minPoolSize != null ? minPoolSize.hashCode() : 0);
+        result = 31 * result + maxIdleTime;
+        result = 31 * result + poolValidMinDelay;
+        result = 31 * result + (autocommit ? 1 : 0);
+
         return result;
     }
 

@@ -59,6 +59,7 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -84,11 +85,12 @@ public class AuroraListener extends MastersSlavesListener {
      * - we don't know current master, we must check that after initial connection
      * - master can change after he has a failover
      *
-     * @param urlParser connection informations
+     * @param urlParser     connection information
+     * @param globalInfo    server global variables information
      * @throws SQLException when connection string contain host with different cluster
      */
-    public AuroraListener(UrlParser urlParser) throws SQLException {
-        super(urlParser);
+    public AuroraListener(UrlParser urlParser, final GlobalStateInfo globalInfo) throws SQLException {
+        super(urlParser, globalInfo);
         masterProtocol = null;
         secondaryProtocol = null;
         clusterHostAddress = findClusterHostAddress(urlParser);
@@ -202,7 +204,7 @@ public class AuroraListener extends MastersSlavesListener {
             //and ping master connection fail a few milliseconds after,
             //resulting a masterConnection not initialized.
             do {
-                AuroraProtocol.loop(this, loopAddress, searchFilter);
+                AuroraProtocol.loop(this, globalInfo, loopAddress, searchFilter);
                 if (!searchFilter.isFailoverLoop()) {
                     try {
                         checkWaitingConnection();
@@ -210,7 +212,8 @@ public class AuroraListener extends MastersSlavesListener {
                         //don't throw an exception for this specific exception
                     }
                 }
-            } while (searchFilter.isInitialConnection() && masterProtocol == null);
+            } while (searchFilter.isInitialConnection()
+                    && !( masterProtocol != null || (urlParser.getOptions().allowMasterDownConnection && secondaryProtocol != null)));
         }
 
         //When reconnecting, search if replicas list has change since first initialisation
@@ -218,6 +221,10 @@ public class AuroraListener extends MastersSlavesListener {
             retrieveAllEndpointsAndSet(getCurrentProtocol());
         }
 
+        if (searchFilter.isInitialConnection() && masterProtocol == null && !currentReadOnlyAsked) {
+            currentProtocol = this.secondaryProtocol;
+            currentReadOnlyAsked = true;
+        }
     }
 
     /**
@@ -329,7 +336,7 @@ public class AuroraListener extends MastersSlavesListener {
 
             // Handling special case where no writer is found from secondaryProtocol
             if (currentWriter == null && getClusterHostAddress() != null) {
-                AuroraProtocol possibleMasterProtocol = AuroraProtocol.getNewProtocol(getProxy(), getUrlParser());
+                AuroraProtocol possibleMasterProtocol = AuroraProtocol.getNewProtocol(getProxy(), globalInfo, getUrlParser());
                 possibleMasterProtocol.setHostAddress(getClusterHostAddress());
                 try {
                     possibleMasterProtocol.connect();

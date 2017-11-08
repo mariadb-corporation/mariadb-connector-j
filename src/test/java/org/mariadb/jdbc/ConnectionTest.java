@@ -55,6 +55,7 @@ package org.mariadb.jdbc;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.UnsupportedEncodingException;
 import java.sql.*;
@@ -174,6 +175,10 @@ public class ConnectionTest extends BaseTest {
                 sqlex.printStackTrace();
                 fail(sqlex.getMessage());
             }
+
+            connection.isValid(2);
+            assertEquals(timeout, connection.getNetworkTimeout());
+
             try {
                 int networkTimeout = connection.getNetworkTimeout();
                 assertEquals(timeout, networkTimeout);
@@ -441,6 +446,68 @@ public class ConnectionTest extends BaseTest {
         } finally {
             closeProxy();
         }
-
     }
+
+    @Test
+    public void standardClose() throws Throwable {
+        Connection connection = setConnection();
+        Statement stmt = connection.createStatement();
+        stmt.setFetchSize(1);
+        ResultSet rs = stmt.executeQuery("select * from information_schema.columns as c1");
+        assertTrue(rs.next());
+        connection.close();
+        //must still work
+        try {
+            assertTrue(rs.next());
+            fail();
+        } catch (SQLException sqle) {
+            assertTrue(sqle.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+    }
+
+    @Test(timeout = 5_000L)
+    public void abortClose() throws Throwable {
+        Connection connection = setConnection();
+        Statement stmt = connection.createStatement();
+        stmt.setFetchSize(1);
+        ResultSet rs = stmt.executeQuery("select * from information_schema.columns as c1, "
+                + "information_schema.tables, information_schema.tables as t2");
+        assertTrue(rs.next());
+        connection.abort(SchedulerServiceProviderHolder.getBulkScheduler());
+        //must still work
+
+        Thread.sleep(20);
+        try {
+            assertTrue(rs.next());
+            fail();
+        } catch (SQLException sqle) {
+            sqle.printStackTrace();
+            assertTrue(sqle.getMessage().contains("Operation not permit on a closed resultSet"));
+        }
+    }
+
+    @Test(timeout = 5_000L)
+    public void verificationAbort() throws Throwable {
+        Timer timer = new Timer();
+        try (Connection connection = setConnection()) {
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        connection.abort(SchedulerServiceProviderHolder.getBulkScheduler());
+                    } catch (SQLException sqle) {
+                        fail(sqle.getMessage());
+                    }
+                }
+            }, 10);
+
+            Statement stmt = connection.createStatement();
+            try {
+                stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2");
+            } catch (SQLException sqle) {
+                assertTrue(sqle.getMessage().contains("Connection has explicitly been closed/aborted"));
+            }
+        }
+    }
+
 }

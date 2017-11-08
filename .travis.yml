@@ -24,6 +24,7 @@ cache:
 
 jdk:
     - oraclejdk8
+    - oraclejdk9
 
 env:
     - AURORA=true

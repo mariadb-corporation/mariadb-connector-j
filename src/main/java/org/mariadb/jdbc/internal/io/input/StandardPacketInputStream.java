@@ -64,7 +64,6 @@ import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.Instant;
 import java.util.Arrays;
 
 import static org.mariadb.jdbc.internal.io.TraceObject.NOT_COMPRESSED;
@@ -237,7 +236,7 @@ public class StandardPacketInputStream implements PacketInputStream {
         do {
             int count = inputStream.read(header, off, remaining);
             if (count < 0) {
-                throw new EOFException("unexpected end of stream, read " + off + " bytes from 4");
+                throw new EOFException("unexpected end of stream, read " + off + " bytes from 4 (socket was closed by server)");
             }
             remaining -= count;
             off += count;
@@ -260,14 +259,15 @@ public class StandardPacketInputStream implements PacketInputStream {
         do {
             int count = inputStream.read(rawBytes, off, remaining);
             if (count < 0) {
-                throw new EOFException("unexpected end of stream, read " + (lastPacketLength - remaining) + " bytes from " + lastPacketLength);
+                throw new EOFException("unexpected end of stream, read " + (lastPacketLength - remaining) + " bytes from " + lastPacketLength
+                        + " (socket was closed by server)");
             }
             remaining -= count;
             off += count;
         } while (remaining > 0);
 
         if (traceCache != null) {
-            traceCache.put(Instant.now(), new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
+            traceCache.put(new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
                     Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
         }
 
@@ -317,7 +317,7 @@ public class StandardPacketInputStream implements PacketInputStream {
                 } while (remaining > 0);
 
                 if (traceCache != null) {
-                    traceCache.put(Instant.now(), new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
+                    traceCache.put(new TraceObject(false, NOT_COMPRESSED, Arrays.copyOfRange(header, 0, 4),
                             Arrays.copyOfRange(rawBytes, 0, off > 1000 ? 1000 : off)));
                 }
 

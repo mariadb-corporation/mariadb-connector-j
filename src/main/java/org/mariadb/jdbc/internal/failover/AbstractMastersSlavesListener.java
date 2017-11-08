@@ -57,6 +57,7 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 import java.lang.reflect.Method;
 import java.sql.SQLException;
@@ -78,8 +79,8 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
     private volatile long secondaryHostFailNanos = 0;
     private final AtomicBoolean secondaryHostFail = new AtomicBoolean();
 
-    protected AbstractMastersSlavesListener(UrlParser urlParser) {
-        super(urlParser);
+    protected AbstractMastersSlavesListener(UrlParser urlParser, final GlobalStateInfo globalInfo) {
+        super(urlParser, globalInfo);
         this.secondaryHostFail.set(true);
     }
 

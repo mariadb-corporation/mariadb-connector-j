@@ -175,6 +175,7 @@ public class DataSourceTest extends BaseTest {
      * @throws SQLException exception
      */
     @Test
+    @SuppressWarnings( "deprecation" )
     public void setPropertiesTest() throws SQLException {
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
         ds.setProperties("sessionVariables=sql_mode='PIPES_AS_CONCAT'");
@@ -198,7 +199,7 @@ public class DataSourceTest extends BaseTest {
     @Test
     public void setLoginTimeOut() throws SQLException {
         MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port, database);
-        assertEquals(0, ds.getLoginTimeout());
+        assertEquals(30, ds.getLoginTimeout());
         ds.setLoginTimeout(10);
         assertEquals(10, ds.getLoginTimeout());
     }

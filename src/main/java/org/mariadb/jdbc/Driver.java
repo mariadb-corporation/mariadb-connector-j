@@ -87,7 +87,7 @@ public final class Driver implements java.sql.Driver {
             //log.info("MariaDB connector : missing Host address");
             return null;
         } else {
-            return MariaDbConnection.newConnection(urlParser);
+            return MariaDbConnection.newConnection(urlParser, null);
         }
 
     }

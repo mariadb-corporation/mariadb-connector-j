@@ -60,6 +60,8 @@ import org.junit.Test;
 
 import java.io.*;
 import java.lang.reflect.Field;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -106,6 +108,14 @@ public class SslTest extends BaseTest {
         Assume.assumeTrue(haveSsl(sharedConnection));
         //Skip SSL test on java 7 since SSL stream size JDK-6521495).
         Assume.assumeFalse(isJava7);
+        try {
+            InetAddress.getByName("mariadb.example.com").isReachable(3);
+        } catch (UnknownHostException hostException) {
+            throw new SQLException("SSL test canceled, database host must be set has "
+                    + "\"mariadb.example.com\" to permit SSL certificate Host verification");
+        } catch (IOException ioe) {
+
+        }
 
         if (System.getProperty("serverCertificatePath") == null) {
             try (ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert")) {
@@ -396,6 +406,7 @@ public class SslTest extends BaseTest {
 
     @Test
     public void testServerCertString() throws SQLException {
+        Assume.assumeTrue(hasSameHost());
         Properties info = new Properties();
         info.setProperty("useSSL", "true");
         info.setProperty("serverSslCert", getServerCertificate());
@@ -412,6 +423,7 @@ public class SslTest extends BaseTest {
 
     @Test
     public void testServerCertFile() throws SQLException {
+        Assume.assumeTrue(hasSameHost());
         Properties info = new Properties();
         info.setProperty("useSSL", "true");
         info.setProperty("serverSslCert", serverCertificatePath);
@@ -420,6 +432,7 @@ public class SslTest extends BaseTest {
 
     @Test
     public void testServerCertClasspathFile() throws SQLException {
+        Assume.assumeTrue(hasSameHost());
         Assume.assumeTrue(new File("target/classes").isDirectory());
         Properties info = new Properties();
         info.setProperty("useSSL", "true");
@@ -440,6 +453,7 @@ public class SslTest extends BaseTest {
 
     @Test
     public void conc71() {
+        Assume.assumeTrue(hasSameHost());
         try {
             Properties info = new Properties();
             info.setProperty("serverSslCert", getServerCertificate());
@@ -454,6 +468,7 @@ public class SslTest extends BaseTest {
 
     @Test
     public void testTruststore() throws SQLException, IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
+        Assume.assumeTrue(hasSameHost());
         // generate a truststore from the canned serverCertificate
         File tempKeystore = File.createTempFile("keystore", ".tmp");
         String keystorePath = tempKeystore.getAbsolutePath();
@@ -473,6 +488,7 @@ public class SslTest extends BaseTest {
 
     @Test
     public void testTrustStoreWithPassword() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, SQLException {
+        Assume.assumeTrue(hasSameHost());
         // generate a truststore from the canned serverCertificate
         File tempKeystore = File.createTempFile("keystore", ".tmp");
         String keystorePath = tempKeystore.getAbsolutePath();
@@ -491,6 +507,7 @@ public class SslTest extends BaseTest {
 
     @Test
     public void testTrustStoreWithPasswordProperties() throws Exception {
+        Assume.assumeTrue(hasSameHost());
         // generate a truststore from the canned serverCertificate
         File tempKeystore = File.createTempFile("keystore", ".tmp");
         String keystorePath = tempKeystore.getAbsolutePath();
@@ -526,6 +543,7 @@ public class SslTest extends BaseTest {
     @Test(expected = SQLException.class)
     public void testTruststoreWithWrongPassword() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException,
             SQLException {
+        Assume.assumeTrue(hasSameHost());
         // generate a truststore from the canned serverCertificate
         File tempKeystore = File.createTempFile("keystore", ".tmp");
         String keystorePath = tempKeystore.getAbsolutePath();

@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
+import com.sun.jna.Platform;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.send.gssapi.GssapiAuth;
@@ -62,7 +63,6 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 
@@ -116,11 +116,7 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
     private GssapiAuth getAuthenticationMethod() {
         try {
             //Waffle-jna has jna as dependency, so if not available on classpath, just use standard authentication
-            Class platformClass = Class.forName("com.sun.jna.Platform");
-            @SuppressWarnings("unchecked")
-            Method method = platformClass.getMethod("isWindows");
-            Boolean isWindows = (Boolean) method.invoke(platformClass);
-            if (isWindows) {
+            if (Platform.isWindows()) {
                 try {
                     Class.forName("waffle.windows.auth.impl.WindowsAuthProviderImpl");
                     return new WindowsNativeSspiAuthentication(reader, packSeq);
@@ -128,7 +124,7 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
                     //waffle not in the classpath
                 }
             }
-        } catch (Exception cle) {
+        } catch (Throwable cle) {
             //jna jar's are not in classpath
         }
         return new StandardGssapiAuthentication(reader, packSeq);

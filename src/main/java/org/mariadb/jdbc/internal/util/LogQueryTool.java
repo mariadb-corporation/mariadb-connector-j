@@ -103,11 +103,17 @@ public class LogQueryTool {
     /**
      * Return exception with query information's.
      *
-     * @param sql          current sql command
-     * @param sqlException current exception
+     * @param sql               current sql command
+     * @param sqlException      current exception
+     * @param explicitClosed    has connection been explicitly closed
      * @return exception with query information
      */
-    public SQLException exceptionWithQuery(String sql, SQLException sqlException) {
+    public SQLException exceptionWithQuery(String sql, SQLException sqlException, boolean explicitClosed) {
+        if (explicitClosed) {
+            return new SQLException("Connection has explicitly been closed/aborted.\nQuery is: " + subQuery(sql), sqlException.getSQLState(),
+                    sqlException.getErrorCode(), sqlException.getCause());
+        }
+
         if (options.dumpQueriesOnException || sqlException.getErrorCode() == 1064) {
             return new SQLException(sqlException.getMessage() + "\nQuery is: " + subQuery(sql), sqlException.getSQLState(),
                     sqlException.getErrorCode(), sqlException.getCause());
@@ -118,13 +124,14 @@ public class LogQueryTool {
     /**
      * Return exception with query information's.
      *
-     * @param buffer query buffer
-     * @param sqlEx  current exception
+     * @param buffer            query buffer
+     * @param sqlEx             current exception
+     * @param explicitClosed    has connection been explicitly closed
      * @return exception with query information
      */
-    public SQLException exceptionWithQuery(ByteBuffer buffer, SQLException sqlEx) {
-        if (options.dumpQueriesOnException || sqlEx.getErrorCode() == 1064) {
-            return exceptionWithQuery(subQuery(buffer), sqlEx);
+    public SQLException exceptionWithQuery(ByteBuffer buffer, SQLException sqlEx, boolean explicitClosed) {
+        if (options.dumpQueriesOnException || sqlEx.getErrorCode() == 1064 || explicitClosed) {
+            return exceptionWithQuery(subQuery(buffer), sqlEx, explicitClosed);
         }
         return sqlEx;
     }

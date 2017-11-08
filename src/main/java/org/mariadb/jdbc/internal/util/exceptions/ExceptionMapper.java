@@ -75,6 +75,10 @@ public class ExceptionMapper {
         throw getException(exception, connection, statement, false);
     }
 
+    public static SQLException connException(String message) {
+        return connException(message, null);
+    }
+
     public static SQLException connException(String message, Throwable cause) {
         return get(message, CONNECTION_EXCEPTION.getSqlState(), -1, cause, false);
     }
@@ -146,7 +150,17 @@ public class ExceptionMapper {
         }
     }
 
-    private static SQLException get(final String message, String sqlState, int errorCode, final Throwable exception, boolean timeout) {
+    /**
+     * Helper to decorate exception with associate subclass of {@link SQLException} exception.
+     *
+     * @param message       exception message
+     * @param sqlState      sqlstate
+     * @param errorCode     errorCode
+     * @param exception     cause
+     * @param timeout       was timeout on query
+     * @return SQLException exception
+     */
+    public static SQLException get(final String message, String sqlState, int errorCode, final Throwable exception, boolean timeout) {
         final SqlStates state = SqlStates.fromString(sqlState);
         switch (state) {
             case DATA_EXCEPTION:

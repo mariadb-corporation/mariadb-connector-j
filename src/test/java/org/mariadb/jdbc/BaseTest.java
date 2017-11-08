@@ -53,6 +53,7 @@
 package org.mariadb.jdbc;
 
 
+import com.sun.jna.Platform;
 import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
@@ -117,7 +118,7 @@ public class BaseTest {
 
         //execute another query to ensure connection is stable
         protected void finished(Description description) {
-            if (testSingleHost) {
+            if ( testSingleHost) {
                 Random random = new Random();
                 int randInt = random.nextInt();
                 try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT " + randInt)) {
@@ -158,7 +159,7 @@ public class BaseTest {
         testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
 
         if (testSingleHost) {
-            urlParser = UrlParser.parse(url);
+            urlParser = UrlParser.parse(url + "&pool=true&maxPoolSize=4&minPoolSize=1");
             if (urlParser.getHostAddresses().size() > 0) {
                 hostname = urlParser.getHostAddresses().get(0).host;
                 port = urlParser.getHostAddresses().get(0).port;
@@ -198,8 +199,9 @@ public class BaseTest {
 
             setUri();
             urlParser.auroraPipelineQuirks();
-            sharedConnection = DriverManager.getConnection(url);
 
+            sharedConnection = DriverManager.getConnection(url);
+            
             String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
             doPrecisionTest = isMariadbServer() || !dbVersion.startsWith("5.5"); //MySQL 5.5 doesn't support precision
         }
@@ -820,6 +822,43 @@ public class BaseTest {
     }
 
     /**
+     * Cancel if Maxscale version isn't required minimum.
+     *
+     * @param major     minimum maxscale major version
+     * @param minor     minimum maxscale minor version
+     */
+    public void ifMaxscaleRequireMinimumVersion(int major, int minor) {
+        String maxscaleVersion = System.getenv("MAXSCALE_VERSION");
+        if (maxscaleVersion == null) return;
+
+        String[] versionArray = maxscaleVersion.split("[^0-9]");
+
+        int majorVersion = 0;
+        int minorVersion = 0;
+
+        //standard version
+        if (versionArray.length > 2) {
+
+            majorVersion = Integer.parseInt(versionArray[0]);
+            minorVersion = Integer.parseInt(versionArray[1]);
+
+        } else {
+
+            if (versionArray.length > 0) {
+                majorVersion = Integer.parseInt(versionArray[0]);
+            }
+
+            if (versionArray.length > 1) {
+                minorVersion = Integer.parseInt(versionArray[1]);
+            }
+
+        }
+
+        Assume.assumeTrue(majorVersion > major
+                || (majorVersion == major && minorVersion >= minor));
+    }
+
+    /**
      * Change session time zone.
      *
      * @param connection connection
@@ -896,5 +935,53 @@ public class BaseTest {
 
     public boolean sharedIsAurora() {
         return urlParser.isAurora();
+    }
+
+    /**
+     * List current connections to server.
+     * @return number of thread connected.
+     * @throws SQLException if queries failed
+     */
+    public static int getCurrentConnections() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+
+        ResultSet rs = stmt.executeQuery("SHOW FULL PROCESSLIST");
+
+        ResultSetMetaData rsMeta = rs.getMetaData();
+        for (int i = 0 ; i < rsMeta.getColumnCount(); i++) {
+            System.out.print("| " + rsMeta.getColumnName(i + 1));
+        }
+        System.out.println("");
+
+        while (rs.next()) {
+            for (int i = 0 ; i < rsMeta.getColumnCount(); i++) {
+                System.out.print("| " + rs.getString(i + 1));
+            }
+            System.out.println("");
+        }
+        System.out.println("__________________________________________________________");
+
+
+        rs = stmt.executeQuery("show status where `variable_name` = 'Threads_connected'");
+        assertTrue(rs.next());
+        return rs.getInt(2);
+    }
+
+    /**
+     * Check if server and client are on same host (not using containers).
+     * @return true if server and client are really on same host
+     */
+    public boolean hasSameHost() {
+        try {
+            Statement st = sharedConnection.createStatement();
+            ResultSet rs = st.executeQuery("select @@version_compile_os");
+            if (rs.next()) {
+                if ((rs.getString(1).contains("linux") && Platform.isWindows())
+                        || (rs.getString(1).contains("win") && Platform.isLinux())) return false;
+            }
+        } catch (SQLException sqle) {
+            //eat
+        }
+        return true;
     }
 }

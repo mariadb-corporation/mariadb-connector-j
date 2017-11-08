@@ -1366,7 +1366,7 @@ public class UpdatableResultSet extends SelectResultSet {
 
             //row's raw bytes must be encoded according to current resultSet type
             //Create Server or Client PrepareStatement accordingly
-            if (isBinaryEncoded) {
+            if (isBinaryEncoded()) {
                 refreshPreparedStatement = connection.serverPrepareStatement(selectSql.toString());
             } else {
                 refreshPreparedStatement = connection.clientPrepareStatement(selectSql.toString());
@@ -1385,7 +1385,7 @@ public class UpdatableResultSet extends SelectResultSet {
                 if (state != STATE_STANDARD && value != null) {
                     //Row has just been updated using updateRow() methods.
                     //updateRow has changed primary key, must use the new value.
-                    if (isBinaryEncoded) {
+                    if (isBinaryEncoded()) {
                         ((MariaDbPreparedStatementServer) refreshPreparedStatement).setParameter(fieldsPrimaryIndex++, value);
                     } else {
                         ((MariaDbPreparedStatementClient) refreshPreparedStatement).setParameter(fieldsPrimaryIndex++, value);

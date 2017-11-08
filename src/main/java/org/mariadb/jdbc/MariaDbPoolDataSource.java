@@ -18,36 +18,6 @@
  * You should have received a copy of the GNU Lesser General Public License along
  * with this library; if not, write to Monty Program Ab info@montyprogram.com.
  *
- * This particular MariaDB Client for Java file is work
- * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
- * the following copyright and notice provisions:
- *
- * Copyright (c) 2009-2011, Marcus Eriksson
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- * Redistributions of source code must retain the above copyright notice, this list
- * of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice, this
- * list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
- *
- * Neither the name of the driver nor the names of its contributors may not be
- * used to endorse or promote products derived from this software without specific
- * prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
- * OF SUCH DAMAGE.
- *
  */
 
 
@@ -58,30 +28,40 @@ import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.pool.Pool;
+import org.mariadb.jdbc.internal.util.pool.Pools;
 
-import javax.sql.*;
+import javax.sql.DataSource;
+import javax.sql.XAConnection;
+import javax.sql.XADataSource;
+import java.io.Closeable;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.logging.Logger;
 
 
-public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {
+public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeable, AutoCloseable {
 
     private UrlParser urlParser;
     private Pool pool;
 
     private String hostname;
-    private Integer port = 3306;
-    private Integer connectTimeoutInMs = 30_000;
+    private Integer port;
+    private Integer connectTimeout;
     private String database;
     private String url;
     private String user;
     private String password;
-    private String properties;
+    private String poolName;
+    private Integer maxPoolSize;
+    private Integer minPoolSize;
+    private Integer maxIdleTime;
+    private Boolean staticGlobal;
+    private Integer poolValidMinDelay;
 
     /**
      * Constructor.
@@ -90,20 +70,20 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @param port     server port
      * @param database database name
      */
-    public MariaDbDataSource(String hostname, int port, String database) {
+    public MariaDbPoolDataSource(String hostname, int port, String database) {
         this.hostname = hostname;
         this.port = port;
         this.database = database;
     }
 
-    public MariaDbDataSource(String url) {
+    public MariaDbPoolDataSource(String url) throws SQLException {
         this.url = url;
     }
 
     /**
      * Default constructor. hostname will be localhost, port 3306.
      */
-    public MariaDbDataSource() {
+    public MariaDbPoolDataSource() {
 
     }
 
@@ -121,11 +101,15 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * Sets the database name.
      *
      * @param database the name of the database
-     * @throws SQLException if connection information are erroneous
+     * @throws SQLException if error in URL
      */
     public void setDatabaseName(String database) throws SQLException {
+        checkNotInitialized();
         this.database = database;
-        reInitializeIfNeeded();
+    }
+
+    private void checkNotInitialized() throws SQLException {
+        if (pool != null) throw new SQLException("can not perform a configuration change once initialized");
     }
 
     /**
@@ -142,41 +126,22 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * Sets the username.
      *
      * @param user the username
-     * @throws SQLException if connection information are erroneous
+     * @throws SQLException if error in URL
      */
     public void setUser(String user) throws SQLException {
+        checkNotInitialized();
         this.user = user;
-        reInitializeIfNeeded();
-    }
-
-    /**
-     * Gets the username.
-     *
-     * @return the username to use when connecting to the database
-     */
-    public String getUserName() {
-        return getUser();
-    }
-
-    /**
-     * Sets the username.
-     *
-     * @param userName the username
-     * @throws SQLException if connection information are erroneous
-     */
-    public void setUserName(String userName) throws SQLException {
-        setUser(userName);
     }
 
     /**
      * Sets the password.
      *
      * @param password the password
-     * @throws SQLException if connection information are erroneous
+     * @throws SQLException if error in URL
      */
     public void setPassword(String password) throws SQLException {
+        checkNotInitialized();
         this.password = password;
-        reInitializeIfNeeded();
     }
 
     /**
@@ -193,11 +158,11 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * Sets the database port.
      *
      * @param port the port
-     * @throws SQLException if connection information are erroneous
+     * @throws SQLException if error in URL
      */
     public void setPort(int port) throws SQLException {
+        checkNotInitialized();
         this.port = port;
-        reInitializeIfNeeded();
     }
 
     /**
@@ -213,31 +178,14 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * Sets the port number.
      *
      * @param port the port
-     * @throws SQLException if connection information are erroneous
      * @see #setPort
+     * @throws SQLException if error in URL
      */
     public void setPortNumber(int port) throws SQLException {
+        checkNotInitialized();
         if (port > 0) {
             setPort(port);
         }
-    }
-
-    @Deprecated
-    public void setProperties(String properties) throws SQLException {
-        this.properties = properties;
-        reInitializeIfNeeded();
-    }
-
-    /**
-     * Sets the connection string URL.
-     *
-     * @param url the connection string
-     * @throws SQLException if error in URL
-     * @deprecated since 1.3.0 use setUrl method instead
-     */
-    @Deprecated
-    public void setURL(String url) throws SQLException {
-        setUrl(url);
     }
 
     /**
@@ -247,8 +195,8 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @throws SQLException if error in URL
      */
     public void setUrl(String url) throws SQLException {
+        checkNotInitialized();
         this.url = url;
-        reInitializeIfNeeded();
     }
 
     /**
@@ -266,11 +214,11 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * Sets the server name.
      *
      * @param serverName the server name
-     * @throws SQLException if connection information are erroneous
-     */
+     * @throws SQLException if error in URL
+     **/
     public void setServerName(String serverName) throws SQLException {
+        checkNotInitialized();
         hostname = serverName;
-        reInitializeIfNeeded();
     }
 
     /**
@@ -281,11 +229,8 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      */
     public Connection getConnection() throws SQLException {
         try {
-            if (urlParser == null) {
-                initialize();
-            }
-
-            return MariaDbConnection.newConnection(urlParser, null);
+            if (pool == null) initialize();
+            return pool.getConnection();
         } catch (SQLException e) {
             throw ExceptionMapper.getException(e, null, null, false);
         }
@@ -301,16 +246,26 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      */
     public Connection getConnection(final String username, final String password) throws SQLException {
         try {
-            if (urlParser == null) {
+            if (pool == null) {
                 this.user = username;
                 this.password = password;
+
                 initialize();
+                return pool.getConnection();
             }
+
+            if ((urlParser.getUsername() != null ? urlParser.getUsername().equals(username) : username == null)
+                    && (urlParser.getPassword() != null ? urlParser.getPassword().equals(password) : (password == null || password.isEmpty()))) {
+                return pool.getConnection();
+            }
+
+            //username / password are different from the one already used to initialize pool
+            //-> return a real new connection.
 
             UrlParser urlParser = (UrlParser) this.urlParser.clone();
             urlParser.setUsername(username);
             urlParser.setPassword(password);
-            return MariaDbConnection.newConnection(urlParser, null);
+            return MariaDbConnection.newConnection(urlParser, pool.getGlobalInfo());
 
         } catch (SQLException e) {
             throw ExceptionMapper.getException(e, null, null, false);
@@ -369,7 +324,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @since 1.4
      */
     public int getLoginTimeout() throws SQLException {
-        if (connectTimeoutInMs != null) return connectTimeoutInMs / 1000;
+        if (connectTimeout != null) return connectTimeout / 1000;
         return (urlParser != null) ? urlParser.getOptions().connectTimeout / 1000 : 0;
     }
 
@@ -385,7 +340,8 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      */
     @Override
     public void setLoginTimeout(final int seconds) throws SQLException {
-        connectTimeoutInMs = seconds * 1000;
+        checkNotInitialized();
+        connectTimeout = seconds * 1000;
     }
 
     /**
@@ -428,39 +384,10 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
      * @return true if this implements the interface or directly or indirectly wraps an object that does.
      * @throws SQLException if an error occurs while determining whether this is a wrapper for an object with
      *                      the given interface.
+     * @since 1.6
      */
     public boolean isWrapperFor(final Class<?> interfaceOrWrapper) throws SQLException {
         return interfaceOrWrapper.isInstance(this);
-    }
-
-    /**
-     * Attempts to establish a physical database connection that can
-     * be used as a pooled connection.
-     *
-     * @return a <code>PooledConnection</code> object that is a physical
-     * connection to the database that this
-     * <code>ConnectionPoolDataSource</code> object represents
-     * @throws SQLException if a database access error occurs
-     *                      if the JDBC driver does not support
-     *                      this method
-     */
-    public PooledConnection getPooledConnection() throws SQLException {
-        return new MariaDbPooledConnection((MariaDbConnection) getConnection());
-    }
-
-    /**
-     * Attempts to establish a physical database connection that can
-     * be used as a pooled connection.
-     *
-     * @param user     the database user on whose behalf the connection is being made
-     * @param password the user's password
-     * @return a <code>PooledConnection</code> object that is a physical
-     * connection to the database that this
-     * <code>ConnectionPoolDataSource</code> object represents
-     * @throws SQLException if a database access error occurs
-     */
-    public PooledConnection getPooledConnection(String user, String password) throws SQLException {
-        return new MariaDbPooledConnection((MariaDbConnection) getConnection(user, password));
     }
 
     @Override
@@ -479,41 +406,163 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
 
     /**
      * For testing purpose only.
+     *
      * @return current url parser.
      */
     protected UrlParser getUrlParser() {
         return urlParser;
     }
 
-    private void reInitializeIfNeeded() throws SQLException {
-        if (urlParser != null) {
-            initialize();
-        }
+    public String getPoolName() {
+        return (pool != null) ? pool.getPoolTag() : poolName;
     }
 
-    protected synchronized void initialize() throws SQLException {
+    public void setPoolName(String poolName) throws SQLException {
+        checkNotInitialized();
+        this.poolName = poolName;
+    }
+
+    public int getMaxPoolSize() {
+        return maxPoolSize;
+    }
+
+    public void setMaxPoolSize(int maxPoolSize) throws SQLException {
+        checkNotInitialized();
+        this.maxPoolSize = maxPoolSize;
+    }
+
+    public int getMinPoolSize() {
+        return minPoolSize;
+    }
+
+    public void setMinPoolSize(int minPoolSize) throws SQLException {
+        checkNotInitialized();
+        this.minPoolSize = minPoolSize;
+    }
+
+    public int getMaxIdleTime() {
+        return maxIdleTime;
+    }
+
+    public void setMaxIdleTime(int maxIdleTime) throws SQLException {
+        checkNotInitialized();
+        this.maxIdleTime = maxIdleTime;
+    }
+
+    public Boolean getStaticGlobal() {
+        return staticGlobal;
+    }
+
+    public void setStaticGlobal(Boolean staticGlobal) {
+        this.staticGlobal = staticGlobal;
+    }
+
+    public Integer getPoolValidMinDelay() {
+        return poolValidMinDelay;
+    }
+
+    public void setPoolValidMinDelay(Integer poolValidMinDelay) {
+        this.poolValidMinDelay = poolValidMinDelay;
+    }
+
+    private synchronized void initializeUrlParser() throws SQLException {
+
         if (url != null && !url.isEmpty()) {
             Properties props = new Properties();
+            props.setProperty("pool", "true");
             if (user != null) props.setProperty("user", user);
             if (password != null) props.setProperty("password", password);
+            if (poolName != null) props.setProperty("poolName", poolName);
+
             if (database != null) props.setProperty("database", database);
-            if (connectTimeoutInMs != null) props.setProperty("connectTimeout", String.valueOf(connectTimeoutInMs));
+            if (maxPoolSize != null) props.setProperty("maxPoolSize", String.valueOf(maxPoolSize));
+            if (minPoolSize != null) props.setProperty("minPoolSize", String.valueOf(minPoolSize));
+            if (maxIdleTime != null) props.setProperty("maxIdleTime", String.valueOf(maxIdleTime));
+            if (connectTimeout != null) props.setProperty("connectTimeout", String.valueOf(connectTimeout));
+            if (staticGlobal != null) props.setProperty("staticGlobal", String.valueOf(staticGlobal));
+            if (poolValidMinDelay != null) props.setProperty("poolValidMinDelay", String.valueOf(poolValidMinDelay));
 
             urlParser = UrlParser.parse(url, props);
 
         } else {
+
             Options options = DefaultOptions.defaultValues(HaMode.NONE);
+            options.pool = true;
             options.user = user;
             options.password = password;
+            options.poolName = poolName;
+
+            if (maxPoolSize != null) options.maxPoolSize = maxPoolSize;
+            if (minPoolSize != null) options.minPoolSize = minPoolSize;
+            if (maxIdleTime != null) options.maxIdleTime = maxIdleTime;
+            if (staticGlobal != null) options.staticGlobal = staticGlobal;
+            if (connectTimeout != null) options.connectTimeout = connectTimeout;
+            if (poolValidMinDelay != null) options.poolValidMinDelay = poolValidMinDelay;
 
             urlParser = new UrlParser(database,
                     Collections.singletonList(
                             new HostAddress(
                                     (hostname == null || hostname.isEmpty()) ? "localhost" : hostname,
                                     port == null ? 3306 : port)),
-                    options ,
+                    options,
                     HaMode.NONE);
-            if (properties != null) urlParser.setProperties(properties);
         }
     }
+
+    /**
+     * Close datasource.
+     */
+    public void close() {
+        try {
+            if (pool != null) pool.close();
+        } catch (InterruptedException interrupted) {
+            //eat
+        }
+    }
+
+    /**
+     * Initialize pool.
+     *
+     * @throws SQLException if connection string has error
+     */
+    public synchronized void initialize() throws SQLException {
+        if (pool == null) {
+            initializeUrlParser();
+            pool = Pools.retrievePool(urlParser);
+        }
+    }
+
+    /**
+     * Get current idle threads.
+     * !! For testing purpose only !!
+     *
+     * @return current thread id's
+     */
+    public List<Long> testGetConnectionIdleThreadIds() {
+        return pool.testGetConnectionIdleThreadIds();
+    }
+
+    /**
+     * Permit to create test that doesn't wait for maxIdleTime minimum value of 60 seconds.
+     * !! For testing purpose only !!
+     *
+     * @param maxIdleTime forced value of maxIdleTime option.
+     * @throws SQLException if connection string has error
+     */
+    public void testForceMaxIdleTime(int maxIdleTime) throws SQLException {
+        initializeUrlParser();
+        urlParser.getOptions().maxIdleTime = maxIdleTime;
+        pool = Pools.retrievePool(urlParser);
+    }
+
+    /**
+     * Get pool.
+     * !! For testing purpose only !!
+     *
+     * @return pool
+     */
+    public Pool testGetPool() {
+        return pool;
+    }
+
 }

@@ -81,6 +81,7 @@ import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.FileInputStream;
@@ -121,9 +122,39 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @param lock      the lock for thread synchronisation
      */
 
-    AbstractQueryProtocol(final UrlParser urlParser, final ReentrantLock lock) {
-        super(urlParser, lock);
+    AbstractQueryProtocol(final UrlParser urlParser, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
+        super(urlParser, globalInfo, lock);
         logQuery = new LogQueryTool(options);
+    }
+
+    /**
+     * Reset connection state.
+     *
+     * <ol>
+     *     <li>Transaction will be rollback</li>
+     *     <li>transaction isolation will be reset</li>
+     *     <li>user variables will be removed</li>
+     *     <li>sessions variables will be reset to global values</li>
+     * </ol>
+     *
+     * @throws SQLException if command failed
+     */
+    @Override
+    public void reset() throws SQLException {
+        cmdPrologue();
+        try {
+
+            writer.startPacket(0);
+            writer.write(COM_RESET_CONNECTION);
+            writer.flush();
+            getResult(new Results());
+
+        } catch (SQLException sqlException) {
+            throw logQuery.exceptionWithQuery("COM_RESET_CONNECTION failed.", sqlException, explicitClosed);
+        } catch (IOException e) {
+            throw handleIoException(e);
+        }
+
     }
 
     /**
@@ -159,7 +190,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             getResult(results);
 
         } catch (SQLException sqlException) {
-            throw logQuery.exceptionWithQuery(sql, sqlException);
+            throw logQuery.exceptionWithQuery(sql, sqlException, explicitClosed);
         } catch (IOException e) {
             throw handleIoException(e);
         }
@@ -178,7 +209,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             getResult(results);
 
         } catch (SQLException sqlException) {
-            throw logQuery.exceptionWithQuery(sql, sqlException);
+            throw logQuery.exceptionWithQuery(sql, sqlException, explicitClosed);
         } catch (IOException e) {
             throw handleIoException(e);
         }
@@ -437,7 +468,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         return false;
                     }
                     if (exception == null) {
-                        exception = logQuery.exceptionWithQuery(sql, sqle);
+                        exception = logQuery.exceptionWithQuery(sql, sqle, explicitClosed);
                         if (!options.continueBatchOnError) throw exception;
                     }
                 }
@@ -463,7 +494,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                         return false;
                     }
                     if (exception == null) {
-                        exception = logQuery.exceptionWithQuery(sql, sqle);
+                        exception = logQuery.exceptionWithQuery(sql, sqle, explicitClosed);
                         if (!options.continueBatchOnError) throw exception;
                     }
                 }
@@ -533,7 +564,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     sql.append(parameters[i].toString()).append(new String(queryParts.get(i + 1)));
                 }
 
-                return logQuery.exceptionWithQuery(sql.toString(), qex);
+                return logQuery.exceptionWithQuery(sql.toString(), qex, explicitClosed);
             }
 
 
@@ -618,7 +649,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
                 } catch (SQLException sqlException) {
                     if (exception == null) {
-                        exception = logQuery.exceptionWithQuery(sql, sqlException);
+                        exception = logQuery.exceptionWithQuery(sql, sqlException, explicitClosed);
                         if (!options.continueBatchOnError) throw exception;
                     }
                 } catch (IOException e) {
@@ -655,7 +686,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                                                       int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
 
                 String sql = queries.get(currentCounter + sendCmdCounter);
-                return logQuery.exceptionWithQuery(sql, qex);
+                return logQuery.exceptionWithQuery(sql, qex, explicitClosed);
 
             }
 
@@ -752,7 +783,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             } catch (SQLException sqlException) {
                 if (exception == null) {
-                    exception = logQuery.exceptionWithQuery(firstSql, sqlException);
+                    exception = logQuery.exceptionWithQuery(firstSql, sqlException, explicitClosed);
                     if (!options.continueBatchOnError) throw exception;
                 }
             } catch (IOException e) {
@@ -1034,9 +1065,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     @Override
     public boolean isValid(int timeout) throws SQLException {
 
+        int initialTimeout = -1;
         try {
-
-            this.socket.setSoTimeout(timeout);
+            initialTimeout = socket.getSoTimeout();
+            socket.setSoTimeout(timeout);
             if (isMasterConnection() && urlParser.isMultiMaster()) {
                 //this is a galera node.
                 //checking not only that node is responding, but that this node is in primary mode too.
@@ -1059,7 +1091,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
             //set back initial socket timeout
             try {
-                this.socket.setSoTimeout(options.socketTimeout == null ? 0 : options.socketTimeout);
+                if (initialTimeout != -1) socket.setSoTimeout(initialTimeout);
             } catch (SocketException socketException) {
                 //eat
             }
@@ -1120,6 +1152,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
     }
 
+    @Override
+    public void resetDatabase() throws SQLException {
+        if (!database.equals(urlParser.getDatabase())) {
+            setCatalog(urlParser.getDatabase());
+        }
+    }
+
     /**
      * Cancels the current query - clones the current protocol and executes a query using the new connection.
      *
@@ -1127,7 +1166,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      */
     @Override
     public void cancelCurrentQuery() throws SQLException {
-        try (MasterProtocol copiedProtocol = new MasterProtocol(urlParser, new ReentrantLock())) {
+        try (MasterProtocol copiedProtocol = new MasterProtocol(urlParser, new GlobalStateInfo(), new ReentrantLock())) {
             copiedProtocol.setHostAddress(getHostAddress());
             copiedProtocol.connect();
             //no lock, because there is already a query running that possessed the lock.
@@ -1155,7 +1194,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         this.explicitClosed = true;
         close();
     }
-
 
     /**
      * Deallocate prepare statement if not used anymore.
@@ -1226,7 +1264,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     public void setTimeout(int timeout) throws SocketException {
         lock.lock();
         try {
-            this.getOptions().socketTimeout = timeout;
             this.socket.setSoTimeout(timeout);
         } finally {
             lock.unlock();
@@ -1582,7 +1619,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 selectResultSet = new UpdatableResultSet(ci, results, this, reader, callableResult, eofDeprecated);
             }
 
-            results.addResultSet(selectResultSet, hasMoreResults());
+            results.addResultSet(selectResultSet, hasMoreResults() || results.getFetchSize() > 0);
 
         } catch (IOException e) {
             throw handleIoException(e);
@@ -1657,7 +1694,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             activeFutureTask = null;
         }
 
-        if (!this.connected) throw new SQLException("Connection is close", "08000", 1220);
+        if (!this.connected) throw new SQLException("Connection is closed", "08000", 1220);
         interrupted = false;
 
     }
@@ -1719,7 +1756,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             try {
                 connect();
             } catch (SQLException queryException) {
-                return new SQLNonTransientConnectionException("Could not send query: " + initialException.getMessage()
+                return new SQLNonTransientConnectionException(initialException.getMessage()
                         + "\nError during reconnection" + getTraces(), CONNECTION_EXCEPTION.getSqlState(), initialException);
             }
 
@@ -1734,7 +1771,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     + writer.getMaxAllowedPacket() + ")" + getTraces(), UNDEFINED_SQLSTATE.getSqlState(), initialException);
         }
 
-        return new SQLException("Could not send query: " + initialException.getMessage() + getTraces(),
+        return new SQLException(initialException.getMessage() + getTraces(),
                 driverPreventError ? UNDEFINED_SQLSTATE.getSqlState() : CONNECTION_EXCEPTION.getSqlState(), initialException);
 
     }

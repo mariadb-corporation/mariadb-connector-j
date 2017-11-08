@@ -131,23 +131,19 @@ public class ServerPrepareStatementTest extends BaseTest {
     public void serverCacheStatementTest() throws Throwable {
         Assume.assumeTrue(sharedUsePrepare());
         try (Connection connection = setConnection()) {
-            PreparedStatement ps = connection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)  ");
-            ps.setBoolean(1, true);
-            ps.addBatch();
-            ps.executeBatch();
+            Protocol protocol = getProtocolFromConnection(connection);
+            int cacheSize = protocol.prepareStatementCache().size();
+
+            PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
+            preparedStatement.setBoolean(1, true);
+            preparedStatement.execute();
+            assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
+
+            PreparedStatement preparedStatement2 = connection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
+            preparedStatement2.setBoolean(1, true);
+            preparedStatement2.execute();
+            assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
         }
-
-        Protocol protocol = getProtocolFromConnection(sharedConnection);
-        int cacheSize = protocol.prepareStatementCache().size();
-        PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
-        preparedStatement.setBoolean(1, true);
-        preparedStatement.execute();
-        assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
-
-        PreparedStatement preparedStatement2 = sharedConnection.prepareStatement("INSERT INTO ServerPrepareStatementTestCache(test) VALUES (?)");
-        preparedStatement2.setBoolean(1, true);
-        preparedStatement2.execute();
-        assertTrue(cacheSize + 1 == protocol.prepareStatementCache().size());
     }
 
     @Test

@@ -57,6 +57,7 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -66,21 +67,22 @@ public class MastersSlavesProtocol extends MasterProtocol {
     protected boolean masterConnection = false;
     private boolean mustBeMasterConnection = false;
 
-    public MastersSlavesProtocol(final UrlParser url, final ReentrantLock lock) {
-        super(url, lock);
+    public MastersSlavesProtocol(final UrlParser url, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
+        super(url, globalInfo, lock);
     }
 
 
     /**
      * loop until found the failed connection.
      *
-     * @param listener     current failover
-     * @param addresses    list of HostAddress to loop
-     * @param searchFilter search parameter
+     * @param listener      current failover
+     * @param globalInfo    server global variables information
+     * @param addresses     list of HostAddress to loop
+     * @param searchFilter  search parameter
      * @throws SQLException if not found
      */
-    public static void loop(MastersSlavesListener listener, final List<HostAddress> addresses,
-                            SearchFilter searchFilter) throws SQLException {
+    public static void loop(MastersSlavesListener listener, final GlobalStateInfo globalInfo,
+                            final List<HostAddress> addresses, SearchFilter searchFilter) throws SQLException {
 
         MastersSlavesProtocol protocol;
         ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>(addresses);
@@ -90,7 +92,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
         SQLException lastQueryException = null;
 
         while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
-            protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
+            protocol = getNewProtocol(listener.getProxy(), globalInfo, listener.getUrlParser());
 
             if (listener.isExplicitClosed() || (!listener.isSecondaryHostFailReconnect() && !listener.isMasterHostFailReconnect())) {
                 return;
@@ -131,6 +133,14 @@ public class MastersSlavesProtocol extends MasterProtocol {
             }
 
             if (!listener.isMasterHostFailReconnect() && !listener.isSecondaryHostFailReconnect()) {
+                return;
+            }
+
+            //in case master not found but slave is , and allowing master down
+            if (loopAddresses.isEmpty()
+                    && (listener.isMasterHostFailReconnect()
+                    && listener.urlParser.getOptions().allowMasterDownConnection
+                    && !listener.isSecondaryHostFailReconnect())) {
                 return;
             }
 
@@ -224,8 +234,8 @@ public class MastersSlavesProtocol extends MasterProtocol {
      * @param urlParser connection string Object.
      * @return a new MastersSlavesProtocol instance
      */
-    private static MastersSlavesProtocol getNewProtocol(FailoverProxy proxy, UrlParser urlParser) {
-        MastersSlavesProtocol newProtocol = new MastersSlavesProtocol(urlParser, proxy.lock);
+    private static MastersSlavesProtocol getNewProtocol(FailoverProxy proxy, final GlobalStateInfo globalInfo, UrlParser urlParser) {
+        MastersSlavesProtocol newProtocol = new MastersSlavesProtocol(urlParser, globalInfo, proxy.lock);
         newProtocol.setProxy(proxy);
         return newProtocol;
     }

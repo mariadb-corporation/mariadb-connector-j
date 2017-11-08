@@ -79,16 +79,9 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.sql.Date;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.*;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
 
 import static org.mariadb.jdbc.internal.com.Packet.EOF;
 import static org.mariadb.jdbc.internal.com.Packet.ERROR;
@@ -101,47 +94,17 @@ import static org.mariadb.jdbc.internal.util.constant.ServerStatus.PS_OUT_PARAME
 public class SelectResultSet implements ResultSet {
     private static final String NOT_UPDATABLE_ERROR = "Updates are not supported when using ResultSet.CONCUR_READ_ONLY";
     
-    private static final DateTimeFormatter TEXT_LOCAL_DATE_TIME;
-    private static final DateTimeFormatter TEXT_OFFSET_DATE_TIME;
-    private static final DateTimeFormatter TEXT_ZONED_DATE_TIME;
-
-    private static final int BIT_LAST_FIELD_NOT_NULL = 0b000000;
-    private static final int BIT_LAST_FIELD_NULL     = 0b000001;
-    private static final int BIT_LAST_ZERO_DATE      = 0b000010;
-
     public static final int TINYINT1_IS_BIT = 1;
     public static final int YEAR_IS_DATE_TYPE = 2;
     private static final ColumnInformation[] INSERT_ID_COLUMNS;
-    private static final Pattern isIntegerRegex = Pattern.compile("^-?\\d+\\.[0-9]+$");
+
     private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
     static {
         INSERT_ID_COLUMNS = new ColumnInformation[1];
         INSERT_ID_COLUMNS[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
-        TEXT_LOCAL_DATE_TIME = new DateTimeFormatterBuilder()
-                .parseCaseInsensitive()
-                .append(DateTimeFormatter.ISO_LOCAL_DATE)
-                .appendLiteral(' ')
-                .append(DateTimeFormatter.ISO_LOCAL_TIME)
-                .toFormatter();
-
-        TEXT_OFFSET_DATE_TIME = new DateTimeFormatterBuilder()
-                .parseCaseInsensitive()
-                .append(TEXT_LOCAL_DATE_TIME)
-                .appendOffsetId()
-                .toFormatter();
-
-        TEXT_ZONED_DATE_TIME = new DateTimeFormatterBuilder()
-                .append(TEXT_OFFSET_DATE_TIME)
-                .optionalStart()
-                .appendLiteral('[')
-                .parseCaseSensitive()
-                .appendZoneRegionId()
-                .appendLiteral(']')
-                .toFormatter();
     }
 
-    protected boolean isBinaryEncoded;
     protected TimeZone timeZone;
     protected Options options;
     private Protocol protocol;
@@ -161,7 +124,6 @@ public class SelectResultSet implements ResultSet {
     private int resultSetScrollType;
     private int rowPointer;
     private ColumnNameMap columnNameMap;
-    private int lastValueNull;
     private int lastRowPointer = -1;
     private int dataTypeMappingFlags;
     private boolean returnTableAlias;
@@ -189,7 +151,6 @@ public class SelectResultSet implements ResultSet {
         this.protocol = protocol;
         this.options = protocol.getOptions();
         this.noBackslashEscapes = protocol.noBackslashEscapes();
-        this.timeZone = protocol.getTimeZone();
         this.dataTypeMappingFlags = protocol.getDataTypeMappingFlags();
         this.returnTableAlias = this.options.useOldAliasMetadataBehavior;
         this.columnsInformation = columnInformation;
@@ -198,11 +159,11 @@ public class SelectResultSet implements ResultSet {
         this.columnInformationLength = columnInformation.length;
         this.reader = reader;
         this.isEof = false;
-        this.isBinaryEncoded = results.isBinaryFormat();
-        if (isBinaryEncoded) {
-            row = new BinaryRowProtocol(columnsInformation, columnInformationLength, results.getMaxFieldSize());
+        timeZone = protocol.getTimeZone();
+        if (results.isBinaryFormat()) {
+            row = new BinaryRowProtocol(columnsInformation, columnInformationLength, results.getMaxFieldSize(), options);
         } else {
-            row = new TextRowProtocol(results.getMaxFieldSize());
+            row = new TextRowProtocol(results.getMaxFieldSize(), options);
         }
         this.fetchSize = results.getFetchSize();
         this.resultSetScrollType = results.getResultSetScrollType();
@@ -240,24 +201,23 @@ public class SelectResultSet implements ResultSet {
                            int resultSetScrollType) {
         this.statement = null;
         this.isClosed = false;
-        this.row = new TextRowProtocol(0);
         if (protocol != null) {
             this.options = protocol.getOptions();
             this.timeZone = protocol.getTimeZone();
             this.dataTypeMappingFlags = protocol.getDataTypeMappingFlags();
             this.returnTableAlias = this.options.useOldAliasMetadataBehavior;
         } else {
-            this.options = null;
+            this.options = new Options();
             this.timeZone = TimeZone.getDefault();
             this.dataTypeMappingFlags = 3;
             this.returnTableAlias = false;
         }
+        this.row = new TextRowProtocol(0, this.options);
         this.protocol = null;
         this.columnsInformation = columnInformation;
         this.columnNameMap = new ColumnNameMap(columnsInformation);
         this.columnInformationLength = columnInformation.length;
         this.isEof = true;
-        this.isBinaryEncoded = false;
         this.fetchSize = 0;
         this.resultSetScrollType = resultSetScrollType;
         this.data = resultSet.toArray(new byte[10][]);
@@ -336,6 +296,15 @@ public class SelectResultSet implements ResultSet {
     public static SelectResultSet createEmptyResultSet() {
         return new SelectResultSet(INSERT_ID_COLUMNS, new ArrayList<>(), null,
                 TYPE_SCROLL_SENSITIVE);
+    }
+
+    /**
+     * Indicate if result-set is still streaming results from server.
+     * @return true if streaming is finished
+     */
+    public boolean isFullyLoaded() {
+        //result-set is fully loaded when reaching EOF packet.
+        return isEof;
     }
 
     private void fetchAllResults() throws IOException, SQLException {
@@ -430,13 +399,8 @@ public class SelectResultSet implements ResultSet {
             protocol.setHasWarnings(false);
             ErrorPacket errorPacket = new ErrorPacket(new Buffer(buf));
             resetVariables();
-            if (statement != null) {
-                throw ExceptionMapper.getException(new SQLException("(conn=" + statement.getServerThreadId() + ") " + errorPacket.getMessage(),
-                        errorPacket.getSqlState(), errorPacket.getErrorNumber()), null, statement, false);
-            } else {
-                throw ExceptionMapper.getException(new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(),
-                        errorPacket.getErrorNumber()), null, statement, false);
-            }
+            throw ExceptionMapper.get(errorPacket.getMessage(), errorPacket.getSqlState(),
+                    errorPacket.getErrorNumber(), null,false);
         }
 
         //is end of stream
@@ -559,6 +523,23 @@ public class SelectResultSet implements ResultSet {
     }
 
     /**
+     * Connection.abort() has been called, abort result-set.
+     * @throws SQLException exception
+     */
+    public void abort() throws SQLException {
+        isClosed = true;
+        resetVariables();
+
+        //keep garbage easy
+        for (int i = 0; i < data.length; i++) data[i] = null;
+
+        if (statement != null) {
+            statement.checkCloseOnCompletion(this);
+            statement = null;
+        }
+    }
+
+    /**
      * Close resultSet.
      */
     public void close() throws SQLException {
@@ -649,12 +630,9 @@ public class SelectResultSet implements ResultSet {
             row.resetRow(data[rowPointer]);
             lastRowPointer = rowPointer;
         }
-        this.lastValueNull = row.setPosition(position - 1) ? BIT_LAST_FIELD_NULL : BIT_LAST_FIELD_NOT_NULL;
+        row.setPosition(position - 1);
     }
 
-    private boolean lastValueWasNull() {
-        return (lastValueNull & BIT_LAST_FIELD_NULL) != 0;
-    }
 
     @Override
     public SQLWarning getWarnings() throws SQLException {
@@ -840,11 +818,16 @@ public class SelectResultSet implements ResultSet {
             throw new SQLException("Invalid operation for result set type TYPE_FORWARD_ONLY");
         }
         int newPos = rowPointer + rows;
-        if (newPos > -1 && newPos <= dataSize) {
+        if ( newPos <= -1 ) {
+            rowPointer = -1;
+            return false;
+        } else if ( newPos >= dataSize ) {
+            rowPointer = dataSize;
+            return false;
+        } else {
             rowPointer = newPos;
             return true;
         }
-        return false;
     }
 
     @Override
@@ -933,8 +916,7 @@ public class SelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public boolean wasNull() throws SQLException {
-        return (lastValueNull & BIT_LAST_FIELD_NULL) != 0
-                || (lastValueNull & BIT_LAST_ZERO_DATE) != 0;
+        return row.wasNull();
     }
 
     /**
@@ -950,7 +932,7 @@ public class SelectResultSet implements ResultSet {
      */
     public InputStream getAsciiStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueWasNull()) return null;
+        if (row.lastValueWasNull()) return null;
         return new ByteArrayInputStream(new String(row.buf, row.pos, row.getLengthMaxFieldSize(), StandardCharsets.UTF_8).getBytes());
     }
 
@@ -959,7 +941,7 @@ public class SelectResultSet implements ResultSet {
      */
     public String getString(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalString(columnsInformation[columnIndex - 1], null);
+        return row.getInternalString(columnsInformation[columnIndex - 1], null, timeZone);
     }
 
     /**
@@ -967,110 +949,6 @@ public class SelectResultSet implements ResultSet {
      */
     public String getString(String columnLabel) throws SQLException {
         return getString(findColumn(columnLabel));
-    }
-
-    private String getInternalString(ColumnInformation columnInfo) throws SQLException {
-        return getInternalString(columnInfo, null);
-    }
-
-    private String getInternalString(ColumnInformation columnInfo, Calendar cal) throws SQLException {
-        if (lastValueWasNull()) return null;
-
-        switch (columnInfo.getColumnType()) {
-            case STRING:
-                if (row.getMaxFieldSize() > 0) {
-                    return new String(row.buf, row.pos, Math.max(row.getMaxFieldSize() * 3, row.length), StandardCharsets.UTF_8)
-                            .substring(0, row.getMaxFieldSize());
-                }
-                return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-
-            case BIT:
-                if (options.tinyInt1isBit && columnInfo.getLength() == 1) {
-                    return (row.buf[row.pos] == 0) ? "0" : "1";
-                }
-                break;
-            case TINYINT:
-                if (this.isBinaryEncoded) {
-                    return zeroFillingIfNeeded(String.valueOf(getInternalTinyInt(columnInfo)), columnInfo);
-                }
-                break;
-            case SMALLINT:
-                if (this.isBinaryEncoded) {
-                    return zeroFillingIfNeeded(String.valueOf(getInternalSmallInt(columnInfo)), columnInfo);
-                }
-                break;
-            case INTEGER:
-            case MEDIUMINT:
-                if (this.isBinaryEncoded) {
-                    return zeroFillingIfNeeded(String.valueOf(getInternalMediumInt(columnInfo)), columnInfo);
-                }
-                break;
-            case BIGINT:
-                if (this.isBinaryEncoded) {
-                    if (!columnInfo.isSigned()) {
-                        return zeroFillingIfNeeded(String.valueOf(getInternalBigInteger(columnInfo)), columnInfo);
-                    }
-                    return zeroFillingIfNeeded(String.valueOf(getInternalLong(columnInfo)), columnInfo);
-                }
-                break;
-            case DOUBLE:
-                return zeroFillingIfNeeded(String.valueOf(getInternalDouble(columnInfo)), columnInfo);
-            case FLOAT:
-                return zeroFillingIfNeeded(String.valueOf(getInternalFloat(columnInfo)), columnInfo);
-            case TIME:
-                return getTimeString(columnInfo);
-            case DATE:
-                if (isBinaryEncoded) {
-                    Date date = getInternalDate(columnInfo, cal);
-                    if (date == null) {
-                        if (!isBinaryEncoded) {
-                            //specific for "zero-date", getString will return "zero-date" value -> wasNull() must then return false
-                            lastValueNull ^= BIT_LAST_ZERO_DATE;
-                            return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-                        }
-                        return null;
-                    }
-                    return date.toString();
-                }
-                break;
-            case YEAR:
-                if (options.yearIsDateType) {
-                    Date date = getInternalDate(columnInfo, cal);
-                    return (date == null) ? null : date.toString();
-                }
-                if (this.isBinaryEncoded) {
-                    return String.valueOf(getInternalSmallInt(columnInfo));
-                }
-                break;
-            case TIMESTAMP:
-            case DATETIME:
-                Timestamp timestamp = getInternalTimestamp(columnInfo, cal);
-                if (timestamp == null) {
-                    if (!isBinaryEncoded) {
-                        //specific for "zero-date", getString will return "zero-date" value -> wasNull() must then return false
-                        lastValueNull ^= BIT_LAST_ZERO_DATE;
-                        return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-                    }
-                    return null;
-                }
-                return timestamp.toString();
-            case DECIMAL:
-            case OLDDECIMAL:
-                BigDecimal bigDecimal = getInternalBigDecimal(columnInfo);
-                return (bigDecimal == null) ? null : zeroFillingIfNeeded(bigDecimal.toString(), columnInfo);
-            case GEOMETRY:
-                return new String(row.buf, row.pos, row.length);
-            case NULL:
-                return null;
-            default:
-                if (row.getMaxFieldSize() > 0) {
-                    return new String(row.buf, row.pos, Math.max(row.getMaxFieldSize() * 3, row.length), StandardCharsets.UTF_8)
-                            .substring(0, row.getMaxFieldSize());
-                }
-                return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-        }
-
-        return new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
     }
 
     private String zeroFillingIfNeeded(String value, ColumnInformation columnInformation) {
@@ -1088,7 +966,7 @@ public class SelectResultSet implements ResultSet {
      */
     public InputStream getBinaryStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueWasNull()) return null;
+        if (row.lastValueWasNull()) return null;
         return new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());
     }
 
@@ -1104,7 +982,7 @@ public class SelectResultSet implements ResultSet {
      */
     public int getInt(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalInt(columnsInformation[columnIndex - 1]);
+        return row.getInternalInt(columnsInformation[columnIndex - 1]);
     }
 
     /**
@@ -1112,59 +990,6 @@ public class SelectResultSet implements ResultSet {
      */
     public int getInt(String columnLabel) throws SQLException {
         return getInt(findColumn(columnLabel));
-    }
-
-
-    /**
-     * Get int from raw data.
-     *
-     * @param columnInfo current column information
-     * @return int
-     */
-    private int getInternalInt(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return 0;
-
-        if (!this.isBinaryEncoded) {
-            return parseInt(columnInfo);
-        } else {
-            long value;
-            switch (columnInfo.getColumnType()) {
-                case BIT:
-                    return row.buf[row.pos];
-                case TINYINT:
-                    value = getInternalTinyInt(columnInfo);
-                    break;
-                case SMALLINT:
-                case YEAR:
-                    value = getInternalSmallInt(columnInfo);
-                    break;
-                case INTEGER:
-                case MEDIUMINT:
-                    value = ((row.buf[row.pos] & 0xff)
-                            + ((row.buf[row.pos + 1] & 0xff) << 8)
-                            + ((row.buf[row.pos + 2] & 0xff) << 16)
-                            + ((row.buf[row.pos + 3] & 0xff) << 24));
-                    if (columnInfo.isSigned()) {
-                        return (int) value;
-                    } else if (value < 0) {
-                        value = value & 0xffffffffL;
-                    }
-                    break;
-                case BIGINT:
-                    value = getInternalLong(columnInfo);
-                    break;
-                case FLOAT:
-                    value = (long) getInternalFloat(columnInfo);
-                    break;
-                case DOUBLE:
-                    value = (long) getInternalDouble(columnInfo);
-                    break;
-                default:
-                    return parseInt(columnInfo);
-            }
-            rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, value, columnInfo);
-            return (int) value;
-        }
     }
 
     /**
@@ -1179,79 +1004,7 @@ public class SelectResultSet implements ResultSet {
      */
     public long getLong(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalLong(columnsInformation[columnIndex - 1]);
-    }
-
-    /**
-     * Get long from raw data.
-     *
-     * @param columnInfo current column information
-     * @return long
-     * @throws SQLException if any error occur
-     */
-    private long getInternalLong(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return 0;
-
-        if (!this.isBinaryEncoded) {
-            return parseLong(columnInfo);
-        } else {
-            long value;
-            switch (columnInfo.getColumnType()) {
-                case BIT:
-                    return row.buf[row.pos];
-                case TINYINT:
-                    value = getInternalTinyInt(columnInfo);
-                    break;
-                case SMALLINT:
-                case YEAR:
-                    value = getInternalSmallInt(columnInfo);
-                    break;
-                case INTEGER:
-                case MEDIUMINT:
-                    value = getInternalMediumInt(columnInfo);
-                    break;
-                case BIGINT:
-                    value = ((row.buf[row.pos] & 0xff)
-                            + ((long) (row.buf[row.pos + 1] & 0xff) << 8)
-                            + ((long) (row.buf[row.pos + 2] & 0xff) << 16)
-                            + ((long) (row.buf[row.pos + 3] & 0xff) << 24)
-                            + ((long) (row.buf[row.pos + 4] & 0xff) << 32)
-                            + ((long) (row.buf[row.pos + 5] & 0xff) << 40)
-                            + ((long) (row.buf[row.pos + 6] & 0xff) << 48)
-                            + ((long) (row.buf[row.pos + 7] & 0xff) << 56));
-                    if (columnInfo.isSigned()) {
-                        return value;
-                    }
-                    BigInteger unsignedValue = new BigInteger(1, new byte[]{(byte) (value >> 56),
-                            (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
-                            (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                            (byte) value});
-                    if (unsignedValue.compareTo(new BigInteger(String.valueOf(Long.MAX_VALUE))) > 0) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + unsignedValue + " is not in Long range", "22003", 1264);
-                    }
-                    return unsignedValue.longValue();
-                case FLOAT:
-                    Float floatValue = getInternalFloat(columnInfo);
-                    if (floatValue.compareTo((float) Long.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + floatValue
-                                + " is not in Long range", "22003", 1264);
-                    }
-                    return floatValue.longValue();
-                case DOUBLE:
-                    Double doubleValue = getInternalDouble(columnInfo);
-                    if (doubleValue.compareTo((double) Long.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + doubleValue
-                                + " is not in Long range", "22003", 1264);
-                    }
-                    return doubleValue.longValue();
-                default:
-                    return parseLong(columnInfo);
-            }
-            rangeCheck(Long.class, Long.MIN_VALUE, Long.MAX_VALUE, value, columnInfo);
-            return value;
-
-        }
+        return row.getInternalLong(columnsInformation[columnIndex - 1]);
     }
 
     /**
@@ -1266,116 +1019,7 @@ public class SelectResultSet implements ResultSet {
      */
     public float getFloat(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalFloat(columnsInformation[columnIndex - 1]);
-    }
-
-    /**
-     * Get float from raw data.
-     *
-     * @param columnInfo current column information
-     * @return float
-     * @throws SQLException id any error occur
-     */
-    @SuppressWarnings("UnnecessaryInitCause")
-    private float getInternalFloat(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return 0;
-
-        if (!this.isBinaryEncoded) {
-            switch (columnInfo.getColumnType()) {
-                case BIT:
-                    return row.buf[row.pos];
-                case TINYINT:
-                case SMALLINT:
-                case YEAR:
-                case INTEGER:
-                case MEDIUMINT:
-                case FLOAT:
-                case DOUBLE:
-                case DECIMAL:
-                case VARSTRING:
-                case VARCHAR:
-                case STRING:
-                case OLDDECIMAL:
-                case BIGINT:
-                    try {
-                        return Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    } catch (NumberFormatException nfe) {
-                        SQLException sqlException = new SQLException("Incorrect format \""
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + "\" for getFloat for data field with type " + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
-                        //noinspection UnnecessaryInitCause
-                        sqlException.initCause(nfe);
-                        throw sqlException;
-                    }
-                default:
-                    throw new SQLException("getFloat not available for data field type " + columnInfo.getColumnType().getJavaTypeName());
-            }
-        } else {
-            long value;
-            switch (columnInfo.getColumnType()) {
-                case BIT:
-                    return row.buf[row.pos];
-                case TINYINT:
-                    value = getInternalTinyInt(columnInfo);
-                    break;
-                case SMALLINT:
-                case YEAR:
-                    value = getInternalSmallInt(columnInfo);
-                    break;
-                case INTEGER:
-                case MEDIUMINT:
-                    value = getInternalMediumInt(columnInfo);
-                    break;
-                case BIGINT:
-                    value = ((row.buf[row.pos] & 0xff)
-                            + ((long) (row.buf[row.pos + 1] & 0xff) << 8)
-                            + ((long) (row.buf[row.pos + 2] & 0xff) << 16)
-                            + ((long) (row.buf[row.pos + 3] & 0xff) << 24)
-                            + ((long) (row.buf[row.pos + 4] & 0xff) << 32)
-                            + ((long) (row.buf[row.pos + 5] & 0xff) << 40)
-                            + ((long) (row.buf[row.pos + 6] & 0xff) << 48)
-                            + ((long) (row.buf[row.pos + 7] & 0xff) << 56));
-                    if (columnInfo.isSigned()) {
-                        return value;
-                    }
-                    BigInteger unsignedValue = new BigInteger(1, new byte[]{(byte) (value >> 56),
-                            (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
-                            (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                            (byte) value});
-                    return unsignedValue.floatValue();
-                case FLOAT:
-                    int valueFloat = ((row.buf[row.pos] & 0xff)
-                            + ((row.buf[row.pos + 1] & 0xff) << 8)
-                            + ((row.buf[row.pos + 2] & 0xff) << 16)
-                            + ((row.buf[row.pos + 3] & 0xff) << 24));
-                    return Float.intBitsToFloat(valueFloat);
-                case DOUBLE:
-                    return (float) getInternalDouble(columnInfo);
-                case DECIMAL:
-                case VARSTRING:
-                case VARCHAR:
-                case STRING:
-                case OLDDECIMAL:
-                    try {
-                        return Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    } catch (NumberFormatException nfe) {
-                        SQLException sqlException = new SQLException("Incorrect format for getFloat for data field with type "
-                                + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
-                        sqlException.initCause(nfe);
-                        throw sqlException;
-                    }
-                default:
-                    throw new SQLException("getFloat not available for data field type " + columnInfo.getColumnType().getJavaTypeName());
-            }
-            try {
-                return Float.valueOf(String.valueOf(value));
-            } catch (NumberFormatException nfe) {
-                SQLException sqlException = new SQLException("Incorrect format for getFloat for data field with type "
-                        + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
-                sqlException.initCause(nfe);
-                throw sqlException;
-            }
-        }
+        return row.getInternalFloat(columnsInformation[columnIndex - 1]);
     }
 
     /**
@@ -1391,110 +1035,7 @@ public class SelectResultSet implements ResultSet {
      */
     public double getDouble(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalDouble(columnsInformation[columnIndex - 1]);
-    }
-
-
-    /**
-     * Get double value from raw data.
-     *
-     * @param columnInfo current column information
-     * @return double
-     * @throws SQLException id any error occur
-     */
-    private double getInternalDouble(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return 0;
-        if (!this.isBinaryEncoded) {
-            switch (columnInfo.getColumnType()) {
-                case BIT:
-                    return row.buf[row.pos];
-                case TINYINT:
-                case SMALLINT:
-                case YEAR:
-                case INTEGER:
-                case MEDIUMINT:
-                case FLOAT:
-                case DOUBLE:
-                case DECIMAL:
-                case VARSTRING:
-                case VARCHAR:
-                case STRING:
-                case OLDDECIMAL:
-                case BIGINT:
-                    try {
-                        return Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    } catch (NumberFormatException nfe) {
-                        SQLException sqlException = new SQLException("Incorrect format \""
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + "\" for getDouble for data field with type " + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
-                        //noinspection UnnecessaryInitCause
-                        sqlException.initCause(nfe);
-                        throw sqlException;
-                    }
-                default:
-                    throw new SQLException("getDouble not available for data field type " + columnInfo.getColumnType().getJavaTypeName());
-            }
-        } else {
-            switch (columnInfo.getColumnType()) {
-                case BIT:
-                    return row.buf[row.pos];
-                case TINYINT:
-                    return getInternalTinyInt(columnInfo);
-                case SMALLINT:
-                case YEAR:
-                    return getInternalSmallInt(columnInfo);
-                case INTEGER:
-                case MEDIUMINT:
-                    return getInternalMediumInt(columnInfo);
-                case BIGINT:
-                    long valueLong = ((row.buf[row.pos] & 0xff)
-                            + ((long) (row.buf[row.pos + 1] & 0xff) << 8)
-                            + ((long) (row.buf[row.pos + 2] & 0xff) << 16)
-                            + ((long) (row.buf[row.pos + 3] & 0xff) << 24)
-                            + ((long) (row.buf[row.pos + 4] & 0xff) << 32)
-                            + ((long) (row.buf[row.pos + 5] & 0xff) << 40)
-                            + ((long) (row.buf[row.pos + 6] & 0xff) << 48)
-                            + ((long) (row.buf[row.pos + 7] & 0xff) << 56)
-                    );
-                    if (columnInfo.isSigned()) {
-                        return valueLong;
-                    } else {
-                        return new BigInteger(1, new byte[]{(byte) (valueLong >> 56),
-                                (byte) (valueLong >> 48), (byte) (valueLong >> 40), (byte) (valueLong >> 32),
-                                (byte) (valueLong >> 24), (byte) (valueLong >> 16), (byte) (valueLong >> 8),
-                                (byte) valueLong}).doubleValue();
-                    }
-                case FLOAT:
-                    return getInternalFloat(columnInfo);
-                case DOUBLE:
-                    long valueDouble = ((row.buf[row.pos] & 0xff)
-                            + ((long) (row.buf[row.pos + 1] & 0xff) << 8)
-                            + ((long) (row.buf[row.pos + 2] & 0xff) << 16)
-                            + ((long) (row.buf[row.pos + 3] & 0xff) << 24)
-                            + ((long) (row.buf[row.pos + 4] & 0xff) << 32)
-                            + ((long) (row.buf[row.pos + 5] & 0xff) << 40)
-                            + ((long) (row.buf[row.pos + 6] & 0xff) << 48)
-                            + ((long) (row.buf[row.pos + 7] & 0xff) << 56));
-                    return Double.longBitsToDouble(valueDouble);
-                case DECIMAL:
-                case VARSTRING:
-                case VARCHAR:
-                case STRING:
-                case OLDDECIMAL:
-                    try {
-                        return Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    } catch (NumberFormatException nfe) {
-                        SQLException sqlException = new SQLException("Incorrect format for getDouble for data field with type "
-                                + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
-                        //noinspection UnnecessaryInitCause
-                        sqlException.initCause(nfe);
-                        throw sqlException;
-                    }
-                default:
-                    throw new SQLException("getDouble not available for data field type "
-                            + columnInfo.getColumnType().getJavaTypeName());
-            }
-        }
+        return row.getInternalDouble(columnsInformation[columnIndex - 1]);
     }
 
     /**
@@ -1509,7 +1050,7 @@ public class SelectResultSet implements ResultSet {
      */
     public BigDecimal getBigDecimal(int columnIndex, int scale) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalBigDecimal(columnsInformation[columnIndex - 1]);
+        return row.getInternalBigDecimal(columnsInformation[columnIndex - 1]);
     }
 
     /**
@@ -1517,7 +1058,7 @@ public class SelectResultSet implements ResultSet {
      */
     public BigDecimal getBigDecimal(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalBigDecimal(columnsInformation[columnIndex - 1]);
+        return row.getInternalBigDecimal(columnsInformation[columnIndex - 1]);
     }
 
     /**
@@ -1525,60 +1066,6 @@ public class SelectResultSet implements ResultSet {
      */
     public BigDecimal getBigDecimal(String columnLabel) throws SQLException {
         return getBigDecimal(findColumn(columnLabel));
-    }
-
-
-    /**
-     * Get BigDecimal from rax data.
-     *
-     * @param columnInfo current column information
-     * @return Bigdecimal value
-     * @throws SQLException id any error occur
-     */
-    private BigDecimal getInternalBigDecimal(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return null;
-
-        if (!this.isBinaryEncoded) {
-            return new BigDecimal(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-        } else {
-            switch (columnInfo.getColumnType()) {
-                case BIT:
-                    return BigDecimal.valueOf((long) row.buf[row.pos]);
-                case TINYINT:
-                    return BigDecimal.valueOf((long) getInternalTinyInt(columnInfo));
-                case SMALLINT:
-                case YEAR:
-                    return BigDecimal.valueOf((long) getInternalSmallInt(columnInfo));
-                case INTEGER:
-                case MEDIUMINT:
-                    return BigDecimal.valueOf(getInternalMediumInt(columnInfo));
-                case BIGINT:
-                    long value = ((row.buf[row.pos] & 0xff)
-                            + ((long) (row.buf[row.pos + 1] & 0xff) << 8)
-                            + ((long) (row.buf[row.pos + 2] & 0xff) << 16)
-                            + ((long) (row.buf[row.pos + 3] & 0xff) << 24)
-                            + ((long) (row.buf[row.pos + 4] & 0xff) << 32)
-                            + ((long) (row.buf[row.pos + 5] & 0xff) << 40)
-                            + ((long) (row.buf[row.pos + 6] & 0xff) << 48)
-                            + ((long) (row.buf[row.pos + 7] & 0xff) << 56)
-                    );
-                    if (columnInfo.isSigned()) {
-                        return new BigDecimal(String.valueOf(BigInteger.valueOf(value))).setScale(columnInfo.getDecimals());
-                    } else {
-                        return new BigDecimal(String.valueOf(new BigInteger(1, new byte[]{(byte) (value >> 56),
-                                (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
-                                (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                                (byte) value}))).setScale(columnInfo.getDecimals());
-                    }
-                case FLOAT:
-                    return BigDecimal.valueOf(getInternalFloat(columnInfo));
-                case DOUBLE:
-                    return BigDecimal.valueOf(getInternalDouble(columnInfo));
-                default:
-                    return new BigDecimal(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-            }
-        }
-
     }
 
     /**
@@ -1593,7 +1080,7 @@ public class SelectResultSet implements ResultSet {
      */
     public byte[] getBytes(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueWasNull()) return null;
+        if (row.lastValueWasNull()) return null;
         byte[] data = new byte[row.getLengthMaxFieldSize()];
         System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
         return data;
@@ -1604,7 +1091,7 @@ public class SelectResultSet implements ResultSet {
      */
     public Date getDate(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalDate(columnsInformation[columnIndex - 1], null);
+        return row.getInternalDate(columnsInformation[columnIndex - 1], null, timeZone);
     }
 
     /**
@@ -1619,7 +1106,7 @@ public class SelectResultSet implements ResultSet {
      */
     public Date getDate(int columnIndex, Calendar cal) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalDate(columnsInformation[columnIndex - 1], cal);
+        return row.getInternalDate(columnsInformation[columnIndex - 1], cal, timeZone);
     }
 
     /**
@@ -1629,79 +1116,12 @@ public class SelectResultSet implements ResultSet {
         return getDate(findColumn(columnLabel), cal);
     }
 
-
-    /**
-     * Get date from raw data.
-     *
-     * @param columnInfo current column information
-     * @param cal        session calendar
-     * @return date
-     * @throws SQLException if raw data cannot be parse
-     */
-    private Date getInternalDate(ColumnInformation columnInfo, Calendar cal) throws SQLException {
-        if (lastValueWasNull()) return null;
-
-        if (!this.isBinaryEncoded) {
-            String rawValue = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-            switch (columnInfo.getColumnType()) {
-                case TIMESTAMP:
-                case DATETIME:
-                    Timestamp timestamp = getInternalTimestamp(columnInfo, cal);
-                    if (timestamp == null) return null;
-                    return new Date(timestamp.getTime());
-
-                case TIME:
-                    throw new SQLException("Cannot read DATE using a Types.TIME field");
-
-                case DATE:
-                    if ("0000-00-00".equals(rawValue)) {
-                        lastValueNull |= BIT_LAST_ZERO_DATE;
-                        return null;
-                    }
-
-                    return new Date(
-                            Integer.parseInt(rawValue.substring(0, 4)) - 1900,
-                            Integer.parseInt(rawValue.substring(5, 7)) - 1,
-                            Integer.parseInt(rawValue.substring(8, 10))
-                    );
-
-                case YEAR:
-                    int year = Integer.parseInt(rawValue);
-                    if (row.length == 2 && columnInfo.getLength() == 2) {
-                        if (year <= 69) {
-                            year += 2000;
-                        } else {
-                            year += 1900;
-                        }
-                    }
-
-                    return new Date(year - 1900, 0, 1);
-
-                default:
-
-                    try {
-
-                        DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                        sdf.setTimeZone(timeZone);
-                        java.util.Date utilDate = sdf.parse(rawValue);
-                        return new Date(utilDate.getTime());
-
-                    } catch (ParseException e) {
-                        throw ExceptionMapper.getSqlException("Could not get object as Date : " + e.getMessage(), "S1009", e);
-                    }
-            }
-
-        } else {
-            return binaryDate(columnInfo, cal);
-        }
-    }
-
     /**
      * {inheritDoc}.
      */
     public Time getTime(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalTime(columnsInformation[columnIndex - 1], null);
+        return row.getInternalTime(columnsInformation[columnIndex - 1], null, timeZone);
     }
 
     /**
@@ -1717,7 +1137,7 @@ public class SelectResultSet implements ResultSet {
      */
     public Time getTime(int columnIndex, Calendar cal) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalTime(columnsInformation[columnIndex - 1], cal);
+        return row.getInternalTime(columnsInformation[columnIndex - 1], cal, timeZone);
     }
 
     /**
@@ -1725,59 +1145,6 @@ public class SelectResultSet implements ResultSet {
      */
     public Time getTime(String columnLabel, Calendar cal) throws SQLException {
         return getTime(findColumn(columnLabel), cal);
-    }
-
-    /**
-     * Get time from raw data.
-     *
-     * @param columnInfo current column information
-     * @param cal        session calendar
-     * @return time value
-     * @throws SQLException if raw data cannot be parse
-     */
-    private Time getInternalTime(ColumnInformation columnInfo, Calendar cal) throws SQLException {
-        if (lastValueWasNull()) return null;
-
-        if (!this.isBinaryEncoded) {
-            if (columnInfo.getColumnType() == ColumnType.TIMESTAMP || columnInfo.getColumnType() == ColumnType.DATETIME) {
-                Timestamp timestamp = getInternalTimestamp(columnInfo, cal);
-                return (timestamp == null) ? null : new Time(timestamp.getTime());
-
-            } else if (columnInfo.getColumnType() == ColumnType.DATE) {
-
-                throw new SQLException("Cannot read Time using a Types.DATE field");
-
-            } else {
-                String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-                if (!options.useLegacyDatetimeCode && (raw.startsWith("-") || raw.split(":").length != 3 || raw.indexOf(":") > 3)) {
-                    throw new SQLException("Time format \"" + raw + "\" incorrect, must be HH:mm:ss");
-                }
-                boolean negate = raw.startsWith("-");
-                if (negate) {
-                    raw = raw.substring(1);
-                }
-                String[] rawPart = raw.split(":");
-                if (rawPart.length == 3) {
-                    int hour = Integer.parseInt(rawPart[0]);
-                    int minutes = Integer.parseInt(rawPart[1]);
-                    int seconds = Integer.parseInt(rawPart[2].substring(0, 2));
-                    Calendar calendar = Calendar.getInstance();
-                    if (options.useLegacyDatetimeCode) {
-                        calendar.setLenient(true);
-                    }
-                    calendar.clear();
-                    calendar.set(1970, Calendar.JANUARY, 1, (negate ? -1 : 1) * hour, minutes, seconds);
-                    int nanoseconds = extractNanos(raw);
-                    calendar.set(Calendar.MILLISECOND, nanoseconds / 1000000);
-
-                    return new Time(calendar.getTimeInMillis());
-                } else {
-                    throw new SQLException(raw + " cannot be parse as time. time must have \"99:99:99\" format");
-                }
-            }
-        } else {
-            return binaryTime(columnInfo, cal);
-        }
     }
 
     /**
@@ -1793,7 +1160,7 @@ public class SelectResultSet implements ResultSet {
      */
     public Timestamp getTimestamp(int columnIndex, Calendar cal) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalTimestamp(columnsInformation[columnIndex - 1], cal);
+        return row.getInternalTimestamp(columnsInformation[columnIndex - 1], cal, timeZone);
     }
 
     /**
@@ -1808,81 +1175,7 @@ public class SelectResultSet implements ResultSet {
      */
     public Timestamp getTimestamp(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalTimestamp(columnsInformation[columnIndex - 1], null);
-    }
-
-    /**
-     * Get timeStamp from raw data.
-     *
-     * @param columnInfo   current column information
-     * @param userCalendar user calendar.
-     * @return timestamp.
-     * @throws SQLException if text value cannot be parse
-     */
-    @SuppressWarnings("ConstantConditions")
-    private Timestamp getInternalTimestamp(ColumnInformation columnInfo, Calendar userCalendar) throws SQLException {
-        if (lastValueWasNull()) return null;
-
-        if (!this.isBinaryEncoded) {
-            String rawValue = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-            if (rawValue.startsWith("0000-00-00 00:00:00")) {
-                lastValueNull |= BIT_LAST_ZERO_DATE;
-                return null;
-            }
-
-            switch (columnInfo.getColumnType()) {
-                case TIME:
-                    //time does not go after millisecond
-                    Timestamp tt = new Timestamp(getInternalTime(columnInfo, userCalendar).getTime());
-                    tt.setNanos(extractNanos(rawValue));
-                    return tt;
-                default:
-                    try {
-                        int hour = 0;
-                        int minutes = 0;
-                        int seconds = 0;
-
-                        int year = Integer.parseInt(rawValue.substring(0, 4));
-                        int month = Integer.parseInt(rawValue.substring(5, 7));
-                        int day = Integer.parseInt(rawValue.substring(8, 10));
-                        if (rawValue.length() >= 19) {
-                            hour = Integer.parseInt(rawValue.substring(11, 13));
-                            minutes = Integer.parseInt(rawValue.substring(14, 16));
-                            seconds = Integer.parseInt(rawValue.substring(17, 19));
-                        }
-                        int nanoseconds = extractNanos(rawValue);
-                        Timestamp timestamp;
-
-                        Calendar calendar;
-                        if (userCalendar != null) {
-                            calendar = userCalendar;
-                        } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
-                            calendar = Calendar.getInstance(timeZone);
-                        } else {
-                            calendar = Calendar.getInstance();
-                        }
-
-                        synchronized (calendar) {
-                            calendar.clear();
-                            calendar.set(Calendar.YEAR, year);
-                            calendar.set(Calendar.MONTH, month - 1);
-                            calendar.set(Calendar.DAY_OF_MONTH, day);
-                            calendar.set(Calendar.HOUR_OF_DAY, hour);
-                            calendar.set(Calendar.MINUTE, minutes);
-                            calendar.set(Calendar.SECOND, seconds);
-                            calendar.set(Calendar.MILLISECOND, nanoseconds / 1000000);
-                            timestamp = new Timestamp(calendar.getTime().getTime());
-                        }
-                        timestamp.setNanos(nanoseconds);
-                        return timestamp;
-                    } catch (NumberFormatException | StringIndexOutOfBoundsException n) {
-                        throw new SQLException("Value \"" + rawValue + "\" cannot be parse as Timestamp");
-                    }
-            }
-        } else {
-            return binaryTimestamp(columnInfo, userCalendar);
-        }
-
+        return row.getInternalTimestamp(columnsInformation[columnIndex - 1], null, timeZone);
     }
 
     /**
@@ -1897,7 +1190,7 @@ public class SelectResultSet implements ResultSet {
      */
     public InputStream getUnicodeStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueWasNull()) return null;
+        if (row.lastValueWasNull()) return null;
         return new ByteArrayInputStream(new String(row.buf, row.pos, row.getLengthMaxFieldSize(), StandardCharsets.UTF_8).getBytes());
     }
 
@@ -1920,7 +1213,7 @@ public class SelectResultSet implements ResultSet {
      */
     public Object getObject(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        return getInternalObject(columnsInformation[columnIndex - 1], dataTypeMappingFlags);
+        return row.getInternalObject(columnsInformation[columnIndex - 1], dataTypeMappingFlags, timeZone);
     }
 
     /**
@@ -1957,31 +1250,31 @@ public class SelectResultSet implements ResultSet {
         ColumnInformation col = columnsInformation[columnIndex - 1];
 
         if (type.equals(String.class)) {
-            return (T) getInternalString(col, null);
+            return (T) row.getInternalString(col, null, timeZone);
 
         } else if (type.equals(Integer.class)) {
-            if (lastValueWasNull()) return null;
-            return (T) (Integer) getInternalInt(col);
+            if (row.lastValueWasNull()) return null;
+            return (T) (Integer) row.getInternalInt(col);
 
         } else if (type.equals(Long.class)) {
-            if (lastValueWasNull()) return null;
-            return (T) (Long) getInternalLong(col);
+            if (row.lastValueWasNull()) return null;
+            return (T) (Long) row.getInternalLong(col);
 
         } else if (type.equals(Short.class)) {
-            if (lastValueWasNull()) return null;
-            return (T) (Short) getInternalShort(col);
+            if (row.lastValueWasNull()) return null;
+            return (T) (Short) row.getInternalShort(col);
 
         } else if (type.equals(Double.class)) {
-            if (lastValueWasNull()) return null;
-            return (T) (Double) getInternalDouble(col);
+            if (row.lastValueWasNull()) return null;
+            return (T) (Double) row.getInternalDouble(col);
 
         } else if (type.equals(Float.class)) {
-            if (lastValueWasNull()) return null;
-            return (T) (Float) getInternalFloat(col);
+            if (row.lastValueWasNull()) return null;
+            return (T) (Float) row.getInternalFloat(col);
 
         } else if (type.equals(Byte.class)) {
-            if (lastValueWasNull()) return null;
-            return (T) (Byte) getInternalByte(col);
+            if (row.lastValueWasNull()) return null;
+            return (T) (Byte) row.getInternalByte(col);
 
         } else if (type.equals(byte[].class)) {
             byte[] data = new byte[row.getLengthMaxFieldSize()];
@@ -1989,77 +1282,77 @@ public class SelectResultSet implements ResultSet {
             return (T) data;
 
         } else if (type.equals(Date.class)) {
-            return (T) getInternalDate(col, null);
+            return (T) row.getInternalDate(col, null, timeZone);
 
         } else if (type.equals(Time.class)) {
-            return (T) getInternalTime(col, null);
+            return (T) row.getInternalTime(col, null, timeZone);
 
         } else if (type.equals(Timestamp.class) || type.equals(java.util.Date.class)) {
-            return (T) getInternalTimestamp(col, null);
+            return (T) row.getInternalTimestamp(col, null, timeZone);
 
         } else if (type.equals(Boolean.class)) {
-            return (T) (Boolean) getInternalBoolean(col);
+            return (T) (Boolean) row.getInternalBoolean(col);
 
         } else if (type.equals(Calendar.class)) {
             Calendar calendar = Calendar.getInstance(timeZone);
-            Timestamp timestamp = getInternalTimestamp(col, null);
+            Timestamp timestamp = row.getInternalTimestamp(col, null, timeZone);
             if (timestamp == null) return null;
             calendar.setTimeInMillis(timestamp.getTime());
             return type.cast(calendar);
 
         } else if (type.equals(Clob.class) || type.equals(NClob.class)) {
-            if (lastValueWasNull()) return null;
-            //TODO rewrite Blob to use buffer directly (using offset + length)
-            byte[] data = new byte[row.getLengthMaxFieldSize()];
-            System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
-            return (T) new MariaDbClob(data);
+            if (row.lastValueWasNull()) return null;
+            return (T) new MariaDbClob(row.buf, row.pos, row.getLengthMaxFieldSize());
 
         } else if (type.equals(InputStream.class)) {
-            if (lastValueWasNull()) return null;
+            if (row.lastValueWasNull()) return null;
             return (T) new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());
 
         } else if (type.equals(Reader.class)) {
-            String value = getInternalString(col);
+            String value = row.getInternalString(col, null, timeZone);
             if (value == null) return null;
             return (T) new StringReader(value);
 
         } else if (type.equals(BigDecimal.class)) {
-            return (T) getInternalBigDecimal(col);
+            return (T) row.getInternalBigDecimal(col);
 
         } else if (type.equals(BigInteger.class)) {
-            return (T) getInternalBigInteger(col);
+            return (T) row.getInternalBigInteger(col);
         } else if (type.equals(BigDecimal.class)) {
-            return (T) getInternalBigDecimal(col);
+            return (T) row.getInternalBigDecimal(col);
 
         } else if (type.equals(LocalDateTime.class)) {
-            if (lastValueWasNull()) return null;
-            ZonedDateTime zonedDateTime = getZonedDateTime(col, LocalDateTime.class);
+            ZonedDateTime zonedDateTime = row.getInternalZonedDateTime(col, LocalDateTime.class, timeZone);
             return zonedDateTime == null ? null : type.cast(zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalDateTime());
 
         } else if (type.equals(ZonedDateTime.class)) {
-            if (lastValueWasNull()) return null;
-            return type.cast(getZonedDateTime(col, ZonedDateTime.class));
+            ZonedDateTime zonedDateTime = row.getInternalZonedDateTime(col, ZonedDateTime.class, timeZone);
+            if (zonedDateTime == null) return null;
+            return type.cast(row.getInternalZonedDateTime(col, ZonedDateTime.class, timeZone));
 
         } else if (type.equals(OffsetDateTime.class)) {
-            if (lastValueWasNull()) return null;
-            ZonedDateTime tmpZonedDateTime = getZonedDateTime(col, OffsetDateTime.class);
+            ZonedDateTime tmpZonedDateTime = row.getInternalZonedDateTime(col, OffsetDateTime.class, timeZone);
             return tmpZonedDateTime == null ? null : type.cast(tmpZonedDateTime.toOffsetDateTime());
 
         } else if (type.equals(OffsetDateTime.class)) {
-            if (lastValueWasNull()) return null;
-            return type.cast(getLocalDate(col));
+            LocalDate localDate = row.getInternalLocalDate(col, timeZone);
+            if (localDate == null) return null;
+            return type.cast( localDate );
 
         } else if (type.equals(LocalDate.class)) {
-            if (lastValueWasNull()) return null;
-            return type.cast(getLocalDate(col));
+            LocalDate localDate = row.getInternalLocalDate(col, timeZone);
+            if (localDate == null) return null;
+            return type.cast( localDate );
 
         } else if (type.equals(LocalTime.class)) {
-            if (lastValueWasNull()) return null;
-            return type.cast(getLocalTime(col));
+            LocalTime localTime = row.getInternalLocalTime(col, timeZone);
+            if (localTime == null) return null;
+            return type.cast( localTime );
 
         } else if (type.equals(OffsetTime.class)) {
-            if (lastValueWasNull()) return null;
-            return type.cast(getOffsetTime(col));
+            OffsetTime offsetTime = row.getInternalOffsetTime(col, timeZone);
+            if (offsetTime == null) return null;
+            return type.cast( offsetTime);
 
         }
         throw ExceptionMapper.getFeatureNotSupportedException("Type class '" + type.getName() + "' is not supported");
@@ -2070,110 +1363,6 @@ public class SelectResultSet implements ResultSet {
     public <T> T getObject(String columnLabel, Class<T> type) throws SQLException {
         return type.cast(getObject(findColumn(columnLabel), type));
     }
-
-    /**
-     * Get object value.
-     *
-     * @param columnInfo           current column information
-     * @param dataTypeMappingFlags dataTypeflag (year is date or int, bit boolean or int,  ...)
-     * @return the object value.
-     * @throws SQLException if any read error occur
-     */
-    private Object getInternalObject(ColumnInformation columnInfo, int dataTypeMappingFlags)
-            throws SQLException {
-        if (lastValueWasNull()) return null;
-
-        switch (columnInfo.getColumnType()) {
-            case BIT:
-                if (columnInfo.getLength() == 1) {
-                    return row.buf[row.pos] != 0;
-                }
-                byte[] dataBit = new byte[row.length];
-                System.arraycopy(row.buf, row.pos, dataBit, 0, row.length);
-                return dataBit;
-            case TINYINT:
-                if (options.tinyInt1isBit && columnInfo.getLength() == 1) {
-                    if (!this.isBinaryEncoded) {
-                        return row.buf[row.pos] != '0';
-                    } else {
-                        return row.buf[row.pos] != 0;
-                    }
-                }
-                return getInternalInt(columnInfo);
-            case INTEGER:
-                if (!columnInfo.isSigned()) {
-                    return getInternalLong(columnInfo);
-                }
-                return getInternalInt(columnInfo);
-            case BIGINT:
-                if (!columnInfo.isSigned()) {
-                    return getInternalBigInteger(columnInfo);
-                }
-                return getInternalLong(columnInfo);
-            case DOUBLE:
-                return getInternalDouble(columnInfo);
-            case VARCHAR:
-                if (columnInfo.isBinary()) {
-                    byte[] data = new byte[row.getLengthMaxFieldSize()];
-                    System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
-                    return data;
-                }
-                return getInternalString(columnInfo);
-
-            case TIMESTAMP:
-            case DATETIME:
-                return getInternalTimestamp(columnInfo, null);
-            case DATE:
-                return getInternalDate(columnInfo, null);
-            case DECIMAL:
-                return getInternalBigDecimal(columnInfo);
-            case BLOB:
-            case LONGBLOB:
-            case MEDIUMBLOB:
-            case TINYBLOB:
-                byte[] dataBlob = new byte[row.getLengthMaxFieldSize()];
-                System.arraycopy(row.buf, row.pos, dataBlob, 0, row.getLengthMaxFieldSize());
-                return dataBlob;
-            case NULL:
-                return null;
-            case YEAR:
-                if ((dataTypeMappingFlags & YEAR_IS_DATE_TYPE) != 0) {
-                    return getInternalDate(columnInfo, null);
-                }
-                return getInternalShort(columnInfo);
-            case SMALLINT:
-            case MEDIUMINT:
-                return getInternalInt(columnInfo);
-            case FLOAT:
-                return getInternalFloat(columnInfo);
-            case TIME:
-                return getInternalTime(columnInfo, null);
-            case VARSTRING:
-            case STRING:
-                if (columnInfo.isBinary()) {
-                    byte[] data = new byte[row.getLengthMaxFieldSize()];
-                    System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
-                    return data;
-                }
-                return getInternalString(columnInfo);
-            case OLDDECIMAL:
-                return getInternalString(columnInfo);
-            case GEOMETRY:
-                byte[] data = new byte[row.length];
-                System.arraycopy(row.buf, row.pos, data, 0, row.length);
-                return data;
-            case ENUM:
-                break;
-            case NEWDATE:
-                break;
-            case SET:
-                break;
-            default:
-                break;
-        }
-        throw ExceptionMapper.getFeatureNotSupportedException("Type '" + columnInfo.getColumnType().getTypeName() + "' is not supported");
-    }
-
 
     /**
      * {inheritDoc}.
@@ -2194,7 +1383,7 @@ public class SelectResultSet implements ResultSet {
      */
     public Reader getCharacterStream(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        String value = getInternalString(columnsInformation[columnIndex - 1]);
+        String value = row.getInternalString(columnsInformation[columnIndex - 1], null, timeZone);
         if (value == null) return null;
         return new StringReader(value);
     }
@@ -2235,11 +1424,8 @@ public class SelectResultSet implements ResultSet {
      */
     public Blob getBlob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueWasNull()) return null;
-        //TODO implement MariaDbBlob with offset
-        byte[] data = new byte[row.getLengthMaxFieldSize()];
-        System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
-        return new MariaDbBlob(data);
+        if (row.lastValueWasNull()) return null;
+        return new MariaDbBlob(row.buf, row.pos, row.length);
     }
 
     /**
@@ -2254,11 +1440,8 @@ public class SelectResultSet implements ResultSet {
      */
     public Clob getClob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueWasNull()) return null;
-        //TODO implement MariaDbClob with offset
-        byte[] data = new byte[row.getLengthMaxFieldSize()];
-        System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
-        return new MariaDbClob(data);
+        if (row.lastValueWasNull()) return null;
+        return new MariaDbClob(row.buf, row.pos, row.length);
     }
 
     /**
@@ -2288,9 +1471,9 @@ public class SelectResultSet implements ResultSet {
     @Override
     public URL getURL(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueWasNull()) return null;
+        if (row.lastValueWasNull()) return null;
         try {
-            return new URL(getInternalString(columnsInformation[columnIndex - 1]));
+            return new URL(row.getInternalString(columnsInformation[columnIndex - 1], null, timeZone));
         } catch (MalformedURLException e) {
             throw ExceptionMapper.getSqlException("Could not parse as URL");
         }
@@ -2324,11 +1507,8 @@ public class SelectResultSet implements ResultSet {
      */
     public NClob getNClob(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        if (lastValueWasNull()) return null;
-        //TODO implement MariaDbBlob with offset
-        byte[] data = new byte[row.getLengthMaxFieldSize()];
-        System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
-        return new MariaDbClob(data);
+        if (row.lastValueWasNull()) return null;
+        return new MariaDbClob(row.buf, row.pos, row.length);
     }
 
     /**
@@ -2373,7 +1553,7 @@ public class SelectResultSet implements ResultSet {
      */
     public boolean getBoolean(int index) throws SQLException {
         checkObjectRange(index);
-        return getInternalBoolean(columnsInformation[index - 1]);
+        return row.getInternalBoolean(columnsInformation[index - 1]);
     }
 
     /**
@@ -2389,7 +1569,7 @@ public class SelectResultSet implements ResultSet {
      */
     public byte getByte(int index) throws SQLException {
         checkObjectRange(index);
-        return getInternalByte(columnsInformation[index - 1]);
+        return row.getInternalByte(columnsInformation[index - 1]);
     }
 
     /**
@@ -2404,7 +1584,7 @@ public class SelectResultSet implements ResultSet {
      */
     public short getShort(int index) throws SQLException {
         checkObjectRange(index);
-        return getInternalShort(columnsInformation[index - 1]);
+        return row.getInternalShort(columnsInformation[index - 1]);
     }
 
     /**
@@ -3070,144 +2250,6 @@ public class SelectResultSet implements ResultSet {
     }
 
     /**
-     * Get boolean value from raw data.
-     *
-     * @param columnInfo current column information
-     * @return boolean
-     * @throws SQLException id any error occur
-     */
-    private boolean getInternalBoolean(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return false;
-
-        if (!this.isBinaryEncoded) {
-            if (row.length == 1 && row.buf[row.pos] == 0) {
-                return false;
-            }
-            final String rawVal = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-            return !("false".equals(rawVal) || "0".equals(rawVal));
-        } else {
-            switch (columnInfo.getColumnType()) {
-                case BIT:
-                    return row.buf[row.pos] != 0;
-                case TINYINT:
-                    return getInternalTinyInt(columnInfo) != 0;
-                case SMALLINT:
-                case YEAR:
-                    return getInternalSmallInt(columnInfo) != 0;
-                case INTEGER:
-                case MEDIUMINT:
-                    return getInternalMediumInt(columnInfo) != 0;
-                case BIGINT:
-                    return getInternalLong(columnInfo) != 0;
-                case FLOAT:
-                    return getInternalFloat(columnInfo) != 0;
-                case DOUBLE:
-                    return getInternalDouble(columnInfo) != 0;
-                default:
-                    final String rawVal = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-                    return !("false".equals(rawVal) || "0".equals(rawVal));
-            }
-        }
-    }
-
-    /**
-     * Get byte from raw data.
-     *
-     * @param columnInfo current column information
-     * @return byte
-     * @throws SQLException id any error occur
-     */
-    private byte getInternalByte(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return 0;
-
-        if (!this.isBinaryEncoded) {
-            if (columnInfo.getColumnType() == ColumnType.BIT) {
-                return row.buf[row.pos];
-            }
-            return parseByte(columnInfo);
-        } else {
-            long value;
-            switch (columnInfo.getColumnType()) {
-                case BIT:
-                    return row.buf[row.pos];
-                case TINYINT:
-                    value = getInternalTinyInt(columnInfo);
-                    break;
-                case SMALLINT:
-                case YEAR:
-                    value = getInternalSmallInt(columnInfo);
-                    break;
-                case INTEGER:
-                case MEDIUMINT:
-                    value = getInternalMediumInt(columnInfo);
-                    break;
-                case BIGINT:
-                    value = getInternalLong(columnInfo);
-                    break;
-                case FLOAT:
-                    value = (long) getInternalFloat(columnInfo);
-                    break;
-                case DOUBLE:
-                    value = (long) getInternalDouble(columnInfo);
-                    break;
-                default:
-                    return parseByte(columnInfo);
-            }
-            rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, value, columnInfo);
-            return (byte) value;
-        }
-    }
-
-    /**
-     * Get short from raw data.
-     *
-     * @param columnInfo current column information
-     * @return short
-     * @throws SQLException id any error occur
-     */
-    private short getInternalShort(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return 0;
-
-        if (!this.isBinaryEncoded) {
-            return parseShort(columnInfo);
-        } else {
-            long value;
-            switch (columnInfo.getColumnType()) {
-                case BIT:
-                    return row.buf[row.pos];
-                case TINYINT:
-                    value = getInternalTinyInt(columnInfo);
-                    break;
-                case SMALLINT:
-                case YEAR:
-                    value = ((row.buf[row.pos] & 0xff) + ((row.buf[row.pos + 1] & 0xff) << 8));
-                    if (columnInfo.isSigned()) {
-                        return (short) value;
-                    }
-                    value = value & 0xffff;
-                    break;
-                case INTEGER:
-                case MEDIUMINT:
-                    value = getInternalMediumInt(columnInfo);
-                    break;
-                case BIGINT:
-                    value = getInternalLong(columnInfo);
-                    break;
-                case FLOAT:
-                    value = (long) getInternalFloat(columnInfo);
-                    break;
-                case DOUBLE:
-                    value = (long) getInternalDouble(columnInfo);
-                    break;
-                default:
-                    return parseShort(columnInfo);
-            }
-            rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, value, columnInfo);
-            return (short) value;
-        }
-    }
-
-    /**
      * {inheritDoc}.
      */
     public <T> T unwrap(final Class<T> iface) throws SQLException {
@@ -3233,1032 +2275,10 @@ public class SelectResultSet implements ResultSet {
         this.returnTableAlias = returnTableAlias;
     }
 
-    private String getTimeString(ColumnInformation columnInfo) {
-        if (lastValueWasNull()) return null;
-        if (row.length == 0) {
-            // binary send 00:00:00 as 0.
-            if (columnInfo.getDecimals() == 0) {
-                return "00:00:00";
-            } else {
-                StringBuilder value = new StringBuilder("00:00:00.");
-                int decimal = columnInfo.getDecimals();
-                while (decimal-- > 0) value.append("0");
-                return value.toString();
-            }
-        }
-        String rawValue = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-        if ("0000-00-00".equals(rawValue)) return null;
-
-        if (!this.isBinaryEncoded) {
-            if (options.maximizeMysqlCompatibility && options.useLegacyDatetimeCode && rawValue.indexOf(".") > 0) {
-                return rawValue.substring(0, rawValue.indexOf("."));
-            }
-            return rawValue;
-        }
-        int day = ((row.buf[row.pos + 1] & 0xff)
-                | ((row.buf[row.pos + 2] & 0xff) << 8)
-                | ((row.buf[row.pos + 3] & 0xff) << 16)
-                | ((row.buf[row.pos + 4] & 0xff) << 24));
-        int hour = row.buf[row.pos + 5];
-        int timeHour = hour + day * 24;
-
-        String hourString;
-        if (timeHour < 10) {
-            hourString = "0" + timeHour;
-        } else {
-            hourString = Integer.toString(timeHour);
-        }
-
-        String minuteString;
-        int minutes = row.buf[row.pos + 6];
-        if (minutes < 10) {
-            minuteString = "0" + minutes;
-        } else {
-            minuteString = Integer.toString(minutes);
-        }
-
-        String secondString;
-        int seconds = row.buf[row.pos + 7];
-        if (seconds < 10) {
-            secondString = "0" + seconds;
-        } else {
-            secondString = Integer.toString(seconds);
-        }
-
-        int microseconds = 0;
-        if (row.length > 8) {
-            microseconds = ((row.buf[row.pos + 8] & 0xff)
-                    | (row.buf[row.pos + 9] & 0xff) << 8
-                    | (row.buf[row.pos + 10] & 0xff) << 16
-                    | (row.buf[row.pos + 11] & 0xff) << 24);
-        }
-
-        StringBuilder microsecondString = new StringBuilder(Integer.toString(microseconds));
-        while (microsecondString.length() < 6) {
-            microsecondString.insert(0, "0");
-        }
-        boolean negative = (row.buf[row.pos] == 0x01);
-        return (negative ? "-" : "") + (hourString + ":" + minuteString + ":" + secondString + "." + microsecondString);
-    }
-
-
     private void rangeCheck(Object className, long minValue, long maxValue, long value, ColumnInformation columnInfo) throws SQLException {
         if (value < minValue || value > maxValue) {
             throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value + " is not in "
                     + className + " range", "22003", 1264);
-        }
-    }
-
-    private int getInternalTinyInt(ColumnInformation columnInfo) {
-        if (lastValueWasNull()) return 0;
-        int value = row.buf[row.pos];
-        if (!columnInfo.isSigned()) {
-            value = (row.buf[row.pos] & 0xff);
-        }
-        return value;
-    }
-
-    private int getInternalSmallInt(ColumnInformation columnInfo) {
-        if (lastValueWasNull()) return 0;
-        int value = ((row.buf[row.pos] & 0xff) + ((row.buf[row.pos + 1] & 0xff) << 8));
-        if (!columnInfo.isSigned()) {
-            return value & 0xffff;
-        }
-        //short cast here is important : -1 will be received as -1, -1 -> 65535
-        return (short) value;
-    }
-
-    private long getInternalMediumInt(ColumnInformation columnInfo) {
-        if (lastValueWasNull()) return 0;
-        long value = ((row.buf[row.pos] & 0xff)
-                + ((row.buf[row.pos + 1] & 0xff) << 8)
-                + ((row.buf[row.pos + 2] & 0xff) << 16)
-                + ((row.buf[row.pos + 3] & 0xff) << 24));
-        if (!columnInfo.isSigned()) {
-            value = value & 0xffffffffL;
-        }
-        return value;
-    }
-
-
-    private byte parseByte(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return 0;
-        try {
-            switch (columnInfo.getColumnType()) {
-                case FLOAT:
-                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    if (floatValue.compareTo((float) Byte.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Byte range", "22003", 1264);
-                    }
-                    return floatValue.byteValue();
-                case DOUBLE:
-                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    if (doubleValue.compareTo((double) Byte.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Byte range", "22003", 1264);
-                    }
-                    return doubleValue.byteValue();
-                case TINYINT:
-                case SMALLINT:
-                case YEAR:
-                case INTEGER:
-                case MEDIUMINT:
-                    long result = 0;
-                    int length = row.length;
-                    boolean negate = false;
-                    int begin = row.pos;
-                    if (length > 0 && row.buf[begin] == 45) { //minus sign
-                        negate = true;
-                        begin++;
-                    }
-                    for (; begin < row.pos + length; begin++) {
-                        result = result * 10 + row.buf[begin] - 48;
-                    }
-                    result = (negate ? -1 * result : result);
-                    rangeCheck(Byte.class, Byte.MIN_VALUE, Byte.MAX_VALUE, result, columnInfo);
-                    return (byte) result;
-                default:
-                    return Byte.parseByte(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-            }
-        } catch (NumberFormatException nfe) {
-            //parse error.
-            //if its a decimal retry without the decimal part.
-            String value = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-            if (isIntegerRegex.matcher(value).find()) {
-                try {
-                    return Byte.parseByte(value.substring(0, value.indexOf(".")));
-                } catch (NumberFormatException nfee) {
-                    //eat exception
-                }
-            }
-            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
-                    + " is not in Byte range",
-                    "22003", 1264);
-        }
-    }
-
-    private short parseShort(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return 0;
-        try {
-            switch (columnInfo.getColumnType()) {
-                case FLOAT:
-                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    if (floatValue.compareTo((float) Short.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Short range", "22003", 1264);
-                    }
-                    return floatValue.shortValue();
-                case DOUBLE:
-                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    if (doubleValue.compareTo((double) Short.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Short range", "22003", 1264);
-                    }
-                    return doubleValue.shortValue();
-                case BIT:
-                case TINYINT:
-                case SMALLINT:
-                case YEAR:
-                case INTEGER:
-                case MEDIUMINT:
-                    long result = 0;
-                    int length = row.length;
-                    boolean negate = false;
-                    int begin = row.pos;
-                    if (length > 0 && row.buf[begin] == 45) { //minus sign
-                        negate = true;
-                        begin++;
-                    }
-                    for (; begin < row.pos + length; begin++) {
-                        result = result * 10 + row.buf[begin] - 48;
-                    }
-                    result = (negate ? -1 * result : result);
-                    rangeCheck(Short.class, Short.MIN_VALUE, Short.MAX_VALUE, result, columnInfo);
-                    return (short) result;
-                default:
-                    return Short.parseShort(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-            }
-        } catch (NumberFormatException nfe) {
-            //parse error.
-            //if its a decimal retry without the decimal part.
-            String value = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-            if (isIntegerRegex.matcher(value).find()) {
-                try {
-                    return Short.parseShort(value.substring(0, value.indexOf(".")));
-                } catch (NumberFormatException numberFormatException) {
-                    //eat exception
-                }
-            }
-            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
-                    + " is not in Short range", "22003", 1264);
-        }
-    }
-
-
-    private int parseInt(ColumnInformation columnInfo) throws SQLException {
-        try {
-            switch (columnInfo.getColumnType()) {
-                case FLOAT:
-                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    if (floatValue.compareTo((float) Integer.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Integer range", "22003", 1264);
-                    }
-                    return floatValue.intValue();
-                case DOUBLE:
-                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    if (doubleValue.compareTo((double) Integer.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Integer range", "22003", 1264);
-                    }
-                    return doubleValue.intValue();
-                case BIT:
-                case TINYINT:
-                case SMALLINT:
-                case YEAR:
-                case INTEGER:
-                case MEDIUMINT:
-                case BIGINT:
-                    long result = 0;
-                    boolean negate = false;
-                    int begin = row.pos;
-                    if (row.length > 0 && row.buf[begin] == 45) { //minus sign
-                        negate = true;
-                        begin++;
-                    }
-                    for (; begin < row.pos + row.length; begin++) {
-                        result = result * 10 + row.buf[begin] - 48;
-                    }
-                    //specific for BIGINT : if value > Long.MAX_VALUE will become negative.
-                    if (result < 0) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Integer range", "22003", 1264);
-                    }
-                    result = (negate ? -1 * result : result);
-                    rangeCheck(Integer.class, Integer.MIN_VALUE, Integer.MAX_VALUE, result, columnInfo);
-                    return (int) result;
-                default:
-                    return Integer.parseInt(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-            }
-        } catch (NumberFormatException nfe) {
-            //parse error.
-            //if its a decimal retry without the decimal part.
-            String value = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-            if (isIntegerRegex.matcher(value).find()) {
-                try {
-                    return Integer.parseInt(value.substring(0, value.indexOf(".")));
-                } catch (NumberFormatException numberFormatException) {
-                    //eat exception
-                }
-            }
-            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
-                    + " is not in Integer range", "22003", 1264);
-        }
-    }
-
-    private long parseLong(ColumnInformation columnInfo) throws SQLException {
-        try {
-            switch (columnInfo.getColumnType()) {
-                case FLOAT:
-                    Float floatValue = Float.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    if (floatValue.compareTo((float) Long.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Long range", "22003", 1264);
-                    }
-                    return floatValue.longValue();
-                case DOUBLE:
-                    Double doubleValue = Double.valueOf(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-                    if (doubleValue.compareTo((double) Long.MAX_VALUE) >= 1) {
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Long range", "22003", 1264);
-                    }
-                    return doubleValue.longValue();
-                case BIT:
-                case TINYINT:
-                case SMALLINT:
-                case YEAR:
-                case INTEGER:
-                case MEDIUMINT:
-                case BIGINT:
-                    long result = 0;
-                    int length = row.length;
-                    boolean negate = false;
-                    int begin = row.pos;
-                    if (length > 0 && row.buf[begin] == 45) { //minus sign
-                        negate = true;
-                        begin++;
-                    }
-                    for (; begin < row.pos + length; begin++) {
-                        result = result * 10 + row.buf[begin] - 48;
-                    }
-                    //specific for BIGINT : if value > Long.MAX_VALUE , will become negative until -1
-                    if (result < 0) {
-                        //CONJ-399 : handle specifically Long.MIN_VALUE that has absolute value +1 compare to LONG.MAX_VALUE
-                        if (result == Long.MIN_VALUE && negate) return Long.MIN_VALUE;
-                        throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value "
-                                + new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8)
-                                + " is not in Long range", "22003", 1264);
-                    }
-                    return (negate ? -1 * result : result);
-                default:
-                    return Long.parseLong(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-            }
-
-        } catch (NumberFormatException nfe) {
-            //parse error.
-            //if its a decimal retry without the decimal part.
-            String value = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-            if (isIntegerRegex.matcher(value).find()) {
-                try {
-                    return Long.parseLong(value.substring(0, value.indexOf(".")));
-                } catch (NumberFormatException nfee) {
-                    //eat exception
-                }
-            }
-            throw new SQLException("Out of range value for column '" + columnInfo.getName() + "' : value " + value
-                    + " is not in Long range", "22003", 1264);
-        }
-    }
-
-    /**
-     * Get BigInteger from raw data.
-     *
-     * @param columnInfo current column information
-     * @return bigInteger
-     * @throws SQLException exception
-     */
-    private BigInteger getInternalBigInteger(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return null;
-        if (!this.isBinaryEncoded) {
-            return new BigInteger(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-        } else {
-            switch (columnInfo.getColumnType()) {
-                case BIT:
-                    return BigInteger.valueOf((long) row.buf[row.pos]);
-                case TINYINT:
-                    return BigInteger.valueOf((long)
-                            (columnInfo.isSigned() ? row.buf[row.pos] : (row.buf[row.pos] & 0xff)));
-                case SMALLINT:
-                case YEAR:
-                    short valueShort = (short) ((row.buf[row.pos] & 0xff) | ((row.buf[row.pos + 1] & 0xff) << 8));
-                    return BigInteger.valueOf((long) (columnInfo.isSigned() ? valueShort : (valueShort & 0xffff)));
-                case INTEGER:
-                case MEDIUMINT:
-                    int valueInt = ((row.buf[row.pos] & 0xff)
-                            + ((row.buf[row.pos + 1] & 0xff) << 8)
-                            + ((row.buf[row.pos + 2] & 0xff) << 16)
-                            + ((row.buf[row.pos + 3] & 0xff) << 24));
-                    return BigInteger.valueOf(((columnInfo.isSigned()) ? valueInt : (valueInt >= 0) ? valueInt : valueInt & 0xffffffffL));
-                case BIGINT:
-                    long value = ((row.buf[row.pos] & 0xff)
-                            + ((long) (row.buf[row.pos + 1] & 0xff) << 8)
-                            + ((long) (row.buf[row.pos + 2] & 0xff) << 16)
-                            + ((long) (row.buf[row.pos + 3] & 0xff) << 24)
-                            + ((long) (row.buf[row.pos + 4] & 0xff) << 32)
-                            + ((long) (row.buf[row.pos + 5] & 0xff) << 40)
-                            + ((long) (row.buf[row.pos + 6] & 0xff) << 48)
-                            + ((long) (row.buf[row.pos + 7] & 0xff) << 56)
-                    );
-                    if (columnInfo.isSigned()) {
-                        return BigInteger.valueOf(value);
-                    } else {
-                        return new BigInteger(1, new byte[]{(byte) (value >> 56),
-                                (byte) (value >> 48), (byte) (value >> 40), (byte) (value >> 32),
-                                (byte) (value >> 24), (byte) (value >> 16), (byte) (value >> 8),
-                                (byte) value});
-                    }
-                case FLOAT:
-                    return BigInteger.valueOf((long) getInternalFloat(columnInfo));
-                case DOUBLE:
-                    return BigInteger.valueOf((long) getInternalDouble(columnInfo));
-                default:
-                    return new BigInteger(new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8));
-            }
-        }
-
-    }
-
-    private Date binaryDate(ColumnInformation columnInfo, Calendar cal) throws SQLException {
-        switch (columnInfo.getColumnType()) {
-            case TIMESTAMP:
-            case DATETIME:
-                Timestamp timestamp = getInternalTimestamp(columnInfo, cal);
-                return (timestamp == null) ? null : new Date(timestamp.getTime());
-            case TIME:
-                throw new SQLException("Cannot read Date using a Types.TIME field");
-            default:
-                if (row.length == 0) {
-                    lastValueNull |= BIT_LAST_FIELD_NULL;
-                    return null;
-                }
-
-                int year = ((row.buf[row.pos] & 0xff) | (row.buf[row.pos + 1] & 0xff) << 8);
-
-                if (row.length == 2 && columnInfo.getLength() == 2) {
-                    //YEAR(2) - deprecated
-                    if (year <= 69) {
-                        year += 2000;
-                    } else {
-                        year += 1900;
-                    }
-                }
-
-                int month = 1;
-                int day = 1;
-
-                if (row.length >= 4) {
-                    month = row.buf[row.pos + 2];
-                    day = row.buf[row.pos + 3];
-                }
-
-                Calendar calendar = Calendar.getInstance();
-
-                Date dt;
-                synchronized (calendar) {
-                    calendar.clear();
-                    calendar.set(Calendar.YEAR, year);
-                    calendar.set(Calendar.MONTH, month - 1);
-                    calendar.set(Calendar.DAY_OF_MONTH, day);
-                    calendar.set(Calendar.HOUR_OF_DAY, 0);
-                    calendar.set(Calendar.MINUTE, 0);
-                    calendar.set(Calendar.SECOND, 0);
-                    calendar.set(Calendar.MILLISECOND, 0);
-                    dt = new Date(calendar.getTimeInMillis());
-                }
-                return dt;
-        }
-    }
-
-    private Time binaryTime(ColumnInformation columnInfo, Calendar cal) throws SQLException {
-        switch (columnInfo.getColumnType()) {
-            case TIMESTAMP:
-            case DATETIME:
-                Timestamp ts = binaryTimestamp(columnInfo, cal);
-                return (ts == null) ? null : new Time(ts.getTime());
-            case DATE:
-                throw new SQLException("Cannot read Time using a Types.DATE field");
-            default:
-                Calendar calendar = Calendar.getInstance();
-                calendar.clear();
-                int day = 0;
-                int hour = 0;
-                int minutes = 0;
-                int seconds = 0;
-                boolean negate = false;
-                if (row.length > 0) {
-                    negate = (row.buf[row.pos] & 0xff) == 0x01;
-                }
-                if (row.length > 4) {
-                    day = ((row.buf[row.pos + 1] & 0xff)
-                            + ((row.buf[row.pos + 2] & 0xff) << 8)
-                            + ((row.buf[row.pos + 3] & 0xff) << 16)
-                            + ((row.buf[row.pos + 4] & 0xff) << 24));
-                }
-                if (row.length > 7) {
-                    hour = row.buf[row.pos + 5];
-                    minutes = row.buf[row.pos + 6];
-                    seconds = row.buf[row.pos + 7];
-                }
-                calendar.set(1970, Calendar.JANUARY, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
-
-                int nanoseconds = 0;
-                if (row.length > 8) {
-                    nanoseconds = ((row.buf[row.pos + 8] & 0xff)
-                            + ((row.buf[row.pos + 9] & 0xff) << 8)
-                            + ((row.buf[row.pos + 10] & 0xff) << 16)
-                            + ((row.buf[row.pos + 11] & 0xff) << 24));
-                }
-
-                calendar.set(Calendar.MILLISECOND, nanoseconds / 1000);
-
-                return new Time(calendar.getTimeInMillis());
-        }
-    }
-
-
-    private Timestamp binaryTimestamp(ColumnInformation columnInfo, Calendar userCalendar) {
-        if (row.length == 0) {
-            lastValueNull |= BIT_LAST_FIELD_NULL;
-            return null;
-        }
-
-        int year;
-        int month;
-        int day = 0;
-        int hour = 0;
-        int minutes = 0;
-        int seconds = 0;
-        int microseconds = 0;
-
-        if (columnInfo.getColumnType() == ColumnType.TIME) {
-            Calendar calendar = userCalendar != null ? userCalendar : Calendar.getInstance();
-
-            boolean negate = false;
-            if (row.length > 0) {
-                negate = (row.buf[row.pos] & 0xff) == 0x01;
-            }
-            if (row.length > 4) {
-                day = ((row.buf[row.pos + 1] & 0xff)
-                        + ((row.buf[row.pos + 2] & 0xff) << 8)
-                        + ((row.buf[row.pos + 3] & 0xff) << 16)
-                        + ((row.buf[row.pos + 4] & 0xff) << 24));
-            }
-            if (row.length > 7) {
-                hour = row.buf[row.pos + 5];
-                minutes = row.buf[row.pos + 6];
-                seconds = row.buf[row.pos + 7];
-            }
-
-            if (row.length > 8) {
-                microseconds = ((row.buf[row.pos + 8] & 0xff)
-                        + ((row.buf[row.pos + 9] & 0xff) << 8)
-                        + ((row.buf[row.pos + 10] & 0xff) << 16)
-                        + ((row.buf[row.pos + 11] & 0xff) << 24));
-            }
-
-            Timestamp tt;
-            synchronized (calendar) {
-                calendar.clear();
-                calendar.set(1970, Calendar.JANUARY, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
-                tt = new Timestamp(calendar.getTimeInMillis());
-            }
-            tt.setNanos(microseconds * 1000);
-            return tt;
-        } else {
-            year = ((row.buf[row.pos] & 0xff) | (row.buf[row.pos + 1] & 0xff) << 8);
-            month = row.buf[row.pos + 2];
-            day = row.buf[row.pos + 3];
-            if (row.length > 4) {
-                hour = row.buf[row.pos + 4];
-                minutes = row.buf[row.pos + 5];
-                seconds = row.buf[row.pos + 6];
-
-                if (row.length > 7) {
-                    microseconds = ((row.buf[row.pos + 7] & 0xff)
-                            + ((row.buf[row.pos + 8] & 0xff) << 8)
-                            + ((row.buf[row.pos + 9] & 0xff) << 16)
-                            + ((row.buf[row.pos + 10] & 0xff) << 24));
-                }
-            }
-        }
-
-        Calendar calendar;
-        if (userCalendar != null) {
-            calendar = userCalendar;
-        } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
-            calendar = Calendar.getInstance(timeZone);
-        } else {
-            calendar = Calendar.getInstance();
-        }
-
-        Timestamp tt;
-        synchronized (calendar) {
-            calendar.clear();
-            calendar.set(year, month - 1, day, hour, minutes, seconds);
-            tt = new Timestamp(calendar.getTimeInMillis());
-        }
-
-        tt.setNanos(microseconds * 1000);
-        return tt;
-    }
-
-    private int extractNanos(String timestring) throws SQLException {
-        int index = timestring.indexOf('.');
-        if (index == -1) {
-            return 0;
-        }
-        int nanos = 0;
-        for (int i = index + 1; i < index + 10; i++) {
-            int digit;
-            if (i >= timestring.length()) {
-                digit = 0;
-            } else {
-                char value = timestring.charAt(i);
-                if (value < '0' || value > '9') {
-                    throw new SQLException("cannot parse sub-second part in timestamp string '" + timestring + "'");
-                }
-                digit = value - '0';
-            }
-            nanos = nanos * 10 + digit;
-        }
-        return nanos;
-    }
-
-
-    /**
-     * Get LocalDateTime from raw data.
-     *
-     * @param columnInfo current column information
-     * @param clazz      ending class
-     * @return timestamp.
-     * @throws SQLException if any read error occur
-     */
-    private ZonedDateTime getZonedDateTime(ColumnInformation columnInfo, Class clazz) throws SQLException {
-        if (lastValueWasNull()) return null;
-        if (row.length == 0) {
-            lastValueNull |= BIT_LAST_FIELD_NULL;
-            return null;
-        }
-
-        if (!this.isBinaryEncoded) {
-
-            String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-
-            switch (columnInfo.getColumnType().getSqlType()) {
-                case Types.TIMESTAMP:
-
-                    if (raw.startsWith("0000-00-00 00:00:00")) return null;
-                    try {
-                        LocalDateTime localDateTime = LocalDateTime.parse(raw, TEXT_LOCAL_DATE_TIME.withZone(timeZone.toZoneId()));
-                        return ZonedDateTime.of(localDateTime, timeZone.toZoneId());
-                    } catch (DateTimeParseException dateParserEx) {
-                        throw new SQLException(raw + " cannot be parse as LocalDateTime. time must have \"yyyy-MM-dd HH:mm:ss[.S]\" format");
-                    }
-
-                case Types.VARCHAR:
-                case Types.LONGVARCHAR:
-                case Types.CHAR:
-
-                    if (raw.startsWith("0000-00-00 00:00:00")) return null;
-                    try {
-                        return ZonedDateTime.parse(raw, TEXT_ZONED_DATE_TIME);
-                    } catch (DateTimeParseException dateParserEx) {
-                        throw new SQLException(raw + " cannot be parse as ZonedDateTime. time must have \"yyyy-MM-dd[T/ ]HH:mm:ss[.S]\" "
-                                + "with offset and timezone format (example : '2011-12-03 10:15:30+01:00[Europe/Paris]')");
-                    }
-
-                default:
-                    throw new SQLException("Cannot read " + clazz.getName() + " using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
-
-            }
-
-        } else {
-
-            switch (columnInfo.getColumnType().getSqlType()) {
-                case Types.TIMESTAMP:
-
-                    int year = ((row.buf[row.pos] & 0xff) | (row.buf[row.pos + 1] & 0xff) << 8);
-                    int month = row.buf[row.pos + 2];
-                    int day = row.buf[row.pos + 3];
-                    int hour = 0;
-                    int minutes = 0;
-                    int seconds = 0;
-                    int microseconds = 0;
-
-                    if (row.length > 4) {
-                        hour = row.buf[row.pos + 4];
-                        minutes = row.buf[row.pos + 5];
-                        seconds = row.buf[row.pos + 6];
-
-                        if (row.length > 7) {
-                            microseconds = ((row.buf[row.pos + 7] & 0xff)
-                                    + ((row.buf[row.pos + 8] & 0xff) << 8)
-                                    + ((row.buf[row.pos + 9] & 0xff) << 16)
-                                    + ((row.buf[row.pos + 10] & 0xff) << 24));
-                        }
-                    }
-
-                    return ZonedDateTime.of(year, month, day, hour, minutes, seconds, microseconds * 1000, timeZone.toZoneId());
-
-                case Types.VARCHAR:
-                case Types.LONGVARCHAR:
-                case Types.CHAR:
-
-                    //string conversion
-                    String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-                    if (raw.startsWith("0000-00-00 00:00:00")) return null;
-                    try {
-                        return ZonedDateTime.parse(raw, TEXT_ZONED_DATE_TIME);
-                    } catch (DateTimeParseException dateParserEx) {
-                        throw new SQLException(raw + " cannot be parse as ZonedDateTime. time must have \"yyyy-MM-dd[T/ ]HH:mm:ss[.S]\" "
-                                + "with offset and timezone format (example : '2011-12-03 10:15:30+01:00[Europe/Paris]')");
-                    }
-
-                default:
-                    throw new SQLException("Cannot read " + clazz.getName() + " using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
-            }
-
-        }
-    }
-
-
-    /**
-     * Get OffsetTime from raw data.
-     *
-     * @param columnInfo current column information
-     * @return timestamp.
-     * @throws SQLException if any read error occur
-     */
-    private OffsetTime getOffsetTime(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return null;
-        if (row.length == 0) {
-            lastValueNull |= BIT_LAST_FIELD_NULL;
-            return null;
-        }
-
-        ZoneId zoneId = timeZone.toZoneId().normalized();
-        if (ZoneOffset.class.isInstance(zoneId)) {
-            ZoneOffset zoneOffset = ZoneOffset.class.cast(zoneId);
-            if (!this.isBinaryEncoded) {
-                String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-                switch (columnInfo.getColumnType().getSqlType()) {
-
-                    case Types.TIMESTAMP:
-                        if (raw.startsWith("0000-00-00 00:00:00")) return null;
-                        try {
-                            return ZonedDateTime.parse(raw, TEXT_LOCAL_DATE_TIME.withZone(zoneOffset)).toOffsetDateTime().toOffsetTime();
-                        } catch (DateTimeParseException dateParserEx) {
-                            throw new SQLException(raw + " cannot be parse as OffsetTime. time must have \"yyyy-MM-dd HH:mm:ss[.S]\" format");
-                        }
-
-                    case Types.TIME:
-                        try {
-                            LocalTime localTime = LocalTime.parse(raw, DateTimeFormatter.ISO_LOCAL_TIME.withZone(zoneOffset));
-                            return OffsetTime.of(localTime, zoneOffset);
-                        } catch (DateTimeParseException dateParserEx) {
-                            throw new SQLException(raw + " cannot be parse as OffsetTime (format is \"HH:mm:ss[.S]\" for data type \""
-                                    + columnInfo.getColumnType() + "\")");
-                        }
-
-                    case Types.VARCHAR:
-                    case Types.LONGVARCHAR:
-                    case Types.CHAR:
-                        try {
-                            return OffsetTime.parse(raw, DateTimeFormatter.ISO_OFFSET_TIME);
-                        } catch (DateTimeParseException dateParserEx) {
-                            throw new SQLException(raw + " cannot be parse as OffsetTime (format is \"HH:mm:ss[.S]\" with offset for data type \""
-                                    + columnInfo.getColumnType() + "\")");
-                        }
-
-                    default:
-                        throw new SQLException("Cannot read " + OffsetTime.class.getName() + " using a "
-                                + columnInfo.getColumnType().getJavaTypeName() + " field");
-                }
-
-            } else {
-
-                int day = 0;
-                int hour = 0;
-                int minutes = 0;
-                int seconds = 0;
-                int microseconds = 0;
-
-                switch (columnInfo.getColumnType().getSqlType()) {
-                    case Types.TIMESTAMP:
-                        int year = ((row.buf[row.pos] & 0xff) | (row.buf[row.pos + 1] & 0xff) << 8);
-                        int month = row.buf[row.pos + 2];
-                        day = row.buf[row.pos + 3];
-
-                        if (row.length > 4) {
-                            hour = row.buf[row.pos + 4];
-                            minutes = row.buf[row.pos + 5];
-                            seconds = row.buf[row.pos + 6];
-
-                            if (row.length > 7) {
-                                microseconds = ((row.buf[row.pos + 7] & 0xff)
-                                        + ((row.buf[row.pos + 8] & 0xff) << 8)
-                                        + ((row.buf[row.pos + 9] & 0xff) << 16)
-                                        + ((row.buf[row.pos + 10] & 0xff) << 24));
-                            }
-                        }
-
-                        return ZonedDateTime.of(year, month, day, hour, minutes, seconds, microseconds * 1000, zoneOffset)
-                                .toOffsetDateTime().toOffsetTime();
-
-                    case Types.TIME:
-
-                        boolean negate = (row.buf[row.pos] & 0xff) == 0x01;
-
-                        if (row.length > 4) {
-                            day = ((row.buf[row.pos + 1] & 0xff)
-                                    + ((row.buf[row.pos + 2] & 0xff) << 8)
-                                    + ((row.buf[row.pos + 3] & 0xff) << 16)
-                                    + ((row.buf[row.pos + 4] & 0xff) << 24));
-                        }
-
-                        if (row.length > 7) {
-                            hour = row.buf[row.pos + 5];
-                            minutes = row.buf[row.pos + 6];
-                            seconds = row.buf[row.pos + 7];
-                        }
-
-                        if (row.length > 8) {
-                            microseconds = ((row.buf[row.pos + 8] & 0xff)
-                                    + ((row.buf[row.pos + 9] & 0xff) << 8)
-                                    + ((row.buf[row.pos + 10] & 0xff) << 16)
-                                    + ((row.buf[row.pos + 11] & 0xff) << 24));
-                        }
-
-                        return OffsetTime.of((negate ? -1 : 1) * (day * 24 + hour), minutes, seconds, microseconds * 1000, zoneOffset);
-
-                    case Types.VARCHAR:
-                    case Types.LONGVARCHAR:
-                    case Types.CHAR:
-                        String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-                        try {
-                            return OffsetTime.parse(raw, DateTimeFormatter.ISO_OFFSET_TIME);
-                        } catch (DateTimeParseException dateParserEx) {
-                            throw new SQLException(raw + " cannot be parse as OffsetTime (format is \"HH:mm:ss[.S]\" with offset for data type \""
-                                    + columnInfo.getColumnType() + "\")");
-                        }
-
-                    default:
-                        throw new SQLException("Cannot read " + OffsetTime.class.getName() + " using a "
-                                + columnInfo.getColumnType().getJavaTypeName() + " field");
-                }
-            }
-        }
-
-        if (options.useLegacyDatetimeCode) {
-            //system timezone is not an offset
-            throw new SQLException("Cannot return an OffsetTime for a TIME field when default timezone is '" + zoneId
-                    + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
-        }
-
-        //server timezone is not an offset
-        throw new SQLException("Cannot return an OffsetTime for a TIME field when server timezone '" + zoneId
-                + "' (only possible for time-zone offset from Greenwich/UTC, such as +02:00)");
-
-    }
-
-    /**
-     * Get LocalTime from raw data.
-     *
-     * @param columnInfo current column information
-     * @return timestamp.
-     * @throws SQLException if any read error occur
-     */
-    private LocalTime getLocalTime(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return null;
-        if (row.length == 0) {
-            lastValueNull |= BIT_LAST_FIELD_NULL;
-            return null;
-        }
-
-        if (!this.isBinaryEncoded) {
-
-            String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-
-            switch (columnInfo.getColumnType().getSqlType()) {
-                case Types.TIME:
-                case Types.VARCHAR:
-                case Types.LONGVARCHAR:
-                case Types.CHAR:
-                    try {
-                        return LocalTime.parse(raw, DateTimeFormatter.ISO_LOCAL_TIME.withZone(timeZone.toZoneId()));
-                    } catch (DateTimeParseException dateParserEx) {
-                        throw new SQLException(raw + " cannot be parse as LocalTime (format is \"HH:mm:ss[.S]\" for data type \""
-                                + columnInfo.getColumnType() + "\")");
-                    }
-
-                case Types.TIMESTAMP:
-                    ZonedDateTime zonedDateTime = getZonedDateTime(columnInfo, LocalTime.class);
-                    return zonedDateTime == null ? null : zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalTime();
-
-                default:
-                    throw new SQLException("Cannot read LocalTime using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
-            }
-
-        } else {
-
-
-            switch (columnInfo.getColumnType().getSqlType()) {
-                case Types.TIME:
-
-                    int day = 0;
-                    int hour = 0;
-                    int minutes = 0;
-                    int seconds = 0;
-                    int microseconds = 0;
-
-                    boolean negate = (row.buf[row.pos] & 0xff) == 0x01;
-
-                    if (row.length > 4) {
-                        day = ((row.buf[row.pos + 1] & 0xff)
-                                + ((row.buf[row.pos + 2] & 0xff) << 8)
-                                + ((row.buf[row.pos + 3] & 0xff) << 16)
-                                + ((row.buf[row.pos + 4] & 0xff) << 24));
-                    }
-
-                    if (row.length > 7) {
-                        hour = row.buf[row.pos + 5];
-                        minutes = row.buf[row.pos + 6];
-                        seconds = row.buf[row.pos + 7];
-                    }
-
-                    if (row.length > 8) {
-                        microseconds = ((row.buf[row.pos + 8] & 0xff)
-                                + ((row.buf[row.pos + 9] & 0xff) << 8)
-                                + ((row.buf[row.pos + 10] & 0xff) << 16)
-                                + ((row.buf[row.pos + 11] & 0xff) << 24));
-                    }
-
-                    return LocalTime.of((negate ? -1 : 1) * (day * 24 + hour), minutes, seconds, microseconds * 1000);
-
-                case Types.VARCHAR:
-                case Types.LONGVARCHAR:
-                case Types.CHAR:
-                    //string conversion
-                    String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-                    try {
-                        return LocalTime.parse(raw, DateTimeFormatter.ISO_LOCAL_TIME.withZone(timeZone.toZoneId()));
-                    } catch (DateTimeParseException dateParserEx) {
-                        throw new SQLException(raw + " cannot be parse as LocalTime (format is \"HH:mm:ss[.S]\" for data type \""
-                                + columnInfo.getColumnType() + "\")");
-                    }
-
-                case Types.TIMESTAMP:
-                    ZonedDateTime zonedDateTime = getZonedDateTime(columnInfo, LocalTime.class);
-                    return zonedDateTime == null ? null : zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalTime();
-
-                default:
-                    throw new SQLException("Cannot read LocalTime using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
-            }
-
-        }
-    }
-
-
-    /**
-     * Get LocalDateTime from raw data.
-     *
-     * @param columnInfo current column information
-     * @return timestamp.
-     * @throws SQLException if any read error occur
-     */
-    private LocalDate getLocalDate(ColumnInformation columnInfo) throws SQLException {
-        if (lastValueWasNull()) return null;
-        if (row.length == 0) {
-            lastValueNull |= BIT_LAST_FIELD_NULL;
-            return null;
-        }
-
-        if (!this.isBinaryEncoded) {
-
-            String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-
-            switch (columnInfo.getColumnType().getSqlType()) {
-                case Types.DATE:
-                case Types.VARCHAR:
-                case Types.LONGVARCHAR:
-                case Types.CHAR:
-                    if (raw.startsWith("0000-00-00")) return null;
-                    try {
-                        return LocalDate.parse(raw, DateTimeFormatter.ISO_LOCAL_DATE.withZone(timeZone.toZoneId()));
-                    } catch (DateTimeParseException dateParserEx) {
-                        throw new SQLException(raw + " cannot be parse as LocalDate (format is \"yyyy-MM-dd\" for data type \""
-                                + columnInfo.getColumnType() + "\")");
-                    }
-
-                case Types.TIMESTAMP:
-                    ZonedDateTime zonedDateTime = getZonedDateTime(columnInfo, LocalDate.class);
-                    return zonedDateTime == null ? null : zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalDate();
-
-                default:
-                    throw new SQLException("Cannot read LocalDate using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
-
-            }
-
-        } else {
-
-            switch (columnInfo.getColumnType().getSqlType()) {
-
-                case Types.DATE:
-                    int year = ((row.buf[row.pos] & 0xff) | (row.buf[row.pos + 1] & 0xff) << 8);
-                    int month = row.buf[row.pos + 2];
-                    int day = row.buf[row.pos + 3];
-                    return LocalDate.of(year, month, day);
-
-                case Types.TIMESTAMP:
-                    ZonedDateTime zonedDateTime = getZonedDateTime(columnInfo, LocalDate.class);
-                    return zonedDateTime == null ? null : zonedDateTime.withZoneSameInstant(ZoneId.systemDefault()).toLocalDate();
-
-                case Types.VARCHAR:
-                case Types.LONGVARCHAR:
-                case Types.CHAR:
-                    //string conversion
-                    String raw = new String(row.buf, row.pos, row.length, StandardCharsets.UTF_8);
-                    if (raw.startsWith("0000-00-00")) return null;
-                    try {
-                        return LocalDate.parse(raw, DateTimeFormatter.ISO_LOCAL_DATE.withZone(timeZone.toZoneId()));
-                    } catch (DateTimeParseException dateParserEx) {
-                        throw new SQLException(raw + " cannot be parse as LocalDate. time must have \"yyyy-MM-dd\" format");
-                    }
-
-                default:
-                    throw new SQLException("Cannot read LocalDate using a " + columnInfo.getColumnType().getJavaTypeName() + " field");
-            }
-
         }
     }
 
@@ -4272,5 +2292,9 @@ public class SelectResultSet implements ResultSet {
 
     public int getDataSize() {
         return dataSize;
+    }
+
+    public boolean isBinaryEncoded() {
+        return row.isBinaryEncoded();
     }
 }

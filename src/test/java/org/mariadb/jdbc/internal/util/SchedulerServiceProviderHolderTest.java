@@ -53,17 +53,17 @@
 package org.mariadb.jdbc.internal.util;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder.SchedulerProvider;
-import org.threadly.concurrent.DoNothingRunnable;
-import org.threadly.test.concurrent.TestRunnable;
 
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
@@ -89,11 +89,17 @@ public class SchedulerServiceProviderHolderTest {
         try {
             assertNotNull(scheduler);
             // verify scheduler works
-            TestRunnable tr = new TestRunnable();
-            scheduler.execute(tr);
-            tr.blockTillFinished(); // will throw exception if timeout
-        } finally {
+            scheduler.execute(() -> {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException ie) {
+                    //eat
+                }
+            });
             scheduler.shutdown();
+            Assert.assertTrue(scheduler.awaitTermination(50, TimeUnit.MILLISECONDS));
+        } catch (InterruptedException ie) {
+            fail();
         }
     }
 
@@ -106,7 +112,7 @@ public class SchedulerServiceProviderHolderTest {
     private void testExecuteAfterShutdown(ScheduledExecutorService scheduler) {
         scheduler.shutdown();
         try {
-            scheduler.execute(DoNothingRunnable.instance());
+            scheduler.execute( () -> { } );
             fail("Exception should have thrown");
         } catch (RejectedExecutionException expected) {
             // ignore

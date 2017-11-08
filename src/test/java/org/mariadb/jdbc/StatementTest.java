@@ -305,6 +305,7 @@ public class StatementTest extends BaseTest {
         Assume.assumeTrue(sharedOptions().socketTimeout == null);
         Properties infos = new Properties();
         infos.put("socketTimeout", 1000);
+        infos.put("usePipelineAuth", "false");
         try (Connection connection = createProxyConnection(infos)) {
             Statement statement = connection.createStatement();
             Statement otherStatement = null;

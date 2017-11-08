@@ -58,7 +58,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>2.1.2</version>
+    <version>2.2.0</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
@@ -70,8 +70,8 @@
         <checkstyleVersion>6.11.2</checkstyleVersion>
         <checkstyle.plugin.version>2.16</checkstyle.plugin.version>
         <driver.version.major>2</driver.version.major>
-        <driver.version.minor>1</driver.version.minor>
-        <driver.version.patch>2</driver.version.patch>
+        <driver.version.minor>2</driver.version.minor>
+        <driver.version.patch>0</driver.version.patch>
         <driver.version.qualifier></driver.version.qualifier>
     </properties>
 
@@ -352,12 +352,6 @@
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
             <version>2.4.7</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.threadly</groupId>
-            <artifactId>threadly</artifactId>
-            <version>4.4.3</version>
             <scope>test</scope>
         </dependency>
         <dependency>

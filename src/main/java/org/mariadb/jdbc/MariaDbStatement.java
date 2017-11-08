@@ -680,14 +680,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             closed = true;
 
             if (results.getFetchSize() != 0) {
-                if (options.killFetchStmtOnClose) {
-                    try {
-                        protocol.cancelCurrentQuery();
-                        skipMoreResults();
-                    } catch (SQLException sqle) {
-                        //eat exception
-                    }
-                } else skipMoreResults();
+                skipMoreResults();
             }
 
             results.close();
@@ -851,17 +844,32 @@ public class MariaDbStatement implements Statement, Cloneable {
      * Cancels this <code>Statement</code> object if both the DBMS and driver support aborting an SQL statement. This method can be used by one thread
      * to cancel a statement that is being executed by another thread.
      *
+     * In case there is result-set from this Statement that are still streaming data from server, will cancel streaming.
+     *
      * @throws SQLException                    if a database access error occurs or this method is called on a closed <code>Statement</code>
      * @throws SQLFeatureNotSupportedException if the JDBC driver does not support this method
      */
     public void cancel() throws SQLException {
         checkClose();
+        boolean locked = lock.tryLock();
         try {
-            if (!executing) return;
-            protocol.cancelCurrentQuery();
+            if (executing) {
+                protocol.cancelCurrentQuery();
+            } else if (results.getFetchSize() != 0 && !results.isFullyLoaded(protocol)) {
+                try {
+                    protocol.cancelCurrentQuery();
+                    skipMoreResults();
+                } catch (SQLException e) {
+                    //eat exception
+                }
+                results.removeFetchSize();
+            }
+
         } catch (SQLException e) {
             logger.error("error cancelling query", e);
             ExceptionMapper.throwException(e, connection, this);
+        } finally {
+            if (locked) lock.unlock();
         }
     }
 

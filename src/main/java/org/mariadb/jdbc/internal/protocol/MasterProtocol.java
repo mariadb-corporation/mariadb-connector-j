@@ -57,6 +57,7 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.Listener;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 import java.io.Closeable;
 import java.sql.SQLException;
@@ -69,12 +70,13 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
     /**
      * Get a protocol instance.
      *
-     * @param urlParser connection URL infos
-     * @param lock      the lock for thread synchronisation
+     * @param urlParser     connection URL infos
+     * @param globalInfo    server global variables information
+     * @param lock          the lock for thread synchronisation
      */
 
-    public MasterProtocol(final UrlParser urlParser, final ReentrantLock lock) {
-        super(urlParser, lock);
+    public MasterProtocol(final UrlParser urlParser, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
+        super(urlParser, globalInfo, lock);
     }
 
     /**
@@ -84,8 +86,8 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
      * @param urlParser url connection object
      * @return new instance
      */
-    private static MasterProtocol getNewProtocol(FailoverProxy proxy, UrlParser urlParser) {
-        MasterProtocol newProtocol = new MasterProtocol(urlParser, proxy.lock);
+    private static MasterProtocol getNewProtocol(FailoverProxy proxy, final GlobalStateInfo globalInfo, UrlParser urlParser) {
+        MasterProtocol newProtocol = new MasterProtocol(urlParser, globalInfo, proxy.lock);
         newProtocol.setProxy(proxy);
         return newProtocol;
     }
@@ -93,12 +95,13 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
     /**
      * loop until found the failed connection.
      *
-     * @param listener     current failover
-     * @param addresses    list of HostAddress to loop
-     * @param searchFilter search parameter
+     * @param listener      current failover
+     * @param globalInfo    server global variables information
+     * @param addresses     list of HostAddress to loop
+     * @param searchFilter  search parameter
      * @throws SQLException if not found
      */
-    public static void loop(Listener listener, final List<HostAddress> addresses,
+    public static void loop(Listener listener, final GlobalStateInfo globalInfo, final List<HostAddress> addresses,
                             SearchFilter searchFilter) throws SQLException {
 
         MasterProtocol protocol;
@@ -108,7 +111,7 @@ public class MasterProtocol extends AbstractQueryProtocol implements Closeable {
         int maxConnectionTry = listener.getRetriesAllDown();
         SQLException lastQueryException = null;
         while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
-            protocol = getNewProtocol(listener.getProxy(), listener.getUrlParser());
+            protocol = getNewProtocol(listener.getProxy(), globalInfo, listener.getUrlParser());
 
             if (listener.isExplicitClosed()) {
                 return;

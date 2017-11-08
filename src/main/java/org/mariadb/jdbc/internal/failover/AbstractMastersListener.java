@@ -61,6 +61,7 @@ import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -94,11 +95,13 @@ public abstract class AbstractMastersListener implements Listener {
     protected long lastRetry = 0;
     protected final AtomicBoolean explicitClosed = new AtomicBoolean(false);
     protected long lastQueryNanos = 0;
+    protected final GlobalStateInfo globalInfo;
     private volatile long masterHostFailNanos = 0;
     private final AtomicBoolean masterHostFail = new AtomicBoolean();
 
-    protected AbstractMastersListener(UrlParser urlParser) {
+    protected AbstractMastersListener(UrlParser urlParser, final GlobalStateInfo globalInfo) {
         this.urlParser = urlParser;
+        this.globalInfo = globalInfo;
         this.masterHostFail.set(true);
         this.lastQueryNanos = System.nanoTime();
     }

@@ -52,14 +52,9 @@
 
 package org.mariadb.jdbc.internal.logging;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 public class LoggerFactory {
     private static final Logger NO_LOGGER = new NoLogger();
     private static Boolean hasToLog = null;
-    private static Class loggerClass = null;
-    private static Method method = null;
 
     /**
      * Initialize factory.
@@ -72,10 +67,9 @@ public class LoggerFactory {
             synchronized (LoggerFactory.class) {
                 if (hasToLog == null || hasToLog != mustLog) {
                     try {
-                        loggerClass = Class.forName("org.slf4j.LoggerFactory");
-                        method = loggerClass.getMethod("getLogger", Class.class);
+                        Class.forName("org.slf4j.LoggerFactory");
                         hasToLog = Boolean.TRUE;
-                    } catch (ClassNotFoundException | NoSuchMethodException classNotFound) {
+                    } catch (ClassNotFoundException classNotFound) {
                         System.out.println("Logging cannot be activated, missing slf4j dependency");
                         hasToLog = Boolean.FALSE;
                     }
@@ -93,11 +87,7 @@ public class LoggerFactory {
      */
     public static Logger getLogger(Class<?> clazz) {
         if (hasToLog != null && hasToLog) {
-            try {
-                return new Slf4JLogger((org.slf4j.Logger) method.invoke(loggerClass, clazz));
-            } catch (IllegalAccessException | InvocationTargetException illegalAccess) {
-                return NO_LOGGER;
-            }
+            return new Slf4JLogger(org.slf4j.LoggerFactory.getLogger(clazz));
         } else {
             return NO_LOGGER;
         }

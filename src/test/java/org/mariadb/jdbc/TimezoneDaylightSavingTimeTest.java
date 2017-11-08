@@ -1039,5 +1039,50 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
 
     }
 
+    /**
+     * CONJ-533: ensure PrepareStatement.setTime() may insert correct time value.
+     * @throws SQLException if any occur
+     */
+    @Test
+    public void timeVerificationWithTimezone() throws SQLException {
+        TimeZone timeZone = TimeZone.getTimeZone("Asia/Kuala_Lumpur");
+        TimeZone.setDefault(timeZone);
+        SimpleDateFormat df = new SimpleDateFormat( "HH:mm:ss" );
+        createTable("timeVerificationWithTimezone", "time_field TIME");
+
+        try ( Connection conn = setConnection() ) {
+
+            Calendar cal = Calendar.getInstance();
+            cal.clear();
+            cal.set( Calendar.HOUR, 5 );
+            cal.set( Calendar.MINUTE, 0 );
+            cal.set( Calendar.AM_PM, Calendar.AM );
+
+            try ( PreparedStatement stmt = conn.prepareStatement("insert into timeVerificationWithTimezone (time_field) values (?)")) {
+
+                stmt.setTime(1, new java.sql.Time( cal.getTimeInMillis() ));
+                stmt.executeUpdate();
+
+                stmt.setString(1, "-05:00:00");
+                stmt.executeUpdate();
+
+            }
+
+            try ( PreparedStatement stmt = conn.prepareStatement("select * from timeVerificationWithTimezone")) {
+                try ( ResultSet rs = stmt.executeQuery() ) {
+
+                    assertTrue(rs.next());
+                    assertEquals("05:00:00", df.format(rs.getTime(1)));
+
+                    assertTrue(rs.next());
+                    assertEquals("19:00:00", df.format(rs.getTime(1)));
+                }
+            }
+        } finally {
+            TimeZone.setDefault(parisTimeZone);
+        }
+
+    }
+
 
 }

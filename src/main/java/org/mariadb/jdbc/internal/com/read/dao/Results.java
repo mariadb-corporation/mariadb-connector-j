@@ -325,6 +325,39 @@ public class Results {
     }
 
     /**
+     * Connection.abort() has been called, abort remaining active result-set
+     * @throws SQLException exception
+     */
+    public void abort() throws SQLException {
+        if (fetchSize != 0) {
+            fetchSize = 0;
+            if (resultSet != null) {
+                resultSet.abort();
+            } else {
+                SelectResultSet firstResult = executionResults.peekFirst();
+                if (firstResult != null) {
+                    firstResult.abort();
+                }
+            }
+        }
+    }
+
+    /**
+     * Indicate if result contain result-set that is still streaming from server.
+     * @param protocol current protocol
+     * @return true if streaming is finished
+     */
+    public boolean isFullyLoaded(Protocol protocol) {
+        if (fetchSize == 0 || resultSet == null) return true;
+        if (resultSet.isFullyLoaded()
+                && executionResults.isEmpty()
+                && !protocol.hasMoreResults()) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Position to next resultSet.
      *
      * @param current  one of the following <code>Statement</code> constants indicating what should happen to current
@@ -361,14 +394,14 @@ public class Results {
         if (cmdInformation.moreResults() && !batch) {
 
             if (current == Statement.CLOSE_CURRENT_RESULT && resultSet != null) resultSet.close();
-            resultSet = null;
-            return true;
+            if (executionResults != null) resultSet = executionResults.poll();
+            return resultSet != null;
 
         } else {
 
             if (current == Statement.CLOSE_CURRENT_RESULT && resultSet != null) resultSet.close();
-            if (executionResults != null) resultSet = executionResults.poll();
-            return resultSet != null;
+            resultSet = null;
+            return false;
 
         }
 

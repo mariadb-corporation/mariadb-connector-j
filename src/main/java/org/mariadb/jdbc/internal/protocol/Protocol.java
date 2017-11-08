@@ -100,11 +100,17 @@ public interface Protocol {
 
     void close();
 
+    void abort();
+
+    void reset() throws SQLException;
+
     void closeExplicit();
 
     boolean isClosed();
 
     void setCatalog(String database) throws SQLException;
+
+    void resetDatabase() throws SQLException;
 
     String getCatalog() throws SQLException;
 

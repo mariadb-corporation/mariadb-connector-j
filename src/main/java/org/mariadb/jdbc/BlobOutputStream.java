@@ -71,35 +71,39 @@ class BlobOutputStream extends OutputStream {
     @Override
     public void write(int bit) throws IOException {
 
-        if (this.pos >= blob.blobContent.length) {
-            byte[] tmp = new byte[2 * blob.blobContent.length + 1];
-            System.arraycopy(blob.blobContent, 0, tmp, 0, blob.blobContent.length);
-            blob.blobContent = tmp;
+        if (this.pos >= blob.length) {
+            byte[] tmp = new byte[2 * blob.length + 1];
+            System.arraycopy(blob.data, blob.offset, tmp, 0, blob.length);
+            blob.data = tmp;
+            pos -= blob.offset;
+            blob.offset = 0;
+            blob.length++;
         }
-        blob.blobContent[pos] = (byte) bit;
+        blob.data[pos] = (byte) bit;
         pos++;
-        if (pos > blob.actualSize) {
-            blob.actualSize = pos;
-        }
     }
 
     @Override
-    public void write(byte[] buf, int off, int len) {
-        if (pos + len >= blob.blobContent.length) {
-            int newLen = Math.max(2 * (pos + len + 1), 1024);
+    public void write(byte[] buf, int off, int len) throws IOException {
+        if (off < 0) {
+            throw new IOException("Invalid offset " + off);
+        }
+        int realLen = Math.min(buf.length - off, len);
+        if (pos + realLen >= blob.length) {
+            int newLen = 2 * blob.length + realLen;
             byte[] tmp = new byte[newLen];
-            System.arraycopy(blob.blobContent, 0, tmp, 0, blob.blobContent.length);
-            blob.blobContent = tmp;
+            System.arraycopy(blob.data, blob.offset, tmp, 0, blob.length);
+            blob.data = tmp;
+            pos -= blob.offset;
+            blob.offset = 0;
+            blob.length = pos + realLen;
         }
-        System.arraycopy(buf, off, blob.blobContent, pos, len);
-        pos += len;
-        if (pos > blob.actualSize) {
-            blob.actualSize = pos;
-        }
+        System.arraycopy(buf, off, blob.data, pos, realLen);
+        pos += realLen;
     }
 
     @Override
-    public void write(byte[] buf) {
+    public void write(byte[] buf) throws IOException {
         write(buf, 0, buf.length);
     }
 }

@@ -52,6 +52,8 @@
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
@@ -61,10 +63,29 @@ import java.sql.SQLException;
 public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializable {
     private static final long serialVersionUID = -2006825230517923067L;
 
+    /**
+     * Creates a Clob with content.
+     *
+     * @param bytes the content for the Clob.
+     */
     public MariaDbClob(byte[] bytes) {
         super(bytes);
     }
 
+    /**
+     * Creates a Clob with content.
+     *
+     * @param bytes     the content for the Clob.
+     * @param offset    offset
+     * @param length    length
+     */
+    public MariaDbClob(byte[] bytes, int offset, int length) {
+        super(bytes, offset, length);
+    }
+
+    /**
+     * Creates an empty Clob.
+     */
     public MariaDbClob() {
         super();
     }
@@ -76,7 +97,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
      */
     public String toString() {
         try {
-            return new String(blobContent, StandardCharsets.UTF_8);
+            return new String(data, offset, length, StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new AssertionError(e);
         }
@@ -88,11 +109,21 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
      * @param pos    position
      * @param length length of sub string
      * @return substring
-     * @throws SQLException if position is not possible
+     * @throws SQLException if pos is less than 1 or length is less than 0
      */
     public String getSubString(long pos, int length) throws SQLException {
+
+        if (pos < 1) {
+            throw ExceptionMapper.getSqlException("position must be >= 1");
+        }
+
+        if (length < 0) {
+            throw ExceptionMapper.getSqlException("length must be > 0");
+        }
+
         try {
-            return toString().substring((int) pos - 1, (int) pos - 1 + length);
+            String val = toString();
+            return val.substring((int) pos - 1, Math.min((int) pos - 1 + length, val.length()));
         } catch (Exception e) {
             throw new SQLException(e);
         }
@@ -102,8 +133,23 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
         return new StringReader(toString());
     }
 
+    /**
+     * Returns a Reader object that contains a partial Clob value, starting with the character specified by pos, which
+     * is length characters in length.
+     *
+     * @param pos    the offset to the first character of the partial value to be retrieved. The first character in the
+     *               Clob is at position 1.
+     * @param length the length in characters of the partial value to be retrieved.
+     * @return Reader through which the partial Clob value can be read.
+     * @throws SQLException if pos is less than 1 or if pos is greater than the number of characters in the Clob or
+     * if pos + length is greater than the number of characters in the Clob
+     */
     public Reader getCharacterStream(long pos, long length) throws SQLException {
-        String sub = toString().substring((int) pos - 1, (int) pos - 1 + (int) length);
+        String val = toString();
+        if (val.length() < (int) pos - 1 + length) {
+            throw ExceptionMapper.getSqlException("pos + length is greater than the number of characters in the Clob");
+        }
+        String sub = val.substring((int) pos - 1, (int) pos - 1 + (int) length);
         return new StringReader(sub);
     }
 
@@ -124,12 +170,12 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
         return getBinaryStream();
     }
 
-    public long position(String searchstr, long start) throws SQLException {
-        return toString().indexOf(searchstr, (int) start - 1);
+    public long position(String searchStr, long start) throws SQLException {
+        return toString().indexOf(searchStr, (int) start - 1) + 1;
     }
 
-    public long position(Clob searchstr, long start) throws SQLException {
-        return position(searchstr.toString(), start);
+    public long position(Clob searchStr, long start) throws SQLException {
+        return position(searchStr.toString(), start);
     }
 
     /**
@@ -139,18 +185,18 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
      * @return byte position
      */
     private int utf8Position(int charPosition) {
-        int pos = 0;
+        int pos = offset;
         for (int i = 0; i < charPosition; i++) {
-            int content = blobContent[pos] & 0xff;
-            if (content < 0x80) {
+            int byteValue = data[pos] & 0xff;
+            if (byteValue < 0x80) {
                 pos += 1;
-            } else if (content < 0xC2) {
+            } else if (byteValue < 0xC2) {
                 throw new AssertionError("invalid UTF8");
-            } else if (content < 0xE0) {
+            } else if (byteValue < 0xE0) {
                 pos += 2;
-            } else if (content < 0xF0) {
+            } else if (byteValue < 0xF0) {
                 pos += 3;
-            } else if (content < 0xF8) {
+            } else if (byteValue < 0xF8) {
                 pos += 4;
             } else {
                 throw new AssertionError("invalid UTF8");
@@ -165,15 +211,11 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
      * @param pos position
      * @param str string
      * @return string length
-     * @throws SQLException if UTF-8 convertion failed
+     * @throws SQLException if UTF-8 conversion failed
      */
     public int setString(long pos, String str) throws SQLException {
         int bytePosition = utf8Position((int) pos - 1);
-        try {
-            super.setBytes(bytePosition + 1, str.getBytes("UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            //eat exception, UTF-8 is a known charset
-        }
+        super.setBytes(bytePosition + 1 - offset, str.getBytes(StandardCharsets.UTF_8));
         return str.length();
     }
 
@@ -191,17 +233,17 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     @Override
     public long length() {
         long len = 0;
-        for (int i = 0; i < actualSize; ) {
-            int content = blobContent[i] & 0xff;
-            if (content < 0x80) {
+        for (int i = offset; i < offset + length; ) {
+            int byteValue = data[i] & 0xff;
+            if (byteValue < 0x80) {
                 i += 1;
-            } else if (content < 0xC2) {
+            } else if (byteValue < 0xC2) {
                 throw new AssertionError("invalid UTF8");
-            } else if (content < 0xE0) {
+            } else if (byteValue < 0xE0) {
                 i += 2;
-            } else if (content < 0xF0) {
+            } else if (byteValue < 0xF0) {
                 i += 3;
-            } else if (content < 0xF8) {
+            } else if (byteValue < 0xF8) {
                 i += 4;
             } else {
                 throw new AssertionError("invalid UTF8");
@@ -209,5 +251,27 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
             len++;
         }
         return len;
+    }
+
+    @Override
+    public void truncate(final long len) throws SQLException {
+        int pos = offset;
+        for (; pos < offset + Math.min(length, len); ) {
+            int byteValue = data[pos] & 0xff;
+            if (byteValue < 0x80) {
+                pos += 1;
+            } else if (byteValue < 0xC2) {
+                throw new AssertionError("invalid UTF8");
+            } else if (byteValue < 0xE0) {
+                pos += 2;
+            } else if (byteValue < 0xF0) {
+                pos += 3;
+            } else if (byteValue < 0xF8) {
+                pos += 4;
+            } else {
+                throw new AssertionError("invalid UTF8");
+            }
+        }
+        length = pos - offset;
     }
 }

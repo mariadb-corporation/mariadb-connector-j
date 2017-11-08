@@ -53,19 +53,21 @@
 package org.mariadb.jdbc;
 
 import javax.sql.*;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicLong;
 
 
 public class MariaDbPooledConnection implements PooledConnection {
 
-    protected final MariaDbConnection connection;
+    private final MariaDbConnection connection;
     private final List<ConnectionEventListener> connectionEventListeners;
     private final List<StatementEventListener> statementEventListeners;
+    private final AtomicLong lastUsed;
 
     /**
      * Constructor.
@@ -77,6 +79,7 @@ public class MariaDbPooledConnection implements PooledConnection {
         connection.pooledConnection = this;
         statementEventListeners = new CopyOnWriteArrayList<>();
         connectionEventListeners = new CopyOnWriteArrayList<>();
+        lastUsed = new AtomicLong(System.nanoTime());
     }
 
     /**
@@ -90,12 +93,8 @@ public class MariaDbPooledConnection implements PooledConnection {
      *
      * @return a <code>Connection</code> object that is a handle to
      * this <code>PooledConnection</code> object
-     * @throws SQLException if a database access error occurs
-     *                      if the JDBC driver does not support
-     *                      this method
-     * @since 1.4
      */
-    public Connection getConnection() throws SQLException {
+    public MariaDbConnection getConnection() {
         return connection;
     }
 
@@ -108,13 +107,21 @@ public class MariaDbPooledConnection implements PooledConnection {
      * information.
      *
      * @throws SQLException if a database access error occurs
-     *                      if the JDBC driver does not support
-     *                      this method
-     * @since 1.4
      */
     public void close() throws SQLException {
         connection.pooledConnection = null;
         connection.close();
+    }
+
+    /**
+     * Abort connection.
+     *
+     * @param executor executor
+     * @throws SQLException if a database access error occurs
+     */
+    public void abort(Executor executor) throws SQLException {
+        connection.pooledConnection = null;
+        connection.abort(executor);
     }
 
     /**
@@ -157,7 +164,6 @@ public class MariaDbPooledConnection implements PooledConnection {
      * @param listener an component which implements the <code>StatementEventListener</code>
      *                 interface that is to be registered with this <code>PooledConnection</code> object
      *                 <br>
-     * @since 1.6
      */
     public void addStatementEventListener(StatementEventListener listener) {
         statementEventListeners.add(listener);
@@ -173,7 +179,6 @@ public class MariaDbPooledConnection implements PooledConnection {
      *                 <code>StatementEventListener</code> interface that was previously
      *                 registered with this <code>PooledConnection</code> object
      *                 <br>
-     * @since 1.6
      */
     public void removeStatementEventListener(StatementEventListener listener) {
         statementEventListeners.remove(listener);
@@ -219,7 +224,7 @@ public class MariaDbPooledConnection implements PooledConnection {
     }
 
     /**
-     * Fire connection error to listening listerners.
+     * Fire connection error to listening listeners.
      *
      * @param ex exception
      */
@@ -232,9 +237,26 @@ public class MariaDbPooledConnection implements PooledConnection {
 
     /**
      * Indicate if there are any registered listener.
+     *
      * @return true if no listener.
      */
     public boolean noStmtEventListeners() {
         return statementEventListeners.isEmpty();
+    }
+
+    /**
+     * Indicate last time this pool connection has been used.
+     *
+     * @return current last used time (nano).
+     */
+    public AtomicLong getLastUsed() {
+        return lastUsed;
+    }
+
+    /**
+     * Set last poolConnection use to now.
+     */
+    public void lastUsedToNow() {
+        lastUsed.set(System.nanoTime());
     }
 }

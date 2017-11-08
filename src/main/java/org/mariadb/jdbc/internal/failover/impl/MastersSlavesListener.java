@@ -64,6 +64,7 @@ import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
@@ -128,10 +129,11 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     /**
      * Initialisation.
      *
-     * @param urlParser connection string object.
+     * @param urlParser     connection string object.
+     * @param globalInfo    server global variables information
      */
-    public MastersSlavesListener(final UrlParser urlParser) {
-        super(urlParser);
+    public MastersSlavesListener(final UrlParser urlParser, final GlobalStateInfo globalInfo) {
+        super(urlParser, globalInfo);
         listenerCount.incrementAndGet();
         masterProtocol = null;
         secondaryProtocol = null;
@@ -303,7 +305,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             //and ping master connection fail a few millissecond after,
             //resulting a masterConnection not initialized.
             do {
-                MastersSlavesProtocol.loop(this, loopAddress, searchFilter);
+                MastersSlavesProtocol.loop(this, globalInfo, loopAddress, searchFilter);
                 //close loop if all connection are retrieved
                 if (!searchFilter.isFailoverLoop()) {
                     try {
@@ -312,7 +314,14 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                         //don't throw an exception for this specific exception
                     }
                 }
-            } while (searchFilter.isInitialConnection() && masterProtocol == null);
+            } while (searchFilter.isInitialConnection()
+                && !( masterProtocol != null || (urlParser.getOptions().allowMasterDownConnection && secondaryProtocol != null)));
+
+            if (searchFilter.isInitialConnection() && masterProtocol == null && !currentReadOnlyAsked) {
+                currentProtocol = this.secondaryProtocol;
+                currentReadOnlyAsked = true;
+            }
+
         }
 
     }
@@ -812,4 +821,21 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
         return usedHost;
     }
+
+    /**
+     * Reset state of master and slave connection.
+     *
+     * @throws SQLException if command fail.
+     */
+    public void reset() throws SQLException {
+
+        if (!isMasterHostFail()) {
+            masterProtocol.reset();
+        }
+
+        if (!isSecondaryHostFail()) {
+            secondaryProtocol.reset();
+        }
+    }
+
 }

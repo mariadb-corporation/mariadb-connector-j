@@ -105,7 +105,7 @@ public class AllowMultiQueriesTest extends BaseTest {
             ResultSet rs = stmt.getResultSet();
             assertTrue(rs.next());
             assertEquals(1, rs.getInt(1));
-            assertTrue(stmt.getMoreResults());
+            assertFalse(stmt.getMoreResults());
             stmt.getGeneratedKeys();
             assertTrue(stmt.getMoreResults());
             rs = stmt.getResultSet();
