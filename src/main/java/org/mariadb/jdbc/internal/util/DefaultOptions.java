@@ -755,10 +755,7 @@ public enum DefaultOptions {
             options.useServerPrepStmts = false;
         }
 
-        if (options.pool && options.useResetConnection) {
-            options.useServerPrepStmts = false;
-            options.cachePrepStmts = false;
-        } else if (!options.useServerPrepStmts) {
+        if (!options.useServerPrepStmts) {
             options.cachePrepStmts = false;
         }
 
