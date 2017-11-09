@@ -149,6 +149,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             writer.flush();
             getResult(new Results());
 
+            //clear prepare statement cache
+            if (options.cachePrepStmts) {
+                serverPrepareStatementCache.clear();
+            }
+
         } catch (SQLException sqlException) {
             throw logQuery.exceptionWithQuery("COM_RESET_CONNECTION failed.", sqlException, explicitClosed);
         } catch (IOException e) {
