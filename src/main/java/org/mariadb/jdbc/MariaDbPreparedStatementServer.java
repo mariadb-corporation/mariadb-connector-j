@@ -260,6 +260,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
             if ((options.useBatchMultiSend || options.useBulkStmts)
                     && (protocol.executeBatchServer(mustExecuteOnMaster, serverPrepareResult, results, sql, queryParameters, hasLongData))) {
                 if (metadata == null) setMetaFromResult(); //first prepare
+                results.commandEnd();
                 return;
             }
 
