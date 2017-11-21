@@ -299,7 +299,13 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
         }
     }
 
-    public int[] getServerUpdateCounts() throws SQLException {
+    /**
+     * non JDBC : Permit to retrieve server update counts when using option rewriteBatchedStatements.
+     *
+     * @return an array of update counts containing one element for each command in the batch.
+     * The elements of the array are ordered according to the order in which commands were added to the batch.
+     */
+    public int[] getServerUpdateCounts() {
         if (results != null && results.getCmdInformation() != null) {
             return results.getCmdInformation().getServerUpdateCounts();
         }
