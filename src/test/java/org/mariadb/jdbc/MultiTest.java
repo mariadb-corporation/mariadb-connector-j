@@ -475,6 +475,10 @@ public class MultiTest extends BaseTest {
             assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[4]);
             assertEquals(1, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - currentInsert);
 
+            int[] realUpdateCount = ((MariaDbPreparedStatementClient) sqlInsert).getServerUpdateCounts();
+            assertEquals(1, realUpdateCount.length);
+            assertEquals(5, realUpdateCount[0]);
+
             final int secondCurrentInsert = retrieveSessionVariableFromServer(tmpConnection, "Com_insert");
 
             // rewrite for multiple statements isn't possible, so use allowMutipleQueries

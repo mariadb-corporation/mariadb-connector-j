@@ -61,6 +61,8 @@ public interface CmdInformation {
 
     int[] getUpdateCounts();
 
+    int[] getServerUpdateCounts();
+
     long[] getLargeUpdateCounts();
 
     int getUpdateCount();

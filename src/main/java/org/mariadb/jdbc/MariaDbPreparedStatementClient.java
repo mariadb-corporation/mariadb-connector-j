@@ -299,6 +299,13 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
         }
     }
 
+    public int[] getServerUpdateCounts() throws SQLException {
+        if (results != null && results.getCmdInformation() != null) {
+            return results.getCmdInformation().getServerUpdateCounts();
+        }
+        return new int[0];
+    }
+
     /**
      * Execute batch, like executeBatch(), with returning results with long[].
      * For when row count may exceed Integer.MAX_VALUE.
