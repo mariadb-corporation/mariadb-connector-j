@@ -266,7 +266,7 @@
                             <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
                             <Export-Package>org.mariadb.jdbc</Export-Package>
                             <Import-Package>
-                                javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql;resolution:=optional,javax.transaction.xa;resolution:=optional
+                                javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql;resolution:=optional,javax.transaction.xa;resolution:=optional,org.slf4j;resolution:=optional
                             </Import-Package>
                         </manifestEntries>
                     </archive>
