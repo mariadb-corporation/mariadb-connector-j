@@ -962,9 +962,14 @@ public class DatabaseMetadataTest extends BaseTest {
     public void yearIsShortType() throws Exception {
         try (Connection connection = setConnection("&yearIsDateType=false")) {
             connection.createStatement().execute("insert into ytab values(72)");
+
+            ResultSet rs2 = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null);
+            assertTrue(rs2.next());
+            assertEquals(Types.SMALLINT, rs2.getInt("DATA_TYPE"));
+
             try (ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null)) {
                 assertTrue(rs.next());
-                assertEquals(rs.getInt("DATA_TYPE"), Types.SMALLINT);
+                assertEquals(Types.SMALLINT, rs.getInt("DATA_TYPE"));
             }
 
             try (ResultSet rs1 = connection.createStatement().executeQuery("select * from ytab")) {
@@ -972,6 +977,29 @@ public class DatabaseMetadataTest extends BaseTest {
                 assertTrue(rs1.next());
                 assertTrue(rs1.getObject(1) instanceof Short);
                 assertEquals(rs1.getShort(1), 1972);
+            }
+        }
+    }
+
+    @Test
+    public void yearIsDateType() throws Exception {
+        try (Connection connection = setConnection("&yearIsDateType=true")) {
+            connection.createStatement().execute("insert into ytab values(72)");
+
+            ResultSet rs2 = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null);
+            assertTrue(rs2.next());
+            assertEquals(Types.DATE, rs2.getInt("DATA_TYPE"));
+
+            try (ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null)) {
+                assertTrue(rs.next());
+                assertEquals(Types.DATE, rs.getInt("DATA_TYPE"));
+            }
+
+            try (ResultSet rs1 = connection.createStatement().executeQuery("select * from ytab")) {
+                assertEquals(Types.DATE, rs1.getMetaData().getColumnType(1));
+                assertTrue(rs1.next());
+                assertTrue(rs1.getObject(1) instanceof Date);
+                assertEquals("1972-01-01", rs1.getDate(1).toString());
             }
         }
     }

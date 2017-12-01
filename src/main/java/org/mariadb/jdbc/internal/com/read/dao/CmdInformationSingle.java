@@ -82,6 +82,11 @@ public class CmdInformationSingle implements CmdInformation {
     }
 
     @Override
+    public int[] getServerUpdateCounts() {
+        return new int[]{(int) updateCount};
+    }
+
+    @Override
     public long[] getLargeUpdateCounts() {
         return new long[]{updateCount};
     }
