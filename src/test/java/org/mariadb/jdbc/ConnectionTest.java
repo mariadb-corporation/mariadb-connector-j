@@ -53,6 +53,7 @@
 package org.mariadb.jdbc;
 
 import org.junit.Assume;
+import org.junit.AssumptionViolatedException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
@@ -514,7 +515,12 @@ public class ConnectionTest extends BaseTest {
     public void verificationEd25519AuthPlugin() throws Throwable {
         Assume.assumeTrue(isMariadbServer() && minVersion(10, 2));
         Statement stmt = sharedConnection.createStatement();
-        stmt.execute("INSTALL SONAME 'auth_ed25519'");
+
+        try {
+            stmt.execute("INSTALL SONAME 'auth_ed25519'");
+        } catch (SQLException sqle) {
+            throw new AssumptionViolatedException("server doesn't have ed25519 plugin, cancelling test");
+        }
         try {
             stmt.execute("CREATE USER verificationEd25519AuthPlugin@'%' IDENTIFIED "
                     + "VIA ed25519 USING 'ZIgUREUg5PVgQ6LskhXmO+eZLS0nC8be6HPjYWR4YJY'");
