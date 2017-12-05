@@ -94,13 +94,6 @@ public class DefaultAuthenticationProvider {
             case GSSAPI_CLIENT:
                 return new SendGssApiAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
             case MYSQL_ED25519_PASSWORD:
-
-                try {
-                    Class.forName("net.i2p.crypto.eddsa.EdDSAEngine");
-                } catch (Throwable ex) {
-                    throw new SQLException("Optional dependency \"net.i2p.crypto:eddsa\" must be present in "
-                            + "classpath to use Ed25519 authentication");
-                }
                 return new SendEd25519PasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
 
             default:

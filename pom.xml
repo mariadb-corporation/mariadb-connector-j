@@ -153,7 +153,11 @@
                         <phase>prepare-package</phase>
                         <configuration>
                             <includeTestSourceDirectory>true</includeTestSourceDirectory>
-                            <excludes>**/SharedMemorySocket.java,**/UnixDomainSocket.java, **/MySQLDataSource.java
+                            <excludes>
+                                **/SharedMemorySocket.java,
+                                **/UnixDomainSocket.java,
+                                **/MySQLDataSource.java,
+                                **/org/mariadb/jdbc/internal/com/send/ed25519/**
                             </excludes>
                             <configLocation>src/test/resources/style.xml</configLocation>
                             <encoding>UTF-8</encoding>
@@ -266,7 +270,7 @@
                             <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
                             <Export-Package>org.mariadb.jdbc</Export-Package>
                             <Import-Package>
-                                javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql;resolution:=optional,javax.transaction.xa;resolution:=optional,org.slf4j;resolution:=optional,net.i2p.crypto;resolution:=optional
+                                javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql;resolution:=optional,javax.transaction.xa;resolution:=optional,org.slf4j;resolution:=optional
                             </Import-Package>
                         </manifestEntries>
                     </archive>
@@ -340,13 +344,6 @@
             <groupId>com.github.dblock.waffle</groupId>
             <artifactId>waffle-jna</artifactId>
             <version>1.8.1</version>
-            <optional>true</optional>
-        </dependency>
-
-        <dependency>
-            <groupId>net.i2p.crypto</groupId>
-            <artifactId>eddsa</artifactId>
-            <version>0.2.0</version>
             <optional>true</optional>
         </dependency>
 

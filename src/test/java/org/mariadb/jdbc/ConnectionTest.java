@@ -515,10 +515,14 @@ public class ConnectionTest extends BaseTest {
         Assume.assumeTrue(isMariadbServer() && minVersion(10, 2));
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("INSTALL SONAME 'auth_ed25519'");
-        stmt.execute("CREATE USER verificationEd25519AuthPlugin@'%' IDENTIFIED "
-                + "VIA ed25519 USING 'ZIgUREUg5PVgQ6LskhXmO+eZLS0nC8be6HPjYWR4YJY'");
-        stmt.execute("CREATE USER verificationEd25519AuthPlugin@'localhost' IDENTIFIED "
-                + "VIA ed25519 USING 'ZIgUREUg5PVgQ6LskhXmO+eZLS0nC8be6HPjYWR4YJY'");
+        try {
+            stmt.execute("CREATE USER verificationEd25519AuthPlugin@'%' IDENTIFIED "
+                    + "VIA ed25519 USING 'ZIgUREUg5PVgQ6LskhXmO+eZLS0nC8be6HPjYWR4YJY'");
+            stmt.execute("CREATE USER verificationEd25519AuthPlugin@'localhost' IDENTIFIED "
+                    + "VIA ed25519 USING 'ZIgUREUg5PVgQ6LskhXmO+eZLS0nC8be6HPjYWR4YJY'");
+        } catch (SQLException sqle) {
+            //already existing
+        }
         stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin@'%'");
         stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin@'localhost'");
 

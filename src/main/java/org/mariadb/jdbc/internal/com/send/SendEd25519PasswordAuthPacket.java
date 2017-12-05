@@ -53,15 +53,19 @@
 package org.mariadb.jdbc.internal.com.send;
 
 
-import net.i2p.crypto.eddsa.EdDSAEngine;
-import net.i2p.crypto.eddsa.EdDSAPrivateKey;
-import net.i2p.crypto.eddsa.spec.EdDSANamedCurveTable;
-import net.i2p.crypto.eddsa.spec.EdDSAParameterSpec;
-import net.i2p.crypto.eddsa.spec.EdDSAPrivateKeySpec;
+import org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement;
+import org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519ScalarOps;
+import org.mariadb.jdbc.internal.com.send.ed25519.spec.EdDSANamedCurveTable;
+import org.mariadb.jdbc.internal.com.send.ed25519.spec.EdDSAParameterSpec;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 import java.io.IOException;
-import java.security.*;
+import java.io.UnsupportedEncodingException;
+import java.security.InvalidKeyException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
+import java.util.Arrays;
 
 public class SendEd25519PasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
 
@@ -83,23 +87,8 @@ public class SendEd25519PasswordAuthPacket extends AbstractAuthSwitchSendRespons
                 return;
             }
 
-            byte[] bytePwd;
-            if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
-                bytePwd = password.getBytes(passwordCharacterEncoding);
-            } else {
-                bytePwd = password.getBytes();
-            }
-
-            EdDSAParameterSpec spec = EdDSANamedCurveTable.getByName("Ed25519");
-            MessageDigest hash = MessageDigest.getInstance(spec.getHashAlgorithm());
-            byte[] stage1 = hash.digest(bytePwd);
-            EdDSAPrivateKeySpec privateKeySpec = new EdDSAPrivateKeySpec(spec, stage1);
-            Signature sgr = new EdDSAEngine(MessageDigest.getInstance(spec.getHashAlgorithm()));
-            sgr.initSign(new EdDSAPrivateKey(privateKeySpec));
-            sgr.update(authData);
-
             pos.startPacket(packSeq);
-            pos.write(sgr.sign());
+            pos.write(ed25519SignWithPassword(password, authData, passwordCharacterEncoding));
             pos.flush();
         } catch (NoSuchAlgorithmException e) {
             throw new IOException("Could not use SHA-512, failing", e);
@@ -108,6 +97,56 @@ public class SendEd25519PasswordAuthPacket extends AbstractAuthSwitchSendRespons
         } catch (SignatureException e) {
             throw new IOException("signature error using Ed25519", e);
         }
+    }
+
+    private static byte[] ed25519SignWithPassword(final String password, final byte[] seed, String passwordCharacterEncoding)
+            throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, UnsupportedEncodingException {
+
+        if (password == null || password.isEmpty()) return new byte[0];
+
+        byte[] bytePwd;
+        if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
+            bytePwd = password.getBytes(passwordCharacterEncoding);
+        } else {
+            bytePwd = password.getBytes();
+        }
+
+        MessageDigest hash = MessageDigest.getInstance("SHA-512");
+
+        int mlen = seed.length;
+        byte[] sm = new byte[64 + mlen];
+
+        byte[] az = hash.digest(bytePwd);
+        az[0] &= 248;
+        az[31] &= 63;
+        az[31] |= 64;
+
+        System.arraycopy(seed, 0, sm, 64, mlen);
+        System.arraycopy(az, 32, sm, 32, 32);
+
+        byte[] buff = Arrays.copyOfRange(sm, 32, 96);
+        hash.reset();
+        byte[] nonce = hash.digest(buff);
+
+        Ed25519ScalarOps scalar = new Ed25519ScalarOps();
+
+        EdDSAParameterSpec spec = EdDSANamedCurveTable.getByName("Ed25519");
+        GroupElement elementAvalue = spec.getB().scalarMultiply(az);
+        byte[] elementAarray = elementAvalue.toByteArray();
+        System.arraycopy(elementAarray, 0, sm, 32, elementAarray.length);
+
+        nonce = scalar.reduce(nonce);
+        GroupElement elementRvalue = spec.getB().scalarMultiply(nonce);
+        byte[] elementRarray = elementRvalue.toByteArray();
+        System.arraycopy(elementRarray, 0, sm, 0, elementRarray.length);
+
+        hash.reset();
+        byte[] hram = hash.digest(sm);
+        hram = scalar.reduce(hram);
+        byte[] tt = scalar.multiplyAndAdd(hram, az, nonce);
+        System.arraycopy(tt, 0, sm, 32, tt.length);
+
+        return Arrays.copyOfRange(sm, 0, 64);
     }
 
 }
