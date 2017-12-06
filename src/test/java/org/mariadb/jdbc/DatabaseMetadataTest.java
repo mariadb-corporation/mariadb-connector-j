@@ -609,68 +609,83 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void identifierCaseSensitivity() throws Exception {
-        if (sharedConnection.getMetaData().supportsMixedCaseIdentifiers()) {
-            /* Case-sensitive identifier handling, we can create both t1 and T1 */
-            createTable("aB", "i int");
-            createTable("AB", "i int");
-            /* Check there is an entry for both T1 and t1 in getTables */
-            ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB", null);
-            assertTrue(rs.next());
-            assertFalse(rs.next());
-            rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
-            assertTrue(rs.next());
-            assertFalse(rs.next());
-        }
-
-        if (sharedConnection.getMetaData().storesMixedCaseIdentifiers()) {
-            /* Case-insensitive, case-preserving */
-            createTable("aB", "i int");
-            try {
-                createTable("AB", "i int");
-                fail("should not get there, since names are case-insensitive");
-            } catch (SQLException e) {
-                //normal error
+        Statement stmt = sharedConnection.createStatement();
+        try {
+            if (sharedConnection.getMetaData().supportsMixedCaseIdentifiers()) {
+                /* Case-sensitive identifier handling, we can create both t1 and T1 */
+                stmt.execute("create table aB (i int)");
+                stmt.execute("create table AB (i int)");
+                /* Check there is an entry for both T1 and t1 in getTables */
+                ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB", null);
+                assertTrue(rs.next());
+                assertFalse(rs.next());
+                rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
+                assertTrue(rs.next());
+                assertFalse(rs.next());
             }
 
-            /* Check that table is stored case-preserving */
-            ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB%", null);
-            while (rs.next()) {
-                String tableName = rs.getString("TABLE_NAME");
-                if (tableName.length() == 2) {
-                    assertEquals("aB", tableName);
+            if (sharedConnection.getMetaData().storesMixedCaseIdentifiers()) {
+                /* Case-insensitive, case-preserving */
+                stmt.execute("create table aB (i int)");
+                try {
+                    stmt.execute("create table AB (i int)");
+                    fail("should not get there, since names are case-insensitive");
+                } catch (SQLException e) {
+                    //normal error
                 }
-            }
 
-            rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
-            assertTrue(rs.next());
-            assertFalse(rs.next());
-        }
-
-        if (sharedConnection.getMetaData().storesLowerCaseIdentifiers()) {
-            /* case-insensitive, identifiers converted to lowercase */
-              /* Case-insensitive, case-preserving */
-            createTable("aB", "i int");
-            try {
-                sharedConnection.createStatement().execute("create table AB(i int)");
-                fail("should not get there, since names are case-insensitive");
-            } catch (SQLException e) {
-                //normal error
-            }
-
-            /* Check that table is stored lowercase */
-            ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB%", null);
-            while (rs.next()) {
-                String tableName = rs.getString("TABLE_NAME");
-                if (tableName.length() == 2) {
-                    assertEquals("ab", tableName);
+                /* Check that table is stored case-preserving */
+                ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB%", null);
+                while (rs.next()) {
+                    String tableName = rs.getString("TABLE_NAME");
+                    if (tableName.length() == 2) {
+                        assertEquals("aB", tableName);
+                    }
                 }
+
+                rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
+                assertTrue(rs.next());
+                assertFalse(rs.next());
             }
 
-            rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
-            assertTrue(rs.next());
-            assertFalse(rs.next());
+            if (sharedConnection.getMetaData().storesLowerCaseIdentifiers()) {
+                /* case-insensitive, identifiers converted to lowercase */
+                  /* Case-insensitive, case-preserving */
+                stmt.execute("create table aB (i int)");
+                try {
+                    stmt.execute("create table AB (i int)");
+                    fail("should not get there, since names are case-insensitive");
+                } catch (SQLException e) {
+                    //normal error
+                }
+
+                /* Check that table is stored lowercase */
+                ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB%", null);
+                while (rs.next()) {
+                    String tableName = rs.getString("TABLE_NAME");
+                    if (tableName.length() == 2) {
+                        assertEquals("ab", tableName);
+                    }
+                }
+
+                rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
+                assertTrue(rs.next());
+                assertFalse(rs.next());
+            }
+            assertFalse(sharedConnection.getMetaData().storesUpperCaseIdentifiers());
+        } finally {
+            try {
+                stmt.execute("DROP TABLE aB");
+            } catch (SQLException sqle) {
+                //ignore
+            }
+            try {
+                stmt.execute("DROP TABLE AB");
+            } catch (SQLException sqle) {
+                //ignore
+            }
+
         }
-        assertFalse(sharedConnection.getMetaData().storesUpperCaseIdentifiers());
     }
 
     @Test
