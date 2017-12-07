@@ -32,6 +32,9 @@ public class ScalarOps {
      * Output:
      *   $s[0]+256*s[1]+\dots+256^{31}*s[31] = s \bmod q$
      *   where $q = 2^{252} + 27742317777372353535851937790883648493$.
+     *
+     * @param s byte array
+     * @return reduced byte array using a huge integer modulo the group order q
      */
     public byte[] reduce(byte[] s) {
         // s0,..., s22 have 21 bits, s23 has 29 bits
@@ -427,6 +430,11 @@ public class ScalarOps {
      *   where $q = 2^{252} + 27742317777372353535851937790883648493$.
      * <p>
      * See the comments in {@link #reduce(byte[])} for an explanation of the algorithm.
+     *
+     * @param a a
+     * @param b b
+     * @param c c
+     * @return multiplied result
      */
     public byte[] multiplyAndAdd(byte[] a, byte[] b, byte[] c) {
         long a0 = 0x1FFFFF & load_3(a, 0);
