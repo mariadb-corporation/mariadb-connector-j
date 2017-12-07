@@ -10,8 +10,6 @@
  */
 package org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519;
 
-import org.mariadb.jdbc.internal.com.send.ed25519.math.ScalarOps;
-
 import static org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519LittleEndianEncoding.load_3;
 import static org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519LittleEndianEncoding.load_4;
 
@@ -23,22 +21,8 @@ import static org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519Lit
  * <p>
  * Reviewed/commented by Bloody Rookie (nemproject@gmx.de)
  */
-public class Ed25519ScalarOps implements ScalarOps {
+public class ScalarOps {
 
-    static int load_3(byte[] in, int offset) {
-        int result = in[offset++] & 0xff;
-        result |= (in[offset++] & 0xff) << 8;
-        result |= (in[offset] & 0xff) << 16;
-        return result;
-    }
-
-    static long load_4(byte[] in, int offset) {
-        int result = in[offset++] & 0xff;
-        result |= (in[offset++] & 0xff) << 8;
-        result |= (in[offset++] & 0xff) << 16;
-        result |= in[offset] << 24;
-        return ((long) result) & 0xffffffffL;
-    }
     /**
      * Reduction modulo the group order $q$.
      * <p>

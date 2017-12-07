@@ -14,7 +14,7 @@ import org.mariadb.jdbc.internal.com.send.ed25519.Utils;
 import org.mariadb.jdbc.internal.com.send.ed25519.math.Curve;
 import org.mariadb.jdbc.internal.com.send.ed25519.math.Field;
 import org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519LittleEndianEncoding;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519ScalarOps;
+import org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.ScalarOps;
 
 import java.util.Hashtable;
 import java.util.Locale;
@@ -40,7 +40,7 @@ public class EdDSANamedCurveTable {
             ED_25519,
             ed25519curve,
             "SHA-512", // H
-            new Ed25519ScalarOps(), // l
+            new ScalarOps(), // l
             ed25519curve.createPoint( // B
                     Utils.hexToBytes("5866666666666666666666666666666666666666666666666666666666666666"),
                     true)); // Precompute tables for B

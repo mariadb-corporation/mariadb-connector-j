@@ -41,35 +41,35 @@ public abstract class FieldElement implements Serializable {
         return f.getEncoding().isNegative(this);
     }
 
-    public abstract org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement add(org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement val);
+    public abstract FieldElement add(FieldElement val);
 
-    public org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement addOne() {
+    public FieldElement addOne() {
         return add(f.ONE);
     }
 
-    public abstract org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement subtract(org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement val);
+    public abstract FieldElement subtract(FieldElement val);
 
-    public org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement subtractOne() {
+    public FieldElement subtractOne() {
         return subtract(f.ONE);
     }
 
-    public abstract org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement negate();
+    public abstract FieldElement negate();
 
-    public org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement divide(org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement val) {
+    public FieldElement divide(FieldElement val) {
         return multiply(val.invert());
     }
 
-    public abstract org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement multiply(org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement val);
+    public abstract FieldElement multiply(FieldElement val);
 
-    public abstract org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement square();
+    public abstract FieldElement square();
 
-    public abstract org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement squareAndDouble();
+    public abstract FieldElement squareAndDouble();
 
-    public abstract org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement invert();
+    public abstract FieldElement invert();
 
-    public abstract org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement pow22523();
+    public abstract FieldElement pow22523();
 
-    public abstract org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement cmov(org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement val, final int b);
+    public abstract FieldElement cmov(FieldElement val, final int b);
 
     // Note: concrete subclasses must implement hashCode() and equals()
 }
