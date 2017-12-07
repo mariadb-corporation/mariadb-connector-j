@@ -59,6 +59,8 @@ import org.junit.Test;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Executor;
@@ -541,4 +543,94 @@ public class ConnectionTest extends BaseTest {
         stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
         stmt.execute("drop user verificationEd25519AuthPlugin@'localhost'");
     }
+
+
+    private void initializeDNS(String host) {
+        try {
+            InetAddress.getByName(host);
+            fail();
+        } catch (UnknownHostException e) {
+            //normal error
+        }
+
+    }
+
+    @Test
+    public void loopWaitTestReplciation() throws Exception {
+        //initialize DNS to avoid having wrong timeout
+        initializeDNS("host1");
+        initializeDNS("host2");
+
+        long start = System.currentTimeMillis();
+        try (Connection connection = DriverManager.getConnection(
+                "jdbc:mariadb:replication://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200")) {
+            fail();
+        } catch (SQLException e) {
+            //excepted exception
+            //since retriesAllDown is = 20 , that means 10 entire loop with 250ms sleep
+            // first loop has not sleep, last too, so 8 * 250 = 2s
+            assertTrue(System.currentTimeMillis() - start > 2000);
+            assertTrue(System.currentTimeMillis() - start < 2100);
+        }
+    }
+
+
+    @Test
+    public void loopWaitTestFailover() throws Exception {
+        //initialize DNS to avoid having wrong timeout
+        initializeDNS("host1");
+        initializeDNS("host2");
+
+        long start = System.currentTimeMillis();
+        try (Connection connection = DriverManager.getConnection(
+                "jdbc:mariadb:failover://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200")) {
+            fail();
+        } catch (SQLException e) {
+            //excepted exception
+            //since retriesAllDown is = 20 , that means 10 entire loop with 250ms sleep
+            // first loop has not sleep, last too, so 8 * 250 = 2s
+            assertTrue(System.currentTimeMillis() - start > 2000);
+            assertTrue(System.currentTimeMillis() - start < 2100);
+        }
+    }
+
+    @Test
+    public void loopWaitTestAurora() throws Exception {
+        //fake connection for fake DNS
+        initializeDNS("host1");
+        initializeDNS("host2");
+
+        long start = System.currentTimeMillis();
+        try (Connection connection = DriverManager.getConnection(
+                "jdbc:mariadb:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200")) {
+            fail();
+        } catch (SQLException e) {
+            //excepted exception
+            //since retriesAllDown is = 20 , that means 10 entire loop with 250ms sleep
+            // first loop has not sleep, last too, so 8 * 250 = 2s
+            assertTrue(System.currentTimeMillis() - start > 2000);
+            assertTrue(System.currentTimeMillis() - start < 2100);
+        }
+    }
+
+    @Test
+    public void loopWaitTestAuroraCluster() throws Exception {
+        //fake connection for fake DNS
+        initializeDNS("host1.555-rds.amazonaws.com");
+
+        long start = System.currentTimeMillis();
+        try (Connection connection = DriverManager.getConnection(
+                "jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=200")) {
+            fail();
+        } catch (SQLException e) {
+            //excepted exception
+            //since retriesAllDown is = 20 , that means 20 entire loop with 250ms sleep
+            // first loop has not sleep, last too, so 18 * 250 = 2s
+            System.out.println(System.currentTimeMillis() - start );
+            assertTrue(System.currentTimeMillis() - start > 4500);
+            assertTrue(System.currentTimeMillis() - start < 4600);
+        }
+
+    }
+
 }

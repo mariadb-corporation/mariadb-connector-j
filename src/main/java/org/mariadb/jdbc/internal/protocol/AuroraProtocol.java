@@ -128,7 +128,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
         int maxConnectionTry = listener.getRetriesAllDown();
         SQLException lastQueryException = null;
         HostAddress probableMasterHost = null;
-
+        boolean firstLoop = true;
         while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
             protocol = getNewProtocol(listener.getProxy(), globalInfo, listener.getUrlParser());
 
@@ -241,6 +241,17 @@ public class AuroraProtocol extends MastersSlavesProtocol {
             // add all servers back to continue looping until maxConnectionTry is reached
             if (loopAddresses.isEmpty() && !searchFilter.isFailoverLoop() && maxConnectionTry > 0) {
                 resetHostList(listener, loopAddresses);
+                if (firstLoop) {
+                    firstLoop = false;
+                } else {
+                    try {
+                        //wait 250ms before looping through all connection another time
+                        Thread.sleep(250);
+                    } catch (InterruptedException interrupted) {
+                        //interrupted, continue
+                    }
+                }
+
             }
 
             // Try to connect to the cluster if no other connection is good
