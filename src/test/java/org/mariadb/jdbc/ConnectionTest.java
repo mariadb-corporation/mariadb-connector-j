@@ -545,7 +545,7 @@ public class ConnectionTest extends BaseTest {
     }
 
 
-    private void initializeDNS(String host) {
+    private void initializeDns(String host) {
         try {
             InetAddress.getByName(host);
             fail();
@@ -558,9 +558,9 @@ public class ConnectionTest extends BaseTest {
     @Test
     public void loopSleepTest() throws Exception {
         //initialize DNS to avoid having wrong timeout
-        initializeDNS("host1");
-        initializeDNS("host2");
-        initializeDNS("host1.555-rds.amazonaws.com");
+        initializeDns("host1");
+        initializeDns("host2");
+        initializeDns("host1.555-rds.amazonaws.com");
 
         //failover
         checkConnection("jdbc:mariadb:failover://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 2100);
