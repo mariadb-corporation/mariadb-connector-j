@@ -556,81 +556,34 @@ public class ConnectionTest extends BaseTest {
     }
 
     @Test
-    public void loopWaitTestReplciation() throws Exception {
+    public void loopSleepTest() throws Exception {
         //initialize DNS to avoid having wrong timeout
         initializeDNS("host1");
         initializeDNS("host2");
-
-        long start = System.currentTimeMillis();
-        try (Connection connection = DriverManager.getConnection(
-                "jdbc:mariadb:replication://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200")) {
-            fail();
-        } catch (SQLException e) {
-            //excepted exception
-            //since retriesAllDown is = 20 , that means 10 entire loop with 250ms sleep
-            // first loop has not sleep, last too, so 8 * 250 = 2s
-            assertTrue(System.currentTimeMillis() - start > 2000);
-            assertTrue(System.currentTimeMillis() - start < 2100);
-        }
-    }
-
-
-    @Test
-    public void loopWaitTestFailover() throws Exception {
-        //initialize DNS to avoid having wrong timeout
-        initializeDNS("host1");
-        initializeDNS("host2");
-
-        long start = System.currentTimeMillis();
-        try (Connection connection = DriverManager.getConnection(
-                "jdbc:mariadb:failover://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200")) {
-            fail();
-        } catch (SQLException e) {
-            //excepted exception
-            //since retriesAllDown is = 20 , that means 10 entire loop with 250ms sleep
-            // first loop has not sleep, last too, so 8 * 250 = 2s
-            assertTrue(System.currentTimeMillis() - start > 2000);
-            assertTrue(System.currentTimeMillis() - start < 2100);
-        }
-    }
-
-    @Test
-    public void loopWaitTestAurora() throws Exception {
-        //fake connection for fake DNS
-        initializeDNS("host1");
-        initializeDNS("host2");
-
-        long start = System.currentTimeMillis();
-        try (Connection connection = DriverManager.getConnection(
-                "jdbc:mariadb:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200")) {
-            fail();
-        } catch (SQLException e) {
-            //excepted exception
-            //since retriesAllDown is = 20 , that means 10 entire loop with 250ms sleep
-            // first loop has not sleep, last too, so 8 * 250 = 2s
-            assertTrue(System.currentTimeMillis() - start > 2000);
-            assertTrue(System.currentTimeMillis() - start < 2100);
-        }
-    }
-
-    @Test
-    public void loopWaitTestAuroraCluster() throws Exception {
-        //fake connection for fake DNS
         initializeDNS("host1.555-rds.amazonaws.com");
 
+        //failover
+        checkConnection("jdbc:mariadb:failover://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 2100);
+        //replication
+        checkConnection("jdbc:mariadb:replication://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 2100);
+        //aurora - no cluster end point
+        checkConnection("jdbc:mariadb:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 2100);
+        //aurora - using cluster end point
+        checkConnection("jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=200", 4500, 4600);
+
+    }
+
+    private void checkConnection(String conUrl, int min, int max) {
         long start = System.currentTimeMillis();
-        try (Connection connection = DriverManager.getConnection(
-                "jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=200")) {
+        try (Connection connection = DriverManager.getConnection(conUrl)) {
             fail();
         } catch (SQLException e) {
             //excepted exception
-            //since retriesAllDown is = 20 , that means 20 entire loop with 250ms sleep
-            // first loop has not sleep, last too, so 18 * 250 = 2s
-            System.out.println(System.currentTimeMillis() - start );
-            assertTrue(System.currentTimeMillis() - start > 4500);
-            assertTrue(System.currentTimeMillis() - start < 4600);
+            //since retriesAllDown is = 20 , that means 10 entire loop with 250ms sleep
+            // first loop has not sleep, last too, so 8 * 250 = 2s
+            assertTrue(System.currentTimeMillis() - start > min);
+            assertTrue(System.currentTimeMillis() - start < max);
         }
-
     }
 
 }
