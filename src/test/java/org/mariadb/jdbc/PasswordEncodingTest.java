@@ -116,7 +116,7 @@ public class PasswordEncodingTest extends BaseTest {
             stmt.execute("CREATE USER 'test" + charsetName + "'@'%'");
 
             //non jdbc method that send query according to charset
-            stmt.testExecute("GRANT ALL on *.* to 'test" + charsetName + "' identified by '" + exoticPwd + "'", Charset.forName(charsetName));
+            stmt.testExecute("GRANT ALL on *.* to 'test" + charsetName + "'@'%' identified by '" + exoticPwd + "'", Charset.forName(charsetName));
             stmt.execute("FLUSH PRIVILEGES");
         }
     }
