@@ -357,6 +357,19 @@ public class BaseTest {
     }
 
     /**
+     * Indicate if there is a anonymous user.
+     *
+     * @return true if anonymous user exist
+     * @throws SQLException if any error occur
+     */
+    public boolean anonymousUser() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT count (*) FROM mysql.user u where u.host='localhost' and u.user=''");
+        assertTrue(rs.next());
+        return rs.getInt(1) > 0;
+    }
+
+    /**
      * Check if current DB server is MariaDB.
      *
      * @return true if DB is mariadb

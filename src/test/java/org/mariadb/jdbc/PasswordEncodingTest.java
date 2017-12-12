@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.nio.charset.Charset;
@@ -64,7 +65,7 @@ public class PasswordEncodingTest extends BaseTest {
 
     @Test
     public void testPwdCharset() throws Exception {
-        cancelForVersion(5, 6); //has password charset issue
+        Assume.assumeFalse(anonymousUser());
 
         String[] charsets = new String[]{"UTF-8",
                 "windows-1252",
