@@ -135,7 +135,25 @@ public class MastersFailoverListener extends AbstractMastersListener {
         boolean alreadyClosed = !currentProtocol.isConnected();
         boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();
 
-        if (currentProtocol.isConnected()) currentProtocol.close();
+        proxy.lock.lock();
+        try {
+            if (currentProtocol != null && currentProtocol.isConnected() && currentProtocol.isValid(0)) {
+                //connection re-established
+                //if in transaction cannot be sure that the last query has been received by server of not,
+                // so rollback.and throw exception
+                if (currentProtocol.inTransaction()) {
+                    currentProtocol.rollback();
+                }
+                return new HandleErrorResult(true);
+            }
+        } catch (SQLException e) {
+            currentProtocol.close();
+            if (setMasterHostFail()) {
+                addToBlacklist(currentProtocol.getHostAddress());
+            }
+        } finally {
+            proxy.lock.unlock();
+        }
 
         try {
             reconnectFailedConnection(new SearchFilter(true, false));
@@ -152,11 +170,6 @@ public class MastersFailoverListener extends AbstractMastersListener {
             return new HandleErrorResult(true);
         } catch (Exception e) {
             //we will throw a Connection exception that will close connection
-            if (e.getCause() != null
-                    && proxy.hasToHandleFailover((SQLException) e.getCause())
-                    && currentProtocol.isConnected()) {
-                currentProtocol.noLockClose();
-            }
             FailoverLoop.removeListener(this);
             return new HandleErrorResult();
         }

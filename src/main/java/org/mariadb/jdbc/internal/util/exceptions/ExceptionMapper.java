@@ -216,7 +216,7 @@ public class ExceptionMapper {
     }
 
     /**
-     * Map code to State.
+     * Mapp code to State.
      *
      * @param code code
      * @return String
