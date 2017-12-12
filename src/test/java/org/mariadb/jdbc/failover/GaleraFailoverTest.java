@@ -56,10 +56,12 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mariadb.jdbc.MariaDbPoolDataSource;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -92,6 +94,25 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
         currentType = HaMode.FAILOVER;
     }
 
+
+    @Test
+    public void validGaleraPing() throws Exception {
+        long start = System.currentTimeMillis();
+        try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(initialGaleraUrl + "&maxPoolSize=1")) {
+            try (Connection connection = pool.getConnection()) {
+                Statement statement = connection.createStatement();
+                statement.execute("SELECT 1 ");
+            }
+            Thread.sleep(2000);
+            //Galera ping must occur
+            try (Connection connection = pool.getConnection()) {
+                Statement statement = connection.createStatement();
+                statement.execute("SELECT 1 ");
+            }
+        }
+        //if fail, will loop until connectTimeout = 30s
+        assertTrue(System.currentTimeMillis() - start < 5000);
+    }
 
     @Test
     @Override
