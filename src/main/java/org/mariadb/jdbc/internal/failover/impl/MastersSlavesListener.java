@@ -539,25 +539,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         boolean alreadyClosed = !masterProtocol.isConnected();
         boolean inTransaction = masterProtocol != null && masterProtocol.inTransaction();
 
-        //try to reconnect automatically only time before looping
-        proxy.lock.lock();
-        try {
-            if (masterProtocol != null && masterProtocol.isConnected() && masterProtocol.isValid(0)) {
-                if (inTransaction) {
-                    masterProtocol.rollback();
-                    return new HandleErrorResult(true);
-                }
-                return relaunchOperation(method, args);
-            }
-        } catch (SQLException e) {
-            masterProtocol.close();
-
-            if (setMasterHostFail()) {
-                addToBlacklist(masterProtocol.getHostAddress());
-            }
-        } finally {
-            proxy.lock.unlock();
-        }
+        //in case of SocketTimeoutException due to having set socketTimeout, must force connection close
+        if (masterProtocol.isConnected()) masterProtocol.close();
 
         //fail on slave if parameter permit so
         if (urlParser.getOptions().failOnReadOnly && !isSecondaryHostFail()) {
@@ -606,6 +589,11 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
             return new HandleErrorResult(true);
         } catch (Exception e) {
             //we will throw a Connection exception that will close connection
+            if (e.getCause() != null
+                    && proxy.hasToHandleFailover((SQLException) e.getCause())
+                    && currentProtocol.isConnected()) {
+                currentProtocol.noLockClose();
+            }
             setMasterHostFail();
             FailoverLoop.removeListener(this);
             return new HandleErrorResult();
@@ -677,15 +665,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
      * @throws Throwable if failover has not catch error
      */
     public HandleErrorResult secondaryFail(Method method, Object[] args, boolean killCmd) throws Throwable {
-        proxy.lock.lock();
-        try {
-            if (pingSecondaryProtocol(this.secondaryProtocol)) {
-                return relaunchOperation(method, args);
-            }
-        } finally {
-            proxy.lock.unlock();
-        }
 
+        //in case of SocketTimeoutException due to having set socketTimeout, must force connection close
+        if (secondaryProtocol.isConnected()) secondaryProtocol.close();
 
         if (!isMasterHostFail()) {
             try {
@@ -706,9 +688,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 }
             } catch (Exception e) {
                 //ping fail on master
-                if (setMasterHostFail()) {
-                    blackListAndCloseConnection(masterProtocol);
-                }
+                if (setMasterHostFail()) blackListAndCloseConnection(masterProtocol);
             }
         }
 
