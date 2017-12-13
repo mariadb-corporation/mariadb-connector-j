@@ -298,4 +298,42 @@ public class ExecuteBatchTest extends BaseTest {
             }
         }
     }
+
+    /**
+     * CONJ-553: handling RejectedExecutionException.
+     *
+     * @throws Exception if any error occur
+     */
+    @Test
+    public void ensureBulkSchedulerMaxPoolSizeRejection() throws Exception {
+        createTable("multipleBatch", "a INT NOT NULL");
+
+        final String[] inserts = new String[1024];
+        for (int i = 0; i < inserts.length; i++) {
+            inserts[i] = "INSERT INTO multipleBatch(a) VALUES (1)";
+        }
+
+        ExecutorService exec = Executors.newFixedThreadPool(200);
+        for (int i = 0; i < 149; i++) {
+            exec.execute(() -> {
+                try (Connection connection = setConnection()) {
+                    Statement stmt = connection.createStatement();
+                    for (String sql : inserts) stmt.addBatch(sql);
+                    stmt.executeBatch();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            });
+        }
+
+        exec.shutdown();
+        exec.awaitTermination(300, TimeUnit.SECONDS);
+
+        //check results
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT count(*) from multipleBatch");
+        assertTrue(rs.next());
+        assertEquals(1024 * 149, rs.getInt(1));
+    }
+
 }
