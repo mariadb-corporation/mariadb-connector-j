@@ -306,6 +306,7 @@ public class ExecuteBatchTest extends BaseTest {
      */
     @Test
     public void ensureBulkSchedulerMaxPoolSizeRejection() throws Exception {
+        Assume.assumeFalse(sharedIsAurora());
         createTable("multipleBatch", "a INT NOT NULL");
 
         final String[] inserts = new String[1024];
