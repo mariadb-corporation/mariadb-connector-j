@@ -364,9 +364,8 @@ public class BaseTest {
      */
     public boolean anonymousUser() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT count (*) FROM mysql.user u where u.host='localhost' and u.user=''");
-        assertTrue(rs.next());
-        return rs.getInt(1) > 0;
+        ResultSet rs = stmt.executeQuery("SELECT * FROM mysql.user u where u.Host='localhost' and u.User=''");
+        return rs.next();
     }
 
     /**

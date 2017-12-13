@@ -65,6 +65,8 @@ public class PasswordEncodingTest extends BaseTest {
 
     @Test
     public void testPwdCharset() throws Exception {
+        //aurora user has no right to create other user
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
         Assume.assumeFalse(anonymousUser());
 
         String[] charsets = new String[]{"UTF-8",
