@@ -1086,9 +1086,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 executeQuery(true, results, "show status like 'wsrep_cluster_status'");
                 results.commandEnd();
                 ResultSet rs = results.getResultSet();
-
-                //return true if connected to a galera node that is primary
-                return (rs != null && (!rs.next() || "PRIMARY".equalsIgnoreCase(rs.getString(2))));
+                if (rs == null || !rs.next()) return false;
+                return "PRIMARY".equalsIgnoreCase(rs.getString(2));
             }
 
             return ping();
