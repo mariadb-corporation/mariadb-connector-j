@@ -265,6 +265,8 @@ public class Pool implements AutoCloseable, PoolMBean {
                 //eat
             }
 
+            totalConnection.decrementAndGet();
+
             // validation failed
             silentAbortConnection(item);
 
