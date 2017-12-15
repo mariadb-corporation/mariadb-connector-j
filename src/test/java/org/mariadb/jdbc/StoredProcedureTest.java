@@ -819,6 +819,7 @@ public class StoredProcedureTest extends BaseTest {
         stmt.executeUpdate("DROP PROCEDURE IF EXISTS testDefinerCallableStatement");
         stmt.executeUpdate("CREATE DEFINER=CURRENT_USER PROCEDURE testDefinerCallableStatement(I INT) COMMENT 'abcdefg'\nBEGIN\nSELECT I * 10;\nEND");
         sharedConnection.prepareCall("{call testDefinerCallableStatement(?)}").close();
+        stmt.executeUpdate("DROP PROCEDURE IF EXISTS testDefinerCallableStatement");
     }
 
     @Test

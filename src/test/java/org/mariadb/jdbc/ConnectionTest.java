@@ -569,7 +569,7 @@ public class ConnectionTest extends BaseTest {
         //aurora - no cluster end point
         checkConnection("jdbc:mariadb:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 2100);
         //aurora - using cluster end point
-        checkConnection("jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=200", 4500, 4600);
+        checkConnection("jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=200", 4500, 4700);
 
     }
 
@@ -581,6 +581,7 @@ public class ConnectionTest extends BaseTest {
             //excepted exception
             //since retriesAllDown is = 20 , that means 10 entire loop with 250ms sleep
             // first loop has not sleep, last too, so 8 * 250 = 2s
+            System.out.println(System.currentTimeMillis() - start);
             assertTrue(System.currentTimeMillis() - start > min);
             assertTrue(System.currentTimeMillis() - start < max);
         }

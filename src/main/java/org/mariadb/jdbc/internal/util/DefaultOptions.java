@@ -755,10 +755,6 @@ public enum DefaultOptions {
             options.useServerPrepStmts = false;
         }
 
-        if (!options.useServerPrepStmts) {
-            options.cachePrepStmts = false;
-        }
-
         //pipe cannot use read and write socket simultaneously
         if (options.pipe != null) {
             options.useBatchMultiSend = false;
@@ -766,7 +762,9 @@ public enum DefaultOptions {
         }
 
         //if min pool size default to maximum pool size if not set
-        options.minPoolSize = options.minPoolSize == null ? options.maxPoolSize : Math.min(options.minPoolSize, options.maxPoolSize);
+        if (options.pool) {
+            options.minPoolSize = options.minPoolSize == null ? options.maxPoolSize : Math.min(options.minPoolSize, options.maxPoolSize);
+        }
 
     }
 

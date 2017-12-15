@@ -226,10 +226,10 @@ public class UpdateResultSetTest extends BaseTest {
                         + "Primary key field `id` is not in result-set"));
             }
         }
-
+        setAutoInc();
         ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM UpdateWithoutPrimary");
         assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
+        assertEquals(autoInc + autoIncOffset, rs.getInt(1));
         assertEquals("1-1", rs.getString(2));
         assertEquals("1-2", rs.getString(3));
 
@@ -264,6 +264,8 @@ public class UpdateResultSetTest extends BaseTest {
             rs.updateRow();
         }
 
+        setAutoInc();
+
         ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM testUpdateWithPrimary");
         assertTrue(rs.next());
         assertEquals(-1, rs.getInt(1));
@@ -271,12 +273,12 @@ public class UpdateResultSetTest extends BaseTest {
         assertEquals("0-2", rs.getString(3));
 
         assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
+        assertEquals(autoInc + autoIncOffset, rs.getInt(1));
         assertEquals("1-1", rs.getString(2));
         assertEquals("1-2", rs.getString(3));
 
         assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
+        assertEquals(2 * autoInc + autoIncOffset, rs.getInt(1));
         assertEquals(utf8escapeQuote, rs.getString(2));
         assertEquals("2-2", rs.getString(3));
 
@@ -324,13 +326,15 @@ public class UpdateResultSetTest extends BaseTest {
         assertEquals("0-1", rs.getString(2));
         assertEquals("0-2", rs.getString(3));
 
+        setAutoInc();
+
         assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
+        assertEquals(autoInc + autoIncOffset, rs.getInt(1));
         assertEquals("1-1", rs.getString(2));
         assertEquals("1-2", rs.getString(3));
 
         assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
+        assertEquals(2 * autoInc + autoIncOffset, rs.getInt(1));
         assertEquals(utf8escapeQuote, rs.getString(2));
         assertEquals("2-2", rs.getString(3));
 
@@ -374,15 +378,16 @@ public class UpdateResultSetTest extends BaseTest {
                 assertTrue(sqle.getMessage(), sqle.getMessage().contains("Field 't1' doesn't have a default value"));
             }
 
+            setAutoInc();
             rs.absolute(1);
             assertEquals("1-1", rs.getString(1));
             assertEquals("1-2", rs.getString(2));
-            assertEquals(1, rs.getInt(3));
+            assertEquals(autoInc + autoIncOffset, rs.getInt(3));
 
             assertTrue(rs.next());
             assertEquals("2-1", rs.getString(1));
             assertEquals("default-value", rs.getString(2));
-            assertEquals(2, rs.getInt(3));
+            assertEquals(2 * autoInc + autoIncOffset, rs.getInt(3));
 
             assertFalse(rs.next());
 
@@ -390,12 +395,12 @@ public class UpdateResultSetTest extends BaseTest {
 
         ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM PrimaryGenerated");
         assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
+        assertEquals(autoInc + autoIncOffset, rs.getInt(1));
         assertEquals("1-1", rs.getString(2));
         assertEquals("1-2", rs.getString(3));
 
         assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
+        assertEquals(2 * autoInc + autoIncOffset, rs.getInt(1));
         assertEquals("2-1", rs.getString(2));
         assertEquals("default-value", rs.getString(3));
 
@@ -409,7 +414,7 @@ public class UpdateResultSetTest extends BaseTest {
                 + "`t1` VARCHAR(50) NOT NULL default 'default-value1',"
                 + "`t2` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
                 + "PRIMARY KEY (`id`)");
-
+        setAutoInc();
         try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT id, t1, t2 FROM testPrimaryGeneratedDefault",
                 ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_UPDATABLE)) {
             ResultSet rs = preparedStatement.executeQuery();
@@ -419,15 +424,15 @@ public class UpdateResultSetTest extends BaseTest {
 
             rs.moveToInsertRow();
             rs.insertRow();
-
             rs.beforeFirst();
+
             assertTrue(rs.next());
-            assertEquals(1, rs.getInt(1));
+            assertEquals(autoInc + autoIncOffset, rs.getInt(1));
             assertEquals("default-value1", rs.getString(2));
             assertNotNull(rs.getDate(3));
 
             assertTrue(rs.next());
-            assertEquals(2, rs.getInt(1));
+            assertEquals(2 * autoInc + autoIncOffset, rs.getInt(1));
             assertEquals("default-value1", rs.getString(2));
             assertNotNull(rs.getDate(3));
             assertFalse(rs.next());
@@ -436,12 +441,12 @@ public class UpdateResultSetTest extends BaseTest {
         Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM testPrimaryGeneratedDefault");
         assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
+        assertEquals(autoInc + autoIncOffset, rs.getInt(1));
         assertEquals("default-value1", rs.getString(2));
         assertNotNull(rs.getDate(3));
 
         assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
+        assertEquals(2 * autoInc + autoIncOffset, rs.getInt(1));
         assertEquals("default-value1", rs.getString(2));
         assertNotNull(rs.getDate(3));
 

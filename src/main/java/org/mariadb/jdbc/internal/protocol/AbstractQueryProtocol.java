@@ -150,7 +150,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             getResult(new Results());
 
             //clear prepare statement cache
-            if (options.cachePrepStmts) {
+            if (options.cachePrepStmts && options.useServerPrepStmts) {
                 serverPrepareStatementCache.clear();
             }
 
@@ -735,7 +735,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         cmdPrologue();
         lock.lock();
         try {
-            if (options.cachePrepStmts) {
+            if (options.cachePrepStmts && options.useServerPrepStmts) {
 
                 ServerPrepareResult pr = serverPrepareStatementCache.get(database + "-" + sql);
 

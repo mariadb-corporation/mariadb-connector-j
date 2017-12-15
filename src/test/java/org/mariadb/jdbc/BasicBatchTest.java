@@ -92,9 +92,12 @@ public class BasicBatchTest extends BaseTest {
         ps.addBatch();
         int[] batchResult = ps.executeBatch();
         ResultSet rs1 = ps.getGeneratedKeys();
+
+        setAutoInc();
+
         for (int count = 1; count <= 3; count++) {
             assertTrue(rs1.next());
-            assertTrue(String.valueOf(count).equalsIgnoreCase(rs1.getString(1)));
+            assertTrue(String.valueOf(autoIncOffset + autoInc * count).equalsIgnoreCase(rs1.getString(1)));
         }
         for (int unitInsertNumber : batchResult) {
             assertEquals(1, unitInsertNumber);
@@ -154,10 +157,12 @@ public class BasicBatchTest extends BaseTest {
         assertEquals(1, inserts[2]);
         assertEquals(1, inserts[3]);
 
-        ResultSet rs = sharedConnection.createStatement().executeQuery("select * from test_batch2");
+        setAutoInc();
+
+        ResultSet rs = stmt.executeQuery("select * from test_batch2");
         for (int i = 1; i <= 4; i++) {
             assertEquals(true, rs.next());
-            assertEquals(i, rs.getInt(1));
+            assertEquals(autoIncOffset + i * autoInc, rs.getInt(1));
             assertEquals("hej" + i, rs.getString(2));
         }
         assertEquals(false, rs.next());
@@ -309,16 +314,19 @@ public class BasicBatchTest extends BaseTest {
             assertFalse(stmt.getMoreResults());
 
             ResultSet resultSet = stmt.getGeneratedKeys();
+
+            setAutoInc(2, -1);
+
             assertTrue(resultSet.next());
-            assertEquals(1, resultSet.getInt(1));
+            assertEquals(autoIncOffset + autoInc, resultSet.getInt(1));
             assertTrue(resultSet.next());
-            assertEquals(3, resultSet.getInt(1));
+            assertEquals(autoIncOffset + 2 * autoInc, resultSet.getInt(1));
             assertTrue(resultSet.next());
-            assertEquals(5, resultSet.getInt(1));
+            assertEquals(autoIncOffset + 3 * autoInc, resultSet.getInt(1));
             assertTrue(resultSet.next());
-            assertEquals(7, resultSet.getInt(1));
+            assertEquals(autoIncOffset + 4 * autoInc, resultSet.getInt(1));
             assertTrue(resultSet.next());
-            assertEquals(9, resultSet.getInt(1));
+            assertEquals(autoIncOffset + 5 * autoInc, resultSet.getInt(1));
             assertFalse(resultSet.next());
         }
     }

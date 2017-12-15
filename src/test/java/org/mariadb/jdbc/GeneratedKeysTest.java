@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -77,10 +78,10 @@ public class GeneratedKeysTest extends BaseTest {
         statement.execute("truncate gen_key_test");
         statement.executeUpdate("INSERT INTO gen_key_test (id, name) VALUES (null, 'Dave')",
                 Statement.RETURN_GENERATED_KEYS);
-
+        setAutoInc();
         ResultSet resultSet = statement.getGeneratedKeys();
         assertTrue(resultSet.next());
-        assertEquals(1, resultSet.getInt(1));
+        assertEquals(autoIncOffset + autoInc, resultSet.getInt(1));
     }
 
     @Test
@@ -95,17 +96,18 @@ public class GeneratedKeysTest extends BaseTest {
 
         ResultSet resultSet = preparedStatement.getGeneratedKeys();
         assertTrue(resultSet.next());
-        assertEquals(1, resultSet.getInt(1));
+        setAutoInc();
+        assertEquals(autoIncOffset + autoInc, resultSet.getInt(1));
     }
 
     @Test
     public void testGeneratedKeysInsertOnDuplicateUpdate() throws SQLException {
         Statement statement = sharedConnection.createStatement();
         statement.execute("truncate gen_key_test");
-        statement.execute("INSERT INTO gen_key_test (id, name) VALUES (null, 'Dave')");
-
+        statement.execute("INSERT INTO gen_key_test (name) VALUES ('Dave')");
+        setAutoInc();
         statement.executeUpdate(
-                "INSERT INTO gen_key_test (id, name) VALUES (1, 'Dave') ON DUPLICATE KEY UPDATE id = id",
+                "INSERT INTO gen_key_test (id, name) VALUES (" + (autoIncOffset + autoInc) + ", 'Dave') ON DUPLICATE KEY UPDATE id = id",
                 Statement.RETURN_GENERATED_KEYS);
         //From the Javadoc: "If this Statement object did not generate any keys, an empty ResultSet object is returned."
         ResultSet resultSet = statement.getGeneratedKeys();
@@ -113,6 +115,7 @@ public class GeneratedKeysTest extends BaseTest {
         assertEquals(1, resultSetMetaData.getColumnCount());
         //Since the statement does not generate any keys an empty ResultSet should be returned
         assertFalse(resultSet.next());
+
     }
 
     /**
@@ -122,12 +125,14 @@ public class GeneratedKeysTest extends BaseTest {
      */
     @Test
     public void testGeneratedKeysNegativeValue() throws SQLException {
+        Assume.assumeFalse(isGalera());
         Statement statement = sharedConnection.createStatement();
         statement.execute("ALTER TABLE gen_key_test2 AUTO_INCREMENT = 65500");
         PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO gen_key_test2 (name) VALUES (?)",
                 Statement.RETURN_GENERATED_KEYS);
         preparedStatement.setString(1, "t");
         preparedStatement.execute();
+
         ResultSet rs = preparedStatement.getGeneratedKeys();
         assertTrue(rs.next());
         assertEquals(65500, rs.getInt(1));

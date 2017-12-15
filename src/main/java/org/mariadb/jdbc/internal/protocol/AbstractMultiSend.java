@@ -174,7 +174,9 @@ public abstract class AbstractMultiSend {
         if (binaryProtocol) {
             if (readPrepareStmtResult) {
                 parameterTypeHeader = new ColumnType[paramCount];
-                if (prepareResult == null && protocol.getOptions().cachePrepStmts) {
+                if (prepareResult == null
+                        && protocol.getOptions().cachePrepStmts
+                        && protocol.getOptions().useServerPrepStmts) {
                     String key = protocol.getDatabase() + "-" + sql;
                     prepareResult = protocol.prepareStatementCache().get(key);
                     if (prepareResult != null && !((ServerPrepareResult) prepareResult).incrementShareCounter()) {

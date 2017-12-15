@@ -61,6 +61,7 @@ import java.io.StringWriter;
 import java.sql.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.Assert.*;
@@ -305,36 +306,42 @@ public class ExecuteBatchTest extends BaseTest {
      * @throws Exception if any error occur
      */
     @Test
-    public void ensureBulkSchedulerMaxPoolSizeRejection() throws Exception {
+    public void ensureBulkSchedulerMaxPoolSizeRejection() throws Throwable {
         Assume.assumeFalse(sharedIsAurora());
-        createTable("multipleBatch", "a INT NOT NULL");
-
-        final String[] inserts = new String[1024];
-        for (int i = 0; i < inserts.length; i++) {
-            inserts[i] = "INSERT INTO multipleBatch(a) VALUES (1)";
+        System.out.println(getProtocolFromConnection(sharedConnection).getHostAddress());
+        for (int i = 0; i < 149; i++) {
+            createTable("multipleSimultaneousBatch_" + i, "a INT NOT NULL");
         }
 
+        AtomicInteger counter = new AtomicInteger();
         ExecutorService exec = Executors.newFixedThreadPool(200);
         for (int i = 0; i < 149; i++) {
             exec.execute(() -> {
                 try (Connection connection = setConnection()) {
+                    connection.setAutoCommit(false);
                     Statement stmt = connection.createStatement();
-                    for (String sql : inserts) stmt.addBatch(sql);
+                    int connectionCounter = counter.getAndIncrement();
+                    for (int j = 0; j < 1024; j++) {
+                        stmt.addBatch("INSERT INTO multipleSimultaneousBatch_" + connectionCounter + "(a) VALUES (" + j + ")");
+                    }
                     stmt.executeBatch();
-                } catch (SQLException e) {
+                    connection.commit();
+                } catch (Throwable e) {
                     e.printStackTrace();
                 }
             });
         }
 
         exec.shutdown();
-        exec.awaitTermination(300, TimeUnit.SECONDS);
+        exec.awaitTermination(150, TimeUnit.SECONDS);
 
         //check results
         Statement stmt = sharedConnection.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT count(*) from multipleBatch");
-        assertTrue(rs.next());
-        assertEquals(1024 * 149, rs.getInt(1));
+        for (int i = 0; i < 149; i++) {
+            ResultSet rs = stmt.executeQuery("SELECT count(*) from multipleSimultaneousBatch_" + i);
+            assertTrue(rs.next());
+            assertEquals(1024, rs.getInt(1));
+        }
     }
 
 }

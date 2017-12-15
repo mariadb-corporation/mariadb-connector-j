@@ -1052,7 +1052,7 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void testMultiGeneratedKeyRewrite() throws Throwable {
-
+        Assume.assumeFalse(isGalera());
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", "true");
         props.setProperty("allowMultiQueries", "true");
@@ -1069,7 +1069,7 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void testMultiGeneratedKey() throws Throwable {
-
+        Assume.assumeFalse(isGalera());
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", "false");
         props.setProperty("allowMultiQueries", "true");

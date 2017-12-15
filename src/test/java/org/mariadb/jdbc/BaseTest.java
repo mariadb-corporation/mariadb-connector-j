@@ -584,6 +584,17 @@ public class BaseTest {
         return DriverManager.getConnection(url, info);
     }
 
+    protected boolean isGalera() {
+        try {
+            Statement st = sharedConnection.createStatement();
+            ResultSet rs = st.executeQuery("show status like 'wsrep_cluster_status'");
+            if (rs.next()) return true;
+        } catch (SQLException sqle) {
+            //skip
+        }
+        return false;
+    }
+
     /**
      * Check if max_allowed_packet value is equal or greater then 8m.
      * @param testName          test method name
@@ -996,4 +1007,36 @@ public class BaseTest {
         }
         return true;
     }
+
+    protected int autoInc = 1;
+    protected int autoIncOffset = 0;
+
+    /**
+     * Get current autoincrement value, since Galera values are automatically set.
+     * @throws SQLException if any error occur.
+     */
+    public void setAutoInc() throws SQLException {
+        setAutoInc(1, 0);
+    }
+
+    /**
+     * Get current autoincrement value, since Galera values are automatically set.
+     * @see <a href="https://mariadb.org/auto-increments-in-galera/">https://mariadb.org/auto-increments-in-galera/</a>
+     * @param autoIncInit       default increment
+     * @param autoIncOffsetInit default increment offset
+     * @throws SQLException if any error occur
+     */
+    public void setAutoInc(int autoIncInit, int autoIncOffsetInit) throws SQLException {
+
+        this.autoInc = autoIncInit;
+        this.autoIncOffset = autoIncOffsetInit;
+        if (isGalera()) {
+            ResultSet rs = sharedConnection.createStatement().executeQuery("show variables like '%auto_increment%'");
+            while (rs.next()) {
+                if ("auto_increment_increment".equals(rs.getString(1))) autoInc = rs.getInt(2);
+                if ("auto_increment_offset".equals(rs.getString(1))) autoIncOffset = rs.getInt(2);
+            }
+        }
+    }
+
 }

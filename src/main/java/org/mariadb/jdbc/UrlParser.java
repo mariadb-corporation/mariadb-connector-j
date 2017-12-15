@@ -128,6 +128,11 @@ public class UrlParser implements Cloneable {
         }
 
         DefaultOptions.optionCoherenceValidation(options);
+        setInitialUrl();
+        loadMultiMasterValue();
+    }
+
+    private void setInitialUrl() {
         StringBuilder sb = new StringBuilder();
         sb.append("jdbc:mariadb:");
         if (haMode != HaMode.NONE) {
@@ -149,8 +154,6 @@ public class UrlParser implements Cloneable {
         if (database != null) sb.append(database);
         DefaultOptions.propertyString(options, haMode, sb);
         initialUrl = sb.toString();
-
-        loadMultiMasterValue();
     }
 
     /**
@@ -230,6 +233,9 @@ public class UrlParser implements Cloneable {
 
             defineUrlParserParameters(urlParser, properties, hostAddressesString, additionalParameters);
             setDefaultHostAddressType(urlParser);
+
+            if (properties != null && !properties.isEmpty()) urlParser.setInitialUrl();
+
             urlParser.loadMultiMasterValue();
         } catch (IllegalArgumentException i) {
             throw new SQLException("error parsing url : " + i.getMessage(), i);
