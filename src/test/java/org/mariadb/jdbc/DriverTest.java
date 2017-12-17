@@ -120,10 +120,10 @@ public class DriverTest extends BaseTest {
         stmt.execute("insert into DriverTestt1 (test) values (null)");
         ResultSet rs = stmt.executeQuery("select * from DriverTestt1");
 
-        setAutoInc();
+        int[] autoInc = setAutoInc();
         for (int i = 1; i < 4; i++) {
             assertTrue(rs.next());
-            assertEquals(String.valueOf(autoIncOffset + autoInc * i), rs.getString(1));
+            assertEquals(String.valueOf(autoInc[1] + autoInc[0] * i), rs.getString(1));
             assertEquals("hej" + i, rs.getString("test"));
         }
         assertTrue(rs.next());
@@ -182,12 +182,12 @@ public class DriverTest extends BaseTest {
         try (Statement stmt = sharedConnection.createStatement()) {
             stmt.execute("insert into DriverTestt4 (test) values ('hej1')");
         }
-        setAutoInc();
+        int[] autoInc = setAutoInc();
 
         String query = "SELECT * FROM DriverTestt4 WHERE test = ? and id = ?";
         PreparedStatement prepStmt = sharedConnection.prepareStatement(query);
         prepStmt.setString(1, "hej1");
-        prepStmt.setInt(2, autoIncOffset + autoInc);
+        prepStmt.setInt(2, autoInc[0] + autoInc[1]);
         ResultSet results = prepStmt.executeQuery();
         String res = "";
         while (results.next()) {
@@ -288,17 +288,17 @@ public class DriverTest extends BaseTest {
         stmt.execute("insert into DriverTestt5 (test) values ('hej3')");
         stmt.execute("insert into DriverTestt5 (test) values (null)");
 
-        setAutoInc();
+        int[] autoInc = setAutoInc();
 
         String query = "UPDATE DriverTestt5 SET test = ? where id = ?";
         PreparedStatement prepStmt = sharedConnection.prepareStatement(query);
         prepStmt.setString(1, "updated");
-        prepStmt.setInt(2, autoIncOffset + 3 * autoInc);
+        prepStmt.setInt(2, autoInc[1] + 3 * autoInc[0]);
         int updateCount = prepStmt.executeUpdate();
         assertEquals(1, updateCount);
         String query2 = "SELECT * FROM DriverTestt5 WHERE id=?";
         prepStmt = sharedConnection.prepareStatement(query2);
-        prepStmt.setInt(1, autoIncOffset + 3 * autoInc);
+        prepStmt.setInt(1, autoInc[1] + 3 * autoInc[0]);
         ResultSet results = prepStmt.executeQuery();
         String result = "";
         while (results.next()) {
@@ -401,8 +401,8 @@ public class DriverTest extends BaseTest {
         stmt.executeUpdate("INSERT INTO Drivert30 (test) VALUES ('rollmeback')", Statement.RETURN_GENERATED_KEYS);
         ResultSet rsGen = stmt.getGeneratedKeys();
         rsGen.next();
-        setAutoInc();
-        assertEquals(autoIncOffset + autoInc * 3, rsGen.getInt(1));
+        int[] autoInc = setAutoInc();
+        assertEquals(autoInc[1] + autoInc[0] * 3, rsGen.getInt(1));
         sharedConnection.rollback();
         rs = stmt.executeQuery("SELECT * FROM Drivert30 WHERE id=3");
         assertEquals(false, rs.next());

@@ -114,7 +114,7 @@ public class TruncateExceptionTest extends BaseTest {
 
     @Test
     public void queryTruncationFetch() throws SQLException {
-        setAutoInc();
+        int[] autoInc = setAutoInc();
         try (Connection connection = setConnection("&jdbcCompliantTruncation=true")) {
             Statement stmt = connection.createStatement();
             stmt.execute("TRUNCATE TABLE TruncateExceptionTest2");
@@ -135,13 +135,13 @@ public class TruncateExceptionTest extends BaseTest {
             //resultSet must have been fetch
             ResultSet rs = pstmt.getGeneratedKeys();
             assertTrue(rs.next());
-            assertEquals(autoIncOffset + autoInc, rs.getInt(1));
+            assertEquals(autoInc[0] + autoInc[1], rs.getInt(1));
             if (sharedIsRewrite()) {
                 //rewritten with semi-colons -> error has stopped
                 assertFalse(rs.next());
             } else {
                 assertTrue(rs.next());
-                assertEquals(autoIncOffset + autoInc * 2, rs.getInt(1));
+                assertEquals(autoInc[1] + autoInc[0] * 2, rs.getInt(1));
                 assertFalse(rs.next());
             }
         }
@@ -149,7 +149,7 @@ public class TruncateExceptionTest extends BaseTest {
 
     @Test
     public void queryTruncationBatch() throws SQLException {
-        setAutoInc();
+        int[] autoInc = setAutoInc();
         try (Connection connection = setConnection("&jdbcCompliantTruncation=true&useBatchMultiSendNumber=3&profileSql=true&log=true")) {
             Statement stmt = connection.createStatement();
             stmt.execute("TRUNCATE TABLE TruncateExceptionTest2");
@@ -178,7 +178,7 @@ public class TruncateExceptionTest extends BaseTest {
             ResultSet rs = pstmt.getGeneratedKeys();
             for (int i = 1; i <= (sharedIsRewrite() ? 4 : 6); i++) {
                 assertTrue(rs.next());
-                assertEquals(autoIncOffset + autoInc * i, rs.getInt(1));
+                assertEquals(autoInc[1] + autoInc[0] * i, rs.getInt(1));
             }
             assertFalse(rs.next());
         }

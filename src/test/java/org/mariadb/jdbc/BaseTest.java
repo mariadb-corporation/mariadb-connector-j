@@ -1008,15 +1008,12 @@ public class BaseTest {
         return true;
     }
 
-    protected int autoInc = 1;
-    protected int autoIncOffset = 0;
-
     /**
      * Get current autoincrement value, since Galera values are automatically set.
      * @throws SQLException if any error occur.
      */
-    public void setAutoInc() throws SQLException {
-        setAutoInc(1, 0);
+    public int[] setAutoInc() throws SQLException {
+        return setAutoInc(1, 0);
     }
 
     /**
@@ -1026,10 +1023,10 @@ public class BaseTest {
      * @param autoIncOffsetInit default increment offset
      * @throws SQLException if any error occur
      */
-    public void setAutoInc(int autoIncInit, int autoIncOffsetInit) throws SQLException {
+    public int[] setAutoInc(int autoIncInit, int autoIncOffsetInit) throws SQLException {
 
-        this.autoInc = autoIncInit;
-        this.autoIncOffset = autoIncOffsetInit;
+        int autoInc = autoIncInit;
+        int autoIncOffset = autoIncOffsetInit;
         if (isGalera()) {
             ResultSet rs = sharedConnection.createStatement().executeQuery("show variables like '%auto_increment%'");
             while (rs.next()) {
@@ -1037,6 +1034,7 @@ public class BaseTest {
                 if ("auto_increment_offset".equals(rs.getString(1))) autoIncOffset = rs.getInt(2);
             }
         }
+        return new int[] {autoInc, autoIncOffset};
     }
 
 }

@@ -78,10 +78,10 @@ public class GeneratedKeysTest extends BaseTest {
         statement.execute("truncate gen_key_test");
         statement.executeUpdate("INSERT INTO gen_key_test (id, name) VALUES (null, 'Dave')",
                 Statement.RETURN_GENERATED_KEYS);
-        setAutoInc();
+        int[] autoInc = setAutoInc();
         ResultSet resultSet = statement.getGeneratedKeys();
         assertTrue(resultSet.next());
-        assertEquals(autoIncOffset + autoInc, resultSet.getInt(1));
+        assertEquals(autoInc[0] + autoInc[1], resultSet.getInt(1));
     }
 
     @Test
@@ -96,8 +96,8 @@ public class GeneratedKeysTest extends BaseTest {
 
         ResultSet resultSet = preparedStatement.getGeneratedKeys();
         assertTrue(resultSet.next());
-        setAutoInc();
-        assertEquals(autoIncOffset + autoInc, resultSet.getInt(1));
+        int[] autoInc = setAutoInc();
+        assertEquals(autoInc[0] + autoInc[1], resultSet.getInt(1));
     }
 
     @Test
@@ -105,9 +105,9 @@ public class GeneratedKeysTest extends BaseTest {
         Statement statement = sharedConnection.createStatement();
         statement.execute("truncate gen_key_test");
         statement.execute("INSERT INTO gen_key_test (name) VALUES ('Dave')");
-        setAutoInc();
+        int[] autoInc = setAutoInc();
         statement.executeUpdate(
-                "INSERT INTO gen_key_test (id, name) VALUES (" + (autoIncOffset + autoInc) + ", 'Dave') ON DUPLICATE KEY UPDATE id = id",
+                "INSERT INTO gen_key_test (id, name) VALUES (" + (autoInc[0] + autoInc[1]) + ", 'Dave') ON DUPLICATE KEY UPDATE id = id",
                 Statement.RETURN_GENERATED_KEYS);
         //From the Javadoc: "If this Statement object did not generate any keys, an empty ResultSet object is returned."
         ResultSet resultSet = statement.getGeneratedKeys();
