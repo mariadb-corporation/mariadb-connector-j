@@ -138,5 +138,6 @@ fi
 "${cmd[@]}"
 if [ -n "$PROFILE" ]
 then
-    tail -5000 /tmp/debug.log
+    SLEEP 5 #ensure log won't change during tail
+    tail -50000 /tmp/debug.log
 fi
