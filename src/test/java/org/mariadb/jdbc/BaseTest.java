@@ -587,8 +587,10 @@ public class BaseTest {
     protected boolean isGalera() {
         try {
             Statement st = sharedConnection.createStatement();
-            ResultSet rs = st.executeQuery("show status like 'wsrep_cluster_status'");
-            if (rs.next()) return true;
+            ResultSet rs = st.executeQuery("show status like 'wsrep_cluster_size'");
+            if (rs.next()) {
+                return rs.getInt(2) > 0;
+            }
         } catch (SQLException sqle) {
             //skip
         }
