@@ -74,21 +74,23 @@ else
 
     testSingleHost=true
 
-    ###################################################################################################################
-    # launch docker server and maxscale
-    ###################################################################################################################
-    export INNODB_LOG_FILE_SIZE=$(echo ${PACKET}| cut -d'M' -f 1)0M
-    docker-compose -f ${COMPOSE_FILE} build
-    docker-compose -f ${COMPOSE_FILE} up -d
 
-    ###################################################################################################################
-    # launch 3 galera servers
-    ###################################################################################################################
     if [ -n "$GALERA" ]
     then
+        ###################################################################################################################
+        # launch 3 galera servers
+        ###################################################################################################################
+        mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=3106 )
         docker-compose -f .travis/galera-compose.yml up -d
         urlString='jdbc:mariadb://mariadb.example.com:3106/testj?user=bob&enablePacketDebug=true'
         cmd+=( -DdefaultGaleraUrl="jdbc:mariadb:failover://mariadb.example.com:3106,mariadb.example.com:3107,mariadb.example.com:3108/testj?user=bob&enablePacketDebug=true" )
+    else
+        ###################################################################################################################
+        # launch docker server and maxscale
+        ###################################################################################################################
+        export INNODB_LOG_FILE_SIZE=$(echo ${PACKET}| cut -d'M' -f 1)0M
+        docker-compose -f ${COMPOSE_FILE} build
+        docker-compose -f ${COMPOSE_FILE} up -d
 
     fi
 
