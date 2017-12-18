@@ -264,7 +264,7 @@ public class UpdateResultSetTest extends BaseTest {
             rs.updateRow();
         }
 
-        int[] autoInc = setAutoInc();
+        final int[] autoInc = setAutoInc();
 
         ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM testUpdateWithPrimary");
         assertTrue(rs.next());
