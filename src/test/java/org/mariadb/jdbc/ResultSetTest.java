@@ -1074,4 +1074,29 @@ public class ResultSetTest extends BaseTest {
         assertFalse(rs.wasNull());
 
     }
+
+    @Test
+    public void doubleStringResults() throws SQLException {
+        createTable("doubleStringResults", "i double, j float");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("INSERT INTO doubleStringResults VALUES (1.1, 1.2), (23, 24)");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM doubleStringResults");
+
+        assertTrue(rs.next());
+        assertEquals("1.1", rs.getString(1));
+        assertEquals(1, rs.getInt(1));
+        assertEquals(1.1, rs.getDouble(1), 0.0001);
+        assertEquals("1.2", rs.getString(2));
+        assertEquals(1, rs.getInt(2));
+        assertEquals(1.2, rs.getFloat(2), 0.0001);
+
+        assertTrue(rs.next());
+        assertEquals("23", rs.getString(1));
+        assertEquals(23, rs.getInt(1));
+        assertEquals(23, rs.getDouble(1), 0.0001);
+        assertEquals("24", rs.getString(2));
+        assertEquals(24, rs.getInt(2));
+        assertEquals(24, rs.getFloat(2), 0.0001);
+    }
+
 }
