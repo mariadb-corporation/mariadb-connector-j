@@ -6,7 +6,6 @@ set -e
 ###################################################################################################################
 # test different type of configuration
 ###################################################################################################################
-mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=3305 )
 export COMPOSE_FILE=.travis/docker-compose.yml
 
 case "$TYPE" in
@@ -74,25 +73,31 @@ else
 
     testSingleHost=true
 
+    export INNODB_LOG_FILE_SIZE=$(echo ${PACKET}| cut -d'M' -f 1)0M
 
     if [ -n "$GALERA" ]
     then
+
         ###################################################################################################################
         # launch 3 galera servers
         ###################################################################################################################
         mysql=( mysql --protocol=tcp -ubob -hmariadb.example.com --port=3106 )
-        docker-compose -f .travis/galera-compose.yml up -d
+        export COMPOSE_FILE=.travis/galera-compose.yml
+
         urlString='jdbc:mariadb://mariadb.example.com:3106/testj?user=bob&enablePacketDebug=true'
         cmd+=( -DdefaultGaleraUrl="jdbc:mariadb:failover://mariadb.example.com:3106,mariadb.example.com:3107,mariadb.example.com:3108/testj?user=bob&enablePacketDebug=true" )
+
     else
+
         ###################################################################################################################
         # launch docker server and maxscale
         ###################################################################################################################
-        export INNODB_LOG_FILE_SIZE=$(echo ${PACKET}| cut -d'M' -f 1)0M
-        docker-compose -f ${COMPOSE_FILE} build
-        docker-compose -f ${COMPOSE_FILE} up -d
+        mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=3305 )
 
     fi
+
+    docker-compose -f ${COMPOSE_FILE} build
+    docker-compose -f ${COMPOSE_FILE} up -d
 
     ###################################################################################################################
     # wait for docker initialisation
