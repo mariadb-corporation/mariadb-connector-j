@@ -80,7 +80,7 @@ else
         ###################################################################################################################
         # launch 3 galera servers
         ###################################################################################################################
-        mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=3106 )
+        mysql=( mysql --protocol=tcp -ubob -hmariadb.example.com --port=3106 )
         docker-compose -f .travis/galera-compose.yml up -d
         urlString='jdbc:mariadb://mariadb.example.com:3106/testj?user=bob&enablePacketDebug=true'
         cmd+=( -DdefaultGaleraUrl="jdbc:mariadb:failover://mariadb.example.com:3106,mariadb.example.com:3107,mariadb.example.com:3108/testj?user=bob&enablePacketDebug=true" )

@@ -307,7 +307,7 @@ public class ExecuteBatchTest extends BaseTest {
      */
     @Test
     public void ensureBulkSchedulerMaxPoolSizeRejection() throws Throwable {
-        Assume.assumeFalse(sharedIsAurora() || sharedOptions().log);
+        Assume.assumeFalse(sharedIsAurora() || sharedOptions().profileSql);
         System.out.println(getProtocolFromConnection(sharedConnection).getHostAddress());
         for (int i = 0; i < 149; i++) {
             createTable("multipleSimultaneousBatch_" + i, "a INT NOT NULL");
