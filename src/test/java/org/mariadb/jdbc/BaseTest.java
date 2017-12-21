@@ -1035,6 +1035,10 @@ public class BaseTest {
                 if ("auto_increment_increment".equals(rs.getString(1))) autoInc = rs.getInt(2);
                 if ("auto_increment_offset".equals(rs.getString(1))) autoIncOffset = rs.getInt(2);
             }
+            if (autoInc == 1) {
+                //galera with one node only, then offset is not used
+                autoIncOffset = 0;
+            }
         }
         return new int[] {autoInc, autoIncOffset};
     }
