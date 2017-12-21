@@ -169,6 +169,9 @@ fi
 
 "${cmd[@]}"
 if [ -n "$PROFILE" ] ; then
-    sleep 5 #ensure log won't change during tail
+
+    sleep 60 #ensure log won't change during tail - average 40s
+    date
+    ls -lrt /tmp/debug.log
     tail -50000 /tmp/debug.log
 fi
