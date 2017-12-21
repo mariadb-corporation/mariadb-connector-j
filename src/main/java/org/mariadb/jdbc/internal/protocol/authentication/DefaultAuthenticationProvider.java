@@ -93,7 +93,7 @@ public class DefaultAuthenticationProvider {
             return new SendPamAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
         } else if (GSSAPI_CLIENT.equals(plugin)) {
             return new SendGssApiAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
-        } else if (GSSAPI_CLIENT.equals(plugin)) {
+        } else if (MYSQL_ED25519_PASSWORD.equals(plugin)) {
             return new SendEd25519PasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
         }
         throw new SQLException("Client does not support authentication protocol requested by server. "

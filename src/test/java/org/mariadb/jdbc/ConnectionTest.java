@@ -554,8 +554,12 @@ public class ConnectionTest extends BaseTest {
         String url = "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
                 + "?user=verificationEd25519AuthPlugin&password=secret";
 
-        try (Connection connection = openNewConnection(url)) {
+        Connection connection = null;
+        try {
+            connection = openNewConnection(url);
             //must have succeed
+        } finally {
+            if (connection != null) connection.close();
         }
         stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
         stmt.execute("drop user verificationEd25519AuthPlugin@'localhost'");
@@ -590,9 +594,11 @@ public class ConnectionTest extends BaseTest {
 
     }
 
-    private void checkConnection(String conUrl, int min, int max) {
+    private void checkConnection(String conUrl, int min, int max) throws SQLException {
         long start = System.currentTimeMillis();
-        try (Connection connection = DriverManager.getConnection(conUrl)) {
+        Connection connection = null;
+        try {
+            connection = DriverManager.getConnection(conUrl);
             fail();
         } catch (SQLException e) {
             //excepted exception
@@ -601,6 +607,8 @@ public class ConnectionTest extends BaseTest {
             System.out.println(System.currentTimeMillis() - start);
             assertTrue(System.currentTimeMillis() - start > min);
             assertTrue(System.currentTimeMillis() - start < max);
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 

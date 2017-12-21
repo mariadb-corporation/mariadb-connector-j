@@ -1374,38 +1374,39 @@ public class MultiTest extends BaseTest {
     @Test
     public void testInsertSelectBulk() throws SQLException {
 
-        try (Statement statement = sharedConnection.createStatement()) {
-            statement.execute("DROP TABLE IF EXISTS testInsertSelectBulk");
-            statement.execute("DROP TABLE IF EXISTS testInsertSelectBulk2");
-            statement.execute("CREATE TABLE testInsertSelectBulk(col int, val int)");
-            statement.execute("CREATE TABLE testInsertSelectBulk2(col int, val int)");
-            statement.execute("INSERT INTO testInsertSelectBulk(col, val) VALUES (0,1), (2,3)");
+        Statement statement = sharedConnection.createStatement();
+        statement.execute("DROP TABLE IF EXISTS testInsertSelectBulk");
+        statement.execute("DROP TABLE IF EXISTS testInsertSelectBulk2");
+        statement.execute("CREATE TABLE testInsertSelectBulk(col int, val int)");
+        statement.execute("CREATE TABLE testInsertSelectBulk2(col int, val int)");
+        statement.execute("INSERT INTO testInsertSelectBulk(col, val) VALUES (0,1), (2,3)");
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = sharedConnection.prepareStatement(
+                "INSERT INTO testInsertSelectBulk2(col, val) VALUES "
+                        + "(?, (SELECT val FROM testInsertSelectBulk where col = ?))");
 
-            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
-                    "INSERT INTO testInsertSelectBulk2(col, val) VALUES "
-                            + "(?, (SELECT val FROM testInsertSelectBulk where col = ?))")) {
+            preparedStatement.setInt(1, 4);
+            preparedStatement.setInt(2, 0);
+            preparedStatement.addBatch();
 
-                preparedStatement.setInt(1, 4);
-                preparedStatement.setInt(2, 0);
-                preparedStatement.addBatch();
+            preparedStatement.setInt(1, 5);
+            preparedStatement.setInt(2, 2);
+            preparedStatement.addBatch();
 
-                preparedStatement.setInt(1, 5);
-                preparedStatement.setInt(2, 2);
-                preparedStatement.addBatch();
-
-                preparedStatement.executeBatch();
-            }
-
-            ResultSet rs = statement.executeQuery("SELECT * from testInsertSelectBulk2");
-            assertTrue(rs.next());
-            assertEquals(4, rs.getInt(1));
-            assertEquals(1, rs.getInt(2));
-
-            assertTrue(rs.next());
-            assertEquals(5, rs.getInt(1));
-            assertEquals(3, rs.getInt(2));
+            preparedStatement.executeBatch();
+        } finally {
+            if (preparedStatement != null) preparedStatement.close();
         }
 
+        ResultSet rs = statement.executeQuery("SELECT * from testInsertSelectBulk2");
+        assertTrue(rs.next());
+        assertEquals(4, rs.getInt(1));
+        assertEquals(1, rs.getInt(2));
+
+        assertTrue(rs.next());
+        assertEquals(5, rs.getInt(1));
+        assertEquals(3, rs.getInt(2));
 
     }
 }

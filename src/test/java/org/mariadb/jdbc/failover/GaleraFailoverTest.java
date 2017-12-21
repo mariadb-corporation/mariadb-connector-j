@@ -105,11 +105,15 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
 
         for (int i = 0; i < initAddresses.size(); i++) {
             urlParser.setHostAddresses(Lists.newArrayList(initAddresses.get(i)));
-            try (Connection master = MariaDbConnection.newConnection(urlParser, null)) {
+            Connection master = null;
+            try {
+                master = MariaDbConnection.newConnection(urlParser, null);
                 Statement stmt = master.createStatement();
                 ResultSet rs = stmt.executeQuery("show status like 'wsrep_cluster_status'");
                 assertTrue(rs.next());
                 System.out.println("host:" + initAddresses.get(i) + " status:" + rs.getString(2));
+            } finally {
+                if (master != null) master.close();
             }
         }
 
@@ -118,17 +122,29 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
     @Test
     public void validGaleraPing() throws Exception {
         long start = System.currentTimeMillis();
-        try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(initialGaleraUrl + "&maxPoolSize=1")) {
-            try (Connection connection = pool.getConnection()) {
+        MariaDbPoolDataSource pool = null;
+        try {
+            pool = new MariaDbPoolDataSource(initialGaleraUrl + "&maxPoolSize=1");
+            Connection connection = null;
+            try {
+                connection = pool.getConnection();
                 Statement statement = connection.createStatement();
                 statement.execute("SELECT 1 ");
+            } finally {
+                if (connection != null) connection.close();
             }
             Thread.sleep(2000);
             //Galera ping must occur
-            try (Connection connection = pool.getConnection()) {
+            connection = null;
+            try {
+                connection = pool.getConnection();
                 Statement statement = connection.createStatement();
                 statement.execute("SELECT 1 ");
+            } finally {
+                if (connection != null) connection.close();
             }
+        } finally {
+            pool.close();
         }
         //if fail, will loop until connectTimeout = 30s
         assertTrue(System.currentTimeMillis() - start < 5000);

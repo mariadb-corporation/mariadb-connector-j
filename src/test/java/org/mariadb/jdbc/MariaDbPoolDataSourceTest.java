@@ -494,19 +494,25 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
     @Test
     public void testPrepareReset() throws SQLException {
-        try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1&useServerPrepStmts=true&useResetConnection")) {
-            try (Connection connection = pool.getConnection()) {
-                PreparedStatement preparedStatement = connection.prepareStatement("SELECT ?");
-                preparedStatement.setString(1, "1");
-                preparedStatement.execute();
-            }
+        MariaDbPoolDataSource pool = null;
+        try {
+            pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1&useServerPrepStmts=true&useResetConnection");
+            execFromPool(pool);
+            execFromPool(pool);
+        } finally {
+            if (pool != null) pool.close();
+        }
+    }
 
-            try (Connection connection = pool.getConnection()) {
-                //must re-prepare
-                PreparedStatement preparedStatement = connection.prepareStatement("SELECT ?");
-                preparedStatement.setString(1, "1");
-                preparedStatement.execute();
-            }
+    private void execFromPool(MariaDbPoolDataSource pool) throws SQLException {
+        Connection connection = null;
+        try {
+            connection = pool.getConnection();
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT ?");
+            preparedStatement.setString(1, "1");
+            preparedStatement.execute();
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 

@@ -346,21 +346,32 @@ public class ExecuteBatchTest extends BaseTest {
             createTable("multipleSimultaneousBatch_" + i, "a INT NOT NULL");
         }
 
-        AtomicInteger counter = new AtomicInteger();
+        final AtomicInteger counter = new AtomicInteger();
         ExecutorService exec = Executors.newFixedThreadPool(200);
         for (int i = 0; i < 149; i++) {
-            exec.execute(() -> {
-                try (Connection connection = setConnection()) {
-                    connection.setAutoCommit(false);
-                    Statement stmt = connection.createStatement();
-                    int connectionCounter = counter.getAndIncrement();
-                    for (int j = 0; j < 1024; j++) {
-                        stmt.addBatch("INSERT INTO multipleSimultaneousBatch_" + connectionCounter + "(a) VALUES (" + j + ")");
+            exec.execute(new Runnable() {
+                @Override
+                public void run() {
+                    Connection connection = null;
+                    try {
+                        connection = setConnection();
+                        connection.setAutoCommit(false);
+                        Statement stmt = connection.createStatement();
+                        int connectionCounter = counter.getAndIncrement();
+                        for (int j = 0; j < 1024; j++) {
+                            stmt.addBatch("INSERT INTO multipleSimultaneousBatch_" + connectionCounter + "(a) VALUES (" + j + ")");
+                        }
+                        stmt.executeBatch();
+                        connection.commit();
+                    } catch (Throwable e) {
+                        e.printStackTrace();
+                    } finally {
+                        try {
+                            if (connection != null) connection.close();
+                        } catch (SQLException sqle) {
+                            sqle.printStackTrace();
+                        }
                     }
-                    stmt.executeBatch();
-                    connection.commit();
-                } catch (Throwable e) {
-                    e.printStackTrace();
                 }
             });
         }
