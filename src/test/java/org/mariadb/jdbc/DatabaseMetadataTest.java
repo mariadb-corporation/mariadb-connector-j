@@ -599,68 +599,83 @@ public class DatabaseMetadataTest extends BaseTest {
 
     @Test
     public void identifierCaseSensitivity() throws Exception {
-        if (sharedConnection.getMetaData().supportsMixedCaseIdentifiers()) {
-            /* Case-sensitive identifier handling, we can create both t1 and T1 */
-            createTable("aB", "i int");
-            createTable("AB", "i int");
-            /* Check there is an entry for both T1 and t1 in getTables */
-            ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB", null);
-            assertTrue(rs.next());
-            assertFalse(rs.next());
-            rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
-            assertTrue(rs.next());
-            assertFalse(rs.next());
-        }
-
-        if (sharedConnection.getMetaData().storesMixedCaseIdentifiers()) {
-            /* Case-insensitive, case-preserving */
-            createTable("aB", "i int");
-            try {
-                createTable("AB", "i int");
-                fail("should not get there, since names are case-insensitive");
-            } catch (SQLException e) {
-                //normal error
+        Statement stmt = sharedConnection.createStatement();
+        try {
+            if (sharedConnection.getMetaData().supportsMixedCaseIdentifiers()) {
+                /* Case-sensitive identifier handling, we can create both t1 and T1 */
+                stmt.execute("create table aB (i int)");
+                stmt.execute("create table AB (i int)");
+                /* Check there is an entry for both T1 and t1 in getTables */
+                ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB", null);
+                assertTrue(rs.next());
+                assertFalse(rs.next());
+                rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
+                assertTrue(rs.next());
+                assertFalse(rs.next());
             }
 
-            /* Check that table is stored case-preserving */
-            ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB%", null);
-            while (rs.next()) {
-                String tableName = rs.getString("TABLE_NAME");
-                if (tableName.length() == 2) {
-                    assertEquals("aB", tableName);
+            if (sharedConnection.getMetaData().storesMixedCaseIdentifiers()) {
+                /* Case-insensitive, case-preserving */
+                stmt.execute("create table aB (i int)");
+                try {
+                    stmt.execute("create table AB (i int)");
+                    fail("should not get there, since names are case-insensitive");
+                } catch (SQLException e) {
+                    //normal error
                 }
-            }
 
-            rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
-            assertTrue(rs.next());
-            assertFalse(rs.next());
-        }
-
-        if (sharedConnection.getMetaData().storesLowerCaseIdentifiers()) {
-            /* case-insensitive, identifiers converted to lowercase */
-              /* Case-insensitive, case-preserving */
-            createTable("aB", "i int");
-            try {
-                sharedConnection.createStatement().execute("create table AB(i int)");
-                fail("should not get there, since names are case-insensitive");
-            } catch (SQLException e) {
-                //normal error
-            }
-
-            /* Check that table is stored lowercase */
-            ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB%", null);
-            while (rs.next()) {
-                String tableName = rs.getString("TABLE_NAME");
-                if (tableName.length() == 2) {
-                    assertEquals("ab", tableName);
+                /* Check that table is stored case-preserving */
+                ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB%", null);
+                while (rs.next()) {
+                    String tableName = rs.getString("TABLE_NAME");
+                    if (tableName.length() == 2) {
+                        assertEquals("aB", tableName);
+                    }
                 }
+
+                rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
+                assertTrue(rs.next());
+                assertFalse(rs.next());
             }
 
-            rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
-            assertTrue(rs.next());
-            assertFalse(rs.next());
+            if (sharedConnection.getMetaData().storesLowerCaseIdentifiers()) {
+                /* case-insensitive, identifiers converted to lowercase */
+                  /* Case-insensitive, case-preserving */
+                stmt.execute("create table aB (i int)");
+                try {
+                    stmt.execute("create table AB (i int)");
+                    fail("should not get there, since names are case-insensitive");
+                } catch (SQLException e) {
+                    //normal error
+                }
+
+                /* Check that table is stored lowercase */
+                ResultSet rs = sharedConnection.getMetaData().getTables(null, null, "aB%", null);
+                while (rs.next()) {
+                    String tableName = rs.getString("TABLE_NAME");
+                    if (tableName.length() == 2) {
+                        assertEquals("ab", tableName);
+                    }
+                }
+
+                rs = sharedConnection.getMetaData().getTables(null, null, "AB", null);
+                assertTrue(rs.next());
+                assertFalse(rs.next());
+            }
+            assertFalse(sharedConnection.getMetaData().storesUpperCaseIdentifiers());
+        } finally {
+            try {
+                stmt.execute("DROP TABLE aB");
+            } catch (SQLException sqle) {
+                //ignore
+            }
+            try {
+                stmt.execute("DROP TABLE AB");
+            } catch (SQLException sqle) {
+                //ignore
+            }
+
         }
-        assertFalse(sharedConnection.getMetaData().storesUpperCaseIdentifiers());
     }
 
     @Test
@@ -958,6 +973,12 @@ public class DatabaseMetadataTest extends BaseTest {
         try {
             connection = setConnection("&yearIsDateType=false");
             connection.createStatement().execute("insert into ytab values(72)");
+
+
+            ResultSet rs2 = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null);
+            assertTrue(rs2.next());
+            assertEquals(Types.SMALLINT, rs2.getInt("DATA_TYPE"));
+
             ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null);
             assertTrue(rs.next());
             assertEquals(rs.getInt("DATA_TYPE"), Types.SMALLINT);
@@ -967,6 +988,32 @@ public class DatabaseMetadataTest extends BaseTest {
             assertTrue(rs1.next());
             assertTrue(rs1.getObject(1) instanceof Short);
             assertEquals(rs1.getShort(1), 1972);
+        } finally {
+            if (connection != null) connection.close();
+        }
+    }
+
+    @Test
+    public void yearIsDateType() throws Exception {
+        Connection connection = null;
+        try {
+            connection = setConnection("&yearIsDateType=true");
+            connection.createStatement().execute("insert into ytab values(72)");
+
+            ResultSet rs2 = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null);
+            assertTrue(rs2.next());
+            assertEquals(Types.DATE, rs2.getInt("DATA_TYPE"));
+
+            ResultSet rs = connection.getMetaData().getColumns(connection.getCatalog(), null, "ytab", null);
+            assertTrue(rs.next());
+            assertEquals(Types.DATE, rs.getInt("DATA_TYPE"));
+
+
+            ResultSet rs1 = connection.createStatement().executeQuery("select * from ytab");
+            assertEquals(Types.DATE, rs1.getMetaData().getColumnType(1));
+            assertTrue(rs1.next());
+            assertTrue(rs1.getObject(1) instanceof Date);
+            assertEquals("1972-01-01", rs1.getDate(1).toString());
         } finally {
             if (connection != null) connection.close();
         }

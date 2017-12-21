@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.nio.charset.Charset;
@@ -64,7 +65,9 @@ public class PasswordEncodingTest extends BaseTest {
 
     @Test
     public void testPwdCharset() throws Exception {
-        cancelForVersion(5, 6); //has password charset issue
+        //aurora user has no right to create other user
+        Assume.assumeFalse("true".equals(System.getenv("AURORA")));
+        Assume.assumeFalse(anonymousUser());
 
         String[] charsets = new String[]{"UTF-8",
                 "windows-1252",
@@ -121,7 +124,8 @@ public class PasswordEncodingTest extends BaseTest {
             stmt.execute("CREATE USER 'test" + charsetName + "'@'%'");
 
             //non jdbc method that send query according to charset
-            stmt.testExecute("GRANT ALL on *.* to 'test" + charsetName + "' identified by '" + exoticPwd + "'", Charset.forName(charsetName));
+            stmt.testExecute("GRANT ALL on *.* to 'test" + charsetName + "'@'%' identified by '" + exoticPwd + "'", Charset.forName(charsetName));
+            stmt.execute("FLUSH PRIVILEGES");
         } finally {
             if (connection != null) connection.close();
         }

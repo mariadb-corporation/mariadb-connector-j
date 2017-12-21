@@ -275,6 +275,8 @@ public class Pool implements Closeable, PoolMBean {
                 //eat
             }
 
+            totalConnection.decrementAndGet();
+
             // validation failed
             silentAbortConnection(item);
 

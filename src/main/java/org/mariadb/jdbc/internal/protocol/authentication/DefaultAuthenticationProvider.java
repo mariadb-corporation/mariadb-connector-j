@@ -54,6 +54,7 @@
 package org.mariadb.jdbc.internal.protocol.authentication;
 
 import org.mariadb.jdbc.internal.com.send.*;
+import org.mariadb.jdbc.internal.com.send.SendEd25519PasswordAuthPacket;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 
 import java.sql.SQLException;
@@ -62,6 +63,7 @@ public class DefaultAuthenticationProvider {
     public static final String MYSQL_NATIVE_PASSWORD = "mysql_native_password";
     public static final String MYSQL_OLD_PASSWORD = "mysql_old_password";
     public static final String MYSQL_CLEAR_PASSWORD = "mysql_clear_password";
+    public static final String MYSQL_ED25519_PASSWORD = "client_ed25519";
     private static final String GSSAPI_CLIENT = "auth_gssapi_client";
     private static final String DIALOG = "dialog";
 
@@ -91,6 +93,8 @@ public class DefaultAuthenticationProvider {
             return new SendPamAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
         } else if (GSSAPI_CLIENT.equals(plugin)) {
             return new SendGssApiAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
+        } else if (GSSAPI_CLIENT.equals(plugin)) {
+            return new SendEd25519PasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
         }
         throw new SQLException("Client does not support authentication protocol requested by server. "
                 + "Consider upgrading MariaDB client. plugin was = " + plugin, "08004", 1251);

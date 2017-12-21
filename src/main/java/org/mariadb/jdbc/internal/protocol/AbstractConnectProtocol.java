@@ -168,7 +168,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         this.username = (urlParser.getUsername() == null ? "" : urlParser.getUsername());
         this.password = (urlParser.getPassword() == null ? "" : urlParser.getPassword());
         this.globalInfo = globalInfo;
-        if (options.cachePrepStmts) {
+        if (options.cachePrepStmts && options.useServerPrepStmts) {
             serverPrepareStatementCache = ServerPrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
         }
 
@@ -296,7 +296,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     private void cleanMemory() {
-        if (options.cachePrepStmts) serverPrepareStatementCache.clear();
+        if (options.cachePrepStmts && options.useServerPrepStmts) serverPrepareStatementCache.clear();
         if (options.enablePacketDebug) traceCache.clearMemory();
     }
 

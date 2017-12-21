@@ -139,7 +139,10 @@ public class ComStmtPrepare {
             }
 
             ServerPrepareResult serverPrepareResult = new ServerPrepareResult(sql, statementId, columns, params, protocol);
-            if (protocol.getOptions().cachePrepStmts && sql != null && sql.length() < protocol.getOptions().prepStmtCacheSqlLimit) {
+            if (protocol.getOptions().cachePrepStmts
+                    && protocol.getOptions().useServerPrepStmts
+                    && sql != null
+                    && sql.length() < protocol.getOptions().prepStmtCacheSqlLimit) {
                 String key = protocol.getDatabase() + "-" + sql;
                 ServerPrepareResult cachedServerPrepareResult = protocol.addPrepareInCache(key, serverPrepareResult);
                 return cachedServerPrepareResult != null ? cachedServerPrepareResult : serverPrepareResult;

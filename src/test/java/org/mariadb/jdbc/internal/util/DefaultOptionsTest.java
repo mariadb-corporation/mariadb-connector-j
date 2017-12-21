@@ -60,7 +60,6 @@ public class DefaultOptionsTest {
                                     (Boolean) field.get(resultOptions), !bool);
                         }
                     } else if ("boolean".equals(field.getType().getName())) {
-                        System.out.println(field.getName() + ": " + field.getBoolean(resultOptions) + " " + field.get(resultOptions));
                         assertEquals("field " + field.getName() + " value error for param" + param,
                                 field.getBoolean(resultOptions), !field.getBoolean(option));
                     } else {

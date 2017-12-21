@@ -142,6 +142,17 @@ public class CmdInformationBatch implements CmdInformation {
     }
 
     @Override
+    public int[] getServerUpdateCounts() {
+        int[] ret = new int[updateCounts.size()];
+        Iterator<Long> iterator = updateCounts.iterator();
+        int pos = 0;
+        while (iterator.hasNext()) {
+            ret[pos++] = iterator.next().intValue();
+        }
+        return ret;
+    }
+
+    @Override
     public long[] getLargeUpdateCounts() {
         if (rewritten) {
             long[] ret = new long[expectedSize];

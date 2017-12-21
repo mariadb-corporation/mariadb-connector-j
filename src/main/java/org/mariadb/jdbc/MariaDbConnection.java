@@ -97,7 +97,6 @@ public class MariaDbConnection implements Connection {
      * the protocol to communicate with.
      */
     private final Protocol protocol;
-    private final ClientPrepareStatementCache clientPrepareStatementCache;
     public MariaDbPooledConnection pooledConnection;
     private CallableStatementCache callableStatementCache;
 
@@ -134,11 +133,6 @@ public class MariaDbConnection implements Connection {
         }
         this.lock = protocol.getLock();
 
-        if (options.cachePrepStmts) {
-            this.clientPrepareStatementCache = ClientPrepareStatementCache.newInstance(options.prepStmtCacheSize);
-        } else {
-            clientPrepareStatementCache = null;
-        }
     }
 
     /**
@@ -1596,10 +1590,6 @@ public class MariaDbConnection implements Connection {
         } catch (SocketException se) {
             throw ExceptionMapper.getSqlException("Cannot set the network timeout", se);
         }
-    }
-
-    public ClientPrepareStatementCache getClientPrepareStatementCache() {
-        return clientPrepareStatementCache;
     }
 
     public long getServerThreadId() {

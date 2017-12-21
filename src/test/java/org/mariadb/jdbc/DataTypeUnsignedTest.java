@@ -498,7 +498,7 @@ public class DataTypeUnsignedTest extends BaseTest {
             assertEquals(123456789012345678901234567890F, rs.getFloat(1), 2E25F);
             assertEquals(123456789012345678901234567890D, rs.getDouble(1), 2E25F);
             assertEquals(123456789012345678901234567890F, rs.getBigDecimal(1).floatValue(), 2E25F);
-            assertEquals(binary ? "1.2345679E29" : "1.23457E29", rs.getString(1));
+            assertEquals(binary ? "1.2345679E29" : "1.23457e29", rs.getString(1));
             if (rs.next()) {
                 byteMustFail(rs);
                 shortMustFail(rs);
@@ -512,7 +512,7 @@ public class DataTypeUnsignedTest extends BaseTest {
                 assertEquals(9223372036854775806F, rs.getFloat(1), 1E14F);
                 assertEquals(9223372036854775806F, rs.getDouble(1), 1E14F);
                 assertEquals(9223372036854775806F, rs.getBigDecimal(1).floatValue(), 1E14F);
-                assertEquals(binary ? "9.223372E18" : "9.2233698E18", rs.getString(1));
+                assertEquals(binary ? "9.223372E18" : "9.22337e18", rs.getString(1));
                 if (rs.next()) {
                     assertEquals(1, rs.getByte(1));
                     assertEquals(1, rs.getShort(1));
@@ -563,7 +563,7 @@ public class DataTypeUnsignedTest extends BaseTest {
             assertEquals(1.2345678901234568e29F, rs.getFloat(1), 1);
             assertEquals(1.2345678901234568e29D, rs.getDouble(1), 1);
             assertEquals(new BigDecimal("1.2345678901234568e29"), rs.getBigDecimal(1));
-            assertEquals("1.2345678901234568E29", rs.getString(1));
+            assertEquals("1.2345678901234568e29", rs.getString(1).toLowerCase());
             if (rs.next()) {
                 byteMustFail(rs);
                 shortMustFail(rs);
@@ -572,7 +572,7 @@ public class DataTypeUnsignedTest extends BaseTest {
                 assertEquals(9223372036854775806F, rs.getFloat(1), .000001);
                 assertEquals(9223372036854775806D, rs.getDouble(1), .000001);
                 assertEquals(new BigDecimal("9.223372036854776E+18"), rs.getBigDecimal(1));
-                assertEquals("9.223372036854776E18", rs.getString(1));
+                assertEquals("9.223372036854776e18", rs.getString(1).toLowerCase());
                 if (rs.next()) {
                     assertEquals(1, rs.getByte(1));
                     assertEquals(1, rs.getShort(1));
@@ -655,8 +655,6 @@ public class DataTypeUnsignedTest extends BaseTest {
                     if (!bd.equals(new BigDecimal("1")) && !bd.equals(new BigDecimal("1.0"))) {
                         fail("getBigDecimal error : is " + bd.toString());
                     }
-                    assertEquals("1.0", rs.getString(1));
-
                 } else {
                     assertEquals(new BigDecimal("1.00000000000000000000"), rs.getBigDecimal(1));
                     assertEquals("1.00000000000000000000", rs.getString(1));

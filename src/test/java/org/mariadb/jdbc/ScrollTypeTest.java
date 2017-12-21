@@ -61,6 +61,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class ScrollTypeTest extends BaseTest {
@@ -157,5 +158,23 @@ public class ScrollTypeTest extends BaseTest {
         } finally {
             stmt.close();
         }
+    }
+
+
+    @Test
+    public void scrollMultipleFetch() throws SQLException {
+        createTable("scrollMultipleFetch", "intvalue int");
+
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("INSERT INTO scrollMultipleFetch values (1), (2), (3)");
+        stmt.setFetchSize(1);
+        ResultSet rs = stmt.executeQuery("Select * from scrollMultipleFetch");
+        rs.next();
+        //don't read result-set fully
+        assertEquals(1, rs.getFetchSize());
+
+        ResultSet rs2 = stmt.executeQuery("Select * from scrollMultipleFetch");
+        assertEquals(1, rs2.getFetchSize());
+        assertEquals(1, rs.getFetchSize());
     }
 }

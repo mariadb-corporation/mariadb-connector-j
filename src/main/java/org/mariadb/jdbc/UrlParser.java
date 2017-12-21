@@ -105,7 +105,7 @@ public class UrlParser implements Cloneable {
     private List<HostAddress> addresses;
     private HaMode haMode;
     private String initialUrl;
-    private boolean multiMaster = isMultiMaster();
+    private boolean multiMaster;
 
     private UrlParser() {
     }
@@ -128,19 +128,21 @@ public class UrlParser implements Cloneable {
         }
 
         DefaultOptions.optionCoherenceValidation(options);
+        setInitialUrl();
+        loadMultiMasterValue();
+    }
+
+    private void setInitialUrl() {
         StringBuilder sb = new StringBuilder();
         sb.append("jdbc:mariadb:");
         if (haMode != HaMode.NONE) {
-            sb.append(haMode).append(":");
+            sb.append(haMode.toString().toLowerCase()).append(":");
         }
         sb.append("//");
-        boolean first = true;
-        for (HostAddress hostAddress : addresses) {
-            if (first) {
-                first = false;
-            } else {
-                sb.append(",");
-            }
+
+        for (int i = 0; i < addresses.size(); i++) {
+            HostAddress hostAddress = addresses.get(i);
+            if (i > 0) sb.append(",");
             sb.append("address=(host=").append(hostAddress.host).append(")")
                     .append("(port=").append(hostAddress.port).append(")");
             if (hostAddress.type != null) {
@@ -152,8 +154,6 @@ public class UrlParser implements Cloneable {
         if (database != null) sb.append(database);
         DefaultOptions.propertyString(options, haMode, sb);
         initialUrl = sb.toString();
-        multiMaster = loadMultiMasterValue();
-
     }
 
     /**
@@ -234,6 +234,9 @@ public class UrlParser implements Cloneable {
             defineUrlParserParameters(urlParser, properties, hostAddressesString, additionalParameters);
             setDefaultHostAddressType(urlParser);
 
+            if (properties != null && !properties.isEmpty()) urlParser.setInitialUrl();
+
+            urlParser.loadMultiMasterValue();
         } catch (IllegalArgumentException i) {
             throw new SQLException("error parsing url : " + i.getMessage(), i);
         }
@@ -450,7 +453,7 @@ public class UrlParser implements Cloneable {
         return result;
     }
 
-    private boolean loadMultiMasterValue() {
+    private void loadMultiMasterValue() {
         if (haMode == HaMode.SEQUENTIAL
                 || haMode == HaMode.REPLICATION
                 || haMode == HaMode.FAILOVER) {
@@ -458,14 +461,15 @@ public class UrlParser implements Cloneable {
             for (HostAddress host : addresses) {
                 if (host.type.equals(ParameterConstant.TYPE_MASTER)) {
                     if (firstMaster) {
-                        return true;
+                        multiMaster = true;
+                        return;
                     } else {
                         firstMaster = true;
                     }
                 }
             }
         }
-        return false;
+        multiMaster = false;
     }
 
     public boolean isMultiMaster() {

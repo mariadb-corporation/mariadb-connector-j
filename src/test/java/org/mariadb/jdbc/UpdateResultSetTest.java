@@ -250,10 +250,10 @@ public class UpdateResultSetTest extends BaseTest {
         } finally {
             if (preparedStatement != null) preparedStatement.close();
         }
-
+        int[] autoInc = setAutoInc();
         ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM UpdateWithoutPrimary");
         assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
+        assertEquals(autoInc[1] + autoInc[0], rs.getInt(1));
         assertEquals("1-1", rs.getString(2));
         assertEquals("1-2", rs.getString(3));
 
@@ -292,6 +292,8 @@ public class UpdateResultSetTest extends BaseTest {
             if (preparedStatement != null) preparedStatement.close();
         }
 
+        final int[] autoInc = setAutoInc();
+
         ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM testUpdateWithPrimary");
         assertTrue(rs.next());
         assertEquals(-1, rs.getInt(1));
@@ -299,12 +301,12 @@ public class UpdateResultSetTest extends BaseTest {
         assertEquals("0-2", rs.getString(3));
 
         assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
+        assertEquals(autoInc[0] + autoInc[1], rs.getInt(1));
         assertEquals("1-1", rs.getString(2));
         assertEquals("1-2", rs.getString(3));
 
         assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
+        assertEquals(2 * autoInc[0] + autoInc[1], rs.getInt(1));
         assertEquals(utf8escapeQuote, rs.getString(2));
         assertEquals("2-2", rs.getString(3));
 
@@ -356,13 +358,15 @@ public class UpdateResultSetTest extends BaseTest {
         assertEquals("0-1", rs.getString(2));
         assertEquals("0-2", rs.getString(3));
 
+        int[] autoInc = setAutoInc();
+
         assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
+        assertEquals(autoInc[0] + autoInc[1], rs.getInt(1));
         assertEquals("1-1", rs.getString(2));
         assertEquals("1-2", rs.getString(3));
 
         assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
+        assertEquals(2 * autoInc[0] + autoInc[1], rs.getInt(1));
         assertEquals(utf8escapeQuote, rs.getString(2));
         assertEquals("2-2", rs.getString(3));
 
@@ -382,6 +386,7 @@ public class UpdateResultSetTest extends BaseTest {
                 + "PRIMARY KEY (`id`)");
 
         Statement stmt = sharedConnection.createStatement();
+        int[] autoInc = setAutoInc();
 
         PreparedStatement preparedStatement = null;
         try {
@@ -411,12 +416,12 @@ public class UpdateResultSetTest extends BaseTest {
             rs.absolute(1);
             assertEquals("1-1", rs.getString(1));
             assertEquals("1-2", rs.getString(2));
-            assertEquals(1, rs.getInt(3));
+            assertEquals(autoInc[0] + autoInc[1], rs.getInt(3));
 
             assertTrue(rs.next());
             assertEquals("2-1", rs.getString(1));
             assertEquals("default-value", rs.getString(2));
-            assertEquals(2, rs.getInt(3));
+            assertEquals(2 * autoInc[0] + autoInc[1], rs.getInt(3));
 
             assertFalse(rs.next());
 
@@ -426,12 +431,12 @@ public class UpdateResultSetTest extends BaseTest {
 
         ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM PrimaryGenerated");
         assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
+        assertEquals(autoInc[0] + autoInc[1], rs.getInt(1));
         assertEquals("1-1", rs.getString(2));
         assertEquals("1-2", rs.getString(3));
 
         assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
+        assertEquals(2 * autoInc[0] + autoInc[1], rs.getInt(1));
         assertEquals("2-1", rs.getString(2));
         assertEquals("default-value", rs.getString(3));
 
@@ -445,7 +450,7 @@ public class UpdateResultSetTest extends BaseTest {
                 + "`t1` VARCHAR(50) NOT NULL default 'default-value1',"
                 + "`t2` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
                 + "PRIMARY KEY (`id`)");
-
+        final int[] autoInc = setAutoInc();
         PreparedStatement preparedStatement = null;
         try {
             preparedStatement = sharedConnection.prepareStatement("SELECT id, t1, t2 FROM testPrimaryGeneratedDefault",
@@ -457,15 +462,15 @@ public class UpdateResultSetTest extends BaseTest {
 
             rs.moveToInsertRow();
             rs.insertRow();
-
             rs.beforeFirst();
+
             assertTrue(rs.next());
-            assertEquals(1, rs.getInt(1));
+            assertEquals(autoInc[1] + autoInc[0], rs.getInt(1));
             assertEquals("default-value1", rs.getString(2));
             assertNotNull(rs.getDate(3));
 
             assertTrue(rs.next());
-            assertEquals(2, rs.getInt(1));
+            assertEquals(2 * autoInc[0] + autoInc[1], rs.getInt(1));
             assertEquals("default-value1", rs.getString(2));
             assertNotNull(rs.getDate(3));
             assertFalse(rs.next());
@@ -476,12 +481,12 @@ public class UpdateResultSetTest extends BaseTest {
         Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT id, t1, t2 FROM testPrimaryGeneratedDefault");
         assertTrue(rs.next());
-        assertEquals(1, rs.getInt(1));
+        assertEquals(autoInc[0] + autoInc[1], rs.getInt(1));
         assertEquals("default-value1", rs.getString(2));
         assertNotNull(rs.getDate(3));
 
         assertTrue(rs.next());
-        assertEquals(2, rs.getInt(1));
+        assertEquals(2 * autoInc[0] + autoInc[1], rs.getInt(1));
         assertEquals("default-value1", rs.getString(2));
         assertNotNull(rs.getDate(3));
 

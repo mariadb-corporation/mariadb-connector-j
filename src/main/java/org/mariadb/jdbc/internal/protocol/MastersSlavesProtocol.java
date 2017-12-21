@@ -90,7 +90,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
 
         int maxConnectionTry = listener.getRetriesAllDown();
         SQLException lastQueryException = null;
-
+        boolean firstLoop = true;
         while (!loopAddresses.isEmpty() || (!searchFilter.isFailoverLoop() && maxConnectionTry > 0)) {
             protocol = getNewProtocol(listener.getProxy(), globalInfo, listener.getUrlParser());
 
@@ -98,7 +98,6 @@ public class MastersSlavesProtocol extends MasterProtocol {
                 return;
             }
             maxConnectionTry--;
-
             try {
                 HostAddress host = loopAddresses.pollFirst();
                 if (host == null) {
@@ -107,6 +106,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
                 }
 
                 protocol.setHostAddress(host);
+
                 protocol.connect();
                 if (listener.isExplicitClosed()) {
                     protocol.close();
@@ -148,7 +148,19 @@ public class MastersSlavesProtocol extends MasterProtocol {
             // add all servers back to continue looping until maxConnectionTry is reached
             if (loopAddresses.isEmpty() && !searchFilter.isFailoverLoop() && maxConnectionTry > 0) {
                 resetHostList(listener, loopAddresses);
+
+                if (firstLoop) {
+                    firstLoop = false;
+                } else {
+                    try {
+                        //wait 250ms before looping through all connection another time
+                        Thread.sleep(250);
+                    } catch (InterruptedException interrupted) {
+                        //interrupted, continue
+                    }
+                }
             }
+
         }
 
         if (listener.isMasterHostFailReconnect() || listener.isSecondaryHostFailReconnect()) {

@@ -114,6 +114,7 @@ public class StateChangeTest extends BaseTest {
 
     @Test
     public void autoIncrementChange() throws SQLException {
+        Assume.assumeFalse(isGalera());
         Assume.assumeTrue((isMariadbServer() && minVersion(10, 2))
                 || (!isMariadbServer() && minVersion(5, 7)));
         createTable("autoIncrementChange", "id int not null primary key auto_increment, name char(20)");

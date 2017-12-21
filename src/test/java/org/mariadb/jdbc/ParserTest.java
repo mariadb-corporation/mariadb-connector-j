@@ -59,6 +59,7 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Properties;
 
 import static org.junit.Assert.*;
 
@@ -89,6 +90,24 @@ public class ParserTest extends BaseTest {
         datasource.setUser("USER");
         datasource.setPassword("PWD");
         datasource.setUrl("jdbc:mariadb://localhost:3306/db");
+    }
+
+    @Test
+    public void isMultiMaster() throws Exception {
+        Properties emptyProps = new Properties();
+
+        assertFalse(UrlParser.parse("jdbc:mariadb:replication://host1/", emptyProps).isMultiMaster());
+        assertFalse(UrlParser.parse("jdbc:mariadb:failover://host1/", emptyProps).isMultiMaster());
+        assertFalse(UrlParser.parse("jdbc:mariadb:aurora://host1/", emptyProps).isMultiMaster());
+        assertFalse(UrlParser.parse("jdbc:mariadb:sequential://host1/", emptyProps).isMultiMaster());
+        assertFalse(UrlParser.parse("jdbc:mariadb:loadbalance://host1/", emptyProps).isMultiMaster());
+
+        assertFalse(UrlParser.parse("jdbc:mariadb:replication://host1,host2/", emptyProps).isMultiMaster());
+        assertTrue(UrlParser.parse("jdbc:mariadb:failover://host1,host2/", emptyProps).isMultiMaster());
+        assertFalse(UrlParser.parse("jdbc:mariadb:aurora://host1,host2/", emptyProps).isMultiMaster());
+        assertTrue(UrlParser.parse("jdbc:mariadb:sequential://host1,host2/", emptyProps).isMultiMaster());
+        assertFalse(UrlParser.parse("jdbc:mariadb:loadbalance://host1,host2/", emptyProps).isMultiMaster());
+
     }
 
     @Test

@@ -81,19 +81,20 @@ public class GeneratedTest extends BaseTest {
     @Test
     public void generatedKeys() throws Exception {
         Statement st = sharedConnection.createStatement();
+        int[] autoInc = setAutoInc();
         st.executeUpdate("insert into genkeys(dataField) values('a')", Statement.RETURN_GENERATED_KEYS);
         ResultSet rs = st.getGeneratedKeys();
         assertTrue(rs.next());
-        assertEquals(rs.getInt(1), 1);
-        assertEquals(rs.getInt("priKey"), 1);
-        assertEquals(rs.getInt("foo"), 1);
+        assertEquals(autoInc[0] + autoInc[1], rs.getInt(1));
+        assertEquals(autoInc[0] + autoInc[1], rs.getInt("priKey"));
+        assertEquals(autoInc[0] + autoInc[1], rs.getInt("foo"));
         int[] indexes = {1, 2, 3};
         st.executeUpdate("insert into genkeys(dataField) values('b')", indexes);
         rs = st.getGeneratedKeys();
         assertTrue(rs.next());
-        assertEquals(rs.getInt(1), 2);
+        assertEquals(autoInc[1] + 2 * autoInc[0], rs.getInt(1));
         try {
-            assertEquals(rs.getInt(2), 2);
+            rs.getInt(2);
             fail("should never get here");
         } catch (SQLException e) {
             // eat
@@ -104,7 +105,7 @@ public class GeneratedTest extends BaseTest {
         rs = st.getGeneratedKeys();
         assertTrue(rs.next());
         for (int i = 0; i < 3; i++) {
-            assertEquals(rs.getInt(columnNames[i]), 3);
+            assertEquals(autoInc[1] + 3 * autoInc[0], rs.getInt(columnNames[i]));
         }
     }
 

@@ -365,6 +365,18 @@ public class BaseTest {
     }
 
     /**
+     * Indicate if there is a anonymous user.
+     *
+     * @return true if anonymous user exist
+     * @throws SQLException if any error occur
+     */
+    public boolean anonymousUser() throws SQLException {
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT * FROM mysql.user u where u.Host='localhost' and u.User=''");
+        return rs.next();
+    }
+
+    /**
      * Check if current DB server is MariaDB.
      *
      * @return true if DB is mariadb
@@ -578,6 +590,19 @@ public class BaseTest {
 
     protected Connection openNewConnection(String url, Properties info) throws SQLException {
         return DriverManager.getConnection(url, info);
+    }
+
+    protected boolean isGalera() {
+        try {
+            Statement st = sharedConnection.createStatement();
+            ResultSet rs = st.executeQuery("show status like 'wsrep_cluster_size'");
+            if (rs.next()) {
+                return rs.getInt(2) > 0;
+            }
+        } catch (SQLException sqle) {
+            //skip
+        }
+        return false;
     }
 
     /**
@@ -988,4 +1013,38 @@ public class BaseTest {
         }
         return true;
     }
+
+    /**
+     * Get current autoincrement value, since Galera values are automatically set.
+     * @throws SQLException if any error occur.
+     */
+    public int[] setAutoInc() throws SQLException {
+        return setAutoInc(1, 0);
+    }
+
+    /**
+     * Get current autoincrement value, since Galera values are automatically set.
+     * @see <a href="https://mariadb.org/auto-increments-in-galera/">https://mariadb.org/auto-increments-in-galera/</a>
+     * @param autoIncInit       default increment
+     * @param autoIncOffsetInit default increment offset
+     * @throws SQLException if any error occur
+     */
+    public int[] setAutoInc(int autoIncInit, int autoIncOffsetInit) throws SQLException {
+
+        int autoInc = autoIncInit;
+        int autoIncOffset = autoIncOffsetInit;
+        if (isGalera()) {
+            ResultSet rs = sharedConnection.createStatement().executeQuery("show variables like '%auto_increment%'");
+            while (rs.next()) {
+                if ("auto_increment_increment".equals(rs.getString(1))) autoInc = rs.getInt(2);
+                if ("auto_increment_offset".equals(rs.getString(1))) autoIncOffset = rs.getInt(2);
+            }
+            if (autoInc == 1) {
+                //galera with one node only, then offset is not used
+                autoIncOffset = 0;
+            }
+        }
+        return new int[] {autoInc, autoIncOffset};
+    }
+
 }

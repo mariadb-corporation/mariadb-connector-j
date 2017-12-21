@@ -175,9 +175,8 @@ public class TextRowProtocol extends RowProtocol {
             case BIT:
                 return String.valueOf(parseBit());
             case DOUBLE:
-                return zeroFillingIfNeeded(String.valueOf(getInternalDouble(columnInfo)), columnInfo);
             case FLOAT:
-                return zeroFillingIfNeeded(String.valueOf(getInternalFloat(columnInfo)), columnInfo);
+                return zeroFillingIfNeeded(new String(buf, pos, length, StandardCharsets.UTF_8), columnInfo);
             case TIME:
                 return getInternalTimeString(columnInfo);
             case DATE:
