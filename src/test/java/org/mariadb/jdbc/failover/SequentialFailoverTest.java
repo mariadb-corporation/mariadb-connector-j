@@ -119,6 +119,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
             int firstServerId = getServerId(connection);
             int blackListSize = getProtocolFromConnection(connection)
                     .getProxy().getListener().getBlacklistKeys().size();
+            System.out.println("blackListSize:" + blackListSize);
             stopProxy(firstServerId);
 
             try {

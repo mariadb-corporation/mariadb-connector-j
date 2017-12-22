@@ -80,11 +80,7 @@ public final class Driver implements java.sql.Driver {
     public Connection connect(final String url, final Properties props) throws SQLException {
 
         UrlParser urlParser = UrlParser.parse(url, props);
-        if (urlParser == null) {
-            return null;
-        }
-        if (urlParser.getHostAddresses() == null) {
-            //log.info("MariaDB connector : missing Host address");
+        if (urlParser == null || urlParser.getHostAddresses() == null) {
             return null;
         } else {
             return MariaDbConnection.newConnection(urlParser, null);

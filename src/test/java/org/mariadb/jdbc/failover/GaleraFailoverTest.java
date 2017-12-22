@@ -52,15 +52,20 @@
 
 package org.mariadb.jdbc.failover;
 
+import com.google.common.collect.Lists;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbPoolDataSource;
+import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
-import java.sql.Connection;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertTrue;
@@ -92,6 +97,42 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
         currentType = HaMode.FAILOVER;
     }
 
+
+    @Test
+    public void showRep() throws Exception {
+        UrlParser urlParser = UrlParser.parse(initialGaleraUrl);
+        List<HostAddress> initAddresses = urlParser.getHostAddresses();
+
+        for (int i = 0; i < initAddresses.size(); i++) {
+            urlParser.setHostAddresses(Lists.newArrayList(initAddresses.get(i)));
+            try (Connection master = MariaDbConnection.newConnection(urlParser, null)) {
+                Statement stmt = master.createStatement();
+                ResultSet rs = stmt.executeQuery("show status like 'wsrep_cluster_status'");
+                assertTrue(rs.next());
+                System.out.println("host:" + initAddresses.get(i) + " status:" + rs.getString(2));
+            }
+        }
+
+    }
+
+    @Test
+    public void validGaleraPing() throws Exception {
+        long start = System.currentTimeMillis();
+        try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(initialGaleraUrl + "&maxPoolSize=1")) {
+            try (Connection connection = pool.getConnection()) {
+                Statement statement = connection.createStatement();
+                statement.execute("SELECT 1 ");
+            }
+            Thread.sleep(2000);
+            //Galera ping must occur
+            try (Connection connection = pool.getConnection()) {
+                Statement statement = connection.createStatement();
+                statement.execute("SELECT 1 ");
+            }
+        }
+        //if fail, will loop until connectTimeout = 30s
+        assertTrue(System.currentTimeMillis() - start < 5000);
+    }
 
     @Test
     @Override

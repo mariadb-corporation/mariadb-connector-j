@@ -475,6 +475,10 @@ public class MultiTest extends BaseTest {
             assertEquals(Statement.SUCCESS_NO_INFO, updateCounts[4]);
             assertEquals(1, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - currentInsert);
 
+            int[] realUpdateCount = ((MariaDbPreparedStatementClient) sqlInsert).getServerUpdateCounts();
+            assertEquals(1, realUpdateCount.length);
+            assertEquals(5, realUpdateCount[0]);
+
             final int secondCurrentInsert = retrieveSessionVariableFromServer(tmpConnection, "Com_insert");
 
             // rewrite for multiple statements isn't possible, so use allowMutipleQueries
@@ -494,7 +498,7 @@ public class MultiTest extends BaseTest {
 
                 assertEquals(4, retrieveSessionVariableFromServer(tmpConnection, "Com_insert") - secondCurrentInsert);
             } catch (BatchUpdateException bue) {
-                if ((sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10,2))) {
+                if ((sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2))) {
                     assertTrue(bue.getMessage().contains("You have an error in your SQL syntax"));
                 } else fail(bue.getMessage());
             }
@@ -839,7 +843,7 @@ public class MultiTest extends BaseTest {
 
                 int[] updateCount = e.getUpdateCounts();
                 assertEquals(10, updateCount.length);
-                if (rewrite || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10,2))) {
+                if (rewrite || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2))) {
                     //rewrite exception is all or nothing
                     assertEquals(Statement.EXECUTE_FAILED, updateCount[0]);
                     assertEquals(Statement.EXECUTE_FAILED, updateCount[1]);
@@ -881,7 +885,7 @@ public class MultiTest extends BaseTest {
 
                 ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM MultiTestt9");
                 //check result
-                if (!rewrite && !(sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10,2))) {
+                if (!rewrite && !(sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2))) {
                     checkNextData(0, rs);
                     checkNextData(1, rs);
                     checkNextData(2, rs);
@@ -996,7 +1000,7 @@ public class MultiTest extends BaseTest {
                 fail("exception should be throw above");
             } catch (BatchUpdateException bue) {
                 int[] updateCounts = bue.getUpdateCounts();
-                if (rewriteBatchedStatements || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10,2))) {
+                if (rewriteBatchedStatements || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2))) {
                     assertEquals(4, updateCounts.length);
                     assertEquals(Statement.EXECUTE_FAILED, updateCounts[0]);
                     assertEquals(Statement.EXECUTE_FAILED, updateCounts[1]);
@@ -1048,7 +1052,7 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void testMultiGeneratedKeyRewrite() throws Throwable {
-
+        Assume.assumeFalse(isGalera());
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", "true");
         props.setProperty("allowMultiQueries", "true");
@@ -1065,7 +1069,7 @@ public class MultiTest extends BaseTest {
 
     @Test
     public void testMultiGeneratedKey() throws Throwable {
-
+        Assume.assumeFalse(isGalera());
         Properties props = new Properties();
         props.setProperty("rewriteBatchedStatements", "false");
         props.setProperty("allowMultiQueries", "true");
@@ -1238,4 +1242,41 @@ public class MultiTest extends BaseTest {
 
     }
 
+    @Test
+    public void testInsertSelectBulk() throws SQLException {
+
+        try (Statement statement = sharedConnection.createStatement()) {
+            statement.execute("DROP TABLE IF EXISTS testInsertSelectBulk");
+            statement.execute("DROP TABLE IF EXISTS testInsertSelectBulk2");
+            statement.execute("CREATE TABLE testInsertSelectBulk(col int, val int)");
+            statement.execute("CREATE TABLE testInsertSelectBulk2(col int, val int)");
+            statement.execute("INSERT INTO testInsertSelectBulk(col, val) VALUES (0,1), (2,3)");
+
+            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                    "INSERT INTO testInsertSelectBulk2(col, val) VALUES "
+                            + "(?, (SELECT val FROM testInsertSelectBulk where col = ?))")) {
+
+                preparedStatement.setInt(1, 4);
+                preparedStatement.setInt(2, 0);
+                preparedStatement.addBatch();
+
+                preparedStatement.setInt(1, 5);
+                preparedStatement.setInt(2, 2);
+                preparedStatement.addBatch();
+
+                preparedStatement.executeBatch();
+            }
+
+            ResultSet rs = statement.executeQuery("SELECT * from testInsertSelectBulk2");
+            assertTrue(rs.next());
+            assertEquals(4, rs.getInt(1));
+            assertEquals(1, rs.getInt(2));
+
+            assertTrue(rs.next());
+            assertEquals(5, rs.getInt(1));
+            assertEquals(3, rs.getInt(2));
+        }
+
+
+    }
 }

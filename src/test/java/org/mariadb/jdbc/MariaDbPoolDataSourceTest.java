@@ -466,6 +466,22 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
     }
 
 
+    @Test
+    public void testPrepareReset() throws SQLException {
+        try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1&useServerPrepStmts=true&useResetConnection")) {
+            try (Connection connection = pool.getConnection()) {
+                PreparedStatement preparedStatement = connection.prepareStatement("SELECT ?");
+                preparedStatement.setString(1, "1");
+                preparedStatement.execute();
+            }
 
-    //TODO check that threads are destroy when closing pool
+            try (Connection connection = pool.getConnection()) {
+                //must re-prepare
+                PreparedStatement preparedStatement = connection.prepareStatement("SELECT ?");
+                preparedStatement.setString(1, "1");
+                preparedStatement.execute();
+            }
+        }
+    }
+
 }

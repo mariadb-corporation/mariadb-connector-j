@@ -68,6 +68,7 @@ import java.sql.SQLTimeoutException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.RejectedExecutionException;
 
 import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
 
@@ -173,7 +174,9 @@ public abstract class AbstractMultiSend {
         if (binaryProtocol) {
             if (readPrepareStmtResult) {
                 parameterTypeHeader = new ColumnType[paramCount];
-                if (prepareResult == null && protocol.getOptions().cachePrepStmts) {
+                if (prepareResult == null
+                        && protocol.getOptions().cachePrepStmts
+                        && protocol.getOptions().useServerPrepStmts) {
                     String key = protocol.getDatabase() + "-" + sql;
                     prepareResult = protocol.prepareStatementCache().get(key);
                     if (prepareResult != null && !((ServerPrepareResult) prepareResult).incrementShareCounter()) {
@@ -225,51 +228,76 @@ public abstract class AbstractMultiSend {
                     paramCount = getParamCount();
                 }
 
+                boolean useCurrentThread = false;
+
                 for (; status.sendSubCmdCounter < requestNumberByBulk; ) {
                     sendCmd(writer, results, parametersList, queries, paramCount, status, prepareResult);
                     status.sendSubCmdCounter++;
                     status.sendCmdCounter++;
-
-                    if (futureReadTask == null) {
-                        futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, status,
-                                protocol, false, this, paramCount,
-                                results, parametersList, queries, prepareResult));
-                        AbstractQueryProtocol.readScheduler.execute(futureReadTask);
+                    if (useCurrentThread) {
+                        try {
+                            protocol.getResult(results);
+                        } catch (SQLException qex) {
+                            if (((readPrepareStmtResult && prepareResult == null) || !protocol.getOptions().continueBatchOnError)) {
+                                throw qex;
+                            } else {
+                                exception = qex;
+                            }
+                        }
+                    } else if (futureReadTask == null) {
+                        try {
+                            futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, status,
+                                    protocol, false, this, paramCount,
+                                    results, parametersList, queries, prepareResult));
+                            AbstractQueryProtocol.readScheduler.execute(futureReadTask);
+                        } catch (RejectedExecutionException r) {
+                            useCurrentThread = true;
+                            try {
+                                protocol.getResult(results);
+                            } catch (SQLException qex) {
+                                if (((readPrepareStmtResult && prepareResult == null) || !protocol.getOptions().continueBatchOnError)) {
+                                    throw qex;
+                                } else {
+                                    exception = qex;
+                                }
+                            }
+                        }
                     }
                 }
 
                 status.sendEnded = true;
+                if (!useCurrentThread) {
+                    protocol.changeSocketTcpNoDelay(protocol.getOptions().tcpNoDelay);
+                    try {
+                        AsyncMultiReadResult asyncMultiReadResult = futureReadTask.get();
 
-                protocol.changeSocketTcpNoDelay(protocol.getOptions().tcpNoDelay);
-                try {
-                    AsyncMultiReadResult asyncMultiReadResult = futureReadTask.get();
-
-                    if (binaryProtocol && prepareResult == null && asyncMultiReadResult.getPrepareResult() != null) {
-                        prepareResult = asyncMultiReadResult.getPrepareResult();
-                        statementId = ((ServerPrepareResult) prepareResult).getStatementId();
-                        paramCount = prepareResult.getParamCount();
-                    }
-
-                    if (asyncMultiReadResult.getException() != null) {
-                        if (((readPrepareStmtResult && prepareResult == null) || !protocol.getOptions().continueBatchOnError)) {
-                            throw asyncMultiReadResult.getException();
-                        } else {
-                            exception = asyncMultiReadResult.getException();
+                        if (binaryProtocol && prepareResult == null && asyncMultiReadResult.getPrepareResult() != null) {
+                            prepareResult = asyncMultiReadResult.getPrepareResult();
+                            statementId = ((ServerPrepareResult) prepareResult).getStatementId();
+                            paramCount = prepareResult.getParamCount();
                         }
+
+                        if (asyncMultiReadResult.getException() != null) {
+                            if (((readPrepareStmtResult && prepareResult == null) || !protocol.getOptions().continueBatchOnError)) {
+                                throw asyncMultiReadResult.getException();
+                            } else {
+                                exception = asyncMultiReadResult.getException();
+                            }
+                        }
+                    } catch (ExecutionException executionException) {
+                        if (executionException.getCause() == null) {
+                            throw new SQLException("Error reading results " + executionException.getMessage());
+                        }
+                        throw new SQLException("Error reading results " + executionException.getCause().getMessage());
+                    } catch (InterruptedException interruptedException) {
+                        protocol.setActiveFutureTask(futureReadTask);
+                        Thread.currentThread().interrupt();
+                        throw new SQLException("Interrupted awaiting response ", INTERRUPTED_EXCEPTION.getSqlState(), interruptedException);
+                    } finally {
+                        //bulk can prepare, and so if prepare cache is enable, can replace an already cached prepareStatement
+                        //this permit to release those old prepared statement without conflict.
+                        protocol.forceReleaseWaitingPrepareStatement();
                     }
-                } catch (ExecutionException executionException) {
-                    if (executionException.getCause() == null) {
-                        throw new SQLException("Error reading results " + executionException.getMessage());
-                    }
-                    throw new SQLException("Error reading results " + executionException.getCause().getMessage());
-                } catch (InterruptedException interruptedException) {
-                    protocol.setActiveFutureTask(futureReadTask);
-                    Thread.currentThread().interrupt();
-                    throw new SQLException("Interrupted awaiting response ", INTERRUPTED_EXCEPTION.getSqlState(), interruptedException);
-                } finally {
-                    //bulk can prepare, and so if prepare cache is enable, can replace an already cached prepareStatement
-                    //this permit to release those old prepared statement without conflict.
-                    protocol.forceReleaseWaitingPrepareStatement();
                 }
 
                 futureReadTask = null;

@@ -6,8 +6,6 @@ set -e
 ###################################################################################################################
 # test different type of configuration
 ###################################################################################################################
-mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=3305 )
-export COMPOSE_FILE=.travis/docker-compose.yml
 
 case "$TYPE" in
  "REWRITE" )
@@ -32,20 +30,12 @@ case "$TYPE" in
    urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&useCompression=true&enablePacketDebug=true'
    ;;
   *)
-   if [ -n "$MAXSCALE_VERSION" ]
-   then
-       urlString='jdbc:mariadb://mariadb.example.com:4007/testj?user=bob&killFetchStmtOnClose=false&enablePacketDebug=true'
-       mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=4007 )
-       export COMPOSE_FILE=.travis/maxscale-compose.yml
-   else
-       urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&enablePacketDebug=true'
-   fi
+   urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&enablePacketDebug=true'
    ;;
 esac;
 
 
-if [ -n "$PROFILE" ]
-then
+if [ -n "$PROFILE" ] ; then
     export urlString="$urlString&profileSql=true"
     pwd
     rm src/test/resources/logback-test.xml
@@ -61,10 +51,8 @@ cmd=( mvn clean test $ADDITIONNAL_VARIABLES -DjobId=${TRAVIS_JOB_ID}  \
     -Dkeystore2PathP12="$SSLCERT/fullclient-keystore.p12" \
     -DrunLongTest=true )
 
-if [ -n "$AURORA" ]
-then
-    if [ -n "$AURORA_STRING_URL" ]
-    then
+if [ -n "$AURORA" ] ; then
+    if [ -n "$AURORA_STRING_URL" ] ; then
         urlString=${AURORA_STRING_URL}
         testSingleHost=true
     else
@@ -74,23 +62,72 @@ else
 
     testSingleHost=true
 
-    ###################################################################################################################
-    # launch docker server and maxscale
-    ###################################################################################################################
     export INNODB_LOG_FILE_SIZE=$(echo ${PACKET}| cut -d'M' -f 1)0M
-    docker-compose -f ${COMPOSE_FILE} build
-    docker-compose -f ${COMPOSE_FILE} up -d
 
-    ###################################################################################################################
-    # launch 3 galera servers
-    ###################################################################################################################
-    if [ -n "$GALERA" ]
-    then
-        docker-compose -f .travis/galera-compose.yml up -d
-        urlString='jdbc:mariadb://mariadb.example.com:3106/testj?user=bob&enablePacketDebug=true'
-        cmd+=( -DdefaultGaleraUrl="jdbc:mariadb:failover://mariadb.example.com:3106,mariadb.example.com:3107,mariadb.example.com:3108/testj?user=bob&enablePacketDebug=true" )
+    if [ -n "$MAXSCALE_VERSION" ] ; then
+        ###################################################################################################################
+        # launch Maxscale with one server
+        ###################################################################################################################
+        mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=4007 )
+        export COMPOSE_FILE=.travis/maxscale-compose.yml
+        urlString='jdbc:mariadb://mariadb.example.com:4007/testj?user=bob&killFetchStmtOnClose=false&enablePacketDebug=true'
+        docker-compose -f ${COMPOSE_FILE} build
+        docker-compose -f ${COMPOSE_FILE} up -d
+    else
+        if [ -n "$GALERA" ] || [ -n "$GALERA3" ]  ;  then
+            if [ -n "$GALERA3" ] ; then
+                ###################################################################################################################
+                # launch 3 galera servers
+                ###################################################################################################################
+                mysql=( mysql --protocol=tcp -ubob -hmariadb.example.com --port=3106 )
+                export COMPOSE_FILE=.travis/galera-compose.yml
 
+                urlString='jdbc:mariadb://mariadb.example.com:3106/testj?user=bob&enablePacketDebug=true'
+                cmd+=( -DdefaultGaleraUrl="jdbc:mariadb:failover://mariadb.example.com:3106,mariadb.example.com:3107,mariadb.example.com:3108/testj?user=bob&enablePacketDebug=true" )
+                docker-compose -f ${COMPOSE_FILE} up -d
+                SLEEP 10
+            else
+                mysql=( mysql --protocol=tcp -ubob -hmariadb.example.com --port=3106 )
+
+                urlString='jdbc:mariadb://mariadb.example.com:3106/testj?user=bob&enablePacketDebug=true'
+                docker run \
+                        -v $SSLCERT:/etc/sslcert \
+                        -v $ENTRYPOINT:/docker-entrypoint-initdb.d \
+                        -e MYSQL_INITDB_SKIP_TZINFO=yes \
+                        -e MYSQL_ALLOW_EMPTY_PASSWORD=1 \
+                        -e MYSQL_DATABASE=testj \
+                        -d \
+                        -p 3106:3306 \
+                        -p 4067:4567 \
+                        -p 4068:4568 \
+                        --name=node1 \
+                        mariadb:10.2 --wsrep-new-cluster --wsrep-cluster-address='gcomm://node1' \
+                        --wsrep-on=ON \
+                        --max-connections=500 \
+                        --wsrep-node-address=node1:4567 \
+                        --wsrep-node-name=node1 \
+                        --character-set-server=utf8mb4 \
+                        --collation-server=utf8mb4_unicode_ci \
+                        --bind-address=0.0.0.0 \
+                        --binlog-format=ROW \
+                        --wsrep-provider=/usr/lib/galera/libgalera_smm.so \
+                        --wsrep-cluster-name=my_super_cluster \
+                        --ssl-ca=/etc/sslcert/ca.crt \
+                        --ssl-cert=/etc/sslcert/server.crt --ssl-key=/etc/sslcert/server.key
+
+            fi
+        else
+
+            ###################################################################################################################
+            # launch docker server and maxscale
+            ###################################################################################################################
+            mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=3305 )
+            export COMPOSE_FILE=.travis/docker-compose.yml
+            docker-compose -f ${COMPOSE_FILE} up -d
+
+        fi
     fi
+
 
     ###################################################################################################################
     # wait for docker initialisation
@@ -104,9 +141,12 @@ else
         sleep 1
     done
 
-    docker-compose -f ${COMPOSE_FILE} logs
 
     if [ "$i" = 0 ]; then
+        if [ -n "COMPOSE_FILE" ] ; then
+            docker-compose -f ${COMPOSE_FILE} logs
+        fi
+
         echo 'SELECT 1' | "${mysql[@]}"
         echo >&2 'data server init process failed.'
         exit 1
@@ -123,13 +163,8 @@ cmd+=( -DdbUrl="$urlString" )
 cmd+=( -DtestSingleHost="$testSingleHost" )
 echo ${cmd}
 
-if [ -n "$MAXSCALE_VERSION" ]
-then
+if [ -n "$MAXSCALE_VERSION" ] ; then
     docker-compose -f $COMPOSE_FILE exec maxscale tail -n 500 /var/log/maxscale/maxscale.log
 fi
 
 "${cmd[@]}"
-if [ -n "$PROFILE" ]
-then
-    tail -5000 /tmp/debug.log
-fi

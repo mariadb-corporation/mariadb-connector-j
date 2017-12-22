@@ -1,4 +1,5 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#221|2.2.1]] Released on 22 Dec. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#220|2.2.0]] Released on 08 Nov. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#212|2.1.2]] Released on 24 Sept. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#211|2.1.1]] Released on 05 Sept. 2017
@@ -28,6 +29,21 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+== 2.2.1
+
+[CONJ-501] provide support for authentication plugin ed25519
+
+Bug correction:
+[CONJ-529] failover : the driver will pause for 250ms if no servers are available before attempting to reconnect another time
+[CONJ-548] don't use COM_STMT_BULK_EXECUTE for INSERT ... SELECT statements
+[CONJ-549] correction on connection reset when using MariaDbPoolDataSource with options useServerPrepStmts and useResetConnection enabled
+[CONJ-555] failover caused by client timeout must not reuse connection
+[CONJ-558] removing extra ".0" to resultset.getString() value for FLOAT/DOUBLE fields
+[CONJ-550] fetching state correction when reusing statement without having read all results
+[CONJ-553] RejectedExecutionException was thrown when having large amount of concurrent batches
+
+
+
 == 2.2.0
 
 Evolutions:

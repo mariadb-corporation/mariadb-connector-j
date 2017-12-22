@@ -757,9 +757,11 @@ public class ResultSetTest extends BaseTest {
         testLeadingZeroResult(stmt.executeQuery("select * from leadingZero"));
 
         //test binary resultSet
-        PreparedStatement pst1 = sharedConnection.prepareStatement("select * from leadingZero");
-        ResultSet rs1 = pst1.executeQuery();
-        testLeadingZeroResult(rs1);
+        if (!sharedUsePrepare()) {
+            PreparedStatement pst1 = sharedConnection.prepareStatement("select * from leadingZero");
+            ResultSet rs1 = pst1.executeQuery();
+            testLeadingZeroResult(rs1);
+        }
 
     }
 
@@ -783,11 +785,11 @@ public class ResultSetTest extends BaseTest {
         assertEquals("001.100", rs1.getString(16));
         assertEquals("00000001.100", rs1.getString(17));
         assertEquals("0000000001", rs1.getString(18));
-        assertEquals("0001.1", rs1.getString(19));
-        assertEquals("000000001.1", rs1.getString(20));
+        assertEquals("01.100", rs1.getString(19));
+        assertEquals("0000001.100", rs1.getString(20));
         assertEquals("0000000001.1", rs1.getString(21));
-        assertEquals("0001.1", rs1.getString(22));
-        assertEquals("000000001.1", rs1.getString(23));
+        assertEquals("01.100", rs1.getString(22));
+        assertEquals("0000001.100", rs1.getString(23));
         assertEquals("00000000000000000001.1", rs1.getString(24));
 
         assertTrue(rs1.next());
@@ -809,11 +811,11 @@ public class ResultSetTest extends BaseTest {
         assertEquals("020.200", rs1.getString(16));
         assertEquals("00000020.200", rs1.getString(17));
         assertEquals("0000000020", rs1.getString(18));
-        assertEquals("0020.2", rs1.getString(19));
-        assertEquals("000000020.2", rs1.getString(20));
+        assertEquals("20.200", rs1.getString(19));
+        assertEquals("0000020.200", rs1.getString(20));
         assertEquals("0000000020.2", rs1.getString(21));
-        assertEquals("0020.2", rs1.getString(22));
-        assertEquals("000000020.2", rs1.getString(23));
+        assertEquals("20.200", rs1.getString(22));
+        assertEquals("0000020.200", rs1.getString(23));
         assertEquals("00000000000000000020.2", rs1.getString(24));
         assertFalse(rs1.next());
 
@@ -1074,4 +1076,29 @@ public class ResultSetTest extends BaseTest {
         assertFalse(rs.wasNull());
 
     }
+
+    @Test
+    public void doubleStringResults() throws SQLException {
+        createTable("doubleStringResults", "i double, j float");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("INSERT INTO doubleStringResults VALUES (1.1, 1.2), (23, 24)");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM doubleStringResults");
+
+        assertTrue(rs.next());
+        assertEquals("1.1", rs.getString(1));
+        assertEquals(1, rs.getInt(1));
+        assertEquals(1.1, rs.getDouble(1), 0.0001);
+        assertEquals("1.2", rs.getString(2));
+        assertEquals(1, rs.getInt(2));
+        assertEquals(1.2, rs.getFloat(2), 0.0001);
+
+        assertTrue(rs.next());
+        assertEquals("23", rs.getString(1));
+        assertEquals(23, rs.getInt(1));
+        assertEquals(23, rs.getDouble(1), 0.0001);
+        assertEquals("24", rs.getString(2));
+        assertEquals(24, rs.getInt(2));
+        assertEquals(24, rs.getFloat(2), 0.0001);
+    }
+
 }

@@ -53,11 +53,14 @@
 package org.mariadb.jdbc;
 
 import org.junit.Assume;
+import org.junit.AssumptionViolatedException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.Executor;
@@ -507,6 +510,80 @@ public class ConnectionTest extends BaseTest {
             } catch (SQLException sqle) {
                 assertTrue(sqle.getMessage().contains("Connection has explicitly been closed/aborted"));
             }
+        }
+    }
+
+    @Test
+    public void verificationEd25519AuthPlugin() throws Throwable {
+        Assume.assumeTrue(isMariadbServer() && minVersion(10, 2));
+        Statement stmt = sharedConnection.createStatement();
+
+        try {
+            stmt.execute("INSTALL SONAME 'auth_ed25519'");
+        } catch (SQLException sqle) {
+            throw new AssumptionViolatedException("server doesn't have ed25519 plugin, cancelling test");
+        }
+        try {
+            stmt.execute("CREATE USER verificationEd25519AuthPlugin@'%' IDENTIFIED "
+                    + "VIA ed25519 USING 'ZIgUREUg5PVgQ6LskhXmO+eZLS0nC8be6HPjYWR4YJY'");
+            stmt.execute("CREATE USER verificationEd25519AuthPlugin@'localhost' IDENTIFIED "
+                    + "VIA ed25519 USING 'ZIgUREUg5PVgQ6LskhXmO+eZLS0nC8be6HPjYWR4YJY'");
+        } catch (SQLException sqle) {
+            //already existing
+        }
+        stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin@'%'");
+        stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin@'localhost'");
+
+        String url = "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
+                + "?user=verificationEd25519AuthPlugin&password=secret";
+
+        try (Connection connection = openNewConnection(url)) {
+            //must have succeed
+        }
+        stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
+        stmt.execute("drop user verificationEd25519AuthPlugin@'localhost'");
+    }
+
+
+    private void initializeDns(String host) {
+        try {
+            InetAddress.getByName(host);
+            fail();
+        } catch (UnknownHostException e) {
+            //normal error
+        }
+
+    }
+
+    @Test
+    public void loopSleepTest() throws Exception {
+        //initialize DNS to avoid having wrong timeout
+        initializeDns("host1");
+        initializeDns("host2");
+        initializeDns("host1.555-rds.amazonaws.com");
+
+        //failover
+        checkConnection("jdbc:mariadb:failover://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 2100);
+        //replication
+        checkConnection("jdbc:mariadb:replication://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 2100);
+        //aurora - no cluster end point
+        checkConnection("jdbc:mariadb:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 2100);
+        //aurora - using cluster end point
+        checkConnection("jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=200", 4500, 4700);
+
+    }
+
+    private void checkConnection(String conUrl, int min, int max) {
+        long start = System.currentTimeMillis();
+        try (Connection connection = DriverManager.getConnection(conUrl)) {
+            fail();
+        } catch (SQLException e) {
+            //excepted exception
+            //since retriesAllDown is = 20 , that means 10 entire loop with 250ms sleep
+            // first loop has not sleep, last too, so 8 * 250 = 2s
+            System.out.println(System.currentTimeMillis() - start);
+            assertTrue(System.currentTimeMillis() - start > min);
+            assertTrue(System.currentTimeMillis() - start < max);
         }
     }
 
