@@ -63,7 +63,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     private static final byte QUOTE = (byte) '\'';
     private static final byte DBL_QUOTE = (byte) '"';
     private static final byte ZERO_BYTE = (byte) '\0';
-    private static final byte SLASH = (byte) '\\';
+    private static final byte BACKSLASH = (byte) '\\';
 
     private static final int SMALL_BUFFER_SIZE = 8192;
     private static final int MEDIUM_BUFFER_SIZE = 128 * 1024;
@@ -500,8 +500,8 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                 }
             } else {
                 for (; charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80; charsOffset++) {
-                    if (currChar == SLASH || currChar == QUOTE || currChar == 0 || currChar == DBL_QUOTE) {
-                        buf[pos++] = SLASH;
+                    if (currChar == BACKSLASH || currChar == QUOTE || currChar == 0 || currChar == DBL_QUOTE) {
+                        buf[pos++] = BACKSLASH;
                     }
                     buf[pos++] = (byte) currChar;
                 }
@@ -519,8 +519,8 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                 if (escape) {
                     if (noBackslashEscapes) {
                         if (currChar == QUOTE) buf[pos++] = QUOTE;
-                    } else if (currChar == SLASH || currChar == QUOTE || currChar == ZERO_BYTE || currChar == DBL_QUOTE) {
-                        buf[pos++] = SLASH;
+                    } else if (currChar == BACKSLASH || currChar == QUOTE || currChar == ZERO_BYTE || currChar == DBL_QUOTE) {
+                        buf[pos++] = BACKSLASH;
                     }
                 }
                 buf[pos++] = (byte) currChar;
@@ -689,7 +689,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                     } else {
                         for (int i = 0; i < len; i++) {
                             if (bytes[i] == QUOTE
-                                    || bytes[i] == SLASH
+                                    || bytes[i] == BACKSLASH
                                     || bytes[i] == DBL_QUOTE
                                     || bytes[i] == ZERO_BYTE) {
                                 buf[pos++] = '\\';
@@ -714,9 +714,9 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         } else {
             for (int i = 0; i < len; i++) {
                 if (bytes[i] == QUOTE
-                        || bytes[i] == SLASH
+                        || bytes[i] == BACKSLASH
                         || bytes[i] == '"'
-                        || bytes[i] == ZERO_BYTE) buf[pos++] = SLASH; //add escape slash
+                        || bytes[i] == ZERO_BYTE) buf[pos++] = BACKSLASH; //add escape slash
                 buf[pos++] = bytes[i];
             }
         }
