@@ -569,7 +569,7 @@ public class ConnectionTest extends BaseTest {
         //aurora - no cluster end point
         checkConnection("jdbc:mariadb:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 2100);
         //aurora - using cluster end point
-        checkConnection("jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=200", 4500, 4700);
+        checkConnection("jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=200", 4500, 5000);
 
     }
 
