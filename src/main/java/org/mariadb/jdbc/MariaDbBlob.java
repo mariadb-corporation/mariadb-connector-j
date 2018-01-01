@@ -82,7 +82,7 @@ public class MariaDbBlob implements Blob, Serializable {
      */
     public MariaDbBlob(byte[] bytes) {
         if (bytes == null) {
-            throw new AssertionError("byte array is null");
+            throw new NullPointerException("byte array is null");
         }
         data = bytes;
         offset = 0;
@@ -98,7 +98,7 @@ public class MariaDbBlob implements Blob, Serializable {
      */
     public MariaDbBlob(byte[] bytes, int offset, int length) {
         if (bytes == null) {
-            throw new AssertionError("byte array is null");
+            throw new NullPointerException("byte array is null");
         }
         data = bytes;
         this.offset = offset;
