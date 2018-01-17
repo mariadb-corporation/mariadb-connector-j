@@ -64,8 +64,8 @@ public class MariaDbBlob implements Blob, Serializable {
 
     private static final long serialVersionUID = -4736603161284649490L;
     protected byte[] data;
-    transient protected int offset;
-    transient protected int length;
+    protected transient int offset;
+    protected transient int length;
 
     /**
      * Creates an empty blob.

@@ -524,20 +524,17 @@ public class BlobTest extends BaseTest {
 
 
             ClassLoader cl = BlobTest.class.getClassLoader();
-            Class objectInputFilterClass = Class.forName("java.io.ObjectInputFilter");
+            Class<?> objectInputFilterClass = Class.forName("java.io.ObjectInputFilter");
 
-            Object objectInputFilterImpl = Proxy.newProxyInstance(cl, new Class[] {objectInputFilterClass}, new InvocationHandler() {
-
-                public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-                    Class filterInfoClass = Class.forName("java.io.ObjectInputFilter$FilterInfo");
-                    Method arrayLengthMethod = filterInfoClass.getDeclaredMethod("arrayLength");
-                    Long arrayLength = (Long) arrayLengthMethod.invoke(args[0]);
-                    Class statusClass = Class.forName("java.io.ObjectInputFilter$Status");
-                    Field rejected = statusClass.getField("REJECTED");
-                    Field allowed = statusClass.getField("ALLOWED");
-                    if (arrayLength > filterSize) return rejected.get(null);
-                    return allowed.get(null);
-                }
+            Object objectInputFilterImpl = Proxy.newProxyInstance(cl, new Class[] {objectInputFilterClass}, (proxy, method, args) -> {
+                Class<?> filterInfoClass = Class.forName("java.io.ObjectInputFilter$FilterInfo");
+                Method arrayLengthMethod = filterInfoClass.getDeclaredMethod("arrayLength");
+                Long arrayLength = (Long) arrayLengthMethod.invoke(args[0]);
+                Class<?> statusClass = Class.forName("java.io.ObjectInputFilter$Status");
+                Field rejected = statusClass.getField("REJECTED");
+                Field allowed = statusClass.getField("ALLOWED");
+                if (arrayLength > filterSize) return rejected.get(null);
+                return allowed.get(null);
             });
 
             Method setObjectInputFilterMethod = ObjectInputStream.class.getDeclaredMethod("setObjectInputFilter", objectInputFilterClass);
