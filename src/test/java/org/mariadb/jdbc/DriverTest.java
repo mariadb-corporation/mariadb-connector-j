@@ -207,7 +207,7 @@ public class DriverTest extends BaseTest {
         try (PreparedStatement pstmt = sharedConnection.prepareStatement(
                 "select  TMP.field1 from (select ? from dual) TMP")) {
             try {
-                ParameterMetaData parameterMetaData = pstmt.getParameterMetaData();
+                pstmt.getParameterMetaData();
                 fail();
             } catch (SQLException sqle) {
                 assertEquals("42S22", sqle.getSQLState());
@@ -461,15 +461,56 @@ public class DriverTest extends BaseTest {
         UrlParser url = UrlParser.parse("jdbc:mariadb://localhost/test");
         assertEquals("localhost", url.getHostAddresses().get(0).host);
         assertEquals("test", url.getDatabase());
+        assertEquals("jdbc:mariadb://localhost/test", url.getInitialUrl());
         assertEquals(3306, url.getHostAddresses().get(0).port);
 
         url = UrlParser.parse("jdbc:mariadb://localhost:3307/test");
         assertEquals("localhost", url.getHostAddresses().get(0).host);
         assertEquals("test", url.getDatabase());
+        assertEquals("jdbc:mariadb://localhost:3307/test", url.getInitialUrl());
+        assertEquals(3307, url.getHostAddresses().get(0).port);
+
+        url = UrlParser.parse("jdbc:mariadb://localhost:3307/test", new Properties());
+        assertEquals("localhost", url.getHostAddresses().get(0).host);
+        assertEquals("test", url.getDatabase());
+        assertEquals("jdbc:mariadb://localhost:3307/test", url.getInitialUrl());
+        assertEquals(3307, url.getHostAddresses().get(0).port);
+
+        Properties props = new Properties();
+        props.setProperty("useServerPrepStmts", "true");
+        url = UrlParser.parse("jdbc:mariadb://localhost:3307/test", props);
+        assertEquals("localhost", url.getHostAddresses().get(0).host);
+        assertEquals("test", url.getDatabase());
+        assertEquals("jdbc:mariadb://localhost:3307/test", url.getInitialUrl());
         assertEquals(3307, url.getHostAddresses().get(0).port);
 
     }
 
+    @SuppressWarnings("deprecation")
+    @Test
+    public void metadataUrl() throws SQLException {
+        String testUrl = System.getProperty("dbUrl", mDefUrl);
+        //ensure that metadata URL correspond to initial URL
+        assertEquals(sharedConnection.getMetaData().getURL(), testUrl);
+
+        MariaDbDataSource datasource = new MariaDbDataSource();
+        datasource.setUrl(testUrl);
+        try (Connection conn = datasource.getConnection()) {
+            assertEquals(conn.getMetaData().getURL(), testUrl);
+        }
+
+        //specific case for Datasource, using deprecated historical setProperties() method, URL can be changed, URL is then reconstructed
+        MariaDbDataSource datasource2 = new MariaDbDataSource(hostname, port, database);
+        datasource2.setProperties("user=" + username + ((password != null) ? "&password=" + password : "") + "&useServerPrepStmts=true");
+        try (Connection conn = datasource2.getConnection()) {
+            assertEquals("jdbc:mariadb://address=(host=" + hostname + ")(port=" + port + ")(type=master)/"
+                            + database + "?user=" + username
+                            + ((password != null) ? "&password=" + password : "")
+                            + "&useServerPrepStmts=true",
+                    conn.getMetaData().getURL());
+        }
+        assertNotEquals(datasource.getUrlParser().getInitialUrl(), datasource2.getUrlParser().getInitialUrl());
+    }
 
     @Test
     public void testAliasReplication() throws SQLException {

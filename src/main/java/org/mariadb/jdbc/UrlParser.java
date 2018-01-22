@@ -233,9 +233,6 @@ public class UrlParser implements Cloneable {
 
             defineUrlParserParameters(urlParser, properties, hostAddressesString, additionalParameters);
             setDefaultHostAddressType(urlParser);
-
-            if (properties != null && !properties.isEmpty()) urlParser.setInitialUrl();
-
             urlParser.loadMultiMasterValue();
         } catch (IllegalArgumentException i) {
             throw new SQLException("error parsing url : " + i.getMessage(), i);
@@ -415,6 +412,7 @@ public class UrlParser implements Cloneable {
 
     protected void setProperties(String urlParameters) {
         DefaultOptions.parse(this.haMode, urlParameters, this.options);
+        setInitialUrl();
     }
 
     /**
