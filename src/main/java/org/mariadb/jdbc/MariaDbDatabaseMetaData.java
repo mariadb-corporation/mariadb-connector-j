@@ -399,7 +399,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 return DatabaseMetaData.importedKeyRestrict;
 
             default:
-                throw new AssertionError("should not happen");
+                throw new IllegalArgumentException("Illegal key action '" + actionKey + "' specified.");
         }
     }
 
