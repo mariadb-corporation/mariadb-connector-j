@@ -513,8 +513,9 @@ public class PreparedStatementTest extends BaseTest {
             try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
                     "INSERT INTO myTable VALUES (?, ?, ?, ?)")) {
                 for (int i = 0; i < val.length; i++) {
-                    for (int j = 0; j < 4; j++)
+                    for (int j = 0; j < 4; j++) {
                         preparedStatement.setString(j + 1, val[i][j]);
+                    }
                     preparedStatement.addBatch();
                 }
                 preparedStatement.executeBatch();
