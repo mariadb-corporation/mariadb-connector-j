@@ -533,7 +533,14 @@ public enum DefaultOptions {
      * On master/slave configuration, permit to connect Connection defaulting to a slave
      * when master is down.
      */
-    ALLOW_MASTER_DOWN("allowMasterDownConnection", Boolean.FALSE, "2.2.0");
+    ALLOW_MASTER_DOWN("allowMasterDownConnection", Boolean.FALSE, "2.2.0"),
+
+    /**
+     * If false (default), use "found rows" for the row count of statements. This corresponds to the JDBC standard.
+     * If true, use "affected rows" for the row count.
+     * This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.
+     */
+    USEAFFECTEDROWS("useAffectedRows", Boolean.FALSE, "2.2.2");
 
 
 

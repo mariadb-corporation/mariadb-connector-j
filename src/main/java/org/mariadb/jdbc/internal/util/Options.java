@@ -107,6 +107,7 @@ public class Options implements Cloneable {
     public int prepStmtCacheSize = 250;
     public int prepStmtCacheSqlLimit = 2048;
     public boolean useLegacyDatetimeCode = true;
+    public boolean useAffectedRows;
     public boolean maximizeMysqlCompatibility;
     public boolean useServerPrepStmts;
     public boolean continueBatchOnError = true;
@@ -203,6 +204,7 @@ public class Options implements Cloneable {
         if (allowLocalInfile != opt.allowLocalInfile) return false;
         if (cachePrepStmts != opt.cachePrepStmts) return false;
         if (useLegacyDatetimeCode != opt.useLegacyDatetimeCode) return false;
+        if (useAffectedRows != opt.useAffectedRows) return false;
         if (maximizeMysqlCompatibility != opt.maximizeMysqlCompatibility) return false;
         if (useServerPrepStmts != opt.useServerPrepStmts) return false;
         if (continueBatchOnError != opt.continueBatchOnError) return false;
@@ -326,6 +328,7 @@ public class Options implements Cloneable {
         result = 31 * result + prepStmtCacheSize;
         result = 31 * result + prepStmtCacheSqlLimit;
         result = 31 * result + (useLegacyDatetimeCode ? 1 : 0);
+        result = 31 * result + (useAffectedRows ? 1 : 0);
         result = 31 * result + (maximizeMysqlCompatibility ? 1 : 0);
         result = 31 * result + (useServerPrepStmts ? 1 : 0);
         result = 31 * result + (continueBatchOnError ? 1 : 0);
