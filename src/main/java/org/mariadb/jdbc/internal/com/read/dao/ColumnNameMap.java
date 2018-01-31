@@ -56,6 +56,7 @@ import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 
@@ -77,7 +78,7 @@ public class ColumnNameMap {
      */
     public int getIndex(String name) throws SQLException {
         if (name == null) throw new SQLException("Column name cannot be null");
-        String lowerName = name.toLowerCase();
+        String lowerName = name.toLowerCase(Locale.ROOT);
         // The specs in JDBC 4.0 specify that ResultSet.findColumn and
         // ResultSet.getXXX(String name) should use column alias (AS in the query). If label is not found, we use 
         // original table name.
@@ -87,12 +88,12 @@ public class ColumnNameMap {
             for (ColumnInformation ci : columnInfo) {
                 String columnAlias = ci.getName();
                 if (columnAlias != null && !columnAlias.isEmpty()) {
-                    columnAlias = columnAlias.toLowerCase();
+                    columnAlias = columnAlias.toLowerCase(Locale.ROOT);
                     aliasMap.putIfAbsent(columnAlias, counter);
 
                     String tableName = ci.getTable();
                     if (tableName != null && !tableName.isEmpty()) {
-                        aliasMap.putIfAbsent(tableName.toLowerCase() + "." + columnAlias, counter);
+                        aliasMap.putIfAbsent(tableName.toLowerCase(Locale.ROOT) + "." + columnAlias, counter);
                     }
                 }
                 counter++;
@@ -110,12 +111,12 @@ public class ColumnNameMap {
             for (ColumnInformation ci : columnInfo) {
                 String columnRealName = ci.getOriginalName();
                 if (columnRealName != null && !columnRealName.isEmpty()) {
-                    columnRealName = columnRealName.toLowerCase();
+                    columnRealName = columnRealName.toLowerCase(Locale.ROOT);
                     originalMap.putIfAbsent(columnRealName, counter);
 
                     String tableName = ci.getOriginalTable();
                     if (tableName != null && !tableName.isEmpty()) {
-                        originalMap.putIfAbsent(tableName.toLowerCase() + "." + columnRealName, counter);
+                        originalMap.putIfAbsent(tableName.toLowerCase(Locale.ROOT) + "." + columnRealName, counter);
                     }
                 }
                 counter++;

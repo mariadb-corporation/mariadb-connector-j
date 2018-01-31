@@ -61,6 +61,7 @@ import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -136,7 +137,7 @@ public class UrlParser implements Cloneable {
         StringBuilder sb = new StringBuilder();
         sb.append("jdbc:mariadb:");
         if (haMode != HaMode.NONE) {
-            sb.append(haMode.toString().toLowerCase()).append(":");
+            sb.append(haMode.toString().toLowerCase(Locale.ROOT)).append(":");
         }
         sb.append("//");
 
@@ -341,7 +342,7 @@ public class UrlParser implements Cloneable {
         }
 
         try {
-            return HaMode.valueOf(url.substring(secondColonPos + 1, thirdColonPos).toUpperCase());
+            return HaMode.valueOf(url.substring(secondColonPos + 1, thirdColonPos).toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException i) {
             throw new IllegalArgumentException("wrong failover parameter format in connection String " + url);
         }

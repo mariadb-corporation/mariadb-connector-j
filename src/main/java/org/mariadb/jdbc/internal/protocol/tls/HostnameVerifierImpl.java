@@ -38,8 +38,8 @@ public class HostnameVerifierImpl implements HostnameVerifier {
      */
     private static boolean matchDns(String hostname, String tlsDnsPattern) throws SSLException {
         boolean hostIsIp = Utils.isIPv4(hostname) || Utils.isIPv6(hostname);
-        StringTokenizer hostnameSt = new StringTokenizer(hostname.toLowerCase(), ".");
-        StringTokenizer templateSt = new StringTokenizer(tlsDnsPattern.toLowerCase(), ".");
+        StringTokenizer hostnameSt = new StringTokenizer(hostname.toLowerCase(Locale.ROOT), ".");
+        StringTokenizer templateSt = new StringTokenizer(tlsDnsPattern.toLowerCase(Locale.ROOT), ".");
         if (hostnameSt.countTokens() != templateSt.countTokens()) return false;
 
         try {

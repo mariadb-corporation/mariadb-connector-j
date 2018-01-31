@@ -66,6 +66,7 @@ import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -300,7 +301,7 @@ public abstract class AbstractMastersListener implements Listener {
 
                 case "executeQuery":
                     if (args[2] instanceof String) {
-                        String query = ((String) args[2]).toUpperCase();
+                        String query = ((String) args[2]).toUpperCase(Locale.ROOT);
                         if (!"ALTER SYSTEM CRASH".equals(query)
                                 && !query.startsWith("KILL")) {
                             logger.debug("relaunch query to new connection {}",
@@ -349,17 +350,18 @@ public abstract class AbstractMastersListener implements Listener {
                 case "executeQuery":
                     if (!((Boolean) args[0])) return true; //launched on slave connection
                     if (args[2] instanceof String) {
-                        return ((String) args[2]).toUpperCase().startsWith("SELECT");
+                        return ((String) args[2]).toUpperCase(Locale.ROOT).startsWith("SELECT");
                     } else if (args[2] instanceof ClientPrepareResult) {
                         @SuppressWarnings("unchecked")
-                        String query = new String(((ClientPrepareResult) args[2]).getQueryParts().get(0)).toUpperCase();
+                        String query = new String(((ClientPrepareResult) args[2]).getQueryParts().get(0))
+                                .toUpperCase(Locale.ROOT);
                         return query.startsWith("SELECT");
                     }
                     break;
                 case "executePreparedQuery":
                     if (!((Boolean) args[0])) return true; //launched on slave connection
                     ServerPrepareResult serverPrepareResult = (ServerPrepareResult) args[1];
-                    return (serverPrepareResult.getSql()).toUpperCase().startsWith("SELECT");
+                    return (serverPrepareResult.getSql()).toUpperCase(Locale.ROOT).startsWith("SELECT");
                 case "executeBatchStmt":
                 case "executeBatchClient":
                 case "executeBatchServer":
