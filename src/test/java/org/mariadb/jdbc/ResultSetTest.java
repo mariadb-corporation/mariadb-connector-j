@@ -1155,4 +1155,23 @@ public class ResultSetTest extends BaseTest {
 
     }
 
+    @Test
+    public void columnNamesMappingError() throws SQLException {
+        createTable("columnNamesMappingError", "xx tinyint(1)");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.executeUpdate("INSERT INTO columnNamesMappingError VALUES (4)");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM columnNamesMappingError");
+        assertTrue(rs.next());
+        assertEquals(4, rs.getInt("xx"));
+        try {
+            rs.getInt("wrong_column_name");
+            fail("must have fail, column 'wrong_column_name' does not exists");
+        } catch (SQLException e) {
+            assertEquals("42S22", e.getSQLState());
+            assertEquals(1054, e.getErrorCode());
+            assertEquals("No such column: wrong_column_name", e.getMessage());
+        }
+
+    }
+
 }

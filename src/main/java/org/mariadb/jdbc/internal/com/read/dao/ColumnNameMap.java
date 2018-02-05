@@ -53,6 +53,7 @@
 package org.mariadb.jdbc.internal.com.read.dao;
 
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -124,7 +125,10 @@ public class ColumnNameMap {
         }
 
         res = originalMap.get(lowerName);
-        if (res == null) throw new SQLException("No such column :" + name);
+
+        if (res == null) {
+            throw ExceptionMapper.get("No such column: " + name, "42S22", 1054, null, false);
+        }
         return res;
 
     }
