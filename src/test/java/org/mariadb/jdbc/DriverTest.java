@@ -53,6 +53,7 @@
 package org.mariadb.jdbc;
 
 import com.sun.jna.Platform;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -547,6 +548,23 @@ public class DriverTest extends BaseTest {
         ResultSet rs = stmt.executeQuery();
         assertEquals(true, rs.next());
         assertEquals(rs.getString(1), "hej\"");
+    }
+
+    @Test
+    public void escapeTest() throws SQLException {
+        createTable("escapeTest", "t varchar(10)");
+        String param = "a'\"";
+        param += String.valueOf(10);
+        param += String.valueOf(13);
+        param += String.valueOf(26);
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO escapeTest VALUES (?)")) {
+            preparedStatement.setString(1, param);
+            preparedStatement.execute();
+        }
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT * FROM escapeTest");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(param, rs.getString(1));
     }
 
     @Test
