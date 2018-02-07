@@ -490,7 +490,7 @@ public class DriverTest extends BaseTest {
     @SuppressWarnings("deprecation")
     @Test
     public void metadataUrl() throws SQLException {
-        String testUrl = System.getProperty("dbUrl", mDefUrl);
+        String testUrl = System.getProperty("dbUrl", mDefUrl) + "&pool=true&maxPoolSize=4&minPoolSize=1";
         //ensure that metadata URL correspond to initial URL
         assertEquals(sharedConnection.getMetaData().getURL(), testUrl);
 

@@ -220,6 +220,7 @@ public class FetchSizeTest extends BaseTest {
         }
         long interruptedExecutionTime = System.currentTimeMillis() - start;
 
+        Assume.assumeTrue(minVersion(10,1)); //10.1.2 in fact
         //normalExecutionTime = 1500
         //interruptedExecutionTime = 77
         assertTrue("interruptedExecutionTime:" + interruptedExecutionTime
