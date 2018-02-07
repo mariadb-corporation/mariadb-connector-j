@@ -235,7 +235,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
                         + "LINES TERMINATED BY '\\n' (`a`, `b`)");
                 assertEquals(insertNumber, recordNumber);
             }
-
+            file.delete();
             statement.setFetchSize(1000); //to avoid using too much memory for tests
             try (ResultSet rs = statement.executeQuery("SELECT * FROM `infile`")) {
                 for (int i = 0; i < recordNumber; i++) {
@@ -266,14 +266,14 @@ public class LocalInfileInputStreamTest extends BaseTest {
     }
 
     @Test
-    public void test2xMaxAllowedPacketLocalInfileInputStream() throws Exception {
+    public void testMoreThanMaxAllowedPacketLocalInfileInputStream() throws Exception {
         Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
         Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
         assertTrue(rs.next());
         long maxAllowedPacket = rs.getLong(1);
         Assume.assumeTrue(maxAllowedPacket < 100_000_000);
-        checkBigLocalInfile(maxAllowedPacket * 2);
+        checkBigLocalInfile(maxAllowedPacket + 1024);
     }
 
 }

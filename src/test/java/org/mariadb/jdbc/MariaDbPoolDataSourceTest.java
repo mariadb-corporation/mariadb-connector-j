@@ -293,14 +293,14 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
             pool.testForceMaxIdleTime(sharedIsAurora() ? 10 : 3);
             //wait to ensure pool has time to create 3 connections
-            Thread.sleep(sharedIsAurora() ? 5_000 : 1_000);
+            Thread.sleep(sharedIsAurora() ? 5_000 : 3_000);
 
             Set<ObjectName> objectNames = server.queryNames(filter, null);
             ObjectName name = objectNames.iterator().next();
             checkJmxInfo(server, name, 0, 3, 3, 0);
 
             List<Long> initialThreadIds = pool.testGetConnectionIdleThreadIds();
-            Thread.sleep(sharedIsAurora() ? 12_000 : 3_500);
+            Thread.sleep(sharedIsAurora() ? 12_000 : 7_000);
 
             //must still have 3 connections, but must be other ones
             checkJmxInfo(server, name, 0, 3, 3, 0);

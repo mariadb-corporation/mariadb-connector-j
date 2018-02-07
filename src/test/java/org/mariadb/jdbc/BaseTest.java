@@ -200,7 +200,12 @@ public class BaseTest {
             setUri();
             urlParser.auroraPipelineQuirks();
 
-            sharedConnection = DriverManager.getConnection(url);
+            try {
+                sharedConnection = MariaDbConnection.newConnection(urlParser, null);
+            } catch (SQLException sqle) {
+                System.out.println("Connection from pool fail :" + sqle.getMessage());
+                sharedConnection = DriverManager.getConnection(url);
+            }
             
             String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
             doPrecisionTest = isMariadbServer() || !dbVersion.startsWith("5.5"); //MySQL 5.5 doesn't support precision
