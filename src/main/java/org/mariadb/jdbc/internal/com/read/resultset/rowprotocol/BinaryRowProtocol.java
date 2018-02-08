@@ -275,7 +275,7 @@ public class BinaryRowProtocol extends RowProtocol {
         switch (columnInfo.getColumnType()) {
             case STRING:
                 if (getMaxFieldSize() > 0) {
-                    return new String(buf, pos, Math.max(getMaxFieldSize() * 3, length), StandardCharsets.UTF_8)
+                    return new String(buf, pos, Math.min(getMaxFieldSize() * 3, length), StandardCharsets.UTF_8)
                             .substring(0, getMaxFieldSize());
                 }
                 return new String(buf, pos, length, StandardCharsets.UTF_8);
@@ -325,7 +325,7 @@ public class BinaryRowProtocol extends RowProtocol {
                 return null;
             default:
                 if (getMaxFieldSize() > 0) {
-                    return new String(buf, pos, Math.max(getMaxFieldSize() * 3, length), StandardCharsets.UTF_8)
+                    return new String(buf, pos, Math.min(getMaxFieldSize() * 3, length), StandardCharsets.UTF_8)
                             .substring(0, getMaxFieldSize());
                 }
                 return new String(buf, pos, length, StandardCharsets.UTF_8);
