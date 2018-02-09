@@ -221,7 +221,7 @@ public class TextRowProtocol extends RowProtocol {
 
         if (maxFieldSize > 0) {
             return new String(buf, pos, Math.min(maxFieldSize * 3, length), StandardCharsets.UTF_8)
-                    .substring(0, maxFieldSize);
+                    .substring(0, Math.min(maxFieldSize, length));
         }
 
         return new String(buf, pos, length, StandardCharsets.UTF_8);
