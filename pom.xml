@@ -271,11 +271,12 @@
                         <manifestEntries>
                             <Bundle-Version>${project.version}</Bundle-Version>
                             <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
-                            <Bundle-Name>MariaDB JDBC Client</Bundle-Name>
+                            <Bundle-Name>mariadb-java-client</Bundle-Name>
                             <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
+                            <Automatic-Module-Name>org.mariadb.jdbc</Automatic-Module-Name>
                             <Export-Package>org.mariadb.jdbc</Export-Package>
                             <Import-Package>
-                                javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql;resolution:=optional,javax.transaction.xa;resolution:=optional,org.slf4j;resolution:=optional
+                                javax.naming,javax.management,javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql,javax.transaction.xa;resolution:=optional,org.slf4j;resolution:=optional
                             </Import-Package>
                         </manifestEntries>
                     </archive>
