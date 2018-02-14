@@ -81,6 +81,11 @@
         </license>
     </licenses>
 
+    <organization>
+        <name>mariadb.org</name>
+        <url>https://mariadb.org</url>
+    </organization>
+
     <developers>
         <developer>
             <id>mariadbJdbcDevelopers</id>

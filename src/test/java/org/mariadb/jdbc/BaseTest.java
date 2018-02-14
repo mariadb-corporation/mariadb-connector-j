@@ -159,7 +159,7 @@ public class BaseTest {
         testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
 
         if (testSingleHost) {
-            urlParser = UrlParser.parse(url + "&pool=true&maxPoolSize=4&minPoolSize=1");
+            urlParser = UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1");
             if (urlParser.getHostAddresses().size() > 0) {
                 hostname = urlParser.getHostAddresses().get(0).host;
                 port = urlParser.getHostAddresses().get(0).port;
