@@ -717,7 +717,7 @@ public class MariaDbConnection implements Connection {
         if (!getAutoCommit()) {
             lock.lock();
             try {
-                if (!getAutoCommit() && protocol.inTransaction()) {
+                if (!getAutoCommit()) {
                     try (Statement st = createStatement()) {
                         st.execute("ROLLBACK");
                     }
