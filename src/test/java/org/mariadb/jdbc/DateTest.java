@@ -486,7 +486,7 @@ public class DateTest extends BaseTest {
             assertTrue(rs.next());
             ts = rs.getTimestamp(1);
             Timestamp ts2 = rs.getTimestamp(2);
-            long diff2 = Math.abs(ts.getTime() - ts2.getTime()) - clientOffset;
+            long diff2 = Math.abs(ts.getTime() - ts2.getTime() + clientOffset);
             assertTrue(diff2 < 5000); /* query take less than a second */
         } finally {
             if (connection != null) connection.close();

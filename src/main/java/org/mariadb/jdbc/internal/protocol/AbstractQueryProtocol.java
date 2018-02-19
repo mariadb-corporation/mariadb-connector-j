@@ -93,6 +93,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.sql.*;
 import java.util.List;
+import java.util.Locale;
 import java.util.ServiceLoader;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -392,7 +393,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
 
         //any select query is not applicable to bulk
-        if (sql.toLowerCase().contains("select")) return false;
+        if (sql.toLowerCase(Locale.ROOT).contains("select")) return false;
 
         cmdPrologue();
 

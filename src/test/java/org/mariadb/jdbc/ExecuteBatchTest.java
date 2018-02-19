@@ -342,13 +342,20 @@ public class ExecuteBatchTest extends BaseTest {
     public void ensureBulkSchedulerMaxPoolSizeRejection() throws Throwable {
         Assume.assumeFalse(sharedIsAurora() || sharedOptions().profileSql);
         System.out.println(getProtocolFromConnection(sharedConnection).getHostAddress());
-        for (int i = 0; i < 149; i++) {
+
+        Statement statement = sharedConnection.createStatement();
+        ResultSet resultSet = statement.executeQuery("SELECT @@max_connections");
+        assertTrue(resultSet.next());
+        int maxConnection = resultSet.getInt(1);
+        int limit = Math.min(1, Math.min(200, maxConnection - 10));
+        System.out.println("limit:" + limit);
+        for (int i = 0; i < limit; i++) {
             createTable("multipleSimultaneousBatch_" + i, "a INT NOT NULL");
         }
 
         final AtomicInteger counter = new AtomicInteger();
         ExecutorService exec = Executors.newFixedThreadPool(200);
-        for (int i = 0; i < 149; i++) {
+        for (int i = 0; i < limit; i++) {
             exec.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -381,7 +388,7 @@ public class ExecuteBatchTest extends BaseTest {
 
         //check results
         Statement stmt = sharedConnection.createStatement();
-        for (int i = 0; i < 149; i++) {
+        for (int i = 0; i < limit; i++) {
             ResultSet rs = stmt.executeQuery("SELECT count(*) from multipleSimultaneousBatch_" + i);
             assertTrue(rs.next());
             assertEquals(1024, rs.getInt(1));

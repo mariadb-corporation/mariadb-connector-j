@@ -1,12 +1,32 @@
 version: '{build}'
-skip_tags: true
-clone_depth: 10
 environment:
   matrix:
-    - JAVA_HOME: C:\Program Files\Java\jdk1.8.0
-os: Windows Server 2012
-services:
-  - mysql
+    - DB: '10.2.12'
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
+      JAVA_HOME: C:\Program Files\Java\jdk1.8.0
+
+    - DB: '10.3.4'
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
+      JAVA_HOME: C:\Program Files\Java\jdk1.8.0
+
+    - DB: '10.1.30'
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
+      JAVA_HOME: C:\Program Files\Java\jdk1.8.0
+
+    - DB: '10.0.33'
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
+      JAVA_HOME: C:\Program Files\Java\jdk1.8.0
+
+    - DB: '5.5.59'
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
+      JAVA_HOME: C:\Program Files\Java\jdk1.8.0
+
+clone_folder: c:\projects\mariadb-connector-j
 install:
   - ps: |
       Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -15,15 +35,19 @@ install:
         [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\maven-bin.zip", "C:\maven")
       }
   # Prepend Java entry, remove Ruby entry (C:\Ruby193\bin;) from PATH
-  - cmd: systeminfo
+  - cmd: set FILE=http://mariadb.mirrors.ovh.net/MariaDB/mariadb-%DB%/winx64-packages/mariadb-%DB%-winx64.msi
+  - ps: Start-FileDownload $Env:FILE -FileName server.msi
+  - cmd: msiexec /i server.msi INSTALLDIR=c:\projects\server SERVICENAME=mariadb ALLOWREMOTEROOTACCESS=true /qn
+  - cmd: "\"c:\\projects\\server\\bin\\mysql.exe\" -e \"create database testj\" --user=root"
   - cmd: SET PATH=C:\maven\apache-maven-3.5.2\bin;%JAVA_HOME%\bin;%PATH:C:\Ruby193\bin;=%;
   - cmd: SET MAVEN_OPTS=-Xms512m -Xms768m
   - cmd: SET JAVA_OPTS=-Xms512m -Xmx768m
   - cmd: SET M2_HOME=C:\maven\apache-maven-3.5.2
   - cmd: SET M
+  - cmd: cd c:\projects\mariadb-connector-j
   - cmd: mvn --version
   - cmd: java -version
 build_script:
   - mvn clean package -Dmaven.test.skip=true
 test_script:
-  - mvn test -DdbUrl="jdbc:mariadb://localhost/testj?user=root&createDatabaseIfNotExist=true&password=Password12!"
+  - mvn test -DdbUrl="jdbc:mariadb://localhost/testj?user=root"

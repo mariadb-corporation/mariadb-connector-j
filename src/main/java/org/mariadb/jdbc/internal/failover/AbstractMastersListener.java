@@ -66,6 +66,7 @@ import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -298,7 +299,7 @@ public abstract class AbstractMastersListener implements Listener {
         if (method != null) {
             if ("executeQuery".equals(method.getName())) {
                 if (args[2] instanceof String) {
-                    String query = ((String) args[2]).toUpperCase();
+                    String query = ((String) args[2]).toUpperCase(Locale.ROOT);
                     if (!"ALTER SYSTEM CRASH".equals(query)
                             && !query.startsWith("KILL")) {
                         logger.debug("relaunch query to new connection {}",
@@ -346,7 +347,8 @@ public abstract class AbstractMastersListener implements Listener {
                     return ((String) args[2]).toUpperCase().startsWith("SELECT");
                 } else if (args[2] instanceof ClientPrepareResult) {
                     @SuppressWarnings("unchecked")
-                    String query = new String(((ClientPrepareResult) args[2]).getQueryParts().get(0)).toUpperCase();
+                    String query = new String(((ClientPrepareResult) args[2]).getQueryParts().get(0))
+                            .toUpperCase(Locale.ROOT);
                     return query.startsWith("SELECT");
                 }
 

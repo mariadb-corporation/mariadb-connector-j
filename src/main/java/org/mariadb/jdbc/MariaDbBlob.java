@@ -57,14 +57,15 @@ import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import java.io.*;
 import java.sql.Blob;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 
 public class MariaDbBlob implements Blob, Serializable {
-    private static final long serialVersionUID = 8557003556592493381L;
 
+    private static final long serialVersionUID = -4736603161284649490L;
     protected byte[] data;
-    protected int offset;
-    protected int length;
+    protected transient int offset;
+    protected transient int length;
 
     /**
      * Creates an empty blob.
@@ -82,7 +83,7 @@ public class MariaDbBlob implements Blob, Serializable {
      */
     public MariaDbBlob(byte[] bytes) {
         if (bytes == null) {
-            throw new AssertionError("byte array is null");
+            throw new NullPointerException("byte array is null");
         }
         data = bytes;
         offset = 0;
@@ -98,7 +99,7 @@ public class MariaDbBlob implements Blob, Serializable {
      */
     public MariaDbBlob(byte[] bytes, int offset, int length) {
         if (bytes == null) {
-            throw new AssertionError("byte array is null");
+            throw new NullPointerException("byte array is null");
         }
         data = bytes;
         this.offset = offset;
@@ -107,22 +108,19 @@ public class MariaDbBlob implements Blob, Serializable {
 
     private void writeObject(ObjectOutputStream out)
             throws IOException {
-        out.writeInt(length);
-        if (length > 0) {
-            out.write(data, offset, length);
-            offset += length;
+        if (offset != 0 || data.length != length) {
+            data = Arrays.copyOfRange(data, offset, offset + length);
+            offset = 0;
             length = 0;
         }
+        out.defaultWriteObject();
     }
 
     private void readObject(ObjectInputStream in)
-            throws IOException {
+            throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
         offset = 0;
-        length = in.readInt();
-        data = new byte[length];
-        if (length > 0) {
-            in.readFully(data, 0, length);
-        }
+        length = data.length;
     }
 
     /**

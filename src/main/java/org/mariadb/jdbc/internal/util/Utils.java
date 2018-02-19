@@ -77,6 +77,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
@@ -224,7 +225,7 @@ public class Utils {
         for (; ((input[index] >= 'a' && index <= 'z') || (input[index] >= 'A' && input[index] <= 'Z')) && index < input.length; index++) {
             sb.append(input[index]);
         }
-        String func = sb.toString().toLowerCase();
+        String func = sb.toString().toLowerCase(Locale.ROOT);
 
         if ("convert".equals(func) || "timestampdiff".equals(func) || "timestampadd".equals(func)) {
             String paramPrefix;
@@ -277,7 +278,7 @@ public class Utils {
             throw new SQLException("unexpected escaped string");
         }
         int endIndex = escaped.length() - 1;
-        String escapedLower = escaped.toLowerCase();
+        String escapedLower = escaped.toLowerCase(Locale.ROOT);
         if (escaped.startsWith("{fn ")) {
             String resolvedParams = replaceFunctionParameter(escaped.substring(4, endIndex));
             return nativeSql(resolvedParams, noBackslashEscapes);

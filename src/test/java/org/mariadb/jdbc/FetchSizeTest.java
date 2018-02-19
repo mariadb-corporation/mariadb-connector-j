@@ -210,7 +210,7 @@ public class FetchSizeTest extends BaseTest {
         Statement stmt = null;
         try {
             stmt = sharedConnection.createStatement();
-            stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables LIMIT 50000");
+            stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables LIMIT 200000");
         } finally {
             stmt.close();
         }
@@ -220,18 +220,22 @@ public class FetchSizeTest extends BaseTest {
         try {
             stmt = sharedConnection.createStatement();
             stmt.setFetchSize(1);
-            stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables LIMIT 50000");
+            stmt.executeQuery("select * from information_schema.columns as c1,  information_schema.tables LIMIT 200000");
             stmt.cancel();
         } finally {
             stmt.close();
         }
         long interruptedExecutionTime = System.currentTimeMillis() - start;
 
-        //normalExecutionTime = 1500
-        //interruptedExecutionTime = 77
-        assertTrue("interruptedExecutionTime:" + interruptedExecutionTime
-                        + " normalExecutionTime:" + normalExecutionTime,
-                interruptedExecutionTime < normalExecutionTime);
+        Assume.assumeTrue(minVersion(10,1)); //10.1.2 in fact
+
+        //ensure that query is a long query. if not cancelling the query (that might lead to creating a new connection)
+        //may not render the test reliable
+        if (normalExecutionTime > 500) {
+            assertTrue("interruptedExecutionTime:" + interruptedExecutionTime
+                            + " normalExecutionTime:" + normalExecutionTime,
+                    interruptedExecutionTime < normalExecutionTime);
+        }
     }
 
     @Test

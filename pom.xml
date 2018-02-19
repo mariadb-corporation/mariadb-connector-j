@@ -58,7 +58,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>1.7.1</version>
+    <version>1.7.2</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
@@ -71,7 +71,7 @@
         <checkstyle.plugin.version>2.15</checkstyle.plugin.version>
         <driver.version.major>1</driver.version.major>
         <driver.version.minor>7</driver.version.minor>
-        <driver.version.patch>1</driver.version.patch>
+        <driver.version.patch>2</driver.version.patch>
         <driver.version.qualifier></driver.version.qualifier>
     </properties>
 
@@ -82,8 +82,8 @@
     </licenses>
 
     <organization>
-        <name>mariadb</name>
-        <url>http://mariadb.org/</url>
+        <name>mariadb.org</name>
+        <url>https://mariadb.org</url>
     </organization>
 
     <developers>
@@ -271,11 +271,12 @@
                         <manifestEntries>
                             <Bundle-Version>${project.version}</Bundle-Version>
                             <Bundle-ManifestVersion>2</Bundle-ManifestVersion>
-                            <Bundle-Name>MariaDB JDBC Client</Bundle-Name>
+                            <Bundle-Name>mariadb-java-client</Bundle-Name>
                             <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
+                            <Automatic-Module-Name>org.mariadb.jdbc</Automatic-Module-Name>
                             <Export-Package>org.mariadb.jdbc</Export-Package>
                             <Import-Package>
-                                javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql;resolution:=optional,javax.transaction.xa;resolution:=optional,org.slf4j;resolution:=optional
+                                javax.naming,javax.management,javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql,javax.transaction.xa;resolution:=optional,org.slf4j;resolution:=optional
                             </Import-Package>
                         </manifestEntries>
                     </archive>

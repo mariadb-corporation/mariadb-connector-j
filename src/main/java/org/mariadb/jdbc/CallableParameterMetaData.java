@@ -56,6 +56,7 @@ package org.mariadb.jdbc;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -108,7 +109,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
     private int mapMariaDbTypeToJdbc(String str) {
 
-        str = str.toUpperCase();
+        str = str.toUpperCase(Locale.ROOT);
         if ("BIT".equals(str)) return Types.BIT;
         if ("TINYINT".equals(str)) return Types.TINYINT;
         if ("SMALLINT".equals(str)) return Types.SMALLINT;
@@ -220,7 +221,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
             callParameter.setName(matcher2.group(2).trim());
             callParameter.setSigned(matcher2.group(3) == null);
-            callParameter.setTypeName(matcher2.group(4).trim().toUpperCase());
+            callParameter.setTypeName(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
 
             if (direction == null || direction.equalsIgnoreCase("IN")) {
                 callParameter.setInput(true);

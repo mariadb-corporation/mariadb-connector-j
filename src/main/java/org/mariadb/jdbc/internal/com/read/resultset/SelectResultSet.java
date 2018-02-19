@@ -769,7 +769,7 @@ public class SelectResultSet implements ResultSet {
     @Override
     public int getRow() throws SQLException {
         checkClose();
-        if (streaming) {
+        if (streaming && resultSetScrollType == TYPE_FORWARD_ONLY) {
             return 0;
         }
         return rowPointer + 1;

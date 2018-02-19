@@ -52,10 +52,15 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.sql.*;
 import java.util.Arrays;
 import java.util.Random;
@@ -451,6 +456,109 @@ public class BlobTest extends BaseTest {
             conn.close();
         }
 
+    }
+
+    @Test
+    public void blobSerializationWithOffset() throws Exception {
+        Blob blob = new MariaDbBlob(new byte[]{1, 2, 3, 4, 5}, 1, 2);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(baos);
+        oos.writeObject(blob);
+
+        ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
+        MariaDbBlob blob2 = (MariaDbBlob) ois.readObject();
+        byte[] blobBytes = blob2.getBytes(1, (int) blob2.length());
+        assertEquals(2, blobBytes.length);
+        assertEquals(2, blobBytes[0]);
+        assertEquals(3, blobBytes[1]);
+
+        Clob clob = new MariaDbClob(new byte[]{1, 2, 3, 4, 5}, 1, 2);
+        baos = new ByteArrayOutputStream();
+        oos = new ObjectOutputStream(baos);
+        oos.writeObject(clob);
+
+        ois = new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray()));
+        MariaDbClob c2 = (MariaDbClob) ois.readObject();
+        blobBytes = c2.getBytes(1, (int) c2.length());
+        assertEquals(2, blobBytes.length);
+        assertEquals(2, blobBytes[0]);
+        assertEquals(3, blobBytes[1]);
+    }
+
+
+    @Test
+    public void blobDeserializationFilter() throws Exception {
+        blobDeserializationFilterInternal(false, 0);
+        if (System.getProperty("java.version").startsWith("9.")) {
+            blobDeserializationFilterInternal(true, 2000);
+            try {
+                blobDeserializationFilterInternal(true, 500);
+                fail("must have thrown exception, since filter limit is set lower than blob size");
+            } catch (InvalidClassException e) {
+                assertTrue(e.getMessage().contains("REJECTED"));
+            }
+        }
+    }
+
+    private void blobDeserializationFilterInternal(boolean addFilter, int filterSize) throws Exception {
+        Assume.assumeTrue(System.getProperty("java.version").startsWith("9."));
+        byte[] bb = new byte[1000];
+        for (int i = 0; i < 1000; i++) {
+            bb[i] = (byte) i;
+        }
+        MariaDbBlob blob = new MariaDbBlob(bb, 50, 750);
+
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(bos);
+        oos.writeObject(blob);
+        oos.flush();
+        oos.close();
+        bos.close();
+
+        byte [] data = bos.toByteArray();
+
+        ByteArrayInputStream bis = new ByteArrayInputStream(data);
+        ObjectInputStream ois = new ObjectInputStream(bis);
+
+
+        if (addFilter) {
+            //equivalent of :  (but permit compilation if java < 9)
+            //ois.setObjectInputFilter(new ObjectInputFilter() {
+            //  @Override
+            //  public Status checkInput(FilterInfo filterInfo) {
+            //      if (filterInfo.arrayLength() > 500) return Status.REJECTED;
+            //      return Status.ALLOWED;
+            //  }
+            //});
+
+
+            ClassLoader cl = BlobTest.class.getClassLoader();
+            Class<?> objectInputFilterClass = Class.forName("java.io.ObjectInputFilter");
+
+            Object objectInputFilterImpl = Proxy.newProxyInstance(cl, new Class[] {objectInputFilterClass}, (proxy, method, args) -> {
+                Class<?> filterInfoClass = Class.forName("java.io.ObjectInputFilter$FilterInfo");
+                Method arrayLengthMethod = filterInfoClass.getDeclaredMethod("arrayLength");
+                Long arrayLength = (Long) arrayLengthMethod.invoke(args[0]);
+                Class<?> statusClass = Class.forName("java.io.ObjectInputFilter$Status");
+                Field rejected = statusClass.getField("REJECTED");
+                Field allowed = statusClass.getField("ALLOWED");
+                if (arrayLength > filterSize) return rejected.get(null);
+                return allowed.get(null);
+            });
+
+            Method setObjectInputFilterMethod = ObjectInputStream.class.getDeclaredMethod("setObjectInputFilter", objectInputFilterClass);
+            setObjectInputFilterMethod.invoke(ois, objectInputFilterImpl);
+        }
+
+        MariaDbBlob resultBlob = (MariaDbBlob) ois.readObject();
+        assertEquals(750, resultBlob.data.length);
+        assertEquals(0, resultBlob.offset);
+        assertEquals(750, resultBlob.length);
+
+        byte[] blobBytes = resultBlob.getBytes(1, 1000);
+        for (int i = 0; i < 750; i++) {
+            assertEquals(bb[i + 50], blobBytes[i]);
+        }
     }
 
 }

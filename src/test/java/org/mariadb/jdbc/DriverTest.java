@@ -53,6 +53,7 @@
 package org.mariadb.jdbc;
 
 import com.sun.jna.Platform;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -96,6 +97,7 @@ public class DriverTest extends BaseTest {
         createTable("quotesPreparedStatements", "id int not null primary key auto_increment, a varchar(10) , "
                 + "b varchar(10)");
         createTable("ressetpos", "i int not null primary key", "engine=innodb");
+        createTable("streamingressetpos", "i int not null primary key", "engine=innodb");
         createTable("streamingtest", "val varchar(20)");
         createTable("testBlob2", "a blob");
         createTable("testString2", "a varchar(10)");
@@ -478,15 +480,63 @@ public class DriverTest extends BaseTest {
         UrlParser url = UrlParser.parse("jdbc:mariadb://localhost/test");
         assertEquals("localhost", url.getHostAddresses().get(0).host);
         assertEquals("test", url.getDatabase());
+        assertEquals("jdbc:mariadb://localhost/test", url.getInitialUrl());
         assertEquals(3306, url.getHostAddresses().get(0).port);
 
         url = UrlParser.parse("jdbc:mariadb://localhost:3307/test");
         assertEquals("localhost", url.getHostAddresses().get(0).host);
         assertEquals("test", url.getDatabase());
+        assertEquals("jdbc:mariadb://localhost:3307/test", url.getInitialUrl());
+        assertEquals(3307, url.getHostAddresses().get(0).port);
+
+        url = UrlParser.parse("jdbc:mariadb://localhost:3307/test", new Properties());
+        assertEquals("localhost", url.getHostAddresses().get(0).host);
+        assertEquals("test", url.getDatabase());
+        assertEquals("jdbc:mariadb://localhost:3307/test", url.getInitialUrl());
+        assertEquals(3307, url.getHostAddresses().get(0).port);
+
+        Properties props = new Properties();
+        props.setProperty("useServerPrepStmts", "true");
+        url = UrlParser.parse("jdbc:mariadb://localhost:3307/test", props);
+        assertEquals("localhost", url.getHostAddresses().get(0).host);
+        assertEquals("test", url.getDatabase());
+        assertEquals("jdbc:mariadb://localhost:3307/test", url.getInitialUrl());
         assertEquals(3307, url.getHostAddresses().get(0).port);
 
     }
 
+    @SuppressWarnings("deprecation")
+    @Test
+    public void metadataUrl() throws SQLException {
+        String testUrl = System.getProperty("dbUrl", mDefUrl) + "&pool=true&maxPoolSize=2&minPoolSize=1";
+        //ensure that metadata URL correspond to initial URL
+        assertEquals(sharedConnection.getMetaData().getURL(), testUrl);
+
+        MariaDbDataSource datasource = new MariaDbDataSource();
+        datasource.setUrl(testUrl);
+        Connection conn = null;
+        try {
+            conn = datasource.getConnection();
+            assertEquals(conn.getMetaData().getURL(), testUrl);
+        } finally {
+            if (conn != null) conn.close();
+        }
+
+        //specific case for Datasource, using deprecated historical setProperties() method, URL can be changed, URL is then reconstructed
+        MariaDbDataSource datasource2 = new MariaDbDataSource(hostname, port, database);
+        datasource2.setProperties("user=" + username + ((password != null) ? "&password=" + password : "") + "&useServerPrepStmts=true");
+        try {
+            conn = datasource2.getConnection();
+            assertEquals("jdbc:mariadb://address=(host=" + hostname + ")(port=" + port + ")(type=master)/"
+                            + database + "?user=" + username
+                            + ((password != null) ? "&password=" + password : "")
+                            + "&useServerPrepStmts=true",
+                    conn.getMetaData().getURL());
+        } finally {
+            if (conn != null) conn.close();
+        }
+        assertNotEquals(datasource.getUrlParser().getInitialUrl(), datasource2.getUrlParser().getInitialUrl());
+    }
 
     @Test
     public void testAliasReplication() throws SQLException {
@@ -523,6 +573,27 @@ public class DriverTest extends BaseTest {
         ResultSet rs = stmt.executeQuery();
         assertEquals(true, rs.next());
         assertEquals(rs.getString(1), "hej\"");
+    }
+
+    @Test
+    public void escapeTest() throws SQLException {
+        createTable("escapeTest", "t varchar(10)");
+        String param = "a'\"";
+        param += String.valueOf(10);
+        param += String.valueOf(13);
+        param += String.valueOf(26);
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = sharedConnection.prepareStatement("INSERT INTO escapeTest VALUES (?)");
+            preparedStatement.setString(1, param);
+            preparedStatement.execute();
+        } finally {
+            preparedStatement.close();
+        }
+        Statement stmt = sharedConnection.createStatement();
+        ResultSet rs = stmt.executeQuery("SELECT * FROM escapeTest");
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(param, rs.getString(1));
     }
 
     @Test
@@ -712,6 +783,26 @@ public class DriverTest extends BaseTest {
         rs.absolute(-1);
         assertEquals(4, rs.getRow());
         assertEquals(4, rs.getInt(1));
+    }
+
+    @Test
+    public void streamingResultSetPositions() throws SQLException {
+        sharedConnection.createStatement().execute("INSERT INTO streamingressetpos VALUES (1), (2), (3), (4)");
+        Statement stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+        stmt.setFetchSize(Integer.MIN_VALUE);
+        ResultSet rs = stmt.executeQuery("SELECT * FROM streamingressetpos");
+        assertTrue(rs.absolute(2));
+        assertEquals(2, rs.getRow());
+        assertTrue(rs.relative(-1));
+        assertEquals(1, rs.getRow());
+        rs.afterLast();
+        assertEquals(5, rs.getRow());
+        rs.beforeFirst();
+        assertEquals(0, rs.getRow());
+        assertTrue(rs.next());
+        assertEquals(1, rs.getRow());
+        assertTrue(rs.next());
+        assertEquals(2, rs.getRow());
     }
 
     @Test(expected = SQLException.class)

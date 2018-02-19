@@ -761,7 +761,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                             hostnameVerifier.verify(host, cert, serverThreadId);
                         } catch (SSLException ex) {
                             throw new SQLNonTransientConnectionException("SSL hostname verification failed : " + ex.getMessage()
-                                    + "\nThis verification can be disable using the option \"disableSslHostnameVerification\" "
+                                    + "\nThis verification can be disabled using the option \"disableSslHostnameVerification\" "
                                     + "but won't prevent man-in-the-middle attacks anymore", "08006");
                         }
                     }

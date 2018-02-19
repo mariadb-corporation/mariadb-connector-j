@@ -290,7 +290,11 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
     @Test
     public void testIdleTimeout() throws Throwable {
-        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null); //not for maxscale, testing thread id is not relevant.
+        //not for maxscale, testing thread id is not relevant.
+        //appveyor is so slow wait time are not relevant.
+        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null
+                && System.getenv("APPVEYOR_BUILD_WORKER_IMAGE") == null);
+
         MBeanServer server = ManagementFactory.getPlatformMBeanServer();
         ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=testIdleTimeout-*");
         MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=5&minPoolSize=3&poolName=testIdleTimeout");
