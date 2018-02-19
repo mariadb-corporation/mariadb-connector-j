@@ -96,7 +96,7 @@ public class StandardGssapiAuthentication extends GssapiAuth {
                 }
                 jaasConfFile.deleteOnExit();
             } catch (final IOException ex) {
-                throw new UncheckedIOException(ex);
+                throw new RuntimeException(ex);
             }
 
             System.setProperty("java.security.auth.login.config", jaasConfFile.getCanonicalPath());

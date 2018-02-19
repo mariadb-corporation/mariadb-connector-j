@@ -188,7 +188,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
             if (byteValue < 0x80) {
                 pos += 1;
             } else if (byteValue < 0xC2) {
-                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
+                throw new RuntimeException("invalid UTF8");
             } else if (byteValue < 0xE0) {
                 pos += 2;
             } else if (byteValue < 0xF0) {
@@ -196,7 +196,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
             } else if (byteValue < 0xF8) {
                 pos += 4;
             } else {
-                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
+                throw new RuntimeException("invalid UTF8");
             }
         }
         return pos;
@@ -235,7 +235,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
             if (byteValue < 0x80) {
                 i += 1;
             } else if (byteValue < 0xC2) {
-                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
+                throw new RuntimeException("invalid UTF8");
             } else if (byteValue < 0xE0) {
                 i += 2;
             } else if (byteValue < 0xF0) {
@@ -243,7 +243,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
             } else if (byteValue < 0xF8) {
                 i += 4;
             } else {
-                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
+                throw new RuntimeException("invalid UTF8");
             }
             len++;
         }
@@ -258,7 +258,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
             if (byteValue < 0x80) {
                 pos += 1;
             } else if (byteValue < 0xC2) {
-                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
+                throw new RuntimeException("invalid UTF8");
             } else if (byteValue < 0xE0) {
                 pos += 2;
             } else if (byteValue < 0xF0) {
@@ -266,7 +266,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
             } else if (byteValue < 0xF8) {
                 pos += 4;
             } else {
-                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
+                throw new RuntimeException("invalid UTF8");
             }
         }
         length = pos - offset;

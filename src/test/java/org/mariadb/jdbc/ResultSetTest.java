@@ -1168,17 +1168,24 @@ public class ResultSetTest extends BaseTest {
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("INSERT INTO invisible(x,y) VALUES (1,2)");
 
-        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT * FROM invisible WHERE x = ?")) {
+        PreparedStatement preparedStatement = null;
+        try {
+            preparedStatement = sharedConnection.prepareStatement("SELECT * FROM invisible WHERE x = ?");
             ResultSetMetaData resultSetMetaData = preparedStatement.getMetaData();
             Assert.assertEquals(1, resultSetMetaData.getColumnCount());
             Assert.assertEquals("x", resultSetMetaData.getColumnName(1));
+        } finally {
+            preparedStatement.close();
         }
 
-        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT x,z FROM invisible WHERE x = ?")) {
+        try {
+            preparedStatement = sharedConnection.prepareStatement("SELECT x,z FROM invisible WHERE x = ?");
             ResultSetMetaData resultSetMetaData = preparedStatement.getMetaData();
             Assert.assertEquals(2, resultSetMetaData.getColumnCount());
             Assert.assertEquals("x", resultSetMetaData.getColumnName(1));
             Assert.assertEquals("z", resultSetMetaData.getColumnName(2));
+        } finally {
+            preparedStatement.close();
         }
 
     }

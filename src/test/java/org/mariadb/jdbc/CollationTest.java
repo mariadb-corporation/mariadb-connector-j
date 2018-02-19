@@ -240,7 +240,8 @@ public class CollationTest extends BaseTest {
     public void languageCasing() throws SQLException {
         Locale currentLocal = Locale.getDefault();
         createTable("languageCasing", "ID int, id2 int");
-        try (Statement statement = sharedConnection.createStatement()) {
+        try {
+            Statement statement = sharedConnection.createStatement();
             statement.execute("INSERT INTO languageCasing values (1,2)");
 
             ResultSet rs = statement.executeQuery("SELECT * FROM languageCasing");
