@@ -492,4 +492,47 @@ public class PreparedStatementTest extends BaseTest {
         }
     }
 
+    @Test
+    public void testInsertSelectBulk() throws SQLException {
+        //bug https://jira.mariadb.org/browse/MDEV-15133
+        cancelForVersion(10, 3, 0);
+        cancelForVersion(10, 3, 1);
+        cancelForVersion(10, 3, 2);
+        cancelForVersion(10, 3, 3);
+        cancelForVersion(10, 3, 4);
+
+        try (Statement statement = sharedConnection.createStatement()) {
+            statement.execute("DROP TABLE IF EXISTS myTable");
+            statement.execute("CREATE TABLE myTable(v1 varchar(10), v2 varchar(10), v3 varchar(10), v4 varchar(10))");
+
+            String[][] val = {{null, "b1", "c1", "d1"},
+                    {"a2", null, "c2", "d2"},
+                    {"a3", "b3", null, "d3"},
+                    {"a4", "b4", "c4", null},
+                    {"a5", "b5", "c5", "d5"}};
+            try (PreparedStatement preparedStatement = sharedConnection.prepareStatement(
+                    "INSERT INTO myTable VALUES (?, ?, ?, ?)")) {
+                for (int i = 0; i < val.length; i++) {
+                    for (int j = 0; j < 4; j++) {
+                        preparedStatement.setString(j + 1, val[i][j]);
+                    }
+                    preparedStatement.addBatch();
+                }
+                preparedStatement.executeBatch();
+            }
+
+            ResultSet rs = statement.executeQuery("SELECT * from myTable");
+            for (int i = 0; i < val.length; i++) {
+                assertTrue(rs.next());
+                for (int j = 0; j < 4; j++) {
+                    if (val[i][j] == null) {
+                        assertNull(rs.getString(j + 1));
+                    } else {
+                        assertEquals(val[i][j], rs.getString(j + 1));
+                    }
+                }
+            }
+        }
+    }
+
 }

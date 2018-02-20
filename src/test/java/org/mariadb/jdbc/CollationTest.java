@@ -59,6 +59,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.sql.*;
+import java.util.Locale;
 
 import static org.junit.Assert.*;
 
@@ -232,5 +233,32 @@ public class CollationTest extends BaseTest {
         assertFalse(rs1.next());
     }
 
+    @Test
+    public void languageCasing() throws SQLException {
+        Locale currentLocal = Locale.getDefault();
+        createTable("languageCasing", "ID int, id2 int");
+        try (Statement statement = sharedConnection.createStatement()) {
+            statement.execute("INSERT INTO languageCasing values (1,2)");
+
+            ResultSet rs = statement.executeQuery("SELECT * FROM languageCasing");
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt("ID"));
+            assertEquals(1, rs.getInt("id"));
+            assertEquals(2, rs.getInt("ID2"));
+            assertEquals(2, rs.getInt("id2"));
+
+            Locale.setDefault(new Locale("tr"));
+
+            rs = statement.executeQuery("SELECT * FROM languageCasing");
+            assertTrue(rs.next());
+            assertEquals(1, rs.getInt("ID"));
+            assertEquals(1, rs.getInt("id"));
+            assertEquals(2, rs.getInt("ID2"));
+            assertEquals(2, rs.getInt("id2"));
+
+        } finally {
+            Locale.setDefault(currentLocal);
+        }
+    }
 
 }

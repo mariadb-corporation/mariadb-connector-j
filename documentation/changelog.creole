@@ -1,4 +1,5 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#222|2.2.2]] Released on 20 feb. 2018
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#221|2.2.1]] Released on 22 Dec. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#220|2.2.0]] Released on 08 Nov. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#212|2.1.2]] Released on 24 Sept. 2017
@@ -29,6 +30,18 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+== 2.2.2
+
+Bug correction:
+[CONJ-564] Never ever throw an instance of java.lang.Error
+[CONJ-579] Keywords missing from DatabaseMetaData.getSQLKeywords()
+[CONJ-567] UrlParser.initialUrl gets overwritten
+[CONJ-571] Permit java 9 serialization filtering
+[CONJ-574] forcing using toLowerCase/toUpperCase with Locale.ROOT
+[CONJ-560] Automatic module name for java 9
+[CONJ-578] windows testing using all mariadb server
+[CONJ-570] Add tests for 10.3.3 INVISIBLE column
+
 == 2.2.1
 
 [CONJ-501] provide support for authentication plugin ed25519

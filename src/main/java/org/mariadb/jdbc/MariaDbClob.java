@@ -55,13 +55,15 @@ package org.mariadb.jdbc;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 import java.io.*;
+import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
 
 public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializable {
-    private static final long serialVersionUID = -2006825230517923067L;
+
+    private static final long serialVersionUID = -3066501059817815286L;
 
     /**
      * Creates a Clob with content.
@@ -96,11 +98,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
      * @return string value of blob content.
      */
     public String toString() {
-        try {
-            return new String(data, offset, length, StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            throw new AssertionError(e);
-        }
+        return new String(data, offset, length, StandardCharsets.UTF_8);
     }
 
     /**
@@ -191,7 +189,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
             if (byteValue < 0x80) {
                 pos += 1;
             } else if (byteValue < 0xC2) {
-                throw new AssertionError("invalid UTF8");
+                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
             } else if (byteValue < 0xE0) {
                 pos += 2;
             } else if (byteValue < 0xF0) {
@@ -199,7 +197,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
             } else if (byteValue < 0xF8) {
                 pos += 4;
             } else {
-                throw new AssertionError("invalid UTF8");
+                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
             }
         }
         return pos;
@@ -238,7 +236,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
             if (byteValue < 0x80) {
                 i += 1;
             } else if (byteValue < 0xC2) {
-                throw new AssertionError("invalid UTF8");
+                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
             } else if (byteValue < 0xE0) {
                 i += 2;
             } else if (byteValue < 0xF0) {
@@ -246,7 +244,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
             } else if (byteValue < 0xF8) {
                 i += 4;
             } else {
-                throw new AssertionError("invalid UTF8");
+                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
             }
             len++;
         }
@@ -261,7 +259,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
             if (byteValue < 0x80) {
                 pos += 1;
             } else if (byteValue < 0xC2) {
-                throw new AssertionError("invalid UTF8");
+                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
             } else if (byteValue < 0xE0) {
                 pos += 2;
             } else if (byteValue < 0xF0) {
@@ -269,7 +267,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
             } else if (byteValue < 0xF8) {
                 pos += 4;
             } else {
-                throw new AssertionError("invalid UTF8");
+                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
             }
         }
         length = pos - offset;

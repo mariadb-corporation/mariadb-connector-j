@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -1099,6 +1100,78 @@ public class ResultSetTest extends BaseTest {
         assertEquals("24", rs.getString(2));
         assertEquals(24, rs.getInt(2));
         assertEquals(24, rs.getFloat(2), 0.0001);
+    }
+
+    @Test
+    public void invisibleColumn() throws SQLException {
+
+        //since 10.3.3
+        Assume.assumeTrue(isMariadbServer() && minVersion(10, 3));
+        cancelForVersion(10, 3, 0);
+        cancelForVersion(10, 3, 1);
+        cancelForVersion(10, 3, 2);
+
+        createTable("invisible", "x INT, y INT INVISIBLE, z INT INVISIBLE NOT NULL DEFAULT 4");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("INSERT INTO invisible(x,y) VALUES (1,2)");
+
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT * FROM invisible WHERE x = ?")) {
+            ResultSetMetaData resultSetMetaData = preparedStatement.getMetaData();
+            Assert.assertEquals(1, resultSetMetaData.getColumnCount());
+            Assert.assertEquals("x", resultSetMetaData.getColumnName(1));
+        }
+
+        try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT x,z FROM invisible WHERE x = ?")) {
+            ResultSetMetaData resultSetMetaData = preparedStatement.getMetaData();
+            Assert.assertEquals(2, resultSetMetaData.getColumnCount());
+            Assert.assertEquals("x", resultSetMetaData.getColumnName(1));
+            Assert.assertEquals("z", resultSetMetaData.getColumnName(2));
+        }
+
+    }
+
+
+    @Test
+    public void checkInvisibleMetaData() throws SQLException {
+
+        //since 10.3.3
+        Assume.assumeTrue(isMariadbServer() && minVersion(10, 3));
+        cancelForVersion(10, 3, 0);
+        cancelForVersion(10, 3, 1);
+        cancelForVersion(10, 3, 2);
+
+        createTable("checkInvisibleMetaData",
+                "xx tinyint(1), x2 tinyint(1) unsigned INVISIBLE primary key auto_increment, yy year(4), zz bit, uu smallint");
+        DatabaseMetaData meta = sharedConnection.getMetaData();
+        ResultSet rs = meta.getColumns(null, null, "checkInvisibleMetaData", null);
+        assertTrue(rs.next());
+        assertEquals("BIT", rs.getString(6));
+        assertTrue(rs.next());
+        assertEquals("BIT", rs.getString(6));
+        assertTrue(rs.next());
+        assertEquals("YEAR", rs.getString(6));
+        assertEquals(null, rs.getString(7)); // column size
+        assertEquals(null, rs.getString(9)); // decimal digit
+
+    }
+
+    @Test
+    public void columnNamesMappingError() throws SQLException {
+        createTable("columnNamesMappingError", "xx tinyint(1)");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.executeUpdate("INSERT INTO columnNamesMappingError VALUES (4)");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM columnNamesMappingError");
+        assertTrue(rs.next());
+        assertEquals(4, rs.getInt("xx"));
+        try {
+            rs.getInt("wrong_column_name");
+            fail("must have fail, column 'wrong_column_name' does not exists");
+        } catch (SQLException e) {
+            assertEquals("42S22", e.getSQLState());
+            assertEquals(1054, e.getErrorCode());
+            assertEquals("No such column: wrong_column_name", e.getMessage());
+        }
+
     }
 
 }

@@ -159,7 +159,7 @@ public class BaseTest {
         testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
 
         if (testSingleHost) {
-            urlParser = UrlParser.parse(url + "&pool=true&maxPoolSize=4&minPoolSize=1");
+            urlParser = UrlParser.parse(url + "&pool=true&maxPoolSize=2&minPoolSize=1");
             if (urlParser.getHostAddresses().size() > 0) {
                 hostname = urlParser.getHostAddresses().get(0).host;
                 port = urlParser.getHostAddresses().get(0).port;
@@ -200,7 +200,12 @@ public class BaseTest {
             setUri();
             urlParser.auroraPipelineQuirks();
 
-            sharedConnection = DriverManager.getConnection(url);
+            try {
+                sharedConnection = MariaDbConnection.newConnection(urlParser, null);
+            } catch (SQLException sqle) {
+                System.out.println("Connection from pool fail :" + sqle.getMessage());
+                sharedConnection = DriverManager.getConnection(url);
+            }
             
             String dbVersion = sharedConnection.getMetaData().getDatabaseProductVersion();
             doPrecisionTest = isMariadbServer() || !dbVersion.startsWith("5.5"); //MySQL 5.5 doesn't support precision

@@ -563,13 +563,13 @@ public class ConnectionTest extends BaseTest {
         initializeDns("host1.555-rds.amazonaws.com");
 
         //failover
-        checkConnection("jdbc:mariadb:failover://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 2100);
+        checkConnection("jdbc:mariadb:failover://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 3200);
         //replication
-        checkConnection("jdbc:mariadb:replication://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 2100);
+        checkConnection("jdbc:mariadb:replication://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 3200);
         //aurora - no cluster end point
-        checkConnection("jdbc:mariadb:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 2100);
+        checkConnection("jdbc:mariadb:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 3200);
         //aurora - using cluster end point
-        checkConnection("jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=200", 4500, 4700);
+        checkConnection("jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=200", 4500, 10000);
 
     }
 
