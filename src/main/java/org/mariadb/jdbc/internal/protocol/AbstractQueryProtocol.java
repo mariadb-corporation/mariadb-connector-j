@@ -1079,7 +1079,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         int initialTimeout = -1;
         try {
             initialTimeout = socket.getSoTimeout();
-            socket.setSoTimeout(timeout);
+            if (initialTimeout == 0) socket.setSoTimeout(timeout);
             if (isMasterConnection() && urlParser.isMultiMaster()) {
                 //this is a galera node.
                 //checking not only that node is responding, but that this node is in primary mode too.

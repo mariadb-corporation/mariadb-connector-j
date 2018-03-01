@@ -678,7 +678,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         if (!isMasterHostFail()) {
             try {
                 //check that master is on before switching to him
-                if (masterProtocol != null && masterProtocol.isValid(0)) {
+                if (masterProtocol != null && masterProtocol.isValid(1000)) {
                     //switching to master connection
                     syncConnection(secondaryProtocol, masterProtocol);
                     proxy.lock.lock();
