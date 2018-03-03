@@ -476,6 +476,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         sendPipelineAdditionalData();
                         readPipelineAdditionalData(serverData);
                     } catch (SQLException sqle) {
+                        if ("08".equals(sqle.getSQLState())) throw sqle;
                         //in case pipeline is not supported
                         //(proxy flush socket after reading first packet)
                         additionalData(serverData);
@@ -637,17 +638,18 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     + "'auto_increment_increment')");
             results.commandEnd();
             ResultSet resultSet = results.getResultSet();
-
-            while (resultSet.next()) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("server data {} = {}",
-                            resultSet.getString(1),
-                            resultSet.getString(2));
+            if (resultSet != null) {
+                while (resultSet.next()) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("server data {} = {}",
+                                resultSet.getString(1),
+                                resultSet.getString(2));
+                    }
+                    serverData.put(resultSet.getString(1), resultSet.getString(2));
                 }
-                serverData.put(resultSet.getString(1), resultSet.getString(2));
-            }
-            if (serverData.size() < 4) {
-                throw ExceptionMapper.connException("could not load system variables. socket connected: " + socket.isConnected());
+                if (serverData.size() < 4) {
+                    throw ExceptionMapper.connException("could not load system variables. socket connected: " + socket.isConnected());
+                }
             }
 
         } catch (SQLException sqlException) {
