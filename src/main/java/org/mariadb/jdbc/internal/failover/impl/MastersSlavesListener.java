@@ -501,6 +501,15 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                         try {
                             reconnectFailedConnection(new SearchFilter(true, false));
                             handleFailLoop();
+
+                        } catch (SQLException e) {
+                            //stop failover, since we will throw a connection exception that will close the connection.
+                            FailoverLoop.removeListener(this);
+                            HostAddress failHost = (this.masterProtocol != null) ? this.masterProtocol.getHostAddress() : null;
+                            throwFailoverMessage(failHost, true, new SQLException("master connection failed"), false);
+                        }
+
+                        if (!isMasterHostFail()) {
                             //connection established, no need to send Exception !
                             //switching to master connection
                             try {
@@ -512,12 +521,10 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                                     addToBlacklist(masterProtocol.getHostAddress());
                                 }
                             }
-                        } catch (SQLException e) {
-                            //stop failover, since we will throw a connection exception that will close the connection.
-                            FailoverLoop.removeListener(this);
+                        } else {
+                            currentReadOnlyAsked = !mustBeReadOnly;
                             HostAddress failHost = (this.masterProtocol != null) ? this.masterProtocol.getHostAddress() : null;
-                            throwFailoverMessage(failHost, true, new SQLException("master "
-                                    + masterProtocol.getHostAddress() + " connection failed"), false);
+                            throwFailoverMessage(failHost, true, new SQLException("master connection failed"), false);
                         }
 
                     }
