@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import javax.sql.ConnectionPoolDataSource;
@@ -87,6 +88,8 @@ public class PooledConnectionTest extends BaseTest {
 
     @Test(expected = SQLException.class)
     public void testPooledConnectionException() throws Exception {
+        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+
         ConnectionPoolDataSource ds = new MariaDbDataSource(hostname != null ? hostname : "localhost", port, database);
         PooledConnection pc = null;
         try {
@@ -104,6 +107,7 @@ public class PooledConnectionTest extends BaseTest {
 
             /* Try to read  after server side closed the connection */
             connection.createStatement().execute("SELECT 1");
+
             fail("should never get there");
         } finally {
             if (pc != null) pc.close();
