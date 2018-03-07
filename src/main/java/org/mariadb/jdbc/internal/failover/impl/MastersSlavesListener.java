@@ -172,7 +172,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
         if (this.masterProtocol == null || !this.masterProtocol.isConnected()) {
             setMasterHostFail();
-            throwFailoverMessage(masterProtocol != null ? masterProtocol.getHostAddress() : null, true, queryException, false);
+            if (!(urlParser.getOptions().allowMasterDownConnection && secondaryProtocol != null)) {
+                throwFailoverMessage(masterProtocol != null ? masterProtocol.getHostAddress() : null, true, queryException, false);
+            }
         } else {
             resetMasterFailoverData();
             if (isSecondaryHostFail()) {
