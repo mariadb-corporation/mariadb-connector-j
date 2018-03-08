@@ -23,7 +23,7 @@ log_debug=1
 type=server
 address=db
 port=3306
-protocol=MySQLBackend
+protocol=MariaDBBackend
 authenticator_options=skip_authentication=true
 router_options=master
 
@@ -33,9 +33,9 @@ router_options=master
 # MySQL Monitor documentation:
 # https://github.com/mariadb-corporation/MaxScale/blob/2.1/Documentation/Monitors/MySQL-Monitor.md
 
-[MySQL Monitor]
+[MySQLMonitor]
 type=monitor
-module=mysqlmon
+module=mariadbmon
 servers=server1
 user=boby
 passwd=hey
@@ -50,7 +50,7 @@ monitor_interval=10000
 # ReadConnRoute documentation:
 # https://github.com/mariadb-corporation/MaxScale/blob/2.1/Documentation/Routers/ReadConnRoute.md
 
-[Read-Only Service]
+[Read-OnlyService]
 enable_root_user=1
 version_string=10.2.99-MariaDB-maxScale
 type=service
@@ -61,7 +61,7 @@ passwd=hey
 router_options=slave
 localhost_match_wildcard_host=1
 
-[Read-Write Service]
+[Read-WriteService]
 enable_root_user=1
 version_string=10.2.99-MariaDB-maxScale
 type=service
@@ -71,7 +71,7 @@ user=boby
 passwd=hey
 localhost_match_wildcard_host=1
 
-[Write Service]
+[WriteService]
 type=service
 router=readconnroute
 servers=server1
@@ -86,7 +86,7 @@ version_string=10.2.99-MariaDB-maxscale
 # MaxScale administration guide:
 # https://github.com/mariadb-corporation/MaxScale/blob/2.1/Documentation/Reference/MaxAdmin.mda
 
-[MaxAdmin Service]
+[MaxAdminService]
 enable_root_user=1
 version_string=10.2.99-MariaDB-maxScale
 type=service
@@ -97,29 +97,29 @@ router=cli
 # These listeners represent the ports the
 # services will listen on.
 #
-[Write Listener]
+[WriteListener]
 type=listener
-service=Write Service
-protocol=MySQLClient
+service=WriteService
+protocol=MariaDBClient
 port=4007
-socket=/var/lib/maxscale/writeconn.sock
+#socket=/var/lib/maxscale/writeconn.sock
 
-[Read-Only Listener]
+[Read-OnlyListener]
 type=listener
-service=Read-Only Service
-protocol=MySQLClient
+service=Read-OnlyService
+protocol=MariaDBClient
 port=4008
-socket=/var/lib/maxscale/readconn.sock
+#socket=/var/lib/maxscale/readconn.sock
 
-[Read-Write Listener]
+[Read-WriteListener]
 type=listener
-service=Read-Write Service
-protocol=MySQLClient
+service=Read-WriteService
+protocol=MariaDBClient
 port=4006
-socket=/var/lib/maxscale/rwsplit.sock
+#socket=/var/lib/maxscale/rwsplit.sock
 
-[MaxAdmin Listener]
+[MaxAdminListener]
 type=listener
-service=MaxAdmin Service
+service=MaxAdminService
 protocol=maxscaled
 socket=/tmp/maxadmin.sock

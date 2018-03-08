@@ -431,6 +431,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private void connect(String host, int port) throws SQLException, IOException {
         try {
             socket = Utils.createSocket(urlParser, host);
+            if (options.socketTimeout != null) socket.setSoTimeout(options.socketTimeout);
 
             initializeSocketOption();
 
@@ -475,6 +476,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                         sendPipelineAdditionalData();
                         readPipelineAdditionalData(serverData);
                     } catch (SQLException sqle) {
+                        if ("08".equals(sqle.getSQLState())) throw sqle;
                         //in case pipeline is not supported
                         //(proxy flush socket after reading first packet)
                         additionalData(serverData);
@@ -491,8 +493,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 autoIncrementIncrement = globalInfo.getAutoIncrementIncrement();
                 loadCalendar(globalInfo.getTimeZone(), globalInfo.getSystemTimeZone());
             }
-
-            if (options.socketTimeout != null) socket.setSoTimeout(options.socketTimeout);
 
             reader.setServerThreadId(this.serverThreadId, isMasterConnection());
             writer.setServerThreadId(this.serverThreadId, isMasterConnection());
@@ -638,15 +638,20 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     + "'auto_increment_increment')");
             results.commandEnd();
             ResultSet resultSet = results.getResultSet();
-
-            while (resultSet.next()) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("server data {} = {}",
-                            resultSet.getString(1),
-                            resultSet.getString(2));
+            if (resultSet != null) {
+                while (resultSet.next()) {
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("server data {} = {}",
+                                resultSet.getString(1),
+                                resultSet.getString(2));
+                    }
+                    serverData.put(resultSet.getString(1), resultSet.getString(2));
                 }
-                serverData.put(resultSet.getString(1), resultSet.getString(2));
+                if (serverData.size() < 4) {
+                    throw ExceptionMapper.connException("could not load system variables. socket connected: " + socket.isConnected());
+                }
             }
+
         } catch (SQLException sqlException) {
             throw ExceptionMapper.connException("could not load system variables", sqlException);
         }

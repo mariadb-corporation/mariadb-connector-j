@@ -1079,7 +1079,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         int initialTimeout = -1;
         try {
             initialTimeout = socket.getSoTimeout();
-            socket.setSoTimeout(timeout);
+            if (initialTimeout == 0) socket.setSoTimeout(timeout);
             if (isMasterConnection() && urlParser.isMultiMaster()) {
                 //this is a galera node.
                 //checking not only that node is responding, but that this node is in primary mode too.
@@ -1484,7 +1484,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         removeHasMoreResults();
         this.hasWarnings = false;
         buffer.skipByte();
-        int errorNumber = buffer.readShort();
+        final int errorNumber = buffer.readShort();
         String message;
         String sqlState;
         if (buffer.readByte() == '#') {
@@ -1497,6 +1497,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             sqlState = "HY000";
         }
         results.addStatsError(false);
+
+        //force current status to in transaction to ensure rollback/commit, since command may have issue a transaction
+        serverStatus |= ServerStatus.IN_TRANSACTION;
+
         removeActiveStreamingResult();
         return new SQLException(message, sqlState, errorNumber);
     }

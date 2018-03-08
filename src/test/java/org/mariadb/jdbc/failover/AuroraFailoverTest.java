@@ -388,7 +388,7 @@ public class AuroraFailoverTest extends BaseReplication {
                 + "&failoverLoopRetries=120"
                 + "&connectTimeout=250"
                 + "&loadBalanceBlacklistTimeout=50"
-                + "&useBatchMultiSend=false", false)) {
+                + "&useBatchMultiSend=false&useServerPrepStmts", false)) {
 
             int nbExceptionBeforeUp = 0;
             boolean failLaunched = false;

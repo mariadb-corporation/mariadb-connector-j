@@ -65,9 +65,11 @@ public class TimeoutTest extends BaseTest {
             throws SQLException {
         try (Statement stmt = conn.createStatement()) {
             try (ResultSet rs = stmt.executeQuery("select " + value)) {
-                assertTrue(rs.next());
-                return rs.getInt(1);
-
+                if (rs.next()) {
+                    return rs.getInt(1);
+                } else {
+                    return value;
+                }
             }
         }
     }

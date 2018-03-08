@@ -406,6 +406,10 @@ public abstract class AbstractMastersListener implements Listener {
         return currentProtocol.isClosed();
     }
 
+    public boolean isValid(int timeout) throws SQLException {
+        return currentProtocol.isValid(timeout);
+    }
+
     public boolean isReadOnly() {
         return currentReadOnlyAsked;
     }
@@ -498,7 +502,7 @@ public abstract class AbstractMastersListener implements Listener {
 
     protected boolean pingMasterProtocol(Protocol protocol) {
         try {
-            if (protocol.isValid(0)) return true;
+            if (protocol.isValid(1000)) return true;
         } catch (SQLException e) {
             //eat exception
         }
