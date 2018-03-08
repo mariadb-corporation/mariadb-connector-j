@@ -1484,7 +1484,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         removeHasMoreResults();
         this.hasWarnings = false;
         buffer.skipByte();
-        int errorNumber = buffer.readShort();
+        final int errorNumber = buffer.readShort();
         String message;
         String sqlState;
         if (buffer.readByte() == '#') {
