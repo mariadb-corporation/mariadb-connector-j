@@ -144,7 +144,7 @@ public class FailoverProxy implements InvocationHandler {
         } else if (METHOD_IS_CLOSED.equals(methodName)) {
             return listener.isClosed();
         } else if (METHOD_IS_VALID.equals(methodName)) {
-            return listener.isValid((int) args[0]);
+            return listener.isValid((Integer) args[0]);
         } else if (METHOD_EXECUTE_QUERY.equals(methodName)) {
             try {
                 this.listener.preExecute();

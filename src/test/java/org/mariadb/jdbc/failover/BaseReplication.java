@@ -401,8 +401,12 @@ public abstract class BaseReplication extends BaseMonoServer {
 
     @Test
     public void multipleValid() throws Throwable {
-        try (Connection connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
+        Connection connection = null;
+        try {
+            connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
             assertTrue(connection.isValid(2));
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 

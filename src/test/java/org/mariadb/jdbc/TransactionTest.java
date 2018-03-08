@@ -98,15 +98,14 @@ public class TransactionTest extends BaseTest {
 
     @Test
     public void testProperRollback() throws Exception {
-        try (Statement st = sharedConnection.createStatement()) {
-            st.executeUpdate("insert into tx_prim_key(id) values(32)");
-            st.executeUpdate("insert into tx_fore_key(id, id_ref) values(42, 32)");
-        }
+        Statement st = sharedConnection.createStatement();
+        st.executeUpdate("insert into tx_prim_key(id) values(32)");
+        st.executeUpdate("insert into tx_fore_key(id, id_ref) values(42, 32)");
 
         // 2. try to delete entry in Primary table in a transaction - wich will fail due
         // foreign key.
         sharedConnection.setAutoCommit(false);
-        try (Statement st = sharedConnection.createStatement()) {
+        try {
             st.executeUpdate("delete from tx_prim_key where id = 32");
             sharedConnection.commit();
             fail("Expected SQLException");
@@ -115,12 +114,12 @@ public class TransactionTest extends BaseTest {
             assertTrue(e.getMessage().contains("a foreign key constraint fails"));
             sharedConnection.rollback();
         }
-
-        try (Connection conn2 = openNewConnection(connUri); Statement st = conn2.createStatement()) {
-            st.setQueryTimeout(3);
-            st.executeUpdate("delete from tx_fore_key where id = 42");
-            st.executeUpdate("delete from tx_prim_key where id = 32");
-        }
+        Connection conn2 = openNewConnection(connUri);
+        Statement st2 = conn2.createStatement();
+        st2.setQueryTimeout(3);
+        st2.executeUpdate("delete from tx_fore_key where id = 42");
+        st2.executeUpdate("delete from tx_prim_key where id = 32");
+        conn2.close();
     }
 
 }
