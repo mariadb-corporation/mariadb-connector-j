@@ -112,6 +112,8 @@ public interface Listener {
 
     boolean isClosed();
 
+    boolean isValid(int timeout) throws SQLException;
+
     Protocol getCurrentProtocol();
 
     boolean hasHostFail();

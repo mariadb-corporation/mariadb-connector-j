@@ -215,6 +215,37 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         }
     }
 
+
+    @Override
+    public boolean isValid(int timeout) throws SQLException {
+        if (currentProtocol != null) {
+            if (currentProtocol.isMasterConnection()) {
+                boolean valid = currentProtocol.isValid(timeout);
+                if (secondaryProtocol != null) {
+                    //ping secondary protocol too to avoid any server timeout
+                    try {
+                        secondaryProtocol.isValid(timeout);
+                    } catch (SQLException sqle) {
+                        //eat
+                    }
+                }
+                return valid;
+            } else {
+                boolean valid = currentProtocol.isValid(timeout);
+                if (masterProtocol != null) {
+                    //ping secondary protocol too to avoid any server timeout
+                    try {
+                        masterProtocol.isValid(timeout);
+                    } catch (SQLException sqle) {
+                        //eat
+                    }
+                }
+                return valid;
+            }
+        }
+        return false;
+    }
+
     /**
      * Verify that there is waiting connection that have to replace failing one.
      * If there is replace failed connection with new one.

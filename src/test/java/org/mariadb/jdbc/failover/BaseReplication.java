@@ -68,7 +68,8 @@ public abstract class BaseReplication extends BaseMonoServer {
     @Test
     public void failoverSlaveToMasterPrepareStatement() throws Throwable {
         try (Connection connection = getNewConnection(
-                "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000&useBatchMultiSend=false", true)) {
+                "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000"
+                        + "&useBatchMultiSend=false&useServerPrepStmts", true)) {
             Statement stmt = connection.createStatement();
             stmt.execute("drop table  if exists replicationFailoverBinary" + jobId);
             stmt.execute("create table replicationFailoverBinary" + jobId + " (id int not null primary key auto_increment, test VARCHAR(10))");
@@ -349,6 +350,13 @@ public abstract class BaseReplication extends BaseMonoServer {
             assertFalse(slaveServerId == masterServerId);
             assertTrue(connection.isReadOnly());
             restartProxy(masterServerId);
+        }
+    }
+
+    @Test
+    public void multipleValid() throws Throwable {
+        try (Connection connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true)) {
+            assertTrue(connection.isValid(2));
         }
     }
 

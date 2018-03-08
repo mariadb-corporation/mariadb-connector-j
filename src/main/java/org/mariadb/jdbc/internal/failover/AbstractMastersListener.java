@@ -406,6 +406,10 @@ public abstract class AbstractMastersListener implements Listener {
         return currentProtocol.isClosed();
     }
 
+    public boolean isValid(int timeout) throws SQLException {
+        return currentProtocol.isValid(timeout);
+    }
+
     public boolean isReadOnly() {
         return currentReadOnlyAsked;
     }
