@@ -1497,6 +1497,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             sqlState = "HY000";
         }
         results.addStatsError(false);
+
+        //force current status to in transaction to ensure rollback/commit, since command may have issue a transaction
+        serverStatus |= ServerStatus.IN_TRANSACTION;
+
         removeActiveStreamingResult();
         return new SQLException(message, sqlState, errorNumber);
     }
