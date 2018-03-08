@@ -1,4 +1,5 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#223|2.2.3]] Released on 09 mar. 2018
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#222|2.2.2]] Released on 20 feb. 2018
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#221|2.2.1]] Released on 22 Dec. 2017
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#220|2.2.0]] Released on 08 Nov. 2017
@@ -30,6 +31,15 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+== 2.2.3
+
+Bug correction:
+[CONJ-583] possible hang indefinitely using master/slave configuration and failover occur
+[CONJ-586] erroneous transaction state when first command result as error
+[CONJ-587] using allowMasterDownConnection option can lead to NPE when using setReadOnly()
+[CONJ-588] using option 'allowMasterDownConnection' won't permit to connect if master is down
+[CONJ-534] Connection.isValid() must be routed to Master and Slave connections to avoid any server timeout
+
 == 2.2.2
 
 Bug correction:
