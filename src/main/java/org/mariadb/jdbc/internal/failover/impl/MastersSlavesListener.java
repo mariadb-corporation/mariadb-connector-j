@@ -172,7 +172,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
         if (this.masterProtocol == null || !this.masterProtocol.isConnected()) {
             setMasterHostFail();
-            throwFailoverMessage(masterProtocol != null ? masterProtocol.getHostAddress() : null, true, queryException, false);
+            if (!(urlParser.getOptions().allowMasterDownConnection && secondaryProtocol != null)) {
+                throwFailoverMessage(masterProtocol != null ? masterProtocol.getHostAddress() : null, true, queryException, false);
+            }
         } else {
             resetMasterFailoverData();
             if (isSecondaryHostFail()) {
@@ -211,6 +213,37 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                 && (this.currentProtocol.isClosed() || (!currentReadOnlyAsked && !currentProtocol.isMasterConnection()))) {
             preAutoReconnect();
         }
+    }
+
+
+    @Override
+    public boolean isValid(int timeout) throws SQLException {
+        if (currentProtocol != null) {
+            if (currentProtocol.isMasterConnection()) {
+                boolean valid = currentProtocol.isValid(timeout);
+                if (secondaryProtocol != null) {
+                    //ping secondary protocol too to avoid any server timeout
+                    try {
+                        secondaryProtocol.isValid(timeout);
+                    } catch (SQLException sqle) {
+                        //eat
+                    }
+                }
+                return valid;
+            } else {
+                boolean valid = currentProtocol.isValid(timeout);
+                if (masterProtocol != null) {
+                    //ping secondary protocol too to avoid any server timeout
+                    try {
+                        masterProtocol.isValid(timeout);
+                    } catch (SQLException sqle) {
+                        //eat
+                    }
+                }
+                return valid;
+            }
+        }
+        return false;
     }
 
     /**
@@ -499,6 +532,15 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                         try {
                             reconnectFailedConnection(new SearchFilter(true, false));
                             handleFailLoop();
+
+                        } catch (SQLException e) {
+                            //stop failover, since we will throw a connection exception that will close the connection.
+                            FailoverLoop.removeListener(this);
+                            HostAddress failHost = (this.masterProtocol != null) ? this.masterProtocol.getHostAddress() : null;
+                            throwFailoverMessage(failHost, true, new SQLException("master connection failed"), false);
+                        }
+
+                        if (!isMasterHostFail()) {
                             //connection established, no need to send Exception !
                             //switching to master connection
                             try {
@@ -510,12 +552,10 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
                                     addToBlacklist(masterProtocol.getHostAddress());
                                 }
                             }
-                        } catch (SQLException e) {
-                            //stop failover, since we will throw a connection exception that will close the connection.
-                            FailoverLoop.removeListener(this);
+                        } else {
+                            currentReadOnlyAsked = !mustBeReadOnly;
                             HostAddress failHost = (this.masterProtocol != null) ? this.masterProtocol.getHostAddress() : null;
-                            throwFailoverMessage(failHost, true, new SQLException("master "
-                                    + masterProtocol.getHostAddress() + " connection failed"), false);
+                            throwFailoverMessage(failHost, true, new SQLException("master connection failed"), false);
                         }
 
                     }
@@ -678,7 +718,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         if (!isMasterHostFail()) {
             try {
                 //check that master is on before switching to him
-                if (masterProtocol != null && masterProtocol.isValid(0)) {
+                if (masterProtocol != null && masterProtocol.isValid(1000)) {
                     //switching to master connection
                     syncConnection(secondaryProtocol, masterProtocol);
                     proxy.lock.lock();

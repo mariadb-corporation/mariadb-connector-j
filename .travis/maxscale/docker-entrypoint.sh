@@ -28,7 +28,7 @@ echo 'maxscale launching ...'
 
 tail -n 500 /etc/maxscale.cnf
 
-/usr/bin/maxscale --nodaemon
+/usr/bin/maxscale --user=root --nodaemon
 
 cd /var/log/maxscale
 ls -lrt

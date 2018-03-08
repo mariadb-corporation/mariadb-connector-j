@@ -79,6 +79,8 @@ public class FailoverProxy implements InvocationHandler {
     private static final String METHOD_COM_MULTI_PREPARE_EXECUTES = "prepareAndExecutesComMulti";
     private static final String METHOD_PROLOG_PROXY = "prologProxy";
     private static final String METHOD_RESET = "reset";
+    private static final String METHOD_IS_VALID = "isValid";
+
 
     private static final Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
     public final ReentrantLock lock;
@@ -141,6 +143,8 @@ public class FailoverProxy implements InvocationHandler {
             return this;
         } else if (METHOD_IS_CLOSED.equals(methodName)) {
             return listener.isClosed();
+        } else if (METHOD_IS_VALID.equals(methodName)) {
+            return listener.isValid((int) args[0]);
         } else if (METHOD_EXECUTE_QUERY.equals(methodName)) {
             try {
                 this.listener.preExecute();

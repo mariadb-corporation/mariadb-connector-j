@@ -55,5 +55,5 @@ env:
     - DB=mariadb:10.2 PACKET=40M TYPE=NO_BULK_SERVER
     - DB=mariadb:10.2 PACKET=40M COMPRESSION=true
     - DB=mariadb:10.3 PACKET=8M
-    - DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.1.8
+    - DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.2.2
 script: .travis/script.sh
