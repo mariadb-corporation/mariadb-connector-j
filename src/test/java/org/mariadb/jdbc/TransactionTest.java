@@ -90,7 +90,7 @@ public class TransactionTest extends BaseTest {
      *             exception                
      */
     @After
-    public static void after() throws SQLException {
+    public void after() throws SQLException {
         Statement stmt = sharedConnection.createStatement();
         stmt.execute("drop table if exists tx_fore_key");
         stmt.execute("drop table if exists tx_prim_key");
