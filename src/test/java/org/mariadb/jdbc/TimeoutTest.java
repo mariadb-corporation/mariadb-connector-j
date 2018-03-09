@@ -118,14 +118,14 @@ public class TimeoutTest extends BaseTest {
     public void socketTimeoutTest() throws SQLException {
         Assume.assumeFalse(sharedIsAurora());
         // set a short connection timeout
-        try (Connection connection = setConnection("&connectTimeout=500&socketTimeout=500")) {
+        try (Connection connection = setConnection("&connectTimeout=1000&socketTimeout=1000")) {
             PreparedStatement ps = connection.prepareStatement("SELECT 1");
             ResultSet rs = ps.executeQuery();
             assertTrue(rs.next());
             logInfo(rs. getString(1));
 
             // wait for the connection to time out
-            ps = connection.prepareStatement("SELECT sleep(1)");
+            ps = connection.prepareStatement("SELECT sleep(2)");
 
             // a timeout should occur here
             try {
