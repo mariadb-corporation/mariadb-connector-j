@@ -48,4 +48,10 @@ env:
     - DB=mariadb:10.2 PACKET=40M COMPRESSION=true
     - DB=mariadb:10.3 PACKET=8M
     - DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.2.2
+
+matrix:
+  exclude:
+  - jdk: oraclejdk8
+    env: AURORA=true
+
 script: .travis/script.sh
