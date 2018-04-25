@@ -526,22 +526,18 @@ public class ConnectionTest extends BaseTest {
         try {
             stmt.execute("CREATE USER verificationEd25519AuthPlugin@'%' IDENTIFIED "
                     + "VIA ed25519 USING 'ZIgUREUg5PVgQ6LskhXmO+eZLS0nC8be6HPjYWR4YJY'");
-            stmt.execute("CREATE USER verificationEd25519AuthPlugin@'localhost' IDENTIFIED "
-                    + "VIA ed25519 USING 'ZIgUREUg5PVgQ6LskhXmO+eZLS0nC8be6HPjYWR4YJY'");
         } catch (SQLException sqle) {
             //already existing
         }
         stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin@'%'");
-        stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin@'localhost'");
 
         String url = "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
-                + "?user=verificationEd25519AuthPlugin&password=secret";
+                + "?user=verificationEd25519AuthPlugin&password=secret&debug=true";
 
         try (Connection connection = openNewConnection(url)) {
             //must have succeed
         }
         stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
-        stmt.execute("drop user verificationEd25519AuthPlugin@'localhost'");
     }
 
 
