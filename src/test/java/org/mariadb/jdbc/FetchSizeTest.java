@@ -224,7 +224,8 @@ public class FetchSizeTest extends BaseTest {
 
         //ensure that query is a long query. if not cancelling the query (that might lead to creating a new connection)
         //may not render the test reliable
-        if (normalExecutionTime > 500) {
+        String maxscaleVersion = System.getenv("MAXSCALE_VERSION");
+        if (maxscaleVersion == null && normalExecutionTime > 500) {
             assertTrue("interruptedExecutionTime:" + interruptedExecutionTime
                             + " normalExecutionTime:" + normalExecutionTime,
                     interruptedExecutionTime < normalExecutionTime);
