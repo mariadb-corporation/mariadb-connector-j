@@ -953,11 +953,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     /**
-     * Default collation used for string exchanges with server
+     * Default collation used for string exchanges with server.
      * (always use utf8)
      *
      * @param serverLanguage server default collation
-     * @return
+     * @return collation byte
      */
     private byte decideLanguage(int serverLanguage) {
         //force UTF8mb4 if possible, UTF8 if not.
