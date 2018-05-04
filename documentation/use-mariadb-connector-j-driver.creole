@@ -22,11 +22,24 @@ Connection connection = DriverManager.getConnection("jdbc:mariadb://localhost:33
 
 //The legacy way of loading a JDBC driver (using Class.forName("org.mariadb.jdbc.Driver")) still works.//
 
-=== Using external pool
 
-When using an external connection pool, the mariadb Driver class {{{org.mariadb.jdbc.Driver}}} must be configured.
+==== Using a Pool
+Driver provide 2 differents Datasource pool implementations :
 
-Example using [[https://github.com/brettwooldridge/HikariCP|hikariCP JDBC connection pool]] :
+MariaDbDataSource: The existing basic implementation. A new connection each time the getConnection() method is called.
+MariaDbPoolDataSource: Connection pooling implementation. MariaDB Driver will keep a pool of connections and borrow connections when asked for it.
+
+==== Internal pool
+Driver internal pool configuration provide a very fast pool implementation and deals with the issue most of the java pool have :
+* 2 different connection state cleaning after release
+* deals with non-activity (connection in the pool will be released if not used after some time, avoiding issue created when server close connection after @wait_timeout is reached).
+
+See [[use-mariadb-connector-j-driver.creole#using-pooling|pool documentation]] for more information.
+
+==== External pool
+When using an external connection pool, the MariaDB Driver class ##org.mariadb.jdbc.Driver## must be configured.
+
+Example using hikariCP JDBC connection pool :
 
 {{{
         final HikariDataSource ds = new HikariDataSource();
@@ -34,7 +47,7 @@ Example using [[https://github.com/brettwooldridge/HikariCP|hikariCP JDBC connec
         ds.setDriverClassName("org.mariadb.jdbc.Driver");
         ds.setJdbcUrl("jdbc:mariadb://localhost:3306/db");
         ds.addDataSourceProperty("user", "root");
-        ds.addDataSourceProperty("password", "myPwd");
+        ds.addDataSourceProperty("password", "myPassword");
         ds.setAutoCommit(false);
 }}}
 
@@ -180,7 +193,9 @@ See [[use-mariadb-connector-j-driver.creole#using-pooling|using pooling]] for mo
 |=validConnectionTimeout|With multiple hosts, after this time in seconds has elapsed, verifies that the connections haven’t been lost.\\When 0, no verification will be done. \\//Default:120 seconds. Since 1.2.0//|
 |=loadBalanceBlacklistTimeout|When a connection fails, this host will be blacklisted for the "loadBalanceBlacklistTimeout" amount of time.\\When connecting to a host, the driver will try to connect to a host in the list of non-blacklisted hosts and, only if none are found, attempt blacklisted ones.\\This blacklist is shared inside the classloader.\\//Default: 50 seconds. Since 1.2.0//|
 |=assureReadOnly|If true, in high availability, and switching to a read-only host, assure that this host is in read-only mode by setting the session to read-only.\\//Default to false. Since 1.3.0//|
+|=allowMasterDownConnection|When using master/slave configuration, permit to create connection when master is down. If all masters are down, default connection is then a slave and Connection.isReadOnly() will then return true. \\//Default: false. Since 2.2.0//|
 \\\\
+
 = JDBC API implementation notes
 
 == "LOAD DATA INFILE"

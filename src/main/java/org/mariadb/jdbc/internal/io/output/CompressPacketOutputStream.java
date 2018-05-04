@@ -177,7 +177,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                         out.write(compressedBytes, 0, compressedLength);
                         cmdLength += uncompressSize;
 
-                        if (traceCache != null && permitTrace) {
+                        if (traceCache != null) {
                             //trace last packets
                             if (remainingData.length != 0) {
                                 traceCache.put(new TraceObject(true, COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
@@ -194,19 +194,15 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                         }
 
                         if (logger.isTraceEnabled()) {
-                            if (permitTrace) {
-                                if (remainingData.length != 0) {
-                                    logger.trace("send compress: {}{}",
-                                            serverThreadLog,
-                                            Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),0,
-                                                    compressedLength, header, remainingData, subHeader, buf));
-                                } else {
-                                    logger.trace("send compress: {}{}",
-                                            serverThreadLog,
-                                            Utils.hexdump(maxQuerySizeToLog - 11, 0, compressedLength, header, subHeader, buf));
-                                }
+                            if (remainingData.length != 0) {
+                                logger.trace("send compress: {}{}",
+                                        serverThreadLog,
+                                        Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),0,
+                                                compressedLength, header, remainingData, subHeader, buf));
                             } else {
-                                logger.trace("send compress: {} packet=<hidden>", serverThreadLog);
+                                logger.trace("send compress: {}{}",
+                                        serverThreadLog,
+                                        Utils.hexdump(maxQuerySizeToLog - 11, 0, compressedLength, header, subHeader, buf));
                             }
                         }
                         if (pos + remainingData.length + 4 - uncompressSize > 0) {
@@ -251,7 +247,7 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             out.write(buf, 0, uncompressSize - (remainingData.length + 4));
             cmdLength += remainingData.length;
 
-            if (traceCache != null && permitTrace) {
+            if (traceCache != null) {
                 //trace last packets
                 if (remainingData.length != 0) {
                     traceCache.put(new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
@@ -268,19 +264,15 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             }
 
             if (logger.isTraceEnabled()) {
-                if (permitTrace) {
-                    if (remainingData.length != 0) {
-                        logger.trace("send uncompress: {}{}",
-                                serverThreadLog,
-                                Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),
-                                0, pos, header, remainingData, subHeader, buf));
-                    } else {
-                        logger.trace("send uncompress: {}{}",
-                                serverThreadLog,
-                                Utils.hexdump(maxQuerySizeToLog - 11, 0, pos, header, subHeader, buf));
-                    }
+                if (remainingData.length != 0) {
+                    logger.trace("send uncompress: {}{}",
+                            serverThreadLog,
+                            Utils.hexdump(maxQuerySizeToLog - (remainingData.length + 11),
+                            0, pos, header, remainingData, subHeader, buf));
                 } else {
-                    logger.trace("send uncompress: length:(zlib:0,std:{}) {} packet:<hidden>", uncompressSize, serverThreadLog);
+                    logger.trace("send uncompress: {}{}",
+                            serverThreadLog,
+                            Utils.hexdump(maxQuerySizeToLog - 11, 0, pos, header, subHeader, buf));
                 }
             }
 
@@ -326,20 +318,16 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
                     out.write(compressedBytes, 0, compressedLength);
 
 
-                    if (traceCache != null && permitTrace) {
+                    if (traceCache != null) {
                         traceCache.put(new TraceObject(true, COMPRESSED_PROTOCOL_COMPRESSED_PACKET,
                                 Arrays.copyOfRange(header, 0, 7),
                                 Arrays.copyOfRange(remainingData, 0, (uncompressSize > 1000 ? 1000 : uncompressSize))));
                     }
 
                     if (logger.isTraceEnabled()) {
-                        if (permitTrace) {
-                            logger.trace("send compress: {}{}",
-                                    serverThreadLog,
-                                    Utils.hexdump(maxQuerySizeToLog - 7, 0, uncompressSize, header, remainingData));
-                        } else {
-                            logger.trace("send compress: {} packet:<hidden>", serverThreadLog);
-                        }
+                        logger.trace("send compress: {}{}",
+                                serverThreadLog,
+                                Utils.hexdump(maxQuerySizeToLog - 7, 0, uncompressSize, header, remainingData));
                     }
 
                     //if last packet fill the max size, must send an empty packet to indicate command end.
@@ -365,20 +353,16 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
             out.write(remainingData);
             remainingData = EMPTY_ARRAY;
 
-            if (traceCache != null && permitTrace) {
+            if (traceCache != null) {
                 traceCache.put(new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
                         Arrays.copyOfRange(header, 0, 7),
                         Arrays.copyOfRange(remainingData, 0, (remainingData.length > 1000 ? 1000 : remainingData.length))));
             }
 
             if (logger.isTraceEnabled()) {
-                if (permitTrace) {
-                    logger.trace("send uncompress: {}{}",
-                            serverThreadLog,
-                            Utils.hexdump(maxQuerySizeToLog - 7, 0, remainingData.length, header, remainingData));
-                } else {
-                    logger.trace("send uncompress: {} packet:<hidden>", serverThreadLog);
-                }
+                logger.trace("send uncompress: {}{}",
+                        serverThreadLog,
+                        Utils.hexdump(maxQuerySizeToLog - 7, 0, remainingData.length, header, remainingData));
             }
             if (commandEnd && lastPacketExactMaxPacketLength) writeEmptyPacket();
         }
@@ -403,19 +387,15 @@ public class CompressPacketOutputStream extends AbstractPacketOutputStream {
         buf[10] = (byte) this.seqNo++;
         out.write(buf, 0, 11);
 
-        if (traceCache != null && permitTrace) {
+        if (traceCache != null) {
             traceCache.put(new TraceObject(true, COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET,
                     Arrays.copyOfRange(buf, 0, 11)));
         }
 
         if (logger.isTraceEnabled()) {
-            if (permitTrace) {
-                logger.trace("send uncompress:{}{}",
-                        serverThreadLog,
-                        Utils.hexdump(maxQuerySizeToLog, 0, 11, buf));
-            } else {
-                logger.trace("send uncompress: {} packet:<hidden>", serverThreadLog);
-            }
+            logger.trace("send uncompress:{}{}",
+                    serverThreadLog,
+                    Utils.hexdump(maxQuerySizeToLog, 0, 11, buf));
         }
     }
 
