@@ -268,6 +268,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
     @Test
     public void testMoreThanMaxAllowedPacketLocalInfileInputStream() throws Exception {
         Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+        Assume.assumeFalse(sharedIsAurora());
         Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
         assertTrue(rs.next());
