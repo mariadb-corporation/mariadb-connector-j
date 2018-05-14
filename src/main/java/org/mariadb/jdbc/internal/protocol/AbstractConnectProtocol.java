@@ -800,6 +800,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         //send handshake response
         SendHandshakeResponsePacket.send(writer, this.username,
                 this.password,
+                this.currentHost,
                 database,
                 clientCapabilities,
                 serverCapabilities,
