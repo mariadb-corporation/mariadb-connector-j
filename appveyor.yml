@@ -36,7 +36,7 @@ install:
       }
   # Prepend Java entry, remove Ruby entry (C:\Ruby193\bin;) from PATH
   - cmd: set FILE=http://mariadb.mirrors.ovh.net/MariaDB/mariadb-%DB%/winx64-packages/mariadb-%DB%-winx64.msi
-  - ps: Start-FileDownload $Env:FILE -FileName server.msi
+  - ps: Start-FileDownload $Env:FILE -FileName server.msi -Timeout 900000
   - cmd: msiexec /i server.msi INSTALLDIR=c:\projects\server SERVICENAME=mariadb ALLOWREMOTEROOTACCESS=true /qn
   - cmd: "\"c:\\projects\\server\\bin\\mysql.exe\" -e \"create database testj\" --user=root"
   - cmd: SET PATH=C:\maven\apache-maven-3.5.2\bin;%JAVA_HOME%\bin;%PATH:C:\Ruby193\bin;=%;
