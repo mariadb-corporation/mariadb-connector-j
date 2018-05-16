@@ -65,10 +65,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.*;
+import org.junit.Ignore;
 
 public class StoredProcedureTest extends BaseTest {
     /**
@@ -246,11 +249,43 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void callSimple() throws SQLException {
-        CallableStatement st = sharedConnection.prepareCall("{?=call pow(?,?)}");
+        CallableStatement st = sharedConnection.prepareCall("{? = call pow(?,?)}");
         st.setInt(2, 2);
         st.setInt(3, 2);
         st.execute();
         int result = st.getInt(1);
+        assertEquals(result, 4);
+    }
+    
+    @Test @Ignore
+    public void callSimpleWithNewlines() throws SQLException {
+        // Violates JDBC spec, but MySQL Connector/J allows it
+        CallableStatement st = sharedConnection.prepareCall("{\r\n ? =  call pow(?,  ?  )   }");
+        st.setInt(2, 2);
+        st.setInt(3, 2);
+        st.execute();
+        int result = st.getInt(1);
+        assertEquals(result, 4);
+        
+        st = sharedConnection.prepareCall("{\n ? = call pow(?, ?)}");
+        st.setInt(2, 2);
+        st.setInt(3, 2);
+        st.execute();
+        result = st.getInt(1);
+        assertEquals(result, 4);
+        
+        st = sharedConnection.prepareCall("{? = call pow  (\n?, ?  )}");
+        st.setInt(2, 2);
+        st.setInt(3, 2);
+        st.execute();
+        result = st.getInt(1);
+        assertEquals(result, 4);
+        
+        st = sharedConnection.prepareCall("\r\n{\r\n?\r\n=\r\ncall\r\npow\r\n(\n?,\r\n?\r\n)\r\n}");
+        st.setInt(2, 2);
+        st.setInt(3, 2);
+        st.execute();
+        result = st.getInt(1);
         assertEquals(result, 4);
     }
 
