@@ -847,7 +847,7 @@ public class BinaryRowProtocol extends RowProtocol {
                             + ((buf[pos + 11] & 0xff) << 24));
                 }
                 year = 1970;
-                month = Calendar.JANUARY;
+                month = 1;
                 day = ((negate ? -1 : 1) * day) + 1;
                 hour = (negate ? -1 : 1) * hour;
                 break;

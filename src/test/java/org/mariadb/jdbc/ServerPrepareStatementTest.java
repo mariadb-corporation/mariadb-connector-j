@@ -1075,6 +1075,8 @@ public class ServerPrepareStatementTest extends BaseTest {
 
     @Test
     public void dateAsString() throws SQLException {
+        //cancel for MySQL 5.5 since no Datetime with microseconds
+        if (!isMariadbServer()) cancelForVersion(5, 5);
         dateAddTest(false);
         dateAddTest(true);
     }

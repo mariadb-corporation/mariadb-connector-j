@@ -1228,6 +1228,7 @@ public class DriverTest extends BaseTest {
                 ExecutorService exec = Executors.newFixedThreadPool(100);
                 //check blacklist shared
                 for (int i = 0; i < 100; i++) {
+                    Thread.sleep(2);
                     exec.execute(new ConnectWithPipeThread("jdbc:mariadb:///testj?user="
                             + username + "&pipe=" + namedPipeName + "&connectTimeout=500"));
                 }
