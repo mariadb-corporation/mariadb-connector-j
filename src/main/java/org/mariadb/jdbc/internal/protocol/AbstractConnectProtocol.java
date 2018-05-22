@@ -787,7 +787,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     //eat exception
                 }
             }
-
+            if (currentHost == null) {
+                throw ExceptionMapper.connException(
+                        "Could not connect to socket : " + ioException.getMessage(),
+                        ioException);
+            }
             throw ExceptionMapper.connException(
                     "Could not connect to " + currentHost.host + ":" + currentHost.port + " : " + ioException.getMessage(),
                     ioException);

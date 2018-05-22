@@ -1209,6 +1209,8 @@ public class DriverTest extends BaseTest {
         }
     }
 
+    private static int namedPipeBusyTestError = 0;
+
     /**
      * CONJ-435 : "All pipe instances are busy" exception on multiple connections to the same named pipe.
      *
@@ -1234,6 +1236,7 @@ public class DriverTest extends BaseTest {
                 exec.shutdown();
 
                 exec.awaitTermination(30, TimeUnit.SECONDS);
+                assertEquals(namedPipeBusyTestError, 0);
             }
         } catch (SQLException e) {
             assertTrue(e.getMessage(), e.getMessage().contains("Unknown system variable 'named_pipe'"));
@@ -1401,14 +1404,19 @@ public class DriverTest extends BaseTest {
 
         @Override
         public void run() {
+            Connection connection = null;
             try {
-
-                try (Connection connection = DriverManager.getConnection(url)) {
-                    Thread.sleep(1000);
-                }
-
+                connection = DriverManager.getConnection(url);
+                Thread.sleep(1000);
             } catch (SQLException | InterruptedException e) {
+                namedPipeBusyTestError += 1;
                 e.printStackTrace();
+            } finally {
+                try {
+                    if (connection != null) connection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

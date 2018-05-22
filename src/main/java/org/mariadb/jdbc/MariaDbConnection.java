@@ -55,7 +55,10 @@ package org.mariadb.jdbc;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.CallableStatementCache;
+import org.mariadb.jdbc.internal.util.ConnectionState;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
@@ -842,6 +845,14 @@ public class MariaDbConnection implements Connection {
         } catch (SQLException e) {
             ExceptionMapper.throwException(e, this, null);
         }
+    }
+
+    public boolean isServerMariaDb() {
+        return protocol.isServerMariaDb();
+    }
+
+    public boolean versionGreaterOrEqual(int major, int minor, int patch) {
+        return protocol.versionGreaterOrEqual(major, minor, patch);
     }
 
     /**
