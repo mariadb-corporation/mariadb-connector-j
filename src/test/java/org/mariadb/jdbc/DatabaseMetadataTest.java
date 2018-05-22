@@ -220,6 +220,8 @@ public class DatabaseMetadataTest extends BaseTest {
      */
     @Test
     public void getImportedKeys() throws Exception {
+        //cancel for MySQL 8.0, since CASCADE with I_S give importedKeySetDefault, not importedKeyCascade
+        Assume.assumeFalse(!isMariadbServer() && minVersion(8,0, 0));
         Statement st = sharedConnection.createStatement();
 
         st.execute("DROP TABLE IF EXISTS product_order");

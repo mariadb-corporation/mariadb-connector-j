@@ -1218,6 +1218,7 @@ public class DriverTest extends BaseTest {
      */
     @Test
     public void namedPipeBusyTest() throws Exception {
+        Assume.assumeFalse(!isMariadbServer() && minVersion(8,0,0));
         try {
             ResultSet rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket");
             assertTrue(rs.next());
@@ -1295,6 +1296,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void sharedMemory() throws Exception {
         requireMinimumVersion(5, 1);
+        Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 0));
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@version_compile_os");
         if (!rs.next()) {

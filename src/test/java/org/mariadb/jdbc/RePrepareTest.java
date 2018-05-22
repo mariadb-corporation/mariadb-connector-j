@@ -90,6 +90,7 @@ public class RePrepareTest extends BaseTest {
     @Test
     public void rePrepareTestInsertError() throws SQLException {
         Assume.assumeFalse(sharedIsAurora()); //Aurora has not "flush tables with read lock" right;
+        Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 0)); //froze when flush
         createTable("rePrepareTestInsertError", "test int");
         try (Statement stmt = sharedConnection.createStatement()) {
             try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("INSERT INTO rePrepareTestInsertError(test) values (?)")) {

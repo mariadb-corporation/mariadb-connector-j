@@ -831,12 +831,12 @@ public class Utils {
 
 
     /**
-     * Traduce a String value of @@tx_isolation to corresponding java value.
+     * Traduce a String value of transaction isolation to corresponding java value.
      *
      * @param txIsolation   String value
      * @return java corresponding value (Connection.TRANSACTION_READ_UNCOMMITTED, Connection.TRANSACTION_READ_COMMITTED,
      *         Connection.TRANSACTION_REPEATABLE_READ or Connection.TRANSACTION_SERIALIZABLE)
-     * @throws SQLException if String value doesn't correspond to @tx_isolation possible value
+     * @throws SQLException if String value doesn't correspond to @@tx_isolation/@@transaction_isolation possible value
      */
     public static int transactionFromString(String txIsolation) throws SQLException {
         switch (txIsolation) { //tx_isolation

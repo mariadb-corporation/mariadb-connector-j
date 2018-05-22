@@ -199,7 +199,7 @@ public class CallStatementTest extends BaseTest {
             fail("must fail : statement cannot be use when there is out parameter");
         } catch (SQLSyntaxErrorException e) {
             assertTrue(e.getMessage().contains("OUT or INOUT argument 1 for routine")
-                    && e.getMessage().contains("inOutParam is not a variable or NEW pseudo-variable in BEFORE trigger")
+                    && e.getMessage().contains("is not a variable or NEW pseudo-variable in BEFORE trigger")
                     && e.getCause().getMessage().contains("Query is: call inOutParam(1)"));
         }
     }

@@ -384,7 +384,7 @@ public class StoredProcedureTest extends BaseTest {
             //eat exception
         }
         statement.execute("CREATE USER 'test_jdbc'@'%' IDENTIFIED BY 'test_jdbc'");
-        statement.execute("GRANT ALL PRIVILEGES ON testj.* TO 'test_jdbc'@'%' IDENTIFIED BY 'test_jdbc' WITH GRANT OPTION");
+        statement.execute("GRANT ALL PRIVILEGES ON testj.* TO 'test_jdbc'@'%' WITH GRANT OPTION");
         Properties properties = new Properties();
         properties.put("user", "test_jdbc");
         properties.put("password", "test_jdbc");
