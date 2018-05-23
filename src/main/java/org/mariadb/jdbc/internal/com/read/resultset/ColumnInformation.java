@@ -142,23 +142,16 @@ public class ColumnInformation {
         2              flags
         1              decimals
         2              filler [00] [00]
-
          */
-        buffer.skipLengthEncodedBytes();  /* catalog */
-        buffer.skipLengthEncodedBytes();  /* db */
-        buffer.skipLengthEncodedBytes();  /* table */
-        buffer.skipLengthEncodedBytes();  /* original table */
-        buffer.skipLengthEncodedBytes();  /* name */
-        buffer.skipLengthEncodedBytes();  /* org_name */
-        buffer.readByte(); //fixlength field
+
+        //set position after length encoded value, not read most of the time
+        buffer.position = buffer.limit - 12;
 
         charsetNumber = buffer.readShort();
         length = buffer.readInt();
         type = ColumnType.fromServer(buffer.readByte() & 0xff, charsetNumber);
         flags = buffer.readShort();
         decimals = buffer.readByte();
-
-
     }
 
     /**

@@ -238,6 +238,12 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         return (currentProtocol != null) ? currentProtocol.isMasterConnection() : true;
     }
 
+    /**
+     * Get timeout (master connection possibly down).
+     *
+     * @return socket timeout in ms
+     * @throws SocketException if socket exception
+     */
     public int getTimeout() throws SocketException {
         if (currentProtocol != null) {
             return currentProtocol.getTimeout();

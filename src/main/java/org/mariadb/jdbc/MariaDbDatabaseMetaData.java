@@ -436,7 +436,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + " WHEN 'time' THEN " + Types.TIME
                 + " WHEN 'timestamp' THEN " + Types.TIMESTAMP
                 + " WHEN 'tinyint' THEN "
-                + (options.tinyInt1isBit ? "IF(" + fullTypeColumnName + " like 'tinyint(1)%'," + Types.BIT + "," + Types.TINYINT + ") " : Types.TINYINT)
+                + (options.tinyInt1isBit
+                ? "IF(" + fullTypeColumnName + " like 'tinyint(1)%'," + Types.BIT + "," + Types.TINYINT + ") " : Types.TINYINT)
                 + " WHEN 'year' THEN "
                 + (options.yearIsDateType ? Types.DATE : Types.SMALLINT)
                 + " ELSE " + Types.OTHER
