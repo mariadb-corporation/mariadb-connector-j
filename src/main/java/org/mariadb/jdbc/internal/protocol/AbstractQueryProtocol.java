@@ -1779,7 +1779,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             return new SQLException("Could not send query: query size is >= to max_allowed_packet ("
                     + writer.getMaxAllowedPacket() + ")" + getTraces(), UNDEFINED_SQLSTATE.getSqlState(), initialException);
         }
-        connected = false;
+        if (!driverPreventError) connected = false;
         return new SQLException(initialException.getMessage() + getTraces(),
                 driverPreventError ? UNDEFINED_SQLSTATE.getSqlState() : CONNECTION_EXCEPTION.getSqlState(), initialException);
 
