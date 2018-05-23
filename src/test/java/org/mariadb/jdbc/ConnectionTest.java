@@ -52,10 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
-import org.junit.AssumptionViolatedException;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.UnsupportedEncodingException;
@@ -586,4 +583,23 @@ public class ConnectionTest extends BaseTest {
         }
     }
 
+    @Test
+    public void slaveDownConnection() throws SQLException {
+        String url = "jdbc:mariadb:replication//" + hostname + ((port == 0) ? "" : ":" + port)
+                + "," + hostname + ":8888"
+                + "/" + database + "?user=" + username
+                + ((password != null) ? "&password=" + password : "")
+                + "&retriesAllDown=10&allowMasterDownConnection";
+        try (Connection connection = DriverManager.getConnection(url)) {
+            Assert.assertFalse(connection.isReadOnly());
+            connection.isValid(0);
+            try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT 1")) {
+                preparedStatement.executeQuery();
+            }
+            connection.setReadOnly(true);
+            try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT 1")) {
+                preparedStatement.executeQuery();
+            }
+        }
+    }
 }
