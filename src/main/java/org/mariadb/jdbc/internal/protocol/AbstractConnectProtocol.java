@@ -126,7 +126,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private final String password;
     public boolean hasWarnings = false;
     public Results activeStreamingResult = null;
-    private int dataTypeMappingFlags;
     public short serverStatus;
     protected int autoIncrementIncrement;
     protected Socket socket;
@@ -172,8 +171,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (options.cachePrepStmts && options.useServerPrepStmts) {
             serverPrepareStatementCache = ServerPrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
         }
-
-        setDataTypeMappingFlags();
     }
 
     private static void closeSocket(PacketInputStream packetInputStream, PacketOutputStream packetOutputStream, Socket socket) {
@@ -1317,22 +1314,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void setDataTypeMappingFlags() {
-        dataTypeMappingFlags = 0;
-        if (options.tinyInt1isBit) {
-            dataTypeMappingFlags |= SelectResultSet.TINYINT1_IS_BIT;
-        }
-        if (options.yearIsDateType) {
-            dataTypeMappingFlags |= SelectResultSet.YEAR_IS_DATE_TYPE;
-        }
-    }
-
     public long getServerThreadId() {
         return serverThreadId;
-    }
-
-    public int getDataTypeMappingFlags() {
-        return dataTypeMappingFlags;
     }
 
     public boolean isExplicitClosed() {

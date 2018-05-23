@@ -237,6 +237,13 @@ public class AuroraProtocol extends MastersSlavesProtocol {
                 return;
             }
 
+            //on connection and all slaves have been tested, use master if on
+            if (loopAddresses.isEmpty()
+                    && searchFilter.isInitialConnection()
+                    && !listener.isMasterHostFailReconnect()) {
+                return;
+            }
+
             // if server has try to connect to all host, and there is remaining master or slave that fail
             // add all servers back to continue looping until maxConnectionTry is reached
             if (loopAddresses.isEmpty() && !searchFilter.isFailoverLoop() && maxConnectionTry > 0) {

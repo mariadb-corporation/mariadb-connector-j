@@ -1248,7 +1248,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             return results.getCmdInformation().getUpdateCounts();
 
         } catch (SQLException initialSqlEx) {
-            results.commandEnd();
+            if (results != null) results.commandEnd();
             throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), size);
         } finally {
             executeBatchEpilogue();
@@ -1275,7 +1275,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             return results.getCmdInformation().getLargeUpdateCounts();
 
         } catch (SQLException initialSqlEx) {
-            results.commandEnd();
+            if (results != null) results.commandEnd();
             throw executeLargeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), size);
         } finally {
             executeBatchEpilogue();

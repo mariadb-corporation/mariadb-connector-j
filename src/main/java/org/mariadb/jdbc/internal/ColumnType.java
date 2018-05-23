@@ -52,7 +52,7 @@
 
 package org.mariadb.jdbc.internal;
 
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.util.Options;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -311,17 +311,17 @@ public enum ColumnType {
     /**
      * Get class name.
      *
-     * @param type   type
-     * @param len    len
-     * @param signed signed
-     * @param binary binary
-     * @param flags  flags
+     * @param type      type
+     * @param len       len
+     * @param signed    signed
+     * @param binary    binary
+     * @param options   options
      * @return class name
      */
-    public static String getClassName(ColumnType type, int len, boolean signed, boolean binary, int flags) {
+    public static String getClassName(ColumnType type, int len, boolean signed, boolean binary, Options options) {
         switch (type) {
             case TINYINT:
-                if (len == 1 && ((flags & SelectResultSet.TINYINT1_IS_BIT) != 0)) {
+                if (len == 1 && options.tinyInt1isBit) {
                     return Boolean.class.getName();
                 }
                 return Integer.class.getName();
@@ -330,7 +330,7 @@ public enum ColumnType {
             case BIGINT:
                 return (signed) ? Long.class.getName() : BigInteger.class.getName();
             case YEAR:
-                if ((flags & SelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
+                if (options.yearIsDateType) {
                     return Date.class.getName();
                 }
                 return Short.class.getName();

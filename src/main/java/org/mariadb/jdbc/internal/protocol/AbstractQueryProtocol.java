@@ -1017,6 +1017,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     writer.flush();
                     return true;
                 } catch (IOException e) {
+                    connected = false;
                     throw new SQLException("Could not deallocate query: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
                 }
 
@@ -1059,6 +1060,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             return buffer.getByteAt(0) == OK;
 
         } catch (IOException e) {
+            connected = false;
             throw new SQLException("Could not ping: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
             lock.unlock();
@@ -1094,15 +1096,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             return ping();
 
         } catch (SocketException socketException) {
-            throw new SQLException("Could not valid connection : " + socketException.getMessage(),
-                    CONNECTION_EXCEPTION.getSqlState(),
-                    socketException);
+            connected = false;
+            return false;
         } finally {
 
             //set back initial socket timeout
             try {
                 if (initialTimeout != -1) socket.setSoTimeout(initialTimeout);
             } catch (SocketException socketException) {
+                connected = false;
                 //eat
             }
         }
@@ -1221,15 +1223,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         if (serverPrepareResult.canBeDeallocate()) {
             forceReleasePrepareStatement(serverPrepareResult.getStatementId());
         }
-    }
-
-    /**
-     * Set max row return by a statement.
-     *
-     * @param max row number max value
-     */
-    public void setInternalMaxRows(long max) {
-        if (maxRows != max) maxRows = max;
     }
 
     public long getMaxRows() {
@@ -1771,6 +1764,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             try {
                 connect();
             } catch (SQLException queryException) {
+                connected = false;
                 return new SQLNonTransientConnectionException(initialException.getMessage()
                         + "\nError during reconnection" + getTraces(), CONNECTION_EXCEPTION.getSqlState(), initialException);
             }
@@ -1785,7 +1779,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             return new SQLException("Could not send query: query size is >= to max_allowed_packet ("
                     + writer.getMaxAllowedPacket() + ")" + getTraces(), UNDEFINED_SQLSTATE.getSqlState(), initialException);
         }
-
+        connected = false;
         return new SQLException(initialException.getMessage() + getTraces(),
                 driverPreventError ? UNDEFINED_SQLSTATE.getSqlState() : CONNECTION_EXCEPTION.getSqlState(), initialException);
 

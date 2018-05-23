@@ -783,10 +783,11 @@ public class MariaDbConnection implements Connection {
      * @throws SQLException if there is a problem creating the meta data.
      */
     public DatabaseMetaData getMetaData() throws SQLException {
+        UrlParser urlParser = protocol.getUrlParser();
         return new MariaDbDatabaseMetaData(
                 this,
-                protocol.getUsername(),
-                protocol.getUrlParser().getInitialUrl());
+                urlParser.getUsername(),
+                urlParser.getInitialUrl());
     }
 
     /**
@@ -807,7 +808,10 @@ public class MariaDbConnection implements Connection {
      */
     public void setReadOnly(final boolean readOnly) throws SQLException {
         try {
-            logger.debug("set read-only to value {}", readOnly);
+            logger.debug("conn={}({}) - set read-only to value {} {}",
+                    protocol.getServerThreadId(),
+                    protocol.isMasterConnection() ? "M" : "S",
+                    readOnly);
             stateFlag |= ConnectionState.STATE_READ_ONLY;
             protocol.setReadonly(readOnly);
         } catch (SQLException e) {
@@ -847,7 +851,7 @@ public class MariaDbConnection implements Connection {
         }
     }
 
-    public boolean isServerMariaDb() {
+    public boolean isServerMariaDb() throws SQLException {
         return protocol.isServerMariaDb();
     }
 

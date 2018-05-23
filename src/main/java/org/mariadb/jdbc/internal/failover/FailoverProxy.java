@@ -53,6 +53,8 @@
 package org.mariadb.jdbc.internal.failover;
 
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -69,17 +71,28 @@ import java.util.concurrent.locks.ReentrantLock;
 public class FailoverProxy implements InvocationHandler {
     private static final String METHOD_IS_EXPLICIT_CLOSED = "isExplicitClosed";
     private static final String METHOD_GET_OPTIONS = "getOptions";
+    private static final String METHOD_GET_URLPARSER = "getUrlParser";
     private static final String METHOD_GET_PROXY = "getProxy";
     private static final String METHOD_EXECUTE_QUERY = "executeQuery";
     private static final String METHOD_SET_READ_ONLY = "setReadonly";
-    private static final String METHOD_IS_READ_ONLY = "isReadOnly";
+    private static final String METHOD_GET_READ_ONLY = "getReadonly";
+    private static final String METHOD_IS_MASTER_CONNECTION = "isMasterConnection";
+    private static final String METHOD_VERSION_GREATER_OR_EQUAL = "versionGreaterOrEqual";
+    private static final String METHOD_SESSION_STATE_AWARE = "sessionStateAware";
     private static final String METHOD_CLOSED_EXPLICIT = "closeExplicit";
+    private static final String METHOD_ABORT = "abort";
     private static final String METHOD_IS_CLOSED = "isClosed";
     private static final String METHOD_EXECUTE_PREPARED_QUERY = "executePreparedQuery";
     private static final String METHOD_COM_MULTI_PREPARE_EXECUTES = "prepareAndExecutesComMulti";
     private static final String METHOD_PROLOG_PROXY = "prologProxy";
     private static final String METHOD_RESET = "reset";
     private static final String METHOD_IS_VALID = "isValid";
+    private static final String METHOD_GET_LOCK = "getLock";
+    private static final String METHOD_GET_NO_BACKSLASH = "noBackslashEscapes";
+    private static final String METHOD_GET_SERVER_THREAD_ID = "getServerThreadId";
+    private static final String METHOD_PROLOG = "prolog";
+    private static final String METHOD_GET_CATALOG = "getCatalog";
+    private static final String METHOD_GET_TIMEOUT = "getTimeout";
 
 
     private static final Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
@@ -136,16 +149,35 @@ public class FailoverProxy implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         String methodName = method.getName();
         switch (methodName) {
+            case METHOD_GET_LOCK:
+                return this.lock;
+            case METHOD_GET_NO_BACKSLASH:
+                return listener.noBackslashEscapes();
+            case METHOD_GET_CATALOG:
+                return listener.getCatalog();
+            case METHOD_GET_TIMEOUT:
+                return listener.getTimeout();
+            case METHOD_VERSION_GREATER_OR_EQUAL:
+                return listener.versionGreaterOrEqual((int) args[0], (int) args[1], (int) args[2]);
+            case METHOD_SESSION_STATE_AWARE:
+                return listener.sessionStateAware();
             case METHOD_IS_EXPLICIT_CLOSED:
                 return listener.isExplicitClosed();
             case METHOD_GET_OPTIONS:
                 return listener.getUrlParser().getOptions();
+            case METHOD_GET_SERVER_THREAD_ID:
+                return listener.getServerThreadId();
+            case METHOD_GET_URLPARSER:
+                return listener.getUrlParser();
             case METHOD_GET_PROXY:
                 return this;
             case METHOD_IS_CLOSED:
                 return listener.isClosed();
             case METHOD_IS_VALID:
                 return listener.isValid((int) args[0]);
+            case METHOD_PROLOG:
+                listener.prolog((long) args[0], (MariaDbConnection) args[2], (MariaDbStatement) args[3]);
+                return null;
             case METHOD_EXECUTE_QUERY:
                 try {
                     this.listener.preExecute();
@@ -160,8 +192,13 @@ public class FailoverProxy implements InvocationHandler {
             case METHOD_SET_READ_ONLY:
                 this.listener.switchReadOnlyConnection((Boolean) args[0]);
                 return null;
-            case METHOD_IS_READ_ONLY:
+            case METHOD_GET_READ_ONLY:
                 return this.listener.isReadOnly();
+            case METHOD_IS_MASTER_CONNECTION:
+                return this.listener.isMasterConnection();
+            case METHOD_ABORT:
+                this.listener.preAbort();
+                return null;
             case METHOD_CLOSED_EXPLICIT:
                 this.listener.preClose();
                 return null;

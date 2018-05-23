@@ -104,30 +104,34 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
                 && qe.getSQLState().equals("70100")
                 && 1927 == qe.getErrorCode();
 
-        if (protocol.mustBeMasterConnection()) {
-            if (!protocol.isMasterConnection()) {
-                logger.warn("SQL Primary node [{}, conn={}] is now in read-only mode. Exception : {}",
-                        this.currentProtocol.getHostAddress().toString(),
-                        this.currentProtocol.getServerThreadId(),
-                        qe.getMessage());
-            } else if (setMasterHostFail()) {
-                logger.warn("SQL Primary node [{}, conn={}] connection fail. Reason : {}",
-                        this.currentProtocol.getHostAddress().toString(),
-                        this.currentProtocol.getServerThreadId(),
-                        qe.getMessage());
+        if (protocol != null) {
+            if (protocol.mustBeMasterConnection()) {
+                if (!protocol.isMasterConnection()) {
+                    logger.warn("SQL Primary node [{}, conn={}] is now in read-only mode. Exception : {}",
+                            this.currentProtocol.getHostAddress().toString(),
+                            this.currentProtocol.getServerThreadId(),
+                            qe.getMessage());
+                } else if (setMasterHostFail()) {
+                    logger.warn("SQL Primary node [{}, conn={}] connection fail. Reason : {}",
+                            this.currentProtocol.getHostAddress().toString(),
+                            this.currentProtocol.getServerThreadId(),
+                            qe.getMessage());
 
-                addToBlacklist(protocol.getHostAddress());
+                    addToBlacklist(protocol.getHostAddress());
+                }
+                return primaryFail(method, args, killCmd);
+            } else {
+                if (setSecondaryHostFail()) {
+                    logger.warn("SQL secondary node [{}, conn={}] connection fail. Reason : {}",
+                            this.currentProtocol.getHostAddress().toString(),
+                            this.currentProtocol.getServerThreadId(),
+                            qe.getMessage());
+                    addToBlacklist(protocol.getHostAddress());
+                }
+                return secondaryFail(method, args, killCmd);
             }
-            return primaryFail(method, args, killCmd);
         } else {
-            if (setSecondaryHostFail()) {
-                logger.warn("SQL secondary node [{}, conn={}] connection fail. Reason : {}",
-                        this.currentProtocol.getHostAddress().toString(),
-                        this.currentProtocol.getServerThreadId(),
-                        qe.getMessage());
-                addToBlacklist(protocol.getHostAddress());
-            }
-            return secondaryFail(method, args, killCmd);
+            return primaryFail(method, args, killCmd);
         }
     }
 
@@ -183,7 +187,6 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
     public boolean isMasterHostFailReconnect() {
         return isMasterHostFail() && waitNewMasterProtocol.get() == null;
     }
-
 
     public boolean hasHostFail() {
         return isSecondaryHostFailReconnect() || isMasterHostFailReconnect();

@@ -212,7 +212,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
             return results.getResultSet() != null;
 
         } catch (SQLException exception) {
-            results.commandEnd();
+            if (results != null) results.commandEnd();
             throw executeExceptionEpilogue(exception);
         } finally {
             executeEpilogue();
@@ -282,7 +282,7 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
             return results.getCmdInformation().getUpdateCounts();
 
         } catch (SQLException sqle) {
-            results.commandEnd();
+            if (results != null) results.commandEnd();
             throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size);
         } finally {
             executeBatchEpilogue();

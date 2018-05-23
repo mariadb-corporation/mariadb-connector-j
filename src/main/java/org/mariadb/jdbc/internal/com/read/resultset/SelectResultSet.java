@@ -151,7 +151,6 @@ public class SelectResultSet implements ResultSet {
         this.protocol = protocol;
         this.options = protocol.getOptions();
         this.noBackslashEscapes = protocol.noBackslashEscapes();
-        this.dataTypeMappingFlags = protocol.getDataTypeMappingFlags();
         this.returnTableAlias = this.options.useOldAliasMetadataBehavior;
         this.columnsInformation = columnInformation;
         this.columnNameMap = new ColumnNameMap(columnsInformation);
@@ -204,12 +203,10 @@ public class SelectResultSet implements ResultSet {
         if (protocol != null) {
             this.options = protocol.getOptions();
             this.timeZone = protocol.getTimeZone();
-            this.dataTypeMappingFlags = protocol.getDataTypeMappingFlags();
             this.returnTableAlias = this.options.useOldAliasMetadataBehavior;
         } else {
             this.options = new Options();
             this.timeZone = TimeZone.getDefault();
-            this.dataTypeMappingFlags = 3;
             this.returnTableAlias = false;
         }
         this.row = new TextRowProtocol(0, this.options);
@@ -1205,7 +1202,7 @@ public class SelectResultSet implements ResultSet {
      * {inheritDoc}.
      */
     public ResultSetMetaData getMetaData() throws SQLException {
-        return new MariaDbResultSetMetaData(columnsInformation, dataTypeMappingFlags, returnTableAlias);
+        return new MariaDbResultSetMetaData(columnsInformation, options, returnTableAlias);
     }
 
     /**
@@ -1213,7 +1210,7 @@ public class SelectResultSet implements ResultSet {
      */
     public Object getObject(int columnIndex) throws SQLException {
         checkObjectRange(columnIndex);
-        return row.getInternalObject(columnsInformation[columnIndex - 1], dataTypeMappingFlags, timeZone);
+        return row.getInternalObject(columnsInformation[columnIndex - 1], timeZone);
     }
 
     /**

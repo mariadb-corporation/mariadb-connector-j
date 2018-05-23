@@ -116,7 +116,6 @@ public class MastersFailoverListener extends AbstractMastersListener {
         }
     }
 
-
     @Override
     public void preClose() {
         if (explicitClosed.compareAndSet(false, true)) {
@@ -124,6 +123,23 @@ public class MastersFailoverListener extends AbstractMastersListener {
             try {
                 removeListenerFromSchedulers();
                 closeConnection(currentProtocol);
+            } finally {
+                proxy.lock.unlock();
+            }
+        }
+    }
+
+    public long getServerThreadId() {
+        return currentProtocol.getServerThreadId();
+    }
+
+    @Override
+    public void preAbort() {
+        if (explicitClosed.compareAndSet(false, true)) {
+            proxy.lock.lock();
+            try {
+                removeListenerFromSchedulers();
+                abortConnection(currentProtocol);
             } finally {
                 proxy.lock.unlock();
             }

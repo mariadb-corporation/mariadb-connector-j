@@ -680,6 +680,7 @@ public class BinaryRowProtocol extends RowProtocol {
      * @return date value
      * @throws SQLException if column is not compatible to Date
      */
+    @SuppressWarnings( "deprecation" )
     public Date getInternalDate(ColumnInformation columnInfo, Calendar cal, TimeZone timeZone) throws SQLException {
         if (lastValueWasNull()) return null;
         switch (columnInfo.getColumnType()) {
@@ -918,12 +919,11 @@ public class BinaryRowProtocol extends RowProtocol {
      * Get Object from raw binary format.
      *
      * @param columnInfo            column information
-     * @param dataTypeMappingFlags  how to handle TINY and YEAR type
      * @param timeZone              time zone
      * @return Object value
      * @throws SQLException if column type is not compatible
      */
-    public Object getInternalObject(ColumnInformation columnInfo, int dataTypeMappingFlags, TimeZone timeZone) throws SQLException {
+    public Object getInternalObject(ColumnInformation columnInfo, TimeZone timeZone) throws SQLException {
         if (lastValueWasNull()) return null;
 
         switch (columnInfo.getColumnType()) {
@@ -976,7 +976,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case NULL:
                 return null;
             case YEAR:
-                if ((dataTypeMappingFlags & YEAR_IS_DATE_TYPE) != 0) {
+                if (options.yearIsDateType) {
                     return getInternalDate(columnInfo, null, timeZone);
                 }
                 return getInternalShort(columnInfo);
