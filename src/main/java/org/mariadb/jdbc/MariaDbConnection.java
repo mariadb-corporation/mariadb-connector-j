@@ -88,7 +88,7 @@ public class MariaDbConnection implements Connection {
     private static final Pattern CALLABLE_STATEMENT_PATTERN =
             Pattern.compile("^\\s*(\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
                             + "((((`[^`]+`)|([^`]+))\\.)?((`[^`]+`)|([^`\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(#.*)?$",
-                    Pattern.CASE_INSENSITIVE);
+                    Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     /**
      * Check that query can be executed with PREPARE.
      */

@@ -313,10 +313,18 @@ public class Utils {
         } else if (escaped.startsWith("{?")) {
             // likely ?=call(...)
             return nativeSql(escaped.substring(1, endIndex), noBackslashEscapes);
-        } else if (escaped.startsWith("{ ")) {
-            // Spaces before keyword, this is not JDBC compliant, however some it works in some drivers,
+        } else if (escaped.startsWith("{ ") || escaped.startsWith("{\n")) {
+            // Spaces and newlines before keyword, this is not JDBC compliant, however some it works in some drivers,
             // so we support it, too
             for (int i = 2; i < escaped.length(); i++) {
+                if (!Character.isWhitespace(escaped.charAt(i))) {
+                    return resolveEscapes("{" + escaped.substring(i), noBackslashEscapes);
+                }
+            }
+        } else if (escaped.startsWith("{\r\n")) {
+            // Spaces and newlines before keyword, this is not JDBC compliant, however some it works in some drivers,
+            // so we support it, too
+            for (int i = 3; i < escaped.length(); i++) {
                 if (!Character.isWhitespace(escaped.charAt(i))) {
                     return resolveEscapes("{" + escaped.substring(i), noBackslashEscapes);
                 }
