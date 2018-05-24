@@ -268,10 +268,25 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     }
 
     protected void checkInitialConnection(SQLException queryException) throws SQLException {
-        if (this.secondaryProtocol == null || !this.secondaryProtocol.isConnected()) {
-            setSecondaryHostFail();
-        } else {
-            resetSecondaryFailoverData();
+        Protocol waitingProtocol;
+        if (isSecondaryHostFail()) {
+            if ((waitingProtocol = waitNewSecondaryProtocol.getAndSet(null)) != null) {
+                this.secondaryProtocol = waitingProtocol;
+                if (urlParser.getOptions().assureReadOnly) {
+                    setSessionReadOnly(true, this.secondaryProtocol);
+                }
+                if (currentReadOnlyAsked) currentProtocol = waitingProtocol;
+                resetSecondaryFailoverData();
+            }
+        }
+        if (isMasterHostFail()) {
+            if ((waitingProtocol = waitNewMasterProtocol.getAndSet(null)) != null) {
+                this.masterProtocol = waitingProtocol;
+                if (!currentReadOnlyAsked || isSecondaryHostFail()) {
+                    currentProtocol = waitingProtocol;
+                }
+                resetMasterFailoverData();
+            }
         }
 
         if (this.masterProtocol == null || !this.masterProtocol.isConnected()) {
