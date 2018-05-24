@@ -65,13 +65,10 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.*;
-import org.junit.Ignore;
 
 public class StoredProcedureTest extends BaseTest {
     /**
@@ -257,7 +254,7 @@ public class StoredProcedureTest extends BaseTest {
         assertEquals(result, 4);
     }
     
-    @Test @Ignore
+    @Test
     public void callSimpleWithNewlines() throws SQLException {
         // Violates JDBC spec, but MySQL Connector/J allows it
         CallableStatement st = sharedConnection.prepareCall("{\r\n ? =  call pow(?,  ?  )   }");
