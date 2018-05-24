@@ -86,8 +86,10 @@ public class MariaDbConnection implements Connection {
      * {[?=]call[(arg1,..,,argn)]}
      */
     private static final Pattern CALLABLE_STATEMENT_PATTERN =
-            Pattern.compile("^\\s*(\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
-                            + "((((`[^`]+`)|([^`]+))\\.)?((`[^`]+`)|([^`\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(#.*)?$",
+            Pattern.compile("^(\\s*\\{)?\\s*((\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
+                            + "call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*((((`[^`]+`)|([^`\\}]+))\\.)?"
+                            + "((`[^`]+`)|([^`\\}\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*"
+                            + "\\s*(#.*)?)\\s*(\\}\\s*)?$",
                     Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     /**
      * Check that query can be executed with PREPARE.
@@ -557,18 +559,20 @@ public class MariaDbConnection implements Connection {
     public CallableStatement prepareCall(final String sql, final int resultSetType, final int resultSetConcurrency) throws SQLException {
         checkConnection();
 
-        String query = Utils.nativeSql(sql, protocol.noBackslashEscapes());
-        Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(query);
+        Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(sql);
         if (!matcher.matches()) {
             throw new SQLSyntaxErrorException(
-                    "invalid callable syntax. must be like {? = call <procedure/function name>[(?,?, ...)]}\n but was : "
-                            + query);
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n but was : "
+                            + sql);
         }
-        boolean isFunction = (matcher.group(1) != null);
-        String databaseAndProcedure = matcher.group(6);
-        String database = matcher.group(8);
-        String procedureName = matcher.group(11);
-        String arguments = matcher.group(14);
+
+        String query = Utils.nativeSql(matcher.group(2), protocol.noBackslashEscapes());
+
+        boolean isFunction = (matcher.group(3) != null);
+        String databaseAndProcedure = matcher.group(8);
+        String database = matcher.group(10);
+        String procedureName = matcher.group(13);
+        String arguments = matcher.group(16);
         if (database == null && sessionStateAware) database = getDatabase();
 
         if (database != null && options.cacheCallableStmts) {
