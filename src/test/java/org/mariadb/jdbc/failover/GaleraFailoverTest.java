@@ -62,7 +62,10 @@ import org.mariadb.jdbc.MariaDbPoolDataSource;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -107,7 +110,7 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
             urlParser.setHostAddresses(Arrays.asList(initAddresses.get(i)));
             try (Connection master = MariaDbConnection.newConnection(urlParser, null)) {
                 Statement stmt = master.createStatement();
-                ResultSet rs = stmt.executeQuery("show status like 'wsrep_cluster_status'");
+                ResultSet rs = stmt.executeQuery("show status like 'wsrep_local_state'");
                 assertTrue(rs.next());
                 System.out.println("host:" + initAddresses.get(i) + " status:" + rs.getString(2));
             }

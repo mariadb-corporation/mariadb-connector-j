@@ -93,6 +93,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.ServiceLoader;
@@ -1082,15 +1083,16 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         try {
             initialTimeout = socket.getSoTimeout();
             if (initialTimeout == 0) socket.setSoTimeout(timeout);
-            if (isMasterConnection() && urlParser.isMultiMaster()) {
+            if (isMasterConnection() && urlParser.getOptions().galeraAllowedState != null) {
                 //this is a galera node.
-                //checking not only that node is responding, but that this node is in primary mode too.
+                //checking not only that node is responding, but that galera state is allowed.
                 Results results = new Results();
-                executeQuery(true, results, "show status like 'wsrep_cluster_status'");
+                executeQuery(true, results, "show status like 'wsrep_local_state'");
                 results.commandEnd();
                 ResultSet rs = results.getResultSet();
                 if (rs == null || !rs.next()) return false;
-                return "PRIMARY".equalsIgnoreCase(rs.getString(2));
+                String[] allowedValues = urlParser.getOptions().galeraAllowedState.split(",");
+                return Arrays.asList(allowedValues).contains(rs.getString(2)); //SYNC mode
             }
 
             return ping();
