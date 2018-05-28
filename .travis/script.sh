@@ -119,7 +119,7 @@ else
         else
 
             ###################################################################################################################
-            # launch docker server and maxscale
+            # launch docker server
             ###################################################################################################################
             mysql=( mysql --protocol=tcp -ubob -h127.0.0.1 --port=3305 )
             export COMPOSE_FILE=.travis/docker-compose.yml
