@@ -93,6 +93,8 @@ public class FailoverProxy implements InvocationHandler {
     private static final String METHOD_PROLOG = "prolog";
     private static final String METHOD_GET_CATALOG = "getCatalog";
     private static final String METHOD_GET_TIMEOUT = "getTimeout";
+    private static final String METHOD_GET_MAJOR_VERSION = "getMajorServerVersion";
+
 
 
     private static final Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
@@ -165,6 +167,8 @@ public class FailoverProxy implements InvocationHandler {
                 return listener.isExplicitClosed();
             case METHOD_GET_OPTIONS:
                 return listener.getUrlParser().getOptions();
+            case METHOD_GET_MAJOR_VERSION:
+                return listener.getMajorServerVersion();
             case METHOD_GET_SERVER_THREAD_ID:
                 return listener.getServerThreadId();
             case METHOD_GET_URLPARSER:

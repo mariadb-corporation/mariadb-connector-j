@@ -418,6 +418,10 @@ public abstract class AbstractMastersListener implements Listener {
         return currentProtocol.noBackslashEscapes();
     }
 
+    public int getMajorServerVersion() {
+        return currentProtocol.getMajorServerVersion();
+    }
+
     public boolean isClosed() {
         return currentProtocol.isClosed();
     }

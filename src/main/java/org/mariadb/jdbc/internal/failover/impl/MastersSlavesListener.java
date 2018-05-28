@@ -234,6 +234,11 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
         return (currentProtocol != null) ? currentProtocol.getCatalog() : secondaryProtocol.getDatabase();
     }
 
+    @Override
+    public int getMajorServerVersion() {
+        return (currentProtocol != null) ? currentProtocol.getMajorServerVersion() : secondaryProtocol.getMajorServerVersion();
+    }
+
     public boolean isMasterConnection() {
         return (currentProtocol != null) ? currentProtocol.isMasterConnection() : true;
     }
