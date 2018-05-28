@@ -36,57 +36,57 @@
 
 == 2.2.5
 minor change:
-[CONJ-602] Add server hostname to connection packet for proxy
-[CONJ-604] handle support for mysql 8.0 tx_isolation replacement by transaction_isolation
+* [CONJ-602] Add server hostname to connection packet for proxy
+* [CONJ-604] handle support for mysql 8.0 tx_isolation replacement by transaction_isolation
 
 Bug correction:
-[CONJ-613] Connection using "replication" Parameters fail when no slave is available
-[CONJ-595] Create option to configure DONOR/DESYNCED Galera nodes to be unavailable for load-balancing
-[CONJ-605] Newlines where breaking calling stored procedures
-[CONJ-609] Using getDate with function DATE_ADD() with parameter using string format where return wrong result using binary protocol
-[CONJ-610] Option "allowMasterDownConnection" improvement on connection validation and Exceptions on master down
+* [CONJ-613] Connection using "replication" Parameters fail when no slave is available
+* [CONJ-595] Create option to configure DONOR/DESYNCED Galera nodes to be unavailable for load-balancing
+* [CONJ-605] Newlines where breaking calling stored procedures
+* [CONJ-609] Using getDate with function DATE_ADD() with parameter using string format where return wrong result using binary protocol
+* [CONJ-610] Option "allowMasterDownConnection" improvement on connection validation and Exceptions on master down
 
 == 2.2.4
 
 Minor changes:
-[CONJ-580] Some options are missing in documentation like default 'autocommit' value
-[CONJ-597] Internal exchanges send utf8mb4 with server even if default server collation is not utf8/utf8mb4
-[CONJ-600] Upgrading non mandatory Waffle dependency to 1.9.0 (windows GSSAPI authentication)
-[CONJ-575] test addition to ensure YaSSL downgrade TLSv1.2 protocol to TLSv1.1
+* [CONJ-580] Some options are missing in documentation like default 'autocommit' value
+* [CONJ-597] Internal exchanges send utf8mb4 with server even if default server collation is not utf8/utf8mb4
+* [CONJ-600] Upgrading non mandatory Waffle dependency to 1.9.0 (windows GSSAPI authentication)
+* [CONJ-575] test addition to ensure YaSSL downgrade TLSv1.2 protocol to TLSv1.1
 
 == 2.2.3
 
 Bug correction:
-[CONJ-583] possible hang indefinitely using master/slave configuration and failover occur
-[CONJ-586] erroneous transaction state when first command result as error
-[CONJ-587] using allowMasterDownConnection option can lead to NPE when using setReadOnly()
-[CONJ-588] using option 'allowMasterDownConnection' won't permit to connect if master is down
-[CONJ-534] Connection.isValid() must be routed to Master and Slave connections to avoid any server timeout
+* [CONJ-583] possible hang indefinitely using master/slave configuration and failover occur
+* [CONJ-586] erroneous transaction state when first command result as error
+* [CONJ-587] using allowMasterDownConnection option can lead to NPE when using setReadOnly()
+* [CONJ-588] using option 'allowMasterDownConnection' won't permit to connect if master is down
+* [CONJ-534] Connection.isValid() must be routed to Master and Slave connections to avoid any server timeout
 
 == 2.2.2
 
 Bug correction:
-[CONJ-564] Never ever throw an instance of java.lang.Error
-[CONJ-579] Keywords missing from DatabaseMetaData.getSQLKeywords()
-[CONJ-567] UrlParser.initialUrl gets overwritten
-[CONJ-571] Permit java 9 serialization filtering
-[CONJ-574] forcing using toLowerCase/toUpperCase with Locale.ROOT
-[CONJ-560] Automatic module name for java 9
-[CONJ-578] windows testing using all mariadb server
-[CONJ-570] Add tests for 10.3.3 INVISIBLE column
+* [CONJ-564] Never ever throw an instance of java.lang.Error
+* [CONJ-579] Keywords missing from DatabaseMetaData.getSQLKeywords()
+* [CONJ-567] UrlParser.initialUrl gets overwritten
+* [CONJ-571] Permit java 9 serialization filtering
+* [CONJ-574] forcing using toLowerCase/toUpperCase with Locale.ROOT
+* [CONJ-560] Automatic module name for java 9
+* [CONJ-578] windows testing using all mariadb server
+* [CONJ-570] Add tests for 10.3.3 INVISIBLE column
 
 == 2.2.1
 
-[CONJ-501] provide support for authentication plugin ed25519
+* [CONJ-501] provide support for authentication plugin ed25519
 
 Bug correction:
-[CONJ-529] failover : the driver will pause for 250ms if no servers are available before attempting to reconnect another time
-[CONJ-548] don't use COM_STMT_BULK_EXECUTE for INSERT ... SELECT statements
-[CONJ-549] correction on connection reset when using MariaDbPoolDataSource with options useServerPrepStmts and useResetConnection enabled
-[CONJ-555] failover caused by client timeout must not reuse connection
-[CONJ-558] removing extra ".0" to resultset.getString() value for FLOAT/DOUBLE fields
-[CONJ-550] fetching state correction when reusing statement without having read all results
-[CONJ-553] RejectedExecutionException was thrown when having large amount of concurrent batches
+* [CONJ-529] failover : the driver will pause for 250ms if no servers are available before attempting to reconnect another time
+* [CONJ-548] don't use COM_STMT_BULK_EXECUTE for INSERT ... SELECT statements
+* [CONJ-549] correction on connection reset when using MariaDbPoolDataSource with options useServerPrepStmts and useResetConnection enabled
+* [CONJ-555] failover caused by client timeout must not reuse connection
+* [CONJ-558] removing extra ".0" to resultset.getString() value for FLOAT/DOUBLE fields
+* [CONJ-550] fetching state correction when reusing statement without having read all results
+* [CONJ-553] RejectedExecutionException was thrown when having large amount of concurrent batches
 
 
 
