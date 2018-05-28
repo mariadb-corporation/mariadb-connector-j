@@ -1,4 +1,5 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#224|2.2.5]] Released on 29 may 2018
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#224|2.2.4]] Released on 04 may 2018
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#223|2.2.3]] Released on 09 mar. 2018
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#222|2.2.2]] Released on 20 feb. 2018
@@ -32,6 +33,19 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+
+== 2.2.5
+minor change:
+[CONJ-602] Add server hostname to connection packet for proxy
+[CONJ-604] handle support for mysql 8.0 tx_isolation replacement by transaction_isolation
+
+Bug correction:
+[CONJ-613] Connection using "replication" Parameters fail when no slave is available
+[CONJ-595] Create option to configure DONOR/DESYNCED Galera nodes to be unavailable for load-balancing
+[CONJ-605] Newlines where breaking calling stored procedures
+[CONJ-609] Using getDate with function DATE_ADD() with parameter using string format where return wrong result using binary protocol
+[CONJ-610] Option "allowMasterDownConnection" improvement on connection validation and Exceptions on master down
+
 == 2.2.4
 
 Minor changes:

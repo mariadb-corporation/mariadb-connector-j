@@ -137,6 +137,7 @@ public class Options implements Cloneable {
     public int loadBalanceBlacklistTimeout = 50;
     public int failoverLoopRetries = 120;
     public boolean allowMasterDownConnection;
+    public String galeraAllowedState;
 
     //Pool options
     public boolean pool;
@@ -276,6 +277,7 @@ public class Options implements Cloneable {
         }
         if (autocommit != opt.autocommit) return false;
         if (poolName != null ? !poolName.equals(opt.poolName) : opt.poolName != null) return false;
+        if (galeraAllowedState != null ? !galeraAllowedState.equals(opt.galeraAllowedState) : opt.galeraAllowedState != null) return false;
         return minPoolSize != null ? minPoolSize.equals(opt.minPoolSize) : opt.minPoolSize == null;
     }
 
@@ -356,6 +358,7 @@ public class Options implements Cloneable {
         result = 31 * result + (useResetConnection ? 1 : 0);
         result = 31 * result + (staticGlobal ? 1 : 0);
         result = 31 * result + (poolName != null ? poolName.hashCode() : 0);
+        result = 31 * result + (galeraAllowedState != null ? galeraAllowedState.hashCode() : 0);
         result = 31 * result + maxPoolSize;
         result = 31 * result + (minPoolSize != null ? minPoolSize.hashCode() : 0);
         result = 31 * result + maxIdleTime;

@@ -132,8 +132,17 @@ public class SslTest extends BaseTest {
             stmt.execute("DROP USER 'ssltestUser'@'%'");
         } catch (SQLException e) {
         }
-        stmt.execute("CREATE USER 'ssltestUser'@'%'");
-        stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%' REQUIRE SSL");
+        boolean useOldNotation = true;
+        if ((isMariadbServer() && minVersion(10,2,0)) || (!isMariadbServer() && minVersion(8,0,0))) {
+            useOldNotation = false;
+        }
+        if (useOldNotation) {
+            stmt.execute("CREATE USER 'ssltestUser'@'%'");
+            stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%' REQUIRE SSL");
+        } else {
+            stmt.execute("CREATE USER 'ssltestUser'@'%' REQUIRE SSL");
+            stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%'");
+        }
     }
 
     @Test
@@ -924,8 +933,25 @@ public class SslTest extends BaseTest {
     }
 
     private void createSslTestUser(String user) throws SQLException {
+        boolean useOldNotation = true;
+        if ((isMariadbServer() && minVersion(10,2,0)) || (!isMariadbServer() && minVersion(8,0,0))) {
+            useOldNotation = false;
+        }
+
         Statement st = sharedConnection.createStatement();
-        st.execute("grant all privileges on *.* to '" + user + "'@'%' identified by 'ssltestpassword' REQUIRE X509");
+        try {
+            st.execute("DROP USER '" + user + "'@'%'");
+        } catch (SQLException e) {
+            //eat
+        }
+        st.execute("FLUSH PRIVILEGES");
+        if (useOldNotation) {
+            st.execute("CREATE USER '" + user + "'@'%'");
+            st.execute("grant all privileges on *.* to '" + user + "'@'%' identified by 'ssltestpassword' REQUIRE X509");
+        } else {
+            st.execute("CREATE USER '" + user + "'@'%' identified by 'ssltestpassword' REQUIRE X509");
+            st.execute("grant all privileges on *.* to '" + user + "'@'%'");
+        }
     }
 
     private void deleteSslTestUser(String user) throws SQLException {

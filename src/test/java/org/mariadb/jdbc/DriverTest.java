@@ -1209,6 +1209,8 @@ public class DriverTest extends BaseTest {
         }
     }
 
+    private static int namedPipeBusyTestError = 0;
+
     /**
      * CONJ-435 : "All pipe instances are busy" exception on multiple connections to the same named pipe.
      *
@@ -1216,6 +1218,7 @@ public class DriverTest extends BaseTest {
      */
     @Test
     public void namedPipeBusyTest() throws Exception {
+        Assume.assumeFalse(!isMariadbServer() && minVersion(8,0,0));
         try {
             ResultSet rs = sharedConnection.createStatement().executeQuery("select @@named_pipe,@@socket");
             assertTrue(rs.next());
@@ -1226,6 +1229,7 @@ public class DriverTest extends BaseTest {
                 ExecutorService exec = Executors.newFixedThreadPool(100);
                 //check blacklist shared
                 for (int i = 0; i < 100; i++) {
+                    Thread.sleep(2);
                     exec.execute(new ConnectWithPipeThread("jdbc:mariadb:///testj?user="
                             + username + "&pipe=" + namedPipeName + "&connectTimeout=500"));
                 }
@@ -1234,6 +1238,7 @@ public class DriverTest extends BaseTest {
                 exec.shutdown();
 
                 exec.awaitTermination(30, TimeUnit.SECONDS);
+                assertEquals(namedPipeBusyTestError, 0);
             }
         } catch (SQLException e) {
             assertTrue(e.getMessage(), e.getMessage().contains("Unknown system variable 'named_pipe'"));
@@ -1291,6 +1296,7 @@ public class DriverTest extends BaseTest {
     @Test
     public void sharedMemory() throws Exception {
         requireMinimumVersion(5, 1);
+        Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 0));
         Statement st = sharedConnection.createStatement();
         ResultSet rs = st.executeQuery("select @@version_compile_os");
         if (!rs.next()) {
@@ -1401,14 +1407,19 @@ public class DriverTest extends BaseTest {
 
         @Override
         public void run() {
+            Connection connection = null;
             try {
-
-                try (Connection connection = DriverManager.getConnection(url)) {
-                    Thread.sleep(1000);
-                }
-
+                connection = DriverManager.getConnection(url);
+                Thread.sleep(1000);
             } catch (SQLException | InterruptedException e) {
+                namedPipeBusyTestError += 1;
                 e.printStackTrace();
+            } finally {
+                try {
+                    if (connection != null) connection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }

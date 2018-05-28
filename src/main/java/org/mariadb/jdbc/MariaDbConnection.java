@@ -55,7 +55,10 @@ package org.mariadb.jdbc;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.*;
+import org.mariadb.jdbc.internal.util.CallableStatementCache;
+import org.mariadb.jdbc.internal.util.ConnectionState;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.CallableStatementCacheKey;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
@@ -83,9 +86,11 @@ public class MariaDbConnection implements Connection {
      * {[?=]call[(arg1,..,,argn)]}
      */
     private static final Pattern CALLABLE_STATEMENT_PATTERN =
-            Pattern.compile("^\\s*(\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
-                            + "((((`[^`]+`)|([^`]+))\\.)?((`[^`]+`)|([^`\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*(#.*)?$",
-                    Pattern.CASE_INSENSITIVE);
+            Pattern.compile("^(\\s*\\{)?\\s*((\\?\\s*=)?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*"
+                            + "call(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*((((`[^`]+`)|([^`\\}]+))\\.)?"
+                            + "((`[^`]+`)|([^`\\}\\(]+)))\\s*(\\(.*\\))?(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*"
+                            + "\\s*(#.*)?)\\s*(\\}\\s*)?$",
+                    Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
     /**
      * Check that query can be executed with PREPARE.
      */
@@ -554,18 +559,20 @@ public class MariaDbConnection implements Connection {
     public CallableStatement prepareCall(final String sql, final int resultSetType, final int resultSetConcurrency) throws SQLException {
         checkConnection();
 
-        String query = Utils.nativeSql(sql, protocol.noBackslashEscapes());
-        Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(query);
+        Matcher matcher = CALLABLE_STATEMENT_PATTERN.matcher(sql);
         if (!matcher.matches()) {
             throw new SQLSyntaxErrorException(
-                    "invalid callable syntax. must be like {? = call <procedure/function name>[(?,?, ...)]}\n but was : "
-                            + query);
+                    "invalid callable syntax. must be like {[?=]call <procedure/function name>[(?,?, ...)]}\n but was : "
+                            + sql);
         }
-        boolean isFunction = (matcher.group(1) != null);
-        String databaseAndProcedure = matcher.group(6);
-        String database = matcher.group(8);
-        String procedureName = matcher.group(11);
-        String arguments = matcher.group(14);
+
+        String query = Utils.nativeSql(matcher.group(2), protocol.noBackslashEscapes());
+
+        boolean isFunction = (matcher.group(3) != null);
+        String databaseAndProcedure = matcher.group(8);
+        String database = matcher.group(10);
+        String procedureName = matcher.group(13);
+        String arguments = matcher.group(16);
         if (database == null && sessionStateAware) database = getDatabase();
 
         if (database != null && options.cacheCallableStmts) {
@@ -780,10 +787,11 @@ public class MariaDbConnection implements Connection {
      * @throws SQLException if there is a problem creating the meta data.
      */
     public DatabaseMetaData getMetaData() throws SQLException {
+        UrlParser urlParser = protocol.getUrlParser();
         return new MariaDbDatabaseMetaData(
                 this,
-                protocol.getUsername(),
-                protocol.getUrlParser().getInitialUrl());
+                urlParser.getUsername(),
+                urlParser.getInitialUrl());
     }
 
     /**
@@ -804,7 +812,10 @@ public class MariaDbConnection implements Connection {
      */
     public void setReadOnly(final boolean readOnly) throws SQLException {
         try {
-            logger.debug("set read-only to value {}", readOnly);
+            logger.debug("conn={}({}) - set read-only to value {} {}",
+                    protocol.getServerThreadId(),
+                    protocol.isMasterConnection() ? "M" : "S",
+                    readOnly);
             stateFlag |= ConnectionState.STATE_READ_ONLY;
             protocol.setReadonly(readOnly);
         } catch (SQLException e) {
@@ -844,6 +855,14 @@ public class MariaDbConnection implements Connection {
         }
     }
 
+    public boolean isServerMariaDb() throws SQLException {
+        return protocol.isServerMariaDb();
+    }
+
+    public boolean versionGreaterOrEqual(int major, int minor, int patch) {
+        return protocol.versionGreaterOrEqual(major, minor, patch);
+    }
+
     /**
      * Retrieves this <code>Connection</code> object's current transaction isolation level.
      *
@@ -856,7 +875,16 @@ public class MariaDbConnection implements Connection {
      */
     public int getTransactionIsolation() throws SQLException {
         try (Statement stmt = createStatement()) {
-            try (ResultSet rs = stmt.executeQuery("SELECT @@tx_isolation")) {
+            String sql = "SELECT @@tx_isolation";
+
+            if (!protocol.isServerMariaDb()) {
+                if ((protocol.getMajorServerVersion() >= 8 && protocol.versionGreaterOrEqual(8, 0, 3))
+                        || (protocol.getMajorServerVersion() < 8 && protocol.versionGreaterOrEqual(5, 7, 20))) {
+                    sql = "SELECT @@transaction_isolation";
+                }
+            }
+
+            try (ResultSet rs = stmt.executeQuery(sql)) {
                 if (rs.next()) {
                     final String response = rs.getString(1);
                     switch (response) {
@@ -873,6 +901,13 @@ public class MariaDbConnection implements Connection {
                             return Connection.TRANSACTION_SERIALIZABLE;
 
                         default:
+                            if (!protocol.isServerMariaDb()) {
+                                if ((protocol.getMajorServerVersion() >= 8 && protocol.versionGreaterOrEqual(8, 0, 3))
+                                        || (protocol.getMajorServerVersion() < 8 && protocol.versionGreaterOrEqual(5, 7, 20))) {
+                                    throw ExceptionMapper.getSqlException("Could not get transaction isolation level: "
+                                            + "Invalid @@transaction_isolation value \"" + response + "\"");
+                                }
+                            }
                             throw ExceptionMapper.getSqlException("Could not get transaction isolation level: "
                                     + "Invalid @@tx_isolation value \"" + response + "\"");
                     }

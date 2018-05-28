@@ -78,17 +78,22 @@ public class GeometryTest extends BaseTest {
     private void geometryTest(String geometryString, String geometryBinary) throws SQLException {
         try (Statement stmt = sharedConnection.createStatement()) {
             stmt.execute("TRUNCATE geom_test");
+            String prefix = "";
+            if (!isMariadbServer() && minVersion(8, 0, 3)) {
+                prefix = "ST_";
+            }
 
             String tmpGeometryBinary = geometryBinary;
             if (tmpGeometryBinary == null) {
-                try (ResultSet rs = stmt.executeQuery("SELECT AsWKB(GeomFromText('" + geometryString + "'))")) {
+                String sql = "SELECT " + prefix + "AsWKB(" + prefix + "GeomFromText('" + geometryString + "'))";
+                try (ResultSet rs = stmt.executeQuery(sql)) {
                     assertTrue(rs.next());
                     tmpGeometryBinary = printHexBinary(rs.getBytes(1));
                 }
             }
-            String sql = "INSERT INTO geom_test VALUES (GeomFromText('" + geometryString + "'))";
+            String sql = "INSERT INTO geom_test VALUES (" + prefix + "GeomFromText('" + geometryString + "'))";
             stmt.execute(sql);
-            try (ResultSet rs = stmt.executeQuery("SELECT AsText(g), AsBinary(g), g FROM geom_test")) {
+            try (ResultSet rs = stmt.executeQuery("SELECT " + prefix + "AsText(g), " + prefix + "AsBinary(g), g FROM geom_test")) {
                 assertTrue(rs.next());
                 // as text
                 assertEquals(geometryString, rs.getString(1));

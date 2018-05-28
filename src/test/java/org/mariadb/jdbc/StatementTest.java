@@ -259,6 +259,7 @@ public class StatementTest extends BaseTest {
 
     @Test
     public void testLoadDataInvalidColumn() throws SQLException, UnsupportedEncodingException {
+        Assume.assumeFalse(!isMariadbServer() && minVersion(8,0,0));
         Statement statement = sharedConnection.createStatement();
         try {
             statement.execute("drop view if exists v2");

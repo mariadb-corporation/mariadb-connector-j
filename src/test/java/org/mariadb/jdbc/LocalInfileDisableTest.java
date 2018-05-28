@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -70,6 +71,7 @@ public class LocalInfileDisableTest extends BaseTest {
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
+        Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 3));
         createTable("t", "id int, test varchar(100)");
     }
 

@@ -53,12 +53,15 @@
 package org.mariadb.jdbc.internal.failover;
 
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.lang.reflect.Method;
+import java.net.SocketException;
 import java.sql.SQLException;
 import java.util.Set;
 
@@ -72,6 +75,10 @@ public interface Listener {
     void preExecute() throws SQLException;
 
     void preClose();
+
+    void preAbort();
+
+    long getServerThreadId();
 
     void reconnectFailedConnection(SearchFilter filter) throws SQLException;
 
@@ -110,9 +117,25 @@ public interface Listener {
 
     boolean isReadOnly();
 
+    int getMajorServerVersion();
+
+    boolean isMasterConnection();
+
     boolean isClosed();
 
+    boolean versionGreaterOrEqual(int major, int minor, int patch);
+
+    boolean sessionStateAware();
+
+    boolean noBackslashEscapes();
+
     boolean isValid(int timeout) throws SQLException;
+
+    void prolog(long maxRows, MariaDbConnection connection, MariaDbStatement statement) throws SQLException;
+
+    String getCatalog() throws SQLException;
+
+    int getTimeout() throws SocketException;
 
     Protocol getCurrentProtocol();
 

@@ -53,6 +53,8 @@
 package org.mariadb.jdbc.internal.failover;
 
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.thread.ConnectionValidator;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
@@ -65,7 +67,9 @@ import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.SocketException;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -402,6 +406,22 @@ public abstract class AbstractMastersListener implements Listener {
         }
     }
 
+    public boolean versionGreaterOrEqual(int major, int minor, int patch) {
+        return currentProtocol.versionGreaterOrEqual(major, minor, patch);
+    }
+
+    public boolean sessionStateAware() {
+        return currentProtocol.sessionStateAware();
+    }
+
+    public boolean noBackslashEscapes() {
+        return currentProtocol.noBackslashEscapes();
+    }
+
+    public int getMajorServerVersion() {
+        return currentProtocol.getMajorServerVersion();
+    }
+
     public boolean isClosed() {
         return currentProtocol.isClosed();
     }
@@ -412,6 +432,10 @@ public abstract class AbstractMastersListener implements Listener {
 
     public boolean isReadOnly() {
         return currentReadOnlyAsked;
+    }
+
+    public boolean isMasterConnection() {
+        return true;
     }
 
     public boolean isExplicitClosed() {
@@ -479,9 +503,13 @@ public abstract class AbstractMastersListener implements Listener {
             cause = queryException.getCause();
         }
 
-        if (reconnected && sqlState.startsWith("08")) {
-            //change sqlState to "Transaction has been rolled back", to transaction exception, since reconnection has succeed
-            sqlState = "25S03";
+        if (sqlState.startsWith("08")) {
+            if (reconnected) {
+                //change sqlState to "Transaction has been rolled back", to transaction exception, since reconnection has succeed
+                sqlState = "25S03";
+            } else {
+                throw new SQLNonTransientConnectionException(message, sqlState, vendorCode, cause);
+            }
         }
 
         throw new SQLException(message, sqlState, vendorCode, cause);
@@ -490,6 +518,19 @@ public abstract class AbstractMastersListener implements Listener {
 
     public boolean canRetryFailLoop() {
         return currentConnectionAttempts.get() < urlParser.getOptions().failoverLoopRetries;
+    }
+
+
+    public void prolog(long maxRows, MariaDbConnection connection, MariaDbStatement statement) throws SQLException {
+        currentProtocol.prolog(maxRows, true, connection, statement);
+    }
+
+    public String getCatalog() throws SQLException {
+        return currentProtocol.getCatalog();
+    }
+
+    public int getTimeout() throws SocketException {
+        return currentProtocol.getTimeout();
     }
 
     public abstract void reconnect() throws SQLException;
@@ -525,6 +566,17 @@ public abstract class AbstractMastersListener implements Listener {
     public void closeConnection(Protocol protocol) {
         if (protocol != null && protocol.isConnected()) {
             protocol.close();
+        }
+    }
+
+    /**
+     * Utility to force close existing connection.
+     *
+     * @param protocol connection to close.
+     */
+    public void abortConnection(Protocol protocol) {
+        if (protocol != null && protocol.isConnected()) {
+            protocol.abort();
         }
     }
 

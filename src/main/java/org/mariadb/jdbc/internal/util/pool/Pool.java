@@ -492,14 +492,28 @@ public class Pool implements AutoCloseable, PoolMBean {
 
     private void initializePoolGlobalState(MariaDbConnection connection) throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            try (ResultSet rs = stmt.executeQuery(
-                    "SELECT @@max_allowed_packet,"
+            String sql = "SELECT @@max_allowed_packet,"
+                    + "@@wait_timeout,"
+                    + "@@autocommit,"
+                    + "@@auto_increment_increment,"
+                    + "@@time_zone,"
+                    + "@@system_time_zone,"
+                    + "@@tx_isolation";
+            if (!connection.isServerMariaDb()) {
+                int major = connection.getMetaData().getDatabaseMajorVersion();
+                if ((major >= 8 && connection.versionGreaterOrEqual(8, 0, 3))
+                        || (major < 8 && connection.versionGreaterOrEqual(5, 7, 20))) {
+                    sql = "SELECT @@max_allowed_packet,"
                             + "@@wait_timeout,"
                             + "@@autocommit,"
                             + "@@auto_increment_increment,"
                             + "@@time_zone,"
                             + "@@system_time_zone,"
-                            + "@@tx_isolation")) {
+                            + "@@transaction_isolation";
+                }
+            }
+
+            try (ResultSet rs = stmt.executeQuery(sql)) {
 
                 rs.next();
 

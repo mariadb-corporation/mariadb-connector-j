@@ -1073,5 +1073,35 @@ public class ServerPrepareStatementTest extends BaseTest {
         }
     }
 
+    @Test
+    public void dateAsString() throws SQLException {
+        //cancel for MySQL 5.5 since no Datetime with microseconds
+        if (!isMariadbServer()) cancelForVersion(5, 5);
+        dateAddTest(false);
+        dateAddTest(true);
+    }
+
+    private void dateAddTest(boolean useBinary) throws SQLException {
+        try (Connection connection = setConnection("&log=true&useServerPrepStmts=" + (useBinary ? "true" : "false"))) {
+            try (PreparedStatement preparedStatement = connection.prepareStatement(
+                    "SELECT DATE_ADD('2010-12-31 23:59:59', INTERVAL 2 SECOND) as t")) {
+                ResultSet rs = preparedStatement.executeQuery();
+                while (rs.next()) {
+                    assertEquals(Date.valueOf("2011-01-01"), rs.getDate(1));
+                    assertEquals(Timestamp.valueOf("2011-01-01 00:00:01"), rs.getTimestamp(1));
+                    assertEquals("2011-01-01 00:00:01", rs.getString(1));
+                }
+            }
+            try (PreparedStatement preparedStatement = connection.prepareStatement(
+                    "SELECT DATE_ADD(CONVERT('2010-12-31 23:59:59',datetime(6)), INTERVAL 2 SECOND) as t")) {
+                ResultSet rs = preparedStatement.executeQuery();
+                while (rs.next()) {
+                    assertEquals("2011-01-01", rs.getDate(1).toString());
+                    assertEquals(Timestamp.valueOf("2011-01-01 00:00:01"), rs.getTimestamp(1));
+                    assertEquals("2011-01-01 00:00:01.0", rs.getString(1));
+                }
+            }
+        }
+    }
 
 }

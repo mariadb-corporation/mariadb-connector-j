@@ -77,6 +77,7 @@ public class CancelTest extends BaseTest {
 
     @Test
     public void cancelTest() {
+        Assume.assumeFalse(sharedIsAurora());
         try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
 
             Statement stmt = tmpConnection.createStatement();
@@ -96,6 +97,7 @@ public class CancelTest extends BaseTest {
 
     @Test(timeout = 20000, expected = SQLTimeoutException.class)
     public void timeoutSleep() throws Exception {
+        Assume.assumeFalse(sharedIsAurora());
         try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
             Statement stmt = tmpConnection.createStatement();
             stmt.setQueryTimeout(1); //query take more than 20 seconds (local DB)
@@ -105,6 +107,7 @@ public class CancelTest extends BaseTest {
 
     @Test(timeout = 20000, expected = SQLTimeoutException.class)
     public void timeoutPrepareSleep() throws Exception {
+        Assume.assumeFalse(sharedIsAurora());
         try (Connection tmpConnection = openNewConnection(connUri, new Properties())) {
             try (PreparedStatement stmt = tmpConnection.prepareStatement(
                     "select * from information_schema.columns as c1,  information_schema.tables, information_schema.tables as t2")) {

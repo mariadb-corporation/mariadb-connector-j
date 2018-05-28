@@ -246,11 +246,43 @@ public class StoredProcedureTest extends BaseTest {
 
     @Test
     public void callSimple() throws SQLException {
-        CallableStatement st = sharedConnection.prepareCall("{?=call pow(?,?)}");
+        CallableStatement st = sharedConnection.prepareCall("{? = call pow(?,?)}");
         st.setInt(2, 2);
         st.setInt(3, 2);
         st.execute();
         int result = st.getInt(1);
+        assertEquals(result, 4);
+    }
+    
+    @Test
+    public void callSimpleWithNewlines() throws SQLException {
+        // Violates JDBC spec, but MySQL Connector/J allows it
+        CallableStatement st = sharedConnection.prepareCall("{\r\n ? =  call pow(?,  ?  )   }");
+        st.setInt(2, 2);
+        st.setInt(3, 2);
+        st.execute();
+        int result = st.getInt(1);
+        assertEquals(result, 4);
+        
+        st = sharedConnection.prepareCall("{\n ? = call pow(?, ?)}");
+        st.setInt(2, 2);
+        st.setInt(3, 2);
+        st.execute();
+        result = st.getInt(1);
+        assertEquals(result, 4);
+        
+        st = sharedConnection.prepareCall("{? = call pow  (\n?, ?  )}");
+        st.setInt(2, 2);
+        st.setInt(3, 2);
+        st.execute();
+        result = st.getInt(1);
+        assertEquals(result, 4);
+        
+        st = sharedConnection.prepareCall("\r\n{\r\n?\r\n=\r\ncall\r\npow\r\n(\n?,\r\n?\r\n)\r\n}");
+        st.setInt(2, 2);
+        st.setInt(3, 2);
+        st.execute();
+        result = st.getInt(1);
         assertEquals(result, 4);
     }
 
@@ -384,7 +416,7 @@ public class StoredProcedureTest extends BaseTest {
             //eat exception
         }
         statement.execute("CREATE USER 'test_jdbc'@'%' IDENTIFIED BY 'test_jdbc'");
-        statement.execute("GRANT ALL PRIVILEGES ON testj.* TO 'test_jdbc'@'%' IDENTIFIED BY 'test_jdbc' WITH GRANT OPTION");
+        statement.execute("GRANT ALL PRIVILEGES ON testj.* TO 'test_jdbc'@'%' WITH GRANT OPTION");
         Properties properties = new Properties();
         properties.put("user", "test_jdbc");
         properties.put("password", "test_jdbc");

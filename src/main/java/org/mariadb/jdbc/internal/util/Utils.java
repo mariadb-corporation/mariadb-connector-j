@@ -313,10 +313,18 @@ public class Utils {
         } else if (escaped.startsWith("{?")) {
             // likely ?=call(...)
             return nativeSql(escaped.substring(1, endIndex), noBackslashEscapes);
-        } else if (escaped.startsWith("{ ")) {
-            // Spaces before keyword, this is not JDBC compliant, however some it works in some drivers,
+        } else if (escaped.startsWith("{ ") || escaped.startsWith("{\n")) {
+            // Spaces and newlines before keyword, this is not JDBC compliant, however some it works in some drivers,
             // so we support it, too
             for (int i = 2; i < escaped.length(); i++) {
+                if (!Character.isWhitespace(escaped.charAt(i))) {
+                    return resolveEscapes("{" + escaped.substring(i), noBackslashEscapes);
+                }
+            }
+        } else if (escaped.startsWith("{\r\n")) {
+            // Spaces and newlines before keyword, this is not JDBC compliant, however some it works in some drivers,
+            // so we support it, too
+            for (int i = 3; i < escaped.length(); i++) {
                 if (!Character.isWhitespace(escaped.charAt(i))) {
                     return resolveEscapes("{" + escaped.substring(i), noBackslashEscapes);
                 }
@@ -831,12 +839,12 @@ public class Utils {
 
 
     /**
-     * Traduce a String value of @@tx_isolation to corresponding java value.
+     * Traduce a String value of transaction isolation to corresponding java value.
      *
      * @param txIsolation   String value
      * @return java corresponding value (Connection.TRANSACTION_READ_UNCOMMITTED, Connection.TRANSACTION_READ_COMMITTED,
      *         Connection.TRANSACTION_REPEATABLE_READ or Connection.TRANSACTION_SERIALIZABLE)
-     * @throws SQLException if String value doesn't correspond to @tx_isolation possible value
+     * @throws SQLException if String value doesn't correspond to @@tx_isolation/@@transaction_isolation possible value
      */
     public static int transactionFromString(String txIsolation) throws SQLException {
         switch (txIsolation) { //tx_isolation

@@ -533,8 +533,16 @@ public enum DefaultOptions {
      * On master/slave configuration, permit to connect Connection defaulting to a slave
      * when master is down.
      */
-    ALLOW_MASTER_DOWN("allowMasterDownConnection", Boolean.FALSE, "2.2.0");
+    ALLOW_MASTER_DOWN("allowMasterDownConnection", Boolean.FALSE, "2.2.0"),
 
+    /**
+     * Usually, Connection.isValid just send an empty packet to server, and server send a small response to ensure
+     * connectivity. When this option is set, connector will ensure server that "wsrep_local_state" correspond to
+     * allowed values (separated by comma)
+     *
+     * example "4,5". Recommended value "4" when using galera cluster without proxy like maxscale
+     */
+    GALERA_ALLOWED_STATE("galeraAllowedState", "2.2.5");
 
 
     private final String optionName;
@@ -549,6 +557,15 @@ public enum DefaultOptions {
         this.implementationVersion = implementationVersion;
         objType = String.class;
         defaultValue = null;
+        minValue = null;
+        maxValue = null;
+    }
+
+    DefaultOptions(final String optionName, final String defaultValue, final String implementationVersion) {
+        this.optionName = optionName;
+        this.implementationVersion = implementationVersion;
+        objType = String.class;
+        this.defaultValue = defaultValue;
         minValue = null;
         maxValue = null;
     }

@@ -126,7 +126,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private final String password;
     public boolean hasWarnings = false;
     public Results activeStreamingResult = null;
-    private int dataTypeMappingFlags;
     public short serverStatus;
     protected int autoIncrementIncrement;
     protected Socket socket;
@@ -172,8 +171,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (options.cachePrepStmts && options.useServerPrepStmts) {
             serverPrepareStatementCache = ServerPrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
         }
-
-        setDataTypeMappingFlags();
     }
 
     private static void closeSocket(PacketInputStream packetInputStream, PacketOutputStream packetOutputStream, Socket socket) {
@@ -787,7 +784,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     //eat exception
                 }
             }
-
+            if (currentHost == null) {
+                throw ExceptionMapper.connException(
+                        "Could not connect to socket : " + ioException.getMessage(),
+                        ioException);
+            }
             throw ExceptionMapper.connException(
                     "Could not connect to " + currentHost.host + ":" + currentHost.port + " : " + ioException.getMessage(),
                     ioException);
@@ -800,6 +801,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         //send handshake response
         SendHandshakeResponsePacket.send(writer, this.username,
                 this.password,
+                this.currentHost,
                 database,
                 clientCapabilities,
                 serverCapabilities,
@@ -1312,22 +1314,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void setDataTypeMappingFlags() {
-        dataTypeMappingFlags = 0;
-        if (options.tinyInt1isBit) {
-            dataTypeMappingFlags |= SelectResultSet.TINYINT1_IS_BIT;
-        }
-        if (options.yearIsDateType) {
-            dataTypeMappingFlags |= SelectResultSet.YEAR_IS_DATE_TYPE;
-        }
-    }
-
     public long getServerThreadId() {
         return serverThreadId;
-    }
-
-    public int getDataTypeMappingFlags() {
-        return dataTypeMappingFlags;
     }
 
     public boolean isExplicitClosed() {

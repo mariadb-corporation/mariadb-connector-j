@@ -72,6 +72,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
+        Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 3));
         createTable("LocalInfileInputStreamTest", "id int, test varchar(100)");
         createTable("ttlocal", "id int, test varchar(100)");
         createTable("ldinfile", "a varchar(10)");
