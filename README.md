@@ -22,10 +22,10 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 
 | Java version | current version |
 |:------------:|:-------------------------:|
-| 6 | 1.7.2 |
-| 7 | 1.7.2 |
-| 8 | 2.2.4 |
-| 9 | 2.2.4 |
+| 6 | 1.7.4 |
+| 7 | 1.7.4 |
+| 8 | 2.2.5 |
+| 9 | 2.2.5 |
 
 The driver (jar) can be downloaded from [mariadb connector download](https://mariadb.com/products/connectors-plugins)
 or maven : 

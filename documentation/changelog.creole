@@ -33,12 +33,16 @@
 
 == 1.7.4
 
-Minor changes:
-[CONJ-580] Some options are missing in documentation like default 'autocommit' value
-[CONJ-597] Internal exchanges send utf8mb4 with server even if default server collation is not utf8/utf8mb4
-[CONJ-600] Upgrading non mandatory Waffle dependency to 1.9.0 (windows GSSAPI authentication)
-[CONJ-575] test addition to ensure YaSSL downgrade TLSv1.2 protocol to TLSv1.1
+minor change:
+[CONJ-602] Add server hostname to connection packet for proxy
+[CONJ-604] handle support for mysql 8.0 tx_isolation replacement by transaction_isolation
 
+Bug correction:
+[CONJ-613] Connection using "replication" Parameters fail when no slave is available
+[CONJ-595] Create option to configure DONOR/DESYNCED Galera nodes to be unavailable for load-balancing
+[CONJ-605] Newlines where breaking calling stored procedures
+[CONJ-609] Using getDate with function DATE_ADD() with parameter using string format where return wrong result using binary protocol
+[CONJ-610] Option "allowMasterDownConnection" improvement on connection validation and Exceptions on master down
 
 == 1.7.3
 
