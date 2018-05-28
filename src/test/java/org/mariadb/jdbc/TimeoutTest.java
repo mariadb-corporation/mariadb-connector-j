@@ -77,7 +77,7 @@ public class TimeoutTest extends BaseTest {
      * Conj-79.
      */
     @Test
-    public void resultSetAfterSocketTimeoutTest() {
+    public void resultSetAfterSocketTimeoutTest() throws SQLException {
         //appveyor vm are very slow, cannot compare time
         Assume.assumeTrue(System.getenv("APPVEYOR") == null);
 

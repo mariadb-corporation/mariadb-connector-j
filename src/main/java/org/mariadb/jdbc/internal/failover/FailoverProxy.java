@@ -93,7 +93,7 @@ public class FailoverProxy implements InvocationHandler {
     private static final String METHOD_PROLOG = "prolog";
     private static final String METHOD_GET_CATALOG = "getCatalog";
     private static final String METHOD_GET_TIMEOUT = "getTimeout";
-
+    private static final String METHOD_GET_MAJOR_VERSION = "getMajorServerVersion";
 
     private static final Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
     public final ReentrantLock lock;
@@ -156,8 +156,10 @@ public class FailoverProxy implements InvocationHandler {
             return listener.getCatalog();
         } else if (METHOD_GET_TIMEOUT.equals(methodName)) {
             return listener.getTimeout();
+        } else if (METHOD_GET_MAJOR_VERSION.equals(methodName)) {
+            return listener.getMajorServerVersion();
         } else if (METHOD_VERSION_GREATER_OR_EQUAL.equals(methodName)) {
-            return listener.versionGreaterOrEqual((int) args[0], (int) args[1], (int) args[2]);
+            return listener.versionGreaterOrEqual((Integer) args[0], (Integer) args[1], (Integer) args[2]);
         } else if (METHOD_SESSION_STATE_AWARE.equals(methodName)) {
             return listener.sessionStateAware();
         } else if (METHOD_IS_EXPLICIT_CLOSED.equals(methodName)) {
@@ -173,9 +175,9 @@ public class FailoverProxy implements InvocationHandler {
         } else if (METHOD_IS_CLOSED.equals(methodName)) {
             return listener.isClosed();
         } else if (METHOD_IS_VALID.equals(methodName)) {
-            return listener.isValid((int) args[0]);
+            return listener.isValid((Integer) args[0]);
         } else if (METHOD_PROLOG.equals(methodName)) {
-            listener.prolog((long) args[0], (MariaDbConnection) args[2], (MariaDbStatement) args[3]);
+            listener.prolog((Long) args[0], (MariaDbConnection) args[2], (MariaDbStatement) args[3]);
             return null;
         } else if (METHOD_EXECUTE_QUERY.equals(methodName)) {
             try {

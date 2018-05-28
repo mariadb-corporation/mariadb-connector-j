@@ -56,7 +56,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mariadb.jdbc.BaseTest;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.MariaDbConnection;
 
 import java.sql.*;
 
@@ -81,19 +81,24 @@ public class AllowMasterDownTest extends BaseTest {
 
     @Test
     public void masterDownReadOnlyAvailable() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
+        Connection connection = null;
+        try {
+            connection = DriverManager.getConnection(masterDownUrl);
             Assert.assertFalse(connection.isReadOnly());
             connection.isValid(0);
             connection.setReadOnly(true);
-            try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT 1")) {
-                preparedStatement.executeQuery();
-            }
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT 1");
+            preparedStatement.executeQuery();
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
     @Test
     public void masterDownThrowError() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
+        Connection connection = null;
+        try {
+            connection = DriverManager.getConnection(masterDownUrl);
             Statement statement = connection.createStatement();
             try {
                 statement.executeQuery("SELECT 1");
@@ -101,21 +106,29 @@ public class AllowMasterDownTest extends BaseTest {
             } catch (SQLException sqle) {
                 Assert.assertTrue(sqle instanceof SQLNonTransientConnectionException);
             }
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
     @Test
-    public void masterDownAutoCommit() {
-        try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
+    public void masterDownAutoCommit() throws SQLException {
+        Connection connection = null;
+        try {
+            connection = DriverManager.getConnection(masterDownUrl);
             connection.getAutoCommit();
         } catch (SQLException sqle) {
             Assert.assertTrue(sqle instanceof SQLNonTransientConnectionException);
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
     @Test
-    public void masterDownGetMeta() {
-        try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
+    public void masterDownGetMeta() throws SQLException {
+        Connection connection = null;
+        try {
+            connection = DriverManager.getConnection(masterDownUrl);
             createTable("checkMetaData",
                     "xx tinyint(1) primary key auto_increment, yy year(4), zz bit, uu smallint");
             DatabaseMetaData meta = connection.getMetaData();
@@ -123,12 +136,16 @@ public class AllowMasterDownTest extends BaseTest {
             Assert.fail("Must have thrown a connectionException");
         } catch (SQLException sqle) {
             Assert.assertTrue(sqle instanceof SQLNonTransientConnectionException);
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
     @Test
     public void masterDownGetMetaRead() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
+        Connection connection = null;
+        try {
+            connection = DriverManager.getConnection(masterDownUrl);
             createTable("checkMetaData",
                     "xx tinyint(1) primary key auto_increment, yy year(4), zz bit, uu smallint");
             connection.setReadOnly(true);
@@ -140,64 +157,85 @@ public class AllowMasterDownTest extends BaseTest {
             assertEquals("YEAR", rs.getString(6));
             assertEquals(null, rs.getString(7)); // column size
             assertEquals(null, rs.getString(9)); // decimal digit
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
     @Test
     public void masterDownCreateStatement() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
+        Connection connection = null;
+        try {
+            connection = DriverManager.getConnection(masterDownUrl);
             Statement stmt = connection.createStatement();
             try {
                 stmt.executeQuery("SELECT 1");
             } catch (SQLException sqle) {
                 Assert.assertTrue(sqle instanceof SQLNonTransientConnectionException);
             }
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
     @Test
     public void masterDownCreatePrepareStatement() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
-            try (PreparedStatement prepare = connection.prepareStatement("SELECT ?")) {
-                prepare.setString(1, "1");
-                try {
-                    prepare.executeQuery();
-                } catch (SQLException sqle) {
-                    Assert.assertTrue(sqle instanceof SQLNonTransientConnectionException);
-                }
+        Connection connection = null;
+        try {
+            connection = DriverManager.getConnection(masterDownUrl);
+            PreparedStatement prepare = connection.prepareStatement("SELECT ?");
+            prepare.setString(1, "1");
+            try {
+                prepare.executeQuery();
+            } catch (SQLException sqle) {
+                Assert.assertTrue(sqle instanceof SQLNonTransientConnectionException);
             }
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
     @Test
     public void masterDownReadProperties() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
+        MariaDbConnection connection = null;
+        try {
+            connection = (MariaDbConnection) DriverManager.getConnection(masterDownUrl);
             String db = connection.getCatalog();
             Assert.assertFalse(connection.isReadOnly());
             Assert.assertFalse(connection.isClosed());
             connection.getNetworkTimeout();
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
     @Test
     public void masterDownTransactionIsolation() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
+        Connection connection = null;
+        try {
+            connection = DriverManager.getConnection(masterDownUrl);
             try {
                 connection.getTransactionIsolation();
             } catch (SQLException sqle) {
                 Assert.assertTrue(sqle instanceof SQLNonTransientConnectionException);
             }
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 
     @Test
     public void masterDownRollback() throws SQLException {
-        try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
+        Connection connection = null;
+        try {
+            connection = DriverManager.getConnection(masterDownUrl);
             try {
                 connection.rollback();
             } catch (SQLException sqle) {
                 Assert.assertTrue(sqle instanceof SQLNonTransientConnectionException);
             }
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 

@@ -135,6 +135,8 @@ public interface Listener {
 
     int getTimeout() throws SocketException;
 
+    int getMajorServerVersion();
+
     Protocol getCurrentProtocol();
 
     boolean hasHostFail();

@@ -615,16 +615,18 @@ public class ConnectionTest extends BaseTest {
                 + "/" + database + "?user=" + username
                 + ((password != null) ? "&password=" + password : "")
                 + "&retriesAllDown=10&allowMasterDownConnection";
-        try (Connection connection = DriverManager.getConnection(url)) {
+        Connection connection = null;
+        try {
+            connection = DriverManager.getConnection(url);
             Assert.assertFalse(connection.isReadOnly());
             connection.isValid(0);
-            try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT 1")) {
-                preparedStatement.executeQuery();
-            }
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT 1");
+            preparedStatement.executeQuery();
             connection.setReadOnly(true);
-            try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT 1")) {
-                preparedStatement.executeQuery();
-            }
+            PreparedStatement preparedStatement2 = connection.prepareStatement("SELECT 1");
+            preparedStatement2.executeQuery();
+        } finally {
+            if (connection != null) connection.close();
         }
     }
 }

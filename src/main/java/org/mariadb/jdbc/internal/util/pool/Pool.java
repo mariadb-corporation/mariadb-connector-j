@@ -515,15 +515,18 @@ public class Pool implements Closeable, PoolMBean {
                 + "@@time_zone,"
                 + "@@system_time_zone,"
                 + "@@tx_isolation";
-
-        if (!connection.isServerMariaDb() && connection.versionGreaterOrEqual(8,0,3)) {
-            sql = "SELECT @@max_allowed_packet,"
-                    + "@@wait_timeout,"
-                    + "@@autocommit,"
-                    + "@@auto_increment_increment,"
-                    + "@@time_zone,"
-                    + "@@system_time_zone,"
-                    + "@@transaction_isolation";
+        if (!connection.isServerMariaDb()) {
+            int major = connection.getMetaData().getDatabaseMajorVersion();
+            if ((major >= 8 && connection.versionGreaterOrEqual(8, 0, 3))
+                    || (major < 8 && connection.versionGreaterOrEqual(5, 7, 20))) {
+                sql = "SELECT @@max_allowed_packet,"
+                        + "@@wait_timeout,"
+                        + "@@autocommit,"
+                        + "@@auto_increment_increment,"
+                        + "@@time_zone,"
+                        + "@@system_time_zone,"
+                        + "@@transaction_isolation";
+            }
         }
         ResultSet rs = stmt.executeQuery(sql);
 

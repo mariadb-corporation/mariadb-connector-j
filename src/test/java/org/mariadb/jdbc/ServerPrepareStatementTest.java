@@ -1009,25 +1009,29 @@ public class ServerPrepareStatementTest extends BaseTest {
     }
 
     private void dateAddTest(boolean useBinary) throws SQLException {
-        try (Connection connection = setConnection("&log=true&useServerPrepStmts=" + (useBinary ? "true" : "false"))) {
-            try (PreparedStatement preparedStatement = connection.prepareStatement(
-                    "SELECT DATE_ADD('2010-12-31 23:59:59', INTERVAL 2 SECOND) as t")) {
-                ResultSet rs = preparedStatement.executeQuery();
-                while (rs.next()) {
-                    assertEquals(Date.valueOf("2011-01-01"), rs.getDate(1));
-                    assertEquals(Timestamp.valueOf("2011-01-01 00:00:01"), rs.getTimestamp(1));
-                    assertEquals("2011-01-01 00:00:01", rs.getString(1));
-                }
+        Connection connection = null;
+        try {
+            connection = setConnection("&log=true&useServerPrepStmts=" + (useBinary ? "true" : "false"));
+            PreparedStatement preparedStatement = connection.prepareStatement(
+                    "SELECT DATE_ADD('2010-12-31 23:59:59', INTERVAL 2 SECOND) as t");
+            ResultSet rs = preparedStatement.executeQuery();
+            while (rs.next()) {
+                assertEquals(Date.valueOf("2011-01-01"), rs.getDate(1));
+                assertEquals(Timestamp.valueOf("2011-01-01 00:00:01"), rs.getTimestamp(1));
+                assertEquals("2011-01-01 00:00:01", rs.getString(1));
             }
-            try (PreparedStatement preparedStatement = connection.prepareStatement(
-                    "SELECT DATE_ADD(CONVERT('2010-12-31 23:59:59',datetime(6)), INTERVAL 2 SECOND) as t")) {
-                ResultSet rs = preparedStatement.executeQuery();
-                while (rs.next()) {
-                    assertEquals("2011-01-01", rs.getDate(1).toString());
-                    assertEquals(Timestamp.valueOf("2011-01-01 00:00:01"), rs.getTimestamp(1));
-                    assertEquals("2011-01-01 00:00:01.0", rs.getString(1));
-                }
+            preparedStatement.close();
+            preparedStatement = connection.prepareStatement(
+                    "SELECT DATE_ADD(CONVERT('2010-12-31 23:59:59',datetime(6)), INTERVAL 2 SECOND) as t");
+            rs = preparedStatement.executeQuery();
+            while (rs.next()) {
+                assertEquals("2011-01-01", rs.getDate(1).toString());
+                assertEquals(Timestamp.valueOf("2011-01-01 00:00:01"), rs.getTimestamp(1));
+                assertEquals("2011-01-01 00:00:01.0", rs.getString(1));
             }
+            preparedStatement.close();
+        } finally {
+            connection.close();
         }
     }
 
