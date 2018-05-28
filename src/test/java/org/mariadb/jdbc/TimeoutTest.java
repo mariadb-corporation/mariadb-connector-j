@@ -77,7 +77,10 @@ public class TimeoutTest extends BaseTest {
      * Conj-79.
      */
     @Test
-    public void resultSetAfterSocketTimeoutTest() throws SQLException {
+    public void resultSetAfterSocketTimeoutTest() {
+        //appveyor vm are very slow, cannot compare time
+        Assume.assumeTrue(System.getenv("APPVEYOR") == null);
+
         Assume.assumeFalse(sharedIsAurora());
         int went = 0;
         for (int j = 0; j < 100; j++) {
@@ -123,14 +126,14 @@ public class TimeoutTest extends BaseTest {
         // set a short connection timeout
         Connection connection = null;
         try {
-            connection = setConnection("&connectTimeout=500&socketTimeout=500");
+            connection = setConnection("&connectTimeout=1000&socketTimeout=1000");
             PreparedStatement ps = connection.prepareStatement("SELECT 1");
             ResultSet rs = ps.executeQuery();
             assertTrue(rs.next());
             logInfo(rs. getString(1));
 
             // wait for the connection to time out
-            ps = connection.prepareStatement("SELECT sleep(1)");
+            ps = connection.prepareStatement("SELECT sleep(2)");
 
             // a timeout should occur here
             try {

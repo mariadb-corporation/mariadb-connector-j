@@ -125,7 +125,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     private final String password;
     public boolean hasWarnings = false;
     public Results activeStreamingResult = null;
-    private int dataTypeMappingFlags;
     public short serverStatus;
     protected int autoIncrementIncrement;
     protected Socket socket;
@@ -171,8 +170,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
         if (options.cachePrepStmts && options.useServerPrepStmts) {
             serverPrepareStatementCache = ServerPrepareStatementCache.newInstance(options.prepStmtCacheSize, this);
         }
-
-        setDataTypeMappingFlags();
     }
 
     private static void closeSocket(PacketInputStream packetInputStream, PacketOutputStream packetOutputStream, Socket socket) {
@@ -795,7 +792,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
                     //eat exception
                 }
             }
-
+            if (currentHost == null) {
+                throw ExceptionMapper.connException(
+                        "Could not connect to socket : " + ioException.getMessage(),
+                        ioException);
+            }
             throw ExceptionMapper.connException(
                     "Could not connect to " + currentHost.host + ":" + currentHost.port + " : " + ioException.getMessage(),
                     ioException);
@@ -808,6 +809,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         //send handshake response
         SendHandshakeResponsePacket.send(writer, this.username,
                 this.password,
+                this.currentHost,
                 database,
                 clientCapabilities,
                 serverCapabilities,
@@ -960,14 +962,26 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return isMasterConnection();
     }
 
+    /**
+     * Default collation used for string exchanges with server.
+     * (always use utf8)
+     *
+     * @param serverLanguage server default collation
+     * @return collation byte
+     */
     private byte decideLanguage(int serverLanguage) {
         //force UTF8mb4 if possible, UTF8 if not.
         if (serverLanguage == 45        //utf8mb4_general_ci
                 || serverLanguage == 46 //utf8mb4_bin
                 || (serverLanguage >= 224 && serverLanguage <= 247)) {
             return (byte) serverLanguage;
+        } else if (serverLanguage == 33        //utf8_general_ci
+                || serverLanguage == 83 //utf8_bin
+                || serverLanguage == 223 //utf8_general_mysql500_ci
+                || (serverLanguage >= 192 && serverLanguage <= 215)) {
+            return (byte) serverLanguage;
         }
-        return 33; //utf8_general_ci
+        return (byte) 224; //UTF8MB4_UNICODE_CI;
 
     }
 
@@ -1308,22 +1322,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
     }
 
-    private void setDataTypeMappingFlags() {
-        dataTypeMappingFlags = 0;
-        if (options.tinyInt1isBit) {
-            dataTypeMappingFlags |= SelectResultSet.TINYINT1_IS_BIT;
-        }
-        if (options.yearIsDateType) {
-            dataTypeMappingFlags |= SelectResultSet.YEAR_IS_DATE_TYPE;
-        }
-    }
-
     public long getServerThreadId() {
         return serverThreadId;
-    }
-
-    public int getDataTypeMappingFlags() {
-        return dataTypeMappingFlags;
     }
 
     public boolean isExplicitClosed() {

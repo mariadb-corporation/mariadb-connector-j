@@ -340,8 +340,12 @@ public class AuroraListener extends MastersSlavesListener {
                 possibleMasterProtocol.setHostAddress(getClusterHostAddress());
                 try {
                     possibleMasterProtocol.connect();
-                    possibleMasterProtocol.setMustBeMasterConnection(true);
-                    foundActiveMaster(possibleMasterProtocol);
+                    if (possibleMasterProtocol.isMasterConnection()) {
+                        possibleMasterProtocol.setMustBeMasterConnection(true);
+                        foundActiveMaster(possibleMasterProtocol);
+                    } else {
+                        possibleMasterProtocol.setMustBeMasterConnection(false);
+                    }
                 } catch (SQLException qe) {
                     if (proxy.hasToHandleFailover(qe)) {
                         addToBlacklist(possibleMasterProtocol.getHostAddress());

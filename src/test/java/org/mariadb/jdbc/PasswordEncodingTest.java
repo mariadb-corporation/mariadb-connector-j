@@ -121,10 +121,20 @@ public class PasswordEncodingTest extends BaseTest {
             connection = setConnection();
             MariaDbStatement stmt = connection.createStatement().unwrap(MariaDbStatement.class);
             stmt.execute("set @@character_set_client='" + serverCharset + "'");
-            stmt.execute("CREATE USER 'test" + charsetName + "'@'%'");
 
-            //non jdbc method that send query according to charset
-            stmt.testExecute("GRANT ALL on *.* to 'test" + charsetName + "'@'%' identified by '" + exoticPwd + "'", Charset.forName(charsetName));
+            boolean useOldNotation = true;
+            if ((isMariadbServer() && minVersion(10,2,0)) || (!isMariadbServer() && minVersion(8,0,0))) {
+                useOldNotation = false;
+            }
+            if (useOldNotation) {
+                stmt.execute("CREATE USER 'test" + charsetName + "'@'%'");
+                stmt.testExecute("GRANT ALL on *.* to 'test" + charsetName + "'@'%' identified by '" + exoticPwd + "'", Charset.forName(charsetName));
+
+            } else {
+                stmt.testExecute("CREATE USER 'test" + charsetName + "'@'%' identified by '" + exoticPwd + "'", Charset.forName(charsetName));
+                stmt.execute("GRANT ALL on *.* to 'test" + charsetName + "'@'%'");
+
+            }
             stmt.execute("FLUSH PRIVILEGES");
         } finally {
             if (connection != null) connection.close();

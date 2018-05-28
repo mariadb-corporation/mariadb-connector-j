@@ -126,7 +126,7 @@ public abstract class RowProtocol {
 
     public abstract Timestamp getInternalTimestamp(ColumnInformation columnInfo, Calendar userCalendar, TimeZone timeZone) throws SQLException;
 
-    public abstract Object getInternalObject(ColumnInformation columnInfo, int dataTypeMappingFlags, TimeZone timeZone) throws SQLException;
+    public abstract Object getInternalObject(ColumnInformation columnInfo, TimeZone timeZone) throws SQLException;
 
     public abstract boolean getInternalBoolean(ColumnInformation columnInfo) throws SQLException;
 

@@ -141,7 +141,7 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
 
     private void setMetaFromResult() {
         parameterCount = serverPrepareResult.getParameters().length;
-        metadata = new MariaDbResultSetMetaData(serverPrepareResult.getColumns(), protocol.getDataTypeMappingFlags(), returnTableAlias);
+        metadata = new MariaDbResultSetMetaData(serverPrepareResult.getColumns(), protocol.getUrlParser().getOptions(), returnTableAlias);
         parameterMetaData = new MariaDbParameterMetaData(serverPrepareResult.getParameters());
     }
 

@@ -597,12 +597,11 @@ public class TextRowProtocol extends RowProtocol {
      * Get Object from raw text format.
      *
      * @param columnInfo            column information
-     * @param dataTypeMappingFlags  hint to indicate how to handle YEAR and TINYINT
      * @param timeZone              time zone
      * @return Object value
      * @throws SQLException if column type doesn't permit conversion
      */
-    public Object getInternalObject(ColumnInformation columnInfo, int dataTypeMappingFlags, TimeZone timeZone) throws SQLException {
+    public Object getInternalObject(ColumnInformation columnInfo, TimeZone timeZone) throws SQLException {
         if (lastValueWasNull()) return null;
 
         switch (columnInfo.getColumnType()) {
@@ -655,7 +654,7 @@ public class TextRowProtocol extends RowProtocol {
             case NULL:
                 return null;
             case YEAR:
-                if ((dataTypeMappingFlags & YEAR_IS_DATE_TYPE) != 0) {
+                if (options.yearIsDateType) {
                     return getInternalDate(columnInfo, null, timeZone);
                 }
                 return getInternalShort(columnInfo);

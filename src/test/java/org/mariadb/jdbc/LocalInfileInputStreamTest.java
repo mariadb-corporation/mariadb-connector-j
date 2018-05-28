@@ -72,6 +72,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
+        Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 3));
         createTable("LocalInfileInputStreamTest", "id int, test varchar(100)");
         createTable("ttlocal", "id int, test varchar(100)");
         createTable("ldinfile", "a varchar(10)");
@@ -297,6 +298,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
     @Test
     public void testMoreThanMaxAllowedPacketLocalInfileInputStream() throws Exception {
         Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+        Assume.assumeFalse(sharedIsAurora());
         Statement stmt = sharedConnection.createStatement();
         ResultSet rs = stmt.executeQuery("select @@max_allowed_packet");
         assertTrue(rs.next());

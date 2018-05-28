@@ -1225,7 +1225,7 @@ public class MariaDbStatement implements Statement, Cloneable {
             return results.getCmdInformation().getUpdateCounts();
 
         } catch (SQLException initialSqlEx) {
-            results.commandEnd();
+            if (results != null) results.commandEnd();
             throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), size);
         } finally {
             executeBatchEpilogue();

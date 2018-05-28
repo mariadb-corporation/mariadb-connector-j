@@ -92,6 +92,7 @@ import java.net.SocketException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.sql.*;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.ServiceLoader;
@@ -1016,6 +1017,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                     writer.flush();
                     return true;
                 } catch (IOException e) {
+                    connected = false;
                     throw new SQLException("Could not deallocate query: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
                 }
 
@@ -1058,6 +1060,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             return buffer.getByteAt(0) == OK;
 
         } catch (IOException e) {
+            connected = false;
             throw new SQLException("Could not ping: " + e.getMessage(), CONNECTION_EXCEPTION.getSqlState(), e);
         } finally {
             lock.unlock();
@@ -1079,29 +1082,30 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         try {
             initialTimeout = socket.getSoTimeout();
             if (initialTimeout == 0) socket.setSoTimeout(timeout);
-            if (isMasterConnection() && urlParser.isMultiMaster()) {
+            if (isMasterConnection() && urlParser.getOptions().galeraAllowedState != null) {
                 //this is a galera node.
-                //checking not only that node is responding, but that this node is in primary mode too.
+                //checking not only that node is responding, but that galera state is allowed.
                 Results results = new Results();
-                executeQuery(true, results, "show status like 'wsrep_cluster_status'");
+                executeQuery(true, results, "show status like 'wsrep_local_state'");
                 results.commandEnd();
                 ResultSet rs = results.getResultSet();
                 if (rs == null || !rs.next()) return false;
-                return "PRIMARY".equalsIgnoreCase(rs.getString(2));
+                String[] allowedValues = urlParser.getOptions().galeraAllowedState.split(",");
+                return Arrays.asList(allowedValues).contains(rs.getString(2)); //SYNC mode
             }
 
             return ping();
 
         } catch (SocketException socketException) {
-            throw new SQLException("Could not valid connection : " + socketException.getMessage(),
-                    CONNECTION_EXCEPTION.getSqlState(),
-                    socketException);
+            connected = false;
+            return false;
         } finally {
 
             //set back initial socket timeout
             try {
                 if (initialTimeout != -1) socket.setSoTimeout(initialTimeout);
             } catch (SocketException socketException) {
+                connected = false;
                 //eat
             }
         }
@@ -1224,15 +1228,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         if (serverPrepareResult.canBeDeallocate()) {
             forceReleasePrepareStatement(serverPrepareResult.getStatementId());
         }
-    }
-
-    /**
-     * Set max row return by a statement.
-     *
-     * @param max row number max value
-     */
-    public void setInternalMaxRows(long max) {
-        if (maxRows != max) maxRows = max;
     }
 
     public long getMaxRows() {
@@ -1612,9 +1607,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 // - after a callable resultSet, a OK packet is send, but mysql does send the  a bad "more result flag"
                 Buffer bufferEof = reader.getPacket(true);
                 if (bufferEof.readByte() != EOF) {
-                    throw new SQLException("Packets out of order when reading field packets, expected was EOF stream."
+                    //using IOException to close connection,
+                    throw new IOException("Packets out of order when reading field packets, expected was EOF stream."
                             + ((options.enablePacketDebug) ? getTraces() : "Packet contents (hex) = "
-                                + Utils.hexdump(options.maxQuerySizeToLog, 0, bufferEof.position, bufferEof.buf)));
+                                + Utils.hexdump(options.maxQuerySizeToLog, 0, bufferEof.limit, bufferEof.buf)));
                 }
                 bufferEof.skipBytes(2); //Skip warningCount
                 callableResult = (bufferEof.readShort() & ServerStatus.PS_OUT_PARAMETERS) != 0;
@@ -1767,6 +1763,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             try {
                 connect();
             } catch (SQLException queryException) {
+                connected = false;
                 return new SQLNonTransientConnectionException(initialException.getMessage()
                         + "\nError during reconnection" + getTraces(), CONNECTION_EXCEPTION.getSqlState(), initialException);
             }
@@ -1781,7 +1778,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             return new SQLException("Could not send query: query size is >= to max_allowed_packet ("
                     + writer.getMaxAllowedPacket() + ")" + getTraces(), UNDEFINED_SQLSTATE.getSqlState(), initialException);
         }
-
+        if (!driverPreventError) connected = false;
         return new SQLException(initialException.getMessage() + getTraces(),
                 driverPreventError ? UNDEFINED_SQLSTATE.getSqlState() : CONNECTION_EXCEPTION.getSqlState(), initialException);
 

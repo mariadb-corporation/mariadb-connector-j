@@ -54,7 +54,7 @@ package org.mariadb.jdbc;
 
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
+import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
@@ -66,19 +66,19 @@ import java.sql.Types;
 public class MariaDbResultSetMetaData implements ResultSetMetaData {
 
     private final ColumnInformation[] fieldPackets;
-    private final int datatypeMappingflags;
+    private final Options options;
     private final boolean returnTableAlias;
 
     /**
      * Constructor.
      *
-     * @param fieldPackets         column informations
-     * @param datatypeMappingFlags Data type
-     * @param returnTableAlias     must return table alias or real table name
+     * @param fieldPackets          column informations
+     * @param options               connection options
+     * @param returnTableAlias      must return table alias or real table name
      */
-    public MariaDbResultSetMetaData(ColumnInformation[] fieldPackets, int datatypeMappingFlags, boolean returnTableAlias) {
+    public MariaDbResultSetMetaData(ColumnInformation[] fieldPackets, Options options, boolean returnTableAlias) {
         this.fieldPackets = fieldPackets;
-        this.datatypeMappingflags = datatypeMappingFlags;
+        this.options = options;
         this.returnTableAlias = returnTableAlias;
     }
 
@@ -282,17 +282,15 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
                 }
                 return Types.VARBINARY;
             case TINYINT:
-                if (ci.getLength() == 1 && (datatypeMappingflags & SelectResultSet.TINYINT1_IS_BIT) != 0) {
+                if (ci.getLength() == 1 && options.tinyInt1isBit) {
                     return Types.BIT;
-                } else {
-                    return Types.TINYINT;
                 }
+                return Types.TINYINT;
             case YEAR:
-                if ((datatypeMappingflags & SelectResultSet.YEAR_IS_DATE_TYPE) != 0) {
+                if (options.yearIsDateType) {
                     return Types.DATE;
-                } else {
-                    return Types.SMALLINT;
                 }
+                return Types.SMALLINT;
             case BLOB:
                 if (ci.getLength() < 0 || ci.getLength() > 16777215) {
                     return Types.LONGVARBINARY;
@@ -381,7 +379,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
     public String getColumnClassName(int column) throws SQLException {
         ColumnInformation ci = getColumnInformation(column);
         ColumnType type = ci.getColumnType();
-        return ColumnType.getClassName(type, (int) ci.getLength(), ci.isSigned(), ci.isBinary(), datatypeMappingflags);
+        return ColumnType.getClassName(type, (int) ci.getLength(), ci.isSigned(), ci.isBinary(), options);
     }
 
     private ColumnInformation getColumnInformation(int column) throws SQLException {

@@ -53,6 +53,8 @@
 package org.mariadb.jdbc.internal.failover;
 
 import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.MariaDbConnection;
+import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -69,17 +71,28 @@ import java.util.concurrent.locks.ReentrantLock;
 public class FailoverProxy implements InvocationHandler {
     private static final String METHOD_IS_EXPLICIT_CLOSED = "isExplicitClosed";
     private static final String METHOD_GET_OPTIONS = "getOptions";
+    private static final String METHOD_GET_URLPARSER = "getUrlParser";
     private static final String METHOD_GET_PROXY = "getProxy";
     private static final String METHOD_EXECUTE_QUERY = "executeQuery";
     private static final String METHOD_SET_READ_ONLY = "setReadonly";
-    private static final String METHOD_IS_READ_ONLY = "isReadOnly";
+    private static final String METHOD_GET_READ_ONLY = "getReadonly";
+    private static final String METHOD_IS_MASTER_CONNECTION = "isMasterConnection";
+    private static final String METHOD_VERSION_GREATER_OR_EQUAL = "versionGreaterOrEqual";
+    private static final String METHOD_SESSION_STATE_AWARE = "sessionStateAware";
     private static final String METHOD_CLOSED_EXPLICIT = "closeExplicit";
+    private static final String METHOD_ABORT = "abort";
     private static final String METHOD_IS_CLOSED = "isClosed";
     private static final String METHOD_EXECUTE_PREPARED_QUERY = "executePreparedQuery";
     private static final String METHOD_COM_MULTI_PREPARE_EXECUTES = "prepareAndExecutesComMulti";
     private static final String METHOD_PROLOG_PROXY = "prologProxy";
     private static final String METHOD_RESET = "reset";
     private static final String METHOD_IS_VALID = "isValid";
+    private static final String METHOD_GET_LOCK = "getLock";
+    private static final String METHOD_GET_NO_BACKSLASH = "noBackslashEscapes";
+    private static final String METHOD_GET_SERVER_THREAD_ID = "getServerThreadId";
+    private static final String METHOD_PROLOG = "prolog";
+    private static final String METHOD_GET_CATALOG = "getCatalog";
+    private static final String METHOD_GET_TIMEOUT = "getTimeout";
 
 
     private static final Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
@@ -135,16 +148,35 @@ public class FailoverProxy implements InvocationHandler {
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         String methodName = method.getName();
-        if (METHOD_IS_EXPLICIT_CLOSED.equals(methodName)) {
+        if (METHOD_GET_LOCK.equals(methodName)) {
+            return this.lock;
+        } else if (METHOD_GET_NO_BACKSLASH.equals(methodName)) {
+            return listener.noBackslashEscapes();
+        } else if (METHOD_GET_CATALOG.equals(methodName)) {
+            return listener.getCatalog();
+        } else if (METHOD_GET_TIMEOUT.equals(methodName)) {
+            return listener.getTimeout();
+        } else if (METHOD_VERSION_GREATER_OR_EQUAL.equals(methodName)) {
+            return listener.versionGreaterOrEqual((int) args[0], (int) args[1], (int) args[2]);
+        } else if (METHOD_SESSION_STATE_AWARE.equals(methodName)) {
+            return listener.sessionStateAware();
+        } else if (METHOD_IS_EXPLICIT_CLOSED.equals(methodName)) {
             return listener.isExplicitClosed();
         } else if (METHOD_GET_OPTIONS.equals(methodName)) {
             return listener.getUrlParser().getOptions();
+        } else if (METHOD_GET_SERVER_THREAD_ID.equals(methodName)) {
+            return listener.getServerThreadId();
+        } else if (METHOD_GET_URLPARSER.equals(methodName)) {
+            return listener.getUrlParser();
         } else if (METHOD_GET_PROXY.equals(methodName)) {
             return this;
         } else if (METHOD_IS_CLOSED.equals(methodName)) {
             return listener.isClosed();
         } else if (METHOD_IS_VALID.equals(methodName)) {
-            return listener.isValid((Integer) args[0]);
+            return listener.isValid((int) args[0]);
+        } else if (METHOD_PROLOG.equals(methodName)) {
+            listener.prolog((long) args[0], (MariaDbConnection) args[2], (MariaDbStatement) args[3]);
+            return null;
         } else if (METHOD_EXECUTE_QUERY.equals(methodName)) {
             try {
                 this.listener.preExecute();
@@ -158,8 +190,13 @@ public class FailoverProxy implements InvocationHandler {
         } else if (METHOD_SET_READ_ONLY.equals(methodName)) {
             this.listener.switchReadOnlyConnection((Boolean) args[0]);
             return null;
-        } else if (METHOD_IS_READ_ONLY.equals(methodName)) {
+        } else if (METHOD_GET_READ_ONLY.equals(methodName)) {
             return this.listener.isReadOnly();
+        } else if (METHOD_IS_MASTER_CONNECTION.equals(methodName)) {
+            return this.listener.isMasterConnection();
+        } else if (METHOD_ABORT.equals(methodName)) {
+            this.listener.preAbort();
+            return null;
         } else if (METHOD_CLOSED_EXPLICIT.equals(methodName)) {
             this.listener.preClose();
             return null;
@@ -171,9 +208,9 @@ public class FailoverProxy implements InvocationHandler {
                     //PrepareStatement was to be executed on slave, but since a failover was running on master connection. Slave connection is up
                     // again, so has to be re-prepared on slave
                     try {
-                        logger.trace("re-prepare query \"" + serverPrepareResult.getSql() + "\" on slave (was "
-                                + "temporary on master since failover)");
-                        this.listener.rePrepareOnSlave(serverPrepareResult, mustBeOnMaster);
+                        logger.trace("re-prepare query \"{}\" on slave (was "
+                                + "temporary on master since failover)", serverPrepareResult.getSql());
+                        this.listener.rePrepareOnSlave(serverPrepareResult, false);
                     } catch (SQLException q) {
                         //error during re-prepare, will do executed on master.
                     }
@@ -182,11 +219,10 @@ public class FailoverProxy implements InvocationHandler {
                     return listener.invoke(method, args, serverPrepareResult.getUnProxiedProtocol());
                 } catch (InvocationTargetException e) {
                     if (e.getTargetException() != null) {
-                        if (e.getTargetException() instanceof SQLException) {
-                            if (hasToHandleFailover((SQLException) e.getTargetException())) {
-                                return handleFailOver((SQLException) e.getTargetException(), method, args,
-                                        serverPrepareResult.getUnProxiedProtocol());
-                            }
+                        if (e.getTargetException() instanceof SQLException
+                                && hasToHandleFailover((SQLException) e.getTargetException())) {
+                            return handleFailOver((SQLException) e.getTargetException(), method, args,
+                                    serverPrepareResult.getUnProxiedProtocol());
                         }
                         throw e.getTargetException();
                     }
@@ -200,11 +236,10 @@ public class FailoverProxy implements InvocationHandler {
                 }
             } catch (InvocationTargetException e) {
                 if (e.getTargetException() != null) {
-                    if (e.getTargetException() instanceof SQLException) {
-                        if (hasToHandleFailover((SQLException) e.getTargetException())) {
-                            return handleFailOver((SQLException) e.getTargetException(), method, args,
-                                    ((ServerPrepareResult) args[0]).getUnProxiedProtocol());
-                        }
+                    if (e.getTargetException() instanceof SQLException
+                            && hasToHandleFailover((SQLException) e.getTargetException())) {
+                        return handleFailOver((SQLException) e.getTargetException(), method, args,
+                                ((ServerPrepareResult) args[0]).getUnProxiedProtocol());
                     }
                     throw e.getTargetException();
                 }

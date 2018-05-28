@@ -56,6 +56,7 @@ import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
+import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.dao.Identifier;
@@ -87,16 +88,16 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         this.url = url;
     }
 
-    private static String columnTypeClause(int dataTypeMappingFlags) {
+    private static String columnTypeClause(Options options) {
         String upperCaseWithoutSize = " UCASE(IF( COLUMN_TYPE LIKE '%(%)%', CONCAT(SUBSTRING( COLUMN_TYPE,1, LOCATE('(',"
                 + "COLUMN_TYPE) - 1 ), SUBSTRING(COLUMN_TYPE ,1+locate(')', COLUMN_TYPE))), "
                 + "COLUMN_TYPE))";
 
-        if ((dataTypeMappingFlags & SelectResultSet.TINYINT1_IS_BIT) > 0) {
+        if (options.tinyInt1isBit) {
             upperCaseWithoutSize = " IF(COLUMN_TYPE like 'tinyint(1)%', 'BIT', " + upperCaseWithoutSize + ")";
         }
 
-        if ((dataTypeMappingFlags & SelectResultSet.YEAR_IS_DATE_TYPE) == 0) {
+        if (!options.yearIsDateType) {
             return " IF(COLUMN_TYPE IN ('year(2)', 'year(4)'), 'SMALLINT', " + upperCaseWithoutSize + ")";
         }
 
@@ -405,6 +406,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
 
     private String dataTypeClause(String fullTypeColumnName) {
+        Options options = connection.getProtocol().getUrlParser().getOptions();
         return " CASE data_type"
                 + " WHEN 'bit' THEN " + Types.BIT
                 + " WHEN 'tinyblob' THEN " + Types.VARBINARY
@@ -435,11 +437,10 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + " WHEN 'time' THEN " + Types.TIME
                 + " WHEN 'timestamp' THEN " + Types.TIMESTAMP
                 + " WHEN 'tinyint' THEN "
-                + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSet.TINYINT1_IS_BIT) == 0)
-                ? Types.TINYINT : "IF(" + fullTypeColumnName + " like 'tinyint(1)%'," + Types.BIT + "," + Types.TINYINT + ") ")
+                + (options.tinyInt1isBit
+                ? "IF(" + fullTypeColumnName + " like 'tinyint(1)%'," + Types.BIT + "," + Types.TINYINT + ") " : Types.TINYINT)
                 + " WHEN 'year' THEN "
-                + (((connection.getProtocol().getDataTypeMappingFlags() & SelectResultSet.YEAR_IS_DATE_TYPE) == 0)
-                ? Types.SMALLINT : Types.DATE)
+                + (options.yearIsDateType ? Types.DATE : Types.SMALLINT)
                 + " ELSE " + Types.OTHER
                 + " END ";
     }
@@ -522,10 +523,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      * @throws SQLException if a database access error occurs
      */
     public ResultSet getPrimaryKeys(String catalog, String schema, String table) throws SQLException {
+        //MySQL 8 now use 'PRI' in place of 'pri'
         String sql =
                 "SELECT A.TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, A.TABLE_NAME, A.COLUMN_NAME, B.SEQ_IN_INDEX KEY_SEQ, B.INDEX_NAME PK_NAME "
                         + " FROM INFORMATION_SCHEMA.COLUMNS A, INFORMATION_SCHEMA.STATISTICS B"
-                        + " WHERE A.COLUMN_KEY='pri' AND B.INDEX_NAME='PRIMARY' "
+                        + " WHERE A.COLUMN_KEY in ('PRI','pri') AND B.INDEX_NAME='PRIMARY' "
                         + " AND "
                         + catalogCond("A.TABLE_SCHEMA", catalog)
                         + " AND "
@@ -659,10 +661,10 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
      */
     public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern)
             throws SQLException {
-        int dataType = connection.getProtocol().getDataTypeMappingFlags();
+        Options options = connection.getProtocol().getUrlParser().getOptions();
         String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
                 + dataTypeClause("COLUMN_TYPE") + " DATA_TYPE,"
-                + columnTypeClause(dataType) + " TYPE_NAME, "
+                + columnTypeClause(options) + " TYPE_NAME, "
                 + " CASE DATA_TYPE"
                 + "  WHEN 'time' THEN "
                 + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 10, CAST(11 + DATETIME_PRECISION as signed integer))" : "10")
@@ -671,15 +673,15 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
                 + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
                 + "  WHEN 'timestamp' THEN "
                 + (datePrecisionColumnExist ? "IF(DATETIME_PRECISION = 0, 19, CAST(20 + DATETIME_PRECISION as signed integer))" : "19")
-                + (((dataType & SelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? " WHEN 'year' THEN 5" : "")
+                + (options.yearIsDateType ? "" : " WHEN 'year' THEN 5")
                 + "  ELSE "
                 + "  IF(NUMERIC_PRECISION IS NULL, LEAST(CHARACTER_MAXIMUM_LENGTH," + Integer.MAX_VALUE + "), NUMERIC_PRECISION) "
                 + " END"
                 + " COLUMN_SIZE, 65535 BUFFER_LENGTH, "
 
                 + " CONVERT (CASE DATA_TYPE"
-                + " WHEN 'year' THEN " + (((dataType & SelectResultSet.YEAR_IS_DATE_TYPE) == 0) ? "0" : "NUMERIC_SCALE")
-                + " WHEN 'tinyint' THEN " + (((dataType & SelectResultSet.TINYINT1_IS_BIT) > 0) ? "0" : "NUMERIC_SCALE")
+                + " WHEN 'year' THEN " + (options.yearIsDateType ? "NUMERIC_SCALE" : "0")
+                + " WHEN 'tinyint' THEN " + (options.tinyInt1isBit ? "0" : "NUMERIC_SCALE")
                 + " ELSE NUMERIC_SCALE END, UNSIGNED INTEGER) DECIMAL_DIGITS,"
 
                 + " 10 NUM_PREC_RADIX, IF(IS_NULLABLE = 'yes',1,0) NULLABLE,COLUMN_COMMENT REMARKS,"

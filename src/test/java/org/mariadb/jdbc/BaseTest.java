@@ -810,6 +810,18 @@ public class BaseTest {
     }
 
     /**
+     * Check if version if at minimum the version asked.
+     *
+     * @param major database major version
+     * @param minor database minor version
+     * @param patch database patch version
+     * @throws SQLException exception
+     */
+    public static boolean minVersion(int major, int minor, int patch) {
+        return ((MariaDbConnection) sharedConnection).versionGreaterOrEqual(major, minor, patch);
+    }
+
+    /**
      * Check if version if before the version asked.
      *
      * @param major database major version
@@ -976,29 +988,16 @@ public class BaseTest {
      * @return number of thread connected.
      * @throws SQLException if queries failed
      */
-    public static int getCurrentConnections() throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
+    public static int getCurrentConnections() {
+        try {
+            Statement stmt = sharedConnection.createStatement();
+            ResultSet rs = stmt.executeQuery("show status where `variable_name` = 'Threads_connected'");
+            assertTrue(rs.next());
+            return rs.getInt(2);
 
-        ResultSet rs = stmt.executeQuery("SHOW FULL PROCESSLIST");
-
-        ResultSetMetaData rsMeta = rs.getMetaData();
-        for (int i = 0 ; i < rsMeta.getColumnCount(); i++) {
-            System.out.print("| " + rsMeta.getColumnName(i + 1));
+        } catch (SQLException e) {
+            return -1;
         }
-        System.out.println("");
-
-        while (rs.next()) {
-            for (int i = 0 ; i < rsMeta.getColumnCount(); i++) {
-                System.out.print("| " + rs.getString(i + 1));
-            }
-            System.out.println("");
-        }
-        System.out.println("__________________________________________________________");
-
-
-        rs = stmt.executeQuery("show status where `variable_name` = 'Threads_connected'");
-        assertTrue(rs.next());
-        return rs.getInt(2);
     }
 
     /**

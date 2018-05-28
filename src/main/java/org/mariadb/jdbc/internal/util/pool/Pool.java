@@ -508,14 +508,24 @@ public class Pool implements Closeable, PoolMBean {
 
     private void initializePoolGlobalState(MariaDbConnection connection) throws SQLException {
         Statement stmt = connection.createStatement();
-        ResultSet rs = stmt.executeQuery(
-                "SELECT @@max_allowed_packet,"
-                        + "@@wait_timeout,"
-                        + "@@autocommit,"
-                        + "@@auto_increment_increment,"
-                        + "@@time_zone,"
-                        + "@@system_time_zone,"
-                        + "@@tx_isolation");
+        String sql = "SELECT @@max_allowed_packet,"
+                + "@@wait_timeout,"
+                + "@@autocommit,"
+                + "@@auto_increment_increment,"
+                + "@@time_zone,"
+                + "@@system_time_zone,"
+                + "@@tx_isolation";
+
+        if (!connection.isServerMariaDb() && connection.versionGreaterOrEqual(8,0,3)) {
+            sql = "SELECT @@max_allowed_packet,"
+                    + "@@wait_timeout,"
+                    + "@@autocommit,"
+                    + "@@auto_increment_increment,"
+                    + "@@time_zone,"
+                    + "@@system_time_zone,"
+                    + "@@transaction_isolation";
+        }
+        ResultSet rs = stmt.executeQuery(sql);
 
         if (rs.next()) {
 

@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
+import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
@@ -97,6 +98,7 @@ public class SendHandshakeResponsePacket {
      * @param pos                output stream
      * @param username           user name
      * @param password           password
+     * @param currentHost        current hostname
      * @param database           database name
      * @param clientCapabilities client capabilities
      * @param serverCapabilities server capabilities
@@ -110,6 +112,7 @@ public class SendHandshakeResponsePacket {
     public static void send(final PacketOutputStream pos,
                             final String username,
                             final String password,
+                            final HostAddress currentHost,
                             final String database,
                             final long clientCapabilities,
                             final long serverCapabilities,
@@ -178,7 +181,7 @@ public class SendHandshakeResponsePacket {
         }
 
         if ((serverCapabilities & MariaDbServerCapabilities.CONNECT_ATTRS) != 0) {
-            writeConnectAttributes(pos, options.connectionAttributes);
+            writeConnectAttributes(pos, options.connectionAttributes, currentHost);
         }
 
         pos.flush();
@@ -187,13 +190,14 @@ public class SendHandshakeResponsePacket {
 
     private static final byte[] _CLIENT_NAME = "_client_name".getBytes();
     private static final byte[] _CLIENT_VERSION = "_client_version".getBytes();
+    private static final byte[] _SERVER_HOST = "_server_host".getBytes();
     private static final byte[] _OS = "_os".getBytes();
     private static final byte[] _PID = "_pid".getBytes();
     private static final byte[] _THREAD = "_thread".getBytes();
     private static final byte[] _JAVA_VENDOR = "_java_vendor".getBytes();
     private static final byte[] _JAVA_VERSION = "_java_version".getBytes();
 
-    private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes) throws IOException {
+    private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes, HostAddress currentHost) throws IOException {
         Buffer buffer = new Buffer(new byte[200]);
 
         buffer.writeStringSmallLength(_CLIENT_NAME);
@@ -201,6 +205,9 @@ public class SendHandshakeResponsePacket {
 
         buffer.writeStringSmallLength(_CLIENT_VERSION);
         buffer.writeStringLength(Version.version);
+
+        buffer.writeStringSmallLength(_SERVER_HOST);
+        buffer.writeStringLength( (currentHost != null) ? currentHost.host : "");
 
         buffer.writeStringSmallLength(_OS);
         buffer.writeStringLength(System.getProperty("os.name"));

@@ -31,6 +31,15 @@
 
 ---
 
+== 1.7.4
+
+Minor changes:
+[CONJ-580] Some options are missing in documentation like default 'autocommit' value
+[CONJ-597] Internal exchanges send utf8mb4 with server even if default server collation is not utf8/utf8mb4
+[CONJ-600] Upgrading non mandatory Waffle dependency to 1.9.0 (windows GSSAPI authentication)
+[CONJ-575] test addition to ensure YaSSL downgrade TLSv1.2 protocol to TLSv1.1
+
+
 == 1.7.3
 
 Bug correction:

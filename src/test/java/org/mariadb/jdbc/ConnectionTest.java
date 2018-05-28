@@ -52,10 +52,7 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
-import org.junit.AssumptionViolatedException;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 import java.io.UnsupportedEncodingException;
@@ -543,16 +540,13 @@ public class ConnectionTest extends BaseTest {
         try {
             stmt.execute("CREATE USER verificationEd25519AuthPlugin@'%' IDENTIFIED "
                     + "VIA ed25519 USING 'ZIgUREUg5PVgQ6LskhXmO+eZLS0nC8be6HPjYWR4YJY'");
-            stmt.execute("CREATE USER verificationEd25519AuthPlugin@'localhost' IDENTIFIED "
-                    + "VIA ed25519 USING 'ZIgUREUg5PVgQ6LskhXmO+eZLS0nC8be6HPjYWR4YJY'");
         } catch (SQLException sqle) {
             //already existing
         }
         stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin@'%'");
-        stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin@'localhost'");
 
         String url = "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
-                + "?user=verificationEd25519AuthPlugin&password=secret";
+                + "?user=verificationEd25519AuthPlugin&password=secret&debug=true";
 
         Connection connection = null;
         try {
@@ -562,7 +556,6 @@ public class ConnectionTest extends BaseTest {
             if (connection != null) connection.close();
         }
         stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
-        stmt.execute("drop user verificationEd25519AuthPlugin@'localhost'");
     }
 
 
@@ -578,19 +571,22 @@ public class ConnectionTest extends BaseTest {
 
     @Test
     public void loopSleepTest() throws Exception {
+        //appveyor vm are very slow, cannot compare time
+        Assume.assumeTrue(System.getenv("APPVEYOR") == null);
+
         //initialize DNS to avoid having wrong timeout
         initializeDns("host1");
         initializeDns("host2");
         initializeDns("host1.555-rds.amazonaws.com");
 
         //failover
-        checkConnection("jdbc:mariadb:failover://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 3200);
+        checkConnection("jdbc:mariadb:failover://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=20", 2000, 3200);
         //replication
-        checkConnection("jdbc:mariadb:replication://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 3200);
+        checkConnection("jdbc:mariadb:replication://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=20", 2000, 3200);
         //aurora - no cluster end point
-        checkConnection("jdbc:mariadb:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=200", 2000, 3200);
+        checkConnection("jdbc:mariadb:aurora://host1,host2/testj?user=root&retriesAllDown=20&connectTimeout=20", 2000, 3200);
         //aurora - using cluster end point
-        checkConnection("jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=200", 4500, 10000);
+        checkConnection("jdbc:mariadb:aurora://host1.555-rds.amazonaws.com/testj?user=root&retriesAllDown=20&connectTimeout=20", 4500, 10000);
 
     }
 
@@ -612,4 +608,23 @@ public class ConnectionTest extends BaseTest {
         }
     }
 
+    @Test
+    public void slaveDownConnection() throws SQLException {
+        String url = "jdbc:mariadb:replication//" + hostname + ((port == 0) ? "" : ":" + port)
+                + "," + hostname + ":8888"
+                + "/" + database + "?user=" + username
+                + ((password != null) ? "&password=" + password : "")
+                + "&retriesAllDown=10&allowMasterDownConnection";
+        try (Connection connection = DriverManager.getConnection(url)) {
+            Assert.assertFalse(connection.isReadOnly());
+            connection.isValid(0);
+            try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT 1")) {
+                preparedStatement.executeQuery();
+            }
+            connection.setReadOnly(true);
+            try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT 1")) {
+                preparedStatement.executeQuery();
+            }
+        }
+    }
 }

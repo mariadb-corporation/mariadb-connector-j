@@ -80,7 +80,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public interface Protocol {
     ServerPrepareResult prepare(String sql, boolean executeOnMaster) throws SQLException;
 
-    boolean getAutocommit();
+    boolean getAutocommit() throws SQLException;
 
     boolean noBackslashEscapes();
 
@@ -118,7 +118,7 @@ public interface Protocol {
 
     boolean isConnected();
 
-    boolean getReadonly();
+    boolean getReadonly() throws SQLException ;
 
     @SuppressWarnings("RedundantThrows")
     void setReadonly(boolean readOnly) throws SQLException;
@@ -178,10 +178,6 @@ public interface Protocol {
     boolean checkIfMaster() throws SQLException;
 
     boolean hasWarnings();
-
-    int getDataTypeMappingFlags();
-
-    void setInternalMaxRows(long max);
 
     long getMaxRows();
 
@@ -260,7 +256,7 @@ public interface Protocol {
 
     void setActiveFutureTask(FutureTask activeFutureTask);
 
-    boolean isServerMariaDb();
+    boolean isServerMariaDb() throws SQLException;
 
     SQLException handleIoException(IOException initialException);
 

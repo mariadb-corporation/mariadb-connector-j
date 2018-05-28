@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc.failover;
 
-import com.google.common.collect.Lists;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -63,7 +62,11 @@ import org.mariadb.jdbc.MariaDbPoolDataSource;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -104,12 +107,12 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
         List<HostAddress> initAddresses = urlParser.getHostAddresses();
 
         for (int i = 0; i < initAddresses.size(); i++) {
-            urlParser.setHostAddresses(Lists.newArrayList(initAddresses.get(i)));
+            urlParser.setHostAddresses(Arrays.asList(initAddresses.get(i)));
             Connection master = null;
             try {
                 master = MariaDbConnection.newConnection(urlParser, null);
                 Statement stmt = master.createStatement();
-                ResultSet rs = stmt.executeQuery("show status like 'wsrep_cluster_status'");
+                ResultSet rs = stmt.executeQuery("show status like 'wsrep_local_state'");
                 assertTrue(rs.next());
                 System.out.println("host:" + initAddresses.get(i) + " status:" + rs.getString(2));
             } finally {

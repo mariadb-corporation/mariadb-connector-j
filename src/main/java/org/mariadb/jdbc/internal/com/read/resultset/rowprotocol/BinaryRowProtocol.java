@@ -52,7 +52,6 @@
 
 package org.mariadb.jdbc.internal.com.read.resultset.rowprotocol;
 
-import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.util.Options;
@@ -678,6 +677,7 @@ public class BinaryRowProtocol extends RowProtocol {
      * @return date value
      * @throws SQLException if column is not compatible to Date
      */
+    @SuppressWarnings( "deprecation" )
     public Date getInternalDate(ColumnInformation columnInfo, Calendar cal, TimeZone timeZone) throws SQLException {
         if (lastValueWasNull()) return null;
         switch (columnInfo.getColumnType()) {
@@ -687,6 +687,18 @@ public class BinaryRowProtocol extends RowProtocol {
                 return (timestamp == null) ? null : new Date(timestamp.getTime());
             case TIME:
                 throw new SQLException("Cannot read Date using a Types.TIME field");
+            case STRING:
+                String rawValue = new String(buf, pos, length, Buffer.UTF_8);
+                if ("0000-00-00".equals(rawValue)) {
+                    lastValueNull |= BIT_LAST_ZERO_DATE;
+                    return null;
+                }
+
+                return new Date(
+                        Integer.parseInt(rawValue.substring(0, 4)) - 1900,
+                        Integer.parseInt(rawValue.substring(5, 7)) - 1,
+                        Integer.parseInt(rawValue.substring(8, 10))
+                );
             default:
                 if (length == 0) {
                     lastValueNull |= BIT_LAST_FIELD_NULL;
@@ -798,64 +810,87 @@ public class BinaryRowProtocol extends RowProtocol {
             return null;
         }
 
-        int year;
-        int month;
+        int year = 1970;
+        int month = 0;
         int day = 0;
         int hour = 0;
         int minutes = 0;
         int seconds = 0;
         int microseconds = 0;
 
-        if (columnInfo.getColumnType() == ColumnType.TIME) {
-            Calendar calendar = userCalendar != null ? userCalendar : Calendar.getInstance();
+        switch (columnInfo.getColumnType()) {
+            case TIME:
+                Calendar calendar = userCalendar != null ? userCalendar : Calendar.getInstance();
 
-            boolean negate = false;
-            if (length > 0) {
-                negate = (buf[pos] & 0xff) == 0x01;
-            }
-            if (length > 4) {
-                day = ((buf[pos + 1] & 0xff)
-                        + ((buf[pos + 2] & 0xff) << 8)
-                        + ((buf[pos + 3] & 0xff) << 16)
-                        + ((buf[pos + 4] & 0xff) << 24));
-            }
-            if (length > 7) {
-                hour = buf[pos + 5];
-                minutes = buf[pos + 6];
-                seconds = buf[pos + 7];
-            }
-
-            if (length > 8) {
-                microseconds = ((buf[pos + 8] & 0xff)
-                        + ((buf[pos + 9] & 0xff) << 8)
-                        + ((buf[pos + 10] & 0xff) << 16)
-                        + ((buf[pos + 11] & 0xff) << 24));
-            }
-
-            Timestamp tt;
-            synchronized (calendar) {
-                calendar.clear();
-                calendar.set(1970, Calendar.JANUARY, ((negate ? -1 : 1) * day) + 1, (negate ? -1 : 1) * hour, minutes, seconds);
-                tt = new Timestamp(calendar.getTimeInMillis());
-            }
-            tt.setNanos(microseconds * 1000);
-            return tt;
-        } else {
-            year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
-            month = buf[pos + 2];
-            day = buf[pos + 3];
-            if (length > 4) {
-                hour = buf[pos + 4];
-                minutes = buf[pos + 5];
-                seconds = buf[pos + 6];
-
-                if (length > 7) {
-                    microseconds = ((buf[pos + 7] & 0xff)
-                            + ((buf[pos + 8] & 0xff) << 8)
-                            + ((buf[pos + 9] & 0xff) << 16)
-                            + ((buf[pos + 10] & 0xff) << 24));
+                boolean negate = false;
+                if (length > 0) {
+                    negate = (buf[pos] & 0xff) == 0x01;
                 }
-            }
+                if (length > 4) {
+                    day = ((buf[pos + 1] & 0xff)
+                            + ((buf[pos + 2] & 0xff) << 8)
+                            + ((buf[pos + 3] & 0xff) << 16)
+                            + ((buf[pos + 4] & 0xff) << 24));
+                }
+                if (length > 7) {
+                    hour = buf[pos + 5];
+                    minutes = buf[pos + 6];
+                    seconds = buf[pos + 7];
+                }
+
+                if (length > 8) {
+                    microseconds = ((buf[pos + 8] & 0xff)
+                            + ((buf[pos + 9] & 0xff) << 8)
+                            + ((buf[pos + 10] & 0xff) << 16)
+                            + ((buf[pos + 11] & 0xff) << 24));
+                }
+                year = 1970;
+                month = 1;
+                day = ((negate ? -1 : 1) * day) + 1;
+                hour = (negate ? -1 : 1) * hour;
+                break;
+
+            case STRING:
+            case VARSTRING:
+                String rawValue = new String(buf, pos, length, Buffer.UTF_8);
+                if (rawValue.startsWith("0000-00-00 00:00:00")) {
+                    lastValueNull |= BIT_LAST_ZERO_DATE;
+                    return null;
+                }
+
+                if (rawValue.length() >= 4) {
+                    year = Integer.parseInt(rawValue.substring(0, 4));
+                    if (rawValue.length() >= 7) {
+                        month = Integer.parseInt(rawValue.substring(5, 7));
+                        if (rawValue.length() >= 10) {
+                            day = Integer.parseInt(rawValue.substring(8, 10));
+                            if (rawValue.length() >= 19) {
+                                hour = Integer.parseInt(rawValue.substring(11, 13));
+                                minutes = Integer.parseInt(rawValue.substring(14, 16));
+                                seconds = Integer.parseInt(rawValue.substring(17, 19));
+                            }
+                            microseconds = extractNanos(rawValue) / 1000000;
+                        }
+                    }
+                }
+                break;
+
+            default:
+                year = ((buf[pos] & 0xff) | (buf[pos + 1] & 0xff) << 8);
+                month = buf[pos + 2];
+                day = buf[pos + 3];
+                if (length > 4) {
+                    hour = buf[pos + 4];
+                    minutes = buf[pos + 5];
+                    seconds = buf[pos + 6];
+
+                    if (length > 7) {
+                        microseconds = ((buf[pos + 7] & 0xff)
+                                + ((buf[pos + 8] & 0xff) << 8)
+                                + ((buf[pos + 9] & 0xff) << 16)
+                                + ((buf[pos + 10] & 0xff) << 24));
+                    }
+                }
         }
 
         Calendar calendar;
@@ -873,7 +908,6 @@ public class BinaryRowProtocol extends RowProtocol {
             calendar.set(year, month - 1, day, hour, minutes, seconds);
             tt = new Timestamp(calendar.getTimeInMillis());
         }
-
         tt.setNanos(microseconds * 1000);
         return tt;
     }
@@ -882,12 +916,11 @@ public class BinaryRowProtocol extends RowProtocol {
      * Get Object from raw binary format.
      *
      * @param columnInfo            column information
-     * @param dataTypeMappingFlags  how to handle TINY and YEAR type
      * @param timeZone              time zone
      * @return Object value
      * @throws SQLException if column type is not compatible
      */
-    public Object getInternalObject(ColumnInformation columnInfo, int dataTypeMappingFlags, TimeZone timeZone) throws SQLException {
+    public Object getInternalObject(ColumnInformation columnInfo, TimeZone timeZone) throws SQLException {
         if (lastValueWasNull()) return null;
 
         switch (columnInfo.getColumnType()) {
@@ -940,7 +973,7 @@ public class BinaryRowProtocol extends RowProtocol {
             case NULL:
                 return null;
             case YEAR:
-                if ((dataTypeMappingFlags & YEAR_IS_DATE_TYPE) != 0) {
+                if (options.yearIsDateType) {
                     return getInternalDate(columnInfo, null, timeZone);
                 }
                 return getInternalShort(columnInfo);

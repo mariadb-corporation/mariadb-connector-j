@@ -76,7 +76,7 @@ public class ReconnectionStateMaxAllowedStatement extends BaseTest {
             connection.prepareStatement("create table if not exists foo (x longblob)").execute();
             connection.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
 
-            assertEquals("READ-UNCOMMITTED", level(connection));
+            assertEquals("READ-UNCOMMITTED", level((MariaDbConnection) connection));
             PreparedStatement st = connection.prepareStatement("insert into foo (?)");
             try {
                 st.setBytes(1, data((int) (max + 10)));
@@ -87,15 +87,19 @@ public class ReconnectionStateMaxAllowedStatement extends BaseTest {
                 // we still have a working connection
                 assertTrue(connection.isValid(0));
                 // our isolation level must have stay the same
-                assertEquals("READ-UNCOMMITTED", level(connection));
+                assertEquals("READ-UNCOMMITTED", level((MariaDbConnection) connection));
             }
         } finally {
             if (connection != null) connection.close();
         }
     }
 
-    private String level(Connection connection) throws SQLException {
-        ResultSet rs = connection.prepareStatement("select @@tx_isolation").executeQuery();
+    private String level(MariaDbConnection connection) throws SQLException {
+        String sql = "SELECT @@tx_isolation";
+        if (!connection.isServerMariaDb() && connection.versionGreaterOrEqual(8,0,3)) {
+            sql = "SELECT @@transaction_isolation";
+        }
+        ResultSet rs = connection.prepareStatement(sql).executeQuery();
         assertTrue(rs.next());
         return rs.getString(1);
 

@@ -58,7 +58,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>1.7.3</version>
+    <version>1.7.4</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
@@ -71,7 +71,7 @@
         <checkstyle.plugin.version>2.15</checkstyle.plugin.version>
         <driver.version.major>1</driver.version.major>
         <driver.version.minor>7</driver.version.minor>
-        <driver.version.patch>3</driver.version.patch>
+        <driver.version.patch>4</driver.version.patch>
         <driver.version.qualifier></driver.version.qualifier>
     </properties>
 
@@ -219,23 +219,6 @@
                     </replacements>
                 </configuration>
             </plugin>
-            <!--<plugin>-->
-            <!--<groupId>pl.project13.maven</groupId>-->
-            <!--<artifactId>git-commit-id-plugin</artifactId>-->
-            <!--<version>2.2.1</version>-->
-            <!--<executions>-->
-            <!--<execution>-->
-            <!--<id>get-the-git-infos</id>-->
-            <!--<goals>-->
-            <!--<goal>revision</goal>-->
-            <!--</goals>-->
-            <!--</execution>-->
-            <!--</executions>-->
-
-            <!--<configuration>-->
-            <!--<prefix>git</prefix>-->
-            <!--</configuration>-->
-            <!--</plugin>-->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -347,9 +330,9 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.github.dblock.waffle</groupId>
+            <groupId>com.github.waffle</groupId>
             <artifactId>waffle-jna</artifactId>
-            <version>1.8.1</version>
+            <version>1.9.0</version>
             <optional>true</optional>
         </dependency>
 
@@ -388,12 +371,6 @@
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
             <version>1.2.3</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk</artifactId>
-            <version>1.10.76</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
