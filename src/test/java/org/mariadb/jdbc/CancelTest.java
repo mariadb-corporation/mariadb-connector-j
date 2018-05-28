@@ -77,6 +77,7 @@ public class CancelTest extends BaseTest {
 
     @Test
     public void cancelTest() throws SQLException {
+        Assume.assumeFalse(sharedIsAurora());
         Connection tmpConnection = null;
         try {
             tmpConnection = openNewConnection(connUri, new Properties());
@@ -100,6 +101,7 @@ public class CancelTest extends BaseTest {
 
     @Test(timeout = 20000, expected = SQLTimeoutException.class)
     public void timeoutSleep() throws Exception {
+        Assume.assumeFalse(sharedIsAurora());
         Connection tmpConnection = null;
         try {
             tmpConnection = openNewConnection(connUri, new Properties());
@@ -113,6 +115,7 @@ public class CancelTest extends BaseTest {
 
     @Test(timeout = 20000, expected = SQLTimeoutException.class)
     public void timeoutPrepareSleep() throws Exception {
+        Assume.assumeFalse(sharedIsAurora());
         Connection tmpConnection = null;
         try {
             tmpConnection = openNewConnection(connUri, new Properties());
