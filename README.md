@@ -22,8 +22,8 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 
 | Java version | current version |
 |:------------:|:-------------------------:|
-| 6 | 1.7.2 |
-| 7 | 1.7.2 |
+| 6 | 1.7.4 |
+| 7 | 1.7.4 |
 | 8 | 2.2.5 |
 | 9 | 2.2.5 |
 
