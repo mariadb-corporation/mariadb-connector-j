@@ -391,6 +391,7 @@ public class PreparedStatementTest extends BaseTest {
      * @throws SQLException exception
      */
     private void testRewriteMultiPacket2param(boolean rewritableMulti) throws SQLException {
+        Assume.assumeFalse(sharedIsAurora());
         Statement statement = sharedConnection.createStatement();
         statement.execute("TRUNCATE PreparedStatementTest1");
         ResultSet rs = statement.executeQuery("select @@max_allowed_packet");
