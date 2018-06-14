@@ -107,9 +107,8 @@ public class ClientPrepareResult implements PrepareResult {
             int queryLength = query.length;
             for (int i = 0; i < queryLength; i++) {
 
-                if (state == LexState.Escape) state = LexState.String;
-
                 char car = query[i];
+                if (state == LexState.Escape && !((car == '\'' && singleQuotes) || (car == '"' && !singleQuotes))) state = LexState.String;
                 switch (car) {
                     case '*':
                         if (state == LexState.Normal && lastChar == '/') state = LexState.SlashStarComment;
@@ -147,6 +146,8 @@ public class ClientPrepareResult implements PrepareResult {
                             singleQuotes = false;
                         } else if (state == LexState.String && !singleQuotes) {
                             state = LexState.Normal;
+                        } else if (state == LexState.Escape && !singleQuotes) {
+                            state = LexState.String;
                         }
                         break;
 
@@ -156,6 +157,8 @@ public class ClientPrepareResult implements PrepareResult {
                             singleQuotes = true;
                         } else if (state == LexState.String && singleQuotes) {
                             state = LexState.Normal;
+                        } else if (state == LexState.Escape && singleQuotes) {
+                            state = LexState.String;
                         }
                         break;
 
@@ -226,7 +229,7 @@ public class ClientPrepareResult implements PrepareResult {
 
         for (char car : query) {
 
-            if (state == LexState.Escape) state = LexState.String;
+            if (state == LexState.Escape && !((car == '\'' && singleQuotes) || (car == '"' && !singleQuotes))) state = LexState.String;
 
             switch (car) {
                 case '*':
@@ -266,6 +269,8 @@ public class ClientPrepareResult implements PrepareResult {
                         singleQuotes = false;
                     } else if (state == LexState.String && !singleQuotes) {
                         state = LexState.Normal;
+                    } else if (state == LexState.Escape && !singleQuotes) {
+                        state = LexState.String;
                     }
                     break;
 
@@ -275,6 +280,8 @@ public class ClientPrepareResult implements PrepareResult {
                         singleQuotes = true;
                     } else if (state == LexState.String && singleQuotes) {
                         state = LexState.Normal;
+                    } else if (state == LexState.Escape && singleQuotes) {
+                        state = LexState.String;
                     }
                     break;
 
@@ -373,13 +380,13 @@ public class ClientPrepareResult implements PrepareResult {
             int queryLength = query.length;
             for (int i = 0; i < queryLength; i++) {
 
-                if (state == LexState.Escape) {
-                    sb.append(query[i]);
+                char car = query[i];
+                if (state == LexState.Escape && !((car == '\'' && singleQuotes) || (car == '"' && !singleQuotes))) {
+                    sb.append(car);
                     state = LexState.String;
                     continue;
                 }
 
-                char car = query[i];
                 switch (car) {
                     case '*':
                         if (state == LexState.Normal && lastChar == '/') state = LexState.SlashStarComment;
@@ -413,6 +420,8 @@ public class ClientPrepareResult implements PrepareResult {
                             singleQuotes = false;
                         } else if (state == LexState.String && !singleQuotes) {
                             state = LexState.Normal;
+                        } else if (state == LexState.Escape && !singleQuotes) {
+                            state = LexState.String;
                         }
                         break;
                     case ';':
@@ -427,6 +436,8 @@ public class ClientPrepareResult implements PrepareResult {
                             singleQuotes = true;
                         } else if (state == LexState.String && singleQuotes) {
                             state = LexState.Normal;
+                        } else if (state == LexState.Escape && singleQuotes) {
+                            state = LexState.String;
                         }
                         break;
 
