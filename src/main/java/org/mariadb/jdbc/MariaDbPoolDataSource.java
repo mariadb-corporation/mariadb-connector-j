@@ -150,7 +150,7 @@ public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeabl
      * @return the port number
      */
     public int getPort() {
-        if (port!=null && port != 0) return port;
+        if (port != null && port != 0) return port;
         return urlParser != null ? urlParser.getHostAddresses().get(0).port : 3306;
     }
 
