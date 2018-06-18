@@ -237,11 +237,7 @@ public class ClientPrepareResult implements PrepareResult {
                     break;
 
                 case '/':
-                    if (state == LexState.SlashStarComment && lastChar == '*') {
-                        state = LexState.Normal;
-                    } else if (state == LexState.Normal && lastChar == '/') {
-                        state = LexState.EOLComment;
-                    }
+                    if (state == LexState.SlashStarComment && lastChar == '*') state = LexState.Normal;
                     break;
 
                 case '#':
@@ -394,8 +390,6 @@ public class ClientPrepareResult implements PrepareResult {
                     case '/':
                         if (state == LexState.SlashStarComment && lastChar == '*') {
                             state = LexState.Normal;
-                        } else if (state == LexState.Normal && lastChar == '/') {
-                            state = LexState.EOLComment;
                         }
                         break;
 

@@ -84,10 +84,12 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
     @Test
     public void stringEscapeParsing() throws Exception {
         assertTrue(checkParsing("select '\\'' as a, ? as b, \"\\\"\" as c, ? as d",
-                2, true, true,
+                2, false, true,
                 new String[]{
                         "select '\\'' as a, ",
+                        "",
                         " as b, \"\\\"\" as c, ",
+                        "",
                         " as d"},
                 new String[]{
                         "select '\\'' as a, ",
