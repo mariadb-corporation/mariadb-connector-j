@@ -368,9 +368,12 @@ public class BaseTest {
      * @throws SQLException if any error occur
      */
     public boolean anonymousUser() throws SQLException {
-        Statement stmt = sharedConnection.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM mysql.user u where u.Host='localhost' and u.User=''");
-        return rs.next();
+        if (testSingleHost) {
+            Statement stmt = sharedConnection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT * FROM mysql.user u where u.Host='localhost' and u.User=''");
+            return rs.next();
+        }
+        return false;
     }
 
     /**
@@ -380,8 +383,11 @@ public class BaseTest {
      * @throws SQLException exception
      */
     static boolean isMariadbServer() throws SQLException {
-        DatabaseMetaData md = sharedConnection.getMetaData();
-        return md.getDatabaseProductVersion().contains("MariaDB");
+        if (testSingleHost) {
+            DatabaseMetaData md = sharedConnection.getMetaData();
+            return md.getDatabaseProductVersion().contains("MariaDB");
+        }
+        return false;
     }
 
     /**
