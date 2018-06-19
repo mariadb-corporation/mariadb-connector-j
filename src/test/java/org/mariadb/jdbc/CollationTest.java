@@ -58,6 +58,7 @@ import org.junit.Test;
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.Locale;
 
@@ -258,6 +259,24 @@ public class CollationTest extends BaseTest {
 
         } finally {
             Locale.setDefault(currentLocal);
+        }
+    }
+
+    @Test
+    public void wrongSurrogate() throws SQLException {
+        byte[] bb = "a\ud800b".getBytes(StandardCharsets.UTF_8);
+        try (Connection conn = setConnection()) {
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE TEMPORARY TABLE wrong_utf8_string(tt text) CHARSET utf8mb4");
+            String wrongString = "a\ud800b";
+
+            try (PreparedStatement preparedStatement = conn.prepareStatement("INSERT INTO wrong_utf8_string values (?)")) {
+                preparedStatement.setString(1, wrongString);
+                preparedStatement.execute();
+            }
+            ResultSet rs = stmt.executeQuery("SELECT * from wrong_utf8_string");
+            assertTrue(rs.next());
+            assertEquals("a?b", rs.getString(1));
         }
     }
 
