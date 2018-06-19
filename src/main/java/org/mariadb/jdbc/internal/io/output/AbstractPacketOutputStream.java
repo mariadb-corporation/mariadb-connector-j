@@ -545,12 +545,12 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
                             charsOffset++;
                         } else {
                             //must have low surrogate
-                            buf[pos++] = (byte) 0x63;
+                            buf[pos++] = (byte) 0x3f;
                         }
                     }
                 } else {
                     //low surrogate without high surrogate before
-                    buf[pos++] = (byte) 0x63;
+                    buf[pos++] = (byte) 0x3f;
                 }
             } else {
                 buf[pos++] = (byte) (0xe0 | ((currChar >> 12)));

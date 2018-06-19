@@ -265,4 +265,26 @@ public class CollationTest extends BaseTest {
         }
     }
 
+    @Test
+    public void wrongSurrogate() throws Throwable {
+      byte[] bb = "a\ud800b".getBytes("utf8");
+      Connection conn = null;
+      try {
+        conn = setConnection();
+        Statement stmt = conn.createStatement();
+        stmt.execute("CREATE TEMPORARY TABLE wrong_utf8_string(tt text) CHARSET utf8mb4");
+        String wrongString = "a\ud800b";
+
+        PreparedStatement preparedStatement = conn.prepareStatement("INSERT INTO wrong_utf8_string values (?)");
+        preparedStatement.setString(1, wrongString);
+        preparedStatement.execute();
+        preparedStatement.close();
+        ResultSet rs = stmt.executeQuery("SELECT * from wrong_utf8_string");
+        assertTrue(rs.next());
+        assertEquals("a?b", rs.getString(1));
+      } finally {
+        if (conn != null) conn.close();
+      }
+    }
+
 }
