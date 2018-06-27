@@ -55,12 +55,14 @@ package org.mariadb.jdbc;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.Utils;
 
+import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import static org.junit.Assert.assertEquals;
 
 
-public class UtilTest {
+public class UtilTest extends BaseTest {
     @Test
     public void escape() throws SQLException {
         String[] inputs = new String[]{
@@ -76,6 +78,7 @@ public class UtilTest {
                 "{ts '1997-05-24 10:30:29.123'}",
                 "{ts'1997-05-24 10:30:29.123'}",
                 "'{string data with { or } will not be altered'",
+                "`{string data with { or } will not be altered`",
                 "--  Also note that you can safely include { and } in comments"
         };
         String[] outputs = new String[]{
@@ -91,10 +94,19 @@ public class UtilTest {
                 "'1997-05-24 10:30:29.123'",
                 "'1997-05-24 10:30:29.123'",
                 "'{string data with { or } will not be altered'",
+                "`{string data with { or } will not be altered`",
                 "--  Also note that you can safely include { and } in comments"
         };
         for (int i = 0; i < inputs.length; i++) {
             assertEquals(Utils.nativeSql(inputs[i], false), outputs[i]);
+        }
+    }
+
+    @Test
+    public void backTickQuote() throws SQLException {
+        try (Connection conn = setConnection()) {
+            Statement stmt = conn.createStatement();
+            stmt.execute("CREATE TEMPORARY TABLE `{tt1}`(`{Document id}` int, tt text)");
         }
     }
 }

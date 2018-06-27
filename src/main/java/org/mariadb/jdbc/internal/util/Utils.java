@@ -366,6 +366,7 @@ public class Utils {
             switch (car) {
                 case '\'':
                 case '"':
+                case '`':
                     if (!inComment) {
                         if (inQuote) {
                             if (quoteChar == car) {
