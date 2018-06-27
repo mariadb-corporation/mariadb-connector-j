@@ -1,9 +1,11 @@
 package org.mariadb.jdbc.internal.util;
 
 import org.junit.Test;
+import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.lang.reflect.Field;
+import java.sql.DriverManager;
 import java.util.Properties;
 
 import static org.junit.Assert.*;
@@ -24,6 +26,18 @@ public class DefaultOptionsTest {
                 assertEquals("field :" + field.getName(), field.get(o.defaultValues(haMode)), field.get(defaultOption));
             }
         }
+    }
+
+    @Test
+    public void parseDefaultDriverManagerTimeout() throws Exception {
+        DriverManager.setLoginTimeout(2);
+        UrlParser parser = UrlParser.parse("jdbc:mariadb://localhost/");
+        assertEquals(parser.getOptions().connectTimeout, 2_000);
+
+        DriverManager.setLoginTimeout(0);
+
+        parser = UrlParser.parse("jdbc:mariadb://localhost/");
+        assertEquals(parser.getOptions().connectTimeout, 30_000);
     }
 
     /**
