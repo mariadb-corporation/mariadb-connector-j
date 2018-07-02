@@ -183,10 +183,12 @@ public abstract class AbstractMastersListener implements Listener {
             throw new SQLException("Connection has been closed !");
         }
         if (setMasterHostFail()) {
-            logger.warn("SQL Primary node [{}, conn={}] connection fail. Reason : {}",
-                    this.currentProtocol.getHostAddress().toString(),
-                    this.currentProtocol.getServerThreadId(),
-                    qe.getMessage());
+            logger.warn("SQL Primary node [{}, conn={}, local_port={}, timeout={}] connection fail. Reason : {}",
+                        this.currentProtocol.getHostAddress().toString(),
+                        this.currentProtocol.getServerThreadId(),
+                        this.currentProtocol.getSocket().getLocalPort(),
+                        this.currentProtocol.getTimeout(),
+                        qe.getMessage());
             addToBlacklist(currentProtocol.getHostAddress());
         }
 
