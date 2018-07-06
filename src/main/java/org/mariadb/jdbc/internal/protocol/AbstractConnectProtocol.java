@@ -1318,6 +1318,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return serverThreadId;
     }
 
+    @Override
+    public Socket getSocket() {
+        return socket;
+    }
+
     public boolean isExplicitClosed() {
         return explicitClosed;
     }
