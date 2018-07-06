@@ -73,6 +73,38 @@ public class DataSourcePoolTest extends BaseTest {
         ds.close();
     }
 
+
+    @Test
+    public void testDataSourcePool() throws SQLException {
+      MariaDbPoolDataSource ds = null;
+      try {
+        ds = new MariaDbPoolDataSource();
+        assertEquals(ds.getPort(), 3306);
+        assertEquals(ds.getMaxIdleTime(), 600);
+        assertEquals(ds.getMaxPoolSize(), 8);
+        assertEquals(ds.getMinPoolSize(), 8);
+        assertEquals(ds.getPoolValidMinDelay(), Integer.valueOf(1000));
+
+        ds.setPort(33006);
+        ds.setMaxPoolSize(10);
+        ds.setMaxIdleTime(500);
+        ds.setPoolValidMinDelay(500);
+
+        assertEquals(ds.getMaxIdleTime(), 500);
+        assertEquals(ds.getMaxPoolSize(), 10);
+        assertEquals(ds.getMinPoolSize(), 10);
+        assertEquals(ds.getPort(), 33006);
+        assertEquals(ds.getPoolValidMinDelay(), Integer.valueOf(500));
+
+        ds.setMinPoolSize(5);
+
+        assertEquals(ds.getMaxPoolSize(), 10);
+        assertEquals(ds.getMinPoolSize(), 5);
+      } finally {
+        if (ds != null) ds.close();
+      }
+    }
+
     /**
      * Conj-80.
      *
