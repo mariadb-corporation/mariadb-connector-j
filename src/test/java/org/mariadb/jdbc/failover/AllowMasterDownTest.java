@@ -53,10 +53,10 @@
 package org.mariadb.jdbc.failover;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.mariadb.jdbc.BaseTest;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.sql.*;
 
@@ -72,15 +72,19 @@ public class AllowMasterDownTest extends BaseTest {
      */
     @Before
     public void init() {
-        masterDownUrl = "jdbc:mariadb:replication//" + hostname + ":9999"
-                + "," + hostname + ((port == 0) ? "" : ":" + port)
-                + "/" + database + "?user=" + username
-                + ((password != null) ? "&password=" + password : "")
-                + "&retriesAllDown=10&allowMasterDownConnection";
+        Assume.assumeTrue(testSingleHost);
+        if (testSingleHost) {
+            masterDownUrl = "jdbc:mariadb:replication//" + hostname + ":9999"
+                    + "," + hostname + ((port == 0) ? "" : ":" + port)
+                    + "/" + database + "?user=" + username
+                    + ((password != null) ? "&password=" + password : "")
+                    + "&retriesAllDown=10&allowMasterDownConnection";
+        }
     }
 
     @Test
     public void masterDownReadOnlyAvailable() throws SQLException {
+
         try (Connection connection = DriverManager.getConnection(masterDownUrl)) {
             Assert.assertFalse(connection.isReadOnly());
             connection.isValid(0);
