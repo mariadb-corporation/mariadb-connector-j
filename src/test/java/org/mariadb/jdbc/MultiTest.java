@@ -1409,4 +1409,26 @@ public class MultiTest extends BaseTest {
         assertEquals(3, rs.getInt(2));
 
     }
+
+  @Test
+  public void testAffectedRow() throws SQLException {
+    createTable("testAffectedRow", "id int");
+    testAffectedRow(false);
+    testAffectedRow(true);
+  }
+
+  private void testAffectedRow(boolean useAffectedRows) throws SQLException {
+    Connection con = null;
+    try {
+      con = setConnection(useAffectedRows ? "&useAffectedRows" : "");
+      Statement stmt = con.createStatement();
+      stmt.execute("TRUNCATE testAffectedRow");
+      stmt.execute("INSERT INTO testAffectedRow values (1), (1), (2), (3)");
+      int rowCount = stmt.executeUpdate("UPDATE testAffectedRow set id = 1");
+      assertEquals(useAffectedRows ? 2 : 4, rowCount);
+    } finally {
+      if (con != null) con.close();
+    }
+  }
+
 }
