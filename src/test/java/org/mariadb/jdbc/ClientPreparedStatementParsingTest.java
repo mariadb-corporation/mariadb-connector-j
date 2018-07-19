@@ -82,6 +82,23 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
     }
 
     @Test
+    public void stringEscapeParsing() throws Exception {
+        assertTrue(checkParsing("select '\\'' as a, ? as b, \"\\\"\" as c, ? as d",
+                2, false, true,
+                new String[]{
+                        "select '\\'' as a, ",
+                        "",
+                        " as b, \"\\\"\" as c, ",
+                        "",
+                        " as d"},
+                new String[]{
+                        "select '\\'' as a, ",
+                        " as b, \"\\\"\" as c, ",
+                        " as d"}));
+    }
+
+
+    @Test
     public void testRewritableWithConstantParameter() throws Exception {
         assertTrue(checkParsing("INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES (9, ?, 5, ?, 8) ON DUPLICATE KEY UPDATE col2=col2+10",
                 2, true, true,

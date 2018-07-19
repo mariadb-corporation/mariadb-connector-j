@@ -870,11 +870,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 | MariaDbServerCapabilities.LOCAL_FILES
                 | MariaDbServerCapabilities.MULTI_RESULTS
                 | MariaDbServerCapabilities.PS_MULTI_RESULTS
-                | MariaDbServerCapabilities.FOUND_ROWS
                 | MariaDbServerCapabilities.PLUGIN_AUTH
                 | MariaDbServerCapabilities.CONNECT_ATTRS
                 | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
                 | MariaDbServerCapabilities.CLIENT_SESSION_TRACK;
+
+        // MySQL/MariaDB has two ways of calculating row count, eg for an UPDATE statement.
+        // The default (and JDBC standard) is "found rows". The other option is "affected rows".
+        // See https://jira.mariadb.org/browse/CONJ-384
+        if (!options.useAffectedRows) {
+            capabilities |= MariaDbServerCapabilities.FOUND_ROWS;
+        }
 
         if (options.allowMultiQueries || (options.rewriteBatchedStatements)) {
             capabilities |= MariaDbServerCapabilities.MULTI_STATEMENTS;
@@ -1316,6 +1322,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     public long getServerThreadId() {
         return serverThreadId;
+    }
+
+    @Override
+    public Socket getSocket() {
+        return socket;
     }
 
     public boolean isExplicitClosed() {

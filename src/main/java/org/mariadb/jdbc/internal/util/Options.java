@@ -53,6 +53,7 @@
 package org.mariadb.jdbc.internal.util;
 
 import java.lang.reflect.Field;
+import java.sql.DriverManager;
 
 @SuppressWarnings("ConstantConditions")
 public class Options implements Cloneable {
@@ -75,7 +76,7 @@ public class Options implements Cloneable {
     public boolean useFractionalSeconds = true;
     public boolean pinGlobalTxToPhysicalConnection;
     public String socketFactory;
-    public int connectTimeout = 30_000;
+    public int connectTimeout = DriverManager.getLoginTimeout() > 0 ? DriverManager.getLoginTimeout() * 1000 : 30_000;
     public String pipe;
     public String localSocket;
     public String sharedMemory;
@@ -107,6 +108,7 @@ public class Options implements Cloneable {
     public int prepStmtCacheSize = 250;
     public int prepStmtCacheSqlLimit = 2048;
     public boolean useLegacyDatetimeCode = true;
+    public boolean useAffectedRows;
     public boolean maximizeMysqlCompatibility;
     public boolean useServerPrepStmts;
     public boolean continueBatchOnError = true;
@@ -204,6 +206,7 @@ public class Options implements Cloneable {
         if (allowLocalInfile != opt.allowLocalInfile) return false;
         if (cachePrepStmts != opt.cachePrepStmts) return false;
         if (useLegacyDatetimeCode != opt.useLegacyDatetimeCode) return false;
+        if (useAffectedRows != opt.useAffectedRows) return false;
         if (maximizeMysqlCompatibility != opt.maximizeMysqlCompatibility) return false;
         if (useServerPrepStmts != opt.useServerPrepStmts) return false;
         if (continueBatchOnError != opt.continueBatchOnError) return false;
@@ -328,6 +331,7 @@ public class Options implements Cloneable {
         result = 31 * result + prepStmtCacheSize;
         result = 31 * result + prepStmtCacheSqlLimit;
         result = 31 * result + (useLegacyDatetimeCode ? 1 : 0);
+        result = 31 * result + (useAffectedRows ? 1 : 0);
         result = 31 * result + (maximizeMysqlCompatibility ? 1 : 0);
         result = 31 * result + (useServerPrepStmts ? 1 : 0);
         result = 31 * result + (continueBatchOnError ? 1 : 0);

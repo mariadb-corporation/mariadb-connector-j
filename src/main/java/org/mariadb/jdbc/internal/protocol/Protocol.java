@@ -68,6 +68,7 @@ import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.Charset;
 import java.sql.SQLException;
@@ -198,6 +199,8 @@ public interface Protocol {
     boolean getPinGlobalTxToPhysicalConnection();
 
     long getServerThreadId();
+
+    Socket getSocket();
 
     void setTransactionIsolation(int level) throws SQLException;
 

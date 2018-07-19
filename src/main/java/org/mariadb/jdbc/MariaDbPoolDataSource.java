@@ -150,7 +150,7 @@ public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeabl
      * @return the port number
      */
     public int getPort() {
-        if (port != 0) return port;
+        if (port != null && port != 0) return port;
         return urlParser != null ? urlParser.getHostAddresses().get(0).port : 3306;
     }
 
@@ -423,6 +423,7 @@ public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeabl
     }
 
     public int getMaxPoolSize() {
+        if (maxPoolSize == null) return 8;
         return maxPoolSize;
     }
 
@@ -432,6 +433,7 @@ public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeabl
     }
 
     public int getMinPoolSize() {
+        if (minPoolSize == null) return getMaxPoolSize();
         return minPoolSize;
     }
 
@@ -441,6 +443,7 @@ public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeabl
     }
 
     public int getMaxIdleTime() {
+        if (maxIdleTime == null) return 600;
         return maxIdleTime;
     }
 
@@ -458,6 +461,7 @@ public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeabl
     }
 
     public Integer getPoolValidMinDelay() {
+        if (poolValidMinDelay == null) return 1000;
         return poolValidMinDelay;
     }
 
