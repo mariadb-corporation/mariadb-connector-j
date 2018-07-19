@@ -1,5 +1,6 @@
 = Changelog
-* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#224|2.2.5]] Released on 29 may 2018
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#226|2.2.6]] Released on 19 Jul 2018
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#225|2.2.5]] Released on 29 may 2018
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#224|2.2.4]] Released on 04 may 2018
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#223|2.2.3]] Released on 09 mar. 2018
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#222|2.2.2]] Released on 20 feb. 2018
@@ -33,6 +34,23 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+
+
+== 2.2.6
+minor change:
+* [CONJ-623] Increase connection logging when Primary node connection fails
+* [CONJ-384] Permit knowing affected rows number, not only real changed rows
+
+New options
+|=useAffectedRows|default correspond to the JDBC standard, reporting real affected rows. if enable, will report "affected" rows. example : if enable, an update command that doesn't change a row value will still be "affected", then report.\\//Default: false. Since 2.2.6//
+
+Bug correction:
+* [CONJ-624] MariaDbPoolDataSource possible NPE on configuration getter
+* [CONJ-623] Increase connection logging when Primary node connection fails
+* [CONJ-622] The option "connectTimeout" must take in account DriverManager.getLoginTimeout() when set
+* [CONJ-621] wrong escaping when having curly bracket in table/field name
+* [CONJ-618] Client preparestatement parsing error on escaped ' / " in query
+
 
 == 2.2.5
 minor change:
