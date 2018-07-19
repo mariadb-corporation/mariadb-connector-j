@@ -542,7 +542,14 @@ public enum DefaultOptions {
      *
      * example "4,5". Recommended value "4" when using galera cluster without proxy like maxscale
      */
-    GALERA_ALLOWED_STATE("galeraAllowedState", "2.2.5");
+    GALERA_ALLOWED_STATE("galeraAllowedState", "2.2.5"),
+
+    /**
+     * If false (default), use "found rows" for the row count of statements. This corresponds to the JDBC standard.
+     * If true, use "affected rows" for the row count.
+     * This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.
+     */
+    USEAFFECTEDROWS("useAffectedRows", Boolean.FALSE, "2.2.6");
 
 
     private final String optionName;
