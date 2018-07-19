@@ -183,6 +183,8 @@ See [[use-mariadb-connector-j-driver.creole#using-pooling|using pooling]] for mo
 |=continueBatchOnError| When executing batch queries, must batch continue on error and throw exception when ended, or stop immediately \\//Default: true. Since 1.4.0//
 |=disableSslHostnameVerification| When using ssl, driver check hostname against the server's identity as presented in the server's Certificate (checking alternative names or certificate CN) to prevent man-in-the-middle attack. This option permit to deactivate this validation.\\//Default: false. Since 2.1.0//
 |=autocommit|Set default autocommit value.\\//Default: true. Since 2.2.0//
+|=galeraAllowedState|Usually, Connection.isValid just send an empty packet to server, and server send a small response to ensure connectivity. When this option is set, connector will ensure Galera server state "wsrep_local_state" correspond to allowed values (separated by comma). example "4,5", recommended is "4". see [galera state](http://galeracluster.com/documentation-webpages/nodestates.html#node-state-changes) to know more..\\//Default: empty. Since 2.2.5//
+|=useAffectedRows|default correspond to the JDBC standard, reporting real affected rows. if enable, will report "affected" rows. example : if enable, an update command that doesn't change a row value will still be "affected", then report.\\//Default: false. Since 2.2.6//
 
 \\\\
 == Failover/High availability URL parameters
