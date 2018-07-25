@@ -232,7 +232,7 @@ public class ColumnInformation {
         for (int i = 0; i < idx; i++) {
             buffer.skipLengthEncodedBytes();
         }
-        return new String(buffer.getLengthEncodedBytes(), StandardCharsets.UTF_8);
+        return buffer.readStringLengthEncoded(StandardCharsets.UTF_8);
     }
 
     public String getDatabase() {
