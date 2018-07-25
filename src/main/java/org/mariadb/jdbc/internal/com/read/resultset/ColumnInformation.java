@@ -231,7 +231,7 @@ public class ColumnInformation {
         for (int i = 0; i < idx; i++) {
             buffer.skipLengthEncodedBytes();
         }
-        return new String(buffer.getLengthEncodedBytes(), Buffer.UTF_8);
+        return buffer.readStringLengthEncoded(Buffer.UTF_8);
     }
 
     public String getDatabase() {
