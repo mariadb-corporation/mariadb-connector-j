@@ -282,8 +282,11 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
             return results.getCmdInformation().getUpdateCounts();
 
         } catch (SQLException sqle) {
-            if (results != null) results.commandEnd();
-            throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size);
+            if (results != null) {
+                results.commandEnd();
+                throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size);
+            }
+            throw executeBatchExceptionEpilogue(sqle, null, size);
         } finally {
             executeBatchEpilogue();
             lock.unlock();
@@ -323,8 +326,11 @@ public class MariaDbPreparedStatementClient extends BasePrepareStatement {
             return results.getCmdInformation().getLargeUpdateCounts();
 
         } catch (SQLException sqle) {
-            results.commandEnd();
-            throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size);
+            if (results != null) {
+                results.commandEnd();
+                throw executeBatchExceptionEpilogue(sqle, results.getCmdInformation(), size);
+            }
+            throw executeBatchExceptionEpilogue(sqle, null, size);
         } finally {
             executeBatchEpilogue();
             lock.unlock();
