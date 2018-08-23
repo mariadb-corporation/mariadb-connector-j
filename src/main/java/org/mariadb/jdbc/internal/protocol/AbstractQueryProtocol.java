@@ -93,10 +93,7 @@ import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.ServiceLoader;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -105,10 +102,12 @@ import java.util.concurrent.locks.ReentrantLock;
 import static org.mariadb.jdbc.internal.com.Packet.*;
 import static org.mariadb.jdbc.internal.util.SqlStates.*;
 
-
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
-    protected static ThreadPoolExecutor readScheduler = null;
+
     private static final Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
+    private static final String CHECK_GALERA_STATE_QUERY = "show status like 'wsrep_local_state'";
+    protected static ThreadPoolExecutor readScheduler = null;
+
     private int transactionIsolationLevel = 0;
     private InputStream localInfileInputStream;
     private long maxRows;  /* max rows returned by a statement */
@@ -116,6 +115,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     private FutureTask activeFutureTask = null;
     private final LogQueryTool logQuery;
     private boolean interrupted;
+    private final Set<String> galeraAllowedStates;
 
     /**
      * Get a protocol instance.
@@ -127,6 +127,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     AbstractQueryProtocol(final UrlParser urlParser, final GlobalStateInfo globalInfo, final ReentrantLock lock) {
         super(urlParser, globalInfo, lock);
         logQuery = new LogQueryTool(options);
+        galeraAllowedStates = urlParser.getOptions().galeraAllowedState == null ?
+                new HashSet<>() :
+                new HashSet<>(Arrays.asList(urlParser.getOptions().galeraAllowedState.split(",")));
     }
 
     /**
@@ -361,15 +364,15 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     /**
      * Execute clientPrepareQuery batch.
      *
-     * @param results               results
-     * @param sql                   sql command
-     * @param serverPrepareResult   prepare result if exist
-     * @param parametersList        List of parameters
+     * @param results             results
+     * @param sql                 sql command
+     * @param serverPrepareResult prepare result if exist
+     * @param parametersList      List of parameters
      * @return if executed
      * @throws SQLException exception
      */
     private boolean executeBulkBatch(Results results, String sql, ServerPrepareResult serverPrepareResult,
-                                  final List<ParameterHolder[]> parametersList) throws SQLException {
+                                     final List<ParameterHolder[]> parametersList) throws SQLException {
 
         //**************************************************************************************
         // Ensure BULK can be use :
@@ -543,7 +546,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
      * @throws SQLException exception
      */
     private void executeBatchMulti(Results results, final ClientPrepareResult clientPrepareResult,
-                                  final List<ParameterHolder[]> parametersList) throws SQLException {
+                                   final List<ParameterHolder[]> parametersList) throws SQLException {
 
         cmdPrologue();
         initializeBatchReader();
@@ -560,7 +563,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
                 writer.flush();
             }
-
 
             @Override
             public SQLException handleResultException(SQLException qex, Results results,
@@ -579,12 +581,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
                 return logQuery.exceptionWithQuery(sql.toString(), qex, explicitClosed);
             }
 
-
             @Override
             public int getParamCount() {
                 return clientPrepareResult.getQueryParts().size() - 1;
             }
-
 
             @Override
             public int getTotalExecutionNumber() {
@@ -1082,36 +1082,35 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         int initialTimeout = -1;
         try {
             initialTimeout = socket.getSoTimeout();
-            if (initialTimeout == 0) socket.setSoTimeout(timeout);
-            if (isMasterConnection() && urlParser.getOptions().galeraAllowedState != null) {
+            if (initialTimeout == 0) { socket.setSoTimeout(timeout); }
+            if (isMasterConnection() && !galeraAllowedStates.isEmpty()) {
                 //this is a galera node.
                 //checking not only that node is responding, but that galera state is allowed.
                 Results results = new Results();
-                executeQuery(true, results, "show status like 'wsrep_local_state'");
+                executeQuery(true, results, CHECK_GALERA_STATE_QUERY);
                 results.commandEnd();
                 ResultSet rs = results.getResultSet();
-                if (rs == null || !rs.next()) return false;
-                String[] allowedValues = urlParser.getOptions().galeraAllowedState.split(",");
-                return Arrays.asList(allowedValues).contains(rs.getString(2)); //SYNC mode
+                return rs != null && rs.next() && galeraAllowedStates.contains(rs.getString(2));
             }
 
             return ping();
 
         } catch (SocketException socketException) {
+            logger.trace("Connection is not valid", socketException);
             connected = false;
             return false;
         } finally {
 
             //set back initial socket timeout
             try {
-                if (initialTimeout != -1) socket.setSoTimeout(initialTimeout);
+                if (initialTimeout != -1) { socket.setSoTimeout(initialTimeout); }
             } catch (SocketException socketException) {
+                logger.warn("Could not set socket timeout back to " + initialTimeout, socketException);
                 connected = false;
                 //eat
             }
         }
     }
-
 
     @Override
     public String getCatalog() throws SQLException {
@@ -1466,7 +1465,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         return autoIncrementIncrement;
     }
 
-
     /**
      * Read ERR_Packet.
      *
@@ -1676,7 +1674,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     public ServerPrepareResult addPrepareInCache(String key, ServerPrepareResult serverPrepareResult) {
         return serverPrepareStatementCache.put(key, serverPrepareResult);
     }
-
 
     private void cmdPrologue() throws SQLException {
 
