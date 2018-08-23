@@ -299,8 +299,11 @@ public class MariaDbPreparedStatementServer extends BasePrepareStatement impleme
 
             results.commandEnd();
         } catch (SQLException initialSqlEx) {
-            results.commandEnd();
-            throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), queryParameterSize);
+            if (results != null) {
+                results.commandEnd();
+                throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), queryParameterSize);
+            }
+            throw executeBatchExceptionEpilogue(initialSqlEx, null, queryParameterSize);
         } finally {
             executeBatchEpilogue();
             lock.unlock();
