@@ -39,10 +39,10 @@ install:
   - ps: Start-FileDownload $Env:FILE -FileName server.msi -Timeout 900000
   - cmd: msiexec /i server.msi INSTALLDIR=c:\projects\server SERVICENAME=mariadb ALLOWREMOTEROOTACCESS=true /qn
   - cmd: "\"c:\\projects\\server\\bin\\mysql.exe\" -e \"create database testj\" --user=root"
-  - cmd: SET PATH=C:\maven\apache-maven-3.5.3\bin;%JAVA_HOME%\bin;%PATH:C:\Ruby193\bin;=%;
+  - cmd: SET PATH=C:\maven\apache-maven-3.5.4\bin;%JAVA_HOME%\bin;%PATH:C:\Ruby193\bin;=%;
   - cmd: SET MAVEN_OPTS=-Xms512m -Xms768m
   - cmd: SET JAVA_OPTS=-Xms512m -Xmx768m
-  - cmd: SET M2_HOME=C:\maven\apache-maven-3.5.3
+  - cmd: SET M2_HOME=C:\maven\apache-maven-3.5.4
   - cmd: SET M
   - cmd: cd c:\projects\mariadb-connector-j
   - cmd: mvn --version
