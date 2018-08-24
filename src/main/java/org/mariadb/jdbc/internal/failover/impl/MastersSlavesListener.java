@@ -220,6 +220,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     @Override
     public boolean versionGreaterOrEqual(int major, int minor, int patch) {
         Protocol protocol = (currentProtocol != null) ? currentProtocol : secondaryProtocol;
+        if (protocol == null) return false;
         return protocol.versionGreaterOrEqual(major, minor, patch);
     }
 
