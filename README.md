@@ -17,6 +17,7 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 [![License (LGPL version 2.1)](https://img.shields.io/badge/license-GNU%20LGPL%20version%202.1-green.svg?style=flat-square)](http://opensource.org/licenses/LGPL-2.1)
 [![Known Vulnerabilities](https://snyk.io/test/github/mariadb/mariadb-connector-j/badge.svg)](https://snyk.io/test/github/mariadb/mariadb-connector-j)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/be7f4c89d63e496d824e8f365478e8c8)](https://www.codacy.com/app/diego-dupin/mariadb-connector-j?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=MariaDB/mariadb-connector-j&amp;utm_campaign=Badge_Grade)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FMariaDB%2Fmariadb-connector-j.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2FMariaDB%2Fmariadb-connector-j?ref=badge_shield)
 
 ## Obtaining the driver
 
@@ -68,3 +69,7 @@ For a Getting started guide, API docs, recipes,  etc. see the
 ## Contributing
 To get started with a development installation and learn more about contributing, please follow the instructions at our 
 [Developers Guide.](/documentation/developers-guide.creole)
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2FMariaDB%2Fmariadb-connector-j.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2FMariaDB%2Fmariadb-connector-j?ref=badge_large)
