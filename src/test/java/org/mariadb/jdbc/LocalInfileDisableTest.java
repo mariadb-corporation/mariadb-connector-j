@@ -71,33 +71,33 @@ public class LocalInfileDisableTest extends BaseTest {
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 3));
-        createTable("t", "id int, test varchar(100)");
+      createTable("t", "id int, test varchar(100)");
     }
 
     @Test
     public void testLocalInfileWithoutInputStream() throws SQLException {
-        Connection connection = null;
+      Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 3));
+      Connection connection = null;
+      try {
+        connection = setConnection("&allowLocalInfile=false");
+        Exception ex = null;
+        Statement stmt = null;
         try {
-            connection = setConnection("&allowLocalInfile=false");
-            Exception ex = null;
-            Statement stmt = null;
-            try {
-                stmt = connection.createStatement();
-                stmt.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");
-            } catch (Exception e) {
-                ex = e;
-            } finally {
-                stmt.close();
-            }
-
-            assertNotNull("Expected an exception to be thrown", ex);
-            String message = ex.getMessage();
-            String expectedMessage = "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true";
-            assertTrue(message.contains(expectedMessage));
+            stmt = connection.createStatement();
+            stmt.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");
+        } catch (Exception e) {
+            ex = e;
         } finally {
-            if (connection != null) connection.close();
+            stmt.close();
         }
+
+        assertNotNull("Expected an exception to be thrown", ex);
+        String message = ex.getMessage();
+        String expectedMessage = "Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true";
+        assertTrue(message.contains(expectedMessage));
+      } finally {
+        if (connection != null) connection.close();
+      }
     }
 
 
