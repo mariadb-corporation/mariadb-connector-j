@@ -52,10 +52,9 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import org.mariadb.jdbc.internal.util.constant.HaMode;
-
 import java.lang.reflect.Field;
 import java.util.Properties;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 public enum DefaultOptions {
 
@@ -243,7 +242,7 @@ public enum DefaultOptions {
             + "alternative names or the certificate CN) to prevent man-in-the-middle attacks. This option permits "
             + "deactivating this validation. Hostname verification is disabled when the trustServerCertificate "
             + "option is set", false),
-    USE_BULK_PROTOCOL("useBulkStmts", Boolean.TRUE, "2.1.0", "Use dedicated COM_STMT_BULK_EXECUTE protocol for batch "
+    USE_BULK_PROTOCOL("useBulkStmts", Boolean.FALSE, "2.1.0", "Use dedicated COM_STMT_BULK_EXECUTE protocol for batch "
             + "insert when possible. (batch without Statement.RETURN_GENERATED_KEYS and streams) to have faster batch. "
             + "(significant only if server MariaDB >= 10.2.7)", false),
     AUTOCOMMIT("autocommit", Boolean.TRUE, "2.2.0", "Set default autocommit value on connection initialization", false),
