@@ -52,6 +52,46 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
+import static org.mariadb.jdbc.internal.com.Packet.COM_QUERY;
+import static org.mariadb.jdbc.internal.com.Packet.EOF;
+import static org.mariadb.jdbc.internal.com.Packet.ERROR;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
+import java.util.TreeMap;
+import java.util.concurrent.locks.ReentrantLock;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
@@ -61,8 +101,11 @@ import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.OkPacket;
 import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
-import org.mariadb.jdbc.internal.com.send.*;
+import org.mariadb.jdbc.internal.com.send.InterfaceAuthSwitchSendResponsePacket;
+import org.mariadb.jdbc.internal.com.send.SendClosePacket;
+import org.mariadb.jdbc.internal.com.send.SendHandshakeResponsePacket;
+import org.mariadb.jdbc.internal.com.send.SendOldPasswordAuthPacket;
+import org.mariadb.jdbc.internal.com.send.SendSslConnectionRequestPacket;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.io.input.DecompressPacketInputStream;
@@ -86,31 +129,6 @@ import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
-
-import javax.net.ssl.*;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketException;
-import java.net.URL;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLNonTransientConnectionException;
-import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
-
-import static org.mariadb.jdbc.internal.com.Packet.*;
 
 public abstract class AbstractConnectProtocol implements Protocol {
     private static final byte[] SESSION_QUERY = ("SELECT @@max_allowed_packet,"
@@ -1223,7 +1241,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
      */
     private void enabledSslProtocolSuites(SSLSocket sslSocket) throws SQLException {
         if (options.enabledSslProtocolSuites == null) {
-            sslSocket.setEnabledProtocols(new String[]{"TLSv1", "TLSv1.1"});
+            sslSocket.setEnabledProtocols(new String[]{"TLSv1", "TLSv1.1", "TLSv1.2"});
         } else {
             List<String> possibleProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
             String[] protocols = options.enabledSslProtocolSuites.split("[,;\\s]+");
