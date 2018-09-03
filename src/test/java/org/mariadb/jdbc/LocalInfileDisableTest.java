@@ -71,12 +71,12 @@ public class LocalInfileDisableTest extends BaseTest {
      */
     @BeforeClass()
     public static void initClass() throws SQLException {
-        Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 3));
         createTable("t", "id int, test varchar(100)");
     }
 
     @Test
     public void testLocalInfileWithoutInputStream() throws SQLException {
+        Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 3));
         try (Connection connection = setConnection("&allowLocalInfile=false")) {
             Exception ex = null;
             try (Statement stmt = connection.createStatement()) {
