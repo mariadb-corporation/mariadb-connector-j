@@ -1,11 +1,14 @@
 package org.mariadb.jdbc.internal.util;
 
+import org.junit.Assert;
 import org.junit.Test;
+import org.mariadb.jdbc.Driver;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 import java.lang.reflect.Field;
 import java.sql.DriverManager;
+import java.sql.DriverPropertyInfo;
 import java.util.Properties;
 
 import static org.junit.Assert.*;
@@ -29,15 +32,28 @@ public class DefaultOptionsTest {
     }
 
     @Test
+    public void getDefaultPropertyInfo() throws Exception {
+        //check that default option object correspond to default
+        Driver driver = new Driver();
+        DriverPropertyInfo[] driverPropertyInfos = driver.getPropertyInfo("jdbc:mariadb://localhost:3306/testj?user=hi",
+                new Properties());
+        assertTrue(driverPropertyInfos.length > 30);
+        Assert.assertEquals(driverPropertyInfos[0].name, "user");
+        Assert.assertEquals(driverPropertyInfos[0].value, "hi");
+        Assert.assertEquals(driverPropertyInfos[0].description, "Database user name");
+    }
+
+
+    @Test
     public void parseDefaultDriverManagerTimeout() throws Exception {
         DriverManager.setLoginTimeout(2);
         UrlParser parser = UrlParser.parse("jdbc:mariadb://localhost/");
-        assertEquals(parser.getOptions().connectTimeout, 2_000);
+        assertEquals(parser.getOptions().connectTimeout, 2000);
 
         DriverManager.setLoginTimeout(0);
 
         parser = UrlParser.parse("jdbc:mariadb://localhost/");
-        assertEquals(parser.getOptions().connectTimeout, 30_000);
+        assertEquals(parser.getOptions().connectTimeout, 30000);
     }
 
     /**

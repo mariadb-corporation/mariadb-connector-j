@@ -52,9 +52,14 @@
 
 package org.mariadb.jdbc;
 
+import org.mariadb.jdbc.internal.util.DefaultOptions;
+import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.constant.Version;
 
+import java.lang.reflect.Field;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 
@@ -100,7 +105,7 @@ public final class Driver implements java.sql.Driver {
     }
 
     /**
-     * get the property info. TODO: not implemented!
+     * Get the property info.
      *
      * @param url  the url to get properties for
      * @param info the info props
@@ -110,6 +115,30 @@ public final class Driver implements java.sql.Driver {
     public DriverPropertyInfo[] getPropertyInfo(String url,
                                                 Properties info)
             throws SQLException {
+        if (url != null) {
+            UrlParser urlParser = UrlParser.parse(url, info);
+            if (urlParser == null || urlParser.getOptions() == null) {
+                return new DriverPropertyInfo[0];
+            }
+
+            List<DriverPropertyInfo> props = new ArrayList<DriverPropertyInfo>();
+            for (DefaultOptions o : DefaultOptions.values()) {
+                try {
+                    Field field = Options.class.getField(o.getOptionName());
+                    Object value = field.get(urlParser.getOptions());
+                    DriverPropertyInfo propertyInfo = new DriverPropertyInfo(field.getName(), value == null ? null : value.toString());
+                    propertyInfo.description = o.getDescription();
+                    propertyInfo.required = o.isRequired();
+                    props.add(propertyInfo);
+                } catch (NoSuchFieldException e) {
+                  //eat error
+                } catch (IllegalAccessException e) {
+                  //eat error
+                }
+            }
+            return props.toArray(new DriverPropertyInfo[props.size()]);
+        }
+
         return new DriverPropertyInfo[0];
     }
 

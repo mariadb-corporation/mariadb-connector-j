@@ -15,7 +15,7 @@ public class OptionUtils {
         //add alias
         OPTIONS_MAP.put("createDB", DefaultOptions.CREATE_DATABASE_IF_NOT_EXISTS);
         OPTIONS_MAP.put("useSSL", DefaultOptions.USE_SSL);
-        OPTIONS_MAP.put("profileSQL", DefaultOptions.PROFILESQL);
+        OPTIONS_MAP.put("profileSQL", DefaultOptions.PROFILE_SQL);
         OPTIONS_MAP.put("enabledSSLCipherSuites", DefaultOptions.ENABLED_SSL_CIPHER_SUITES);
         OPTIONS_MAP.put("trustCertificateKeyStorePassword", DefaultOptions.TRUST_CERTIFICATE_KEYSTORE_PASSWORD);
         OPTIONS_MAP.put("trustCertificateKeyStoreUrl", DefaultOptions.TRUSTSTORE);
