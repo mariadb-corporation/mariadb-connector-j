@@ -59,563 +59,332 @@ import java.util.Properties;
 
 public enum DefaultOptions {
 
-    /**
-     * Database user name.
-     */
-    USER("user", "1.0.0"),
-    /**
-     * Password of database user.
-     */
-    PASSWORD("password", "1.0.0"),
+    USER("user", "1.0.0", "Database user name", false),
+    PASSWORD("password", "1.0.0", "Password of database user", false),
 
     /**
      * The connect timeout value, in milliseconds, or zero for no timeout.
      * Default: 30000 (30 seconds) (was 0 before 2.1.2)
      */
-    CONNECT_TIMEOUT("connectTimeout", 30_000, 0, "1.1.8"),
-
-    /**
-     * On Windows, specify named pipe name to connect to mysqld.exe.
-     */
-    PIPE("pipe", "1.1.3"),
-
-    /**
-     * Allows to connect to database via Unix domain socket, if server allows it. The value is the path of Unix domain socket, i.e "socket"
-     * database parameter.
-     */
-    LOCAL_SOCKET("localSocket", "1.1.4"),
-
-    /**
-     * Allowed to connect database via shared memory, if server allows it. The value is base name of the shared memory.
-     */
-    SHARED_MEMORY("sharedMemory", "1.1.4"),
-
-    /**
-     * Sets corresponding option on the connection socket.
-     */
-    TCP_NO_DELAY("tcpNoDelay", Boolean.TRUE, "1.0.0"),
-
-    /**
-     * Sets corresponding option on the connection socket.
-     */
-    TCP_ABORTIVE_CLOSE("tcpAbortiveClose", Boolean.FALSE, "1.1.1"),
-
-    /**
-     * Hostname or IP address to bind the connection socket to a local (UNIX domain) socket.
-     */
-    LOCAL_SOCKET_ADDRESS("localSocketAddress", "1.1.8"),
-
-    /**
-     * Defined the network socket timeout (SO_TIMEOUT) in milliseconds.
-     * 0 (default) disable this timeout
-     */
-    SOCKET_TIMEOUT("socketTimeout", new Integer[]{10000, null, null, null, null, null}, 0, "1.1.8"),
-
-    /**
-     * Session timeout is defined by the wait_timeout server variable.
-     * Setting interactiveClient to true will tell server to use the interactive_timeout server variable
-     */
-    INTERACTIVE_CLIENT("interactiveClient", Boolean.FALSE, "1.1.8"),
-
-    /**
-     * If set to 'true', exception thrown during query execution contain query string.
-     */
-    DUMP_QUERY_ON_EXCEPTION("dumpQueriesOnException", Boolean.TRUE, "1.1.0"),
-
-    /**
-     * Metadata ResultSetMetaData.getTableName() return the physical table name.
-     * "useOldAliasMetadataBehavior" permit to activate the legacy code that send the table alias if set.
-     */
-    USE_OLD_ALIAS_METADATA_BEHAVIOR("useOldAliasMetadataBehavior", Boolean.FALSE, "1.1.9"),
-
-    /**
-     * If set to 'false', exception thrown during LOCAL INFILE if no InputStream has already been set.
-     */
-    ALLOW_LOCAL_INFILE("allowLocalInfile", Boolean.TRUE, "1.2.1"),
-
-    /**
-     * var=value pairs separated by comma, mysql session variables, set upon establishing successful connection.
-     */
-    SESSION_VARIABLES("sessionVariables", "1.1.0"),
-
-    /**
-     * The database precised in url will be created if doesn't exist.
-     * (legacy alias "createDB")
-     */
-    CREATE_DATABASE_IF_NOT_EXISTS("createDatabaseIfNotExist", Boolean.FALSE, "1.1.8"),
-
-    /**
-     * Defined the server time zone.
-     * to use only if jre server as a different time implementation of the server.
-     * (best to have the same server time zone when possible)
-     */
-    SERVER_TIMEZONE("serverTimezone", "1.1.8"),
-    /**
-     * DatabaseMetaData use current catalog if null.
-     */
-    NULL_CATALOG_MEANS_CURRENT("nullCatalogMeansCurrent", Boolean.TRUE, "1.1.8"),
-
-    /**
-     * Datatype mapping flag, handle MySQL Tiny as BIT(boolean).
-     */
-    TINY_INT_IS_BIT("tinyInt1isBit", Boolean.TRUE, "1.0.0"),
-
-    /**
-     * Year is date type, rather than numerical.
-     */
-    YEAR_IS_DATE_TYPE("yearIsDateType", Boolean.TRUE, "1.0.0"),
-
-    /**
-     * Force SSL on connection.
-     * (legacy alias "useSSL")
-     */
-    USE_SSL("useSsl", Boolean.FALSE, "1.1.0"),
-
-    /**
-     * allow compression in MySQL Protocol.
-     */
-    USER_COMPRESSION("useCompression", Boolean.FALSE, "1.0.0"),
-
-    /**
-     * Allows multiple statements in single executeQuery.
-     */
-    ALLOW_MULTI_QUERIES("allowMultiQueries", Boolean.FALSE, "1.0.0"),
-
-    /**
-     * rewrite batchedStatement to have only one server call.
-     */
-    REWRITE_BATCHED_STATEMENTS("rewriteBatchedStatements", Boolean.FALSE, "1.1.8"),
-
-    /**
-     * Sets corresponding option on the connection socket.
-     * Defaults to true since 1.6.0 (false before)
-     */
-    TCP_KEEP_ALIVE("tcpKeepAlive", Boolean.TRUE, "1.0.0"),
-
-    /**
-     * set buffer size for TCP buffer (SO_RCVBUF).
-     */
-    TCP_RCV_BUF("tcpRcvBuf", (Integer) null, 0, "1.0.0"),
-
-    /**
-     * set buffer size for TCP buffer (SO_SNDBUF).
-     */
-    TCP_SND_BUF("tcpSndBuf", (Integer) null, 0, "1.0.0"),
-
-    /**
-     * to use custom socket factory, set it to full name of the class that implements javax.net.SocketFactory.
-     */
-    SOCKET_FACTORY("socketFactory", "1.0.0"),
-    PIN_GLOBAL_TX_TO_PHYSICAL_CONNECTION("pinGlobalTxToPhysicalConnection", Boolean.FALSE, "1.1.8"),
-
-    /**
-     * When using SSL, do not check server's certificate.
-     */
-    TRUST_SERVER_CERTIFICATE("trustServerCertificate", Boolean.FALSE, "1.1.1"),
-
-    /**
-     * Server's certificate in DER form, or server's CA certificate. Can be used in one of 3 forms, sslServerCert=/path/to/cert.pem
-     * (full path to certificate), sslServerCert=classpath:relative/cert.pem (relative to current classpath), or as verbatim DER-encoded certificate
-     * string "-----BEGIN CERTIFICATE-----".
-     */
-    SERVER_SSL_CERT("serverSslCert", "1.1.3"),
-
-    /**
-     * Correctly handle subsecond precision in timestamps (feature available with MariaDB 5.3 and later).
-     * May confuse 3rd party components (Hibernated).
-     */
-    USE_FRACTIONAL_SECONDS("useFractionalSeconds", Boolean.TRUE, "1.0.0"),
-
-    /**
-     * Driver must recreateConnection after a failover.
-     */
-    AUTO_RECONNECT("autoReconnect", Boolean.FALSE, "1.2.0"),
-
-    /**
-     * After a master failover and no other master found, back on a read-only host ( throw exception if not).
-     */
-    FAIL_ON_READ_ONLY("failOnReadOnly", Boolean.FALSE, "1.2.0"),
-
-    /**
-     * When using loadbalancing, the number of times the driver should cycle through available hosts, attempting to connect.
-     * Between cycles, the driver will pause for 250ms if no servers are available.
-     */
-    RETRY_ALL_DOWN("retriesAllDown", 120, 0, "1.2.0"),
-
-    /**
-     * When using failover, the number of times the driver should cycle silently through available hosts, attempting to connect.
-     * Between cycles, the driver will pause for 250ms if no servers are available.
-     * if set to 0, there will be no silent reconnection
-     */
-    FAILOVER_LOOP_RETRIES("failoverLoopRetries", 120, 0, "1.2.0"),
-
-
-    /**
-     * When in multiple hosts, after this time in second without used, verification that the connections haven't been lost.
-     * When 0, no verification will be done. Defaults to 0 (120 before 1.5.8 version)
-     */
-    VALID_CONNECTION_TIMEOUT("validConnectionTimeout", 0, 0, "1.2.0"),
-
-    /**
-     * time in second a server is blacklisted after a connection failure.  default to 50s
-     */
-    LOAD_BALANCE_BLACKLIST_TIMEOUT("loadBalanceBlacklistTimeout", 50, 0, "1.2.0"),
-
-    /**
-     * enable/disable prepare Statement cache, default true.
-     */
-    CACHEPREPSTMTS("cachePrepStmts", Boolean.TRUE, "1.3.0"),
-
-    /**
-     * This sets the number of prepared statements that the driver will cache per VM if "cachePrepStmts" is enabled.
-     * default to 250.
-     */
-    PREPSTMTCACHESIZE("prepStmtCacheSize", 250, 0, "1.3.0"),
-
-    /**
-     * This is the maximum length of a prepared SQL statement that the driver will cache  if "cachePrepStmts" is enabled.
-     * default to 2048.
-     */
-    PREPSTMTCACHESQLLIMIT("prepStmtCacheSqlLimit", 2048, 0, "1.3.0"),
-
-    /**
-     * when in high availability, and switching to a read-only host, assure that this host is in read-only mode by
-     * setting session read-only.
-     * default to false
-     */
-    ASSUREREADONLY("assureReadOnly", Boolean.FALSE, "1.3.0"),
-
-
-    /**
-     * if true (default) store date/timestamps according to client time zone.
-     * if false, store all date/timestamps in DB according to server time zone, and time information (that is a time difference), doesn't take
-     * timezone in account.
-     */
-    USELEGACYDATETIMECODE("useLegacyDatetimeCode", Boolean.TRUE, "1.3.0"),
-
-    /**
-     * maximize Mysql compatibility.
-     * when using jdbc setDate(), will store date in client timezone, not in server timezone when useLegacyDatetimeCode = false.
-     * default to false.
-     */
-    MAXIMIZEMYSQLCOMPATIBILITY("maximizeMysqlCompatibility", Boolean.FALSE, "1.3.0"),
-
-    /**
-     * useServerPrepStmts must prepared statements be prepared on server side, or just faked on client side.
-     * if rewriteBatchedStatements is set to true, this options will be set to false.
-     * default to false.
-     */
-    USESERVERPREPSTMTS("useServerPrepStmts", Boolean.FALSE, "1.3.0"),
-
-    /**
-     * File path of the trustStore file (similar to java System property "javax.net.ssl.trustStore").
-     * Use the specified keystore for trusted root certificates.
-     * When set, overrides serverSslCert.
-     * <p>
-     * (legacy alias trustCertificateKeyStoreUrl)
-     */
-    TRUSTSTORE("trustStore", "1.3.0"),
-
-    /**
-     * Password for the trusted root certificate file (similar to java System property "javax.net.ssl.trustStorePassword").
-     * <p>
-     * (legacy alias trustCertificateKeyStorePassword)
-     */
-    TRUST_CERTIFICATE_KEYSTORE_PASSWORD("trustStorePassword", "1.3.0"),
-
-    /**
-     * File path of the keyStore file that contain client private key store and associate certificates
-     * (similar to java System property "javax.net.ssl.keyStore", but ensure that only the private key's entries are used).
-     * (legacy alias clientCertificateKeyStoreUrl)
-     */
-    KEYSTORE("keyStore", "1.3.0"),
-
-    /**
-     * Password for the client certificate keystore  (similar to java System property "javax.net.ssl.keyStorePassword").
-     * (legacy alias clientCertificateKeyStorePassword)
-     */
-    KEYSTORE_PASSWORD("keyStorePassword", "1.3.0"),
-
-    /**
-     * Password for the private key contain in client certificate keystore.
-     * needed only in case private key password differ from keyStore password.
-     */
-    PRIVATE_KEYS_PASSWORD("keyPassword", "1.5.3"),
-
-    /**
-     * Force TLS/SSL protocol to a specific set of TLS versions (comma separated list)
-     * example : "TLSv1, TLSv1.1, TLSv1.2"
-     */
-    ENABLED_SSL_PROTOCOL_SUITES("enabledSslProtocolSuites", "1.5.0"),
-
-    /**
-     * Force TLS/SSL cipher. (comma separated list)
-     * example : "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_DHE_DSS_WITH_AES_256_GCM_SHA384"
-     */
-    ENABLED_SSL_CIPHER_SUITES("enabledSslCipherSuites", "1.5.0"),
-
-    /**
-     * When executing batch queries, must batch continue on error.
-     * default to true.
-     */
-    CONTINUE_BATCH_ON_ERROR("continueBatchOnError", Boolean.TRUE, "1.4.0"),
-
-    /**
-     * Truncation error ("Data truncated for column '%' at row %", "Out of range value for column '%' at row %") will be thrown as error,
-     * and not as warning.
-     */
-    JDBCOMPLIANTRUNCATION("jdbcCompliantTruncation", Boolean.TRUE, "1.4.0"),
-
-    /**
-     * enable/disable callable Statement cache, default true.
-     */
-    CACHE_CALLABLE_STMTS("cacheCallableStmts", Boolean.TRUE, "1.4.0"),
-
-    /**
-     * This sets the number of callable statements that the driver will cache per VM if "cacheCallableStmts" is enabled.
-     * default to 150.
-     */
-    CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", 150, 0, "1.4.0"),
-
-    /**
-     * Indicate to server some client information in a key;value pair.
-     * for example connectionAttributes=key1:value1,key2,value2.
-     * Those information can be retrieved on server within tables mysql.session_connect_attrs and mysql.session_account_connect_attrs.
-     * This can permit from server an identification of client.
-     */
-    CONNECTION_ATTRIBUTES("connectionAttributes", "1.4.0"),
-
-    /**
-     * PreparedStatement.executeBatch() will send many QUERY before reading result packets.
-     * default to true.
-     * (null is considered true. this permit to know if option was explicitly set)
-     */
-    USE_BATCH_MULTI_SEND("useBatchMultiSend", (Boolean) null, "1.5.0"),
-
-    /**
-     * When using useBatchMultiSend, indicate maximum query that can be send at a time.
-     * default to 100
-     */
-    USE_BATCH_MULTI_SEND_NUMBER("useBatchMultiSendNumber", 100, 1, "1.5.0"),
-
-    /**
-     * Enable log information. require Slf4j version &gt; 1.4 dependency.
-     * log informations :
-     * - info : query log
-     * default to false.
-     */
-    LOGGING("log", Boolean.FALSE, "1.5.0"),
-
-    /**
-     * log query execution time.
-     * (legacy alias alias profileSQL)
-     */
-    PROFILESQL("profileSql", Boolean.FALSE, "1.5.0"),
-
-    /**
-     * Max query log size.
-     * default to 1024.
-     */
-    MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", 1024, 0, "1.5.0"),
-
-    /**
-     * Will log query with execution time superior to this value (if defined )
-     * default to null.
-     */
-    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, 0L, "1.5.0"),
-
-    /**
-     * Indicate password encoding charset. If not set, driver use platform's default charset.
-     * default to null.
-     */
-    PASSWORD_CHARACTER_ENCODING("passwordCharacterEncoding", "1.5.9"),
-
-    /**
-     * Fast connection creation (recommended if not using authentication plugins)
-     * default to true.
-     * (null is considered true. this permit to know if option was explicitly set)
-     */
-    PIPELINE_AUTH("usePipelineAuth", (Boolean) null, "1.6.0"),
-
-    /**
-     * Driver will save the last 16 MySQL packet exchanges (limited to first 1000 bytes).
-     * Hexadecimal value of those packet will be added to stacktrace when an IOException occur.
-     * This options has no performance incidence (&lt; 1 microseconds per query) but driver will then take 16kb more memory.
-     */
-    ENABLE_PACKET_DEBUG("enablePacketDebug", Boolean.FALSE, "1.6.0"),
-
-    /**
-     * When using ssl, driver check hostname against the server's identity as presented in the server's Certificate
-     * (checking alternative names or certificate CN) to prevent man-in-the-middle attack.
-     * This option permit to deactivate this validation.
-     */
-    SSL_HOSTNAME_VERIFICATION("disableSslHostnameVerification", Boolean.FALSE, "2.1.0"),
-
-    /**
-     * Use dedicated COM_STMT_BULK_EXECUTE protocol for batch insert when possible.
-     * (batch without Statement.RETURN_GENERATED_KEYS and streams) to have faster batch.
-     * (significant only if server MariaDB &ge; 10.2.7)
-     */
-    USE_BULK_PROTOCOL("useBulkStmts", Boolean.TRUE, "2.1.0"),
-
-    /**
-     * Set default autocommit value.
-     * Default: true
-     */
-    AUTOCOMMIT("autocommit", Boolean.TRUE, "2.2.0"),
-
-    /**
-     * Enable pool.
-     * This option is usefull only if not using a DataSource object, but only connection.
-     */
-    POOL("pool", Boolean.FALSE, "2.2.0"),
-
-    /**
-     * Pool name that will permit to identify thread.
-     * default : auto-generated as MariaDb-pool-&le;pool-index&ge;
-     */
-    POOL_NAME("poolName", "2.2.0"),
-
-    /**
-     * The maximum number of physical connections that
-     * the pool should contain.
-     * default: 8
-     */
-    MAX_POOL_SIZE("maxPoolSize", 8, 1, "2.2.0"),
-
-    /**
-     * The number of physical connections the pool should keep available at all times.
-     * default: maxPoolSize value
-     */
-    MIN_POOL_SIZE("minPoolSize", (Integer) null, 0, "2.2.0"),
-
-    /**
-     * The maximum amount of time in seconds that a connection can stay in pool when not used.
-     * This value must always be below @wait_timeout value - 45s
-     *
-     * Default: 600 (10 minutes). minimum value is 60 seconds.
-     */
-    MAX_IDLE_TIME("maxIdleTime", 600, Options.MIN_VALUE__MAX_IDLE_TIME, "2.2.0"),
-
-    /**
-     *
-     * When asking a connection to pool, Pool will validate connection state.
-     * "poolValidMinDelay" permit to disable this validation if connection has been borrowed recently avoiding useless
-     * verification in case of frequent reuse of connection
-     *
-     * 0 meaning validation is done each time connection is asked.
-     *
-     * Default: 1000 (in milliseconds)
-     */
-    POOL_VALID_MIN_DELAY("poolValidMinDelay", 1000, 0, "2.2.0"),
-
-    /**
-     * Indicate that global variable aren't changed by application, permitting to pool faster connection.
-     * Default: false
-     */
-    STATIC_GLOBAL("staticGlobal", Boolean.FALSE, "2.2.0"),
-
-    /**
-     * Register JMX monitoring pools.
-     * Default: true
-     */
-    REGISTER_POOL_JMX("registerJmxPool", Boolean.TRUE, "2.2.0"),
-
-    /**
-     * Use COM_RESET_CONNECTION when resetting connection for pools when server permit it (MariaDB &gt; 10.2.4, MySQL &gt; 5.7.3)
-     * This permit to reset session and user variables.
-     *
-     * Default: false
-     */
-    USE_RESET_CONNECTION("useResetConnection", Boolean.FALSE, "2.2.0"),
-
-    /**
-     * On master/slave configuration, permit to connect Connection defaulting to a slave
-     * when master is down.
-     */
-    ALLOW_MASTER_DOWN("allowMasterDownConnection", Boolean.FALSE, "2.2.0"),
-
-    /**
-     * Usually, Connection.isValid just send an empty packet to server, and server send a small response to ensure
-     * connectivity. When this option is set, connector will ensure server that "wsrep_local_state" correspond to
-     * allowed values (separated by comma)
-     *
-     * example "4,5". Recommended value "4" when using galera cluster without proxy like maxscale
-     */
-    GALERA_ALLOWED_STATE("galeraAllowedState", "2.2.5"),
-
-    /**
-     * If false (default), use "found rows" for the row count of statements. This corresponds to the JDBC standard.
-     * If true, use "affected rows" for the row count.
-     * This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.
-     */
-    USEAFFECTEDROWS("useAffectedRows", Boolean.FALSE, "2.2.6");
+    CONNECT_TIMEOUT("connectTimeout", 30_000, 0, "1.1.8",
+            "The connect timeout value, in milliseconds, or zero for no timeout.", false),
+    PIPE("pipe", "1.1.3", "On Windows, specify named pipe name to connect.", false),
+    LOCAL_SOCKET("localSocket", "1.1.4", "Permits connecting to the database via Unix domain socket, if the server "
+            + "allows it. \nThe value is the path of Unix domain socket (i.e \"socket\" database parameter : "
+            + "select @@socket).", false),
+    SHARED_MEMORY("sharedMemory", "1.1.4", "Permits connecting to the database via shared memory, if the server allows "
+            + "it. \nThe value is the base name of the shared memory.", false),
+    TCP_NO_DELAY("tcpNoDelay", Boolean.TRUE, "1.0.0", "Sets corresponding option on the connection socket.", false),
+    TCP_ABORTIVE_CLOSE("tcpAbortiveClose", Boolean.FALSE, "1.1.1", "Sets corresponding option on the connection "
+            + "socket.", false),
+    LOCAL_SOCKET_ADDRESS("localSocketAddress", "1.1.8", "Hostname or IP address to bind the connection socket to a "
+            + "local (UNIX domain) socket.", false),
+    SOCKET_TIMEOUT("socketTimeout", new Integer[]{10000, null, null, null, null, null}, 0, "1.1.8", "Defined the "
+            + "network socket timeout (SO_TIMEOUT) in milliseconds. Value of 0 disables this timeout. \n"
+            + "If the goal is to set a timeout for all queries, since MariaDB 10.1.1, the server has permitted a "
+            + "solution to limit the query time by setting a system variable, max_statement_time. The advantage is that"
+            + " the connection then is still usable.\n"
+            + "Default: 0 (standard configuration) or 10000ms (using \"aurora\" failover configuration).", false),
+    INTERACTIVE_CLIENT("interactiveClient", Boolean.FALSE, "1.1.8", "Session timeout is defined by the wait_timeout "
+            + "server variable. Setting interactiveClient to true will tell the server to use the interactive_timeout "
+            + "server variable.", false),
+    DUMP_QUERY_ON_EXCEPTION("dumpQueriesOnException", Boolean.TRUE, "1.1.0", "If set to 'true', an exception is thrown "
+            + "during query execution containing a query string.", false),
+    USE_OLD_ALIAS_METADATA_BEHAVIOR("useOldAliasMetadataBehavior", Boolean.FALSE, "1.1.9",
+            "Metadata ResultSetMetaData.getTableName() returns the physical table name. \"useOldAliasMetadataBehavior\""
+                    + " permits activating the legacy code that sends the table alias if set.", false),
+    ALLOW_LOCAL_INFILE("allowLocalInfile", Boolean.TRUE, "1.2.1", "Permit loading data from file", false),
+    SESSION_VARIABLES("sessionVariables", "1.1.0", "<var>=<value> pairs separated by comma, mysql session variables, "
+            + "set upon establishing successful connection.", false),
+    CREATE_DATABASE_IF_NOT_EXISTS("createDatabaseIfNotExist", Boolean.FALSE, "1.1.8", "the specified database in the "
+            + "url will be created if non-existent.", false),
+    SERVER_TIMEZONE("serverTimezone", "1.1.8", "Defines the server time zone.\n"
+            + "to use only if the jre server has a different time implementation of the server.\n"
+            + "(best to have the same server time zone when possible).", false),
+    NULL_CATALOG_MEANS_CURRENT("nullCatalogMeansCurrent", Boolean.TRUE, "1.1.8", "DatabaseMetaData use current catalog"
+            + " if null.", false),
+    TINY_INT_IS_BIT("tinyInt1isBit", Boolean.TRUE, "1.0.0", "Datatype mapping flag, handle MySQL Tiny as BIT(boolean).",
+            false),
+    YEAR_IS_DATE_TYPE("yearIsDateType", Boolean.TRUE, "1.0.0", "Year is date type, rather than numerical.", false),
+    USE_SSL("useSsl", Boolean.FALSE, "1.1.0", "Force SSL on connection. (legacy alias \"useSSL\")", false),
+    USER_COMPRESSION("useCompression", Boolean.FALSE, "1.0.0", "Compresses the exchange with the database through gzip."
+            + " This permits better performance when the database is not in the same location.", false),
+    ALLOW_MULTI_QUERIES("allowMultiQueries", Boolean.FALSE, "1.0.0", "permit multi-queries like insert into ab (i) "
+            + "values (1); insert into ab (i) values (2).", false),
+    REWRITE_BATCHED_STATEMENTS("rewriteBatchedStatements", Boolean.FALSE, "1.1.8", "For insert queries, rewrite "
+            + "batchedStatement to execute in a single executeQuery.\n"
+            + "example:\n"
+            + "   insert into ab (i) values (?) with first batch values = 1, second = 2 will be rewritten\n"
+            + "   insert into ab (i) values (1), (2). \n"
+            + "\n"
+            + "If query cannot be rewriten in \"multi-values\", rewrite will use multi-queries : INSERT INTO "
+            + "TABLE(col1) VALUES (?) ON DUPLICATE KEY UPDATE col2=? with values [1,2] and [2,3]\" will be rewritten\n"
+            + "INSERT INTO TABLE(col1) VALUES (1) ON DUPLICATE KEY UPDATE col2=2;INSERT INTO TABLE(col1) VALUES (3) ON "
+            + "DUPLICATE KEY UPDATE col2=4\n"
+            + "\n"
+            + "when active, the useServerPrepStmts option is set to false", false),
+    TCP_KEEP_ALIVE("tcpKeepAlive", Boolean.TRUE, "1.0.0", "Sets corresponding option on the connection socket.", false),
+    TCP_RCV_BUF("tcpRcvBuf", (Integer) null, 0, "1.0.0", "set buffer size for TCP buffer (SO_RCVBUF).", false),
+    TCP_SND_BUF("tcpSndBuf", (Integer) null, 0, "1.0.0", "set buffer size for TCP buffer (SO_SNDBUF).", false),
+    SOCKET_FACTORY("socketFactory", "1.0.0", "to use a custom socket factory, set it to the full name of the class that"
+            + " implements javax.net.SocketFactory.", false),
+    PIN_GLOBAL_TX_TO_PHYSICAL_CONNECTION("pinGlobalTxToPhysicalConnection", Boolean.FALSE, "1.1.8", "", false),
+    TRUST_SERVER_CERTIFICATE("trustServerCertificate", Boolean.FALSE, "1.1.1", "When using SSL, do not check server's"
+            + " certificate.", false),
+    SERVER_SSL_CERT("serverSslCert", "1.1.3", "Permits providing server's certificate in DER form, or server's CA"
+            + " certificate. The server will be added to trustStor. This permits a self-signed certificate to be trusted.\n"
+            + "Can be used in one of 3 forms : \n"
+            + "* serverSslCert=/path/to/cert.pem (full path to certificate)\n"
+            + "* serverSslCert=classpath:relative/cert.pem (relative to current classpath)\n"
+            + "* or as verbatim DER-encoded certificate string \"------BEGIN CERTIFICATE-----\" .", false),
+    USE_FRACTIONAL_SECONDS("useFractionalSeconds", Boolean.TRUE, "1.0.0", "Correctly handle subsecond precision in"
+            + " timestamps (feature available with MariaDB 5.3 and later).\n"
+            + "May confuse 3rd party components (Hibernate).", false),
+    AUTO_RECONNECT("autoReconnect", Boolean.FALSE, "1.2.0", "Driver must recreateConnection after a failover.", false),
+    FAIL_ON_READ_ONLY("failOnReadOnly", Boolean.FALSE, "1.2.0", "After a master failover and no other master found,"
+            + " back on a read-only host ( throw exception if not).", false),
+    RETRY_ALL_DOWN("retriesAllDown", 120, 0, "1.2.0", "When using loadbalancing, the number of times the driver should"
+            + " cycle through available hosts, attempting to connect.\n"
+            + "     * Between cycles, the driver will pause for 250ms if no servers are available.", false),
+    FAILOVER_LOOP_RETRIES("failoverLoopRetries", 120, 0, "1.2.0", "When using failover, the number of times the driver"
+            + " should cycle silently through available hosts, attempting to connect.\n"
+            + "     * Between cycles, the driver will pause for 250ms if no servers are available.\n"
+            + "     * if set to 0, there will be no silent reconnection", false),
+    VALID_CONNECTION_TIMEOUT("validConnectionTimeout", 0, 0, "1.2.0", "When in multiple hosts, after this time in"
+            + " second without used, verification that the connections haven't been lost.\n"
+            + "     * When 0, no verification will be done. Defaults to 0 (120 before 1.5.8 version)", false),
+    LOAD_BALANCE_BLACKLIST_TIMEOUT("loadBalanceBlacklistTimeout", 50, 0, "1.2.0", "time in second a server is"
+            + " blacklisted after a connection failure.", false),
+    CACHE_PREP_STMTS("cachePrepStmts", Boolean.TRUE, "1.3.0", "enable/disable prepare Statement cache, default true.",
+            false),
+    PREP_STMT_CACHE_SIZE("prepStmtCacheSize", 250, 0, "1.3.0", "This sets the number of prepared statements that the "
+            + "driver will cache per connection if \"cachePrepStmts\" is enabled.", false),
+    PREP_STMT_CACHE_SQL_LIMIT("prepStmtCacheSqlLimit", 2048, 0, "1.3.0", "This is the maximum length of a prepared SQL"
+            + " statement that the driver will cache  if \"cachePrepStmts\" is enabled.", false),
+    ASSURE_READONLY("assureReadOnly", Boolean.FALSE, "1.3.0", "If true, in high availability, and switching to a "
+            + "read-only host, assure that this host is in read-only mode by setting the session to read-only.", false),
+    USE_LEGACY_DATETIME_CODE("useLegacyDatetimeCode", Boolean.TRUE, "1.3.0", "if true (default) store date/timestamps "
+            + "according to client time zone.\n"
+            + "if false, store all date/timestamps in DB according to server time zone, and time information (that is a"
+            + " time difference), doesn't take\n"
+            + "timezone in account.", false),
+    MAXIMIZE_MYSQL_COMPATIBILITY("maximizeMysqlCompatibility", Boolean.FALSE, "1.3.0", "maximize Mysql compatibility.\n"
+            + "when using jdbc setDate(), will store date in client timezone, not in server timezone when "
+            + "useLegacyDatetimeCode = false.\n"
+            + "default to false.", false),
+    USE_SERVER_PREP_STMTS("useServerPrepStmts", Boolean.FALSE, "1.3.0", "useServerPrepStmts must prepared statements be"
+            + " prepared on server side, or just faked on client side.\n"
+            + "     * if rewriteBatchedStatements is set to true, this options will be set to false.", false),
+    TRUSTSTORE("trustStore", "1.3.0", "File path of the trustStore file (similar to java System property "
+            + "\"javax.net.ssl.trustStore\"). (legacy alias trustCertificateKeyStoreUrl)\n"
+            + "Use the specified file for trusted root certificates.\n"
+            + "When set, overrides serverSslCert.", false),
+    TRUST_CERTIFICATE_KEYSTORE_PASSWORD("trustStorePassword", "1.3.0", "Password for the trusted root certificate file"
+            + " (similar to java System property \"javax.net.ssl.trustStorePassword\").\n"
+            + "(legacy alias trustCertificateKeyStorePassword).", false),
+    KEYSTORE("keyStore", "1.3.0", "File path of the keyStore file that contain client private key store and associate "
+            + "certificates (similar to java System property \"javax.net.ssl.keyStore\", but ensure that only the "
+            + "private key's entries are used).(legacy alias clientCertificateKeyStoreUrl).", false),
+    KEYSTORE_PASSWORD("keyStorePassword", "1.3.0", "Password for the client certificate keyStore (similar to java "
+            + "System property \"javax.net.ssl.keyStorePassword\").(legacy alias clientCertificateKeyStorePassword)",
+            false),
+    PRIVATE_KEYS_PASSWORD("keyPassword", "1.5.3", "Password for the private key in client certificate keyStore. (only "
+            + "needed if private key password differ from keyStore password).", false),
+    ENABLED_SSL_PROTOCOL_SUITES("enabledSslProtocolSuites", "1.5.0", "Force TLS/SSL protocol to a specific set of TLS "
+            + "versions (comma separated list). \n"
+            + "Example : \"TLSv1, TLSv1.1, TLSv1.2\"\n"
+            + "(Alias \"enabledSSLProtocolSuites\" works too)", false),
+    ENABLED_SSL_CIPHER_SUITES("enabledSslCipherSuites", "1.5.0", "Force TLS/SSL cipher (comma separated list).\n"
+            + "Example : \"TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_DHE_DSS_WITH_AES_256_GCM_SHA384\"", false),
+    CONTINUE_BATCH_ON_ERROR("continueBatchOnError", Boolean.TRUE, "1.4.0", "When executing batch queries, must batch "
+            + "continue on error.", false),
+    JDBC_COMPLIANT_TRUNCATION("jdbcCompliantTruncation", Boolean.TRUE, "1.4.0", "Truncation error (\"Data truncated for"
+            + " column '%' at row %\", \"Out of range value for column '%' at row %\") will be thrown as error, and not as warning.", false),
+    CACHE_CALLABLE_STMTS("cacheCallableStmts", Boolean.TRUE, "1.4.0", "enable/disable callable Statement cache, default"
+            + " true.", false),
+    CALLABLE_STMT_CACHE_SIZE("callableStmtCacheSize", 150, 0, "1.4.0", "This sets the number of callable statements "
+            + "that the driver will cache per VM if \"cacheCallableStmts\" is enabled.", false),
+    CONNECTION_ATTRIBUTES("connectionAttributes", "1.4.0", "When performance_schema is active, permit to send server "
+            + "some client information in a key;value pair format "
+            + "(example: connectionAttributes=key1:value1,key2,value2).\n"
+            + "Those informations can be retrieved on server within tables performance_schema.session_connect_attrs "
+            + "and performance_schema.session_account_connect_attrs.\n"
+            + "This can permit from server an identification of client/application", false),
+    USE_BATCH_MULTI_SEND("useBatchMultiSend", (Boolean) null, "1.5.0", "*Not compatible with aurora*\n"
+            + "Driver will can send queries by batch. \n"
+            + "If set to false, queries are sent one by one, waiting for the result before sending the next one. \n"
+            + "If set to true, queries will be sent by batch corresponding to the useBatchMultiSendNumber option value"
+            + " (default 100) or according to the max_allowed_packet server variable if the packet size does not permit"
+            + " sending as many queries. Results will be read later, avoiding a lot of network latency when the client"
+            + " and server aren't on the same host. \n"
+            + "\n"
+            + "This option is mainly effective when the client is distant from the server.", false),
+    USE_BATCH_MULTI_SEND_NUMBER("useBatchMultiSendNumber", 100, 1, "1.5.0", "When option useBatchMultiSend is active,"
+            + " indicate the maximum query send in a row before reading results.", false),
+    LOGGING("log", Boolean.FALSE, "1.5.0", "Enable log information. \n"
+            + "require Slf4j version > 1.4 dependency.\n"
+            + "Log level correspond to Slf4j logging implementation", false),
+    PROFILE_SQL("profileSql", Boolean.FALSE, "1.5.0", "log query execution time.", false),
+    MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", 1024, 0, "1.5.0", "Max query log size.", false),
+    SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, 0L, "1.5.0", "Will log query with execution time superior"
+            + " to this value (if defined )", false),
+    PASSWORD_CHARACTER_ENCODING("passwordCharacterEncoding", "1.5.9", "Indicate password encoding charset. If not set,"
+            + " driver use platform's default charset.", false),
+    PIPELINE_AUTH("usePipelineAuth", (Boolean) null, "1.6.0", "*Not compatible with aurora*\n"
+            + "During connection, different queries are executed. When option is active those queries are send using"
+            + " pipeline (all queries are send, then only all results are reads), permitting faster connection "
+            + "creation", false),
+    ENABLE_PACKET_DEBUG("enablePacketDebug", Boolean.FALSE, "1.6.0", "Driver will save the last 16 MySQL packet "
+            + "exchanges (limited to first 1000 bytes). Hexadecimal value of those packets will be added to stacktrace"
+            + " when an IOException occur.\n"
+            + "This option has no impact on performance but driver will then take 16kb more memory.", false),
+    SSL_HOSTNAME_VERIFICATION("disableSslHostnameVerification", Boolean.FALSE, "2.1.0", "When using ssl, the driver "
+            + "checks the hostname against the server's identity as presented in the server's certificate (checking "
+            + "alternative names or the certificate CN) to prevent man-in-the-middle attacks. This option permits "
+            + "deactivating this validation. Hostname verification is disabled when the trustServerCertificate "
+            + "option is set", false),
+    USE_BULK_PROTOCOL("useBulkStmts", Boolean.TRUE, "2.1.0", "Use dedicated COM_STMT_BULK_EXECUTE protocol for batch "
+            + "insert when possible. (batch without Statement.RETURN_GENERATED_KEYS and streams) to have faster batch. "
+            + "(significant only if server MariaDB >= 10.2.7)", false),
+    AUTOCOMMIT("autocommit", Boolean.TRUE, "2.2.0", "Set default autocommit value on connection initialization", false),
+    POOL("pool", Boolean.FALSE, "2.2.0", "Use pool. This option is useful only if not using a DataSource object, but "
+            + "only a connection object.", false),
+    POOL_NAME("poolName", "2.2.0", "Pool name that permits identifying threads. default: auto-generated as "
+            + "MariaDb-pool-<pool-index>", false),
+    MAX_POOL_SIZE("maxPoolSize", 8, 1, "2.2.0", "The maximum number of physical connections that the pool should "
+            + "contain.", false),
+    MIN_POOL_SIZE("minPoolSize", (Integer) null, 0, "2.2.0", "When connections are removed due to not being used for "
+            + "longer than than \"maxIdleTime\", connections are closed and removed from the pool. \"minPoolSize\" "
+            + "indicates the number of physical connections the pool should keep available at all times. Should be less"
+            + " or equal to maxPoolSize.", false),
+    MAX_IDLE_TIME("maxIdleTime", 600, Options.MIN_VALUE__MAX_IDLE_TIME, "2.2.0", "The maximum amount of time in seconds"
+            + " that a connection can stay in the pool when not used. This value must always be below @wait_timeout"
+            + " value - 45s \n"
+            + "Default: 600 in seconds (=10 minutes), minimum value is 60 seconds", false),
+    POOL_VALID_MIN_DELAY("poolValidMinDelay", 1000, 0, "2.2.0", "When asking a connection to pool, the pool will "
+            + "validate the connection state. \"poolValidMinDelay\" permits disabling this validation if the connection"
+            + " has been borrowed recently avoiding useless verifications in case of frequent reuse of connections. "
+            + "0 means validation is done each time the connection is asked.", false),
+    STATIC_GLOBAL("staticGlobal", Boolean.FALSE, "2.2.0", "Indicates the values of the global variables "
+            + "max_allowed_packet, wait_timeout, autocommit, auto_increment_increment, time_zone, system_time_zone and"
+            + " tx_isolation) won't be changed, permitting the pool to create new connections faster.", false),
+    REGISTER_POOL_JMX("registerJmxPool", Boolean.TRUE, "2.2.0", "Register JMX monitoring pools.", false),
+    USE_RESET_CONNECTION("useResetConnection", Boolean.FALSE, "2.2.0", "When a connection is closed() "
+            + "(given back to pool), the pool resets the connection state. Setting this option, the prepare command "
+            + "will be deleted, session variables changed will be reset, and user variables will be destroyed when the"
+            + " server permits it (>= MariaDB 10.2.4, >= MySQL 5.7.3), permitting saving memory on the server if the "
+            + "application make extensive use of variables. Must not be used with the useServerPrepStmts option",
+            false),
+    ALLOW_MASTER_DOWN("allowMasterDownConnection", Boolean.FALSE, "2.2.0", "When using master/slave configuration, "
+            + "permit to create connection when master is down. If no master is up, default connection is then a slave "
+            + "and Connection.isReadOnly() will then return true.", false),
+    GALERA_ALLOWED_STATE("galeraAllowedState", "2.2.5", "Usually, Connection.isValid just send an empty packet to "
+            + "server, and server send a small response to ensure connectivity. When this option is set, connector will"
+            + " ensure Galera server state \"wsrep_local_state\" correspond to allowed values (separated by comma). "
+            + "Example \"4,5\", recommended is \"4\". see galera state to know more.", false),
+    USE_AFFECTED_ROWS("useAffectedRows", Boolean.FALSE, "2.2.6", "If false (default), use \"found rows\" for the row "
+            + "count of statements. This corresponds to the JDBC standard.\n"
+            + "If true, use \"affected rows\" for the row count.\n"
+            + "This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.", false);
 
 
     private final String optionName;
+    private final String description;
+    private final boolean required;
     private final Object objType;
     private final Object defaultValue;
     private final Object minValue;
     private final Object maxValue;
     private final String implementationVersion;
 
-    DefaultOptions(final String optionName, final String implementationVersion) {
+    DefaultOptions(final String optionName, final String implementationVersion, String description, boolean required) {
         this.optionName = optionName;
         this.implementationVersion = implementationVersion;
+        this.description = description;
+        this.required = required;
         objType = String.class;
         defaultValue = null;
         minValue = null;
         maxValue = null;
     }
 
-    DefaultOptions(final String optionName, final String defaultValue, final String implementationVersion) {
+    DefaultOptions(final String optionName,
+                   final String defaultValue,
+                   final String implementationVersion,
+                   String description,
+                   boolean required) {
         this.optionName = optionName;
         this.implementationVersion = implementationVersion;
+        this.description = description;
+        this.required = required;
         objType = String.class;
         this.defaultValue = defaultValue;
         minValue = null;
         maxValue = null;
     }
 
-    DefaultOptions(final String optionName, final Boolean defaultValue, final String implementationVersion) {
+    DefaultOptions(final String optionName,
+                   final Boolean defaultValue,
+                   final String implementationVersion,
+                   String description,
+                   boolean required) {
         this.optionName = optionName;
         this.objType = Boolean.class;
         this.defaultValue = defaultValue;
         this.implementationVersion = implementationVersion;
+        this.description = description;
+        this.required = required;
         minValue = null;
         maxValue = null;
     }
 
-    DefaultOptions(final String optionName, final Integer defaultValue, final Integer minValue, final String implementationVersion) {
+    DefaultOptions(final String optionName,
+                   final Integer defaultValue,
+                   final Integer minValue,
+                   final String implementationVersion,
+                   String description,
+                   boolean required) {
         this.optionName = optionName;
         this.objType = Integer.class;
         this.defaultValue = defaultValue;
         this.minValue = minValue;
         this.maxValue = Integer.MAX_VALUE;
         this.implementationVersion = implementationVersion;
+        this.description = description;
+        this.required = required;
     }
 
-    DefaultOptions(final String optionName, final Long defaultValue, final Long minValue, final String implementationVersion) {
+    DefaultOptions(final String optionName,
+                   final Long defaultValue,
+                   final Long minValue,
+                   final String implementationVersion,
+                   String description,
+                   boolean required) {
         this.optionName = optionName;
         this.objType = Long.class;
         this.defaultValue = defaultValue;
         this.minValue = minValue;
         this.maxValue = Long.MAX_VALUE;
         this.implementationVersion = implementationVersion;
+        this.description = description;
+        this.required = required;
     }
 
 
-    DefaultOptions(final String optionName, final Integer[] defaultValue, final Integer minValue, final String implementationVersion) {
+    DefaultOptions(final String optionName,
+                   final Integer[] defaultValue,
+                   final Integer minValue,
+                   final String implementationVersion,
+                   String description,
+                   boolean required) {
         this.optionName = optionName;
         this.objType = Integer.class;
         this.defaultValue = defaultValue;
         this.minValue = minValue;
         this.maxValue = Integer.MAX_VALUE;
         this.implementationVersion = implementationVersion;
-    }
-
-    public String getOptionName() {
-        return optionName;
+        this.description = description;
+        this.required = required;
     }
 
     public static Options defaultValues(final HaMode haMode) {
@@ -625,8 +394,8 @@ public enum DefaultOptions {
     /**
      * Generate an Options object with default value corresponding to High Availability mode.
      *
-     * @param haMode    current high Availability mode
-     * @param pool      is for pool
+     * @param haMode current high Availability mode
+     * @param pool   is for pool
      * @return Options object initialized
      */
     public static Options defaultValues(HaMode haMode, boolean pool) {
@@ -665,7 +434,10 @@ public enum DefaultOptions {
      * @param options       initial options
      * @return options
      */
-    public static Options parse(final HaMode haMode, final String urlParameters, final Properties properties, final Options options) {
+    public static Options parse(final HaMode haMode,
+                                final String urlParameters,
+                                final Properties properties,
+                                final Options options) {
         if (urlParameters != null && !urlParameters.isEmpty()) {
             String[] parameters = urlParameters.split("&");
             for (String parameter : parameters) {
@@ -770,6 +542,7 @@ public enum DefaultOptions {
 
     /**
      * Option initialisation end : set option value to a coherent state.
+     *
      * @param options options
      */
     public static void optionCoherenceValidation(final Options options) {
@@ -795,9 +568,9 @@ public enum DefaultOptions {
     /**
      * Generate parameter String equivalent to options.
      *
-     * @param options   options
-     * @param haMode    high availability Mode
-     * @param sb        String builder
+     * @param options options
+     * @param haMode  high availability Mode
+     * @param sb      String builder
      */
     public static void propertyString(final Options options, final HaMode haMode, final StringBuilder sb) {
         try {
@@ -828,5 +601,17 @@ public enum DefaultOptions {
         } catch (NoSuchFieldException | IllegalAccessException n) {
             n.printStackTrace();
         }
+    }
+
+    public String getOptionName() {
+        return optionName;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public boolean isRequired() {
+        return required;
     }
 }
