@@ -119,7 +119,7 @@ public class Options implements Cloneable {
     public int useBatchMultiSendNumber = 100;
     public Boolean usePipelineAuth;
     public boolean enablePacketDebug;
-    public boolean useBulkStmts = true;
+    public boolean useBulkStmts;
     public boolean disableSslHostnameVerification;
     public boolean autocommit = true;
 
