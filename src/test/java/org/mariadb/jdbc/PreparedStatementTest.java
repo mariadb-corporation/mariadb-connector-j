@@ -52,15 +52,23 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
-import java.sql.*;
-
-import static org.junit.Assert.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.Statement;
+import java.sql.Types;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class PreparedStatementTest extends BaseTest {
     private static final int ER_NO_SUCH_TABLE = 1146;
@@ -372,7 +380,7 @@ public class PreparedStatementTest extends BaseTest {
                 int[] results = pstmt.executeBatch();
                 assertEquals(2, results.length);
                 for (int result : results) {
-                    if (!notRewritable || (isMariadbServer() && minVersion(10,2))) {
+                    if (!notRewritable || (isMariadbServer() && minVersion(10,2) && sharedOptions().useBulkStmts)) {
                         assertEquals(Statement.SUCCESS_NO_INFO, result);
                     } else {
                         assertEquals(1, result);
