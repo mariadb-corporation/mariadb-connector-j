@@ -18,10 +18,10 @@ case "$TYPE" in
    urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&allowMultiQueries=true&enablePacketDebug=true'
    ;;
  "BULK_SERVER" )
-   urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&useBatchMultiSend=true&useServerPrepStmts=true&enablePacketDebug=true'
+   urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&useBatchMultiSend=true&useServerPrepStmts=true&enablePacketDebug=true&useBulkStmts=true'
    ;;
  "NO_BULK_CLIENT" )
-   urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&useBatchMultiSend=false&enablePacketDebug=true'
+   urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&useBatchMultiSend=true&enablePacketDebug=true'
    ;;
  "NO_BULK_SERVER" )
    urlString='jdbc:mariadb://mariadb.example.com:3305/testj?user=bob&useBatchMultiSend=false&useServerPrepStmts=true&enablePacketDebug=true'

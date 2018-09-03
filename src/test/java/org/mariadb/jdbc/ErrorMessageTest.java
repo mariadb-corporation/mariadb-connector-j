@@ -90,7 +90,7 @@ public class ErrorMessageTest extends BaseTest {
 
     @Test
     public void testSmallMultiBatchErrorMessage() throws SQLException {
-        try (Connection connection = setBlankConnection("&allowMultiQueries=true&useServerPrepStmts=false")) {
+        try (Connection connection = setConnection("&allowMultiQueries=true&useServerPrepStmts=false")) {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -127,7 +127,7 @@ public class ErrorMessageTest extends BaseTest {
     @Test
     public void testSmallBulkErrorMessage() throws SQLException {
         Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=true")) {
+        try (Connection connection = setConnection("&useBatchMultiSend=true")) {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -169,7 +169,7 @@ public class ErrorMessageTest extends BaseTest {
 
     @Test
     public void testBigMultiErrorMessage() throws SQLException {
-        try (Connection connection = setBlankConnection("&allowMultiQueries=true&useServerPrepStmts=false")) {
+        try (Connection connection = setConnection("&allowMultiQueries=true&useServerPrepStmts=false")) {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
@@ -216,7 +216,7 @@ public class ErrorMessageTest extends BaseTest {
     @Test
     public void testBigBulkErrorMessage() throws SQLException {
         Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=true")) {
+        try (Connection connection = setConnection("&useBatchMultiSend=true")) {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
