@@ -70,14 +70,15 @@ import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 
 public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
     private final PacketInputStream reader;
-    private final static BiFunction<PacketInputStream, Integer, GssapiAuth> gssMethod;
+    private static final BiFunction<PacketInputStream, Integer, GssapiAuth> gssMethod;
 
     static {
         BiFunction<PacketInputStream, Integer, GssapiAuth> init;
         try {
             init = GssUtility.getAuthenticationMethod();
         } catch (Throwable t) {
-            BiFunction<PacketInputStream, Integer, GssapiAuth> defaultAuthenticationMethod = (reader, packSeq) -> new StandardGssapiAuthentication(reader, packSeq);
+            BiFunction<PacketInputStream, Integer, GssapiAuth> defaultAuthenticationMethod =
+                (reader, packSeq) -> new StandardGssapiAuthentication(reader, packSeq);
             init = defaultAuthenticationMethod;
         }
         gssMethod = init;

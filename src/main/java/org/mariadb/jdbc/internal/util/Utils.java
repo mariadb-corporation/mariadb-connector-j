@@ -57,7 +57,8 @@ import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
-import org.mariadb.jdbc.internal.io.socket.*;
+import org.mariadb.jdbc.internal.io.socket.SocketHandlerFunction;
+import org.mariadb.jdbc.internal.io.socket.SocketUtility;
 import org.mariadb.jdbc.internal.logging.ProtocolLoggingProxy;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
@@ -91,7 +92,7 @@ public class Utils {
     private static final Pattern IP_V6_COMPRESSED = Pattern.compile("^(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)"
             + "::(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)$");
 
-    private final static SocketHandlerFunction socketHandler;
+    private static final SocketHandlerFunction socketHandler;
 
     static {
         SocketHandlerFunction init;
@@ -104,6 +105,14 @@ public class Utils {
         socketHandler = init;
     }
 
+    /**
+     * Use standard socket implementation.
+     *
+     * @param urlParser url parser
+     * @param host      host to connect
+     * @return socket
+     * @throws IOException in case of error establishing socket.
+     */
     public static Socket standardSocket(UrlParser urlParser, String host) throws IOException {
         SocketFactory socketFactory;
         String socketFactoryName = urlParser.getOptions().socketFactory;

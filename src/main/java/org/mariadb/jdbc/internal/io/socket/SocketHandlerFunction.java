@@ -7,5 +7,5 @@ import java.net.Socket;
 
 @FunctionalInterface
 public interface SocketHandlerFunction {
-    Socket apply(UrlParser a, String b) throws IOException;
+    Socket apply(UrlParser urlParser, String host) throws IOException;
 }

@@ -7,6 +7,13 @@ import java.io.IOException;
 
 public class SocketUtility {
 
+    /**
+     * Create socket according to options.
+     * In case of compilation ahead of time, will throw an error if dependencies found,
+     * then use default socket implementation.
+     *
+     * @return Socket
+     */
     @SuppressWarnings("unchecked")
     public static SocketHandlerFunction getSocketHandler() {
         try {
