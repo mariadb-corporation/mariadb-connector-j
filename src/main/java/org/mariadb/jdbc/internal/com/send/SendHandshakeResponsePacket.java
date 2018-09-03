@@ -61,6 +61,7 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.PidFactory;
+import org.mariadb.jdbc.internal.util.PidRequestInter;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 
@@ -91,6 +92,18 @@ import java.util.StringTokenizer;
  * databasename:            name of schema to use initially
  */
 public class SendHandshakeResponsePacket {
+
+    private static final PidRequestInter pidRequest;
+
+    static {
+        PidRequestInter init;
+        try {
+            init = PidFactory.getInstance();
+        } catch (Throwable t) {
+            init = () -> null;
+        }
+        pidRequest = init;
+    }
 
     /**
      * Send handshake response packet.
@@ -214,8 +227,7 @@ public class SendHandshakeResponsePacket {
 
         buffer.writeStringSmallLength(_OS);
         buffer.writeStringLength(System.getProperty("os.name"));
-
-        String pid = PidFactory.getInstance().getPid();
+        String pid = pidRequest.getPid();
         if (pid != null) {
             buffer.writeStringSmallLength(_PID);
             buffer.writeStringLength(pid);

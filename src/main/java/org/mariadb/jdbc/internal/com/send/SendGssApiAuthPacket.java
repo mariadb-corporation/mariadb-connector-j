@@ -52,12 +52,11 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
-import com.sun.jna.Platform;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
+import org.mariadb.jdbc.internal.com.send.gssapi.GssUtility;
 import org.mariadb.jdbc.internal.com.send.gssapi.GssapiAuth;
 import org.mariadb.jdbc.internal.com.send.gssapi.StandardGssapiAuthentication;
-import org.mariadb.jdbc.internal.com.send.gssapi.WindowsNativeSspiAuthentication;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
@@ -65,11 +64,25 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.util.function.BiFunction;
 
 import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 
 public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
     private final PacketInputStream reader;
+    private static final BiFunction<PacketInputStream, Integer, GssapiAuth> gssMethod;
+
+    static {
+        BiFunction<PacketInputStream, Integer, GssapiAuth> init;
+        try {
+            init = GssUtility.getAuthenticationMethod();
+        } catch (Throwable t) {
+            BiFunction<PacketInputStream, Integer, GssapiAuth> defaultAuthenticationMethod =
+                (reader, packSeq) -> new StandardGssapiAuthentication(reader, packSeq);
+            init = defaultAuthenticationMethod;
+        }
+        gssMethod = init;
+    }
 
     public SendGssApiAuthPacket(PacketInputStream reader, String password, byte[] authData, int packSeq, String passwordCharacterEncoding) {
         super(packSeq, authData, password, passwordCharacterEncoding);
@@ -88,7 +101,7 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
         String mechanisms = buffer.readStringNullEnd(StandardCharsets.UTF_8);
         if (mechanisms.isEmpty()) mechanisms = "Kerberos";
 
-        GssapiAuth gssapiAuth = getAuthenticationMethod();
+        GssapiAuth gssapiAuth = gssMethod.apply(reader, packSeq);
         gssapiAuth.authenticate(pos, serverPrincipalName, mechanisms);
     }
 
@@ -105,29 +118,6 @@ public class SendGssApiAuthPacket extends AbstractAuthSwitchSendResponsePacket i
         } catch (EOFException e) {
             throw new SQLException("Authentication exception", "28000", 1045, e);
         }
-    }
-
-    /**
-     * Get authentication method according to classpath.
-     * Windows native authentication is using Waffle-jna.
-     *
-     * @return authentication method
-     */
-    private GssapiAuth getAuthenticationMethod() {
-        try {
-            //Waffle-jna has jna as dependency, so if not available on classpath, just use standard authentication
-            if (Platform.isWindows()) {
-                try {
-                    Class.forName("waffle.windows.auth.impl.WindowsAuthProviderImpl");
-                    return new WindowsNativeSspiAuthentication(reader, packSeq);
-                } catch (ClassNotFoundException cle) {
-                    //waffle not in the classpath
-                }
-            }
-        } catch (Throwable cle) {
-            //jna jar's are not in classpath
-        }
-        return new StandardGssapiAuthentication(reader, packSeq);
     }
 
 }

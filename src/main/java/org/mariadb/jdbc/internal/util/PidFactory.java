@@ -59,54 +59,38 @@ import com.sun.jna.platform.win32.Kernel32;
 
 public class PidFactory {
 
-    private static PidRequestInter pidRequest = null;
-
     /**
      * Factory method to avoid loading JNA classes every connection.
      *
      * @return factory that implement PID according to environment.
      */
     public static PidRequestInter getInstance() {
-        if (pidRequest == null) {
-            synchronized (PidFactory.class) {
-                // check again within synchronized block to guard for race condition
-                if (pidRequest == null) {
-                    //initialize JNA methods
-                    try {
-                        if (Platform.isLinux()) {
-                            //Linux pid implementation
-                            pidRequest = () -> String.valueOf(CLibrary.INSTANCE.getpid());
-                        } else {
-                            if (Platform.isWindows()) {
-                                //Windows pid implementation
-                                pidRequest = () -> {
-                                    try {
-                                        return String.valueOf(Kernel32.INSTANCE.GetCurrentProcessId());
-                                    } catch (Throwable cle) {
-                                        //jna plateform jar's are not in classpath, no PID returned
-                                    }
-                                    return null;
-                                };
-
-                            }
+        try {
+            if (Platform.isLinux()) {
+                //Linux pid implementation
+                return () -> String.valueOf(CLibrary.INSTANCE.getpid());
+            } else {
+                if (Platform.isWindows()) {
+                    //Windows pid implementation
+                    return () -> {
+                        try {
+                            return String.valueOf(Kernel32.INSTANCE.GetCurrentProcessId());
+                        } catch (Throwable cle) {
+                            //jna plateform jar's are not in classpath, no PID returned
                         }
-                    } catch (Throwable cle) {
-                        //jna jar's are not in classpath, no PID returned
-                    }
+                        return null;
+                    };
 
-                    //No JNA, or environment not Linux/windows -> return no PID
-                    if (pidRequest == null) {
-                        pidRequest = () -> null;
-                    }
                 }
             }
+        } catch (Throwable cle) {
+            //jna jar's are not in classpath, no PID returned
         }
-        return pidRequest;
+
+        //No JNA, or environment not Linux/windows -> return no PID
+        return () -> null;
     }
 
-    public interface PidRequestInter {
-        String getPid();
-    }
 
     private interface CLibrary extends Library {
         CLibrary INSTANCE = (CLibrary) Native.loadLibrary("c", CLibrary.class);

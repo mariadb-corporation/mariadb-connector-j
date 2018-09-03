@@ -57,9 +57,8 @@ import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersSlavesListener;
-import org.mariadb.jdbc.internal.io.socket.NamedPipeSocket;
-import org.mariadb.jdbc.internal.io.socket.SharedMemorySocket;
-import org.mariadb.jdbc.internal.io.socket.UnixDomainSocket;
+import org.mariadb.jdbc.internal.io.socket.SocketHandlerFunction;
+import org.mariadb.jdbc.internal.io.socket.SocketUtility;
 import org.mariadb.jdbc.internal.logging.ProtocolLoggingProxy;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.MasterProtocol;
@@ -92,6 +91,48 @@ public class Utils {
     private static final Pattern IP_V6 = Pattern.compile("^[0-9a-fA-F]{1,4}(:[0-9a-fA-F]{1,4}){7}$");
     private static final Pattern IP_V6_COMPRESSED = Pattern.compile("^(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)"
             + "::(([0-9A-Fa-f]{1,4}(:[0-9A-Fa-f]{1,4}){0,5})?)$");
+
+    private static final SocketHandlerFunction socketHandler;
+
+    static {
+        SocketHandlerFunction init;
+        try {
+            init = SocketUtility.getSocketHandler();
+        } catch (Throwable t) {
+            SocketHandlerFunction defaultSocketHandler = (urlParser, host) -> Utils.standardSocket(urlParser, host);
+            init = defaultSocketHandler;
+        }
+        socketHandler = init;
+    }
+
+    /**
+     * Use standard socket implementation.
+     *
+     * @param urlParser url parser
+     * @param host      host to connect
+     * @return socket
+     * @throws IOException in case of error establishing socket.
+     */
+    public static Socket standardSocket(UrlParser urlParser, String host) throws IOException {
+        SocketFactory socketFactory;
+        String socketFactoryName = urlParser.getOptions().socketFactory;
+        if (socketFactoryName != null) {
+            try {
+                @SuppressWarnings("unchecked")
+                Class<? extends SocketFactory> socketFactoryClass = (Class<? extends SocketFactory>) Class.forName(socketFactoryName);
+                if (socketFactoryClass != null) {
+                    Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
+                    socketFactory = constructor.newInstance();
+                    return socketFactory.createSocket();
+                }
+            } catch (Exception exp) {
+                throw new IOException("Socket factory failed to initialized with option \"socketFactory\" set to \""
+                        + urlParser.getOptions().socketFactory + "\"", exp);
+            }
+        }
+        socketFactory = SocketFactory.getDefault();
+        return socketFactory.createSocket();
+    }
 
     /**
      * Escape String.
@@ -542,42 +583,8 @@ public class Utils {
      * @return a nex socket
      * @throws IOException if connection error occur
      */
-    @SuppressWarnings("unchecked")
     public static Socket createSocket(UrlParser urlParser, String host) throws IOException {
-
-        if (urlParser.getOptions().pipe != null) {
-            return new NamedPipeSocket(host, urlParser.getOptions().pipe);
-        } else if (urlParser.getOptions().localSocket != null) {
-            try {
-                return new UnixDomainSocket(urlParser.getOptions().localSocket);
-            } catch (RuntimeException re) {
-                throw new IOException(re.getMessage(), re.getCause());
-            }
-        } else if (urlParser.getOptions().sharedMemory != null) {
-            try {
-                return new SharedMemorySocket(urlParser.getOptions().sharedMemory);
-            } catch (RuntimeException re) {
-                throw new IOException(re.getMessage(), re.getCause());
-            }
-        } else {
-            SocketFactory socketFactory;
-            String socketFactoryName = urlParser.getOptions().socketFactory;
-            if (socketFactoryName != null) {
-                try {
-                    Class<? extends SocketFactory> socketFactoryClass = (Class<? extends SocketFactory>) Class.forName(socketFactoryName);
-                    if (socketFactoryClass != null) {
-                        Constructor<? extends SocketFactory> constructor = socketFactoryClass.getConstructor();
-                        socketFactory = constructor.newInstance();
-                        return socketFactory.createSocket();
-                    }
-                } catch (Exception exp) {
-                    throw new IOException("Socket factory failed to initialized with option \"socketFactory\" set to \""
-                            + urlParser.getOptions().socketFactory + "\"", exp);
-                }
-            }
-            socketFactory = SocketFactory.getDefault();
-            return socketFactory.createSocket();
-        }
+        return (Socket) socketHandler.apply(urlParser, host);
     }
 
     /**
