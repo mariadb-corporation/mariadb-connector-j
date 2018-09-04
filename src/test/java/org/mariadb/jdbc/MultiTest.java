@@ -52,14 +52,24 @@
 
 package org.mariadb.jdbc;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.sql.BatchUpdateException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.Properties;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.sql.*;
-import java.util.Properties;
-
-import static org.junit.Assert.*;
 
 
 public class MultiTest extends BaseTest {
@@ -843,7 +853,7 @@ public class MultiTest extends BaseTest {
 
                 int[] updateCount = e.getUpdateCounts();
                 assertEquals(10, updateCount.length);
-                if (rewrite || (sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2))) {
+                if (rewrite) {
                     //rewrite exception is all or nothing
                     assertEquals(Statement.EXECUTE_FAILED, updateCount[0]);
                     assertEquals(Statement.EXECUTE_FAILED, updateCount[1]);
@@ -885,7 +895,7 @@ public class MultiTest extends BaseTest {
 
                 ResultSet rs = connection.createStatement().executeQuery("SELECT * FROM MultiTestt9");
                 //check result
-                if (!rewrite && !(sharedOptions().useBulkStmts && isMariadbServer() && minVersion(10, 2))) {
+                if (!rewrite) {
                     checkNextData(0, rs);
                     checkNextData(1, rs);
                     checkNextData(2, rs);
