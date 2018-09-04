@@ -52,6 +52,35 @@
 
 package org.mariadb.jdbc;
 
+import java.net.SocketException;
+import java.sql.Array;
+import java.sql.Blob;
+import java.sql.CallableStatement;
+import java.sql.ClientInfoStatus;
+import java.sql.Clob;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.NClob;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLClientInfoException;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLPermission;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.SQLWarning;
+import java.sql.SQLXML;
+import java.sql.Savepoint;
+import java.sql.Statement;
+import java.sql.Struct;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.Executor;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -64,16 +93,6 @@ import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 import org.mariadb.jdbc.internal.util.pool.Pools;
-
-import java.net.SocketException;
-import java.sql.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.Executor;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 
 @SuppressWarnings("Annotator")
@@ -1710,5 +1729,13 @@ public class MariaDbConnection implements Connection {
         }
 
         warningsCleared = true;
+    }
+
+    public boolean includeDeadLockInfo() {
+        return options.includeInnodbStatusInDeadlockExceptions;
+    }
+
+    public boolean includeThreadsTraces() {
+        return options.includeInnodbStatusInDeadlockExceptions;
     }
 }

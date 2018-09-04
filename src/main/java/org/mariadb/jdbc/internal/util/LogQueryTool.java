@@ -52,14 +52,13 @@
 
 package org.mariadb.jdbc.internal.util;
 
-import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
-import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
 import java.sql.SQLException;
-
-import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 
 public class LogQueryTool {
     private final Options options;
@@ -115,8 +114,11 @@ public class LogQueryTool {
         }
 
         if (options.dumpQueriesOnException || sqlException.getErrorCode() == 1064) {
-            return new SQLException(sqlException.getMessage() + "\nQuery is: " + subQuery(sql), sqlException.getSQLState(),
-                    sqlException.getErrorCode(), sqlException.getCause());
+            return new SQLException(sqlException.getMessage()
+                + "\nQuery is: " + subQuery(sql)
+                + "\njava thread: " + Thread.currentThread().getName(),
+                sqlException.getSQLState(),
+                sqlException.getErrorCode(), sqlException.getCause());
         }
         return sqlException;
     }
@@ -165,13 +167,13 @@ public class LogQueryTool {
     public SQLException exceptionWithQuery(SQLException sqlEx, PrepareResult prepareResult) {
         if (options.dumpQueriesOnException || sqlEx.getErrorCode() == 1064) {
             String querySql = prepareResult.getSql();
-
             String message = sqlEx.getMessage();
             if (options.maxQuerySizeToLog != 0 && querySql.length() > options.maxQuerySizeToLog - 3) {
                 message += "\nQuery is: " + querySql.substring(0, options.maxQuerySizeToLog - 3) + "...";
             } else {
                 message += "\nQuery is: " + querySql;
             }
+            message += "\njava thread: " + Thread.currentThread().getName();
             return new SQLException(message, sqlEx.getSQLState(), sqlEx.getErrorCode(), sqlEx.getCause());
         }
         return sqlEx;
@@ -200,9 +202,13 @@ public class LogQueryTool {
             }
 
             if (options.maxQuerySizeToLog != 0 && sql.length() > options.maxQuerySizeToLog - 3) {
-                return message + "\nQuery is: " + sql.substring(0, options.maxQuerySizeToLog - 3) + "...";
+                return message
+                    + "\nQuery is: " + sql.substring(0, options.maxQuerySizeToLog - 3) + "..."
+                    + "\njava thread: " + Thread.currentThread().getName();
             } else {
-                return message + "\nQuery is: " + sql;
+                return message
+                    + "\nQuery is: " + sql
+                    + "\njava thread: " + Thread.currentThread().getName();
             }
         }
         return message;

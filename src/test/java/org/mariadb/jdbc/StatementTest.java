@@ -52,17 +52,26 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.Properties;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.*;
+import org.junit.Assume;
+import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class StatementTest extends BaseTest {
 
@@ -433,6 +442,47 @@ public class StatementTest extends BaseTest {
                 assertEquals((i == 10 || i == 15) ? i : 0, rs.getInt(2));
             }
             assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void deadLockInformation() throws SQLException {
+        createTable("deadlock", "a int primary key", "engine=innodb");
+        Statement stmt = sharedConnection.createStatement();
+        stmt.execute("insert into deadlock(a) values(0), (1)");
+
+        try (Connection conn1 = setConnection(
+            "&includeInnodbStatusInDeadlockExceptions&includeThreadDumpInDeadlockExceptions")) {
+
+            conn1.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+            Statement stmt1 = conn1.createStatement();
+            try {
+                stmt1.execute("SET SESSION idle_transaction_timeout=2");
+            } catch (SQLException e) {
+                //eat ( for mariadb >= 10.3)
+            }
+            stmt.execute("start transaction");
+            stmt.execute("update deadlock set a = 2 where a <> 0");
+
+            try (Connection conn2 = setConnection(
+                "&includeInnodbStatusInDeadlockExceptions&includeThreadDumpInDeadlockExceptions")) {
+
+                Statement stmt2 = conn2.createStatement();
+                conn2.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
+                try {
+                    stmt2.execute("SET SESSION idle_transaction_timeout=2");
+                } catch (SQLException e) {
+                    //eat ( for mariadb >= 10.3)
+                }
+                stmt2.execute("start transaction");
+                try {
+                    stmt2.execute("update deadlock set a = 3 where a <> 1");
+                    fail("Must have thrown deadlock exception");
+                } catch (SQLException sqle) {
+                    assertTrue(sqle.getMessage().contains("current threads:"));
+                    assertTrue(sqle.getMessage().contains("END OF INNODB MONITOR OUTPUT"));
+                }
+            }
         }
     }
 }

@@ -123,6 +123,8 @@ public class Options implements Cloneable {
     public boolean useBulkStmts;
     public boolean disableSslHostnameVerification;
     public boolean autocommit = true;
+    public boolean includeInnodbStatusInDeadlockExceptions;
+    public boolean includeThreadDumpInDeadlockExceptions;
 
     //logging options
     public boolean log;
@@ -214,6 +216,8 @@ public class Options implements Cloneable {
         if (cacheCallableStmts != opt.cacheCallableStmts) return false;
         if (useBatchMultiSendNumber != opt.useBatchMultiSendNumber) return false;
         if (enablePacketDebug != opt.enablePacketDebug) return false;
+        if (includeInnodbStatusInDeadlockExceptions != opt.includeInnodbStatusInDeadlockExceptions) return false;
+        if (includeThreadDumpInDeadlockExceptions != opt.includeThreadDumpInDeadlockExceptions) return false;
         if (useBulkStmts != opt.useBulkStmts) return false;
         if (disableSslHostnameVerification != opt.disableSslHostnameVerification) return false;
         if (log != opt.log) return false;
@@ -343,6 +347,8 @@ public class Options implements Cloneable {
         result = 31 * result + useBatchMultiSendNumber;
         result = 31 * result + (usePipelineAuth != null ? usePipelineAuth.hashCode() : 0);
         result = 31 * result + (enablePacketDebug ? 1 : 0);
+        result = 31 * result + (includeInnodbStatusInDeadlockExceptions ? 1 : 0);
+        result = 31 * result + (includeThreadDumpInDeadlockExceptions ? 1 : 0);
         result = 31 * result + (useBulkStmts ? 1 : 0);
         result = 31 * result + (disableSslHostnameVerification ? 1 : 0);
         result = 31 * result + (log ? 1 : 0);

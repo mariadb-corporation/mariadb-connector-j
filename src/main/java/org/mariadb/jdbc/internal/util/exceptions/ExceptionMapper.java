@@ -52,13 +52,24 @@
 
 package org.mariadb.jdbc.internal.util.exceptions;
 
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
+
+import java.sql.ResultSet;
+import java.sql.SQLDataException;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.SQLInvalidAuthorizationSpecException;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.SQLTimeoutException;
+import java.sql.SQLTransactionRollbackException;
+import java.sql.SQLTransientException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.util.SqlStates;
-
-import java.sql.*;
-
-import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
 
 public class ExceptionMapper {
@@ -95,19 +106,60 @@ public class ExceptionMapper {
      */
     public static SQLException getException(SQLException exception, MariaDbConnection connection,
                                             MariaDbStatement statement, boolean timeout) {
-        String message = exception.getMessage();
+        final StringBuilder message;
+        String errMsg = exception.getMessage();
+        if (errMsg.contains("\n")) errMsg = errMsg.substring(0, errMsg.indexOf("\n"));
         if (connection != null) {
-            message = "(conn=" + connection.getServerThreadId() + ") " + message;
+            message = new StringBuilder("(conn=")
+                .append(connection.getServerThreadId())
+                .append(") ")
+                .append(errMsg);
         } else if (statement != null) {
-            message = "(conn=" + statement.getServerThreadId() + ") " + message;
+            message = new StringBuilder("(conn=")
+                .append(statement.getServerThreadId())
+                .append(") ")
+                .append(errMsg);
+        } else {
+            message = new StringBuilder(errMsg);
         }
 
         SQLException sqlException;
         SqlStates state = null;
 
         if (exception.getSQLState() != null) {
-            if (message.contains("\n")) message = message.substring(0, message.indexOf("\n"));
-            sqlException = get(message, exception.getSQLState(), exception.getErrorCode(), exception, timeout);
+            if (connection != null
+                && exception.getSQLState() != null
+                && (1205 == exception.getErrorCode() || 1614 == exception.getErrorCode())) {
+
+                if (connection.includeDeadLockInfo()) {
+                    try {
+                        Statement stmt = connection.createStatement();
+                        ResultSet rs = stmt.executeQuery("SHOW ENGINE INNODB STATUS");
+                        if (rs.next()) {
+                            message.append("\ndeadlock information: ")
+                                .append(rs.getString(3));
+                        }
+                    } catch (SQLException sqle) {
+                        //eat
+                    }
+                }
+
+                if (connection.includeThreadsTraces()) {
+                    message.append("\n\ncurrent threads: ");
+                    Thread.getAllStackTraces().forEach((thread, traces) -> {
+                        message.append("\n  name:\"")
+                            .append(thread.getName())
+                            .append("\" pid:")
+                            .append(thread.getId())
+                            .append(" status:")
+                            .append(thread.getState());
+                        for (int i = 0; i < traces.length; i++) {
+                            message.append("\n    ").append(traces[i]);
+                        }
+                    });
+                }
+            }
+            sqlException = get(message.toString(), exception.getSQLState(), exception.getErrorCode(), exception, timeout);
             String sqlState = exception.getSQLState();
             state = SqlStates.fromString(sqlState);
             SQLException nextException = exception.getNextException();

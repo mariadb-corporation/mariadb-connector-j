@@ -281,11 +281,14 @@ public enum DefaultOptions {
             + "server, and server send a small response to ensure connectivity. When this option is set, connector will"
             + " ensure Galera server state \"wsrep_local_state\" correspond to allowed values (separated by comma). "
             + "Example \"4,5\", recommended is \"4\". see galera state to know more.", false),
-    USE_AFFECTED_ROWS("useAffectedRows", Boolean.FALSE, "2.2.6", "If false (default), use \"found rows\" for the row "
+    USE_AFFECTED_ROWS("useAffectedRows", Boolean.FALSE, "2.3.0", "If false (default), use \"found rows\" for the row "
             + "count of statements. This corresponds to the JDBC standard.\n"
             + "If true, use \"affected rows\" for the row count.\n"
-            + "This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.", false);
-
+            + "This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.", false),
+    INCLUDE_STATUS("includeInnodbStatusInDeadlockExceptions", Boolean.FALSE, "2.3.0",
+        "add \"SHOW ENGINE INNODB STATUS\" result to exception trace when having a deadlock exception", false),
+    INCLUDE_THREAD_DUMP("includeThreadDumpInDeadlockExceptions", Boolean.FALSE, "2.3.0",
+        "add thread dump to exception trace when having a deadlock exception", false);
 
     private final String optionName;
     private final String description;
