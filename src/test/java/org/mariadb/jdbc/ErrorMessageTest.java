@@ -100,7 +100,9 @@ public class ErrorMessageTest extends BaseTest {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            if (isMariadbServer() && minVersion(10,2)  && sharedOptions().useBulkStmts) {
+            if ((isMariadbServer() && minVersion(10,2)  && sharedOptions().useBulkStmts)
+                || sharedOptions().useServerPrepStmts
+                || sharedOptions().rewriteBatchedStatements) {
                 assertTrue("message : " + sqle.getCause().getCause().getMessage(),
                         sqle.getCause().getCause().getMessage().contains(
                                 "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
@@ -145,7 +147,9 @@ public class ErrorMessageTest extends BaseTest {
             executeBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            if (isMariadbServer() && minVersion(10,2) && sharedOptions().useBulkStmts) {
+            if ((isMariadbServer() && minVersion(10,2) && sharedOptions().useBulkStmts)
+                || sharedOptions().useServerPrepStmts
+                || sharedOptions().rewriteBatchedStatements) {
                 assertTrue("message : " + sqle.getCause().getCause().getMessage(),
                         sqle.getCause().getCause().getMessage().contains(
                                 "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
@@ -199,7 +203,9 @@ public class ErrorMessageTest extends BaseTest {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            if (isMariadbServer() && minVersion(10,2) && sharedOptions().useBulkStmts) {
+            if ((isMariadbServer() && minVersion(10,2) && sharedOptions().useBulkStmts)
+                || sharedOptions().useServerPrepStmts
+                || sharedOptions().rewriteBatchedStatements) {
                 assertTrue("message : " + sqle.getCause().getCause().getMessage(),
                         sqle.getCause().getCause().getMessage().contains(
                                 "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
@@ -254,7 +260,9 @@ public class ErrorMessageTest extends BaseTest {
             executeBigBatchWithException(connection);
             fail("Must Have thrown error");
         } catch (SQLException sqle) {
-            if (isMariadbServer() && minVersion(10,2) && sharedOptions().useBulkStmts) {
+            if ((isMariadbServer() && minVersion(10,2) && sharedOptions().useBulkStmts
+                || sharedOptions().useServerPrepStmts
+                || sharedOptions().rewriteBatchedStatements)) {
                 assertTrue("message : " + sqle.getCause().getCause().getMessage(),
                         sqle.getCause().getCause().getMessage().contains(
                                 "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
