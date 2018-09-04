@@ -284,8 +284,11 @@ public enum DefaultOptions {
     USE_AFFECTED_ROWS("useAffectedRows", Boolean.FALSE, "1.8.0", "If false (default), use \"found rows\" for the row "
             + "count of statements. This corresponds to the JDBC standard.\n"
             + "If true, use \"affected rows\" for the row count.\n"
-            + "This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.", false);
-
+            + "This changes the behavior of, for example, UPDATE... ON DUPLICATE KEY statements.", false),
+    INCLUDE_STATUS("includeInnodbStatusInDeadlockExceptions", Boolean.FALSE, "1.8.0",
+        "add \"SHOW ENGINE INNODB STATUS\" result to exception trace when having a deadlock exception", false),
+    INCLUDE_THREAD_DUMP("includeThreadDumpInDeadlockExceptions", Boolean.FALSE, "1.8.0",
+        "add thread dump to exception trace when having a deadlock exception", false);
 
     private final String optionName;
     private final String description;
