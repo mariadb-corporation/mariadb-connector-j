@@ -52,23 +52,45 @@
 
 package org.mariadb.jdbc;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
 import com.sun.jna.Platform;
+import java.math.BigDecimal;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.Date;
+import java.sql.DriverManager;
+import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.Savepoint;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.DefaultOptions;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
-
-import java.math.BigDecimal;
-import java.sql.*;
-import java.sql.Date;
-import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.*;
 
 
 public class DriverTest extends BaseTest {
@@ -197,6 +219,21 @@ public class DriverTest extends BaseTest {
         }
         assertEquals("hej1", res);
         assertEquals(2, prepStmt.getParameterMetaData().getParameterCount());
+    }
+
+    @Test
+    public void parameterMetaDataTypeNotAvailable() throws SQLException {
+        String query = "SELECT * FROM DriverTestt4 WHERE test = ? and id = ?";
+        try (PreparedStatement prepStmt = sharedConnection.prepareStatement(query)) {
+            ParameterMetaData parameterMetaData = prepStmt.getParameterMetaData();
+            assertEquals(2, parameterMetaData.getParameterCount());
+            try {
+                parameterMetaData.getParameterType(1);
+                fail("must have thrown an error");
+            } catch (SQLException sqle) {
+                assertTrue( sqle instanceof SQLFeatureNotSupportedException);
+            }
+        }
     }
 
     @Test

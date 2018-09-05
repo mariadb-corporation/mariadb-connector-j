@@ -53,11 +53,11 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-
 import java.sql.ParameterMetaData;
 import java.sql.SQLException;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 /**
  * Very basic info about the parameterized query, only reliable method is getParameterCount().
@@ -118,9 +118,18 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
         return 0;
     }
 
+    /**
+     * Parameter type are not sent by server.
+     *
+     * See https://jira.mariadb.org/browse/CONJ-568 and https://jira.mariadb.org/browse/MDEV-15031
+     *
+     * @param param         parameter number
+     * @return SQL type from java.sql.Types
+     * @throws SQLException a feature not supported, since server doesn't sent the right information
+     */
     @Override
     public int getParameterType(int param) throws SQLException {
-        return getParameterInformation(param).getColumnType().getSqlType();
+        throw ExceptionMapper.getFeatureNotSupportedException("Getting parameter type metadata are not supported");
     }
 
     @Override
