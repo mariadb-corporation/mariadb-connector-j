@@ -52,8 +52,6 @@
 
 package org.mariadb.jdbc.internal.io;
 
-import org.mariadb.jdbc.internal.util.Utils;
-
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
@@ -61,78 +59,85 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import org.mariadb.jdbc.internal.util.Utils;
 
 public class LruTraceCache extends LinkedHashMap<String, TraceObject> {
 
-    private AtomicLong increment = new AtomicLong();
+  private AtomicLong increment = new AtomicLong();
 
-    public TraceObject put(TraceObject value) {
-        String key = increment.incrementAndGet() + "- " + DateTimeFormatter.ISO_INSTANT.format(Instant.now());
-        return put(key, value);
+  public LruTraceCache() {
+    super(16, 1.0f, false);
+  }
+
+  /**
+   * Add value to map.
+   *
+   * @param value value to add
+   * @return added value
+   */
+  public TraceObject put(TraceObject value) {
+    String key =
+        increment.incrementAndGet() + "- " + DateTimeFormatter.ISO_INSTANT.format(Instant.now());
+    return put(key, value);
+  }
+
+  @Override
+  protected boolean removeEldestEntry(Map.Entry<String, TraceObject> eldest) {
+    return size() > 10;
+  }
+
+  /**
+   * Value of trace cache in a readable format.
+   *
+   * @return trace cache value
+   */
+  public synchronized String printStack() {
+    StringBuilder sb = new StringBuilder();
+    Set<Map.Entry<String, TraceObject>> set = entrySet();
+    for (Map.Entry<String, TraceObject> entry : set) {
+      TraceObject traceObj = entry.getValue();
+      String key = entry.getKey();
+      String indicator = "";
+
+      switch (traceObj.getIndicatorFlag()) {
+        case TraceObject.NOT_COMPRESSED:
+          break;
+
+        case TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET:
+          indicator = " (compressed protocol - packet not compressed)";
+          break;
+
+        case TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET:
+          indicator = " (compressed protocol - packet compressed)";
+          break;
+
+        default:
+          break;
+      }
+
+      if (traceObj.isSend()) {
+        sb.append("\nsend at -exchange:");
+      } else {
+        sb.append("\nread at -exchange:");
+      }
+
+      sb.append(key).append(indicator)
+          .append(Utils.hexdump(traceObj.getBuf()));
+
+      traceObj.remove();
     }
+    this.clear();
+    return sb.toString();
+  }
 
-
-    public LruTraceCache() {
-        super(16, 1.0f, false);
+  /**
+   * Permit to clear array's of array, to help garbage.
+   */
+  public synchronized void clearMemory() {
+    Collection<TraceObject> traceObjects = values();
+    for (TraceObject traceObject : traceObjects) {
+      traceObject.remove();
     }
-
-    @Override
-    protected boolean removeEldestEntry(Map.Entry<String, TraceObject> eldest) {
-        return size() > 10;
-    }
-
-    /**
-     * Value of trace cache in a readable format.
-     *
-     * @return trace cache value
-     */
-    public synchronized String printStack() {
-        StringBuilder sb = new StringBuilder();
-        Set<Map.Entry<String, TraceObject>> set = entrySet();
-        for (Map.Entry<String, TraceObject> entry : set) {
-            TraceObject traceObj = entry.getValue();
-            String key = entry.getKey();
-            String indicator = "";
-
-            switch (traceObj.getIndicatorFlag()) {
-                case TraceObject.NOT_COMPRESSED:
-                    break;
-
-                case TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET:
-                    indicator = " (compressed protocol - packet not compressed)";
-                    break;
-
-                case TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET:
-                    indicator = " (compressed protocol - packet compressed)";
-                    break;
-
-                default:
-                    break;
-            }
-
-            if (traceObj.isSend()) {
-                sb.append("\nsend at -exchange:");
-            } else {
-                sb.append("\nread at -exchange:");
-            }
-
-            sb.append(key).append(indicator)
-                    .append(Utils.hexdump(traceObj.getBuf()));
-
-            traceObj.remove();
-        }
-        this.clear();
-        return sb.toString();
-    }
-
-    /**
-     * Permit to clear array's of array, to help garbage.
-     */
-    public synchronized void clearMemory() {
-        Collection<TraceObject> traceObjects = values();
-        for (TraceObject traceObject : traceObjects) {
-            traceObject.remove();
-        }
-        this.clear();
-    }
+    this.clear();
+  }
 }

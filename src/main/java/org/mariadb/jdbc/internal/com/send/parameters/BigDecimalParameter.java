@@ -52,53 +52,53 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
+import java.io.IOException;
+import java.math.BigDecimal;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-
 public class BigDecimalParameter implements Cloneable, ParameterHolder {
-    private final BigDecimal bigDecimal;
 
-    public BigDecimalParameter(final BigDecimal bigDecimal) {
-        this.bigDecimal = bigDecimal;
-    }
+  private final BigDecimal bigDecimal;
 
-    public void writeTo(PacketOutputStream pos) throws IOException {
-        pos.write(bigDecimal.toPlainString().getBytes());
-    }
+  public BigDecimalParameter(final BigDecimal bigDecimal) {
+    this.bigDecimal = bigDecimal;
+  }
 
-    public long getApproximateTextProtocolLength() {
-        return bigDecimal.toPlainString().getBytes().length;
-    }
+  public void writeTo(PacketOutputStream pos) throws IOException {
+    pos.write(bigDecimal.toPlainString().getBytes());
+  }
 
-    /**
-     * Write data to socket in binary format.
-     *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
-     */
-    public void writeBinary(PacketOutputStream pos) throws IOException {
-        String value = bigDecimal.toPlainString();
-        pos.writeFieldLength(value.length());
-        pos.write(value);
-    }
+  public long getApproximateTextProtocolLength() {
+    return bigDecimal.toPlainString().getBytes().length;
+  }
 
-    public ColumnType getColumnType() {
-        return ColumnType.DECIMAL;
-    }
+  /**
+   * Write data to socket in binary format.
+   *
+   * @param pos socket output stream
+   * @throws IOException if socket error occur
+   */
+  public void writeBinary(PacketOutputStream pos) throws IOException {
+    String value = bigDecimal.toPlainString();
+    pos.writeFieldLength(value.length());
+    pos.write(value);
+  }
 
-    @Override
-    public String toString() {
-        return bigDecimal.toString();
-    }
+  public ColumnType getColumnType() {
+    return ColumnType.DECIMAL;
+  }
 
-    public boolean isNullData() {
-        return false;
-    }
+  @Override
+  public String toString() {
+    return bigDecimal.toString();
+  }
 
-    public boolean isLongData() {
-        return false;
-    }
+  public boolean isNullData() {
+    return false;
+  }
+
+  public boolean isLongData() {
+    return false;
+  }
 }

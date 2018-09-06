@@ -60,25 +60,26 @@ import java.sql.SQLException;
  * @deprecated use class MariaDbDataSource directly
  */
 public class MySQLDataSource extends MariaDbDataSource {
-    /**
-     * Constructor.
-     *
-     * @param hostname hostname (ipv4, ipv6, dns name)
-     * @param port     server port
-     * @param database database name
-     */
-    public MySQLDataSource(String hostname, int port, String database) {
-        super(hostname, port, database);
-    }
 
-    public MySQLDataSource(String url) throws SQLException {
-        super(url);
-    }
+  /**
+   * Constructor.
+   *
+   * @param hostname hostname (ipv4, ipv6, dns name)
+   * @param port     server port
+   * @param database database name
+   */
+  public MySQLDataSource(String hostname, int port, String database) {
+    super(hostname, port, database);
+  }
 
-    /**
-     * Default constructor. hostname will be localhost, port 3306.
-     */
-    public MySQLDataSource() {
-        super();
-    }
+  public MySQLDataSource(String url) throws SQLException {
+    super(url);
+  }
+
+  /**
+   * Default constructor. hostname will be localhost, port 3306.
+   */
+  public MySQLDataSource() {
+    super();
+  }
 }

@@ -54,49 +54,50 @@ package org.mariadb.jdbc.internal.com.read.resultset;
 
 public class UpdatableColumnInformation extends ColumnInformation {
 
-    private final boolean canBeNull;
-    private final boolean primary;
-    private final boolean hasDefault;
-    private final boolean generated;
-    private final boolean autoIncrement;
+  private final boolean canBeNull;
+  private final boolean primary;
+  private final boolean hasDefault;
+  private final boolean generated;
+  private final boolean autoIncrement;
 
-    /**
-     * Constructor of Column metadata.
-     *
-     * @param columnInformation column meta information
-     * @param canBeNull         can column be null
-     * @param hasDefault        has default
-     * @param generated         is automatically generated
-     * @param primary           is column part of primary key
-     * @param autoIncrement     column has AUTO_INCREMENT attribute
-     */
-    public UpdatableColumnInformation(ColumnInformation columnInformation, boolean canBeNull, boolean hasDefault,
-                                      boolean generated, boolean primary, boolean autoIncrement) {
-        super(columnInformation);
-        this.canBeNull = canBeNull;
-        this.hasDefault = hasDefault;
-        this.generated = generated;
-        this.primary = primary;
-        this.autoIncrement = autoIncrement;
-    }
+  /**
+   * Constructor of Column metadata.
+   *
+   * @param columnInformation column meta information
+   * @param canBeNull         can column be null
+   * @param hasDefault        has default
+   * @param generated         is automatically generated
+   * @param primary           is column part of primary key
+   * @param autoIncrement     column has AUTO_INCREMENT attribute
+   */
+  public UpdatableColumnInformation(ColumnInformation columnInformation, boolean canBeNull,
+      boolean hasDefault,
+      boolean generated, boolean primary, boolean autoIncrement) {
+    super(columnInformation);
+    this.canBeNull = canBeNull;
+    this.hasDefault = hasDefault;
+    this.generated = generated;
+    this.primary = primary;
+    this.autoIncrement = autoIncrement;
+  }
 
-    public boolean canBeNull() {
-        return canBeNull;
-    }
+  public boolean canBeNull() {
+    return canBeNull;
+  }
 
-    public boolean hasDefault() {
-        return hasDefault;
-    }
+  public boolean hasDefault() {
+    return hasDefault;
+  }
 
-    public boolean isGenerated() {
-        return generated;
-    }
+  public boolean isGenerated() {
+    return generated;
+  }
 
-    public boolean isPrimary() {
-        return primary;
-    }
+  public boolean isPrimary() {
+    return primary;
+  }
 
-    public boolean isAutoIncrement() {
-        return autoIncrement;
-    }
+  public boolean isAutoIncrement() {
+    return autoIncrement;
+  }
 }
