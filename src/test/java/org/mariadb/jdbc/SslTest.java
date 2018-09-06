@@ -143,7 +143,11 @@ public class SslTest extends BaseTest {
     clientKeystorePath = System.getProperty("keystorePath");
     clientKeystorePassword = System.getProperty("keystorePassword");
     Statement stmt = sharedConnection.createStatement();
-    stmt.execute("DROP USER 'ssltestUser'@'%'");
+    try {
+      stmt.execute("DROP USER 'ssltestUser'@'%'");
+    } catch (SQLException e) {
+      //eat
+    }
     boolean useOldNotation = true;
     if ((isMariadbServer() && minVersion(10, 2, 0)) || (!isMariadbServer() && minVersion(8, 0,
         0))) {
