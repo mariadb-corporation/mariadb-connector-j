@@ -109,53 +109,55 @@ public class SslTest extends BaseTest {
         }
     }
 
-    /**
-     * Check requirement.
-     *
-     * @throws SQLException exception exception
-     */
-    @Before
-    public void checkSsl() throws SQLException {
-        //Skip SSL test on java 7 since SSL stream size JDK-6521495).
-        Assume.assumeFalse(System.getProperty("java.version").contains("1.7.")
-                || System.getProperty("java.version").contains("1.6."));
-        cancelForVersion(5, 6, 36); //has SSL issues with client authentication.
-        Assume.assumeTrue(haveSsl(sharedConnection));
-        try {
-            InetAddress.getByName("mariadb.example.com").isReachable(3);
-        } catch (UnknownHostException hostException) {
-            throw new SQLException("SSL test canceled, database host must be set has "
-                    + "\"mariadb.example.com\" to permit SSL certificate Host verification");
-        } catch (IOException ioe) {
+  /**
+   * Check requirement.
+   *
+   * @throws SQLException exception exception
+   */
+  @Before
+  public void checkSsl() throws SQLException {
+    //Skip SSL test on java 7 since SSL stream size JDK-6521495).
+    Assume.assumeFalse(System.getProperty("java.version").contains("1.7.")
+            || System.getProperty("java.version").contains("1.6."));
+    cancelForVersion(5, 6, 36); //has SSL issues with client authentication.
+    Assume.assumeTrue(haveSsl(sharedConnection));
+    try {
+        InetAddress.getByName("mariadb.example.com").isReachable(3);
+    } catch (UnknownHostException hostException) {
+        throw new SQLException("SSL test canceled, database host must be set has "
+                + "\"mariadb.example.com\" to permit SSL certificate Host verification");
+    } catch (IOException ioe) {
 
-        }
-
-        if (System.getProperty("serverCertificatePath") == null) {
-            ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert");
-            assertTrue(rs.next());
-            serverCertificatePath = rs.getString(1);
-        } else {
-            serverCertificatePath = System.getProperty("serverCertificatePath");
-        }
-        clientKeystorePath = System.getProperty("keystorePath");
-        clientKeystorePassword = System.getProperty("keystorePassword");
-        Statement stmt = sharedConnection.createStatement();
-        try {
-            stmt.execute("DROP USER 'ssltestUser'@'%'");
-        } catch (SQLException e) {
-        }
-        boolean useOldNotation = true;
-        if ((isMariadbServer() && minVersion(10,2,0)) || (!isMariadbServer() && minVersion(8,0,0))) {
-            useOldNotation = false;
-        }
-        if (useOldNotation) {
-            stmt.execute("CREATE USER 'ssltestUser'@'%'");
-            stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%' REQUIRE SSL");
-        } else {
-            stmt.execute("CREATE USER 'ssltestUser'@'%' REQUIRE SSL");
-            stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%'");
-        }
     }
+
+    if (System.getProperty("serverCertificatePath") == null) {
+      ResultSet rs = sharedConnection.createStatement().executeQuery("select @@ssl_cert");
+      assertTrue(rs.next());
+      serverCertificatePath = rs.getString(1);
+    } else {
+      serverCertificatePath = System.getProperty("serverCertificatePath");
+    }
+    clientKeystorePath = System.getProperty("keystorePath");
+    clientKeystorePassword = System.getProperty("keystorePassword");
+    Statement stmt = sharedConnection.createStatement();
+    try {
+      stmt.execute("DROP USER 'ssltestUser'@'%'");
+    } catch (SQLException e) {
+      //eat
+    }
+    boolean useOldNotation = true;
+    if ((isMariadbServer() && minVersion(10, 2, 0)) || (!isMariadbServer() && minVersion(8, 0,
+        0))) {
+      useOldNotation = false;
+    }
+    if (useOldNotation) {
+      stmt.execute("CREATE USER 'ssltestUser'@'%'");
+      stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%' REQUIRE SSL");
+    } else {
+      stmt.execute("CREATE USER 'ssltestUser'@'%' REQUIRE SSL");
+      stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'ssltestUser'@'%'");
+    }
+  }
 
     @Test
     public void useSsl() throws Exception {
