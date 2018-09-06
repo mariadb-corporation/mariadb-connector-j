@@ -52,84 +52,85 @@
 
 package org.mariadb.jdbc.internal.io.output;
 
-import org.mariadb.jdbc.internal.io.LruTraceCache;
-import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
+import org.mariadb.jdbc.internal.io.LruTraceCache;
+import org.mariadb.jdbc.internal.util.exceptions.MaxAllowedPacketException;
 
 @SuppressWarnings("RedundantThrows")
 public interface PacketOutputStream {
 
-    void startPacket(int seqNo);
+  void startPacket(int seqNo);
 
-    void writeEmptyPacket(int seqNo) throws IOException;
+  void writeEmptyPacket(int seqNo) throws IOException;
 
-    void writeEmptyPacket() throws IOException;
+  void writeEmptyPacket() throws IOException;
 
-    void write(int arr) throws IOException;
+  void write(int arr) throws IOException;
 
-    void write(byte[] arr) throws IOException;
+  void write(byte[] arr) throws IOException;
 
-    void write(byte[] arr, int off, int len) throws IOException;
+  void write(byte[] arr, int off, int len) throws IOException;
 
-    void write(String str) throws IOException;
+  void write(String str) throws IOException;
 
-    void write(String str, boolean escape, boolean noBackslashEscapes) throws IOException;
+  void write(String str, boolean escape, boolean noBackslashEscapes) throws IOException;
 
-    void write(InputStream is, boolean escape, boolean noBackslashEscapes) throws IOException;
+  void write(InputStream is, boolean escape, boolean noBackslashEscapes) throws IOException;
 
-    void write(InputStream is, long length, boolean escape, boolean noBackslashEscapes) throws IOException;
+  void write(InputStream is, long length, boolean escape, boolean noBackslashEscapes)
+      throws IOException;
 
-    void write(Reader reader, boolean escape, boolean noBackslashEscapes) throws IOException;
+  void write(Reader reader, boolean escape, boolean noBackslashEscapes) throws IOException;
 
-    void write(Reader reader, long length, boolean escape, boolean noBackslashEscapes) throws IOException;
+  void write(Reader reader, long length, boolean escape, boolean noBackslashEscapes)
+      throws IOException;
 
-    void writeBytesEscaped(byte[] bytes, int len, boolean noBackslashEscapes) throws IOException;
+  void writeBytesEscaped(byte[] bytes, int len, boolean noBackslashEscapes) throws IOException;
 
-    void flush() throws IOException;
+  void flush() throws IOException;
 
-    void close() throws IOException;
+  void close() throws IOException;
 
-    boolean checkRemainingSize(int len);
+  boolean checkRemainingSize(int len);
 
-    boolean exceedMaxLength();
+  boolean exceedMaxLength();
 
-    OutputStream getOutputStream();
+  OutputStream getOutputStream();
 
-    void writeShort(short value) throws IOException;
+  void writeShort(short value) throws IOException;
 
-    void writeInt(int value) throws IOException;
+  void writeInt(int value) throws IOException;
 
-    void writeLong(long value) throws IOException;
+  void writeLong(long value) throws IOException;
 
-    void writeBytes(byte value, int len) throws IOException;
+  void writeBytes(byte value, int len) throws IOException;
 
-    void writeFieldLength(long length) throws IOException;
+  void writeFieldLength(long length) throws IOException;
 
-    int getMaxAllowedPacket();
+  int getMaxAllowedPacket();
 
-    void setMaxAllowedPacket(int maxAllowedPacket);
+  void setMaxAllowedPacket(int maxAllowedPacket);
 
-    void permitTrace(boolean permitTrace);
+  void permitTrace(boolean permitTrace);
 
-    void setServerThreadId(long serverThreadId, Boolean isMaster);
+  void setServerThreadId(long serverThreadId, Boolean isMaster);
 
-    void setTraceCache(LruTraceCache traceCache);
+  void setTraceCache(LruTraceCache traceCache);
 
-    void mark() throws MaxAllowedPacketException;
+  void mark() throws MaxAllowedPacketException;
 
-    boolean isMarked();
+  boolean isMarked();
 
-    void flushBufferStopAtMark() throws IOException;
+  void flushBufferStopAtMark() throws IOException;
 
-    boolean bufferIsDataAfterMark();
+  boolean bufferIsDataAfterMark();
 
-    byte[] resetMark();
+  byte[] resetMark();
 
-    int initialPacketPos();
+  int initialPacketPos();
 
-    void checkMaxAllowedLength(int length) throws MaxAllowedPacketException;
+  void checkMaxAllowedLength(int length) throws MaxAllowedPacketException;
 }

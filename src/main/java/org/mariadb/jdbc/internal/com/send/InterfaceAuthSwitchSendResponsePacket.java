@@ -52,12 +52,12 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-
 import java.io.IOException;
 import java.sql.SQLException;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 
 
 public interface InterfaceAuthSwitchSendResponsePacket extends InterfaceSendPacket {
-    void handleResultPacket(PacketInputStream reader) throws SQLException, IOException;
+
+  void handleResultPacket(PacketInputStream reader) throws SQLException, IOException;
 }

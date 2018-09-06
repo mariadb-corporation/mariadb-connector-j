@@ -52,13 +52,13 @@
 
 package org.mariadb.jdbc.internal.protocol.tls;
 
-import org.mariadb.jdbc.internal.util.Options;
-import org.mariadb.jdbc.internal.util.SqlStates;
+import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
 
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509TrustManager;
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
@@ -70,145 +70,162 @@ import java.security.cert.X509Certificate;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.UUID;
-
-import static org.mariadb.jdbc.internal.util.SqlStates.CONNECTION_EXCEPTION;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.SqlStates;
 
 public class MariaDbX509TrustManager implements X509TrustManager {
-    private X509TrustManager trustManager;
 
-    /**
-     * MyX509TrustManager.
-     *
-     * @param options parsed url options
-     * @throws SQLException exception
-     */
-    public MariaDbX509TrustManager(Options options) throws SQLException {
-        //if trustServerCertificate is true, will have a X509TrustManager implementation that validate all.
-        if (options.trustServerCertificate) return;
+  private X509TrustManager trustManager;
 
-        KeyStore ks;
+  /**
+   * MyX509TrustManager.
+   *
+   * @param options parsed url options
+   * @throws SQLException exception
+   */
+  public MariaDbX509TrustManager(Options options) throws SQLException {
+    //if trustServerCertificate is true, will have a X509TrustManager implementation that validate all.
+    if (options.trustServerCertificate) {
+      return;
+    }
+
+    KeyStore ks;
+    try {
+      ks = KeyStore.getInstance(KeyStore.getDefaultType());
+    } catch (GeneralSecurityException generalSecurityEx) {
+      throw new SQLException("Failed to create keystore instance",
+          SqlStates.CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
+    }
+
+    InputStream inStream = null;
+    try {
+      if (options.trustStore != null) {
+        // use the provided keyStore
         try {
-            ks = KeyStore.getInstance(KeyStore.getDefaultType());
+          String trustStore = options.trustStore;
+
+          try {
+            inStream = new URL(trustStore).openStream();
+          } catch (IOException ioexception) {
+            inStream = new FileInputStream(trustStore);
+          }
+          ks.load(inStream,
+              options.trustStorePassword == null ? null : options.trustStorePassword.toCharArray());
+
         } catch (GeneralSecurityException generalSecurityEx) {
-            throw new SQLException("Failed to create keystore instance", SqlStates.CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
+          throw new SQLException("Failed to create trustStore instance",
+              CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
+        } catch (FileNotFoundException fileNotFoundEx) {
+          throw new SQLException("Failed to find trustStore file. trustStore=" + options.trustStore,
+              CONNECTION_EXCEPTION.getSqlState(), fileNotFoundEx);
+        } catch (IOException ioEx) {
+          throw new SQLException("Failed to read trustStore file. trustStore=" + options.trustStore,
+              CONNECTION_EXCEPTION.getSqlState(), ioEx);
+        }
+      } else {
+        // generate a keyStore from the provided cert
+        if (options.serverSslCert.startsWith("-----BEGIN CERTIFICATE-----")) {
+          inStream = new ByteArrayInputStream(options.serverSslCert.getBytes());
+        } else if (options.serverSslCert.startsWith("classpath:")) {
+          // Load it from a classpath relative file
+          String classpathFile = options.serverSslCert.substring("classpath:".length());
+          inStream = Thread.currentThread().getContextClassLoader()
+              .getResourceAsStream(classpathFile);
+        } else {
+          try {
+            inStream = new FileInputStream(options.serverSslCert);
+          } catch (FileNotFoundException fileNotFoundEx) {
+            throw new SQLException(
+                "Failed to find serverSslCert file. serverSslCert=" + options.serverSslCert,
+                CONNECTION_EXCEPTION.getSqlState(), fileNotFoundEx);
+          }
         }
 
-        InputStream inStream = null;
         try {
-            if (options.trustStore != null) {
-                // use the provided keyStore
-                try {
-                    String trustStore = options.trustStore;
-
-                    try {
-                        inStream = new URL(trustStore).openStream();
-                    } catch (IOException ioexception) {
-                        inStream = new FileInputStream(trustStore);
-                    }
-                    ks.load(inStream,
-                            options.trustStorePassword == null ? null : options.trustStorePassword.toCharArray());
-
-                } catch (GeneralSecurityException generalSecurityEx) {
-                    throw new SQLException("Failed to create trustStore instance",
-                            CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
-                } catch (FileNotFoundException fileNotFoundEx) {
-                    throw new SQLException("Failed to find trustStore file. trustStore=" + options.trustStore,
-                            CONNECTION_EXCEPTION.getSqlState(), fileNotFoundEx);
-                } catch (IOException ioEx) {
-                    throw new SQLException("Failed to read trustStore file. trustStore=" + options.trustStore,
-                            CONNECTION_EXCEPTION.getSqlState(), ioEx);
-                }
-            } else {
-                // generate a keyStore from the provided cert
-                if (options.serverSslCert.startsWith("-----BEGIN CERTIFICATE-----")) {
-                    inStream = new ByteArrayInputStream(options.serverSslCert.getBytes());
-                } else if (options.serverSslCert.startsWith("classpath:")) {
-                    // Load it from a classpath relative file
-                    String classpathFile = options.serverSslCert.substring("classpath:".length());
-                    inStream = Thread.currentThread().getContextClassLoader().getResourceAsStream(classpathFile);
-                } else {
-                    try {
-                        inStream = new FileInputStream(options.serverSslCert);
-                    } catch (FileNotFoundException fileNotFoundEx) {
-                        throw new SQLException("Failed to find serverSslCert file. serverSslCert=" + options.serverSslCert,
-                                CONNECTION_EXCEPTION.getSqlState(), fileNotFoundEx);
-                    }
-                }
-
-                try {
-                    // Note: KeyStore requires it be loaded even if you don't load anything into it
-                    // (will be initialized with "javax.net.ssl.trustStore") values.
-                    ks.load(null);
-                    CertificateFactory cf = CertificateFactory.getInstance("X.509");
-                    Collection<? extends Certificate> caList = cf.generateCertificates(inStream);
-                    for (Certificate ca : caList) {
-                        ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
-                    }
-                } catch (IOException ioEx) {
-                    throw new SQLException("Failed load keyStore", CONNECTION_EXCEPTION.getSqlState(), ioEx);
-                } catch (GeneralSecurityException generalSecurityEx) {
-                    throw new SQLException("Failed to store certificate from serverSslCert into a keyStore",
-                            CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
-                }
-
-            }
-        } finally {
-            if (inStream != null) {
-                try {
-                    inStream.close();
-                } catch (IOException ioEx) {
-                    //ignore error
-                }
-            }
-        }
-        try {
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(ks);
-            for (TrustManager tm : tmf.getTrustManagers()) {
-                if (tm instanceof X509TrustManager) {
-                    trustManager = (X509TrustManager) tm;
-                    break;
-                }
-            }
-        } catch (NoSuchAlgorithmException noSuchAlgorithmEx) {
-            throw new SQLException("Failed to create TrustManagerFactory default instance",
-                    CONNECTION_EXCEPTION.getSqlState(), noSuchAlgorithmEx);
+          // Note: KeyStore requires it be loaded even if you don't load anything into it
+          // (will be initialized with "javax.net.ssl.trustStore") values.
+          ks.load(null);
+          CertificateFactory cf = CertificateFactory.getInstance("X.509");
+          Collection<? extends Certificate> caList = cf.generateCertificates(inStream);
+          for (Certificate ca : caList) {
+            ks.setCertificateEntry(UUID.randomUUID().toString(), ca);
+          }
+        } catch (IOException ioEx) {
+          throw new SQLException("Failed load keyStore", CONNECTION_EXCEPTION.getSqlState(), ioEx);
         } catch (GeneralSecurityException generalSecurityEx) {
-            throw new SQLException("Failed to initialize trust manager", CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
+          throw new SQLException("Failed to store certificate from serverSslCert into a keyStore",
+              CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
         }
 
-        if (trustManager == null) {
-            throw new SQLException("No X509TrustManager found");
+      }
+    } finally {
+      if (inStream != null) {
+        try {
+          inStream.close();
+        } catch (IOException ioEx) {
+          //ignore error
         }
+      }
+    }
+    try {
+      TrustManagerFactory tmf = TrustManagerFactory
+          .getInstance(TrustManagerFactory.getDefaultAlgorithm());
+      tmf.init(ks);
+      for (TrustManager tm : tmf.getTrustManagers()) {
+        if (tm instanceof X509TrustManager) {
+          trustManager = (X509TrustManager) tm;
+          break;
+        }
+      }
+    } catch (NoSuchAlgorithmException noSuchAlgorithmEx) {
+      throw new SQLException("Failed to create TrustManagerFactory default instance",
+          CONNECTION_EXCEPTION.getSqlState(), noSuchAlgorithmEx);
+    } catch (GeneralSecurityException generalSecurityEx) {
+      throw new SQLException("Failed to initialize trust manager",
+          CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
     }
 
-    /**
-     * Check client trusted.
-     *
-     * @param x509Certificates certificate
-     * @param string           string
-     * @throws CertificateException exception
-     */
-    @Override
-    public void checkClientTrusted(X509Certificate[] x509Certificates, String string) throws CertificateException {
-        if (trustManager == null) return;
-        trustManager.checkClientTrusted(x509Certificates, string);
+    if (trustManager == null) {
+      throw new SQLException("No X509TrustManager found");
     }
+  }
 
-    /**
-     * Check server trusted.
-     *
-     * @param x509Certificates certificate
-     * @param string           string
-     * @throws CertificateException exception
-     */
-    @Override
-    public void checkServerTrusted(X509Certificate[] x509Certificates, String string) throws CertificateException {
-        if (trustManager == null) return;
-        trustManager.checkServerTrusted(x509Certificates, string);
+  /**
+   * Check client trusted.
+   *
+   * @param x509Certificates certificate
+   * @param string           string
+   * @throws CertificateException exception
+   */
+  @Override
+  public void checkClientTrusted(X509Certificate[] x509Certificates, String string)
+      throws CertificateException {
+    if (trustManager == null) {
+      return;
     }
+    trustManager.checkClientTrusted(x509Certificates, string);
+  }
 
-    public X509Certificate[] getAcceptedIssuers() {
-        return null;
+  /**
+   * Check server trusted.
+   *
+   * @param x509Certificates certificate
+   * @param string           string
+   * @throws CertificateException exception
+   */
+  @Override
+  public void checkServerTrusted(X509Certificate[] x509Certificates, String string)
+      throws CertificateException {
+    if (trustManager == null) {
+      return;
     }
+    trustManager.checkServerTrusted(x509Certificates, string);
+  }
+
+  public X509Certificate[] getAcceptedIssuers() {
+    return null;
+  }
 }

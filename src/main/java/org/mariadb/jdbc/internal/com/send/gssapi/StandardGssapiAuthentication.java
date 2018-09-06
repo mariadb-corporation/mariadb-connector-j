@@ -52,105 +52,115 @@
 
 package org.mariadb.jdbc.internal.com.send.gssapi;
 
-import org.ietf.jgss.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.UncheckedIOException;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
+import java.sql.SQLException;
+import javax.security.auth.Subject;
+import javax.security.auth.login.LoginContext;
+import javax.security.auth.login.LoginException;
+import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.GSSException;
+import org.ietf.jgss.GSSManager;
+import org.ietf.jgss.GSSName;
+import org.ietf.jgss.Oid;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-import javax.security.auth.Subject;
-import javax.security.auth.login.LoginContext;
-import javax.security.auth.login.LoginException;
-import java.io.*;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
-import java.sql.SQLException;
-
 public class StandardGssapiAuthentication extends GssapiAuth {
-    public StandardGssapiAuthentication(PacketInputStream reader, int packSeq) {
-        super(reader, packSeq);
+
+  public StandardGssapiAuthentication(PacketInputStream reader, int packSeq) {
+    super(reader, packSeq);
+  }
+
+  @Override
+  public void authenticate(final PacketOutputStream writer, final String serverPrincipalName,
+      String mechanisms)
+      throws SQLException, IOException {
+    if ("".equals(serverPrincipalName)) {
+      throw new SQLException("No principal name defined on server. "
+          + "Please set server variable \"gssapi-principal-name\"", "28000");
     }
 
-    @Override
-    public void authenticate(final PacketOutputStream writer, final String serverPrincipalName, String mechanisms)
-            throws SQLException, IOException {
-        if ("".equals(serverPrincipalName)) {
-            throw new SQLException("No principal name defined on server. "
-                    + "Please set server variable \"gssapi-principal-name\"", "28000");
+    if (System.getProperty("java.security.auth.login.config") == null) {
+      final File jaasConfFile;
+      try {
+        jaasConfFile = File.createTempFile("jaas.conf", null);
+        try (PrintStream bos = new PrintStream(new FileOutputStream(jaasConfFile))) {
+          bos.print("Krb5ConnectorContext {\n"
+              + "com.sun.security.auth.module.Krb5LoginModule required "
+              + "useTicketCache=true "
+              + "debug=true "
+              + "renewTGT=true "
+              + "doNotPrompt=true; };");
         }
+        jaasConfFile.deleteOnExit();
+      } catch (final IOException ex) {
+        throw new UncheckedIOException(ex);
+      }
 
-        if (System.getProperty("java.security.auth.login.config") == null) {
-            final File jaasConfFile;
-            try {
-                jaasConfFile = File.createTempFile("jaas.conf", null);
-                try (PrintStream bos = new PrintStream(new FileOutputStream(jaasConfFile))) {
-                    bos.print("Krb5ConnectorContext {\n"
-                            + "com.sun.security.auth.module.Krb5LoginModule required "
-                            + "useTicketCache=true "
-                            + "debug=true "
-                            + "renewTGT=true "
-                            + "doNotPrompt=true; };");
-                }
-                jaasConfFile.deleteOnExit();
-            } catch (final IOException ex) {
-                throw new UncheckedIOException(ex);
-            }
-
-            System.setProperty("java.security.auth.login.config", jaasConfFile.getCanonicalPath());
-        }
+      System.setProperty("java.security.auth.login.config", jaasConfFile.getCanonicalPath());
+    }
+    try {
+      LoginContext loginContext = new LoginContext("Krb5ConnectorContext");
+      // attempt authentication
+      loginContext.login();
+      final Subject mySubject = loginContext.getSubject();
+      if (!mySubject.getPrincipals().isEmpty()) {
         try {
-            LoginContext loginContext = new LoginContext("Krb5ConnectorContext");
-            // attempt authentication
-            loginContext.login();
-            final Subject mySubject = loginContext.getSubject();
-            if (!mySubject.getPrincipals().isEmpty()) {
-                try {
-                    PrivilegedExceptionAction<Void> action = () -> {
-                        try {
-                            Oid krb5Mechanism = new Oid("1.2.840.113554.1.2.2");
+          PrivilegedExceptionAction<Void> action = () -> {
+            try {
+              Oid krb5Mechanism = new Oid("1.2.840.113554.1.2.2");
 
-                            GSSManager manager = GSSManager.getInstance();
-                            GSSName peerName = manager.createName(serverPrincipalName, GSSName.NT_USER_NAME);
-                            GSSContext context =
-                                    manager.createContext(peerName,
-                                            krb5Mechanism,
-                                            null,
-                                            GSSContext.DEFAULT_LIFETIME);
-                            context.requestMutualAuth(true);
+              GSSManager manager = GSSManager.getInstance();
+              GSSName peerName = manager.createName(serverPrincipalName, GSSName.NT_USER_NAME);
+              GSSContext context =
+                  manager.createContext(peerName,
+                      krb5Mechanism,
+                      null,
+                      GSSContext.DEFAULT_LIFETIME);
+              context.requestMutualAuth(true);
 
-                            byte[] inToken = new byte[0];
-                            byte[] outToken;
-                            while (!context.isEstablished()) {
+              byte[] inToken = new byte[0];
+              byte[] outToken;
+              while (!context.isEstablished()) {
 
-                                outToken = context.initSecContext(inToken, 0, inToken.length);
+                outToken = context.initSecContext(inToken, 0, inToken.length);
 
-                                // Send a token to the peer if one was generated by acceptSecContext
-                                if (outToken != null) {
-                                    writer.startPacket(packSeq);
-                                    writer.write(outToken);
-                                    writer.flush();
-                                }
-                                if (!context.isEstablished()) {
-                                    Buffer buffer = reader.getPacket(true);
-                                    packSeq = reader.getLastPacketSeq() + 1;
-                                    inToken = buffer.readRawBytes(buffer.remaining());
-                                }
-                            }
-
-                        } catch (GSSException le) {
-                            throw new SQLException("GSS-API authentication exception", "28000", 1045, le);
-                        }
-                        return null;
-                    };
-                    Subject.doAs(mySubject, action);
-                } catch (PrivilegedActionException exception) {
-                    throw new SQLException("GSS-API authentication exception", "28000", 1045, exception);
+                // Send a token to the peer if one was generated by acceptSecContext
+                if (outToken != null) {
+                  writer.startPacket(packSeq);
+                  writer.write(outToken);
+                  writer.flush();
                 }
-            } else {
-                throw new SQLException("GSS-API authentication exception : no credential cache not found.", "28000", 1045);
-            }
+                if (!context.isEstablished()) {
+                  Buffer buffer = reader.getPacket(true);
+                  packSeq = reader.getLastPacketSeq() + 1;
+                  inToken = buffer.readRawBytes(buffer.remaining());
+                }
+              }
 
-        } catch (LoginException le) {
-            throw new SQLException("GSS-API authentication exception", "28000", 1045, le);
+            } catch (GSSException le) {
+              throw new SQLException("GSS-API authentication exception", "28000", 1045, le);
+            }
+            return null;
+          };
+          Subject.doAs(mySubject, action);
+        } catch (PrivilegedActionException exception) {
+          throw new SQLException("GSS-API authentication exception", "28000", 1045, exception);
         }
+      } else {
+        throw new SQLException("GSS-API authentication exception : no credential cache not found.",
+            "28000", 1045);
+      }
+
+    } catch (LoginException le) {
+      throw new SQLException("GSS-API authentication exception", "28000", 1045, le);
     }
+  }
 }

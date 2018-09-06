@@ -68,394 +68,415 @@ import org.mariadb.jdbc.internal.protocol.Protocol;
 
 public class ErrorMessageTest extends BaseTest {
 
-    /**
-     * Initialisation.
-     *
-     * @throws SQLException exception
-     */
-    @BeforeClass()
-    public static void initClass() throws SQLException {
-        createTable("testErrorMessage", "id int not null primary key auto_increment, test varchar(10), test2 int");
-    }
+  /**
+   * Initialisation.
+   *
+   * @throws SQLException exception
+   */
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    createTable("testErrorMessage",
+        "id int not null primary key auto_increment, test varchar(10), test2 int");
+  }
 
-    @Test
-    public void testSmallRewriteErrorMessage() throws SQLException {
-        try (Connection connection = setBlankConnection("&rewriteBatchedStatements=true")) {
-            executeBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            assertTrue(sqle.getCause().getCause().getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
+  @Test
+  public void testSmallRewriteErrorMessage() throws SQLException {
+    try (Connection connection = setBlankConnection("&rewriteBatchedStatements=true")) {
+      executeBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getCause().getCause().getMessage()
+          .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
+    }
+  }
+
+  @Test
+  public void testSmallMultiBatchErrorMessage() throws SQLException {
+    try (Connection connection = setConnection(
+        "&allowMultiQueries=true&useServerPrepStmts=false")) {
+      executeBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      if ((isMariadbServer() && minVersion(10, 2) && sharedOptions().useBulkStmts)
+          || sharedOptions().useServerPrepStmts
+          || sharedOptions().rewriteBatchedStatements) {
+        assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+            sqle.getCause().getCause().getMessage().contains(
+                "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
+      } else {
+        if (!sharedOptions().useBatchMultiSend) {
+          assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+              sqle.getCause().getCause().getMessage().contains(
+                  "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
+                      + "parameters ['more than 10 characters to provoc error',10]"));
+        } else {
+          assertTrue(sqle.getCause().getCause().getMessage().contains(
+              "INSERT INTO testErrorMessage(test, test2) values "
+                  + "('more than 10 characters to provoc error', 10)"));
         }
+      }
     }
+  }
 
-    @Test
-    public void testSmallMultiBatchErrorMessage() throws SQLException {
-        try (Connection connection = setConnection("&allowMultiQueries=true&useServerPrepStmts=false")) {
-            executeBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            if ((isMariadbServer() && minVersion(10,2)  && sharedOptions().useBulkStmts)
-                || sharedOptions().useServerPrepStmts
-                || sharedOptions().rewriteBatchedStatements) {
-                assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                        sqle.getCause().getCause().getMessage().contains(
-                                "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
-            } else {
-                if (!sharedOptions().useBatchMultiSend) {
-                    assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                            sqle.getCause().getCause().getMessage().contains(
-                                    "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
-                                            + "parameters ['more than 10 characters to provoc error',10]"));
-                } else {
-                    assertTrue(sqle.getCause().getCause().getMessage().contains(
-                            "INSERT INTO testErrorMessage(test, test2) values "
-                                    + "('more than 10 characters to provoc error', 10)"));
-                }
-            }
+  @Test
+  public void testSmallPrepareErrorMessage() throws SQLException {
+    try (Connection connection = setBlankConnection("&useBatchMultiSend=false")) {
+      executeBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getCause().getCause().getMessage().contains(
+          "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
+    }
+  }
+
+  @Test
+  public void testSmallBulkErrorMessage() throws SQLException {
+    Assume.assumeFalse(sharedIsAurora());
+    try (Connection connection = setConnection("&useBatchMultiSend=true")) {
+      executeBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      if ((isMariadbServer() && minVersion(10, 2) && sharedOptions().useBulkStmts)
+          || sharedOptions().useServerPrepStmts
+          || sharedOptions().rewriteBatchedStatements) {
+        assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+            sqle.getCause().getCause().getMessage().contains(
+                "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
+      } else {
+        assertTrue(sqle.getCause().getCause().getMessage().contains(
+            "INSERT INTO testErrorMessage(test, test2) values "
+                + "('more than 10 characters to provoc error', 10)"));
+      }
+    }
+  }
+
+  @Test
+  public void testSmallPrepareBulkErrorMessage() throws SQLException {
+    Assume.assumeFalse(sharedIsAurora());
+    try (Connection connection = setBlankConnection(
+        "&useBatchMultiSend=true&useServerPrepStmts=true")) {
+      executeBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getCause().getCause().getMessage().contains(
+          "INSERT INTO testErrorMessage(test, test2) values "
+              + "(?, ?)"));
+    }
+  }
+
+
+  @Test
+  public void testBigRewriteErrorMessage() throws SQLException {
+    try (Connection connection = setBlankConnection("&rewriteBatchedStatements=true")) {
+      executeBigBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getCause().getCause().getMessage()
+          .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
+    }
+  }
+
+  @Test
+  public void testBigMultiErrorMessage() throws SQLException {
+    try (Connection connection = setConnection(
+        "&allowMultiQueries=true&useServerPrepStmts=false")) {
+      executeBigBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      if ((isMariadbServer() && minVersion(10, 2) && sharedOptions().useBulkStmts)
+          || sharedOptions().useServerPrepStmts
+          || sharedOptions().rewriteBatchedStatements) {
+        assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+            sqle.getCause().getCause().getMessage().contains(
+                "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
+      } else {
+        if (!sharedOptions().useBatchMultiSend) {
+          assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+              sqle.getCause().getCause().getMessage()
+                  .contains("INSERT INTO testErrorMessage(test, test2) "
+                      + "values (?, ?), parameters ['more than 10 characters to provoc error',200]"));
+        } else {
+          assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+              sqle.getCause().getCause().getMessage().contains(
+                  "INSERT INTO testErrorMessage(test, test2) values "
+                      + "('more than 10 characters to provoc error', 200)"));
         }
+
+      }
     }
+  }
 
-    @Test
-    public void testSmallPrepareErrorMessage() throws SQLException {
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=false")) {
-            executeBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            assertTrue(sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
-        }
+  @Test
+  public void testBigPrepareErrorMessage() throws SQLException {
+    try (Connection connection = setBlankConnection("&useBatchMultiSend=false")) {
+      executeBigBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      sqle.printStackTrace();
+      if (isMariadbServer() && minVersion(10, 2)) {
+        assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+            sqle.getCause().getCause().getMessage().contains(
+                "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
+      } else {
+        assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+            sqle.getCause().getCause().getMessage().contains(
+                "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
+                    + "parameters ['more than 10 characters to provoc error',200]"));
+      }
     }
+  }
 
-    @Test
-    public void testSmallBulkErrorMessage() throws SQLException {
-        Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setConnection("&useBatchMultiSend=true")) {
-            executeBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            if ((isMariadbServer() && minVersion(10,2) && sharedOptions().useBulkStmts)
-                || sharedOptions().useServerPrepStmts
-                || sharedOptions().rewriteBatchedStatements) {
-                assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                        sqle.getCause().getCause().getMessage().contains(
-                                "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
-            } else {
-                assertTrue(sqle.getCause().getCause().getMessage().contains(
-                        "INSERT INTO testErrorMessage(test, test2) values "
-                                + "('more than 10 characters to provoc error', 10)"));
-            }
-        }
+  @Test
+  public void testBigBulkErrorMessage() throws SQLException {
+    Assume.assumeFalse(sharedIsAurora());
+    try (Connection connection = setConnection("&useBatchMultiSend=true")) {
+      executeBigBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      if ((isMariadbServer() && minVersion(10, 2) && sharedOptions().useBulkStmts
+          || sharedOptions().useServerPrepStmts
+          || sharedOptions().rewriteBatchedStatements)) {
+        assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+            sqle.getCause().getCause().getMessage().contains(
+                "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
+      } else {
+        assertTrue(sqle.getCause().getCause().getMessage()
+            .contains("INSERT INTO testErrorMessage(test, test2) values "
+                + "('more than 10 characters to provoc error', 200)"));
+      }
     }
+  }
 
-    @Test
-    public void testSmallPrepareBulkErrorMessage() throws SQLException {
-        Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useServerPrepStmts=true")) {
-            executeBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            assertTrue(sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values "
-                            + "(?, ?)"));
-        }
+  @Test
+  public void testBigBulkErrorPrepareMessage() throws SQLException {
+    Assume.assumeFalse(sharedIsAurora());
+    try (Connection connection = setBlankConnection(
+        "&useBatchMultiSend=true&useServerPrepStmts=true")) {
+      executeBigBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getCause().getCause().getMessage().contains(
+          "INSERT INTO testErrorMessage(test, test2) values (?, ?)"
+      ));
     }
+  }
 
+  private void executeBatchWithException(Connection connection) throws SQLException {
+    connection.createStatement().execute("TRUNCATE testErrorMessage");
+    try (PreparedStatement preparedStatement = connection
+        .prepareStatement("INSERT INTO testErrorMessage(test, test2) values (?, ?)")) {
+      for (int i = 0; i < 10; i++) {
+        preparedStatement.setString(1, "whoua" + i);
+        preparedStatement.setInt(2, i);
+        preparedStatement.addBatch();
+      }
+      preparedStatement.setString(1, "more than 10 characters to provoc error");
+      preparedStatement.setInt(2, 10);
 
-    @Test
-    public void testBigRewriteErrorMessage() throws SQLException {
-        try (Connection connection = setBlankConnection("&rewriteBatchedStatements=true")) {
-            executeBigBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            assertTrue(sqle.getCause().getCause().getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
-        }
+      preparedStatement.addBatch();
+      preparedStatement.executeBatch();
+    } catch (SQLException e) {
+      //to be sure that packets are ok
+      connection.createStatement().execute("SELECT 1");
+      throw e;
     }
+  }
 
-    @Test
-    public void testBigMultiErrorMessage() throws SQLException {
-        try (Connection connection = setConnection("&allowMultiQueries=true&useServerPrepStmts=false")) {
-            executeBigBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            if ((isMariadbServer() && minVersion(10,2) && sharedOptions().useBulkStmts)
-                || sharedOptions().useServerPrepStmts
-                || sharedOptions().rewriteBatchedStatements) {
-                assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                        sqle.getCause().getCause().getMessage().contains(
-                                "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
-            } else {
-                if (!sharedOptions().useBatchMultiSend) {
-                    assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                            sqle.getCause().getCause().getMessage().contains("INSERT INTO testErrorMessage(test, test2) "
-                                    + "values (?, ?), parameters ['more than 10 characters to provoc error',200]"));
-                } else {
-                    assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                            sqle.getCause().getCause().getMessage().contains(
-                                    "INSERT INTO testErrorMessage(test, test2) values "
-                                            + "('more than 10 characters to provoc error', 200)"));
-                }
-
-            }
-        }
+  private void executeBigBatchWithException(Connection connection) throws SQLException {
+    connection.createStatement().execute("TRUNCATE testErrorMessage");
+    try (PreparedStatement preparedStatement = connection
+        .prepareStatement("INSERT INTO testErrorMessage(test, test2) values (?, ?)")) {
+      for (int i = 0; i < 200; i++) {
+        preparedStatement.setString(1, "whoua" + i);
+        preparedStatement.setInt(2, i);
+        preparedStatement.addBatch();
+      }
+      preparedStatement.setString(1, "more than 10 characters to provoc error");
+      preparedStatement.setInt(2, 200);
+      preparedStatement.addBatch();
+      preparedStatement.executeBatch();
+    } catch (SQLException e) {
+      //to be sure that packets are ok
+      connection.createStatement().execute("SELECT 1");
+      throw e;
     }
+  }
 
-    @Test
-    public void testBigPrepareErrorMessage() throws SQLException {
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=false")) {
-            executeBigBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            sqle.printStackTrace();
-            if (isMariadbServer() && minVersion(10,2)) {
-                assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                        sqle.getCause().getCause().getMessage().contains(
-                                "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
-            } else {
-                assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                        sqle.getCause().getCause().getMessage().contains(
-                                "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
-                                        + "parameters ['more than 10 characters to provoc error',200]"));
-            }
-        }
+  @Test
+  public void testFailOverKillCmd() throws Throwable {
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(isMariadbServer());
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    DataSource ds = new MariaDbDataSource("jdbc:mariadb:failover//"
+        + ((hostname != null) ? hostname : "localhost") + ":" + port + ","
+        + ((hostname != null) ? hostname : "localhost") + ":" + port
+        + "/" + database + "?user=" + username + (password != null ? "&password=" + password : ""));
+
+    try (Connection connection = ds.getConnection()) {
+      Protocol protocol = getProtocolFromConnection(connection);
+      Statement stmt = connection.createStatement();
+      long threadId = protocol.getServerThreadId();
+      stmt.executeQuery("KILL " + threadId);
+      stmt.executeQuery("SELECT 1");
+      long newThreadId = protocol.getServerThreadId();
+      assertNotEquals(threadId, newThreadId);
+      PreparedStatement preparedStatement = connection.prepareStatement("KILL ?");
+      preparedStatement.setLong(1, newThreadId);
+      preparedStatement.execute();
+
+      stmt.executeQuery("SELECT 1");
+      long anotherNewThreadId = protocol.getServerThreadId();
+      assertNotEquals(anotherNewThreadId, newThreadId);
+
     }
+  }
 
-    @Test
-    public void testBigBulkErrorMessage() throws SQLException {
-        Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setConnection("&useBatchMultiSend=true")) {
-            executeBigBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            if ((isMariadbServer() && minVersion(10,2) && sharedOptions().useBulkStmts
-                || sharedOptions().useServerPrepStmts
-                || sharedOptions().rewriteBatchedStatements)) {
-                assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                        sqle.getCause().getCause().getMessage().contains(
-                                "INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
-            } else {
-                assertTrue(sqle.getCause().getCause().getMessage().contains("INSERT INTO testErrorMessage(test, test2) values "
-                        + "('more than 10 characters to provoc error', 200)"));
-            }
-        }
+  @Test
+  public void testSmallRewriteErrorMessageNoBulk() throws SQLException {
+    try (Connection connection = setBlankConnection(
+        "&rewriteBatchedStatements=true&useBulkStmts=false")) {
+      executeBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getCause().getCause().getMessage()
+          .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
     }
+  }
 
-    @Test
-    public void testBigBulkErrorPrepareMessage() throws SQLException {
-        Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useServerPrepStmts=true")) {
-            executeBigBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            assertTrue(sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values (?, ?)"
-            ));
-        }
+  @Test
+  public void testSmallMultiBatchErrorMessageNoBulk() throws SQLException {
+    try (Connection connection = setBlankConnection(
+        "&allowMultiQueries=true&useServerPrepStmts=false&useBulkStmts=false")) {
+      executeBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      if (sharedIsAurora()) {
+        assertTrue(sqle.getCause().getCause().getMessage().contains(
+            "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
+                + "parameters ['more than 10 characters to provoc error',10]"));
+      } else {
+        assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+            sqle.getCause().getCause().getMessage().contains(
+                "INSERT INTO testErrorMessage(test, test2) values "
+                    + "('more than 10 characters to provoc error', 10)"));
+      }
     }
+  }
 
-    private void executeBatchWithException(Connection connection) throws SQLException {
-        connection.createStatement().execute("TRUNCATE testErrorMessage");
-        try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO testErrorMessage(test, test2) values (?, ?)")) {
-            for (int i = 0; i < 10; i++) {
-                preparedStatement.setString(1, "whoua" + i);
-                preparedStatement.setInt(2, i);
-                preparedStatement.addBatch();
-            }
-            preparedStatement.setString(1, "more than 10 characters to provoc error");
-            preparedStatement.setInt(2, 10);
-
-            preparedStatement.addBatch();
-            preparedStatement.executeBatch();
-        } catch (SQLException e) {
-            //to be sure that packets are ok
-            connection.createStatement().execute("SELECT 1");
-            throw e;
-        }
+  @Test
+  public void testSmallPrepareErrorMessageNoBulk() throws SQLException {
+    try (Connection connection = setBlankConnection(
+        "&useBatchMultiSend=false&useBulkStmts=false")) {
+      executeBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getCause().getCause().getMessage().contains(
+          "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
+              + "parameters ['more than 10 characters to provoc error',10]"));
     }
+  }
 
-    private void executeBigBatchWithException(Connection connection) throws SQLException {
-        connection.createStatement().execute("TRUNCATE testErrorMessage");
-        try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO testErrorMessage(test, test2) values (?, ?)")) {
-            for (int i = 0; i < 200; i++) {
-                preparedStatement.setString(1, "whoua" + i);
-                preparedStatement.setInt(2, i);
-                preparedStatement.addBatch();
-            }
-            preparedStatement.setString(1, "more than 10 characters to provoc error");
-            preparedStatement.setInt(2, 200);
-            preparedStatement.addBatch();
-            preparedStatement.executeBatch();
-        } catch (SQLException e) {
-            //to be sure that packets are ok
-            connection.createStatement().execute("SELECT 1");
-            throw e;
-        }
+  @Test
+  public void testSmallBulkErrorMessageNoBulk() throws SQLException {
+    Assume.assumeFalse(sharedIsAurora());
+    try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useBulkStmts=false")) {
+      executeBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getCause().getCause().getMessage().contains(
+          "INSERT INTO testErrorMessage(test, test2) values "
+              + "('more than 10 characters to provoc error', 10)"));
     }
+  }
 
-    @Test
-    public void testFailOverKillCmd() throws Throwable {
-        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
-        Assume.assumeTrue(isMariadbServer());
-        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
-        DataSource ds = new MariaDbDataSource("jdbc:mariadb:failover//"
-                + ((hostname != null) ? hostname : "localhost") + ":" + port + ","
-                + ((hostname != null) ? hostname : "localhost") + ":" + port
-                + "/" + database + "?user=" + username + (password != null ? "&password=" + password : ""));
-
-        try (Connection connection = ds.getConnection()) {
-            Protocol protocol = getProtocolFromConnection(connection);
-            Statement stmt = connection.createStatement();
-            long threadId = protocol.getServerThreadId();
-            stmt.executeQuery("KILL " + threadId);
-            stmt.executeQuery("SELECT 1");
-            long newThreadId = protocol.getServerThreadId();
-            assertNotEquals(threadId, newThreadId);
-            PreparedStatement preparedStatement = connection.prepareStatement("KILL ?");
-            preparedStatement.setLong(1, newThreadId);
-            preparedStatement.execute();
-
-            stmt.executeQuery("SELECT 1");
-            long anotherNewThreadId = protocol.getServerThreadId();
-            assertNotEquals(anotherNewThreadId, newThreadId);
-
-        }
+  @Test
+  public void testSmallPrepareBulkErrorMessageNoBulk() throws SQLException {
+    Assume.assumeFalse(sharedIsAurora());
+    try (Connection connection = setBlankConnection(
+        "&useBatchMultiSend=true&useServerPrepStmts=true&useBulkStmts=false")) {
+      executeBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getCause().getCause().getMessage().contains(
+          "INSERT INTO testErrorMessage(test, test2) values "
+              + "(?, ?)"));
     }
+  }
 
-    @Test
-    public void testSmallRewriteErrorMessageNoBulk() throws SQLException {
-        try (Connection connection = setBlankConnection("&rewriteBatchedStatements=true&useBulkStmts=false")) {
-            executeBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            assertTrue(sqle.getCause().getCause().getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
-        }
+
+  @Test
+  public void testBigRewriteErrorMessageNoBulk() throws SQLException {
+    try (Connection connection = setBlankConnection(
+        "&rewriteBatchedStatements=true&useBulkStmts=false")) {
+      executeBigBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getCause().getCause().getMessage()
+          .contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
     }
+  }
 
-    @Test
-    public void testSmallMultiBatchErrorMessageNoBulk() throws SQLException {
-        try (Connection connection = setBlankConnection("&allowMultiQueries=true&useServerPrepStmts=false&useBulkStmts=false")) {
-            executeBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            if (sharedIsAurora()) {
-                assertTrue(sqle.getCause().getCause().getMessage().contains(
-                        "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
-                                + "parameters ['more than 10 characters to provoc error',10]"));
-            } else {
-                assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                        sqle.getCause().getCause().getMessage().contains(
-                                "INSERT INTO testErrorMessage(test, test2) values "
-                                        + "('more than 10 characters to provoc error', 10)"));
-            }
-        }
+  @Test
+  public void testBigMultiErrorMessageNoBulk() throws SQLException {
+    try (Connection connection = setBlankConnection(
+        "&allowMultiQueries=true&useServerPrepStmts=false&useBulkStmts=false")) {
+      executeBigBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      if (!sharedIsAurora()) {
+        assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+            sqle.getCause().getCause().getMessage().contains(
+                "INSERT INTO testErrorMessage(test, test2) values "
+                    + "('more than 10 characters to provoc error', 200)"));
+      } else {
+        assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+            sqle.getCause().getCause().getMessage().contains(
+                "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
+                    + "['more than 10 characters to provoc error',200]"));
+      }
     }
+  }
 
-    @Test
-    public void testSmallPrepareErrorMessageNoBulk() throws SQLException {
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=false&useBulkStmts=false")) {
-            executeBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            assertTrue(sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
-                            + "parameters ['more than 10 characters to provoc error',10]"));
-        }
+  @Test
+  public void testBigPrepareErrorMessageNoBulk() throws SQLException {
+    try (Connection connection = setBlankConnection(
+        "&useBatchMultiSend=false&useBulkStmts=false")) {
+      executeBigBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      assertTrue("message : " + sqle.getCause().getCause().getMessage(),
+          sqle.getCause().getCause().getMessage().contains(
+              "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
+                  + "['more than 10 characters to provoc error',200]"));
     }
+  }
 
-    @Test
-    public void testSmallBulkErrorMessageNoBulk() throws SQLException {
-        Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useBulkStmts=false")) {
-            executeBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            assertTrue(sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values "
-                            + "('more than 10 characters to provoc error', 10)"));
-        }
+  @Test
+  public void testBigBulkErrorMessageNoBulk() throws SQLException {
+    Assume.assumeFalse(sharedIsAurora());
+    try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useBulkStmts=false")) {
+      executeBigBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getCause().getCause().getMessage().contains(
+          "INSERT INTO testErrorMessage(test, test2) values ("
+              + "'more than 10 characters to provoc error', 200)"
+      ));
     }
+  }
 
-    @Test
-    public void testSmallPrepareBulkErrorMessageNoBulk() throws SQLException {
-        Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useServerPrepStmts=true&useBulkStmts=false")) {
-            executeBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            assertTrue(sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values "
-                            + "(?, ?)"));
-        }
+  @Test
+  public void testBigBulkErrorPrepareMessageNoBulk() throws SQLException {
+    Assume.assumeFalse(sharedIsAurora());
+    try (Connection connection = setBlankConnection(
+        "&useBatchMultiSend=true&useServerPrepStmts=true&useBulkStmts=false")) {
+      executeBigBatchWithException(connection);
+      fail("Must Have thrown error");
+    } catch (SQLException sqle) {
+      assertTrue(sqle.getCause().getCause().getMessage().contains(
+          "INSERT INTO testErrorMessage(test, test2) values (?, ?)"
+      ));
     }
-
-
-    @Test
-    public void testBigRewriteErrorMessageNoBulk() throws SQLException {
-        try (Connection connection = setBlankConnection("&rewriteBatchedStatements=true&useBulkStmts=false")) {
-            executeBigBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            assertTrue(sqle.getCause().getCause().getMessage().contains("INSERT INTO testErrorMessage(test, test2) values (?, ?)"));
-        }
-    }
-
-    @Test
-    public void testBigMultiErrorMessageNoBulk() throws SQLException {
-        try (Connection connection = setBlankConnection("&allowMultiQueries=true&useServerPrepStmts=false&useBulkStmts=false")) {
-            executeBigBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            if (!sharedIsAurora()) {
-                assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                        sqle.getCause().getCause().getMessage().contains(
-                                "INSERT INTO testErrorMessage(test, test2) values "
-                                        + "('more than 10 characters to provoc error', 200)"));
-            } else {
-                assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                        sqle.getCause().getCause().getMessage().contains(
-                                "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
-                                        + "['more than 10 characters to provoc error',200]"));
-            }
-        }
-    }
-
-    @Test
-    public void testBigPrepareErrorMessageNoBulk() throws SQLException {
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=false&useBulkStmts=false")) {
-            executeBigBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            assertTrue("message : " + sqle.getCause().getCause().getMessage(),
-                    sqle.getCause().getCause().getMessage().contains(
-                            "INSERT INTO testErrorMessage(test, test2) values (?, ?), parameters "
-                                    + "['more than 10 characters to provoc error',200]"));
-        }
-    }
-
-    @Test
-    public void testBigBulkErrorMessageNoBulk() throws SQLException {
-        Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useBulkStmts=false")) {
-            executeBigBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            assertTrue(sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values ("
-                            + "'more than 10 characters to provoc error', 200)"
-            ));
-        }
-    }
-
-    @Test
-    public void testBigBulkErrorPrepareMessageNoBulk() throws SQLException {
-        Assume.assumeFalse(sharedIsAurora());
-        try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useServerPrepStmts=true&useBulkStmts=false")) {
-            executeBigBatchWithException(connection);
-            fail("Must Have thrown error");
-        } catch (SQLException sqle) {
-            assertTrue(sqle.getCause().getCause().getMessage().contains(
-                    "INSERT INTO testErrorMessage(test, test2) values (?, ?)"
-            ));
-        }
-    }
+  }
 
 }

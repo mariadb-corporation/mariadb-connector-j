@@ -52,52 +52,51 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
+import java.io.IOException;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-import java.io.IOException;
-
 public class ByteParameter implements Cloneable, ParameterHolder {
 
-    private final byte value;
+  private final byte value;
 
-    public ByteParameter(byte value) {
-        this.value = value;
-    }
+  public ByteParameter(byte value) {
+    this.value = value;
+  }
 
-    public void writeTo(final PacketOutputStream os) throws IOException {
-        os.write(String.valueOf(value).getBytes());
-    }
+  public void writeTo(final PacketOutputStream os) throws IOException {
+    os.write(String.valueOf(value).getBytes());
+  }
 
-    public long getApproximateTextProtocolLength() {
-        return String.valueOf(value).getBytes().length * 2;
-    }
+  public long getApproximateTextProtocolLength() {
+    return String.valueOf(value).getBytes().length * 2;
+  }
 
-    /**
-     * Write data to socket in binary format.
-     *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
-     */
-    public void writeBinary(final PacketOutputStream pos) throws IOException {
-        pos.write(value);
-    }
+  /**
+   * Write data to socket in binary format.
+   *
+   * @param pos socket output stream
+   * @throws IOException if socket error occur
+   */
+  public void writeBinary(final PacketOutputStream pos) throws IOException {
+    pos.write(value);
+  }
 
-    public ColumnType getColumnType() {
-        return ColumnType.TINYINT;
-    }
+  public ColumnType getColumnType() {
+    return ColumnType.TINYINT;
+  }
 
-    @Override
-    public String toString() {
-        return Byte.toString(value);
-    }
+  @Override
+  public String toString() {
+    return Byte.toString(value);
+  }
 
-    public boolean isNullData() {
-        return false;
-    }
+  public boolean isNullData() {
+    return false;
+  }
 
-    public boolean isLongData() {
-        return false;
-    }
+  public boolean isLongData() {
+    return false;
+  }
 
 }

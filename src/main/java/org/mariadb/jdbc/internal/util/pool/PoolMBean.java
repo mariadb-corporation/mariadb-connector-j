@@ -24,14 +24,14 @@ package org.mariadb.jdbc.internal.util.pool;
 
 public interface PoolMBean {
 
-    long getActiveConnections();
+  long getActiveConnections();
 
-    long getTotalConnections();
+  long getTotalConnections();
 
-    long getIdleConnections();
+  long getIdleConnections();
 
-    long getConnectionRequests();
+  long getConnectionRequests();
 
-    void resetStaticGlobal();
+  void resetStaticGlobal();
 
 }

@@ -52,44 +52,45 @@
 
 package org.mariadb.jdbc;
 
+import java.sql.SQLException;
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
 import javax.sql.StatementEvent;
 import javax.sql.StatementEventListener;
-import java.sql.SQLException;
 
 public class MyEventListener implements ConnectionEventListener, StatementEventListener {
-    public SQLException sqlException;
-    public boolean closed;
-    public boolean connectionErrorOccured;
-    public boolean statementClosed;
-    public boolean statementErrorOccured;
 
-    /**
-     * MyEventListener initialisation.
-     */
-    public MyEventListener() {
-        sqlException = null;
-        closed = false;
-        connectionErrorOccured = false;
-    }
+  public SQLException sqlException;
+  public boolean closed;
+  public boolean connectionErrorOccured;
+  public boolean statementClosed;
+  public boolean statementErrorOccured;
 
-    public void connectionClosed(ConnectionEvent event) {
-        sqlException = event.getSQLException();
-        closed = true;
-    }
+  /**
+   * MyEventListener initialisation.
+   */
+  public MyEventListener() {
+    sqlException = null;
+    closed = false;
+    connectionErrorOccured = false;
+  }
 
-    public void connectionErrorOccurred(ConnectionEvent event) {
-        sqlException = event.getSQLException();
-        connectionErrorOccured = true;
-    }
+  public void connectionClosed(ConnectionEvent event) {
+    sqlException = event.getSQLException();
+    closed = true;
+  }
 
-    public void statementClosed(StatementEvent event) {
-        statementClosed = true;
-    }
+  public void connectionErrorOccurred(ConnectionEvent event) {
+    sqlException = event.getSQLException();
+    connectionErrorOccured = true;
+  }
 
-    public void statementErrorOccurred(StatementEvent event) {
-        sqlException = event.getSQLException();
-        statementErrorOccured = true;
-    }
+  public void statementClosed(StatementEvent event) {
+    statementClosed = true;
+  }
+
+  public void statementErrorOccurred(StatementEvent event) {
+    sqlException = event.getSQLException();
+    statementErrorOccured = true;
+  }
 }

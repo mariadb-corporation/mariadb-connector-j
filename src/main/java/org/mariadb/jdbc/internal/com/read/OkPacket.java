@@ -54,50 +54,50 @@ package org.mariadb.jdbc.internal.com.read;
 
 public class OkPacket {
 
-    private final long affectedRows;
-    private final long insertId;
-    private final short serverStatus;
-    private final short warnings;
+  private final long affectedRows;
+  private final long insertId;
+  private final short serverStatus;
+  private final short warnings;
 
-    /**
-     * Read Ok stream result.
-     *
-     * @param buffer current stream's rawBytes
-     */
-    public OkPacket(Buffer buffer) {
-        buffer.skipByte(); //fieldCount
-        affectedRows = buffer.getLengthEncodedNumeric();
-        insertId = buffer.getLengthEncodedNumeric();
-        serverStatus = buffer.readShort();
-        warnings = buffer.readShort();
-    }
+  /**
+   * Read Ok stream result.
+   *
+   * @param buffer current stream's rawBytes
+   */
+  public OkPacket(Buffer buffer) {
+    buffer.skipByte(); //fieldCount
+    affectedRows = buffer.getLengthEncodedNumeric();
+    insertId = buffer.getLengthEncodedNumeric();
+    serverStatus = buffer.readShort();
+    warnings = buffer.readShort();
+  }
 
-    @Override
-    public String toString() {
-        return "affectedRows = "
-                + affectedRows
-                + "&insertId = "
-                + insertId
-                + "&serverStatus="
-                + serverStatus
-                + "&warnings="
-                + warnings;
-    }
+  @Override
+  public String toString() {
+    return "affectedRows = "
+        + affectedRows
+        + "&insertId = "
+        + insertId
+        + "&serverStatus="
+        + serverStatus
+        + "&warnings="
+        + warnings;
+  }
 
-    public long getAffectedRows() {
-        return affectedRows;
-    }
+  public long getAffectedRows() {
+    return affectedRows;
+  }
 
-    public long getInsertId() {
-        return insertId;
-    }
+  public long getInsertId() {
+    return insertId;
+  }
 
-    public short getServerStatus() {
-        return serverStatus;
-    }
+  public short getServerStatus() {
+    return serverStatus;
+  }
 
-    public short getWarnings() {
-        return warnings;
-    }
+  public short getWarnings() {
+    return warnings;
+  }
 
 }

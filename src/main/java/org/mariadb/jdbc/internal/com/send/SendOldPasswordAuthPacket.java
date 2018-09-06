@@ -52,92 +52,94 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
+import java.io.IOException;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.Utils;
 
-import java.io.IOException;
+public class SendOldPasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements
+    InterfaceAuthSwitchSendResponsePacket {
 
-public class SendOldPasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
+  public SendOldPasswordAuthPacket(String password, byte[] authData, int packSeq,
+      String passwordCharacterEncoding) {
+    super(packSeq, authData, password, passwordCharacterEncoding);
+  }
 
-    public SendOldPasswordAuthPacket(String password, byte[] authData, int packSeq, String passwordCharacterEncoding) {
-        super(packSeq, authData, password, passwordCharacterEncoding);
+  /**
+   * Send password stream.
+   *
+   * @param pos database socket
+   * @throws IOException if a connection error occur
+   */
+  public void send(PacketOutputStream pos) throws IOException {
+
+    if (password == null || password.isEmpty()) {
+      pos.writeEmptyPacket(packSeq);
+      return;
+    }
+    pos.startPacket(packSeq);
+    byte[] seed = Utils.copyWithLength(authData, 8);
+    pos.write(cryptOldFormatPassword(password, new String(seed)));
+    pos.write((byte) 0x00);
+    pos.flush();
+  }
+
+
+  private byte[] cryptOldFormatPassword(String password, String seed) {
+    byte[] result = new byte[seed.length()];
+
+    if ((password == null) || (password.length() == 0)) {
+      return new byte[0];
     }
 
-    /**
-     * Send password stream.
-     *
-     * @param pos database socket
-     * @throws IOException if a connection error occur
-     */
-    public void send(PacketOutputStream pos) throws IOException {
+    long[] seedHash = hashPassword(seed);
+    long[] passHash = hashPassword(password);
 
-        if (password == null || password.isEmpty()) {
-            pos.writeEmptyPacket(packSeq);
-            return;
-        }
-        pos.startPacket(packSeq);
-        byte[] seed = Utils.copyWithLength(authData, 8);
-        pos.write(cryptOldFormatPassword(password, new String(seed)));
-        pos.write((byte) 0x00);
-        pos.flush();
+    RandStruct randSeed = new RandStruct(seedHash[0] ^ passHash[0],
+        seedHash[1] ^ passHash[1]);
+
+    for (int i = 0; i < seed.length(); i++) {
+      result[i] = (byte) Math.floor((random(randSeed) * 31) + 64);
     }
-
-
-    private byte[] cryptOldFormatPassword(String password, String seed) {
-        byte[] result = new byte[seed.length()];
-
-        if ((password == null) || (password.length() == 0)) {
-            return new byte[0];
-        }
-
-        long[] seedHash = hashPassword(seed);
-        long[] passHash = hashPassword(password);
-
-        RandStruct randSeed = new RandStruct(seedHash[0] ^ passHash[0],
-                seedHash[1] ^ passHash[1]);
-
-        for (int i = 0; i < seed.length(); i++) {
-            result[i] = (byte) Math.floor((random(randSeed) * 31) + 64);
-        }
-        byte extra = (byte) Math.floor(random(randSeed) * 31);
-        for (int i = 0; i < seed.length(); i++) {
-            result[i] ^= extra;
-        }
-        return result;
+    byte extra = (byte) Math.floor(random(randSeed) * 31);
+    for (int i = 0; i < seed.length(); i++) {
+      result[i] ^= extra;
     }
+    return result;
+  }
 
-    private double random(RandStruct rand) {
-        rand.seed1 = (rand.seed1 * 3 + rand.seed2) % rand.maxValue;
-        rand.seed2 = (rand.seed1 + rand.seed2 + 33) % rand.maxValue;
-        return (double) rand.seed1 / rand.maxValue;
+  private double random(RandStruct rand) {
+    rand.seed1 = (rand.seed1 * 3 + rand.seed2) % rand.maxValue;
+    rand.seed2 = (rand.seed1 + rand.seed2 + 33) % rand.maxValue;
+    return (double) rand.seed1 / rand.maxValue;
+  }
+
+  private long[] hashPassword(String password) {
+    long nr = 1345345333L;
+    long nr2 = 0x12345671L;
+    long add = 7;
+
+    for (int i = 0; i < password.length(); i++) {
+      char currChar = password.charAt(i);
+      if (currChar == ' ' || currChar == '\t') {
+        continue;
+      }
+
+      nr ^= (((nr & 63) + add) * (long) currChar) + (nr << 8);
+      nr2 += (nr2 << 8) ^ nr;
+      add += (long) currChar;
     }
+    return new long[]{nr & 0x7FFFFFFF, nr2 & 0x7FFFFFFF};
+  }
 
-    private long[] hashPassword(String password) {
-        long nr = 1345345333L;
-        long nr2 = 0x12345671L;
-        long add = 7;
+  private class RandStruct {
 
-        for (int i = 0; i < password.length(); i++) {
-            char currChar = password.charAt(i);
-            if (currChar == ' ' || currChar == '\t') {
-                continue;
-            }
+    private final long maxValue = 0x3FFFFFFFL;
+    private long seed1;
+    private long seed2;
 
-            nr ^= (((nr & 63) + add) * (long) currChar) + (nr << 8);
-            nr2 += (nr2 << 8) ^ nr;
-            add += (long) currChar;
-        }
-        return new long[]{nr & 0x7FFFFFFF, nr2 & 0x7FFFFFFF};
+    public RandStruct(long seed1, long seed2) {
+      this.seed1 = seed1 % maxValue;
+      this.seed2 = seed2 % maxValue;
     }
-
-    private class RandStruct {
-        private final long maxValue = 0x3FFFFFFFL;
-        private long seed1;
-        private long seed2;
-
-        public RandStruct(long seed1, long seed2) {
-            this.seed1 = seed1 % maxValue;
-            this.seed2 = seed2 % maxValue;
-        }
-    }
+  }
 }

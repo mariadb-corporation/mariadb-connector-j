@@ -52,121 +52,120 @@
 
 package org.mariadb.jdbc.internal.com.read.dao;
 
+import java.sql.ResultSet;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 
-import java.sql.ResultSet;
-
 public class CmdInformationSingle implements CmdInformation {
 
-    private final long insertId;
-    private long updateCount;
-    private final int autoIncrement;
+  private final long insertId;
+  private final int autoIncrement;
+  private long updateCount;
 
-    /**
-     * Object containing update / insert ids, optimized for only one result.
-     *
-     * @param insertId      auto generated id.
-     * @param updateCount   update count
-     * @param autoIncrement connection auto increment value.
-     */
-    public CmdInformationSingle(long insertId, long updateCount, int autoIncrement) {
-        this.insertId = insertId;
-        this.updateCount = updateCount;
-        this.autoIncrement = autoIncrement;
+  /**
+   * Object containing update / insert ids, optimized for only one result.
+   *
+   * @param insertId      auto generated id.
+   * @param updateCount   update count
+   * @param autoIncrement connection auto increment value.
+   */
+  public CmdInformationSingle(long insertId, long updateCount, int autoIncrement) {
+    this.insertId = insertId;
+    this.updateCount = updateCount;
+    this.autoIncrement = autoIncrement;
+  }
+
+  @Override
+  public int[] getUpdateCounts() {
+    return new int[]{(int) updateCount};
+  }
+
+  @Override
+  public int[] getServerUpdateCounts() {
+    return new int[]{(int) updateCount};
+  }
+
+  @Override
+  public long[] getLargeUpdateCounts() {
+    return new long[]{updateCount};
+  }
+
+
+  @Override
+  public int getUpdateCount() {
+    return (int) updateCount;
+  }
+
+  @Override
+  public long getLargeUpdateCount() {
+    return updateCount;
+  }
+
+  @Override
+  public void addErrorStat() {
+    //not expected
+  }
+
+  @Override
+  public void reset() {
+    //not expected
+  }
+
+  @Override
+  public void addResultSetStat() {
+    //not expected
+  }
+
+
+  /**
+   * Get generated Keys.
+   *
+   * @param protocol current protocol
+   * @return a resultSet containing the single insert ids.
+   */
+  public ResultSet getGeneratedKeys(Protocol protocol) {
+    if (insertId == 0) {
+      return SelectResultSet.createEmptyResultSet();
     }
 
-    @Override
-    public int[] getUpdateCounts() {
-        return new int[]{(int) updateCount};
+    if (updateCount > 1) {
+      long[] insertIds = new long[(int) updateCount];
+      for (int i = 0; i < updateCount; i++) {
+        insertIds[i] = insertId + i * autoIncrement;
+      }
+      return SelectResultSet.createGeneratedData(insertIds, protocol, true);
     }
 
-    @Override
-    public int[] getServerUpdateCounts() {
-        return new int[]{(int) updateCount};
-    }
+    return SelectResultSet.createGeneratedData(new long[]{insertId}, protocol, true);
+  }
 
-    @Override
-    public long[] getLargeUpdateCounts() {
-        return new long[]{updateCount};
-    }
+  @Override
+  public ResultSet getBatchGeneratedKeys(Protocol protocol) {
+    return getGeneratedKeys(protocol);
+  }
 
+  public int getCurrentStatNumber() {
+    return 1;
+  }
 
-    @Override
-    public int getUpdateCount() {
-        return (int) updateCount;
-    }
+  @Override
+  public boolean moreResults() {
+    updateCount = RESULT_SET_VALUE;
+    return false;
+  }
 
-    @Override
-    public long getLargeUpdateCount() {
-        return updateCount;
-    }
+  public boolean isCurrentUpdateCount() {
+    return updateCount != RESULT_SET_VALUE;
+  }
 
-    @Override
-    public void addErrorStat() {
-        //not expected
-    }
-
-    @Override
-    public void reset() {
-        //not expected
-    }
-
-    @Override
-    public void addResultSetStat() {
-        //not expected
-    }
+  @Override
+  public void addSuccessStat(long updateCount, long insertId) {
+    //cannot occur
+  }
 
 
-    /**
-     * Get generated Keys.
-     *
-     * @param protocol current protocol
-     * @return a resultSet containing the single insert ids.
-     */
-    public ResultSet getGeneratedKeys(Protocol protocol) {
-        if (insertId == 0) {
-            return SelectResultSet.createEmptyResultSet();
-        }
-
-        if (updateCount > 1) {
-            long[] insertIds = new long[(int) updateCount];
-            for (int i = 0; i < updateCount; i++) {
-                insertIds[i] = insertId + i * autoIncrement;
-            }
-            return SelectResultSet.createGeneratedData(insertIds, protocol, true);
-        }
-
-        return SelectResultSet.createGeneratedData(new long[]{insertId}, protocol, true);
-    }
-
-    @Override
-    public ResultSet getBatchGeneratedKeys(Protocol protocol) {
-        return getGeneratedKeys(protocol);
-    }
-
-    public int getCurrentStatNumber() {
-        return 1;
-    }
-
-    @Override
-    public boolean moreResults() {
-        updateCount = RESULT_SET_VALUE;
-        return false;
-    }
-
-    public boolean isCurrentUpdateCount() {
-        return updateCount != RESULT_SET_VALUE;
-    }
-
-    @Override
-    public void addSuccessStat(long updateCount, long insertId) {
-        //cannot occur
-    }
-
-
-    public void setRewrite(boolean rewritten) {
-        //no need
-    }
+  public void setRewrite(boolean rewritten) {
+    //no need
+  }
 }
 
