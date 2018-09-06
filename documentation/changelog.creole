@@ -1,4 +1,5 @@
 = Changelog
+* [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#230|2.3.0]] Released on 06 Sep. 2018
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#226|2.2.6]] Released on 19 Jul 2018
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#225|2.2.5]] Released on 29 may 2018
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#224|2.2.4]] Released on 04 may 2018
@@ -34,6 +35,39 @@
 * [[https://github.com/MariaDB/mariadb-connector-j/documentation/changelog.creole#140|1.4.0]] Released on 31 march 2016
 
 ---
+
+== 2.3.0
+
+==== [CONJ-398] Improve deadlock debugging capabilities
+
+MariaDB has now 2 new options to permit identifying deadlock :
+New options
+|=includeInnodbStatusInDeadlockExceptions|add "SHOW ENGINE INNODB STATUS" result to exception trace when having a deadlock exception.\\//Default: false//
+|=includeThreadDumpInDeadlockExceptions|add thread dump to exception trace when having a deadlock exception.\\//Default: false//
+
+==== [CONJ-639] the option "enabledSslProtocolSuites" now include TLSv1.2 by default
+previous default value was "TLSv1, TLSv1.1", disabling TLSv1.2 by default, due to a corrected issue (MDEV-12190) with servers using YaSSL - not openSSL. Server error was .
+Now, the default value is "TLSv1, TLSv1.1, TLSv1.2". So TLSv1.2 can be use directly.
+Connecting MySQL community server use YaSSL without correction, and connection might result in SSLException: "Unsupported record version Unknown-0.0".
+
+
+==== [CONJ-642] disable the option "useBulkStmts" by default
+Using useBulkStmts permit faster batch, but cause one major issue : Batch return -1 = SUCCESS_NO_INFO
+
+Different option use this information for optimistic update, and cannot confirm if update succeed or not.
+This option still makes sense, since for big batch is way more faster, but will not be activated by default.
+
+
+=== Minor change:
+* [CONJ-628] optimization to read metadata faster
+* [CONJ-637] java.sql.Driver class implement DriverPropertyInfo[] getPropertyInfo, permitting listing options on querying tools
+* [CONJ-639] enabledSslProtocolSuites does not include TLSv1.2 by default
+* [CONJ-641] update maven test dependencies for java 10 compatibility
+* [CONJ-643] PreparedStatement::getParameterMetaData always returns VARSTRING as type resulting in downstream libraries interpreting values wrongly
+
+=== Bug correction:
+* [CONJ-616] correction on possible NPE on getConnection when using failover configuration and master is down, not throwing a proper exception
+* [CONJ-636] Error in batch might throw a NPE and not the proper Exception
 
 
 == 2.2.6

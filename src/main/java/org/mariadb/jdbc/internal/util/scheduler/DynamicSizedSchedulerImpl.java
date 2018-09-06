@@ -54,24 +54,26 @@ package org.mariadb.jdbc.internal.util.scheduler;
 
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-public class DynamicSizedSchedulerImpl extends ScheduledThreadPoolExecutor implements DynamicSizedSchedulerInterface {
-    /**
-     * Initialize a scheduler with dynamic pool size.
-     *
-     * @param corePoolSize    initial Core pool size
-     * @param poolName        name of pool to identify threads
-     * @param maximumPoolSize maximum pool size
-     */
-    public DynamicSizedSchedulerImpl(int corePoolSize, String poolName, int maximumPoolSize) {
-        super(corePoolSize, new MariaDbThreadFactory(poolName));
-        setMaximumPoolSize(maximumPoolSize);
-    }
+public class DynamicSizedSchedulerImpl extends ScheduledThreadPoolExecutor implements
+    DynamicSizedSchedulerInterface {
 
-    @Override
-    public void setPoolSize(int newSize) {
-        synchronized (this) {
-            super.setCorePoolSize(newSize);
-        }
+  /**
+   * Initialize a scheduler with dynamic pool size.
+   *
+   * @param corePoolSize    initial Core pool size
+   * @param poolName        name of pool to identify threads
+   * @param maximumPoolSize maximum pool size
+   */
+  public DynamicSizedSchedulerImpl(int corePoolSize, String poolName, int maximumPoolSize) {
+    super(corePoolSize, new MariaDbThreadFactory(poolName));
+    setMaximumPoolSize(maximumPoolSize);
+  }
+
+  @Override
+  public void setPoolSize(int newSize) {
+    synchronized (this) {
+      super.setCorePoolSize(newSize);
     }
+  }
 
 }

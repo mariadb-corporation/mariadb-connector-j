@@ -52,32 +52,32 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
+import java.sql.SQLException;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 
-import java.sql.SQLException;
-
 public class AsyncMultiReadResult {
-    private PrepareResult prepareResult;
-    private SQLException exception;
 
-    public AsyncMultiReadResult(PrepareResult prepareResult) {
-        this.prepareResult = prepareResult;
-        exception = null;
-    }
+  private PrepareResult prepareResult;
+  private SQLException exception;
 
-    public PrepareResult getPrepareResult() {
-        return prepareResult;
-    }
+  public AsyncMultiReadResult(PrepareResult prepareResult) {
+    this.prepareResult = prepareResult;
+    exception = null;
+  }
 
-    public void setPrepareResult(PrepareResult prepareResult) {
-        this.prepareResult = prepareResult;
-    }
+  public PrepareResult getPrepareResult() {
+    return prepareResult;
+  }
 
-    public SQLException getException() {
-        return exception;
-    }
+  public void setPrepareResult(PrepareResult prepareResult) {
+    this.prepareResult = prepareResult;
+  }
 
-    public void setException(SQLException exception) {
-        this.exception = exception;
-    }
+  public SQLException getException() {
+    return exception;
+  }
+
+  public void setException(SQLException exception) {
+    this.exception = exception;
+  }
 }

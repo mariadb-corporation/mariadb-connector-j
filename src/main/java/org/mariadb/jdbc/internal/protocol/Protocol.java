@@ -52,6 +52,17 @@
 
 package org.mariadb.jdbc.internal.protocol;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.Socket;
+import java.net.SocketException;
+import java.nio.charset.Charset;
+import java.sql.SQLException;
+import java.sql.SQLTimeoutException;
+import java.util.List;
+import java.util.TimeZone;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.locks.ReentrantLock;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
@@ -66,216 +77,212 @@ import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.Socket;
-import java.net.SocketException;
-import java.nio.charset.Charset;
-import java.sql.SQLException;
-import java.sql.SQLTimeoutException;
-import java.util.List;
-import java.util.TimeZone;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.locks.ReentrantLock;
-
 public interface Protocol {
-    ServerPrepareResult prepare(String sql, boolean executeOnMaster) throws SQLException;
 
-    boolean getAutocommit() throws SQLException;
+  ServerPrepareResult prepare(String sql, boolean executeOnMaster) throws SQLException;
 
-    boolean noBackslashEscapes();
+  boolean getAutocommit() throws SQLException;
 
-    void connect() throws SQLException;
+  boolean noBackslashEscapes();
 
-    UrlParser getUrlParser();
+  void connect() throws SQLException;
 
-    boolean inTransaction();
+  UrlParser getUrlParser();
 
-    FailoverProxy getProxy();
+  boolean inTransaction();
 
-    void setProxy(FailoverProxy proxy);
+  FailoverProxy getProxy();
 
-    Options getOptions();
+  void setProxy(FailoverProxy proxy);
 
-    boolean hasMoreResults();
+  Options getOptions();
 
-    void close();
+  boolean hasMoreResults();
 
-    void abort();
+  void close();
 
-    void reset() throws SQLException;
+  void abort();
 
-    void closeExplicit();
+  void reset() throws SQLException;
 
-    boolean isClosed();
+  void closeExplicit();
 
-    void setCatalog(String database) throws SQLException;
+  boolean isClosed();
 
-    void resetDatabase() throws SQLException;
+  void resetDatabase() throws SQLException;
 
-    String getCatalog() throws SQLException;
+  String getCatalog() throws SQLException;
 
-    String getServerVersion();
+  void setCatalog(String database) throws SQLException;
 
-    boolean isConnected();
+  String getServerVersion();
 
-    boolean getReadonly() throws SQLException ;
+  boolean isConnected();
 
-    @SuppressWarnings("RedundantThrows")
-    void setReadonly(boolean readOnly) throws SQLException;
+  boolean getReadonly() throws SQLException;
 
-    boolean isMasterConnection();
+  @SuppressWarnings("RedundantThrows")
+  void setReadonly(boolean readOnly) throws SQLException;
 
-    boolean mustBeMasterConnection();
+  boolean isMasterConnection();
 
-    HostAddress getHostAddress();
+  boolean mustBeMasterConnection();
 
-    void setHostAddress(HostAddress hostAddress);
+  HostAddress getHostAddress();
 
-    String getHost();
+  void setHostAddress(HostAddress hostAddress);
 
-    int getPort();
+  String getHost();
 
-    void rollback() throws SQLException;
+  int getPort();
 
-    String getDatabase();
+  void rollback() throws SQLException;
 
-    String getUsername();
+  String getDatabase();
 
-    boolean ping() throws SQLException;
+  String getUsername();
 
-    boolean isValid(int timeout) throws SQLException;
+  boolean ping() throws SQLException;
 
-    void executeQuery(String sql) throws SQLException;
+  boolean isValid(int timeout) throws SQLException;
 
-    void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql) throws SQLException;
+  void executeQuery(String sql) throws SQLException;
 
-    void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql, Charset charset) throws SQLException;
+  void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql)
+      throws SQLException;
 
-    void executeQuery(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
-                      ParameterHolder[] parameters) throws SQLException;
+  void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql, Charset charset)
+      throws SQLException;
 
-    void executeQuery(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult clientPrepareResult,
-                      ParameterHolder[] parameters, int timeout) throws SQLException;
+  void executeQuery(boolean mustExecuteOnMaster, Results results,
+      final ClientPrepareResult clientPrepareResult,
+      ParameterHolder[] parameters) throws SQLException;
 
-    boolean executeBatchClient(boolean mustExecuteOnMaster, Results results, final ClientPrepareResult prepareResult,
-                               final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException;
+  void executeQuery(boolean mustExecuteOnMaster, Results results,
+      final ClientPrepareResult clientPrepareResult,
+      ParameterHolder[] parameters, int timeout) throws SQLException;
 
-    void executeBatchStmt(boolean mustExecuteOnMaster, Results results, final List<String> queries) throws SQLException;
+  boolean executeBatchClient(boolean mustExecuteOnMaster, Results results,
+      final ClientPrepareResult prepareResult,
+      final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException;
 
-    void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                              Results results, ParameterHolder[] parameters) throws SQLException;
+  void executeBatchStmt(boolean mustExecuteOnMaster, Results results, final List<String> queries)
+      throws SQLException;
 
-    boolean executeBatchServer(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-                               Results results, String sql, List<ParameterHolder[]> parameterList,
-                               boolean hasLongData) throws SQLException;
+  void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
+      Results results, ParameterHolder[] parameters) throws SQLException;
 
-    void getResult(Results results) throws SQLException;
+  boolean executeBatchServer(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
+      Results results, String sql, List<ParameterHolder[]> parameterList,
+      boolean hasLongData) throws SQLException;
 
-    void cancelCurrentQuery() throws SQLException;
+  void getResult(Results results) throws SQLException;
 
-    void skip() throws SQLException;
+  void cancelCurrentQuery() throws SQLException;
 
-    boolean checkIfMaster() throws SQLException;
+  void skip() throws SQLException;
 
-    boolean hasWarnings();
+  boolean checkIfMaster() throws SQLException;
 
-    long getMaxRows();
+  boolean hasWarnings();
 
-    void setMaxRows(long max) throws SQLException;
+  long getMaxRows();
 
-    int getMajorServerVersion();
+  void setMaxRows(long max) throws SQLException;
 
-    int getMinorServerVersion();
+  int getMajorServerVersion();
 
-    boolean versionGreaterOrEqual(int major, int minor, int patch);
+  int getMinorServerVersion();
 
-    void setLocalInfileInputStream(InputStream inputStream);
+  boolean versionGreaterOrEqual(int major, int minor, int patch);
 
-    int getTimeout() throws SocketException;
+  void setLocalInfileInputStream(InputStream inputStream);
 
-    void setTimeout(int timeout) throws SocketException;
+  int getTimeout() throws SocketException;
 
-    boolean getPinGlobalTxToPhysicalConnection();
+  void setTimeout(int timeout) throws SocketException;
 
-    long getServerThreadId();
+  boolean getPinGlobalTxToPhysicalConnection();
 
-    Socket getSocket();
+  long getServerThreadId();
 
-    void setTransactionIsolation(int level) throws SQLException;
+  Socket getSocket();
 
-    int getTransactionIsolationLevel();
+  void setTransactionIsolation(int level) throws SQLException;
 
-    boolean isExplicitClosed();
+  int getTransactionIsolationLevel();
 
-    void connectWithoutProxy() throws SQLException;
+  boolean isExplicitClosed();
 
-    boolean shouldReconnectWithoutProxy();
+  void connectWithoutProxy() throws SQLException;
 
-    void setHostFailedWithoutProxy();
+  boolean shouldReconnectWithoutProxy();
 
-    void releasePrepareStatement(ServerPrepareResult serverPrepareResult) throws SQLException;
+  void setHostFailedWithoutProxy();
 
-    boolean forceReleasePrepareStatement(int statementId) throws SQLException;
+  void releasePrepareStatement(ServerPrepareResult serverPrepareResult) throws SQLException;
 
-    void forceReleaseWaitingPrepareStatement() throws SQLException;
+  boolean forceReleasePrepareStatement(int statementId) throws SQLException;
 
-    ServerPrepareStatementCache prepareStatementCache();
+  void forceReleaseWaitingPrepareStatement() throws SQLException;
 
-    TimeZone getTimeZone();
+  ServerPrepareStatementCache prepareStatementCache();
 
-    void prolog(long maxRows, boolean hasProxy, MariaDbConnection connection,
-                MariaDbStatement statement) throws SQLException;
+  TimeZone getTimeZone();
 
-    void prologProxy(ServerPrepareResult serverPrepareResult, long maxRows, boolean hasProxy,
-                     MariaDbConnection connection, MariaDbStatement statement) throws SQLException;
+  void prolog(long maxRows, boolean hasProxy, MariaDbConnection connection,
+      MariaDbStatement statement) throws SQLException;
 
-    Results getActiveStreamingResult();
+  void prologProxy(ServerPrepareResult serverPrepareResult, long maxRows, boolean hasProxy,
+      MariaDbConnection connection, MariaDbStatement statement) throws SQLException;
 
-    void setActiveStreamingResult(Results mariaSelectResultSet);
+  Results getActiveStreamingResult();
 
-    ReentrantLock getLock();
+  void setActiveStreamingResult(Results mariaSelectResultSet);
 
-    void setServerStatus(short serverStatus);
+  ReentrantLock getLock();
 
-    void removeHasMoreResults();
+  void setServerStatus(short serverStatus);
 
-    void setHasWarnings(boolean hasWarnings);
+  void removeHasMoreResults();
 
-    ServerPrepareResult addPrepareInCache(String key, ServerPrepareResult serverPrepareResult);
+  void setHasWarnings(boolean hasWarnings);
 
-    void readEofPacket() throws SQLException, IOException;
+  ServerPrepareResult addPrepareInCache(String key, ServerPrepareResult serverPrepareResult);
 
-    void skipEofPacket() throws SQLException, IOException;
+  void readEofPacket() throws SQLException, IOException;
 
-    void changeSocketTcpNoDelay(boolean setTcpNoDelay);
+  void skipEofPacket() throws SQLException, IOException;
 
-    void changeSocketSoTimeout(int setSoTimeout) throws SocketException;
+  void changeSocketTcpNoDelay(boolean setTcpNoDelay);
 
-    void removeActiveStreamingResult();
+  void changeSocketSoTimeout(int setSoTimeout) throws SocketException;
 
-    void resetStateAfterFailover(long maxRows, int transactionIsolationLevel, String database, boolean autocommit)
-            throws SQLException;
+  void removeActiveStreamingResult();
 
-    void setActiveFutureTask(FutureTask activeFutureTask);
+  void resetStateAfterFailover(long maxRows, int transactionIsolationLevel, String database,
+      boolean autocommit)
+      throws SQLException;
 
-    boolean isServerMariaDb() throws SQLException;
+  void setActiveFutureTask(FutureTask activeFutureTask);
 
-    SQLException handleIoException(IOException initialException);
+  boolean isServerMariaDb() throws SQLException;
 
-    PacketInputStream getReader();
+  SQLException handleIoException(IOException initialException);
 
-    PacketOutputStream getWriter();
+  PacketInputStream getReader();
 
-    boolean isEofDeprecated();
+  PacketOutputStream getWriter();
 
-    int getAutoIncrementIncrement() throws SQLException;
+  boolean isEofDeprecated();
 
-    boolean sessionStateAware();
+  int getAutoIncrementIncrement() throws SQLException;
 
-    String getTraces();
+  boolean sessionStateAware();
 
-    boolean isInterrupted();
+  String getTraces();
 
-    void stopIfInterrupted() throws SQLTimeoutException;
+  boolean isInterrupted();
+
+  void stopIfInterrupted() throws SQLTimeoutException;
 }

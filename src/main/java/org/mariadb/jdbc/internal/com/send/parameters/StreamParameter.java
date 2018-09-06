@@ -52,91 +52,91 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
+import java.io.IOException;
+import java.io.InputStream;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-import java.io.IOException;
-import java.io.InputStream;
-
 public class StreamParameter implements Cloneable, ParameterHolder {
-    private final InputStream is;
-    private final long length;
-    private final boolean noBackslashEscapes;
 
-    /**
-     * Constructor.
-     *
-     * @param is                 stream to write
-     * @param length             max length to write (if null the whole stream will be send)
-     * @param noBackslashEscapes must backslash be escape
-     */
-    public StreamParameter(InputStream is, long length, boolean noBackslashEscapes) {
-        this.is = is;
-        this.length = length;
-        this.noBackslashEscapes = noBackslashEscapes;
+  private final InputStream is;
+  private final long length;
+  private final boolean noBackslashEscapes;
+
+  /**
+   * Constructor.
+   *
+   * @param is                 stream to write
+   * @param length             max length to write (if null the whole stream will be send)
+   * @param noBackslashEscapes must backslash be escape
+   */
+  public StreamParameter(InputStream is, long length, boolean noBackslashEscapes) {
+    this.is = is;
+    this.length = length;
+    this.noBackslashEscapes = noBackslashEscapes;
+  }
+
+  public StreamParameter(InputStream is, boolean noBackSlashEscapes) {
+    this(is, Long.MAX_VALUE, noBackSlashEscapes);
+  }
+
+  /**
+   * Write stream in text format.
+   *
+   * @param pos database outputStream
+   * @throws IOException if any error occur when reader stream
+   */
+  public void writeTo(final PacketOutputStream pos) throws IOException {
+    pos.write(BINARY_INTRODUCER);
+    if (length == Long.MAX_VALUE) {
+      pos.write(is, true, noBackslashEscapes);
+    } else {
+      pos.write(is, length, true, noBackslashEscapes);
     }
+    pos.write(QUOTE);
 
-    public StreamParameter(InputStream is, boolean noBackSlashEscapes) {
-        this(is, Long.MAX_VALUE, noBackSlashEscapes);
+  }
+
+  /**
+   * Return approximated data calculated length.
+   *
+   * @return approximated data length.
+   * @throws IOException if error reading stream
+   */
+  public long getApproximateTextProtocolLength() throws IOException {
+    return -1;
+  }
+
+  /**
+   * Write data to socket in binary format.
+   *
+   * @param pos socket output stream
+   * @throws IOException if socket error occur
+   */
+  public void writeBinary(final PacketOutputStream pos) throws IOException {
+    if (length == Long.MAX_VALUE) {
+      pos.write(is, false, noBackslashEscapes);
+    } else {
+      pos.write(is, length, false, noBackslashEscapes);
     }
+  }
 
-    /**
-     * Write stream in text format.
-     *
-     * @param pos database outputStream
-     * @throws IOException if any error occur when reader stream
-     */
-    public void writeTo(final PacketOutputStream pos) throws IOException {
-        pos.write(BINARY_INTRODUCER);
-        if (length == Long.MAX_VALUE) {
-            pos.write(is, true, noBackslashEscapes);
-        } else {
-            pos.write(is, length, true, noBackslashEscapes);
-        }
-        pos.write(QUOTE);
+  @Override
+  public String toString() {
+    return "<Stream>";
+  }
 
-    }
-
-    /**
-     * Return approximated data calculated length.
-     *
-     * @return approximated data length.
-     * @throws IOException if error reading stream
-     */
-    public long getApproximateTextProtocolLength() throws IOException {
-        return -1;
-    }
-
-    /**
-     * Write data to socket in binary format.
-     *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
-     */
-    public void writeBinary(final PacketOutputStream pos) throws IOException {
-        if (length == Long.MAX_VALUE) {
-            pos.write(is, false, noBackslashEscapes);
-        } else {
-            pos.write(is, length, false, noBackslashEscapes);
-        }
-    }
-
-    @Override
-    public String toString() {
-        return "<Stream>";
-    }
-
-    public ColumnType getColumnType() {
-        return ColumnType.BLOB;
-    }
+  public ColumnType getColumnType() {
+    return ColumnType.BLOB;
+  }
 
 
-    public boolean isNullData() {
-        return false;
-    }
+  public boolean isNullData() {
+    return false;
+  }
 
-    public boolean isLongData() {
-        return true;
-    }
+  public boolean isLongData() {
+    return true;
+  }
 
 }

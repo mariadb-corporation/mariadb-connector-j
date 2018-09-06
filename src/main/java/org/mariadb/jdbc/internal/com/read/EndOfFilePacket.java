@@ -55,33 +55,33 @@ package org.mariadb.jdbc.internal.com.read;
 
 public class EndOfFilePacket {
 
-    private final short warningCount;
-    private final short statusFlags;
+  private final short warningCount;
+  private final short statusFlags;
 
-    /**
-     * Read EOF stream.
-     *
-     * @param buffer stream rawBytes
-     */
-    public EndOfFilePacket(Buffer buffer) {
-        buffer.skipByte();
-        warningCount = buffer.readShort();
-        statusFlags = buffer.readShort();
-    }
+  /**
+   * Read EOF stream.
+   *
+   * @param buffer stream rawBytes
+   */
+  public EndOfFilePacket(Buffer buffer) {
+    buffer.skipByte();
+    warningCount = buffer.readShort();
+    statusFlags = buffer.readShort();
+  }
 
-    public short getWarningCount() {
-        return warningCount;
-    }
+  public short getWarningCount() {
+    return warningCount;
+  }
 
-    public short getStatusFlags() {
-        return statusFlags;
-    }
+  public short getStatusFlags() {
+    return statusFlags;
+  }
 
-    @Override
-    public String toString() {
-        return "EndOfFilePacket{"
-                + ", warningCount=" + warningCount
-                + ", statusFlags=" + statusFlags
-                + "}";
-    }
+  @Override
+  public String toString() {
+    return "EndOfFilePacket{"
+        + ", warningCount=" + warningCount
+        + ", statusFlags=" + statusFlags
+        + "}";
+  }
 }

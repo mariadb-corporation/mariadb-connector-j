@@ -137,7 +137,7 @@ See [[use-mariadb-connector-j-driver.creole#using-pooling|using pooling]] for mo
 |=keyPassword|Password for the private key in client certificate keyStore. (only needed if private key password differ from keyStore password).\\//Since 1.5.3//|
 |=trustStore|File path of the trustStore file (similar to java System property "javax.net.ssl.trustStore"). (legacy alias trustCertificateKeyStoreUrl)\\Use the specified file for trusted root certificates.\\When set, overrides serverSslCert.\\//Since 1.3.4//|
 |=trustStorePassword|Password for the trusted root certificate file (similar to java System property "javax.net.ssl.trustStorePassword").\\(legacy alias trustCertificateKeyStorePassword).\\//Since 1.3.4//|
-|=enabledSslProtocolSuites|Force TLS/SSL protocol to a specific set of TLS versions (comma separated list). \\Example : "TLSv1, TLSv1.1, TLSv1.2"\\//Default: TLSv1, TLSv1.1. Since 1.5.0//|
+|=enabledSslProtocolSuites|Force TLS/SSL protocol to a specific set of TLS versions (comma separated list). \\Example : "TLSv1, TLSv1.1, TLSv1.2"\\//Default: TLSv1, TLSv1.1" before 2.3.0, "TLSv1, TLSv1.1, TLSv1.2" since v2.3.0". Since 1.5.0//|
 |=enabledSslCipherSuites|Force TLS/SSL cipher (comma separated list).\\ Example : "TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_DHE_DSS_WITH_AES_256_GCM_SHA384"\\//Default: use JRE ciphers. Since 1.5.0//|
 
 \\
@@ -185,6 +185,8 @@ See [[use-mariadb-connector-j-driver.creole#using-pooling|using pooling]] for mo
 |=autocommit|Set default autocommit value.\\//Default: true. Since 2.2.0//
 |=galeraAllowedState|Usually, Connection.isValid just send an empty packet to server, and server send a small response to ensure connectivity. When this option is set, connector will ensure Galera server state "wsrep_local_state" correspond to allowed values (separated by comma). example "4,5", recommended is "4". see [galera state](http://galeracluster.com/documentation-webpages/nodestates.html#node-state-changes) to know more..\\//Default: empty. Since 2.2.5//
 |=useAffectedRows|default correspond to the JDBC standard, reporting real affected rows. if enable, will report "affected" rows. example : if enable, an update command that doesn't change a row value will still be "affected", then report.\\//Default: false. Since 2.2.6//
+|=includeInnodbStatusInDeadlockExceptions|add "SHOW ENGINE INNODB STATUS" result to exception trace when having a deadlock exception\\//Default: false. Since 2.3.0//
+|=includeThreadDumpInDeadlockExceptions|add thread dump to exception trace when having a deadlock exception\\//Default: false. Since 2.3.0//
 
 \\\\
 == Failover/High availability URL parameters

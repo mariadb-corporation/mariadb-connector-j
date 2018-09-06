@@ -52,6 +52,14 @@
 
 package org.mariadb.jdbc.internal.util;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -60,90 +68,89 @@ import org.mariadb.jdbc.internal.util.scheduler.DynamicSizedSchedulerInterface;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder.SchedulerProvider;
 
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.*;
-
 public class SchedulerServiceProviderHolderTest {
-    @After
-    @Before
-    public void providerReset() {
-        SchedulerServiceProviderHolder.setSchedulerProvider(null);
-    }
 
-    @Test
-    public void getDefaultProviderTest() {
-        assertTrue(SchedulerServiceProviderHolder.DEFAULT_PROVIDER == SchedulerServiceProviderHolder.getSchedulerProvider());
-    }
+  @After
+  @Before
+  public void providerReset() {
+    SchedulerServiceProviderHolder.setSchedulerProvider(null);
+  }
 
-    @Test
-    public void defaultProviderGetSchedulerTest() {
-        testRunnable(SchedulerServiceProviderHolder.getScheduler(1, "testScheduler", 8));
-        testRunnable(SchedulerServiceProviderHolder.getFixedSizeScheduler(1, "testFixedScheduler"));
-    }
+  @Test
+  public void getDefaultProviderTest() {
+    assertTrue(SchedulerServiceProviderHolder.DEFAULT_PROVIDER == SchedulerServiceProviderHolder
+        .getSchedulerProvider());
+  }
 
-    private void testRunnable(ScheduledExecutorService scheduler) {
+  @Test
+  public void defaultProviderGetSchedulerTest() {
+    testRunnable(SchedulerServiceProviderHolder.getScheduler(1, "testScheduler", 8));
+    testRunnable(SchedulerServiceProviderHolder.getFixedSizeScheduler(1, "testFixedScheduler"));
+  }
+
+  private void testRunnable(ScheduledExecutorService scheduler) {
+    try {
+      assertNotNull(scheduler);
+      // verify scheduler works
+      scheduler.execute(() -> {
         try {
-            assertNotNull(scheduler);
-            // verify scheduler works
-            scheduler.execute(() -> {
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException ie) {
-                    //eat
-                }
-            });
-            scheduler.shutdown();
-            Assert.assertTrue(scheduler.awaitTermination(1000, TimeUnit.MILLISECONDS));
+          Thread.sleep(10);
         } catch (InterruptedException ie) {
-            fail();
+          //eat
         }
+      });
+      scheduler.shutdown();
+      Assert.assertTrue(scheduler.awaitTermination(1000, TimeUnit.MILLISECONDS));
+    } catch (InterruptedException ie) {
+      fail();
     }
+  }
 
-    @Test
-    public void defaultProviderSchedulerShutdownTest() {
-        testExecuteAfterShutdown(SchedulerServiceProviderHolder.getScheduler(1, "testScheduler", 8));
-        testExecuteAfterShutdown(SchedulerServiceProviderHolder.getFixedSizeScheduler(1, "testFixedScheduler"));
+  @Test
+  public void defaultProviderSchedulerShutdownTest() {
+    testExecuteAfterShutdown(SchedulerServiceProviderHolder.getScheduler(1, "testScheduler", 8));
+    testExecuteAfterShutdown(
+        SchedulerServiceProviderHolder.getFixedSizeScheduler(1, "testFixedScheduler"));
+  }
+
+  private void testExecuteAfterShutdown(ScheduledExecutorService scheduler) {
+    scheduler.shutdown();
+    try {
+      scheduler.execute(() -> {
+      });
+      fail("Exception should have thrown");
+    } catch (RejectedExecutionException expected) {
+      // ignore
     }
+  }
 
-    private void testExecuteAfterShutdown(ScheduledExecutorService scheduler) {
-        scheduler.shutdown();
-        try {
-            scheduler.execute( () -> { } );
-            fail("Exception should have thrown");
-        } catch (RejectedExecutionException expected) {
-            // ignore
-        }
-    }
+  @Test
+  public void setAndGetProviderTest() {
+    SchedulerProvider emptyProvider = new SchedulerProvider() {
+      @Override
+      public DynamicSizedSchedulerInterface getScheduler(int minimumThreads, String poolName,
+          int maximumPoolSize) {
+        throw new UnsupportedOperationException();
+      }
 
-    @Test
-    public void setAndGetProviderTest() {
-        SchedulerProvider emptyProvider = new SchedulerProvider() {
-            @Override
-            public DynamicSizedSchedulerInterface getScheduler(int minimumThreads, String poolName, int maximumPoolSize) {
-                throw new UnsupportedOperationException();
-            }
+      @Override
+      public ScheduledThreadPoolExecutor getFixedSizeScheduler(int minimumThreads,
+          String poolName) {
+        throw new UnsupportedOperationException();
+      }
 
-            @Override
-            public ScheduledThreadPoolExecutor getFixedSizeScheduler(int minimumThreads, String poolName) {
-                throw new UnsupportedOperationException();
-            }
+      @Override
+      public ScheduledThreadPoolExecutor getTimeoutScheduler() {
+        throw new UnsupportedOperationException();
+      }
 
-            @Override
-            public ScheduledThreadPoolExecutor getTimeoutScheduler() {
-                throw new UnsupportedOperationException();
-            }
+      @Override
+      public ScheduledThreadPoolExecutor getBulkScheduler() {
+        throw new UnsupportedOperationException();
+      }
+    };
 
-            @Override
-            public ScheduledThreadPoolExecutor getBulkScheduler() {
-                throw new UnsupportedOperationException();
-            }
-        };
-
-        SchedulerServiceProviderHolder.setSchedulerProvider(emptyProvider);
-        assertTrue(emptyProvider == SchedulerServiceProviderHolder.getSchedulerProvider());
-    }
+    SchedulerServiceProviderHolder.setSchedulerProvider(emptyProvider);
+    assertTrue(emptyProvider == SchedulerServiceProviderHolder.getSchedulerProvider());
+  }
 }

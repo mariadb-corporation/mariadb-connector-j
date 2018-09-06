@@ -52,36 +52,37 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
+import java.io.IOException;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-import java.io.IOException;
+public class SendClearPasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements
+    InterfaceAuthSwitchSendResponsePacket {
 
-public class SendClearPasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
+  public SendClearPasswordAuthPacket(String password, byte[] authData, int packSeq,
+      String passwordCharacterEncoding) {
+    super(packSeq, authData, password, passwordCharacterEncoding);
+  }
 
-    public SendClearPasswordAuthPacket(String password, byte[] authData, int packSeq, String passwordCharacterEncoding) {
-        super(packSeq, authData, password, passwordCharacterEncoding);
+  /**
+   * Send native password stream.
+   *
+   * @param pos database socket
+   * @throws IOException if a connection error occur
+   */
+  public void send(PacketOutputStream pos) throws IOException {
+    if (password == null || password.isEmpty()) {
+      pos.writeEmptyPacket(packSeq);
+      return;
     }
-
-    /**
-     * Send native password stream.
-     *
-     * @param pos database socket
-     * @throws IOException if a connection error occur
-     */
-    public void send(PacketOutputStream pos) throws IOException {
-        if (password == null || password.isEmpty()) {
-            pos.writeEmptyPacket(packSeq);
-            return;
-        }
-        pos.startPacket(packSeq);
-        byte[] bytePwd;
-        if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
-            bytePwd = password.getBytes(passwordCharacterEncoding);
-        } else {
-            bytePwd = password.getBytes();
-        }
-        pos.write(bytePwd);
-        pos.write(0);
-        pos.flush();
+    pos.startPacket(packSeq);
+    byte[] bytePwd;
+    if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
+      bytePwd = password.getBytes(passwordCharacterEncoding);
+    } else {
+      bytePwd = password.getBytes();
     }
+    pos.write(bytePwd);
+    pos.write(0);
+    pos.flush();
+  }
 }

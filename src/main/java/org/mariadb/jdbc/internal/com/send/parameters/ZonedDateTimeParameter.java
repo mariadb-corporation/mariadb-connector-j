@@ -52,90 +52,90 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.Options;
-
 import java.io.IOException;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.Options;
 
 /**
- * server doesn't support temporal with timezone (MDEV-10018) for the moment.
- * So driver parse String entry and send it to Server according to server timezone
+ * server doesn't support temporal with timezone (MDEV-10018) for the moment. So driver parse String
+ * entry and send it to Server according to server timezone
  */
 public class ZonedDateTimeParameter implements Cloneable, ParameterHolder {
 
-    private final ZonedDateTime tz;
-    private final boolean fractionalSeconds;
+  private final ZonedDateTime tz;
+  private final boolean fractionalSeconds;
 
-    /**
-     * Constructor.
-     *
-     * @param tz                zone date time
-     * @param serverZoneId      server session zoneId
-     * @param fractionalSeconds must fractional Seconds be send to database.
-     * @param options           session options
-     */
-    public ZonedDateTimeParameter(ZonedDateTime tz, ZoneId serverZoneId, boolean fractionalSeconds, Options options) {
-        ZoneId zoneId = options.useLegacyDatetimeCode ? ZoneOffset.systemDefault() : serverZoneId;
-        this.tz = tz.withZoneSameInstant(zoneId);
-        this.fractionalSeconds = fractionalSeconds;
-    }
+  /**
+   * Constructor.
+   *
+   * @param tz                zone date time
+   * @param serverZoneId      server session zoneId
+   * @param fractionalSeconds must fractional Seconds be send to database.
+   * @param options           session options
+   */
+  public ZonedDateTimeParameter(ZonedDateTime tz, ZoneId serverZoneId, boolean fractionalSeconds,
+      Options options) {
+    ZoneId zoneId = options.useLegacyDatetimeCode ? ZoneOffset.systemDefault() : serverZoneId;
+    this.tz = tz.withZoneSameInstant(zoneId);
+    this.fractionalSeconds = fractionalSeconds;
+  }
 
-    /**
-     * Write timestamps to outputStream.
-     *
-     * @param pos the stream to write to
-     */
-    public void writeTo(final PacketOutputStream pos) throws IOException {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
-                fractionalSeconds ? "yyyy-MM-dd HH:mm:ss.SSSSSS" : "yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
-        pos.write(QUOTE);
-        pos.write(formatter.format(tz).getBytes());
-        pos.write(QUOTE);
-    }
+  /**
+   * Write timestamps to outputStream.
+   *
+   * @param pos the stream to write to
+   */
+  public void writeTo(final PacketOutputStream pos) throws IOException {
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern(
+        fractionalSeconds ? "yyyy-MM-dd HH:mm:ss.SSSSSS" : "yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
+    pos.write(QUOTE);
+    pos.write(formatter.format(tz).getBytes());
+    pos.write(QUOTE);
+  }
 
-    public long getApproximateTextProtocolLength() throws IOException {
-        return 27;
-    }
+  public long getApproximateTextProtocolLength() throws IOException {
+    return 27;
+  }
 
-    /**
-     * Write data to socket in binary format.
-     *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
-     */
-    public void writeBinary(final PacketOutputStream pos) throws IOException {
-        pos.write((byte) (fractionalSeconds ? 11 : 7));//length
-        pos.writeShort((short) tz.getYear());
-        pos.write((byte) ((tz.getMonth().getValue()) & 0xff));
-        pos.write((byte) (tz.getDayOfMonth() & 0xff));
-        pos.write((byte) tz.getHour());
-        pos.write((byte) tz.getMinute());
-        pos.write((byte) tz.getSecond());
-        if (fractionalSeconds) {
-            pos.writeInt(tz.getNano() / 1000);
-        }
+  /**
+   * Write data to socket in binary format.
+   *
+   * @param pos socket output stream
+   * @throws IOException if socket error occur
+   */
+  public void writeBinary(final PacketOutputStream pos) throws IOException {
+    pos.write((byte) (fractionalSeconds ? 11 : 7));//length
+    pos.writeShort((short) tz.getYear());
+    pos.write((byte) ((tz.getMonth().getValue()) & 0xff));
+    pos.write((byte) (tz.getDayOfMonth() & 0xff));
+    pos.write((byte) tz.getHour());
+    pos.write((byte) tz.getMinute());
+    pos.write((byte) tz.getSecond());
+    if (fractionalSeconds) {
+      pos.writeInt(tz.getNano() / 1000);
     }
+  }
 
-    public ColumnType getColumnType() {
-        return ColumnType.DATETIME;
-    }
+  public ColumnType getColumnType() {
+    return ColumnType.DATETIME;
+  }
 
-    @Override
-    public String toString() {
-        return "'" + tz.toString() + "'";
-    }
+  @Override
+  public String toString() {
+    return "'" + tz.toString() + "'";
+  }
 
-    public boolean isNullData() {
-        return false;
-    }
+  public boolean isNullData() {
+    return false;
+  }
 
-    public boolean isLongData() {
-        return false;
-    }
+  public boolean isLongData() {
+    return false;
+  }
 }

@@ -52,22 +52,22 @@
 
 package org.mariadb.jdbc.internal.com.send.gssapi;
 
+import java.io.IOException;
+import java.sql.SQLException;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-import java.io.IOException;
-import java.sql.SQLException;
-
 public abstract class GssapiAuth {
 
-    protected final PacketInputStream reader;
-    protected int packSeq;
+  protected final PacketInputStream reader;
+  protected int packSeq;
 
-    public GssapiAuth(PacketInputStream reader, int packSeq) {
-        this.reader = reader;
-        this.packSeq = packSeq;
-    }
+  public GssapiAuth(PacketInputStream reader, int packSeq) {
+    this.reader = reader;
+    this.packSeq = packSeq;
+  }
 
-    public abstract void authenticate(final PacketOutputStream writer, final String serverPrincipalName, final String mechanisms)
-            throws SQLException, IOException;
+  public abstract void authenticate(final PacketOutputStream writer,
+      final String serverPrincipalName, final String mechanisms)
+      throws SQLException, IOException;
 }
