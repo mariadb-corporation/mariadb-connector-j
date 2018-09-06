@@ -242,18 +242,6 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    *
    * @param url the connection string
    * @throws SQLException if error in URL
-   * @deprecated since 1.3.0 use setUrl method instead
-   */
-  @Deprecated
-  public void setURL(String url) throws SQLException {
-    setUrl(url);
-  }
-
-  /**
-   * Sets the connection string URL.
-   *
-   * @param url the connection string
-   * @throws SQLException if error in URL
    */
   public void setUrl(String url) throws SQLException {
     this.url = url;
