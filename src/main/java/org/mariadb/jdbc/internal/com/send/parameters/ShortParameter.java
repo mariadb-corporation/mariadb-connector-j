@@ -52,50 +52,50 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
+import java.io.IOException;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-import java.io.IOException;
-
 public class ShortParameter implements Cloneable, ParameterHolder {
-    private final short value;
 
-    public ShortParameter(short value) {
-        this.value = value;
-    }
+  private final short value;
 
-    public void writeTo(final PacketOutputStream pos) throws IOException {
-        pos.write(String.valueOf(value).getBytes());
-    }
+  public ShortParameter(short value) {
+    this.value = value;
+  }
 
-    public long getApproximateTextProtocolLength() throws IOException {
-        return String.valueOf(value).getBytes().length;
-    }
+  public void writeTo(final PacketOutputStream pos) throws IOException {
+    pos.write(String.valueOf(value).getBytes());
+  }
 
-    /**
-     * Write data to socket in binary format.
-     *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
-     */
-    public void writeBinary(final PacketOutputStream pos) throws IOException {
-        pos.writeShort(value);
-    }
+  public long getApproximateTextProtocolLength() throws IOException {
+    return String.valueOf(value).getBytes().length;
+  }
 
-    public ColumnType getColumnType() {
-        return ColumnType.SMALLINT;
-    }
+  /**
+   * Write data to socket in binary format.
+   *
+   * @param pos socket output stream
+   * @throws IOException if socket error occur
+   */
+  public void writeBinary(final PacketOutputStream pos) throws IOException {
+    pos.writeShort(value);
+  }
 
-    @Override
-    public String toString() {
-        return Short.toString(value);
-    }
+  public ColumnType getColumnType() {
+    return ColumnType.SMALLINT;
+  }
 
-    public boolean isNullData() {
-        return false;
-    }
+  @Override
+  public String toString() {
+    return Short.toString(value);
+  }
 
-    public boolean isLongData() {
-        return false;
-    }
+  public boolean isNullData() {
+    return false;
+  }
+
+  public boolean isLongData() {
+    return false;
+  }
 }

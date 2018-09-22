@@ -52,49 +52,52 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
+import static org.mariadb.jdbc.internal.com.Packet.ERROR;
+
+import java.io.IOException;
+import java.sql.SQLException;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 
-import java.io.IOException;
-import java.sql.SQLException;
+public abstract class AbstractAuthSwitchSendResponsePacket implements
+    InterfaceAuthSwitchSendResponsePacket {
 
-import static org.mariadb.jdbc.internal.com.Packet.ERROR;
+  protected final String password;
+  protected final String passwordCharacterEncoding;
+  protected int packSeq = 0;
+  protected byte[] authData;
 
-public abstract class AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
-    protected int packSeq = 0;
-    protected byte[] authData;
-    protected final String password;
-    protected final String passwordCharacterEncoding;
+  /**
+   * Handle Authentication.
+   *
+   * @param packSeq                   packet sequence
+   * @param authData                  authentication data
+   * @param password                  password
+   * @param passwordCharacterEncoding password character encoding
+   */
+  public AbstractAuthSwitchSendResponsePacket(int packSeq, byte[] authData, String password,
+      String passwordCharacterEncoding) {
+    this.packSeq = packSeq;
+    this.authData = authData;
+    this.password = password;
+    this.passwordCharacterEncoding = passwordCharacterEncoding;
+  }
 
-    /**
-     * Handle Authentication.
-     *
-     * @param packSeq                   packet sequence
-     * @param authData                  authentication data
-     * @param password                  password
-     * @param passwordCharacterEncoding password character encoding
-     */
-    public AbstractAuthSwitchSendResponsePacket(int packSeq, byte[] authData, String password, String passwordCharacterEncoding) {
-        this.packSeq = packSeq;
-        this.authData = authData;
-        this.password = password;
-        this.passwordCharacterEncoding = passwordCharacterEncoding;
+  /**
+   * Handle response packet.
+   *
+   * @param reader packet fetcher
+   * @throws SQLException if any functional error occur
+   * @throws IOException  if any connection error occur
+   */
+  public void handleResultPacket(PacketInputStream reader) throws SQLException, IOException {
+    Buffer buffer = reader.getPacket(true);
+    if (buffer.getByteAt(0) == ERROR) {
+      ErrorPacket ep = new ErrorPacket(buffer);
+      String message = ep.getMessage();
+      throw new SQLException("Could not connect: " + message, ep.getSqlState(),
+          ep.getErrorNumber());
     }
-
-    /**
-     * Handle response packet.
-     *
-     * @param reader packet fetcher
-     * @throws SQLException if any functional error occur
-     * @throws IOException  if any connection error occur
-     */
-    public void handleResultPacket(PacketInputStream reader) throws SQLException, IOException {
-        Buffer buffer = reader.getPacket(true);
-        if (buffer.getByteAt(0) == ERROR) {
-            ErrorPacket ep = new ErrorPacket(buffer);
-            String message = ep.getMessage();
-            throw new SQLException("Could not connect: " + message, ep.getSqlState(), ep.getErrorNumber());
-        }
-    }
+  }
 }

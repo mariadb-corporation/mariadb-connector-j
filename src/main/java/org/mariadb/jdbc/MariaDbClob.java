@@ -52,225 +52,233 @@
 
 package org.mariadb.jdbc;
 
-import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
-
-import java.io.*;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.Serializable;
+import java.io.StringReader;
+import java.io.UncheckedIOException;
+import java.io.Writer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.StandardCharsets;
 import java.sql.Clob;
 import java.sql.NClob;
 import java.sql.SQLException;
+import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
 public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializable {
 
-    private static final long serialVersionUID = -3066501059817815286L;
+  private static final long serialVersionUID = -3066501059817815286L;
 
-    /**
-     * Creates a Clob with content.
-     *
-     * @param bytes the content for the Clob.
-     */
-    public MariaDbClob(byte[] bytes) {
-        super(bytes);
+  /**
+   * Creates a Clob with content.
+   *
+   * @param bytes the content for the Clob.
+   */
+  public MariaDbClob(byte[] bytes) {
+    super(bytes);
+  }
+
+  /**
+   * Creates a Clob with content.
+   *
+   * @param bytes  the content for the Clob.
+   * @param offset offset
+   * @param length length
+   */
+  public MariaDbClob(byte[] bytes, int offset, int length) {
+    super(bytes, offset, length);
+  }
+
+  /**
+   * Creates an empty Clob.
+   */
+  public MariaDbClob() {
+    super();
+  }
+
+  /**
+   * ToString implementation.
+   *
+   * @return string value of blob content.
+   */
+  public String toString() {
+    return new String(data, offset, length, StandardCharsets.UTF_8);
+  }
+
+  /**
+   * Get sub string.
+   *
+   * @param pos    position
+   * @param length length of sub string
+   * @return substring
+   * @throws SQLException if pos is less than 1 or length is less than 0
+   */
+  public String getSubString(long pos, int length) throws SQLException {
+
+    if (pos < 1) {
+      throw ExceptionMapper.getSqlException("position must be >= 1");
     }
 
-    /**
-     * Creates a Clob with content.
-     *
-     * @param bytes     the content for the Clob.
-     * @param offset    offset
-     * @param length    length
-     */
-    public MariaDbClob(byte[] bytes, int offset, int length) {
-        super(bytes, offset, length);
+    if (length < 0) {
+      throw ExceptionMapper.getSqlException("length must be > 0");
     }
 
-    /**
-     * Creates an empty Clob.
-     */
-    public MariaDbClob() {
-        super();
+    try {
+      String val = toString();
+      return val.substring((int) pos - 1, Math.min((int) pos - 1 + length, val.length()));
+    } catch (Exception e) {
+      throw new SQLException(e);
     }
+  }
 
-    /**
-     * ToString implementation.
-     *
-     * @return string value of blob content.
-     */
-    public String toString() {
-        return new String(data, offset, length, StandardCharsets.UTF_8);
+  public Reader getCharacterStream() throws SQLException {
+    return new StringReader(toString());
+  }
+
+  /**
+   * Returns a Reader object that contains a partial Clob value, starting with the character
+   * specified by pos, which is length characters in length.
+   *
+   * @param pos    the offset to the first character of the partial value to be retrieved. The first
+   *               character in the Clob is at position 1.
+   * @param length the length in characters of the partial value to be retrieved.
+   * @return Reader through which the partial Clob value can be read.
+   * @throws SQLException if pos is less than 1 or if pos is greater than the number of characters
+   *                      in the Clob or if pos + length is greater than the number of characters in
+   *                      the Clob
+   */
+  public Reader getCharacterStream(long pos, long length) throws SQLException {
+    String val = toString();
+    if (val.length() < (int) pos - 1 + length) {
+      throw ExceptionMapper
+          .getSqlException("pos + length is greater than the number of characters in the Clob");
     }
+    String sub = val.substring((int) pos - 1, (int) pos - 1 + (int) length);
+    return new StringReader(sub);
+  }
 
-    /**
-     * Get sub string.
-     *
-     * @param pos    position
-     * @param length length of sub string
-     * @return substring
-     * @throws SQLException if pos is less than 1 or length is less than 0
-     */
-    public String getSubString(long pos, int length) throws SQLException {
+  /**
+   * Set character stream.
+   *
+   * @param pos position
+   * @return writer
+   * @throws SQLException if position is invalid
+   */
+  public Writer setCharacterStream(long pos) throws SQLException {
+    int bytePosition = utf8Position((int) pos - 1);
+    OutputStream stream = setBinaryStream(bytePosition + 1);
+    return new OutputStreamWriter(stream, StandardCharsets.UTF_8);
+  }
 
-        if (pos < 1) {
-            throw ExceptionMapper.getSqlException("position must be >= 1");
-        }
+  public InputStream getAsciiStream() throws SQLException {
+    return getBinaryStream();
+  }
 
-        if (length < 0) {
-            throw ExceptionMapper.getSqlException("length must be > 0");
-        }
+  public long position(String searchStr, long start) throws SQLException {
+    return toString().indexOf(searchStr, (int) start - 1) + 1;
+  }
 
-        try {
-            String val = toString();
-            return val.substring((int) pos - 1, Math.min((int) pos - 1 + length, val.length()));
-        } catch (Exception e) {
-            throw new SQLException(e);
-        }
+  public long position(Clob searchStr, long start) throws SQLException {
+    return position(searchStr.toString(), start);
+  }
+
+  /**
+   * Convert character position into byte position in UTF8 byte array.
+   *
+   * @param charPosition charPosition
+   * @return byte position
+   */
+  private int utf8Position(int charPosition) {
+    int pos = offset;
+    for (int i = 0; i < charPosition; i++) {
+      int byteValue = data[pos] & 0xff;
+      if (byteValue < 0x80) {
+        pos += 1;
+      } else if (byteValue < 0xC2) {
+        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+      } else if (byteValue < 0xE0) {
+        pos += 2;
+      } else if (byteValue < 0xF0) {
+        pos += 3;
+      } else if (byteValue < 0xF8) {
+        pos += 4;
+      } else {
+        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+      }
     }
+    return pos;
+  }
 
-    public Reader getCharacterStream() throws SQLException {
-        return new StringReader(toString());
-    }
+  /**
+   * Set String.
+   *
+   * @param pos position
+   * @param str string
+   * @return string length
+   * @throws SQLException if UTF-8 conversion failed
+   */
+  public int setString(long pos, String str) throws SQLException {
+    int bytePosition = utf8Position((int) pos - 1);
+    super.setBytes(bytePosition + 1 - offset, str.getBytes(StandardCharsets.UTF_8));
+    return str.length();
+  }
 
-    /**
-     * Returns a Reader object that contains a partial Clob value, starting with the character specified by pos, which
-     * is length characters in length.
-     *
-     * @param pos    the offset to the first character of the partial value to be retrieved. The first character in the
-     *               Clob is at position 1.
-     * @param length the length in characters of the partial value to be retrieved.
-     * @return Reader through which the partial Clob value can be read.
-     * @throws SQLException if pos is less than 1 or if pos is greater than the number of characters in the Clob or
-     * if pos + length is greater than the number of characters in the Clob
-     */
-    public Reader getCharacterStream(long pos, long length) throws SQLException {
-        String val = toString();
-        if (val.length() < (int) pos - 1 + length) {
-            throw ExceptionMapper.getSqlException("pos + length is greater than the number of characters in the Clob");
-        }
-        String sub = val.substring((int) pos - 1, (int) pos - 1 + (int) length);
-        return new StringReader(sub);
-    }
+  public int setString(long pos, String str, int offset, int len) throws SQLException {
+    return setString(pos, str.substring(offset, offset + len));
+  }
 
-    /**
-     * Set character stream.
-     *
-     * @param pos position
-     * @return writer
-     * @throws SQLException if position is invalid
-     */
-    public Writer setCharacterStream(long pos) throws SQLException {
-        int bytePosition = utf8Position((int) pos - 1);
-        OutputStream stream = setBinaryStream(bytePosition + 1);
-        return new OutputStreamWriter(stream, StandardCharsets.UTF_8);
-    }
+  public OutputStream setAsciiStream(long pos) throws SQLException {
+    return setBinaryStream(utf8Position((int) pos - 1) + 1);
+  }
 
-    public InputStream getAsciiStream() throws SQLException {
-        return getBinaryStream();
+  /**
+   * Return character length of the Clob. Assume UTF8 encoding.
+   */
+  @Override
+  public long length() {
+    long len = 0;
+    for (int i = offset; i < offset + length; ) {
+      int byteValue = data[i] & 0xff;
+      if (byteValue < 0x80) {
+        i += 1;
+      } else if (byteValue < 0xC2) {
+        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+      } else if (byteValue < 0xE0) {
+        i += 2;
+      } else if (byteValue < 0xF0) {
+        i += 3;
+      } else if (byteValue < 0xF8) {
+        len++;
+        i += 4;
+      } else {
+        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+      }
+      len++;
     }
+    return len;
+  }
 
-    public long position(String searchStr, long start) throws SQLException {
-        return toString().indexOf(searchStr, (int) start - 1) + 1;
+  @Override
+  public void truncate(final long len) throws SQLException {
+    int pos = offset;
+    for (; pos < offset + Math.min(length, len); ) {
+      int byteValue = data[pos] & 0xff;
+      if (byteValue < 0x80) {
+        pos += 1;
+      } else if (byteValue < 0xC2) {
+        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+      } else if (byteValue < 0xE0) {
+        pos += 2;
+      } else if (byteValue < 0xF0) {
+        pos += 3;
+      } else if (byteValue < 0xF8) {
+        pos += 4;
+      } else {
+        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+      }
     }
-
-    public long position(Clob searchStr, long start) throws SQLException {
-        return position(searchStr.toString(), start);
-    }
-
-    /**
-     * Convert character position into byte position in UTF8 byte array.
-     *
-     * @param charPosition charPosition
-     * @return byte position
-     */
-    private int utf8Position(int charPosition) {
-        int pos = offset;
-        for (int i = 0; i < charPosition; i++) {
-            int byteValue = data[pos] & 0xff;
-            if (byteValue < 0x80) {
-                pos += 1;
-            } else if (byteValue < 0xC2) {
-                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
-            } else if (byteValue < 0xE0) {
-                pos += 2;
-            } else if (byteValue < 0xF0) {
-                pos += 3;
-            } else if (byteValue < 0xF8) {
-                pos += 4;
-            } else {
-                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
-            }
-        }
-        return pos;
-    }
-
-    /**
-     * Set String.
-     *
-     * @param pos position
-     * @param str string
-     * @return string length
-     * @throws SQLException if UTF-8 conversion failed
-     */
-    public int setString(long pos, String str) throws SQLException {
-        int bytePosition = utf8Position((int) pos - 1);
-        super.setBytes(bytePosition + 1 - offset, str.getBytes(StandardCharsets.UTF_8));
-        return str.length();
-    }
-
-    public int setString(long pos, String str, int offset, int len) throws SQLException {
-        return setString(pos, str.substring(offset, offset + len));
-    }
-
-    public OutputStream setAsciiStream(long pos) throws SQLException {
-        return setBinaryStream(utf8Position((int) pos - 1) + 1);
-    }
-
-    /**
-     * Return character length of the Clob. Assume UTF8 encoding.
-     */
-    @Override
-    public long length() {
-        long len = 0;
-        for (int i = offset; i < offset + length; ) {
-            int byteValue = data[i] & 0xff;
-            if (byteValue < 0x80) {
-                i += 1;
-            } else if (byteValue < 0xC2) {
-                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
-            } else if (byteValue < 0xE0) {
-                i += 2;
-            } else if (byteValue < 0xF0) {
-                i += 3;
-            } else if (byteValue < 0xF8) {
-                len++;
-                i += 4;
-            } else {
-                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
-            }
-            len++;
-        }
-        return len;
-    }
-
-    @Override
-    public void truncate(final long len) throws SQLException {
-        int pos = offset;
-        for (; pos < offset + Math.min(length, len); ) {
-            int byteValue = data[pos] & 0xff;
-            if (byteValue < 0x80) {
-                pos += 1;
-            } else if (byteValue < 0xC2) {
-                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
-            } else if (byteValue < 0xE0) {
-                pos += 2;
-            } else if (byteValue < 0xF0) {
-                pos += 3;
-            } else if (byteValue < 0xF8) {
-                pos += 4;
-            } else {
-                throw new UncheckedIOException("invalid UTF8",new CharacterCodingException());
-            }
-        }
-        length = pos - offset;
-    }
+    length = pos - offset;
+  }
 }

@@ -58,21 +58,21 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class MariaDbThreadFactory implements ThreadFactory {
 
-    // start from DefaultThread factory to get security groups and what not
-    private final ThreadFactory parentFactory = Executors.defaultThreadFactory();
-    private final AtomicInteger threadId = new AtomicInteger();
-    private final String threadName;
+  // start from DefaultThread factory to get security groups and what not
+  private final ThreadFactory parentFactory = Executors.defaultThreadFactory();
+  private final AtomicInteger threadId = new AtomicInteger();
+  private final String threadName;
 
-    public MariaDbThreadFactory(String threadName) {
-        this.threadName = threadName;
-    }
+  public MariaDbThreadFactory(String threadName) {
+    this.threadName = threadName;
+  }
 
-    @Override
-    public Thread newThread(Runnable runnable) {
-        Thread result = parentFactory.newThread(runnable);
-        result.setName(threadName + "-" + threadId.incrementAndGet());
-        result.setDaemon(true); // set as daemon so that mariaDb wont hold up shutdown
+  @Override
+  public Thread newThread(Runnable runnable) {
+    Thread result = parentFactory.newThread(runnable);
+    result.setName(threadName + "-" + threadId.incrementAndGet());
+    result.setDaemon(true); // set as daemon so that mariaDb wont hold up shutdown
 
-        return result;
-    }
+    return result;
+  }
 }

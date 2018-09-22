@@ -52,12 +52,12 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-
 import java.io.IOException;
 import java.sql.SQLException;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 
 public interface InterfaceSendPacket {
-    void send(PacketOutputStream os) throws IOException, SQLException;
+
+  void send(PacketOutputStream os) throws IOException, SQLException;
 }

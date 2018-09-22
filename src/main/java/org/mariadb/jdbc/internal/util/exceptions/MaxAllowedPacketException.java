@@ -55,14 +55,15 @@ package org.mariadb.jdbc.internal.util.exceptions;
 import java.io.IOException;
 
 public class MaxAllowedPacketException extends IOException {
-    private final boolean mustReconnect;
 
-    public MaxAllowedPacketException(String message, boolean mustReconnect) {
-        super(message);
-        this.mustReconnect = mustReconnect;
-    }
+  private final boolean mustReconnect;
 
-    public boolean isMustReconnect() {
-        return mustReconnect;
-    }
+  public MaxAllowedPacketException(String message, boolean mustReconnect) {
+    super(message);
+    this.mustReconnect = mustReconnect;
+  }
+
+  public boolean isMustReconnect() {
+    return mustReconnect;
+  }
 }

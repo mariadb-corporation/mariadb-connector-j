@@ -52,24 +52,23 @@
 
 package org.mariadb.jdbc.internal.io.input;
 
+import java.io.IOException;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.LruTraceCache;
 
-import java.io.IOException;
-
 public interface PacketInputStream {
 
-    Buffer getPacket(boolean reUsable) throws IOException;
+  Buffer getPacket(boolean reUsable) throws IOException;
 
-    byte[] getPacketArray(boolean reUsable) throws IOException;
+  byte[] getPacketArray(boolean reUsable) throws IOException;
 
-    int getLastPacketSeq();
+  int getLastPacketSeq();
 
-    int getCompressLastPacketSeq();
+  int getCompressLastPacketSeq();
 
-    void close() throws IOException;
+  void close() throws IOException;
 
-    void setServerThreadId(long serverThreadId, Boolean isMaster);
+  void setServerThreadId(long serverThreadId, Boolean isMaster);
 
-    void setTraceCache(LruTraceCache traceCache);
+  void setTraceCache(LruTraceCache traceCache);
 }

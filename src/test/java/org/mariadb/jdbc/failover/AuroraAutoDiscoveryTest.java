@@ -52,49 +52,53 @@
 
 package org.mariadb.jdbc.failover;
 
-import org.junit.*;
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.internal.util.constant.HaMode;
+import static org.junit.Assert.assertTrue;
 
 import java.sql.Connection;
 import java.util.List;
-
-import static org.junit.Assert.*;
+import org.junit.Assume;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 public class AuroraAutoDiscoveryTest extends BaseMultiHostTest {
 
-    /**
-     * Initialisation.
-     */
-    @BeforeClass()
-    public static void beforeClass2() {
-        proxyUrl = proxyAuroraUrl;
-        Assume.assumeTrue(initialAuroraUrl != null);
-    }
+  /**
+   * Initialisation.
+   */
+  @BeforeClass()
+  public static void beforeClass2() {
+    proxyUrl = proxyAuroraUrl;
+    Assume.assumeTrue(initialAuroraUrl != null);
+  }
 
-    /**
-     * Initialisation.
-     */
-    @Before
-    public void init() {
-        defaultUrl = initialAuroraUrl;
-        currentType = HaMode.AURORA;
-    }
+  /**
+   * Initialisation.
+   */
+  @Before
+  public void init() {
+    defaultUrl = initialAuroraUrl;
+    currentType = HaMode.AURORA;
+  }
 
-    /**
-     * CONJ-392 : aurora must discover active nodes without timezone issue.
-     *
-     * @throws Throwable if error occur
-     */
-    @Test
-    public void testTimeZoneDiscovery() throws Throwable {
+  /**
+   * CONJ-392 : aurora must discover active nodes without timezone issue.
+   *
+   * @throws Throwable if error occur
+   */
+  @Test
+  public void testTimeZoneDiscovery() throws Throwable {
 
-        try (Connection connection = getNewConnection("&sessionVariables=@@time_zone='US/Central'", false)) {
-            List<HostAddress> hostAddresses = getProtocolFromConnection(connection).getProxy().getListener().getUrlParser().getHostAddresses();
-            for (HostAddress hostAddress : hostAddresses) {
-                System.out.println("hostAddress:" + hostAddress);
-            }
-            assertTrue(hostAddresses.size() > 1);
-        }
+    try (Connection connection = getNewConnection("&sessionVariables=@@time_zone='US/Central'",
+        false)) {
+      List<HostAddress> hostAddresses = getProtocolFromConnection(connection).getProxy()
+          .getListener().getUrlParser().getHostAddresses();
+      for (HostAddress hostAddress : hostAddresses) {
+        System.out.println("hostAddress:" + hostAddress);
+      }
+      assertTrue(hostAddresses.size() > 1);
     }
+  }
 }

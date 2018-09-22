@@ -52,32 +52,32 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
+import java.io.IOException;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-import java.io.IOException;
-
 public interface ParameterHolder {
-    byte[] BINARY_INTRODUCER = {'_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\''};
-    byte QUOTE = (byte) '\'';
 
-    /**
-     * Write parameter value.
-     *
-     * @param os the stream to write to
-     * @throws IOException when something goes wrong
-     */
-    void writeTo(final PacketOutputStream os) throws IOException;
+  byte[] BINARY_INTRODUCER = {'_', 'b', 'i', 'n', 'a', 'r', 'y', ' ', '\''};
+  byte QUOTE = (byte) '\'';
 
-    void writeBinary(PacketOutputStream pos) throws IOException;
+  /**
+   * Write parameter value.
+   *
+   * @param os the stream to write to
+   * @throws IOException when something goes wrong
+   */
+  void writeTo(final PacketOutputStream os) throws IOException;
 
-    long getApproximateTextProtocolLength() throws IOException;
+  void writeBinary(PacketOutputStream pos) throws IOException;
 
-    String toString();
+  long getApproximateTextProtocolLength() throws IOException;
 
-    boolean isNullData();
+  String toString();
 
-    ColumnType getColumnType();
+  boolean isNullData();
 
-    boolean isLongData();
+  ColumnType getColumnType();
+
+  boolean isLongData();
 }

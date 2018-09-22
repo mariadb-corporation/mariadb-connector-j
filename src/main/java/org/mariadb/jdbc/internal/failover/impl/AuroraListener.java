@@ -52,15 +52,6 @@
 
 package org.mariadb.jdbc.internal.failover.impl;
 
-import org.mariadb.jdbc.HostAddress;
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
-import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
-import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
-import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -70,412 +61,425 @@ import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.mariadb.jdbc.HostAddress;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.com.read.dao.Results;
+import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
+import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
+import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
+import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 public class AuroraListener extends MastersSlavesListener {
 
-    private static final Logger logger = Logger.getLogger(AuroraListener.class.getName());
-    private final Pattern auroraDnsPattern = Pattern.compile("(.+)\\.(cluster-)?([a-zA-Z0-9]+\\.[a-zA-Z0-9\\-]+\\.rds\\.amazonaws\\.com)",
-            Pattern.CASE_INSENSITIVE);
-    private final HostAddress clusterHostAddress;
-    private String clusterDnsSuffix = null;
+  private static final Logger logger = Logger.getLogger(AuroraListener.class.getName());
+  private final Pattern auroraDnsPattern = Pattern
+      .compile("(.+)\\.(cluster-)?([a-zA-Z0-9]+\\.[a-zA-Z0-9\\-]+\\.rds\\.amazonaws\\.com)",
+          Pattern.CASE_INSENSITIVE);
+  private final HostAddress clusterHostAddress;
+  private String clusterDnsSuffix = null;
 
-    /**
-     * Constructor for Aurora.
-     * This differ from standard failover because :
-     * - we don't know current master, we must check that after initial connection
-     * - master can change after he has a failover
-     *
-     * @param urlParser     connection information
-     * @param globalInfo    server global variables information
-     * @throws SQLException when connection string contain host with different cluster
-     */
-    public AuroraListener(UrlParser urlParser, final GlobalStateInfo globalInfo) throws SQLException {
-        super(urlParser, globalInfo);
-        masterProtocol = null;
-        secondaryProtocol = null;
-        clusterHostAddress = findClusterHostAddress(urlParser);
-    }
+  /**
+   * Constructor for Aurora. This differ from standard failover because : - we don't know current
+   * master, we must check that after initial connection - master can change after he has a
+   * failover
+   *
+   * @param urlParser  connection information
+   * @param globalInfo server global variables information
+   * @throws SQLException when connection string contain host with different cluster
+   */
+  public AuroraListener(UrlParser urlParser, final GlobalStateInfo globalInfo) throws SQLException {
+    super(urlParser, globalInfo);
+    masterProtocol = null;
+    secondaryProtocol = null;
+    clusterHostAddress = findClusterHostAddress(urlParser);
+  }
 
-    /**
-     * Retrieves the cluster host address from the UrlParser instance.
-     *
-     * @param urlParser object that holds the connection information
-     * @return cluster host address
-     */
-    private HostAddress findClusterHostAddress(UrlParser urlParser) throws SQLException {
-        List<HostAddress> hostAddresses = urlParser.getHostAddresses();
-        Matcher matcher;
-        for (HostAddress hostAddress : hostAddresses) {
-            matcher = auroraDnsPattern.matcher(hostAddress.host);
-            if (matcher.find()) {
+  /**
+   * Retrieves the cluster host address from the UrlParser instance.
+   *
+   * @param urlParser object that holds the connection information
+   * @return cluster host address
+   */
+  private HostAddress findClusterHostAddress(UrlParser urlParser) throws SQLException {
+    List<HostAddress> hostAddresses = urlParser.getHostAddresses();
+    Matcher matcher;
+    for (HostAddress hostAddress : hostAddresses) {
+      matcher = auroraDnsPattern.matcher(hostAddress.host);
+      if (matcher.find()) {
 
-                if (clusterDnsSuffix != null) {
-                    //ensure there is only one cluster
-                    if (!clusterDnsSuffix.equalsIgnoreCase(matcher.group(3))) {
-                        throw new SQLException("Connection string must contain only one aurora cluster. "
-                                + "'" + hostAddress.host + "' doesn't correspond to DNS prefix '" + clusterDnsSuffix + "'");
-                    }
-                } else {
-                    clusterDnsSuffix = matcher.group(3);
-                }
-
-                if (matcher.group(2) != null && !matcher.group(2).isEmpty()) {
-                    //not just an instance entry-point, but cluster entrypoint.
-                    return hostAddress;
-                }
-            } else {
-                if (clusterDnsSuffix == null && hostAddress.host.contains(".")) {
-                    clusterDnsSuffix = hostAddress.host.substring(hostAddress.host.indexOf(".") + 1);
-                }
-            }
-        }
-        return null;
-    }
-
-    public HostAddress getClusterHostAddress() {
-        return clusterHostAddress;
-    }
-
-    /**
-     * Search a valid connection for failed one.
-     * A Node can be a master or a replica depending on the cluster state.
-     * so search for each host until found all the failed connection.
-     * By default, search for the host not down, and recheck the down one after if not found valid connections.
-     *
-     * @param initialSearchFilter initial search filter
-     * @throws SQLException if a connection asked is not found
-     */
-    @Override
-    public void reconnectFailedConnection(SearchFilter initialSearchFilter) throws SQLException {
-        SearchFilter searchFilter = initialSearchFilter;
-        if (!searchFilter.isInitialConnection()
-                && (isExplicitClosed()
-                || (searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
-                || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail())) {
-            return;
-        }
-
-        if (!searchFilter.isFailoverLoop()) {
-            try {
-                checkWaitingConnection();
-                if ((searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
-                        || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail()) {
-                    return;
-                }
-            } catch (ReconnectDuringTransactionException e) {
-                //don't throw an exception for this specific exception
-                return;
-            }
-        }
-
-        currentConnectionAttempts.incrementAndGet();
-
-        resetOldsBlackListHosts();
-
-        //put the list in the following order
-        // - random order not connected host and not blacklisted
-        // - random blacklisted host
-        // - connected host at end.
-        List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
-        loopAddress.removeAll(getBlacklistKeys());
-        Collections.shuffle(loopAddress);
-        List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
-        blacklistShuffle.retainAll(urlParser.getHostAddresses());
-        Collections.shuffle(blacklistShuffle);
-        loopAddress.addAll(blacklistShuffle);
-
-        //put connected at end
-        if (masterProtocol != null && !isMasterHostFail()) {
-            loopAddress.remove(masterProtocol.getHostAddress());
-            loopAddress.add(masterProtocol.getHostAddress());
-        }
-
-        if (!isSecondaryHostFail() && secondaryProtocol != null) {
-            loopAddress.remove(secondaryProtocol.getHostAddress());
-            loopAddress.add(secondaryProtocol.getHostAddress());
-        }
-
-        if (urlParser.getHostAddresses().size() <= 1) {
-            searchFilter = new SearchFilter(true, false);
-        }
-        if ((isMasterHostFail() || isSecondaryHostFail())
-                || searchFilter.isInitialConnection()) {
-            //while permit to avoid case when succeeded creating a new Master connection
-            //and ping master connection fail a few milliseconds after,
-            //resulting a masterConnection not initialized.
-            do {
-                AuroraProtocol.loop(this, globalInfo, loopAddress, searchFilter);
-                if (!searchFilter.isFailoverLoop()) {
-                    try {
-                        checkWaitingConnection();
-                    } catch (ReconnectDuringTransactionException e) {
-                        //don't throw an exception for this specific exception
-                    }
-                }
-            } while (searchFilter.isInitialConnection()
-                    && !( masterProtocol != null || (urlParser.getOptions().allowMasterDownConnection && secondaryProtocol != null)));
-        }
-
-        //When reconnecting, search if replicas list has change since first initialisation
-        if (getCurrentProtocol() != null && !getCurrentProtocol().isClosed()) {
-            retrieveAllEndpointsAndSet(getCurrentProtocol());
-        }
-
-        if (searchFilter.isInitialConnection() && masterProtocol == null && !currentReadOnlyAsked) {
-            currentProtocol = this.secondaryProtocol;
-            currentReadOnlyAsked = true;
-        }
-    }
-
-    /**
-     * Retrieves the information necessary to add a new endpoint.
-     * Calls the methods that retrieves the instance identifiers and sets urlParser accordingly.
-     *
-     * @param protocol current protocol connected to
-     * @throws SQLException if connection error occur
-     */
-    public void retrieveAllEndpointsAndSet(Protocol protocol) throws SQLException {
-        // For a given cluster, same port for all endpoints and same end host address
         if (clusterDnsSuffix != null) {
-            List<String> endpoints = getCurrentEndpointIdentifiers(protocol);
-            setUrlParserFromEndpoints(endpoints, protocol.getPort());
+          //ensure there is only one cluster
+          if (!clusterDnsSuffix.equalsIgnoreCase(matcher.group(3))) {
+            throw new SQLException("Connection string must contain only one aurora cluster. "
+                + "'" + hostAddress.host + "' doesn't correspond to DNS prefix '" + clusterDnsSuffix
+                + "'");
+          }
+        } else {
+          clusterDnsSuffix = matcher.group(3);
         }
 
+        if (matcher.group(2) != null && !matcher.group(2).isEmpty()) {
+          //not just an instance entry-point, but cluster entrypoint.
+          return hostAddress;
+        }
+      } else {
+        if (clusterDnsSuffix == null && hostAddress.host.contains(".")) {
+          clusterDnsSuffix = hostAddress.host.substring(hostAddress.host.indexOf(".") + 1);
+        }
+      }
+    }
+    return null;
+  }
+
+  public HostAddress getClusterHostAddress() {
+    return clusterHostAddress;
+  }
+
+  /**
+   * Search a valid connection for failed one. A Node can be a master or a replica depending on the
+   * cluster state. so search for each host until found all the failed connection. By default,
+   * search for the host not down, and recheck the down one after if not found valid connections.
+   *
+   * @param initialSearchFilter initial search filter
+   * @throws SQLException if a connection asked is not found
+   */
+  @Override
+  public void reconnectFailedConnection(SearchFilter initialSearchFilter) throws SQLException {
+    SearchFilter searchFilter = initialSearchFilter;
+    if (!searchFilter.isInitialConnection()
+        && (isExplicitClosed()
+        || (searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
+        || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail())) {
+      return;
     }
 
-    /**
-     * Retrieves all endpoints of a cluster from the appropriate database table.
-     *
-     * @param protocol current protocol connected to
-     * @return instance endpoints of the cluster
-     * @throws SQLException if connection error occur
-     */
-    private List<String> getCurrentEndpointIdentifiers(Protocol protocol) throws SQLException {
-        List<String> endpoints = new ArrayList<>();
+    if (!searchFilter.isFailoverLoop()) {
+      try {
+        checkWaitingConnection();
+        if ((searchFilter.isFineIfFoundOnlyMaster() && !isMasterHostFail())
+            || searchFilter.isFineIfFoundOnlySlave() && !isSecondaryHostFail()) {
+          return;
+        }
+      } catch (ReconnectDuringTransactionException e) {
+        //don't throw an exception for this specific exception
+        return;
+      }
+    }
+
+    currentConnectionAttempts.incrementAndGet();
+
+    resetOldsBlackListHosts();
+
+    //put the list in the following order
+    // - random order not connected host and not blacklisted
+    // - random blacklisted host
+    // - connected host at end.
+    List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+    loopAddress.removeAll(getBlacklistKeys());
+    Collections.shuffle(loopAddress);
+    List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
+    blacklistShuffle.retainAll(urlParser.getHostAddresses());
+    Collections.shuffle(blacklistShuffle);
+    loopAddress.addAll(blacklistShuffle);
+
+    //put connected at end
+    if (masterProtocol != null && !isMasterHostFail()) {
+      loopAddress.remove(masterProtocol.getHostAddress());
+      loopAddress.add(masterProtocol.getHostAddress());
+    }
+
+    if (!isSecondaryHostFail() && secondaryProtocol != null) {
+      loopAddress.remove(secondaryProtocol.getHostAddress());
+      loopAddress.add(secondaryProtocol.getHostAddress());
+    }
+
+    if (urlParser.getHostAddresses().size() <= 1) {
+      searchFilter = new SearchFilter(true, false);
+    }
+    if ((isMasterHostFail() || isSecondaryHostFail())
+        || searchFilter.isInitialConnection()) {
+      //while permit to avoid case when succeeded creating a new Master connection
+      //and ping master connection fail a few milliseconds after,
+      //resulting a masterConnection not initialized.
+      do {
+        AuroraProtocol.loop(this, globalInfo, loopAddress, searchFilter);
+        if (!searchFilter.isFailoverLoop()) {
+          try {
+            checkWaitingConnection();
+          } catch (ReconnectDuringTransactionException e) {
+            //don't throw an exception for this specific exception
+          }
+        }
+      } while (searchFilter.isInitialConnection()
+          && !(masterProtocol != null || (urlParser.getOptions().allowMasterDownConnection
+          && secondaryProtocol != null)));
+    }
+
+    //When reconnecting, search if replicas list has change since first initialisation
+    if (getCurrentProtocol() != null && !getCurrentProtocol().isClosed()) {
+      retrieveAllEndpointsAndSet(getCurrentProtocol());
+    }
+
+    if (searchFilter.isInitialConnection() && masterProtocol == null && !currentReadOnlyAsked) {
+      currentProtocol = this.secondaryProtocol;
+      currentReadOnlyAsked = true;
+    }
+  }
+
+  /**
+   * Retrieves the information necessary to add a new endpoint. Calls the methods that retrieves the
+   * instance identifiers and sets urlParser accordingly.
+   *
+   * @param protocol current protocol connected to
+   * @throws SQLException if connection error occur
+   */
+  public void retrieveAllEndpointsAndSet(Protocol protocol) throws SQLException {
+    // For a given cluster, same port for all endpoints and same end host address
+    if (clusterDnsSuffix != null) {
+      List<String> endpoints = getCurrentEndpointIdentifiers(protocol);
+      setUrlParserFromEndpoints(endpoints, protocol.getPort());
+    }
+
+  }
+
+  /**
+   * Retrieves all endpoints of a cluster from the appropriate database table.
+   *
+   * @param protocol current protocol connected to
+   * @return instance endpoints of the cluster
+   * @throws SQLException if connection error occur
+   */
+  private List<String> getCurrentEndpointIdentifiers(Protocol protocol) throws SQLException {
+    List<String> endpoints = new ArrayList<>();
+    try {
+      proxy.lock.lock();
+      try {
+        // Deleted instance may remain in db for 24 hours so ignoring instances that have had no change
+        // for 3 minutes
+        Results results = new Results();
+        protocol.executeQuery(false, results,
+            "select server_id, session_id from information_schema.replica_host_status "
+                + "where last_update_timestamp > now() - INTERVAL 3 MINUTE");
+        results.commandEnd();
+        ResultSet resultSet = results.getResultSet();
+
+        while (resultSet.next()) {
+          endpoints.add(resultSet.getString(1) + "." + clusterDnsSuffix);
+        }
+
+        //randomize order for distributed load-balancing
+        Collections.shuffle(endpoints);
+
+      } finally {
+        proxy.lock.unlock();
+      }
+    } catch (SQLException qe) {
+      logger.warning("SQL exception occurred: " + qe.getMessage());
+      if (protocol.getProxy().hasToHandleFailover(qe)) {
+        if (masterProtocol == null || masterProtocol.equals(protocol)) {
+          setMasterHostFail();
+        } else if (secondaryProtocol.equals(protocol)) {
+          setSecondaryHostFail();
+        }
+        addToBlacklist(protocol.getHostAddress());
+        reconnectFailedConnection(new SearchFilter(isMasterHostFail(), isSecondaryHostFail()));
+      }
+    }
+
+    return endpoints;
+  }
+
+  /**
+   * Sets urlParser accordingly to discovered hosts.
+   *
+   * @param endpoints instance identifiers
+   * @param port      port that is common to all endpoints
+   */
+  private void setUrlParserFromEndpoints(List<String> endpoints, int port) {
+    List<HostAddress> addresses = new ArrayList<>();
+    for (String endpoint : endpoints) {
+      HostAddress newHostAddress = new HostAddress(endpoint, port, null);
+      addresses.add(newHostAddress);
+    }
+
+    synchronized (urlParser) {
+      urlParser.setHostAddresses(addresses);
+    }
+  }
+
+  /**
+   * Looks for the current master/writer instance via the secondary protocol if it is found within 3
+   * attempts. Should it not be able to connect, the host is blacklisted and null is returned.
+   * Otherwise, it will open a new connection to the cluster endpoint and retrieve the data from
+   * there.
+   *
+   * @param secondaryProtocol the current secondary protocol
+   * @param loopAddress       list of possible hosts
+   * @return the probable master address or null if not found
+   */
+  public HostAddress searchByStartName(Protocol secondaryProtocol, List<HostAddress> loopAddress) {
+    if (!isSecondaryHostFail()) {
+      int checkWriterAttempts = 3;
+      HostAddress currentWriter = null;
+
+      do {
         try {
-            proxy.lock.lock();
-            try {
-                // Deleted instance may remain in db for 24 hours so ignoring instances that have had no change
-                // for 3 minutes
-                Results results = new Results();
-                protocol.executeQuery(false, results,
-                        "select server_id, session_id from information_schema.replica_host_status "
-                                + "where last_update_timestamp > now() - INTERVAL 3 MINUTE");
-                results.commandEnd();
-                ResultSet resultSet = results.getResultSet();
-
-                while (resultSet.next()) {
-                    endpoints.add(resultSet.getString(1) + "." + clusterDnsSuffix);
-                }
-
-                //randomize order for distributed load-balancing
-                Collections.shuffle(endpoints);
-
-            } finally {
-                proxy.lock.unlock();
-            }
+          currentWriter = searchForMasterHostAddress(secondaryProtocol, loopAddress);
         } catch (SQLException qe) {
-            logger.warning("SQL exception occurred: " + qe.getMessage());
-            if (protocol.getProxy().hasToHandleFailover(qe)) {
-                if (masterProtocol == null || masterProtocol.equals(protocol)) {
-                    setMasterHostFail();
-                } else if (secondaryProtocol.equals(protocol)) {
-                    setSecondaryHostFail();
-                }
-                addToBlacklist(protocol.getHostAddress());
-                reconnectFailedConnection(new SearchFilter(isMasterHostFail(), isSecondaryHostFail()));
-            }
+          if (proxy.hasToHandleFailover(qe) && setSecondaryHostFail()) {
+            addToBlacklist(secondaryProtocol.getHostAddress());
+            return null;
+          }
         }
+        checkWriterAttempts--;
+      } while (currentWriter == null && checkWriterAttempts > 0);
 
-        return endpoints;
-    }
-
-    /**
-     * Sets urlParser accordingly to discovered hosts.
-     *
-     * @param endpoints instance identifiers
-     * @param port      port that is common to all endpoints
-     */
-    private void setUrlParserFromEndpoints(List<String> endpoints, int port) {
-        List<HostAddress> addresses = new ArrayList<>();
-        for (String endpoint : endpoints) {
-            HostAddress newHostAddress = new HostAddress(endpoint, port, null);
-            addresses.add(newHostAddress);
-        }
-
-        synchronized (urlParser) {
-            urlParser.setHostAddresses(addresses);
-        }
-    }
-
-    /**
-     * Looks for the current master/writer instance via the secondary protocol if it is found within 3 attempts.
-     * Should it not be able to connect, the host is blacklisted and null is returned.
-     * Otherwise, it will open a new connection to the cluster endpoint and retrieve the data from there.
-     *
-     * @param secondaryProtocol the current secondary protocol
-     * @param loopAddress       list of possible hosts
-     * @return the probable master address or null if not found
-     */
-    public HostAddress searchByStartName(Protocol secondaryProtocol, List<HostAddress> loopAddress) {
-        if (!isSecondaryHostFail()) {
-            int checkWriterAttempts = 3;
-            HostAddress currentWriter = null;
-
-            do {
-                try {
-                    currentWriter = searchForMasterHostAddress(secondaryProtocol, loopAddress);
-                } catch (SQLException qe) {
-                    if (proxy.hasToHandleFailover(qe) && setSecondaryHostFail()) {
-                        addToBlacklist(secondaryProtocol.getHostAddress());
-                        return null;
-                    }
-                }
-                checkWriterAttempts--;
-            } while (currentWriter == null && checkWriterAttempts > 0);
-
-            // Handling special case where no writer is found from secondaryProtocol
-            if (currentWriter == null && getClusterHostAddress() != null) {
-                AuroraProtocol possibleMasterProtocol = AuroraProtocol.getNewProtocol(getProxy(), globalInfo, getUrlParser());
-                possibleMasterProtocol.setHostAddress(getClusterHostAddress());
-                try {
-                    possibleMasterProtocol.connect();
-                    if (possibleMasterProtocol.isMasterConnection()) {
-                        possibleMasterProtocol.setMustBeMasterConnection(true);
-                        foundActiveMaster(possibleMasterProtocol);
-                    } else {
-                        possibleMasterProtocol.setMustBeMasterConnection(false);
-                    }
-                } catch (SQLException qe) {
-                    if (proxy.hasToHandleFailover(qe)) {
-                        addToBlacklist(possibleMasterProtocol.getHostAddress());
-                    }
-                }
-            }
-
-            return currentWriter;
-        }
-        return null;
-    }
-
-    /**
-     * Aurora replica doesn't have the master endpoint but the master instance name.
-     * since the end point normally use the instance name like "instance-name.some_unique_string.region.rds.amazonaws.com",
-     * if an endpoint start with this instance name, it will be checked first.
-     * Otherwise, the endpoint ending string is extracted and used since the writer was newly created.
-     *
-     * @param protocol    current protocol
-     * @param loopAddress list of possible hosts
-     * @return the probable host address or null if no valid endpoint found
-     * @throws SQLException if any connection error occur
-     */
-    private HostAddress searchForMasterHostAddress(Protocol protocol, List<HostAddress> loopAddress) throws SQLException {
-        String masterHostName;
-        proxy.lock.lock();
+      // Handling special case where no writer is found from secondaryProtocol
+      if (currentWriter == null && getClusterHostAddress() != null) {
+        AuroraProtocol possibleMasterProtocol = AuroraProtocol
+            .getNewProtocol(getProxy(), globalInfo, getUrlParser());
+        possibleMasterProtocol.setHostAddress(getClusterHostAddress());
         try {
-            Results results = new Results();
-            protocol.executeQuery(false, results,
-                    "select server_id from information_schema.replica_host_status "
-                            + "where session_id = 'MASTER_SESSION_ID' "
-                            + "and last_update_timestamp > now() - INTERVAL 3 MINUTE "
-                            + "ORDER BY last_update_timestamp DESC LIMIT 1");
-            results.commandEnd();
-            ResultSet queryResult = results.getResultSet();
-
-            if (!queryResult.isBeforeFirst()) {
-                return null;
-            } else {
-                queryResult.next();
-                masterHostName = queryResult.getString(1);
-            }
-        } finally {
-            proxy.lock.unlock();
+          possibleMasterProtocol.connect();
+          if (possibleMasterProtocol.isMasterConnection()) {
+            possibleMasterProtocol.setMustBeMasterConnection(true);
+            foundActiveMaster(possibleMasterProtocol);
+          } else {
+            possibleMasterProtocol.setMustBeMasterConnection(false);
+          }
+        } catch (SQLException qe) {
+          if (proxy.hasToHandleFailover(qe)) {
+            addToBlacklist(possibleMasterProtocol.getHostAddress());
+          }
         }
+      }
 
-        Matcher matcher;
-        if (masterHostName != null) {
-            for (HostAddress hostAddress : loopAddress) {
-                matcher = auroraDnsPattern.matcher(hostAddress.host);
-                if (hostAddress.host.startsWith(masterHostName) && !matcher.find()) {
-                    return hostAddress;
-                }
-            }
+      return currentWriter;
+    }
+    return null;
+  }
 
-            HostAddress masterHostAddress;
-            if (clusterDnsSuffix == null && protocol.getHost().contains(".")) {
-                clusterDnsSuffix = protocol.getHost().substring(protocol.getHost().indexOf(".") + 1);
-            } else {
-                return null;
-            }
+  /**
+   * Aurora replica doesn't have the master endpoint but the master instance name. since the end
+   * point normally use the instance name like "instance-name.some_unique_string.region.rds.amazonaws.com",
+   * if an endpoint start with this instance name, it will be checked first. Otherwise, the endpoint
+   * ending string is extracted and used since the writer was newly created.
+   *
+   * @param protocol    current protocol
+   * @param loopAddress list of possible hosts
+   * @return the probable host address or null if no valid endpoint found
+   * @throws SQLException if any connection error occur
+   */
+  private HostAddress searchForMasterHostAddress(Protocol protocol, List<HostAddress> loopAddress)
+      throws SQLException {
+    String masterHostName;
+    proxy.lock.lock();
+    try {
+      Results results = new Results();
+      protocol.executeQuery(false, results,
+          "select server_id from information_schema.replica_host_status "
+              + "where session_id = 'MASTER_SESSION_ID' "
+              + "and last_update_timestamp > now() - INTERVAL 3 MINUTE "
+              + "ORDER BY last_update_timestamp DESC LIMIT 1");
+      results.commandEnd();
+      ResultSet queryResult = results.getResultSet();
 
-            masterHostAddress = new HostAddress(masterHostName + "." + clusterDnsSuffix, protocol.getPort(), null);
-            loopAddress.add(masterHostAddress);
-            urlParser.setHostAddresses(loopAddress);
-            return masterHostAddress;
-        }
-
+      if (!queryResult.isBeforeFirst()) {
         return null;
+      } else {
+        queryResult.next();
+        masterHostName = queryResult.getString(1);
+      }
+    } finally {
+      proxy.lock.unlock();
     }
 
-    @Override
-    public boolean checkMasterStatus(SearchFilter searchFilter) {
-        if (!isMasterHostFail()) {
-            try {
-                if (masterProtocol != null && !masterProtocol.checkIfMaster()) {
-                    //master has been demote, is now secondary
-                    setMasterHostFail();
-                    if (isSecondaryHostFail()) {
-                        foundActiveSecondary(masterProtocol);
-                    }
-                    return true;
-                }
-            } catch (SQLException e) {
-                try {
-                    masterProtocol.ping();
-                } catch (SQLException ee) {
-                    proxy.lock.lock();
-                    try {
-                        masterProtocol.close();
-                    } finally {
-                        proxy.lock.unlock();
-                    }
-                    if (setMasterHostFail()) {
-                        addToBlacklist(masterProtocol.getHostAddress());
-                    }
-                }
-                return true;
-            }
+    Matcher matcher;
+    if (masterHostName != null) {
+      for (HostAddress hostAddress : loopAddress) {
+        matcher = auroraDnsPattern.matcher(hostAddress.host);
+        if (hostAddress.host.startsWith(masterHostName) && !matcher.find()) {
+          return hostAddress;
         }
+      }
 
-        if (!isSecondaryHostFail()) {
-            try {
-                if (secondaryProtocol != null && secondaryProtocol.checkIfMaster()) {
-                    //secondary has been promoted to master
-                    setSecondaryHostFail();
-                    if (isMasterHostFail()) {
-                        foundActiveMaster(secondaryProtocol);
-                    }
-                    return true;
-                }
-            } catch (SQLException e) {
-                try {
-                    this.secondaryProtocol.ping();
-                } catch (Exception ee) {
-                    proxy.lock.lock();
-                    try {
-                        secondaryProtocol.close();
-                    } finally {
-                        proxy.lock.unlock();
-                    }
-                    if (setSecondaryHostFail()) {
-                        addToBlacklist(this.secondaryProtocol.getHostAddress());
-                    }
-                    return true;
-                }
-            }
-        }
+      HostAddress masterHostAddress;
+      if (clusterDnsSuffix == null && protocol.getHost().contains(".")) {
+        clusterDnsSuffix = protocol.getHost().substring(protocol.getHost().indexOf(".") + 1);
+      } else {
+        return null;
+      }
 
-        return false;
+      masterHostAddress = new HostAddress(masterHostName + "." + clusterDnsSuffix,
+          protocol.getPort(), null);
+      loopAddress.add(masterHostAddress);
+      urlParser.setHostAddresses(loopAddress);
+      return masterHostAddress;
     }
+
+    return null;
+  }
+
+  @Override
+  public boolean checkMasterStatus(SearchFilter searchFilter) {
+    if (!isMasterHostFail()) {
+      try {
+        if (masterProtocol != null && !masterProtocol.checkIfMaster()) {
+          //master has been demote, is now secondary
+          setMasterHostFail();
+          if (isSecondaryHostFail()) {
+            foundActiveSecondary(masterProtocol);
+          }
+          return true;
+        }
+      } catch (SQLException e) {
+        try {
+          masterProtocol.ping();
+        } catch (SQLException ee) {
+          proxy.lock.lock();
+          try {
+            masterProtocol.close();
+          } finally {
+            proxy.lock.unlock();
+          }
+          if (setMasterHostFail()) {
+            addToBlacklist(masterProtocol.getHostAddress());
+          }
+        }
+        return true;
+      }
+    }
+
+    if (!isSecondaryHostFail()) {
+      try {
+        if (secondaryProtocol != null && secondaryProtocol.checkIfMaster()) {
+          //secondary has been promoted to master
+          setSecondaryHostFail();
+          if (isMasterHostFail()) {
+            foundActiveMaster(secondaryProtocol);
+          }
+          return true;
+        }
+      } catch (SQLException e) {
+        try {
+          this.secondaryProtocol.ping();
+        } catch (Exception ee) {
+          proxy.lock.lock();
+          try {
+            secondaryProtocol.close();
+          } finally {
+            proxy.lock.unlock();
+          }
+          if (setSecondaryHostFail()) {
+            addToBlacklist(this.secondaryProtocol.getHostAddress());
+          }
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
 
 }

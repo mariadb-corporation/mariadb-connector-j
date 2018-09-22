@@ -57,47 +57,48 @@ import java.nio.charset.StandardCharsets;
 
 public class ErrorPacket {
 
-    private static final String GENERAL_ERROR = "HY000";
+  private static final String GENERAL_ERROR = "HY000";
 
-    private final short errorNumber;
-    private final byte sqlStateMarker;
-    private final String sqlState;
-    private final String message;
+  private final short errorNumber;
+  private final byte sqlStateMarker;
+  private final String sqlState;
+  private final String message;
 
-    /**
-     * Reading error stream.
-     *
-     * @param buffer current stream rawBytes
-     */
-    public ErrorPacket(Buffer buffer) {
-        buffer.skipByte();
-        errorNumber = buffer.readShort();
-        sqlStateMarker = buffer.readByte();
-        if (sqlStateMarker == '#') {
-            sqlState = buffer.readString(5);
-            message = buffer.readStringNullEnd(StandardCharsets.UTF_8);
-        } else {
-            // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
-            buffer.position -= 1;
-            message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position, StandardCharsets.UTF_8);
-            sqlState = GENERAL_ERROR;
-        }
+  /**
+   * Reading error stream.
+   *
+   * @param buffer current stream rawBytes
+   */
+  public ErrorPacket(Buffer buffer) {
+    buffer.skipByte();
+    errorNumber = buffer.readShort();
+    sqlStateMarker = buffer.readByte();
+    if (sqlStateMarker == '#') {
+      sqlState = buffer.readString(5);
+      message = buffer.readStringNullEnd(StandardCharsets.UTF_8);
+    } else {
+      // Pre-4.1 message, still can be output in newer versions (e.g with 'Too many connections')
+      buffer.position -= 1;
+      message = new String(buffer.buf, buffer.position, buffer.limit - buffer.position,
+          StandardCharsets.UTF_8);
+      sqlState = GENERAL_ERROR;
     }
+  }
 
 
-    public String getMessage() {
-        return message;
-    }
+  public String getMessage() {
+    return message;
+  }
 
-    public short getErrorNumber() {
-        return errorNumber;
-    }
+  public short getErrorNumber() {
+    return errorNumber;
+  }
 
-    public String getSqlState() {
-        return new String(sqlState);
-    }
+  public String getSqlState() {
+    return new String(sqlState);
+  }
 
-    public byte getSqlStateMarker() {
-        return sqlStateMarker;
-    }
+  public byte getSqlStateMarker() {
+    return sqlStateMarker;
+  }
 }
