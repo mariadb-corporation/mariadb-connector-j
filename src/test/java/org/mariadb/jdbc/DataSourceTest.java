@@ -107,6 +107,44 @@ public class DataSourceTest extends BaseTest {
     }
   }
 
+  @Test
+  public void testDataSourceTimeout() throws SQLException {
+    MariaDbDataSource ds = new MariaDbDataSource(hostname, port, database);
+    assertEquals(ds.getLoginTimeout(), 30);
+    ds.setLoginTimeout(10);
+    assertEquals(ds.getLoginTimeout(), 10);
+    ds.initialize();
+    assertEquals(ds.getUrlParser().getOptions().connectTimeout, 10_000);
+  }
+
+  @Test
+  public void testDataSourceTimeout2() throws SQLException {
+    MariaDbDataSource ds = new MariaDbDataSource();
+    ds.setUrl("jdbc:mariadb://localhost/test?connectTimeout=2000");
+    ds.initialize();
+    assertEquals(ds.getUrlParser().getOptions().connectTimeout, 2_000);
+  }
+
+  @Test
+  public void testDataSourceTimeout3() throws SQLException {
+    MariaDbDataSource ds = new MariaDbDataSource();
+    ds.setUrl("jdbc:mariadb://localhost/test?connectTimeout=2000");
+    ds.initialize();
+    assertEquals(ds.getLoginTimeout(), 2);
+    assertEquals(ds.getUrlParser().getOptions().connectTimeout, 2_000);
+  }
+
+
+  @Test
+  public void testDataSourceTimeout4() throws SQLException {
+    MariaDbDataSource ds = new MariaDbDataSource();
+    ds.setUrl("jdbc:mariadb://localhost/test");
+    ds.setLoginTimeout(10);
+    ds.initialize();
+    assertEquals(ds.getLoginTimeout(), 10);
+    assertEquals(ds.getUrlParser().getOptions().connectTimeout, 10_000);
+  }
+
   /**
    * Conj-80.
    *

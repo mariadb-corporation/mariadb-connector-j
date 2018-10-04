@@ -79,7 +79,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
 
   private String hostname;
   private Integer port = 3306;
-  private Integer connectTimeoutInMs = 30_000;
+  private Integer connectTimeoutInMs;
   private String database;
   private String url;
   private String user;
@@ -374,7 +374,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
     if (connectTimeoutInMs != null) {
       return connectTimeoutInMs / 1000;
     }
-    return (urlParser != null) ? urlParser.getOptions().connectTimeout / 1000 : 0;
+    return (urlParser != null) ? urlParser.getOptions().connectTimeout / 1000 : 30;
   }
 
   /**
@@ -530,6 +530,9 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
           HaMode.NONE);
       if (properties != null) {
         urlParser.setProperties(properties);
+      }
+      if (connectTimeoutInMs != null) {
+        urlParser.getOptions().connectTimeout = connectTimeoutInMs;
       }
     }
   }
