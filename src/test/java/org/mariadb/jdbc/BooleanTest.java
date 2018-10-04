@@ -170,6 +170,7 @@ public class BooleanTest extends BaseTest {
       assertEquals(expectedValue, rs.getBoolean(i));
       if (i == 1 || i == 2) {
         assertEquals(expectedNull, rs.getObject(i));
+        assertEquals(expectedNull, rs.getObject(i, Boolean.class));
       }
     }
   }
