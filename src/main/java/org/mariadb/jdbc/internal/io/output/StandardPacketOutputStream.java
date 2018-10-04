@@ -60,6 +60,7 @@ import java.util.Arrays;
 import org.mariadb.jdbc.internal.io.TraceObject;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
 
 public class StandardPacketOutputStream extends AbstractPacketOutputStream {
@@ -69,8 +70,8 @@ public class StandardPacketOutputStream extends AbstractPacketOutputStream {
   private static final int MAX_PACKET_LENGTH = 0x00ffffff + 4;
   private int maxPacketLength = MAX_PACKET_LENGTH;
 
-  public StandardPacketOutputStream(OutputStream out, int maxQuerySizeToLog) {
-    super(out, maxQuerySizeToLog);
+  public StandardPacketOutputStream(OutputStream out, Options options) {
+    super(out, options.maxQuerySizeToLog);
   }
 
   public int getMaxPacketLength() {

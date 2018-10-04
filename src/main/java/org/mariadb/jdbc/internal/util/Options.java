@@ -154,7 +154,7 @@ public class Options implements Cloneable {
   public boolean registerJmxPool = true;
   public int poolValidMinDelay = 1000;
   public boolean useResetConnection;
-
+  public boolean useReadAheadInput = true;
 
   @Override
   public String toString() {
@@ -329,6 +329,9 @@ public class Options implements Cloneable {
       return false;
     }
     if (useResetConnection != opt.useResetConnection) {
+      return false;
+    }
+    if (useReadAheadInput != opt.useReadAheadInput) {
       return false;
     }
     if (maxPoolSize != opt.maxPoolSize) {
@@ -546,6 +549,7 @@ public class Options implements Cloneable {
     result = 31 * result + (pool ? 1 : 0);
     result = 31 * result + (registerJmxPool ? 1 : 0);
     result = 31 * result + (useResetConnection ? 1 : 0);
+    result = 31 * result + (useReadAheadInput ? 1 : 0);
     result = 31 * result + (staticGlobal ? 1 : 0);
     result = 31 * result + (poolName != null ? poolName.hashCode() : 0);
     result = 31 * result + (galeraAllowedState != null ? galeraAllowedState.hashCode() : 0);

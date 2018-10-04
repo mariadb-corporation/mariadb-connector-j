@@ -372,7 +372,9 @@ public enum DefaultOptions {
       "add \"SHOW ENGINE INNODB STATUS\" result to exception trace when having a deadlock exception",
       false),
   INCLUDE_THREAD_DUMP("includeThreadDumpInDeadlockExceptions", Boolean.FALSE, "2.3.0",
-      "add thread dump to exception trace when having a deadlock exception", false);
+      "add thread dump to exception trace when having a deadlock exception", false),
+  READ_AHEAD("useReadAheadInput", Boolean.TRUE, "2.3.1",
+      "use a buffered inputSteam that read socket available data", false);
 
   private final String optionName;
   private final String description;

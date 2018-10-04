@@ -512,7 +512,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         writer = new CompressPacketOutputStream(writer.getOutputStream(),
             options.maxQuerySizeToLog);
         reader = new DecompressPacketInputStream(
-            ((StandardPacketInputStream) reader).getBufferedInputStream(),
+            ((StandardPacketInputStream) reader).getInputStream(),
             options.maxQuerySizeToLog);
         if (options.enablePacketDebug) {
           writer.setTraceCache(traceCache);
@@ -772,8 +772,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   private void handleConnectionPhases(String host) throws SQLException {
     try {
-      reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
-      writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
+      reader = new StandardPacketInputStream(socket.getInputStream(), options);
+      writer = new StandardPacketOutputStream(socket.getOutputStream(), options);
 
       if (options.enablePacketDebug) {
         writer.setTraceCache(traceCache);
@@ -834,9 +834,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
 
         socket = sslSocket;
-        writer = new StandardPacketOutputStream(socket.getOutputStream(),
-            options.maxQuerySizeToLog);
-        reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
+        writer = new StandardPacketOutputStream(socket.getOutputStream(), options);
+        reader = new StandardPacketInputStream(socket.getInputStream(), options);
 
         if (options.enablePacketDebug) {
           writer.setTraceCache(traceCache);
