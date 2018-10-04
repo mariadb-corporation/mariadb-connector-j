@@ -130,43 +130,43 @@ import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
 public abstract class AbstractConnectProtocol implements Protocol {
-    private static final byte[] SESSION_QUERY = ("SELECT @@max_allowed_packet,"
-            + "@@system_time_zone,"
-            + "@@time_zone,"
-            + "@@auto_increment_increment").getBytes(Buffer.UTF_8);
-    private static final byte[] IS_MASTER_QUERY = "show global variables like 'innodb_read_only'".getBytes(Buffer.UTF_8);
-    private static final Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
-    protected final ReentrantLock lock;
-    protected final UrlParser urlParser;
-    protected final Options options;
-    private final String username;
-    private final String password;
-    public boolean hasWarnings = false;
-    public Results activeStreamingResult = null;
-    public short serverStatus;
-    protected int autoIncrementIncrement;
-    protected Socket socket;
-    protected PacketOutputStream writer;
-    protected boolean readOnly = false;
-    protected PacketInputStream reader;
-    private HostAddress currentHost;
-    protected FailoverProxy proxy;
-    protected volatile boolean connected = false;
-    protected boolean explicitClosed = false;
-    protected String database;
-    protected long serverThreadId;
-    protected ServerPrepareStatementCache serverPrepareStatementCache;
-    protected boolean eofDeprecated = false;
-    protected long serverCapabilities;
-    private boolean hostFailed;
-    private String serverVersion;
-    private boolean serverMariaDb;
-    private int majorVersion;
-    private int minorVersion;
-    private int patchVersion;
-    private TimeZone timeZone;
-    private final LruTraceCache traceCache = new LruTraceCache();
-    private final GlobalStateInfo globalInfo;
+  private static final byte[] SESSION_QUERY = ("SELECT @@max_allowed_packet,"
+          + "@@system_time_zone,"
+          + "@@time_zone,"
+          + "@@auto_increment_increment").getBytes(Buffer.UTF_8);
+  private static final byte[] IS_MASTER_QUERY = "show global variables like 'innodb_read_only'".getBytes(Buffer.UTF_8);
+  private static final Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
+  protected final ReentrantLock lock;
+  protected final UrlParser urlParser;
+  protected final Options options;
+  private final String username;
+  private final String password;
+  public boolean hasWarnings = false;
+  public Results activeStreamingResult = null;
+  public short serverStatus;
+  protected int autoIncrementIncrement;
+  protected Socket socket;
+  protected PacketOutputStream writer;
+  protected boolean readOnly = false;
+  protected PacketInputStream reader;
+  private HostAddress currentHost;
+  protected FailoverProxy proxy;
+  protected volatile boolean connected = false;
+  protected boolean explicitClosed = false;
+  protected String database;
+  protected long serverThreadId;
+  protected ServerPrepareStatementCache serverPrepareStatementCache;
+  protected boolean eofDeprecated = false;
+  protected long serverCapabilities;
+  private boolean hostFailed;
+  private String serverVersion;
+  private boolean serverMariaDb;
+  private int majorVersion;
+  private int minorVersion;
+  private int patchVersion;
+  private TimeZone timeZone;
+  private final LruTraceCache traceCache = new LruTraceCache();
+  private final GlobalStateInfo globalInfo;
 
     /**
      * Get a protocol instance.
@@ -475,14 +475,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
             connected = true;
 
-            if (options.useCompression) {
-                writer = new CompressPacketOutputStream(writer.getOutputStream(), options.maxQuerySizeToLog);
-                reader = new DecompressPacketInputStream(((StandardPacketInputStream) reader).getBufferedInputStream(), options.maxQuerySizeToLog);
-                if (options.enablePacketDebug) {
-                    writer.setTraceCache(traceCache);
-                    reader.setTraceCache(traceCache);
-                }
-            }
+      if (options.useCompression) {
+        writer = new CompressPacketOutputStream(writer.getOutputStream(),
+            options.maxQuerySizeToLog);
+        reader = new DecompressPacketInputStream(
+            ((StandardPacketInputStream) reader).getInputStream(),
+            options.maxQuerySizeToLog);
+        if (options.enablePacketDebug) {
+          writer.setTraceCache(traceCache);
+          reader.setTraceCache(traceCache);
+        }
+      }
 
             boolean mustLoadAdditionalInfo = true;
             if (globalInfo != null) {
@@ -726,100 +729,100 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return !this.connected;
     }
 
-    private void handleConnectionPhases(String host) throws SQLException {
-        try {
-            reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
-            writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
+  private void handleConnectionPhases(String host) throws SQLException {
+    try {
+      reader = new StandardPacketInputStream(socket.getInputStream(), options);
+      writer = new StandardPacketOutputStream(socket.getOutputStream(), options);
 
-            if (options.enablePacketDebug) {
-                writer.setTraceCache(traceCache);
-                reader.setTraceCache(traceCache);
-            }
+      if (options.enablePacketDebug) {
+        writer.setTraceCache(traceCache);
+        reader.setTraceCache(traceCache);
+      }
 
-            final ReadInitialHandShakePacket greetingPacket = new ReadInitialHandShakePacket(reader);
-            this.serverThreadId = greetingPacket.getServerThreadId();
-            reader.setServerThreadId(this.serverThreadId, null);
-            writer.setServerThreadId(this.serverThreadId, null);
+      final ReadInitialHandShakePacket greetingPacket = new ReadInitialHandShakePacket(reader);
+      this.serverThreadId = greetingPacket.getServerThreadId();
+      reader.setServerThreadId(this.serverThreadId, null);
+      writer.setServerThreadId(this.serverThreadId, null);
 
-            this.serverVersion = greetingPacket.getServerVersion();
-            this.serverMariaDb = greetingPacket.isServerMariaDb();
-            this.serverCapabilities = greetingPacket.getServerCapabilities();
+      this.serverVersion = greetingPacket.getServerVersion();
+      this.serverMariaDb = greetingPacket.isServerMariaDb();
+      this.serverCapabilities = greetingPacket.getServerCapabilities();
 
-            byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage() & 0xFF);
-            parseVersion();
-            long clientCapabilities = initializeClientCapabilities(serverCapabilities);
+      byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage() & 0xFF);
+      parseVersion();
+      long clientCapabilities = initializeClientCapabilities(serverCapabilities);
 
-            byte packetSeq = 1;
-            if (options.useSsl && (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.SSL) != 0) {
-                clientCapabilities |= MariaDbServerCapabilities.SSL;
-                SendSslConnectionRequestPacket amcap = new SendSslConnectionRequestPacket(clientCapabilities, exchangeCharset);
-                amcap.send(writer);
+      byte packetSeq = 1;
+      if (options.useSsl && (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.SSL) != 0) {
+        clientCapabilities |= MariaDbServerCapabilities.SSL;
+        SendSslConnectionRequestPacket amcap = new SendSslConnectionRequestPacket(clientCapabilities, exchangeCharset);
+        amcap.send(writer);
 
-                SSLSocketFactory sslSocketFactory = getSslSocketFactory();
-                SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
-                        socket.getInetAddress().getHostAddress(), socket.getPort(), true);
+        SSLSocketFactory sslSocketFactory = getSslSocketFactory();
+        SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
+                socket.getInetAddress().getHostAddress(), socket.getPort(), true);
 
-                enabledSslProtocolSuites(sslSocket);
-                enabledSslCipherSuites(sslSocket);
+        enabledSslProtocolSuites(sslSocket);
+        enabledSslCipherSuites(sslSocket);
 
-                sslSocket.setUseClientMode(true);
-                sslSocket.startHandshake();
+        sslSocket.setUseClientMode(true);
+        sslSocket.startHandshake();
 
 
-                // perform hostname verification
-                // (rfc2818 indicate that if "client has external information as to the expected identity of the server,
-                // the hostname check MAY be omitted")
-                if (!options.disableSslHostnameVerification && !options.trustServerCertificate) {
-                    HostnameVerifierImpl hostnameVerifier = new HostnameVerifierImpl();
-                    SSLSession session = sslSocket.getSession();
-                    if (!hostnameVerifier.verify(host, session, serverThreadId)) {
+        // perform hostname verification
+        // (rfc2818 indicate that if "client has external information as to the expected identity of the server,
+        // the hostname check MAY be omitted")
+        if (!options.disableSslHostnameVerification && !options.trustServerCertificate) {
+            HostnameVerifierImpl hostnameVerifier = new HostnameVerifierImpl();
+            SSLSession session = sslSocket.getSession();
+            if (!hostnameVerifier.verify(host, session, serverThreadId)) {
 
-                        //Use proprietary verify method in order to have an exception with a better description of error.
-                        try {
-                            Certificate[] certs = session.getPeerCertificates();
-                            X509Certificate cert = (X509Certificate) certs[0];
-                            hostnameVerifier.verify(host, cert, serverThreadId);
-                        } catch (SSLException ex) {
-                            throw new SQLNonTransientConnectionException("SSL hostname verification failed : " + ex.getMessage()
-                                    + "\nThis verification can be disabled using the option \"disableSslHostnameVerification\" "
-                                    + "but won't prevent man-in-the-middle attacks anymore", "08006");
-                        }
-                    }
-                }
-
-                socket = sslSocket;
-                writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
-                reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
-
-                if (options.enablePacketDebug) {
-                    writer.setTraceCache(traceCache);
-                    reader.setTraceCache(traceCache);
-                }
-                packetSeq++;
-            } else if (options.useSsl) {
-                throw new SQLException("Trying to connect with ssl, but ssl not enabled in the server");
-            }
-
-            authentication(exchangeCharset, clientCapabilities, packetSeq, greetingPacket);
-
-        } catch (IOException ioException) {
-            if (reader != null) {
+                //Use proprietary verify method in order to have an exception with a better description of error.
                 try {
-                    reader.close();
-                } catch (IOException ee) {
-                    //eat exception
+                    Certificate[] certs = session.getPeerCertificates();
+                    X509Certificate cert = (X509Certificate) certs[0];
+                    hostnameVerifier.verify(host, cert, serverThreadId);
+                } catch (SSLException ex) {
+                    throw new SQLNonTransientConnectionException("SSL hostname verification failed : " + ex.getMessage()
+                            + "\nThis verification can be disabled using the option \"disableSslHostnameVerification\" "
+                            + "but won't prevent man-in-the-middle attacks anymore", "08006");
                 }
             }
-            if (currentHost == null) {
-                throw ExceptionMapper.connException(
-                        "Could not connect to socket : " + ioException.getMessage(),
-                        ioException);
-            }
-            throw ExceptionMapper.connException(
-                    "Could not connect to " + currentHost.host + ":" + currentHost.port + " : " + ioException.getMessage(),
-                    ioException);
         }
+
+        socket = sslSocket;
+        writer = new StandardPacketOutputStream(socket.getOutputStream(), options);
+        reader = new StandardPacketInputStream(socket.getInputStream(), options);
+
+        if (options.enablePacketDebug) {
+            writer.setTraceCache(traceCache);
+            reader.setTraceCache(traceCache);
+        }
+        packetSeq++;
+      } else if (options.useSsl) {
+          throw new SQLException("Trying to connect with ssl, but ssl not enabled in the server");
+      }
+
+      authentication(exchangeCharset, clientCapabilities, packetSeq, greetingPacket);
+
+    } catch (IOException ioException) {
+      if (reader != null) {
+        try {
+          reader.close();
+        } catch (IOException ee) {
+          //eat exception
+        }
+      }
+      if (currentHost == null) {
+        throw ExceptionMapper.connException(
+            "Could not connect to socket : " + ioException.getMessage(),
+            ioException);
+      }
+      throw ExceptionMapper.connException(
+          "Could not connect to " + currentHost.host + ":" + currentHost.port + " : " + ioException.getMessage(),
+          ioException);
     }
+  }
 
     private void authentication(byte exchangeCharset, long clientCapabilities, byte packetSeq, ReadInitialHandShakePacket greetingPacket)
             throws SQLException, IOException {
