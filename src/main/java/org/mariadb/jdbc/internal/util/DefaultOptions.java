@@ -116,7 +116,7 @@ public enum DefaultOptions {
       "DatabaseMetaData use current catalog"
           + " if null.", false),
   TINY_INT_IS_BIT("tinyInt1isBit", Boolean.TRUE, "1.0.0",
-      "Datatype mapping flag, handle MySQL Tiny as BIT(boolean).",
+      "Datatype mapping flag, handle Tiny as BIT(boolean).",
       false),
   YEAR_IS_DATE_TYPE("yearIsDateType", Boolean.TRUE, "1.0.0",
       "Year is date type, rather than numerical.", false),
@@ -211,7 +211,7 @@ public enum DefaultOptions {
           + " time difference), doesn't take\n"
           + "timezone in account.", false),
   MAXIMIZE_MYSQL_COMPATIBILITY("maximizeMysqlCompatibility", Boolean.FALSE, "1.3.0",
-      "maximize Mysql compatibility.\n"
+      "maximize MySQL compatibility.\n"
           + "when using jdbc setDate(), will store date in client timezone, not in server timezone when "
           + "useLegacyDatetimeCode = false.\n"
           + "default to false.", false),
@@ -298,7 +298,7 @@ public enum DefaultOptions {
       + " pipeline (all queries are send, then only all results are reads), permitting faster connection "
       + "creation", false),
   ENABLE_PACKET_DEBUG("enablePacketDebug", Boolean.FALSE, "1.6.0",
-      "Driver will save the last 16 MySQL packet "
+      "Driver will save the last 16 MariaDB packet "
           + "exchanges (limited to first 1000 bytes). Hexadecimal value of those packets will be added to stacktrace"
           + " when an IOException occur.\n"
           + "This option has no impact on performance but driver will then take 16kb more memory.",

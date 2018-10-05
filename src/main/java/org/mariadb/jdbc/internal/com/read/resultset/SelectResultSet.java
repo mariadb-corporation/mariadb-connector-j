@@ -254,7 +254,7 @@ public class SelectResultSet implements ResultSet {
    *
    * @param data                 - each element of this array represents a complete row in the
    *                             ResultSet. Each value is given in its string representation, as in
-   *                             MySQL text protocol, except boolean (BIT(1)) values that are
+   *                             MariaDB text protocol, except boolean (BIT(1)) values that are
    *                             represented as "1" or "0" strings
    * @param protocol             protocol
    * @param findColumnReturnsOne - special parameter, used only in generated key result sets
@@ -289,7 +289,7 @@ public class SelectResultSet implements ResultSet {
    * @param columnNames - string array of column names
    * @param columnTypes - column types
    * @param data        - each element of this array represents a complete row in the ResultSet.
-   *                    Each value is given in its string representation, as in MySQL text protocol,
+   *                    Each value is given in its string representation, as in MariaDB text protocol,
    *                    except boolean (BIT(1)) values that are represented as "1" or "0" strings
    * @param protocol    protocol
    * @return resultset
