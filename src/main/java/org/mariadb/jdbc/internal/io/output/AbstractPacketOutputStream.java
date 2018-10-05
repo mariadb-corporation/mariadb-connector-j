@@ -85,7 +85,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
   private boolean bufferContainDataAfterMark = false;
 
   /**
-   * Common feature to write data into socket, creating MySQL Packet.
+   * Common feature to write data into socket, creating MariaDB Packet.
    *
    * @param out               socket outputStream
    * @param maxQuerySizeToLog maximum query size to log

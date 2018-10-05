@@ -102,7 +102,7 @@ public class HostAddress {
    * parse - parse server addresses from the URL fragment.
    *
    * @param spec   list of endpoints in one of the forms 1 - host1,....,hostN:port (missing port
-   *               default to MySQL default 3306 2 - host:port,...,host:port
+   *               default to MariaDB default 3306 2 - host:port,...,host:port
    * @param haMode High availability mode
    * @return parsed endpoints
    */

@@ -647,14 +647,14 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
    * <P><B>Note:</B> You must specify the parameter's SQL type.</P>
    *
    * @param parameterIndex the first parameter is 1, the second is 2, ...
-   * @param mysqlType      the type code defined in <code> ColumnType</code>
+   * @param mariadbType      the type code defined in <code> ColumnType</code>
    * @throws SQLException                    if parameterIndex does not correspond to a parameter
    *                                         marker in the SQL statement; if a database access error
    *                                         occurs or this method is called on a closed
    *                                         <code>PreparedStatement</code>
    */
-  public void setNull(final int parameterIndex, final ColumnType mysqlType) throws SQLException {
-    setParameter(parameterIndex, new NullParameter(mysqlType));
+  public void setNull(final int parameterIndex, final ColumnType mariadbType) throws SQLException {
+    setParameter(parameterIndex, new NullParameter(mariadbType));
   }
 
   /**

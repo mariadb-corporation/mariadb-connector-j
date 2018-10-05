@@ -75,7 +75,7 @@ import org.mariadb.jdbc.internal.util.dao.Identifier;
 
 public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
-  public static final String DRIVER_NAME = "MariaDB connector/J";
+  public static final String DRIVER_NAME = "MariaDB Connector/J";
   private final String url;
   private final MariaDbConnection connection;
   private final String username;
@@ -486,13 +486,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * Generate part of the information schema query that restricts catalog names In the driver,
-   * catalogs is the equivalent to MySQL schemas.
+   * catalogs is the equivalent to MariaDB schemas.
    *
    * @param columnName - column name in the information schema table
    * @param catalog    - catalog name. This driver does not (always) follow JDBC standard for
    *                   following special values, due to ConnectorJ compatibility 1. empty string
    *                   ("") - matches current catalog (i.e database). JDBC standard says only tables
-   *                   without catalog should be returned - such tables do not exist in MySQL. If
+   *                   without catalog should be returned - such tables do not exist in MariaDB. If
    *                   there is no current catalog, then empty string matches any catalog. 2. null -
    *                   if nullCatalogMeansCurrent=true (which is the default), then the handling is
    *                   the same as for "" . i.e return current catalog.JDBC-conforming way would be
@@ -575,7 +575,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * Maps standard table types to mysql ones - helper since table type is never "table" in mysql, it
+   * Maps standard table types to MariaDB ones - helper since table type is never "table" in MariaDB, it
    * is "base table".
    *
    * @param tableType the table type defined by user
@@ -1130,7 +1130,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   }
 
   public String getDatabaseProductName() throws SQLException {
-    return "MySQL";
+    return connection.getProtocol().isServerMariaDb() ? "MariaDB" : "MySQL";
   }
 
   public String getDatabaseProductVersion() throws SQLException {

@@ -898,7 +898,7 @@ public class MariaDbConnection implements Connection {
    * <p>Sets the given catalog name in order to select a subspace of this <code>Connection</code>
    * object's database in which to work.</p>
    * <p>If the driver does not support catalogs, it will silently ignore this request.</p>
-   * MySQL treats catalogs and databases as equivalent
+   * MariaDB treats catalogs and databases as equivalent
    *
    * @param catalog the name of a catalog (subspace in this <code>Connection</code> object's
    *                database) in which to work

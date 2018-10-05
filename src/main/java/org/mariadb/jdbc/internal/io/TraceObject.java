@@ -63,7 +63,7 @@ public class TraceObject {
   private byte[][] buf;
 
   /**
-   * Permit to store MySQL packets.
+   * Permit to store MariaDB packets.
    *
    * @param send          was packet send or received
    * @param indicatorFlag indicator. can be NOT_COMPRESSED, COMPRESSED_PROTOCOL_COMPRESSED_PACKET or

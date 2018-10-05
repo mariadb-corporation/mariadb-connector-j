@@ -297,7 +297,7 @@ public class FailoverProxy implements InvocationHandler {
             return handleFailOver(queryException, method, args, protocol);
           }
 
-          //error is "The MySQL server is running with the %s option so it cannot execute this statement"
+          //error is "The MariaDB server is running with the %s option so it cannot execute this statement"
           //checking that server was master has not been demote to slave without resetting connections
           if (queryException.getErrorCode() == 1290
               && !isSecondExecution
