@@ -86,7 +86,7 @@ matrix:
       jdk: openjdk7
     - env: DB=mariadb:10.3 PACKET=8M
       jdk: openjdk7
-    - env: DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.2.2
+    - env: DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.2.9
       jdk: openjdk7
 
 script:
