@@ -84,7 +84,7 @@ matrix:
       jdk: oraclejdk8
     - env: DB=mariadb:10.3 PACKET=8M
       jdk: oraclejdk8
-    - env: DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.2.2
+    - env: DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.2.9
       jdk: oraclejdk8
 
 script:
