@@ -79,7 +79,7 @@ import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
-public abstract class CallableFunctionStatement extends MariaDbPreparedStatementClient implements
+public abstract class CallableFunctionStatement extends ClientSidePreparedStatement implements
     CallableStatement {
 
   protected CallableParameterMetaData parameterMetadata;

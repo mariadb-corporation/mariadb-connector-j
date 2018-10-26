@@ -82,9 +82,9 @@ import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.TimeZone;
 import org.mariadb.jdbc.BasePrepareStatement;
+import org.mariadb.jdbc.ClientSidePreparedStatement;
 import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.MariaDbPreparedStatementClient;
-import org.mariadb.jdbc.MariaDbPreparedStatementServer;
+import org.mariadb.jdbc.ServerSidePreparedStatement;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.send.parameters.BigDecimalParameter;
@@ -130,8 +130,8 @@ public class UpdatableResultSet extends SelectResultSet {
   private ParameterHolder[] parameterHolders;
   private MariaDbConnection connection;
   private PreparedStatement refreshPreparedStatement = null;
-  private MariaDbPreparedStatementClient insertPreparedStatement = null;
-  private MariaDbPreparedStatementClient deletePreparedStatement = null;
+  private ClientSidePreparedStatement insertPreparedStatement = null;
+  private ClientSidePreparedStatement deletePreparedStatement = null;
 
 
   /**
@@ -1356,7 +1356,7 @@ public class UpdatableResultSet extends SelectResultSet {
       }
       updateSql.append(whereClause.toString());
 
-      MariaDbPreparedStatementClient preparedStatement = connection
+      ClientSidePreparedStatement preparedStatement = connection
           .clientPrepareStatement(updateSql.toString());
       int fieldsIndex = 0;
       int fieldsPrimaryIndex = 0;
@@ -1495,10 +1495,10 @@ public class UpdatableResultSet extends SelectResultSet {
           //Row has just been updated using updateRow() methods.
           //updateRow has changed primary key, must use the new value.
           if (isBinaryEncoded()) {
-            ((MariaDbPreparedStatementServer) refreshPreparedStatement)
+            ((ServerSidePreparedStatement) refreshPreparedStatement)
                 .setParameter(fieldsPrimaryIndex++, value);
           } else {
-            ((MariaDbPreparedStatementClient) refreshPreparedStatement)
+            ((ClientSidePreparedStatement) refreshPreparedStatement)
                 .setParameter(fieldsPrimaryIndex++, value);
           }
         } else {

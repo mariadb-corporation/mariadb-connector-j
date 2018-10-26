@@ -80,7 +80,7 @@ import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 
-public abstract class CallableProcedureStatement extends MariaDbPreparedStatementServer implements
+public abstract class CallableProcedureStatement extends ServerSidePreparedStatement implements
     CallableStatement, Cloneable {
 
   /**

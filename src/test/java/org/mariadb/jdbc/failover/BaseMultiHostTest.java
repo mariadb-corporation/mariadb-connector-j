@@ -73,7 +73,7 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
-import org.mariadb.jdbc.MariaDbPreparedStatementServer;
+import org.mariadb.jdbc.ServerSidePreparedStatement;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -425,9 +425,9 @@ public class BaseMultiHostTest {
     return md.getDatabaseProductVersion().contains("MariaDB");
   }
 
-  protected ServerPrepareResult getPrepareResult(MariaDbPreparedStatementServer preparedStatement)
+  protected ServerPrepareResult getPrepareResult(ServerSidePreparedStatement preparedStatement)
       throws IllegalAccessException, NoSuchFieldException {
-    Field prepareResultField = MariaDbPreparedStatementServer.class
+    Field prepareResultField = ServerSidePreparedStatement.class
         .getDeclaredField("serverPrepareResult");
     prepareResultField.setAccessible(true);
     return (ServerPrepareResult) prepareResultField.get(preparedStatement); //IllegalAccessException

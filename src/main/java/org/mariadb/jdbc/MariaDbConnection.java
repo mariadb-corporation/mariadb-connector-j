@@ -283,9 +283,9 @@ public class MariaDbConnection implements Connection {
    * @return a client prepared statement.
    * @throws SQLException if there is a problem preparing the statement.
    */
-  public MariaDbPreparedStatementClient clientPrepareStatement(final String sql)
+  public ClientSidePreparedStatement clientPrepareStatement(final String sql)
       throws SQLException {
-    return new MariaDbPreparedStatementClient(this,
+    return new ClientSidePreparedStatement(this,
         sql,
         ResultSet.TYPE_FORWARD_ONLY,
         ResultSet.CONCUR_READ_ONLY,
@@ -299,9 +299,9 @@ public class MariaDbConnection implements Connection {
    * @return a server prepared statement.
    * @throws SQLException if there is a problem preparing the statement.
    */
-  public MariaDbPreparedStatementServer serverPrepareStatement(final String sql)
+  public ServerSidePreparedStatement serverPrepareStatement(final String sql)
       throws SQLException {
-    return new MariaDbPreparedStatementServer(this,
+    return new ServerSidePreparedStatement(this,
         sql,
         ResultSet.TYPE_FORWARD_ONLY,
         ResultSet.CONCUR_READ_ONLY,
@@ -538,7 +538,7 @@ public class MariaDbConnection implements Connection {
         //prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?
         checkConnection();
         try {
-          return new MariaDbPreparedStatementServer(this,
+          return new ServerSidePreparedStatement(this,
               sqlQuery,
               resultSetScrollType,
               resultSetConcurrency,
@@ -550,7 +550,7 @@ public class MariaDbConnection implements Connection {
           //will use clientPreparedStatement
         }
       }
-      return new MariaDbPreparedStatementClient(this,
+      return new ClientSidePreparedStatement(this,
           sqlQuery,
           resultSetScrollType,
           resultSetConcurrency,

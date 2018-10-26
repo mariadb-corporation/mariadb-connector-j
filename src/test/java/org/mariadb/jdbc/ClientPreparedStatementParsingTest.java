@@ -69,7 +69,7 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
       boolean allowMultiqueries, String[] partsRewrite,
       String[] partsMulti) throws Exception {
 
-    MariaDbPreparedStatementClient statement = new MariaDbPreparedStatementClient(
+    ClientSidePreparedStatement statement = new ClientSidePreparedStatement(
         (MariaDbConnection) sharedConnection, sql,
         ResultSet.FETCH_FORWARD, ResultSet.CONCUR_READ_ONLY, Statement.NO_GENERATED_KEYS);
     assertEquals(paramNumber, statement.getParameterCount());
