@@ -31,8 +31,6 @@ matrix:
       jdk: oraclejdk8
     - env: DB=mysql:8.0 PACKET=8M ADDITIONAL_CONF=--default-authentication-plugin=mysql_native_password
       jdk: oraclejdk8
-    - env: DB=mariadb:10.2 PACKET=8M
-      jdk: oraclejdk-ea
   include:
     - env: DB=build PACKET=8M
       jdk: oraclejdk8
@@ -55,11 +53,7 @@ matrix:
     - env: DB=mariadb:10.2 PACKET=8M
       jdk: oraclejdk8
     - env: DB=mariadb:10.2 PACKET=8M
-      jdk: oraclejdk9
-    - env: DB=mariadb:10.2 PACKET=8M
-      jdk: oraclejdk10
-    - env: DB=mariadb:10.2 PACKET=8M
-      jdk: oraclejdk-ea
+      jdk: oraclejdk11
     - env: DB=mariadb:10.2 PACKET=8M GALERA=true
       jdk: oraclejdk8
     - env: DB=mariadb:10.2 PACKET=8M PROFILE=true
