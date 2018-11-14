@@ -758,17 +758,15 @@ public class MariaDbConnection implements Connection {
    * @throws SQLException if there is an error commiting.
    */
   public void commit() throws SQLException {
-    if (!getAutoCommit()) {
-      lock.lock();
-      try {
-        if (!getAutoCommit() && protocol.inTransaction()) {
-          try (Statement st = createStatement()) {
-            st.execute("COMMIT");
-          }
+    lock.lock();
+    try {
+      if (protocol.inTransaction()) {
+        try (Statement st = createStatement()) {
+          st.execute("COMMIT");
         }
-      } finally {
-        lock.unlock();
       }
+    } finally {
+      lock.unlock();
     }
   }
 
@@ -778,17 +776,15 @@ public class MariaDbConnection implements Connection {
    * @throws SQLException if there is an error rolling back.
    */
   public void rollback() throws SQLException {
-    if (!getAutoCommit()) {
-      lock.lock();
-      try {
-        if (!getAutoCommit() && protocol.inTransaction()) {
-          try (Statement st = createStatement()) {
-            st.execute("ROLLBACK");
-          }
+    lock.lock();
+    try {
+      if (protocol.inTransaction()) {
+        try (Statement st = createStatement()) {
+          st.execute("ROLLBACK");
         }
-      } finally {
-        lock.unlock();
       }
+    } finally {
+      lock.unlock();
     }
   }
 
