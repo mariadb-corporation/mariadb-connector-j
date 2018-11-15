@@ -52,6 +52,10 @@
 
 package org.mariadb.jdbc.internal.failover;
 
+import java.lang.reflect.Method;
+import java.net.SocketException;
+import java.sql.SQLException;
+import java.util.Set;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
@@ -60,102 +64,104 @@ import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
-import java.lang.reflect.Method;
-import java.net.SocketException;
-import java.sql.SQLException;
-import java.util.Set;
-
 public interface Listener {
-    FailoverProxy getProxy();
 
-    void setProxy(FailoverProxy proxy);
+  FailoverProxy getProxy();
 
-    void initializeConnection() throws SQLException;
+  void setProxy(FailoverProxy proxy);
 
-    void preExecute() throws SQLException;
+  void initializeConnection() throws SQLException;
 
-    void preClose();
+  void preExecute() throws SQLException;
 
-    void preAbort();
+  void preClose();
 
-    long getServerThreadId();
+  void preAbort();
 
-    void reconnectFailedConnection(SearchFilter filter) throws SQLException;
+  long getServerThreadId();
 
-    void switchReadOnlyConnection(Boolean readonly) throws SQLException;
+  void reconnectFailedConnection(SearchFilter filter) throws SQLException;
 
-    HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) throws Throwable;
+  void switchReadOnlyConnection(Boolean readonly) throws SQLException;
 
-    Object invoke(Method method, Object[] args, Protocol specificProtocol) throws Throwable;
+  HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) throws Throwable;
 
-    Object invoke(Method method, Object[] args) throws Throwable;
+  Object invoke(Method method, Object[] args, Protocol specificProtocol) throws Throwable;
 
-    HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args, Protocol protocol) throws Throwable;
+  Object invoke(Method method, Object[] args) throws Throwable;
 
-    void foundActiveMaster(Protocol protocol) throws SQLException;
+  HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args, Protocol protocol)
+      throws Throwable;
 
-    Set<HostAddress> getBlacklistKeys();
+  void foundActiveMaster(Protocol protocol) throws SQLException;
 
-    void addToBlacklist(HostAddress hostAddress);
+  Set<HostAddress> getBlacklistKeys();
 
-    void removeFromBlacklist(HostAddress hostAddress);
+  void addToBlacklist(HostAddress hostAddress);
 
-    void syncConnection(Protocol from, Protocol to) throws SQLException;
+  void removeFromBlacklist(HostAddress hostAddress);
 
-    UrlParser getUrlParser();
+  void syncConnection(Protocol from, Protocol to) throws SQLException;
 
-    void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster, SQLException queryException,
-                              boolean reconnected) throws SQLException;
+  UrlParser getUrlParser();
 
-    boolean isAutoReconnect();
+  void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster,
+      SQLException queryException,
+      boolean reconnected) throws SQLException;
 
-    int getRetriesAllDown();
+  boolean isAutoReconnect();
 
-    boolean isExplicitClosed();
+  int getRetriesAllDown();
 
-    void reconnect() throws SQLException;
+  boolean isExplicitClosed();
 
-    boolean isReadOnly();
+  void reconnect() throws SQLException;
 
-    boolean isMasterConnection();
+  boolean isReadOnly();
 
-    boolean isClosed();
+  boolean inTransaction();
 
-    boolean versionGreaterOrEqual(int major, int minor, int patch);
+  int getMajorServerVersion();
 
-    boolean sessionStateAware();
+  boolean isMasterConnection();
 
-    boolean noBackslashEscapes();
+  boolean isClosed();
 
-    boolean isValid(int timeout) throws SQLException;
+  boolean versionGreaterOrEqual(int major, int minor, int patch);
 
-    void prolog(long maxRows, MariaDbConnection connection, MariaDbStatement statement) throws SQLException;
+  boolean sessionStateAware();
 
-    String getCatalog() throws SQLException;
+  boolean noBackslashEscapes();
 
-    int getTimeout() throws SocketException;
+  boolean isValid(int timeout) throws SQLException;
 
-    int getMajorServerVersion();
+  void prolog(long maxRows, MariaDbConnection connection, MariaDbStatement statement)
+      throws SQLException;
 
-    Protocol getCurrentProtocol();
+  String getCatalog() throws SQLException;
 
-    boolean hasHostFail();
+  int getTimeout() throws SocketException;
 
-    boolean canRetryFailLoop();
+  Protocol getCurrentProtocol();
 
-    SearchFilter getFilterForFailedHost();
+  boolean hasHostFail();
 
-    boolean isMasterConnected();
+  boolean canRetryFailLoop();
 
-    boolean setMasterHostFail();
+  SearchFilter getFilterForFailedHost();
 
-    boolean isMasterHostFail();
+  boolean isMasterConnected();
 
-    long getLastQueryNanos();
+  boolean setMasterHostFail();
 
-    boolean checkMasterStatus(SearchFilter searchFilter);
+  boolean isMasterHostFail();
 
-    void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnMaster) throws SQLException;
+  long getLastQueryNanos();
 
-    void reset() throws SQLException ;
+  boolean checkMasterStatus(SearchFilter searchFilter);
+
+  void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult, boolean mustExecuteOnMaster)
+      throws SQLException;
+
+  void reset() throws SQLException;
 }

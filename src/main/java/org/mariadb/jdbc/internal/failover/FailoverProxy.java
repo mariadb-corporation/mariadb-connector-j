@@ -94,6 +94,7 @@ public class FailoverProxy implements InvocationHandler {
   private static final String METHOD_GET_CATALOG = "getCatalog";
   private static final String METHOD_GET_TIMEOUT = "getTimeout";
   private static final String METHOD_GET_MAJOR_VERSION = "getMajorServerVersion";
+  private static final String METHOD_IN_TRANSACTION = "inTransaction";
 
 
   private static final Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
@@ -197,6 +198,8 @@ public class FailoverProxy implements InvocationHandler {
       return null;
     } else if (METHOD_GET_READ_ONLY.equals(methodName)) {
       return this.listener.isReadOnly();
+    } else if (METHOD_IN_TRANSACTION.equals(methodName)) {
+      return this.listener.inTransaction();
     } else if (METHOD_IS_MASTER_CONNECTION.equals(methodName)) {
       return this.listener.isMasterConnection();
     } else if (METHOD_ABORT.equals(methodName)) {
