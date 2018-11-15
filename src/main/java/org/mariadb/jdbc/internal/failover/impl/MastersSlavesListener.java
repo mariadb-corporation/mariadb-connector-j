@@ -1006,6 +1006,13 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     return masterProtocol != null && masterProtocol.isConnected();
   }
 
+  public boolean inTransaction() {
+    if (masterProtocol != null) {
+      return masterProtocol.inTransaction();
+    }
+    return true;
+  }
+
   /**
    * Check master status.
    *

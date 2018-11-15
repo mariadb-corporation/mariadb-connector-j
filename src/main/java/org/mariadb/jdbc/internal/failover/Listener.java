@@ -119,6 +119,8 @@ public interface Listener {
 
   boolean isReadOnly();
 
+  boolean inTransaction();
+
   int getMajorServerVersion();
 
   boolean isMasterConnection();

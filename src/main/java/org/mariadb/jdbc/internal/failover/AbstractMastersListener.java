@@ -449,6 +449,10 @@ public abstract class AbstractMastersListener implements Listener {
     return currentReadOnlyAsked;
   }
 
+  public boolean inTransaction() {
+    return currentProtocol.inTransaction();
+  }
+
   public boolean isMasterConnection() {
     return true;
   }
