@@ -134,6 +134,36 @@ public class MultiTest extends BaseTest {
   }
 
   @Test
+  public void rewriteParsingDoubleSlash() throws Throwable {
+    parsingDoubleSlash(sharedConnection);
+
+    try (Connection conn = setConnection("&rewriteBatchedStatements=true")) {
+      parsingDoubleSlash(conn);
+
+      Statement stmt = conn.createStatement();
+      stmt.execute("CREATE TEMPORARY TABLE rewriteSlash(t varchar(50))");
+      stmt.addBatch("insert into rewriteSlash values ('\\\\')");
+      stmt.executeBatch();
+
+      ResultSet rs = stmt.executeQuery("SELECT * FROM rewriteSlash");
+      assertTrue(rs.next());
+      assertEquals(rs.getString(1), "\\");
+    }
+
+  }
+
+  private void parsingDoubleSlash(Connection conn) throws SQLException {
+    try (PreparedStatement p = conn.prepareStatement("SELECT '\\\\', ?")) {
+      p.setString(1, "\\\\");
+      ResultSet rs = p.executeQuery();
+      assertTrue(rs.next());
+      assertEquals(rs.getString(1), "\\");
+      assertEquals(rs.getString(2), "\\\\");
+    }
+  }
+
+
+  @Test
   public void rewriteSelectQueryServerPrepared() throws Throwable {
     Statement st = sharedConnection.createStatement();
     st.execute("INSERT INTO MultiTesttselect4 VALUES (1)");
