@@ -79,6 +79,7 @@ public enum ColumnType {
   NEWDATE(14, Types.DATE, "Types.DATE", Date.class.getName()),
   VARCHAR(15, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
   BIT(16, Types.BIT, "Types.BIT", "[B"),
+  JSON(245, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
   DECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName()),
   ENUM(247, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
   SET(248, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),

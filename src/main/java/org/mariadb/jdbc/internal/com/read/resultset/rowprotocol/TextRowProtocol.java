@@ -727,13 +727,14 @@ public class TextRowProtocol extends RowProtocol {
       case DOUBLE:
         return getInternalDouble(columnInfo);
       case VARCHAR:
+      case VARSTRING:
+      case STRING:
         if (columnInfo.isBinary()) {
           byte[] data = new byte[getLengthMaxFieldSize()];
           System.arraycopy(buf, pos, data, 0, getLengthMaxFieldSize());
           return data;
         }
         return getInternalString(columnInfo, null, timeZone);
-
       case TIMESTAMP:
       case DATETIME:
         return getInternalTimestamp(columnInfo, null, timeZone);
@@ -762,15 +763,8 @@ public class TextRowProtocol extends RowProtocol {
         return getInternalFloat(columnInfo);
       case TIME:
         return getInternalTime(columnInfo, null, timeZone);
-      case VARSTRING:
-      case STRING:
-        if (columnInfo.isBinary()) {
-          byte[] data = new byte[getLengthMaxFieldSize()];
-          System.arraycopy(buf, pos, data, 0, getLengthMaxFieldSize());
-          return data;
-        }
-        return getInternalString(columnInfo, null, timeZone);
       case OLDDECIMAL:
+      case JSON:
         return getInternalString(columnInfo, null, timeZone);
       case GEOMETRY:
         byte[] data = new byte[length];
