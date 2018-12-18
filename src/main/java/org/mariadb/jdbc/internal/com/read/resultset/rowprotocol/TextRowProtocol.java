@@ -460,10 +460,6 @@ public class TextRowProtocol extends RowProtocol {
 
     switch (columnInfo.getColumnType()) {
       case DATE:
-      case VARCHAR:
-      case VARSTRING:
-      case STRING:
-
         int[] datePart = new int[]{0,0,0};
         int partIdx = 0;
         for (int begin = pos; begin < pos + length; begin++) {
