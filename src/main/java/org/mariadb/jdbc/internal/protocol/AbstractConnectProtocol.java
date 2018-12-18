@@ -789,8 +789,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
       this.serverMariaDb = greetingPacket.isServerMariaDb();
       this.serverCapabilities = greetingPacket.getServerCapabilities();
 
-      byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage() & 0xFF);
       parseVersion();
+      byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage() & 0xFF);
       long clientCapabilities = initializeClientCapabilities(serverCapabilities);
 
       byte packetSeq = 1;
@@ -1058,6 +1058,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
         || serverLanguage == 223 //utf8_general_mysql500_ci
         || (serverLanguage >= 192 && serverLanguage <= 215)) {
       return (byte) serverLanguage;
+    }
+    if (getMajorServerVersion() == 5 && getMinorServerVersion() <= 1) {
+      return (byte) 33; //utf8_general_ci
     }
     return (byte) 224; //UTF8MB4_UNICODE_CI;
 
