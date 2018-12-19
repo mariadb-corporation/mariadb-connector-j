@@ -84,9 +84,11 @@ import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLTimeoutException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.ServiceLoader;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -127,6 +129,8 @@ import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
+  private static final String CHECK_GALERA_STATE_QUERY = "show status like 'wsrep_local_state'";
+
   protected static ThreadPoolExecutor readScheduler = null;
   private final LogQueryTool logQuery;
   private int transactionIsolationLevel = 0;
@@ -135,6 +139,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   private volatile int statementIdToRelease = -1;
   private FutureTask activeFutureTask = null;
   private boolean interrupted;
+  private final List<String> galeraAllowedStates;
 
   /**
    * Get a protocol instance.
@@ -147,6 +152,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       final ReentrantLock lock) {
     super(urlParser, globalInfo, lock);
     logQuery = new LogQueryTool(options);
+    galeraAllowedStates = urlParser.getOptions().galeraAllowedState == null ?
+        Collections.emptyList() :
+        Arrays.asList(urlParser.getOptions().galeraAllowedState.split(","));
   }
 
   /**
@@ -1157,23 +1165,21 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       if (initialTimeout == 0) {
         socket.setSoTimeout(timeout);
       }
-      if (isMasterConnection() && urlParser.getOptions().galeraAllowedState != null) {
+      if (isMasterConnection() && !galeraAllowedStates.isEmpty()) {
         //this is a galera node.
         //checking not only that node is responding, but that galera state is allowed.
         Results results = new Results();
-        executeQuery(true, results, "show status like 'wsrep_local_state'");
+        executeQuery(true, results, CHECK_GALERA_STATE_QUERY);
         results.commandEnd();
         ResultSet rs = results.getResultSet();
-        if (rs == null || !rs.next()) {
-          return false;
-        }
-        String[] allowedValues = urlParser.getOptions().galeraAllowedState.split(",");
-        return Arrays.asList(allowedValues).contains(rs.getString(2)); //SYNC mode
+
+        return rs != null && rs.next() && galeraAllowedStates.contains(rs.getString(2));
       }
 
       return ping();
 
     } catch (SocketException socketException) {
+      logger.trace("Connection is not valid", socketException);
       connected = false;
       return false;
     } finally {
@@ -1184,12 +1190,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           socket.setSoTimeout(initialTimeout);
         }
       } catch (SocketException socketException) {
+        logger.warn("Could not set socket timeout back to " + initialTimeout, socketException);
         connected = false;
         //eat
       }
     }
   }
-
 
   @Override
   public String getCatalog() throws SQLException {
@@ -1552,7 +1558,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     return autoIncrementIncrement;
   }
 
-
   /**
    * Read ERR_Packet.
    *
@@ -1769,7 +1774,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       ServerPrepareResult serverPrepareResult) {
     return serverPrepareStatementCache.put(key, serverPrepareResult);
   }
-
 
   private void cmdPrologue() throws SQLException {
 
