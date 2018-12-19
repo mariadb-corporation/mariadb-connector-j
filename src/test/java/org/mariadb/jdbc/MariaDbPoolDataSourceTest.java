@@ -22,223 +22,235 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Assume;
-import org.junit.Test;
-import org.mariadb.jdbc.internal.util.pool.Pools;
-import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import javax.management.MBeanInfo;
-import javax.management.MBeanServer;
-import javax.management.ObjectName;
 import java.lang.management.ManagementFactory;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.*;
+import javax.management.MBeanInfo;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import org.junit.Assume;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.util.pool.Pools;
+import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
 
 public class MariaDbPoolDataSourceTest extends BaseTest {
 
-    @Test
-    public void testResetDatabase() throws SQLException {
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1");
-
-        Connection connection = pool.getConnection();
+  @Test
+  public void testResetDatabase() throws SQLException {
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1")) {
+      try (Connection connection = pool.getConnection()) {
         Statement statement = connection.createStatement();
         statement.execute("CREATE DATABASE IF NOT EXISTS testingReset");
         connection.setCatalog("testingReset");
-        connection.close();
+      }
 
-        connection = pool.getConnection();
+      try (Connection connection = pool.getConnection()) {
         assertEquals(database, connection.getCatalog());
-        statement = connection.createStatement();
+        Statement statement = connection.createStatement();
         statement.execute("DROP DATABASE testingReset");
-        connection.close();
-
-        pool.close();
+      }
     }
+  }
 
-    @Test
-    public void testResetSessionVariable() throws SQLException {
-        testResetSessionVariable(false);
-        if ( (isMariadbServer() && minVersion(10,2)) || (!isMariadbServer() && minVersion(5,7)) ) {
-            testResetSessionVariable(true);
-        }
+  @Test
+  public void testResetSessionVariable() throws SQLException {
+    testResetSessionVariable(false);
+    if ((isMariadbServer() && minVersion(10, 2)) || (!isMariadbServer() && minVersion(5, 7))) {
+      testResetSessionVariable(true);
     }
+  }
 
-    private void testResetSessionVariable(boolean useResetConnection) throws SQLException {
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1&useResetConnection=" + useResetConnection);
+  private void testResetSessionVariable(boolean useResetConnection) throws SQLException {
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(
+        connUri + "&maxPoolSize=1&useResetConnection=" + useResetConnection)) {
 
-        long nowMillis;
-        int initialWaitTimeout;
+      long nowMillis;
+      int initialWaitTimeout;
 
-        Connection connection = pool.getConnection();
+      try (Connection connection = pool.getConnection()) {
         Statement statement = connection.createStatement();
 
         nowMillis = getNowTime(statement);
         initialWaitTimeout = getWaitTimeout(statement);
 
-        statement.execute("SET @@timestamp=UNIX_TIMESTAMP('1970-10-01 01:00:00'), @@wait_timeout=2000");
+        statement
+            .execute("SET @@timestamp=UNIX_TIMESTAMP('1970-10-01 01:00:00'), @@wait_timeout=2000");
         long newNowMillis = getNowTime(statement);
         int waitTimeout = getWaitTimeout(statement);
 
-        assertTrue(nowMillis - newNowMillis > 23587200000L);
-        assertEquals(2000, waitTimeout);
-        connection.close();
+        assertTrue(nowMillis - newNowMillis > 23_587_200_000L);
+        assertEquals(2_000, waitTimeout);
+      }
 
-        connection = pool.getConnection();
-        statement = connection.createStatement();
+      try (Connection connection = pool.getConnection()) {
+        Statement statement = connection.createStatement();
 
-        newNowMillis = getNowTime(statement);
-        waitTimeout = getWaitTimeout(statement);
+        long newNowMillis = getNowTime(statement);
+        int waitTimeout = getWaitTimeout(statement);
 
         if (useResetConnection) {
-            assertTrue(nowMillis - newNowMillis < 10L);
-            assertEquals(initialWaitTimeout, waitTimeout);
+          assertTrue(nowMillis - newNowMillis < 10L);
+          assertEquals(initialWaitTimeout, waitTimeout);
         } else {
-            assertTrue(nowMillis - newNowMillis > 23587200000L);
-            assertEquals(2000, waitTimeout);
+          assertTrue(nowMillis - newNowMillis > 23_587_200_000L);
+          assertEquals(2_000, waitTimeout);
         }
-        connection.close();
-        pool.close();
+      }
     }
+  }
 
-    private long getNowTime(Statement statement) throws SQLException {
-        ResultSet rs = statement.executeQuery("SELECT NOW()");
-        assertTrue(rs.next());
-        return rs.getTimestamp(1).getTime();
+  private long getNowTime(Statement statement) throws SQLException {
+    ResultSet rs = statement.executeQuery("SELECT NOW()");
+    assertTrue(rs.next());
+    return rs.getTimestamp(1).getTime();
+  }
+
+  private int getWaitTimeout(Statement statement) throws SQLException {
+    ResultSet rs = statement.executeQuery("SELECT @@wait_timeout");
+    assertTrue(rs.next());
+    return rs.getInt(1);
+  }
+
+  @Test
+  public void testResetUserVariable() throws SQLException {
+    testResetUserVariable(false);
+    if ((isMariadbServer() && minVersion(10, 2)) || (!isMariadbServer() && minVersion(5, 7))) {
+      testResetUserVariable(true);
     }
+  }
 
-    private int getWaitTimeout(Statement statement) throws SQLException {
-        ResultSet rs = statement.executeQuery("SELECT @@wait_timeout");
-        assertTrue(rs.next());
-        return rs.getInt(1);
-    }
-
-    @Test
-    public void testResetUserVariable() throws SQLException {
-        testResetUserVariable(false);
-        if ( (isMariadbServer() && minVersion(10,2)) || (!isMariadbServer() && minVersion(5,7)) ) {
-            testResetUserVariable(true);
-        }
-    }
-
-    private void testResetUserVariable(boolean useResetConnection) throws SQLException {
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1&useResetConnection=" + useResetConnection);
-        long nowMillis;
-        Connection connection = pool.getConnection();
+  private void testResetUserVariable(boolean useResetConnection) throws SQLException {
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(
+        connUri + "&maxPoolSize=1&useResetConnection=" + useResetConnection)) {
+      long nowMillis;
+      try (Connection connection = pool.getConnection()) {
         Statement statement = connection.createStatement();
         assertNull(getUserVariableStr(statement));
 
         statement.execute("SET @str = '123'");
 
         assertEquals("123", getUserVariableStr(statement));
-        connection.close();
+      }
 
-        connection = pool.getConnection();
-        statement = connection.createStatement();
+      try (Connection connection = pool.getConnection()) {
+        Statement statement = connection.createStatement();
         if (useResetConnection) {
-            assertNull(getUserVariableStr(statement));
+          assertNull(getUserVariableStr(statement));
         } else {
-            assertEquals("123", getUserVariableStr(statement));
+          assertEquals("123", getUserVariableStr(statement));
         }
-        connection.close();
-        pool.close();
+      }
     }
+  }
 
-    private String getUserVariableStr(Statement statement) throws SQLException {
-        ResultSet rs = statement.executeQuery("SELECT @str");
-        assertTrue(rs.next());
-        return rs.getString(1);
+  private String getUserVariableStr(Statement statement) throws SQLException {
+    ResultSet rs = statement.executeQuery("SELECT @str");
+    assertTrue(rs.next());
+    return rs.getString(1);
+  }
+
+
+  @Test
+  public void testNetworkTimeout() throws SQLException {
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(
+        connUri + "&maxPoolSize=1&socketTimeout=10000")) {
+      try (Connection connection = pool.getConnection()) {
+        assertEquals(10_000, connection.getNetworkTimeout());
+        connection.setNetworkTimeout(null, 5_000);
+      }
+
+      try (Connection connection = pool.getConnection()) {
+        assertEquals(10_000, connection.getNetworkTimeout());
+      }
     }
+  }
 
 
-    @Test
-    public void testNetworkTimeout() throws SQLException {
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1&socketTimeout=10000");
-        MariaDbConnection connection = (MariaDbConnection) pool.getConnection();
-        assertEquals(10000, connection.getNetworkTimeout());
-        connection.setNetworkTimeout(null, 5000);
-        connection.close();
-
-
-        connection = (MariaDbConnection) pool.getConnection();
-        assertEquals(10000, connection.getNetworkTimeout());
-        connection.close();
-        pool.close();
-    }
-
-
-    @Test
-    public void testResetReadOnly() throws SQLException {
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1");
-        Connection connection = pool.getConnection();
+  @Test
+  public void testResetReadOnly() throws SQLException {
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1")) {
+      try (Connection connection = pool.getConnection()) {
         assertFalse(connection.isReadOnly());
         connection.setReadOnly(true);
         assertTrue(connection.isReadOnly());
-        connection.close();
+      }
 
-        connection = pool.getConnection();
+      try (Connection connection = pool.getConnection()) {
         assertFalse(connection.isReadOnly());
-        connection.close();
-        pool.close();
+      }
     }
+  }
 
-    @Test
-    public void testResetAutoCommit() throws SQLException {
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1");
-        Connection connection = pool.getConnection();
+  @Test
+  public void testResetAutoCommit() throws SQLException {
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1")) {
+      try (Connection connection = pool.getConnection()) {
         assertTrue(connection.getAutoCommit());
         connection.setAutoCommit(false);
         assertFalse(connection.getAutoCommit());
-        connection.close();
+      }
 
-        connection = pool.getConnection();
+      try (Connection connection = pool.getConnection()) {
         assertTrue(connection.getAutoCommit());
-        connection.close();
-        pool.close();
+      }
     }
+  }
 
-    @Test
-    public void testResetAutoCommitOption() throws SQLException {
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1&autocommit=false&poolName=PoolTest");
-        Connection connection = pool.getConnection();
+  @Test
+  public void testResetAutoCommitOption() throws SQLException {
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(
+        connUri + "&maxPoolSize=1&autocommit=false&poolName=PoolTest")) {
+      try (Connection connection = pool.getConnection()) {
         assertFalse(connection.getAutoCommit());
         connection.setAutoCommit(true);
         assertTrue(connection.getAutoCommit());
-        connection.close();
-        connection = pool.getConnection();
+      }
+
+      try (Connection connection = pool.getConnection()) {
         assertFalse(connection.getAutoCommit());
-        pool.close();
+      }
     }
+  }
 
-    @Test
-    public void testResetTransactionIsolation() throws SQLException {
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1");
+  @Test
+  public void testResetTransactionIsolation() throws SQLException {
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1")) {
 
-        Connection connection = pool.getConnection();
+      try (Connection connection = pool.getConnection()) {
         assertEquals(Connection.TRANSACTION_REPEATABLE_READ, connection.getTransactionIsolation());
         connection.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);
         assertEquals(Connection.TRANSACTION_SERIALIZABLE, connection.getTransactionIsolation());
-        connection.close();
+      }
 
-        connection = pool.getConnection();
+      try (Connection connection = pool.getConnection()) {
         assertEquals(Connection.TRANSACTION_REPEATABLE_READ, connection.getTransactionIsolation());
-        connection.close();
-        pool.close();
+      }
     }
+  }
 
-    @Test
-    public void testJmx() throws Exception {
-        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-        ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=PoolTestJmx-*");
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=5&minPoolSize=0&poolName=PoolTestJmx");
-
-        final Connection connection = pool.getConnection();
+  @Test
+  public void testJmx() throws Exception {
+    MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+    ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=PoolTestJmx-*");
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(
+        connUri + "&maxPoolSize=5&minPoolSize=0&poolName=PoolTestJmx")) {
+      try (Connection connection = pool.getConnection()) {
         Set<ObjectName> objectNames = server.queryNames(filter, null);
         assertEquals(1, objectNames.size());
         ObjectName name = objectNames.iterator().next();
@@ -248,21 +260,21 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
         checkJmxInfo(server, name, 1, 1, 0, 0);
 
-        Connection connection2 = pool.getConnection();
-        checkJmxInfo(server, name, 2, 2, 0, 0);
-        connection2.close();
-
+        try (Connection connection2 = pool.getConnection()) {
+          checkJmxInfo(server, name, 2, 2, 0, 0);
+        }
         checkJmxInfo(server, name, 1, 2, 1, 0);
-        connection.close();
-        pool.close();
+      }
     }
+  }
 
-    @Test
-    public void testNoMinConnection() throws Exception {
-        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-        ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=testNoMinConnection-*");
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=5&poolName=testNoMinConnection");
-        final Connection connection = pool.getConnection();
+  @Test
+  public void testNoMinConnection() throws Exception {
+    MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+    ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=testNoMinConnection-*");
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(
+        connUri + "&maxPoolSize=5&poolName=testNoMinConnection")) {
+      try (Connection connection = pool.getConnection()) {
         Set<ObjectName> objectNames = server.queryNames(filter, null);
         assertEquals(1, objectNames.size());
         ObjectName name = objectNames.iterator().next();
@@ -272,63 +284,62 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
         //wait to ensure pool has time to create 5 connections
         try {
-            Thread.sleep(sharedIsAurora() ? 10000 : 500);
+          Thread.sleep(sharedIsAurora() ? 10_000 : 500);
         } catch (InterruptedException interruptEx) {
-            //eat
+          //eat
         }
 
         checkJmxInfo(server, name, 1, 5, 4, 0);
 
-        Connection connection2 = pool.getConnection();
-        checkJmxInfo(server, name, 2, 5, 3, 0);
-        connection2.close();
-
-        checkJmxInfo(server, name, 1, 5, 4, 0);
-        connection.close();
-        pool.close();
-    }
-
-    @Test
-    public void testIdleTimeout() throws Throwable {
-        //not for maxscale, testing thread id is not relevant.
-        //appveyor is so slow wait time are not relevant.
-        Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null
-                && System.getenv("APPVEYOR_BUILD_WORKER_IMAGE") == null);
-
-        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-        ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=testIdleTimeout-*");
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=5&minPoolSize=3&poolName=testIdleTimeout");
-
-        pool.testForceMaxIdleTime(sharedIsAurora() ? 10 : 3);
-        //wait to ensure pool has time to create 3 connections
-        Thread.sleep(sharedIsAurora() ? 5000 : 1000);
-
-        Set<ObjectName> objectNames = server.queryNames(filter, null);
-        ObjectName name = objectNames.iterator().next();
-        checkJmxInfo(server, name, 0, 3, 3, 0);
-
-        List<Long> initialThreadIds = pool.testGetConnectionIdleThreadIds();
-        Thread.sleep(sharedIsAurora() ? 12000 : 3500);
-
-        //must still have 3 connections, but must be other ones
-        checkJmxInfo(server, name, 0, 3, 3, 0);
-        List<Long> threadIds = pool.testGetConnectionIdleThreadIds();
-        assertEquals(initialThreadIds.size(), threadIds.size());
-        for (Long initialThread : initialThreadIds) {
-            assertFalse(threadIds.contains(initialThread));
+        try (Connection connection2 = pool.getConnection()) {
+          checkJmxInfo(server, name, 2, 5, 3, 0);
         }
-
-        pool.close();
+        checkJmxInfo(server, name, 1, 5, 4, 0);
+      }
     }
+  }
+
+  @Test
+  public void testIdleTimeout() throws Throwable {
+    //not for maxscale, testing thread id is not relevant.
+    //appveyor is so slow wait time are not relevant.
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null
+        && System.getenv("APPVEYOR_BUILD_WORKER_IMAGE") == null);
+
+    MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+    ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=testIdleTimeout-*");
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(
+        connUri + "&maxPoolSize=5&minPoolSize=3&poolName=testIdleTimeout")) {
+
+      pool.testForceMaxIdleTime(sharedIsAurora() ? 10 : 3);
+      //wait to ensure pool has time to create 3 connections
+      Thread.sleep(sharedIsAurora() ? 5_000 : 1_000);
+
+      Set<ObjectName> objectNames = server.queryNames(filter, null);
+      ObjectName name = objectNames.iterator().next();
+      checkJmxInfo(server, name, 0, 3, 3, 0);
+
+      List<Long> initialThreadIds = pool.testGetConnectionIdleThreadIds();
+      Thread.sleep(sharedIsAurora() ? 12_000 : 3_500);
+
+      //must still have 3 connections, but must be other ones
+      checkJmxInfo(server, name, 0, 3, 3, 0);
+      List<Long> threadIds = pool.testGetConnectionIdleThreadIds();
+      assertEquals(initialThreadIds.size(), threadIds.size());
+      for (Long initialThread : initialThreadIds) {
+        assertFalse(threadIds.contains(initialThread));
+      }
+    }
+  }
 
 
-
-    @Test
-    public void testMinConnection() throws Throwable {
-        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-        ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=testMinConnection-*");
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=5&minPoolSize=3&poolName=testMinConnection");
-        final Connection connection = pool.getConnection();
+  @Test
+  public void testMinConnection() throws Throwable {
+    MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+    ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=testMinConnection-*");
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(
+        connUri + "&maxPoolSize=5&minPoolSize=3&poolName=testMinConnection")) {
+      try (Connection connection = pool.getConnection()) {
         Set<ObjectName> objectNames = server.queryNames(filter, null);
         assertEquals(1, objectNames.size());
         ObjectName name = objectNames.iterator().next();
@@ -341,183 +352,182 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
         checkJmxInfo(server, name, 1, 3, 2, 0);
 
-        Connection connection2 = pool.getConnection();
-        checkJmxInfo(server, name, 2, 3, 1, 0);
-        connection2.close();
-
+        try (Connection connection2 = pool.getConnection()) {
+          checkJmxInfo(server, name, 2, 3, 1, 0);
+        }
         checkJmxInfo(server, name, 1, 3, 2, 0);
-        connection.close();
-        pool.close();
+      }
     }
+  }
 
-    private void checkJmxInfo(MBeanServer server,
-                              ObjectName name,
-                              long expectedActive,
-                              long expectedTotal,
-                              long expectedIdle,
-                              long expectedRequest)
-            throws Exception {
+  private void checkJmxInfo(MBeanServer server,
+      ObjectName name,
+      long expectedActive,
+      long expectedTotal,
+      long expectedIdle,
+      long expectedRequest)
+      throws Exception {
 
-        assertEquals(expectedActive, ((Long) server.getAttribute(name, "ActiveConnections")).longValue());
-        assertEquals(expectedTotal, ((Long) server.getAttribute(name, "TotalConnections")).longValue());
-        assertEquals(expectedIdle, ((Long) server.getAttribute(name, "IdleConnections")).longValue());
-        assertEquals(expectedRequest, ((Long) server.getAttribute(name, "ConnectionRequests")).longValue());
-    }
+    assertEquals(expectedActive,
+        ((Long) server.getAttribute(name, "ActiveConnections")).longValue());
+    assertEquals(expectedTotal, ((Long) server.getAttribute(name, "TotalConnections")).longValue());
+    assertEquals(expectedIdle, ((Long) server.getAttribute(name, "IdleConnections")).longValue());
+    assertEquals(expectedRequest,
+        ((Long) server.getAttribute(name, "ConnectionRequests")).longValue());
+  }
 
-    @Test
-    public void testJmxDisable() throws Exception {
-        MBeanServer server = ManagementFactory.getPlatformMBeanServer();
-        ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=PoolTest-*");
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=2&registerJmxPool=false&poolName=PoolTest");
-
-        Connection connection = pool.getConnection();
+  @Test
+  public void testJmxDisable() throws Exception {
+    MBeanServer server = ManagementFactory.getPlatformMBeanServer();
+    ObjectName filter = new ObjectName("org.mariadb.jdbc.pool:type=PoolTest-*");
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(
+        connUri + "&maxPoolSize=2&registerJmxPool=false&poolName=PoolTest")) {
+      try (Connection connection = pool.getConnection()) {
         Set<ObjectName> objectNames = server.queryNames(filter, null);
         assertEquals(0, objectNames.size());
-        connection.close();
-
-        pool.close();
+      }
     }
+  }
 
-    @Test
-    public void testResetRollback() throws SQLException {
-        createTable("testResetRollback", "id int not null primary key auto_increment, test varchar(20)");
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1");
-        Connection connection = pool.getConnection();
+  @Test
+  public void testResetRollback() throws SQLException {
+    createTable("testResetRollback",
+        "id int not null primary key auto_increment, test varchar(20)");
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1")) {
+      try (Connection connection = pool.getConnection()) {
         Statement stmt = connection.createStatement();
         stmt.executeUpdate("INSERT INTO testResetRollback (test) VALUES ('heja')");
         connection.setAutoCommit(false);
         stmt.executeUpdate("INSERT INTO testResetRollback (test) VALUES ('japp')");
-        connection.close();
+      }
 
-        connection = pool.getConnection();
-        stmt = connection.createStatement();
+      try (Connection connection = pool.getConnection()) {
+        Statement stmt = connection.createStatement();
         ResultSet rs = stmt.executeQuery("SELECT count(*) FROM testResetRollback");
         assertTrue(rs.next());
         assertEquals(1, rs.getInt(1));
-        connection.close();
-
-        pool.close();
+      }
     }
+  }
 
-    @Test
-    public void ensureUsingPool() throws Exception {
-        ThreadPoolExecutor connectionAppender = new ThreadPoolExecutor(50, 5000, 10, TimeUnit.SECONDS,
-                new LinkedBlockingQueue<Runnable>(5000),
-                new MariaDbThreadFactory("testPool"));
+  @Test
+  public void ensureUsingPool() throws Exception {
+    ThreadPoolExecutor connectionAppender = new ThreadPoolExecutor(50, 5000, 10, TimeUnit.SECONDS,
+        new LinkedBlockingQueue<Runnable>(5000),
+        new MariaDbThreadFactory("testPool"));
 
-        final long start = System.currentTimeMillis();
-        final Set<Integer> threadIds = new HashSet<Integer>();
-        for (int i = 0; i < 500; i++) {
-            connectionAppender.execute(new Runnable() {
-                @Override
-                public void run() {
-                    Connection connection = null;
-                    try {
-                        connection = DriverManager.getConnection(connUri + "&pool&staticGlobal&poolName=PoolTest");
-                        Statement stmt = connection.createStatement();
-                        ResultSet rs = stmt.executeQuery("SELECT CONNECTION_ID()");
-                        rs.next();
-                        Integer connectionId = rs.getInt(1);
-                        if (!threadIds.contains(connectionId)) threadIds.add(connectionId);
+    final long start = System.currentTimeMillis();
+    final Set<Integer> threadIds = new HashSet<>();
+    for (int i = 0; i < 500; i++) {
+      connectionAppender.execute(new Runnable() {
+        @Override
+        public void run() {
+          Connection connection = null;
+          try {
+            connection = DriverManager.getConnection(connUri + "&pool&staticGlobal&poolName=PoolTest");
+            Statement stmt = connection.createStatement();
+            ResultSet rs = stmt.executeQuery("SELECT CONNECTION_ID()");
+            rs.next();
+            Integer connectionId = rs.getInt(1);
+            if (!threadIds.contains(connectionId)) threadIds.add(connectionId);
 
-                        stmt.execute("SELECT * FROM mysql.user");
+            stmt.execute("SELECT * FROM mysql.user");
 
-                    } catch (SQLException e) {
-                        e.printStackTrace();
-                    } finally {
-                        if (connection != null) {
-                            try {
-                                connection.close();
-                            } catch (SQLException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                    }
-                }
-            });
+          } catch (SQLException e) {
+            e.printStackTrace();
+          } finally {
+            if (connection != null) {
+              try {
+                connection.close();
+              } catch (SQLException e) {
+                e.printStackTrace();
+              }
+            }
+          }
         }
-        connectionAppender.shutdown();
-        connectionAppender.awaitTermination(sharedIsAurora() ? 200 : 30, TimeUnit.SECONDS);
-        int numberOfConnection = 0;
-
-        for (Integer integer : threadIds) {
-            System.out.println("Connection id : " + integer);
-            numberOfConnection++;
-        }
-        System.out.println("Size : " + threadIds.size() + " " + numberOfConnection);
-        assertTrue("connection ids must be less than 8 : " + numberOfConnection, numberOfConnection <= 8);
-        assertTrue(System.currentTimeMillis() - start < (sharedIsAurora() ? 120000 : 5000));
-        Pools.close("PoolTest");
+      });
     }
+    connectionAppender.shutdown();
+    connectionAppender.awaitTermination(sharedIsAurora() ? 200 : 30, TimeUnit.SECONDS);
+    int numberOfConnection = 0;
 
-    @Test
-    public void ensureClosed() throws Throwable {
-        Thread.sleep(500); //ensure that previous close are effective
-        int initialConnection = getCurrentConnections();
-
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=10&minPoolSize=1");
-
-        Connection connection = pool.getConnection();
-        connection.isValid(10000);
-        connection.close();
-
-        assertTrue(getCurrentConnections() > initialConnection);
-
-        //reuse IdleConnection
-        connection = pool.getConnection();
-        connection.isValid(10000);
-        connection.close();
-
-        assertTrue(getCurrentConnections() > initialConnection);
-        pool.close();
-        Thread.sleep(500); //ensure that previous close are effective
-        assertEquals(initialConnection, getCurrentConnections());
+    for (Integer integer : threadIds) {
+      System.out.println("Connection id : " + integer);
+      numberOfConnection++;
     }
+    System.out.println("Size : " + threadIds.size() + " " + numberOfConnection);
+    assertTrue("connection ids must be less than 8 : " + numberOfConnection,
+        numberOfConnection <= 8);
+    assertTrue(System.currentTimeMillis() - start < (sharedIsAurora() ? 120_000 : 5_000));
+    Pools.close("PoolTest");
+  }
 
-    @Test
-    public void wrongUrlHandling() throws SQLException {
+  @Test
+  public void ensureClosed() throws Throwable {
+    Thread.sleep(500); //ensure that previous close are effective
+    int initialConnection = getCurrentConnections();
 
-        int initialConnection = getCurrentConnections();
-        MariaDbPoolDataSource pool = new MariaDbPoolDataSource("jdbc:mariadb://unknownHost/db?user=wrong&maxPoolSize=10&connectTimeout=500");
-        pool.initialize();
-        long start = System.currentTimeMillis();
-        Connection connection = null;
-        try {
-            connection = pool.getConnection();
-            fail();
-        } catch (SQLException sqle) {
-            assertTrue("timeout does not correspond to option. Elapsed time:" + (System.currentTimeMillis() - start),
-                    (System.currentTimeMillis() - start) >= 500 && (System.currentTimeMillis() - start) < 700);
-            assertTrue(sqle.getMessage().contains("No connection available within the specified time (option 'connectTimeout': 500 ms)"));
-        } finally {
-            if (connection != null) connection.close();
-        }
-        pool.close();
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(
+        connUri + "&maxPoolSize=10&minPoolSize=1")) {
+
+      try (Connection connection = pool.getConnection()) {
+        connection.isValid(10_000);
+      }
+
+      assertTrue(getCurrentConnections() > initialConnection);
+
+      //reuse IdleConnection
+      try (Connection connection = pool.getConnection()) {
+        connection.isValid(10_000);
+      }
+
+      Thread.sleep(500);
+      assertTrue(getCurrentConnections() > initialConnection);
     }
+    Thread.sleep(500); //ensure that previous close are effective
+    assertEquals(initialConnection, getCurrentConnections());
+  }
 
+  @Test
+  public void wrongUrlHandling() throws SQLException {
 
-    @Test
-    public void testPrepareReset() throws SQLException {
-        MariaDbPoolDataSource pool = null;
-        try {
-            pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1&useServerPrepStmts=true&useResetConnection");
-            execFromPool(pool);
-            execFromPool(pool);
-        } finally {
-            if (pool != null) pool.close();
-        }
+    int initialConnection = getCurrentConnections();
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(
+        "jdbc:mariadb://unknownHost/db?user=wrong&maxPoolSize=10&connectTimeout=500")) {
+      pool.initialize();
+      long start = System.currentTimeMillis();
+      try (Connection connection = pool.getConnection()) {
+        fail();
+      } catch (SQLException sqle) {
+        assertTrue(
+            "timeout does not correspond to option. Elapsed time:" + (System.currentTimeMillis()
+                - start),
+            (System.currentTimeMillis() - start) >= 500
+                && (System.currentTimeMillis() - start) < 700);
+        assertTrue(sqle.getMessage().contains(
+            "No connection available within the specified time (option 'connectTimeout': 500 ms)"));
+      }
     }
+  }
 
-    private void execFromPool(MariaDbPoolDataSource pool) throws SQLException {
-        Connection connection = null;
-        try {
-            connection = pool.getConnection();
-            PreparedStatement preparedStatement = connection.prepareStatement("SELECT ?");
-            preparedStatement.setString(1, "1");
-            preparedStatement.execute();
-        } finally {
-            if (connection != null) connection.close();
-        }
+
+  @Test
+  public void testPrepareReset() throws SQLException {
+    try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(
+        connUri + "&maxPoolSize=1&useServerPrepStmts=true&useResetConnection")) {
+      try (Connection connection = pool.getConnection()) {
+        PreparedStatement preparedStatement = connection.prepareStatement("SELECT ?");
+        preparedStatement.setString(1, "1");
+        preparedStatement.execute();
+      }
+
+      try (Connection connection = pool.getConnection()) {
+        //must re-prepare
+        PreparedStatement preparedStatement = connection.prepareStatement("SELECT ?");
+        preparedStatement.setString(1, "1");
+        preparedStatement.execute();
+      }
     }
+  }
 
 }
