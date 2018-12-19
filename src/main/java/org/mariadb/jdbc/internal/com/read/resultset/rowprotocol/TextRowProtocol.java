@@ -648,7 +648,7 @@ public class TextRowProtocol extends RowProtocol {
 
         //fix non leading tray for nanoseconds
         if (nanoBegin > 0) {
-          for (int begin = length - (nanoBegin - pos); begin < 6; begin++) {
+          for (int begin = 0; begin < 6 - (pos + length - nanoBegin - 1); begin++) {
             timestampsPart[6] = timestampsPart[6] * 10;
           }
         }

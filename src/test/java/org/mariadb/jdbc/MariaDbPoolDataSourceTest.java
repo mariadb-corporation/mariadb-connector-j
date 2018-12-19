@@ -470,6 +470,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
         connection.isValid(10_000);
       }
 
+      Thread.sleep(500);
       assertTrue(getCurrentConnections() > initialConnection);
     }
     Thread.sleep(500); //ensure that previous close are effective
