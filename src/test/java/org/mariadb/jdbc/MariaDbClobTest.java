@@ -19,7 +19,7 @@ public class MariaDbClobTest {
   @Test
   public void length() {
     MariaDbClob clob = new MariaDbClob(bytes);
-    assertEquals(9, clob.length());
+    assertEquals(10, clob.length());
 
     MariaDbClob clob2 = new MariaDbClob(bytes, 2, 3);
     assertEquals(3, clob2.length());
@@ -30,6 +30,7 @@ public class MariaDbClobTest {
     MariaDbClob clob = new MariaDbClob(bytes);
     assertEquals("abcde🙏", clob.getSubString(1, 7));
     assertEquals("abcde🙏fgh", clob.getSubString(1, 20));
+    assertEquals("abcde🙏fgh", clob.getSubString(1, (int) clob.length()));
     assertEquals("ab", clob.getSubString(1, 2));
     assertEquals("🙏", clob.getSubString(6, 2));
 
