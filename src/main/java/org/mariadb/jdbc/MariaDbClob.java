@@ -310,7 +310,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
           } else if (firstByte >> 3 != -2) {
             throw new RuntimeException("invalid UTF8", new CharacterCodingException());
           } else if (pos + 2 < offset + length) {
-            if (len + 2 < truncateLen) {
+            if (len + 2 <= truncateLen) {
               pos += 3;
               len += 2;
             } else {
