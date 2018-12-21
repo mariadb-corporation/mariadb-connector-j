@@ -9,10 +9,13 @@ import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.sql.Clob;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import org.junit.Test;
 
-public class MariaDbClobTest {
+public class MariaDbClobTest extends BaseTest {
 
   private final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
 
@@ -228,8 +231,13 @@ public class MariaDbClobTest {
     MariaDbClob clob = new MariaDbClob(bytes);
     clob.truncate(20);
     assertEquals("abcde🙏f", clob.getSubString(1, 8));
+    clob.truncate(8);
+    assertEquals("abcde🙏f", clob.getSubString(1, 8));
+    assertEquals("abcde🙏", clob.getSubString(1, 7));
     clob.truncate(7);
     assertEquals("abcde🙏", clob.getSubString(1, 8));
+    clob.truncate(6);
+    assertEquals("abcde�", clob.getSubString(1, 8));
     clob.truncate(4);
     assertEquals("abcd", clob.getSubString(1, 7));
     clob.truncate(0);
@@ -239,8 +247,12 @@ public class MariaDbClobTest {
         8);
     clob2.truncate(20);
     assertEquals("cde🙏f", clob2.getSubString(1, 8));
-    clob2.truncate(4);
+    clob2.truncate(6);
+    assertEquals("cde🙏f", clob2.getSubString(1, 8));
+    clob2.truncate(5);
     assertEquals("cde🙏", clob2.getSubString(1, 8));
+    clob2.truncate(4);
+    assertEquals("cde�", clob2.getSubString(1, 8));
     clob2.truncate(0);
     assertEquals("", clob2.getSubString(1, 7));
 
@@ -251,6 +263,46 @@ public class MariaDbClobTest {
     MariaDbClob blob = new MariaDbClob(bytes);
     blob.free();
     assertEquals(0, blob.length);
+  }
+
+  @Test
+  public void clobLength() throws Exception {
+    Statement stmt = sharedConnection.createStatement();
+    try (ResultSet rs = stmt
+        .executeQuery("SELECT 'ab$c', 'ab¢c', 'abहc', 'ab\uD801\uDC37c', 'ab𐍈c' from dual")) {
+      while (rs.next()) {
+
+        Clob clob1 = rs.getClob(1);
+        Clob clob2 = rs.getClob(2);
+        Clob clob3 = rs.getClob(3);
+        Clob clob4 = rs.getClob(4);
+        Clob clob5 = rs.getClob(5);
+
+        assertEquals(4, clob1.length());
+        assertEquals(4, clob2.length());
+        assertEquals(4, clob3.length());
+        assertEquals(5, clob4.length());
+        assertEquals(5, clob5.length());
+
+        clob1.truncate(3);
+        clob2.truncate(3);
+        clob3.truncate(3);
+        clob4.truncate(3);
+        clob5.truncate(3);
+
+        assertEquals(3, clob1.length());
+        assertEquals(3, clob2.length());
+        assertEquals(3, clob3.length());
+        assertEquals(3, clob4.length());
+        assertEquals(3, clob5.length());
+
+        assertEquals("ab$", clob1.getSubString(1, 3));
+        assertEquals("ab¢", clob2.getSubString(1, 3));
+        assertEquals("abह", clob3.getSubString(1, 3));
+        assertEquals("ab�", clob4.getSubString(1, 3));
+        assertEquals("ab�", clob5.getSubString(1, 3));
+      }
+    }
   }
 
 }

@@ -311,48 +311,6 @@ public class BlobTest extends BaseTest {
   }
 
   @Test
-  public void clobLength() throws Exception {
-    Statement stmt = sharedConnection.createStatement();
-    try (ResultSet rs = stmt
-        .executeQuery("SELECT 'ab$c', 'ab¢c', 'abहc', 'ab\uD801\uDC37c', 'ab𐍈c' from dual")) {
-      while (rs.next()) {
-
-        Clob clob1 = rs.getClob(1);
-        Clob clob2 = rs.getClob(2);
-        Clob clob3 = rs.getClob(3);
-        Clob clob4 = rs.getClob(4);
-        Clob clob5 = rs.getClob(5);
-
-        assertEquals(4, clob1.length());
-        assertEquals(4, clob2.length());
-        assertEquals(4, clob3.length());
-        assertEquals(5, clob4.length());
-        assertEquals(5, clob5.length());
-
-        clob1.truncate(3);
-        clob2.truncate(3);
-        clob3.truncate(3);
-        clob4.truncate(3);
-        clob5.truncate(3);
-
-        assertEquals(3, clob1.length());
-        assertEquals(3, clob2.length());
-        assertEquals(3, clob3.length());
-        assertEquals(3, clob4.length());
-        assertEquals(3, clob5.length());
-
-        assertEquals("ab$", clob1.getSubString(1, 3));
-        assertEquals("ab¢", clob2.getSubString(1, 3));
-        assertEquals("abह", clob3.getSubString(1, 3));
-        assertEquals("ab�", clob4.getSubString(1, 3));
-        assertEquals("ab�", clob5.getSubString(1, 3));
-      }
-    }
-  }
-
-
-
-  @Test
   public void testBlob() throws SQLException, IOException {
     PreparedStatement stmt = sharedConnection
         .prepareStatement("insert into BlobTestblobtest (id, strm) values (?,?)");
