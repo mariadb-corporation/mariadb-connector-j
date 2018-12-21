@@ -238,45 +238,96 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
    */
   @Override
   public long length() {
+    //The length of a character string is the number of UTF-16 units (not the number of characters)
     long len = 0;
-    for (int i = offset; i < offset + length; ) {
-      int byteValue = data[i] & 0xff;
-      if (byteValue < 0x80) {
-        i += 1;
-      } else if (byteValue < 0xC2) {
-        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
-      } else if (byteValue < 0xE0) {
-        i += 2;
-      } else if (byteValue < 0xF0) {
-        i += 3;
-      } else if (byteValue < 0xF8) {
-        len++;
-        i += 4;
-      } else {
-        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
-      }
+    int pos = offset;
+
+    //set ASCII (<= 127 chars)
+    for(; len < length && data[pos] >= 0; ) {
       len++;
+      pos++;
+    }
+
+    //multi-bytes UTF-8
+    while(pos < offset + length) {
+      byte firstByte = data[pos++];
+      if (firstByte < 0) {
+        if (firstByte >> 5 != -2 || (firstByte & 30) == 0) {
+          if (firstByte >> 4 == -2) {
+            if (pos + 1 < offset + length) {
+              pos+=2;
+              len++;
+            } else {
+              throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+            }
+          } else if (firstByte >> 3 != -2) {
+            throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+          } else if (pos + 2 < offset + length) {
+            pos+=3;
+            len+=2;
+          } else {
+            //bad truncated UTF8
+            pos += offset + length;
+            len+=1;
+          }
+        } else {
+          pos++;
+          len++;
+        }
+      } else {
+        len++;
+      }
     }
     return len;
   }
 
   @Override
-  public void truncate(final long len) throws SQLException {
+  public void truncate(final long truncateLen) throws SQLException {
+
+    //truncate the number of UTF-16 characters
+    //this can result in a bad UTF-8 string if string finish with a
+    //character represented in 2 UTF-16
+    long len = 0;
     int pos = offset;
-    for (; pos < offset + Math.min(length, len); ) {
-      int byteValue = data[pos] & 0xff;
-      if (byteValue < 0x80) {
-        pos += 1;
-      } else if (byteValue < 0xC2) {
-        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
-      } else if (byteValue < 0xE0) {
-        pos += 2;
-      } else if (byteValue < 0xF0) {
-        pos += 3;
-      } else if (byteValue < 0xF8) {
-        pos += 4;
+
+    //set ASCII (<= 127 chars)
+    for (; len < length && len < truncateLen && data[pos] >= 0; ) {
+      len++;
+      pos++;
+    }
+
+    //multi-bytes UTF-8
+    while (pos < offset + length && len < truncateLen) {
+      byte firstByte = data[pos++];
+      if (firstByte < 0) {
+        if (firstByte >> 5 != -2 || (firstByte & 30) == 0) {
+          if (firstByte >> 4 == -2) {
+            if (pos + 1 < offset + length) {
+              pos += 2;
+              len++;
+            } else {
+              throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+            }
+          } else if (firstByte >> 3 != -2) {
+            throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+          } else if (pos + 2 < offset + length) {
+            if (len + 2 < truncateLen) {
+              pos += 3;
+              len += 2;
+            } else {
+              //truncation will result in bad UTF-8 String
+              pos += 1;
+              len = truncateLen;
+            }
+          } else {
+            throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+          }
+        } else {
+          pos++;
+          len++;
+        }
       } else {
-        throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
+        len++;
       }
     }
     length = pos - offset;
