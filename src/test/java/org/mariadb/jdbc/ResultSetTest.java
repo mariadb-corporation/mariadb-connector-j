@@ -59,6 +59,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -1222,4 +1223,24 @@ public class ResultSetTest extends BaseTest {
 
   }
 
+  /**
+   * CONJ-669: No such column when having empty column without alias.
+   * @throws SQLException exception
+   */
+  @Test
+  public void emptyColumnName() throws SQLException {
+    try (Connection connection = setConnection("")) {
+      Statement stmt = connection.createStatement();
+      stmt.execute("CREATE TEMPORARY TABLE emptyColumn (id int)");
+      stmt.execute("INSERT INTO emptyColumn value (1)");
+      ResultSet rs = stmt.executeQuery("SELECT '' FROM emptyColumn");
+      while (rs.next()) {
+        Assert.assertEquals("", rs.getString(1));
+        Assert.assertEquals("", rs.getString(""));
+      }
+      ResultSetMetaData meta = rs.getMetaData();
+      Assert.assertEquals(1, meta.getColumnCount());
+      Assert.assertEquals("", meta.getColumnName(1));
+    }
+  }
 }
