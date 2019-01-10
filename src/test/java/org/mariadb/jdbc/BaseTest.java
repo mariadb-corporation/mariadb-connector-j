@@ -58,6 +58,7 @@ import static org.junit.Assert.fail;
 
 import com.sun.jna.Platform;
 import java.io.IOException;
+import java.lang.Thread.State;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -71,6 +72,7 @@ import java.sql.Statement;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
@@ -301,6 +303,15 @@ public class BaseTest {
         sharedConnection.close();
       } catch (SQLException e) {
         e.printStackTrace();
+      }
+    }
+    Iterator<Thread> it = Thread.getAllStackTraces().keySet().iterator();
+    Thread thread;
+
+    while (it.hasNext()) {
+      thread = it.next();
+      if (thread.getName().contains("MariaDb-bulk-")) {
+        assertEquals(State.WAITING, thread.getState());
       }
     }
   }

@@ -199,11 +199,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
       PacketOutputStream packetOutputStream, Socket socket) {
     try {
       try {
+        long maxCurrentMillis = System.currentTimeMillis() + 10;
         socket.shutdownOutput();
         socket.setSoTimeout(3);
         InputStream is = socket.getInputStream();
         //noinspection StatementWithEmptyBody
-        while (is.read() != -1) {
+        while (is.read() != -1 && System.currentTimeMillis() < maxCurrentMillis) {
           //read byte
         }
       } catch (Throwable t) {
