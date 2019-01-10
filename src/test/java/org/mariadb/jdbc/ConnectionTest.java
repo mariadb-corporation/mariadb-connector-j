@@ -501,7 +501,6 @@ public class ConnectionTest extends BaseTest {
       assertTrue(rs.next());
       fail();
     } catch (SQLException sqle) {
-      sqle.printStackTrace();
       assertTrue(sqle.getMessage().contains("Operation not permit on a closed resultSet"));
     }
   }

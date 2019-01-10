@@ -330,6 +330,8 @@ public abstract class AbstractMultiSend {
       return prepareResult;
 
     } catch (IOException e) {
+      status.sendEnded = true;
+      status.sendCmdCounter = 0; //to ensure read doesn't hang
       throw protocol.handleIoException(e);
     }
 
