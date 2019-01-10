@@ -141,7 +141,7 @@ public class CancelTest extends BaseTest {
     stmt.executeBatch();
   }
 
-  @Test(timeout = 5000, expected = BatchUpdateException.class)
+  @Test(timeout = 5000)
   public void timeoutPrepareBatch() throws Exception {
     Assume.assumeFalse(sharedIsAurora());
     Assume.assumeTrue(!sharedOptions().allowMultiQueries && !sharedIsRewrite());
@@ -158,7 +158,14 @@ public class CancelTest extends BaseTest {
           stmt.setString(1, str);
           stmt.addBatch();
         }
-        stmt.executeBatch();
+        try {
+          stmt.executeBatch();
+          fail();
+        } catch (BatchUpdateException b) {
+          ResultSet rs2 = stmt.executeQuery("SELECT 2");
+          assertTrue(rs2.next());
+          assertEquals("2", rs2.getString(1));
+        }
       }
     }
   }
