@@ -270,6 +270,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
     executing = true;
     try {
       executeQueryPrologue(serverPrepareResult);
+      if (queryTimeout != 0) setTimerTask(true);
 
       results = new Results(this,
           0,
@@ -303,7 +304,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
             protocol.executePreparedQuery(mustExecuteOnMaster, serverPrepareResult, results,
                 parameterHolder);
           } catch (SQLException queryException) {
-            if (options.continueBatchOnError) {
+            if (options.continueBatchOnError && protocol.isConnected() && !protocol.isInterrupted()) {
               if (exception == null) {
                 exception = queryException;
               }
@@ -356,9 +357,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
     }
     protocol
         .prologProxy(serverPrepareResult, maxRows, protocol.getProxy() != null, connection, this);
-    if (queryTimeout != 0) {
-      setTimerTask();
-    }
+
   }
 
   @Override
@@ -404,6 +403,8 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
     lock.lock();
     try {
       executeQueryPrologue(serverPrepareResult);
+      if (queryTimeout != 0) setTimerTask(false);
+
       ParameterHolder[] parameterHolders = currentParameterHolder.values()
           .toArray(new ParameterHolder[0]);
 
