@@ -82,13 +82,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLTimeoutException;
+import java.sql.SQLTransientConnectionException;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.ServiceLoader;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -340,7 +340,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    */
   public boolean executeBatchClient(boolean mustExecuteOnMaster, Results results,
       final ClientPrepareResult prepareResult,
-      final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException {
+      final List<ParameterHolder[]> parametersList, boolean hasLongData)
+      throws SQLException {
 
     //***********************************************************************************************************
     // Multiple solution for batching :
@@ -1881,14 +1882,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             UNDEFINED_SQLSTATE.getSqlState() + getTraces(), initialException);
       }
 
-      return new SQLException("Could not send query: query size is >= to max_allowed_packet ("
+      return new SQLTransientConnectionException("Could not send query: query size is >= to max_allowed_packet ("
           + writer.getMaxAllowedPacket() + ")" + getTraces(), UNDEFINED_SQLSTATE.getSqlState(),
           initialException);
     }
     if (!driverPreventError) {
       connected = false;
     }
-    return new SQLException(initialException.getMessage() + getTraces(),
+    return new SQLNonTransientConnectionException(initialException.getMessage() + getTraces(),
         driverPreventError ? UNDEFINED_SQLSTATE.getSqlState() : CONNECTION_EXCEPTION.getSqlState(),
         initialException);
 
@@ -1896,6 +1897,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
   public void setActiveFutureTask(FutureTask activeFutureTask) {
     this.activeFutureTask = activeFutureTask;
+  }
+
+  public void interrupt() {
+    interrupted = true;
   }
 
   public boolean isInterrupted() {

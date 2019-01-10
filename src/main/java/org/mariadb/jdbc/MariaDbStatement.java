@@ -159,13 +159,14 @@ public class MariaDbStatement implements Statement, Cloneable {
   }
 
   // Part of query prolog - setup timeout timer
-  protected void setTimerTask() {
+  protected void setTimerTask(boolean isBatch) {
     assert (timerTaskFuture == null);
 
     timerTaskFuture = timeoutScheduler.schedule(() -> {
       try {
         isTimedout = true;
-        protocol.cancelCurrentQuery();
+        if (!isBatch) protocol.cancelCurrentQuery();
+        protocol.interrupt();
       } catch (Throwable e) {
         //eat
       }
@@ -179,18 +180,17 @@ public class MariaDbStatement implements Statement, Cloneable {
    * <li>launch timeout timer if needed</li>
    * </ol>
    *
-   * @param forceUseOfTimer even if query timeout if possible on server using max_statement_time,
-   *                        force using timer (for batch)
+   * @param isBatch is batch
    * @throws SQLException if statement is closed
    */
-  protected void executeQueryPrologue(boolean forceUseOfTimer) throws SQLException {
+  protected void executeQueryPrologue(boolean isBatch) throws SQLException {
     executing = true;
     if (closed) {
       throw new SQLException("execute() is called on closed statement");
     }
     protocol.prolog(maxRows, protocol.getProxy() != null, connection, this);
-    if (queryTimeout != 0 && (!canUseServerTimeout || forceUseOfTimer)) {
-      setTimerTask();
+    if (queryTimeout != 0 && (!canUseServerTimeout || isBatch)) {
+      setTimerTask(isBatch);
     }
   }
 

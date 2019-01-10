@@ -180,6 +180,8 @@ public interface Protocol {
 
   void cancelCurrentQuery() throws SQLException;
 
+  void interrupt();
+
   void skip() throws SQLException;
 
   boolean checkIfMaster() throws SQLException;
