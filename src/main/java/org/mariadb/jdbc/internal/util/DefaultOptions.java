@@ -95,7 +95,7 @@ public enum DefaultOptions {
       "Session timeout is defined by the wait_timeout "
           + "server variable. Setting interactiveClient to true will tell the server to use the interactive_timeout "
           + "server variable.", false),
-  DUMP_QUERY_ON_EXCEPTION("dumpQueriesOnException", Boolean.TRUE, "1.1.0",
+  DUMP_QUERY_ON_EXCEPTION("dumpQueriesOnException", Boolean.FALSE, "1.1.0",
       "If set to 'true', an exception is thrown "
           + "during query execution containing a query string.", false),
   USE_OLD_ALIAS_METADATA_BEHAVIOR("useOldAliasMetadataBehavior", Boolean.FALSE, "1.1.9",
