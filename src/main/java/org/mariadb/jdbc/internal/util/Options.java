@@ -102,7 +102,7 @@ public class Options implements Cloneable {
   public boolean createDatabaseIfNotExist;
   public String serverTimezone;
   public boolean nullCatalogMeansCurrent = true;
-  public boolean dumpQueriesOnException = true;
+  public boolean dumpQueriesOnException;
   public boolean useOldAliasMetadataBehavior;
   public boolean allowLocalInfile = true;
   public boolean cachePrepStmts = true;
