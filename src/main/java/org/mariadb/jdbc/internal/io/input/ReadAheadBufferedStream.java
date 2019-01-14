@@ -45,25 +45,43 @@ public class ReadAheadBufferedStream extends FilterInputStream {
   private volatile byte[] buf;
   private int end;
   private int pos;
-  private int BUF_SIZE = 16384;
+  private static final int BUF_SIZE = 16384;
 
   public ReadAheadBufferedStream(InputStream in) {
     super(in);
     buf = new byte[BUF_SIZE];
   }
 
+  /**
+   * Reading one byte from cache of socket if needed.
+   *
+   * @return byte value
+   * @throws IOException if socket reading error.
+   */
   public synchronized int read() throws IOException {
     if (pos >= end) {
       fillBuffer(1);
-      if (pos >= end)
+      if (pos >= end) {
         return -1;
+      }
     }
     return buf[pos++] & 0xff;
   }
 
+  /**
+   * Returing byte array, from cache of reading socket if needed.
+   *
+   * @param externalBuf   buffer to fill
+   * @param off           offset
+   * @param len           length to read
+   * @return number of added bytes
+   * @throws IOException if exception during socket reading
+   */
   public synchronized int read(byte[] externalBuf, int off, int len) throws IOException {
 
-    if (len == 0) return 0;
+    if (len == 0) {
+      return 0;
+    }
 
     int totalReads = 0;
     while (true) {
@@ -74,14 +92,18 @@ public class ReadAheadBufferedStream extends FilterInputStream {
           //buffer length is less than asked byte and buffer is empty
           // => filling directly into external buffer
           int reads = super.read(externalBuf, off + totalReads, len - totalReads);
-          if (reads <= 0) return (totalReads == 0) ? -1 : totalReads;
+          if (reads <= 0) {
+            return (totalReads == 0) ? -1 : totalReads;
+          }
           return totalReads + reads;
 
         } else {
 
           //filling internal buffer
           fillBuffer(len - totalReads);
-          if (end <= 0) return (totalReads == 0) ? -1 : totalReads;
+          if (end <= 0) {
+            return (totalReads == 0) ? -1 : totalReads;
+          }
         }
       }
 
@@ -91,7 +113,9 @@ public class ReadAheadBufferedStream extends FilterInputStream {
       pos += copyLength;
       totalReads += copyLength;
 
-      if (totalReads >= len || super.available() <= 0) return totalReads;
+      if (totalReads >= len || super.available() <= 0) {
+        return totalReads;
+      }
     }
   }
 

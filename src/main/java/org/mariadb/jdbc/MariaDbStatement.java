@@ -168,7 +168,9 @@ public class MariaDbStatement implements Statement, Cloneable {
           public void run() {
             try {
               isTimedout = true;
-              if (!isBatch) protocol.cancelCurrentQuery();
+              if (!isBatch) {
+                protocol.cancelCurrentQuery();
+              }
               protocol.interrupt();
             } catch (Throwable e) {
               //eat

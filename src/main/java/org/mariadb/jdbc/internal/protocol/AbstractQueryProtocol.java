@@ -152,8 +152,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       final ReentrantLock lock) {
     super(urlParser, globalInfo, lock);
     logQuery = new LogQueryTool(options);
-    galeraAllowedStates = urlParser.getOptions().galeraAllowedState == null ?
-        Collections.<String>emptyList() :
+    galeraAllowedStates = urlParser.getOptions().galeraAllowedState == null
+        ? Collections.<String>emptyList() :
         Arrays.asList(urlParser.getOptions().galeraAllowedState.split(","));
   }
 

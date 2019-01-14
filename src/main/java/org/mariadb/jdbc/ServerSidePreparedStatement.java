@@ -270,7 +270,9 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
     executing = true;
     try {
       executeQueryPrologue(serverPrepareResult);
-      if (queryTimeout != 0) setTimerTask(true);
+      if (queryTimeout != 0) {
+        setTimerTask(true);
+      }
 
       results = new Results(this,
           0,
@@ -403,7 +405,9 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
     lock.lock();
     try {
       executeQueryPrologue(serverPrepareResult);
-      if (queryTimeout != 0) setTimerTask(false);
+      if (queryTimeout != 0) {
+        setTimerTask(false);
+      }
 
       ParameterHolder[] parameterHolders = currentParameterHolder.values()
           .toArray(new ParameterHolder[0]);

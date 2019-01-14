@@ -679,7 +679,8 @@ public class TextRowProtocol extends RowProtocol {
 
       default:
         String value = new String(buf, pos, length, StandardCharsets.UTF_8);
-        throw new SQLException("Value type \"" + columnInfo.getColumnType().getTypeName() + "\" with value \"" + value + "\" cannot be parse as Timestamp");
+        throw new SQLException("Value type \"" + columnInfo.getColumnType().getTypeName()
+            + "\" with value \"" + value + "\" cannot be parse as Timestamp");
     }
   }
 

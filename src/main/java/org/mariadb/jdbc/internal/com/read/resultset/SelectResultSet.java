@@ -68,6 +68,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.Array;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -265,7 +266,7 @@ public class SelectResultSet implements ResultSet {
     ColumnInformation[] columns = new ColumnInformation[1];
     columns[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
 
-    List<byte[]> rows = new ArrayList<byte[]>();
+    List<byte[]> rows = new ArrayList<>();
     for (long rowData : data) {
       if (rowData != 0) {
         rows.add(StandardPacketInputStream.create(String.valueOf(rowData).getBytes()));
@@ -990,7 +991,7 @@ public class SelectResultSet implements ResultSet {
       return null;
     }
     return new ByteArrayInputStream(
-        new String(row.buf, row.pos, row.getLengthMaxFieldSize(), Buffer.UTF_8)
+        new String(row.buf, row.pos, row.getLengthMaxFieldSize(), StandardCharsets.UTF_8)
             .getBytes());
   }
 
@@ -1258,7 +1259,7 @@ public class SelectResultSet implements ResultSet {
       return null;
     }
     return new ByteArrayInputStream(
-        new String(row.buf, row.pos, row.getLengthMaxFieldSize(), Buffer.UTF_8)
+        new String(row.buf, row.pos, row.getLengthMaxFieldSize(), StandardCharsets.UTF_8)
             .getBytes());
   }
 
@@ -1317,37 +1318,33 @@ public class SelectResultSet implements ResultSet {
       throw new SQLException("Class type cannot be null");
     }
     checkObjectRange(columnIndex);
+    if (row.lastValueWasNull()) {
+      return null;
+    }
     ColumnInformation col = columnsInformation[columnIndex - 1];
 
     if (type.equals(String.class)) {
       return (T) row.getInternalString(col, null, timeZone);
 
     } else if (type.equals(Integer.class)) {
-      if (row.lastValueWasNull()) return null;
       return (T) (Integer) row.getInternalInt(col);
 
     } else if (type.equals(Long.class)) {
-      if (row.lastValueWasNull()) return null;
       return (T) (Long) row.getInternalLong(col);
 
     } else if (type.equals(Short.class)) {
-      if (row.lastValueWasNull()) return null;
       return (T) (Short) row.getInternalShort(col);
 
     } else if (type.equals(Double.class)) {
-      if (row.lastValueWasNull()) return null;
       return (T) (Double) row.getInternalDouble(col);
 
     } else if (type.equals(Float.class)) {
-      if (row.lastValueWasNull()) return null;
       return (T) (Float) row.getInternalFloat(col);
 
     } else if (type.equals(Byte.class)) {
-      if (row.lastValueWasNull()) return null;
       return (T) (Byte) row.getInternalByte(col);
 
     } else if (type.equals(byte[].class)) {
-      if (row.lastValueWasNull()) return null;
       byte[] data = new byte[row.getLengthMaxFieldSize()];
       System.arraycopy(row.buf, row.pos, data, 0, row.getLengthMaxFieldSize());
       return (T) data;
@@ -1362,7 +1359,6 @@ public class SelectResultSet implements ResultSet {
       return (T) row.getInternalTimestamp(col, null, timeZone);
 
     } else if (type.equals(Boolean.class)) {
-      if (row.lastValueWasNull()) return null;
       return (T) (Boolean) row.getInternalBoolean(col);
 
     } else if (type.equals(Calendar.class)) {
@@ -1375,16 +1371,16 @@ public class SelectResultSet implements ResultSet {
       return type.cast(calendar);
 
     } else if (type.equals(Clob.class) || type.equals(NClob.class)) {
-      if (row.lastValueWasNull()) return null;
       return (T) new MariaDbClob(row.buf, row.pos, row.getLengthMaxFieldSize());
 
     } else if (type.equals(InputStream.class)) {
-      if (row.lastValueWasNull()) return null;
       return (T) new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());
 
     } else if (type.equals(Reader.class)) {
       String value = row.getInternalString(col, null, timeZone);
-      if (value == null) return null;
+      if (value == null) {
+        return null;
+      }
       return (T) new StringReader(value);
 
     } else if (type.equals(BigDecimal.class)) {
