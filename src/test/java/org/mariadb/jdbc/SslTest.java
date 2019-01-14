@@ -537,6 +537,56 @@ public class SslTest extends BaseTest {
   }
 
   @Test
+  public void testNoSessionResumption()
+      throws SQLException, IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
+    Assume.assumeTrue(hasSameHost());
+    Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
+    // generate a truststore from the canned serverCertificate
+    File tempKeystore = File.createTempFile("keystore", ".tmp");
+    String keystorePath = tempKeystore.getAbsolutePath();
+    try {
+      generateKeystoreFromFile(serverCertificatePath, keystorePath, null);
+
+      Properties info = new Properties();
+      info.setProperty("useSSL", "true");
+      info.setProperty("trustStore", "file://" + keystorePath);
+
+      Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
+
+      long sessionsReused = 0;
+      try (Connection conn = createConnection(info, "ssltestUser", "")) {
+        // First do a basic select test:
+        Statement stmt = conn.createStatement();
+
+        try (ResultSet rs = stmt.executeQuery("SHOW STATUS LIKE 'Ssl_cipher'")) {
+          assertTrue(rs.next());
+          String sslCipher = rs.getString(2);
+          boolean sslActual = sslCipher != null && sslCipher.length() > 0;
+          assertEquals("sslExpected does not match", true, sslActual);
+        }
+
+        try (ResultSet rs = stmt.executeQuery("SHOW STATUS LIKE 'Ssl_sessions_reused'")) {
+          assertTrue(rs.next());
+          sessionsReused = rs.getLong(2);
+        }
+
+        try (Connection conn2 = createConnection(info, "ssltestUser", "")) {
+          Statement stmt2 = conn2.createStatement();
+
+          try (ResultSet rs = stmt2.executeQuery("SHOW STATUS LIKE 'Ssl_sessions_reused'")) {
+            assertTrue(rs.next());
+            assertEquals(sessionsReused, rs.getLong(2));
+          }
+        }
+      }
+    } catch (SQLNonTransientConnectionException nonTransient) {
+      //java 9 doesn't accept empty keystore
+    } finally {
+      tempKeystore.delete();
+    }
+  }
+
+  @Test
   public void testTrustStoreWithPassword()
       throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, SQLException {
     Assume.assumeTrue(hasSameHost());
