@@ -1006,6 +1006,11 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     return masterProtocol != null && masterProtocol.isConnected();
   }
 
+  /**
+   * Indicate if connection has an active transaction.
+   *
+   * @return boolean
+   */
   public boolean inTransaction() {
     if (masterProtocol != null) {
       return masterProtocol.inTransaction();

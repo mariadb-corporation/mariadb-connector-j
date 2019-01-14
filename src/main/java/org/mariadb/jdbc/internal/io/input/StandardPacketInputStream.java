@@ -84,6 +84,12 @@ public class StandardPacketInputStream implements PacketInputStream {
 
   private LruTraceCache traceCache = null;
 
+  /**
+   * Constructor of standard socket MySQL packet stream reader.
+   *
+   * @param in        stream
+   * @param options   connection options
+   */
   public StandardPacketInputStream(InputStream in, Options options) {
     inputStream = options.useReadAheadInput ? new ReadAheadBufferedStream(in)
         : new BufferedInputStream(in, 16384);

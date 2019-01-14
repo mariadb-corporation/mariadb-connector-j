@@ -431,7 +431,7 @@ public class ExecuteBatchTest extends BaseTest {
           Thread thread2;
 
           while (it2.hasNext()) {
-             thread2 = it2.next();
+            thread2 = it2.next();
             if (thread2.getName().contains("MariaDb-bulk-")) {
               assertEquals(State.WAITING, thread2.getState());
             }

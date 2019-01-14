@@ -266,6 +266,7 @@ public class MariaDbClobTest extends BaseTest {
   }
 
   @Test
+  @SuppressWarnings("checkstyle:AvoidEscapedUnicodeCharacters")
   public void clobLength() throws Exception {
     Statement stmt = sharedConnection.createStatement();
     try (ResultSet rs = stmt
@@ -273,15 +274,18 @@ public class MariaDbClobTest extends BaseTest {
       while (rs.next()) {
 
         Clob clob1 = rs.getClob(1);
-        Clob clob2 = rs.getClob(2);
-        Clob clob3 = rs.getClob(3);
-        Clob clob4 = rs.getClob(4);
-        Clob clob5 = rs.getClob(5);
-
         assertEquals(4, clob1.length());
+
+        Clob clob2 = rs.getClob(2);
         assertEquals(4, clob2.length());
+
+        Clob clob3 = rs.getClob(3);
         assertEquals(4, clob3.length());
+
+        Clob clob4 = rs.getClob(4);
         assertEquals(5, clob4.length());
+
+        Clob clob5 = rs.getClob(5);
         assertEquals(5, clob5.length());
 
         clob1.truncate(3);

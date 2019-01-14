@@ -165,7 +165,9 @@ public class MariaDbStatement implements Statement, Cloneable {
     timerTaskFuture = timeoutScheduler.schedule(() -> {
       try {
         isTimedout = true;
-        if (!isBatch) protocol.cancelCurrentQuery();
+        if (!isBatch) {
+          protocol.cancelCurrentQuery();
+        }
         protocol.interrupt();
       } catch (Throwable e) {
         //eat

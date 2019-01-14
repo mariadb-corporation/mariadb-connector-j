@@ -243,19 +243,19 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     int pos = offset;
 
     //set ASCII (<= 127 chars)
-    for(; len < length && data[pos] >= 0; ) {
+    for (; len < length && data[pos] >= 0; ) {
       len++;
       pos++;
     }
 
     //multi-bytes UTF-8
-    while(pos < offset + length) {
+    while (pos < offset + length) {
       byte firstByte = data[pos++];
       if (firstByte < 0) {
         if (firstByte >> 5 != -2 || (firstByte & 30) == 0) {
           if (firstByte >> 4 == -2) {
             if (pos + 1 < offset + length) {
-              pos+=2;
+              pos += 2;
               len++;
             } else {
               throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
@@ -263,12 +263,12 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
           } else if (firstByte >> 3 != -2) {
             throw new UncheckedIOException("invalid UTF8", new CharacterCodingException());
           } else if (pos + 2 < offset + length) {
-            pos+=3;
-            len+=2;
+            pos += 3;
+            len += 2;
           } else {
             //bad truncated UTF8
             pos += offset + length;
-            len+=1;
+            len += 1;
           }
         } else {
           pos++;
