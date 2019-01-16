@@ -1150,7 +1150,7 @@ public class DriverTest extends BaseTest {
       assertTrue(sqle.getCause().getMessage().contains("Query is: " + syntacticallyWrongQuery));
     }
   }
-
+  
   /* Check that query contains SQL statement, if dumpQueryOnException is true */
   @Test
   public void dumpQueryOnException() throws Exception {
@@ -1163,6 +1163,18 @@ public class DriverTest extends BaseTest {
         assertTrue(
             sqle.getCause().getMessage().contains("Query is: " + selectFromNonExistingTable));
       }
+    }
+  }
+
+  /* Check that query does not contains SQL statement by default */
+  @Test
+  public void shouldNotDumpQueryOnExceptionByDefault() throws Exception {
+	 String selectFromNonExistingTable = "select * from mango";
+	 try {
+      Statement st = sharedConnection.createStatement();
+      st.execute(selectFromNonExistingTable);
+    } catch (SQLException sqle) {
+      assertFalse(sqle.getCause().getMessage().contains("Query is: " + selectFromNonExistingTable));
     }
   }
 
