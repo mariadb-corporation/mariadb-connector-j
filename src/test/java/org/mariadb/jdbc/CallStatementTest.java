@@ -57,6 +57,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -208,8 +209,8 @@ public class CallStatementTest extends BaseTest {
 
   @Test
   public void stmtInoutParam() throws SQLException {
-    try {
-      Statement stmt = sharedConnection.createStatement();
+    try (Connection connection = setConnection("&dumpQueriesOnException")){
+      Statement stmt = connection.createStatement();
       stmt.execute("{call inOutParam(1)}");
       fail("must fail : statement cannot be use when there is out parameter");
     } catch (SQLSyntaxErrorException e) {

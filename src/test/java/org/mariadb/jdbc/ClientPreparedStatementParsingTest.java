@@ -362,7 +362,7 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
 
   @Test
   public void rewriteBatchedError() throws Exception {
-    try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
+    try (Connection connection = setConnection("&rewriteBatchedStatements=true&dumpQueriesOnException")) {
       PreparedStatement preparedStatement = connection
           .prepareStatement("INSERT INTO errorTable (a, b) VALUES (?, ?, ?)");
 
