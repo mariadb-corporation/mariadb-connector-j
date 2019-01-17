@@ -1143,8 +1143,8 @@ public class DriverTest extends BaseTest {
   @Test
   public void dumpQueryOnSyntaxException() {
     String syntacticallyWrongQuery = "banana";
-    try {
-      Statement st = sharedConnection.createStatement();
+    try (Connection connection = setConnection("&dumpQueriesOnException")) {
+      Statement st = connection.createStatement();
       st.execute(syntacticallyWrongQuery);
     } catch (SQLException sqle) {
       assertTrue(sqle.getCause().getMessage().contains("Query is: " + syntacticallyWrongQuery));
