@@ -100,6 +100,7 @@ public class Options implements Cloneable {
   public boolean enablePacketDebug;
   public boolean useBulkStmts;
   public boolean disableSslHostnameVerification;
+  public boolean enableRedirect = false;
   public boolean autocommit = true;
   public boolean includeInnodbStatusInDeadlockExceptions;
   public boolean includeThreadDumpInDeadlockExceptions;
@@ -280,6 +281,11 @@ public class Options implements Cloneable {
     if (disableSslHostnameVerification != opt.disableSslHostnameVerification) {
       return false;
     }
+
+    if (enableRedirect != opt.enableRedirect) {
+        return false;
+    }
+
     if (log != opt.log) {
       return false;
     }
@@ -521,6 +527,7 @@ public class Options implements Cloneable {
     result = 31 * result + (useBulkStmts ? 1 : 0);
     result = 31 * result + defaultFetchSize;
     result = 31 * result + (disableSslHostnameVerification ? 1 : 0);
+    result = 31 * result + (enableRedirect ? 1 : 0);
     result = 31 * result + (log ? 1 : 0);
     result = 31 * result + (profileSql ? 1 : 0);
     result = 31 * result + maxQuerySizeToLog;

@@ -493,6 +493,12 @@ public enum DefaultOptions {
           + "deactivating this validation. Hostname verification is disabled when the trustServerCertificate "
           + "option is set",
       false),
+  ENABLE_REDIRECTION(
+      "enableRedirect",
+      Boolean.FALSE,
+      "2.1.0",
+      "This option let user to decide if use redirection feature",
+      false),
   USE_BULK_PROTOCOL(
       "useBulkStmts",
       Boolean.FALSE,
