@@ -126,7 +126,7 @@ public class HostAddress {
 
       if (!matcher.find()) {
         logger.warn("Aurora recommended connection URL must only use cluster end-point like "
-            + "\"jdbc:mariadb:aurora//xx.cluster-yy.zz.rds.amazonaws.com\". "
+            + "\"jdbc:mariadb:aurora://xx.cluster-yy.zz.rds.amazonaws.com\". "
             + "Using end-point permit auto-discovery of new replicas");
       }
     }
