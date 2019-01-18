@@ -67,6 +67,7 @@ import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.failover.tools.SearchFilter;
 import org.mariadb.jdbc.internal.protocol.AuroraProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
+import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.dao.ReconnectDuringTransactionException;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 
@@ -124,7 +125,10 @@ public class AuroraListener extends MastersSlavesListener {
           return hostAddress;
         }
       } else {
-        if (clusterDnsSuffix == null && hostAddress.host.contains(".")) {
+        if (clusterDnsSuffix == null
+            && hostAddress.host.contains(".")
+            && !Utils.isIPv4(hostAddress.host)
+            && !Utils.isIPv6(hostAddress.host)) {
           clusterDnsSuffix = hostAddress.host.substring(hostAddress.host.indexOf(".") + 1);
         }
       }
