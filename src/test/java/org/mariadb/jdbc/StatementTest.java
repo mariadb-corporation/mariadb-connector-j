@@ -497,4 +497,40 @@ public class StatementTest extends BaseTest {
       }
     }
   }
+
+  @Test
+  public void largeUpdate() throws SQLException {
+    createTable("largeUpdate", "a int not null primary key auto_increment, t varchar(256)", "engine=innodb");
+    Statement stmt = sharedConnection.createStatement();
+
+    long updateRes = stmt.executeLargeUpdate("insert into largeUpdate(t) values('a'), ('b')");
+    assertEquals(2L, updateRes);
+    assertEquals(2L, stmt.getLargeUpdateCount());
+
+    updateRes = stmt.executeLargeUpdate("insert into largeUpdate(t) values('c'), ('d')", Statement.RETURN_GENERATED_KEYS);
+    assertEquals(2L, updateRes);
+    ResultSet rs = stmt.getGeneratedKeys();
+    assertEquals(2L, stmt.getLargeUpdateCount());
+    assertTrue(rs.next());
+    assertEquals(3, rs.getInt(1));
+
+    updateRes = stmt.executeLargeUpdate("insert into largeUpdate(t) values('e'), ('f')", new int[] {1});
+    assertEquals(2L, updateRes);
+    assertEquals(2L, stmt.getLargeUpdateCount());
+    rs = stmt.getGeneratedKeys();
+    assertTrue(rs.next());
+    assertEquals(5, rs.getInt(1));
+
+    updateRes = stmt.executeLargeUpdate("insert into largeUpdate(t) values('g'), ('h')", new String[] {"1"});
+    assertEquals(2L, updateRes);
+    rs = stmt.getGeneratedKeys();
+    assertTrue(rs.next());
+    assertEquals(7, rs.getInt(1));
+
+    assertEquals(0L, stmt.getLargeMaxRows());
+    stmt.setLargeMaxRows(10_000L);
+    assertEquals(10_000L, stmt.getLargeMaxRows());
+
+  }
+
 }

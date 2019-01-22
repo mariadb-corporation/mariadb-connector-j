@@ -56,6 +56,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.assertArrayEquals;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
@@ -575,4 +576,29 @@ public class PreparedStatementTest extends BaseTest {
     }
   }
 
+  @Test
+  public void largePrepareUpdate() throws SQLException {
+    createTable("largePrepareUpdate", "a int not null primary key auto_increment, t varchar(256)", "engine=innodb");
+    try (PreparedStatement stmt = sharedConnection.prepareStatement("insert into largePrepareUpdate(t) values(?)", Statement.RETURN_GENERATED_KEYS)) {
+      stmt.setString(1, "a");
+      long updateRes = stmt.executeLargeUpdate();
+      assertEquals(1L, updateRes);
+      assertEquals(1L, stmt.getUpdateCount());
+      assertEquals(1L, stmt.getLargeUpdateCount());
+
+      stmt.setString(1, "b");
+      stmt.addBatch();
+      stmt.setString(1, "c");
+      stmt.addBatch();
+      long[] batchRes = stmt.executeLargeBatch();
+      assertArrayEquals(new long[] {1,1}, batchRes);
+      ResultSet rs = stmt.getGeneratedKeys();
+      assertTrue(rs.next());
+      assertEquals(2, rs.getInt(1));
+
+      assertEquals(0L, stmt.getLargeMaxRows());
+      stmt.setLargeMaxRows(10_000L);
+      assertEquals(10_000L, stmt.getLargeMaxRows());
+    }
+  }
 }
