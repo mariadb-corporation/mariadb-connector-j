@@ -85,3 +85,6 @@ script:
   - if [ "$DB" = "build" ] ; then .travis/build/build.sh; fi
   - if [ "$DB" = "build" ] ; then docker build -t build:latest --label build .travis/build/; fi
   - .travis/script.sh
+
+after_success:
+- bash <(curl -s https://codecov.io/bash)
