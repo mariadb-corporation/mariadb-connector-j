@@ -64,32 +64,35 @@ public class ComQuery {
   /**
    * Client-side PrepareStatement.execute() packet send.
    *
-   * @param writer              outputStream
+   * @param out                 outputStream
    * @param clientPrepareResult clientPrepareResult
    * @param parameters          parameter
    * @throws IOException if connection fail
    */
-  public static void sendSubCmd(final PacketOutputStream writer,
-      final ClientPrepareResult clientPrepareResult, ParameterHolder[] parameters)
+  public static void sendSubCmd(final PacketOutputStream out,
+      final ClientPrepareResult clientPrepareResult, ParameterHolder[] parameters, int queryTimeout)
       throws IOException {
-    writer.write(Packet.COM_QUERY);
+    out.write(Packet.COM_QUERY);
+    if (queryTimeout > 0) {
+      out.write(("SET STATEMENT max_statement_time=" + queryTimeout + " FOR ").getBytes());
+    }
     if (clientPrepareResult.isRewriteType()) {
 
-      writer.write(clientPrepareResult.getQueryParts().get(0));
-      writer.write(clientPrepareResult.getQueryParts().get(1));
+      out.write(clientPrepareResult.getQueryParts().get(0));
+      out.write(clientPrepareResult.getQueryParts().get(1));
       for (int i = 0; i < clientPrepareResult.getParamCount(); i++) {
-        parameters[i].writeTo(writer);
-        writer.write(clientPrepareResult.getQueryParts().get(i + 2));
+        parameters[i].writeTo(out);
+        out.write(clientPrepareResult.getQueryParts().get(i + 2));
       }
-      writer
+      out
           .write(clientPrepareResult.getQueryParts().get(clientPrepareResult.getParamCount() + 2));
 
     } else {
 
-      writer.write(clientPrepareResult.getQueryParts().get(0));
+      out.write(clientPrepareResult.getQueryParts().get(0));
       for (int i = 0; i < clientPrepareResult.getParamCount(); i++) {
-        parameters[i].writeTo(writer);
-        writer.write(clientPrepareResult.getQueryParts().get(i + 1));
+        parameters[i].writeTo(out);
+        out.write(clientPrepareResult.getQueryParts().get(i + 1));
       }
 
     }

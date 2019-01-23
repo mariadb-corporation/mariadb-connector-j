@@ -272,15 +272,14 @@ public class MariaDbStatement implements Statement, Cloneable {
     return sqle;
   }
 
-  protected BatchUpdateException executeBatchExceptionEpilogue(SQLException initialSqle,
-      CmdInformation cmdInformation, int size) {
+  protected BatchUpdateException executeBatchExceptionEpilogue(SQLException initialSqle, int size) {
     SQLException sqle = handleFailoverAndTimeout(initialSqle);
     int[] ret;
-    if (cmdInformation == null) {
+    if (results == null || !results.commandEnd()) {
       ret = new int[size];
       Arrays.fill(ret, Statement.EXECUTE_FAILED);
     } else {
-      ret = cmdInformation.getUpdateCounts();
+      ret = results.getCmdInformation().getUpdateCounts();
     }
 
     sqle = ExceptionMapper.getException(sqle, connection, this, queryTimeout != 0);
@@ -289,34 +288,6 @@ public class MariaDbStatement implements Statement, Cloneable {
     return new BatchUpdateException(sqle.getMessage(), sqle.getSQLState(), sqle.getErrorCode(), ret,
         sqle);
   }
-
-  /**
-   * Handle Exception for large batch update (return BatchUpdateException with long[].
-   *
-   * @param initialException initial exception
-   * @param cmdInformation   command return information (to indicate output that have been
-   *                         executed)
-   * @param size             initial batch length
-   * @return a BatchUpdateException
-   */
-  private BatchUpdateException executeLargeBatchExceptionEpilogue(SQLException initialException,
-      CmdInformation cmdInformation, int size) {
-    SQLException exception = handleFailoverAndTimeout(initialException);
-    long[] ret;
-    if (cmdInformation == null) {
-      ret = new long[size];
-      Arrays.fill(ret, Statement.EXECUTE_FAILED);
-    } else {
-      ret = cmdInformation.getLargeUpdateCounts();
-    }
-
-    exception = ExceptionMapper.getException(exception, connection, this, getQueryTimeout() != 0);
-    logger.error("error executing query", exception);
-
-    return new BatchUpdateException(exception.getMessage(), exception.getSQLState(),
-        exception.getErrorCode(), ret, exception);
-  }
-
 
   /**
    * Executes a query.
@@ -1321,13 +1292,8 @@ public class MariaDbStatement implements Statement, Cloneable {
     try {
       internalBatchExecution(size);
       return results.getCmdInformation().getUpdateCounts();
-
     } catch (SQLException initialSqlEx) {
-      if (results != null) {
-        results.commandEnd();
-        throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), size);
-      }
-      throw executeBatchExceptionEpilogue(initialSqlEx, null, size);
+      throw executeBatchExceptionEpilogue(initialSqlEx, size);
     } finally {
       executeBatchEpilogue();
       lock.unlock();
@@ -1355,10 +1321,7 @@ public class MariaDbStatement implements Statement, Cloneable {
       return results.getCmdInformation().getLargeUpdateCounts();
 
     } catch (SQLException initialSqlEx) {
-      if (results != null) {
-        results.commandEnd();
-      }
-      throw executeLargeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(), size);
+      throw executeBatchExceptionEpilogue(initialSqlEx, size);
     } finally {
       executeBatchEpilogue();
       lock.unlock();

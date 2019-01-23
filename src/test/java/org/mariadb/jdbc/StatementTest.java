@@ -53,11 +53,7 @@
 package org.mariadb.jdbc;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
@@ -532,6 +528,50 @@ public class StatementTest extends BaseTest {
     stmt.setLargeMaxRows(10_000L);
     assertEquals(10_000L, stmt.getLargeMaxRows());
 
+  }
+
+
+  @Test
+  public void closedStatement() throws SQLException {
+
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("SELECT 1");
+    stmt.executeQuery("SELECT 1");
+    stmt.executeUpdate("SELECT 1");
+
+    stmt.close();
+
+    try {
+      stmt.execute("SELECT 1");
+      fail();
+    } catch (SQLException e) {
+      assertTrue(e.getMessage().contains("is called on closed statement"));
+    }
+
+    try {
+      stmt.executeQuery("SELECT 1");
+      fail();
+    } catch (SQLException e) {
+      assertTrue(e.getMessage().contains("is called on closed statement"));
+    }
+
+    try {
+      stmt.executeUpdate("SELECT 1");
+      fail();
+    } catch (SQLException e) {
+      assertTrue(e.getMessage().contains("is called on closed statement"));
+    }
+  }
+
+  @Test
+  public void largePrepareUpdate() throws SQLException {
+    createTable("largePrepareUpdate", "a int not null primary key auto_increment, t varchar(256)", "engine=innodb");
+    Statement stmt = sharedConnection.createStatement();
+    stmt.addBatch("insert into largePrepareUpdate(t) values('a')");
+    stmt.addBatch("insert into largePrepareUpdate(t) values('b')");
+    stmt.addBatch("insert into largePrepareUpdate(t) values('b')");
+    long[] batchRes = stmt.executeLargeBatch();
+    assertArrayEquals(new long[] {1,1,1}, batchRes);
   }
 
 }

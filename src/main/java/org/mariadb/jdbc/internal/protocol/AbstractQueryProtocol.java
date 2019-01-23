@@ -279,7 +279,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
       } else {
         writer.startPacket(0);
-        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
+        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, -1);
         writer.flush();
       }
       getResult(results);
@@ -316,7 +316,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
       } else {
         writer.startPacket(0);
-        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
+        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, queryTimeout);
         writer.flush();
       }
       getResult(results);
@@ -612,7 +612,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
         ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
         writer.startPacket(0);
-        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
+        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, -1);
         writer.flush();
       }
 

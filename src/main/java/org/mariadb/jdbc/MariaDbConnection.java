@@ -126,11 +126,11 @@ public class MariaDbConnection implements Connection {
    */
   private final Options options;
   public MariaDbPooledConnection pooledConnection;
-  protected boolean nullCatalogMeansCurrent = true;
+  protected boolean nullCatalogMeansCurrent;
   private CallableStatementCache callableStatementCache;
   private volatile int lowercaseTableNames = -1;
-  private boolean canUseServerTimeout = false;
-  private boolean sessionStateAware = true;
+  private boolean canUseServerTimeout;
+  private boolean sessionStateAware;
   private int stateFlag = 0;
   private int defaultTransactionIsolation = 0;
   /**
