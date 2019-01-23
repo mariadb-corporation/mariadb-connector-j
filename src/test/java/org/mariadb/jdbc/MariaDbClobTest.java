@@ -110,7 +110,7 @@ public class MariaDbClobTest extends BaseTest {
 
 
   @Test
-  public void position() throws SQLException {
+  public void position() {
     MariaDbClob clob = new MariaDbClob(bytes);
     assertEquals(4, clob.position("de", 2));
 
