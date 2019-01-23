@@ -404,10 +404,8 @@ public class MariaDbBlob implements Blob, Serializable {
    *
    * @param len the length, in bytes, to which the <code>BLOB</code> value that this
    *            <code>Blob</code> object represents should be truncated
-   * @throws SQLException if there is an error accessing the <code>BLOB</code> value or if len is
-   *                      less than 0
    */
-  public void truncate(final long len) throws SQLException {
+  public void truncate(final long len) {
     if (len >= 0 && len < this.length) {
       this.length = (int) len;
     }

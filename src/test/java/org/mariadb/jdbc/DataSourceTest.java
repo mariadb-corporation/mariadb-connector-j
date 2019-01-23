@@ -243,7 +243,7 @@ public class DataSourceTest extends BaseTest {
   }
 
   @Test
-  public void setLoginTimeOut() throws SQLException {
+  public void setLoginTimeOut() {
     MariaDbDataSource ds = new MariaDbDataSource(hostname == null ? "localhost" : hostname, port,
         database);
     assertEquals(30, ds.getLoginTimeout());

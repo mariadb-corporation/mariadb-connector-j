@@ -104,7 +104,7 @@ public class TransactionTest extends BaseTest {
       st.executeUpdate("insert into tx_fore_key(id, id_ref) values(42, 32)");
     }
 
-    // 2. try to delete entry in Primary table in a transaction - wich will fail due
+    // 2. try to delete entry in Primary table in a transaction - which will fail due
     // foreign key.
     sharedConnection.setAutoCommit(false);
     try (Statement st = sharedConnection.createStatement()) {
@@ -118,7 +118,7 @@ public class TransactionTest extends BaseTest {
     }
 
     try (Connection conn2 = openNewConnection(connUri); Statement st = conn2.createStatement()) {
-      st.setQueryTimeout(3);
+      st.setQueryTimeout(30000);
       st.executeUpdate("delete from tx_fore_key where id = 42");
       st.executeUpdate("delete from tx_prim_key where id = 32");
     }

@@ -180,7 +180,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     return toString().indexOf(searchStr, (int) start - 1) + 1;
   }
 
-  public long position(Clob searchStr, long start) throws SQLException {
+  public long position(Clob searchStr, long start) {
     return position(searchStr.toString(), start);
   }
 

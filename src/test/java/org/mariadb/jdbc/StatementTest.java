@@ -272,7 +272,7 @@ public class StatementTest extends BaseTest {
   }
 
   @Test
-  public void testLoadDataInvalidColumn() throws SQLException, UnsupportedEncodingException {
+  public void testLoadDataInvalidColumn() throws SQLException {
     Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 0));
     Statement statement = sharedConnection.createStatement();
     try {

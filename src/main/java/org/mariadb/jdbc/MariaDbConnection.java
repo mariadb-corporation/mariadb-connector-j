@@ -223,12 +223,8 @@ public class MariaDbConnection implements Connection {
    *                             <code>ResultSet.CONCUR_UPDATABLE</code>
    * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects
    *     with the given type and concurrency
-   * @throws SQLException if a database access error occurs, this method is called on a closed
-   *                      connection or the given parameters are not <code>ResultSet</code>
-   *                      constants indicating type and concurrency
    */
-  public Statement createStatement(final int resultSetType, final int resultSetConcurrency)
-      throws SQLException {
+  public Statement createStatement(final int resultSetType, final int resultSetConcurrency) {
     return new MariaDbStatement(this, resultSetType, resultSetConcurrency);
   }
 
@@ -250,15 +246,10 @@ public class MariaDbConnection implements Connection {
    *                             <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
    * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects
    *      with the given type, concurrency, and holdability
-   * @throws SQLException                    if a database access error occurs, this method is
-   *                                         called on a closed connection or the given parameters
-   *                                         are not <code>ResultSet</code> constants indicating
-   *                                         type, concurrency, and holdability
    * @see ResultSet
    */
   public Statement createStatement(final int resultSetType, final int resultSetConcurrency,
-      final int resultSetHoldability)
-      throws SQLException {
+      final int resultSetHoldability) {
     return new MariaDbStatement(this, resultSetType, resultSetConcurrency);
   }
 

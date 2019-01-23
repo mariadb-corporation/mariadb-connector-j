@@ -700,7 +700,7 @@ public class SelectResultSet implements ResultSet {
   }
 
   @Override
-  public void clearWarnings() throws SQLException {
+  public void clearWarnings() {
     if (this.statement != null) {
       this.statement.clearWarnings();
     }
@@ -948,7 +948,7 @@ public class SelectResultSet implements ResultSet {
   }
 
   @Override
-  public int getConcurrency() throws SQLException {
+  public int getConcurrency() {
     return CONCUR_READ_ONLY;
   }
 

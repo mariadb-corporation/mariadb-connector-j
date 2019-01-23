@@ -1117,7 +1117,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     return false;
   }
 
-  public boolean nullsAreSortedLow() throws SQLException {
+  public boolean nullsAreSortedLow() {
     return !nullsAreSortedHigh();
   }
 
@@ -1125,7 +1125,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     return false;
   }
 
-  public boolean nullsAreSortedAtEnd() throws SQLException {
+  public boolean nullsAreSortedAtEnd() {
     return !nullsAreSortedAtStart();
   }
 
@@ -1181,7 +1181,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     return supportsMixedCaseIdentifiers();
   }
 
-  public boolean storesUpperCaseQuotedIdentifiers() throws SQLException {
+  public boolean storesUpperCaseQuotedIdentifiers() {
     return storesUpperCaseIdentifiers();
   }
 
@@ -2579,15 +2579,15 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     return type == ResultSet.TYPE_SCROLL_INSENSITIVE || type == ResultSet.TYPE_FORWARD_ONLY;
   }
 
-  public boolean ownUpdatesAreVisible(int type) throws SQLException {
+  public boolean ownUpdatesAreVisible(int type) {
     return supportsResultSetType(type);
   }
 
-  public boolean ownDeletesAreVisible(int type) throws SQLException {
+  public boolean ownDeletesAreVisible(int type) {
     return supportsResultSetType(type);
   }
 
-  public boolean ownInsertsAreVisible(int type) throws SQLException {
+  public boolean ownInsertsAreVisible(int type) {
     return supportsResultSetType(type);
   }
 

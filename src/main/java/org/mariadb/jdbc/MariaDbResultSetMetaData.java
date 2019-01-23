@@ -346,9 +346,8 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    *
    * @param column the first column is 1, the second is 2, ...
    * @return <code>true</code> if so; <code>false</code> otherwise
-   * @throws SQLException if a database access error occurs
    */
-  public boolean isWritable(final int column) throws SQLException {
+  public boolean isWritable(final int column) {
     return !isReadOnly(column);
   }
 
@@ -357,9 +356,8 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    *
    * @param column the first column is 1, the second is 2, ...
    * @return <code>true</code> if so; <code>false</code> otherwise
-   * @throws SQLException if a database access error occurs
    */
-  public boolean isDefinitelyWritable(final int column) throws SQLException {
+  public boolean isDefinitelyWritable(final int column) {
     return !isReadOnly(column);
   }
 
