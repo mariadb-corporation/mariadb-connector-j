@@ -50,38 +50,59 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send;
-
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+package org.mariadb.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class SendClearPasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-    public SendClearPasswordAuthPacket(String password, byte[] authData, int packSeq, String passwordCharacterEncoding) {
-        super(packSeq, authData, password, passwordCharacterEncoding);
+public class ClearPasswordPlugin implements AuthenticationPlugin {
+
+  private final String password;
+  private final String passwordCharacterEncoding;
+
+  /**
+   * Clear text password plugin constructor.
+   *
+   * @param password                    password
+   * @param passwordCharacterEncoding   password encoding
+   */
+  public ClearPasswordPlugin(String password, String passwordCharacterEncoding) {
+    this.password = password;
+    this.passwordCharacterEncoding = passwordCharacterEncoding;
+  }
+
+  /**
+   * Send password in clear text to server.
+   *
+   * @param out       out stream
+   * @param in        in stream
+   * @param sequence  packet sequence
+   * @return response packet
+   * @throws IOException  if socket error
+   */
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException {
+    if (password == null || password.isEmpty()) {
+      out.writeEmptyPacket(sequence.incrementAndGet());
+    } else {
+      out.startPacket(sequence.incrementAndGet());
+      byte[] bytePwd;
+      if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
+        bytePwd = password.getBytes(passwordCharacterEncoding);
+      } else {
+        bytePwd = password.getBytes();
+      }
+      out.write(bytePwd);
+      out.write(0);
+      out.flush();
     }
 
-    /**
-     * Send native password stream.
-     *
-     * @param pos database socket
-     * @throws IOException if a connection error occur
-     */
-    public void send(PacketOutputStream pos) throws IOException {
-        if (password == null || password.isEmpty()) {
-            pos.writeEmptyPacket(packSeq);
-            return;
-        }
-        pos.startPacket(packSeq);
-        byte[] bytePwd;
-        if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
-            bytePwd = password.getBytes(passwordCharacterEncoding);
-        } else {
-            bytePwd = password.getBytes();
-        }
-        pos.write(bytePwd);
-        pos.write(0);
-        pos.flush();
-    }
+    Buffer buffer = in.getPacket(true);
+    sequence.set(in.getLastPacketSeq());
+    return buffer;
+
+  }
 }

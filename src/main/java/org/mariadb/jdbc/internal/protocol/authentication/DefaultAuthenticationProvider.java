@@ -53,51 +53,57 @@
 
 package org.mariadb.jdbc.internal.protocol.authentication;
 
-import org.mariadb.jdbc.internal.com.send.*;
-import org.mariadb.jdbc.internal.com.send.SendEd25519PasswordAuthPacket;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-
 import java.sql.SQLException;
 
+import org.mariadb.jdbc.internal.com.send.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.internal.com.send.authentication.ClearPasswordPlugin;
+import org.mariadb.jdbc.internal.com.send.authentication.Ed25519PasswordPlugin;
+import org.mariadb.jdbc.internal.com.send.authentication.NativePasswordPlugin;
+import org.mariadb.jdbc.internal.com.send.authentication.OldPasswordPlugin;
+import org.mariadb.jdbc.internal.com.send.authentication.SendGssApiAuthPacket;
+import org.mariadb.jdbc.internal.com.send.authentication.SendPamAuthPacket;
+
 public class DefaultAuthenticationProvider {
-    public static final String MYSQL_NATIVE_PASSWORD = "mysql_native_password";
-    public static final String MYSQL_OLD_PASSWORD = "mysql_old_password";
-    public static final String MYSQL_CLEAR_PASSWORD = "mysql_clear_password";
-    public static final String MYSQL_ED25519_PASSWORD = "client_ed25519";
-    private static final String GSSAPI_CLIENT = "auth_gssapi_client";
-    private static final String DIALOG = "dialog";
 
-    /**
-     * Process AuthenticationSwitch.
-     *
-     * @param reader                    packet fetcher
-     * @param plugin                    plugin name
-     * @param password                  password
-     * @param authData                  auth data
-     * @param seqNo                     packet sequence number
-     * @param passwordCharacterEncoding password character encoding
-     * @return authentication response according to parameters
-     * @throws SQLException if error occur.
-     */
-    public static InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
-                                                                          byte[] authData, int seqNo, String passwordCharacterEncoding)
-            throws SQLException {
+  public static final String MYSQL_NATIVE_PASSWORD = "mysql_native_password";
+  public static final String MYSQL_OLD_PASSWORD = "mysql_old_password";
+  public static final String MYSQL_CLEAR_PASSWORD = "mysql_clear_password";
+  public static final String MYSQL_ED25519_PASSWORD = "client_ed25519";
+  private static final String GSSAPI_CLIENT = "auth_gssapi_client";
+  private static final String DIALOG = "dialog";
 
-        if (MYSQL_NATIVE_PASSWORD.equals(plugin)) {
-            return new SendNativePasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
-        } else if (MYSQL_OLD_PASSWORD.equals(plugin)) {
-            return new SendOldPasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
-        } else if (MYSQL_CLEAR_PASSWORD.equals(plugin)) {
-            return new SendClearPasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
-        } else if (DIALOG.equals(plugin)) {
-            return new SendPamAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
-        } else if (GSSAPI_CLIENT.equals(plugin)) {
-            return new SendGssApiAuthPacket(reader, password, authData, seqNo, passwordCharacterEncoding);
-        } else if (MYSQL_ED25519_PASSWORD.equals(plugin)) {
-            return new SendEd25519PasswordAuthPacket(password, authData, seqNo, passwordCharacterEncoding);
-        }
-        throw new SQLException("Client does not support authentication protocol requested by server. "
+  /**
+   * Process AuthenticationSwitch.
+   *
+   * @param plugin                    plugin name
+   * @param password                  password
+   * @param authData                  auth data
+   * @param passwordCharacterEncoding password character encoding
+   * @return authentication response according to parameters
+   * @throws SQLException if error occur.
+   */
+  public static AuthenticationPlugin processAuthPlugin(String plugin, String password,
+                                                       byte[] authData, String passwordCharacterEncoding)
+      throws SQLException {
+    switch (plugin) {
+      case MYSQL_NATIVE_PASSWORD:
+        return new NativePasswordPlugin(password, authData, passwordCharacterEncoding);
+      case MYSQL_OLD_PASSWORD:
+        return new OldPasswordPlugin(password, authData);
+      case MYSQL_CLEAR_PASSWORD:
+        return new ClearPasswordPlugin(password, passwordCharacterEncoding);
+      case DIALOG:
+        return new SendPamAuthPacket(password, authData, passwordCharacterEncoding);
+      case GSSAPI_CLIENT:
+        return new SendGssApiAuthPacket(authData);
+      case MYSQL_ED25519_PASSWORD:
+        return new Ed25519PasswordPlugin(password, authData, passwordCharacterEncoding);
+
+      default:
+        throw new SQLException(
+            "Client does not support authentication protocol requested by server. "
                 + "Consider upgrading MariaDB client. plugin was = " + plugin, "08004", 1251);
     }
+  }
 
 }

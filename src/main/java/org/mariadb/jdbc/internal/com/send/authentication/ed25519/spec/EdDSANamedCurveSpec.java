@@ -8,11 +8,11 @@
  * You should have received a copy of the CC0 legalcode along with this
  * work. If not, see <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package org.mariadb.jdbc.internal.com.send.ed25519.spec;
+package org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec;
 
-import org.mariadb.jdbc.internal.com.send.ed25519.math.Curve;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.ScalarOps;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Curve;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.ScalarOps;
 
 /**
  * EdDSA Curve specification that can also be referred to by name.

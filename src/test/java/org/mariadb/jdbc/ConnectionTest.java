@@ -634,4 +634,43 @@ public class ConnectionTest extends BaseTest {
       }
     }
   }
+
+
+  @Test
+  public void multiAuthPlugin() throws Throwable {
+    Assume.assumeTrue(isMariadbServer() && minVersion(10, 4, 2));
+    Statement stmt = sharedConnection.createStatement();
+    try {
+      stmt.execute("INSTALL SONAME 'auth_ed25519'");
+    } catch (SQLException sqle) {
+      throw new AssumptionViolatedException("server doesn't have ed25519 plugin, cancelling test");
+    }
+
+    stmt.execute("drop user IF EXISTS mysqltest1@'%'");
+    try {
+      stmt.execute("CREATE USER mysqltest1@'%' IDENTIFIED "
+              + "VIA mysql_old_password USING '021bec665bf663f1' "
+              + " OR ed25519 as password('good') "
+              + " OR mysql_native_password as password('works')");
+    } catch (SQLException sqle) {
+      //already existing
+      sqle.printStackTrace();
+    }
+    stmt.execute("GRANT ALL on " + database + ".* to mysqltest1@'%'");
+
+    try (Connection connection = openNewConnection(
+            "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
+            + "?user=mysqltest1&password=good")) {
+      //must have succeed
+    }
+
+    try (Connection connection = openNewConnection(
+            "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
+                    + "?user=mysqltest1&password=works")) {
+      //must have succeed
+    }
+
+    stmt.execute("drop user mysqltest1@'%'");
+  }
+
 }

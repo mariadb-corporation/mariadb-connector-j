@@ -83,6 +83,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
@@ -101,11 +102,12 @@ import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.OkPacket;
 import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.send.InterfaceAuthSwitchSendResponsePacket;
+
 import org.mariadb.jdbc.internal.com.send.SendClosePacket;
 import org.mariadb.jdbc.internal.com.send.SendHandshakeResponsePacket;
-import org.mariadb.jdbc.internal.com.send.SendOldPasswordAuthPacket;
 import org.mariadb.jdbc.internal.com.send.SendSslConnectionRequestPacket;
+import org.mariadb.jdbc.internal.com.send.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.internal.com.send.authentication.OldPasswordPlugin;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.io.input.DecompressPacketInputStream;
@@ -792,9 +794,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
       if (options.useSsl
           && (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.SSL) != 0) {
         clientCapabilities |= MariaDbServerCapabilities.SSL;
-        SendSslConnectionRequestPacket amcap = new SendSslConnectionRequestPacket(
-            clientCapabilities, exchangeCharset);
-        amcap.send(writer);
+        SendSslConnectionRequestPacket.send(writer, clientCapabilities, exchangeCharset);
 
         SSLSocketFactory sslSocketFactory = getSslSocketFactory();
         SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
@@ -879,59 +879,83 @@ public abstract class AbstractConnectProtocol implements Protocol {
         options,
         greetingPacket);
 
+    writer.permitTrace(false);
+
     Buffer buffer = reader.getPacket(false);
+    AtomicInteger sequence = new AtomicInteger(reader.getLastPacketSeq());
 
-    if ((buffer.getByteAt(0) & 0xFF) == 0xFE) {
+    authentication_loop:
+    while (true) {
+      switch (buffer.getByteAt(0) & 0xFF) {
 
-      writer.permitTrace(false);
-      InterfaceAuthSwitchSendResponsePacket interfaceSendPacket;
-      if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-        buffer.readByte();
-        byte[] authData;
-        String plugin;
-        if (buffer.remaining() > 0) {
-          //AuthSwitchRequest packet.
-          plugin = buffer.readStringNullEnd(Charset.forName("ASCII"));
-          authData = buffer.readRawBytes(buffer.remaining());
-        } else {
-          //OldAuthSwitchRequest
-          plugin = DefaultAuthenticationProvider.MYSQL_OLD_PASSWORD;
-          authData = Utils.copyWithLength(greetingPacket.getSeed(), 8);
-        }
+        case 0xFE:
+          /**********************************************************************
+           * Authentication Switch Request
+           * see https://mariadb.com/kb/en/library/connection/#authentication-switch-request
+           *********************************************************************/
+          sequence.set(reader.getLastPacketSeq());
+          AuthenticationPlugin authenticationPlugin;
+          if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
+            buffer.readByte();
+            byte[] authData;
+            String plugin;
+            if (buffer.remaining() > 0) {
+              //AuthSwitchRequest packet.
+              plugin = buffer.readStringNullEnd(Charset.forName("ASCII"));
+              authData = buffer.readRawBytes(buffer.remaining());
+            } else {
+              //OldAuthSwitchRequest
+              plugin = DefaultAuthenticationProvider.MYSQL_OLD_PASSWORD;
+              authData = Utils.copyWithLength(greetingPacket.getSeed(), 8);
+            }
 
-        //Authentication according to plugin.
-        //see AuthenticationProviderHolder for implement other plugin
-        interfaceSendPacket = AuthenticationProviderHolder.getAuthenticationProvider()
-            .processAuthPlugin(reader, plugin, password, authData, reader.getLastPacketSeq() + 1,
-                options.passwordCharacterEncoding);
-      } else {
-        interfaceSendPacket = new SendOldPasswordAuthPacket(this.password,
-            Utils.copyWithLength(greetingPacket.getSeed(), 8),
-            reader.getLastPacketSeq() + 1, options.passwordCharacterEncoding);
+            //Authentication according to plugin.
+            //see AuthenticationProviderHolder for implement other plugin
+            authenticationPlugin = AuthenticationProviderHolder.getAuthenticationProvider()
+                    .processAuthPlugin(plugin, password, authData, options.passwordCharacterEncoding);
+          } else {
+            authenticationPlugin = new OldPasswordPlugin(
+                    this.password,
+                    Utils.copyWithLength(greetingPacket.getSeed(), 8));
+          }
+          buffer = authenticationPlugin.process(writer, reader, sequence);
+          break;
+
+        case 0xFF:
+          /**********************************************************************
+           * ERR_Packet
+           * see https://mariadb.com/kb/en/library/err_packet/
+           *********************************************************************/
+          ErrorPacket errorPacket = new ErrorPacket(buffer);
+          if (password != null
+                  && !password.isEmpty()
+                  && errorPacket.getErrorNumber() == 1045
+                  && "28000".equals(errorPacket.getSqlState())) {
+            //Access denied
+            throw new SQLException(errorPacket.getMessage()
+                    + "\nCurrent charset is " + Charset.defaultCharset().displayName()
+                    + ". If password has been set using other charset, consider "
+                    + "using option 'passwordCharacterEncoding'",
+                    errorPacket.getSqlState(), errorPacket.getErrorNumber());
+          }
+          throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(),
+                  errorPacket.getErrorNumber());
+
+        case 0x00:
+          /**********************************************************************
+           * Authenticated !
+           * OK_Packet
+           * see https://mariadb.com/kb/en/library/ok_packet/
+           *********************************************************************/
+          serverStatus = new OkPacket(buffer).getServerStatus();
+          break authentication_loop;
+
+        default:
+            throw new SQLException("unexpected data during authentication (header=" + (buffer.getByteAt(0) & 0xFF));
+
       }
-      interfaceSendPacket.send(writer);
-      interfaceSendPacket.handleResultPacket(reader);
-
-    } else {
-      if (buffer.getByteAt(0) == ERROR) {
-        ErrorPacket errorPacket = new ErrorPacket(buffer);
-        if (password != null && !password.isEmpty() && errorPacket.getErrorNumber() == 1045
-            && "28000".equals(errorPacket.getSqlState())) {
-          //Access denied
-          throw new SQLException(errorPacket.getMessage()
-              + "\nCurrent charset is " + Charset.defaultCharset().displayName()
-              + ". If password has been set using other charset, consider "
-              + "using option 'passwordCharacterEncoding'",
-              errorPacket.getSqlState(), errorPacket.getErrorNumber());
-        }
-        throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(),
-            errorPacket.getErrorNumber());
-      }
-      serverStatus = new OkPacket(buffer).getServerStatus();
     }
-
     writer.permitTrace(true);
-
   }
 
   private long initializeClientCapabilities(long serverCapabilities) {

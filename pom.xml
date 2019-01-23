@@ -181,7 +181,7 @@
                                 **/SharedMemorySocket.java,
                                 **/UnixDomainSocket.java,
                                 **/MySQLDataSource.java,
-                                **/org/mariadb/jdbc/internal/com/send/ed25519/**
+                                **/org/mariadb/jdbc/internal/com/send/authentication/ed25519/**
                             </excludes>
                             <configLocation>src/test/resources/style.xml</configLocation>
                             <encoding>UTF-8</encoding>

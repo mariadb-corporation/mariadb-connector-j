@@ -50,49 +50,64 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send.gssapi;
-
-import com.sun.jna.platform.win32.Sspi;
-import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import waffle.windows.auth.IWindowsSecurityContext;
-import waffle.windows.auth.impl.WindowsSecurityContextImpl;
+package org.mariadb.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.send.authentication.gssapi.GssUtility;
+import org.mariadb.jdbc.internal.com.send.authentication.gssapi.GssapiAuth;
+import org.mariadb.jdbc.internal.com.send.authentication.gssapi.StandardGssapiAuthentication;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-public class WindowsNativeSspiAuthentication extends GssapiAuth {
+public class SendGssApiAuthPacket implements AuthenticationPlugin {
 
-    public WindowsNativeSspiAuthentication(PacketInputStream reader, int packSeq) {
-        super(reader, packSeq);
+  private static final GssapiAuth gssapiAuth;
+  private byte[] authData;
+
+  static {
+    GssapiAuth init;
+    try {
+      init = GssUtility.getAuthenticationMethod();
+    } catch (Throwable t) {
+      init = new StandardGssapiAuthentication();
+    }
+    gssapiAuth = init;
+  }
+
+
+  public SendGssApiAuthPacket(byte[] authData) {
+    this.authData = authData;
+  }
+
+  /**
+   * Process gssapi plugin authentication.
+   * see https://mariadb.com/kb/en/library/authentication-plugin-gssapi/
+   *
+   * @param out       out stream
+   * @param in        in stream
+   * @param sequence  packet sequence
+   * @return response packet
+   * @throws IOException  if socket error
+   * @throws SQLException if plugin exception
+   */
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException, SQLException {
+    Buffer buffer = new Buffer(authData);
+    final String serverPrincipalName = buffer.readStringNullEnd(StandardCharsets.UTF_8);
+    String mechanisms = buffer.readStringNullEnd(StandardCharsets.UTF_8);
+    if (mechanisms.isEmpty()) {
+      mechanisms = "Kerberos";
     }
 
-    @Override
-    public void authenticate(PacketOutputStream writer, String serverPrincipalName, String mechanisms) throws SQLException, IOException {
+    gssapiAuth.authenticate(out, in, sequence, serverPrincipalName, mechanisms);
 
-        // initialize a security context on the client
-        IWindowsSecurityContext clientContext = WindowsSecurityContextImpl.getCurrent(mechanisms, serverPrincipalName);
+    buffer = in.getPacket(true);
+    sequence.set(in.getLastPacketSeq());
+    return buffer;
+  }
 
-        do {
-
-            // Step 1: send token to server
-            byte[] tokenForTheServerOnTheClient = clientContext.getToken();
-            writer.startPacket(packSeq);
-            writer.write(tokenForTheServerOnTheClient);
-            writer.flush();
-
-            // Step 2: read server response token
-            if (clientContext.isContinue()) {
-                Buffer buffer = reader.getPacket(true);
-                packSeq = reader.getLastPacketSeq() + 1;
-                byte[] tokenForTheClientOnTheServer = buffer.readRawBytes(buffer.remaining());
-                Sspi.SecBufferDesc continueToken = new Sspi.SecBufferDesc(Sspi.SECBUFFER_TOKEN, tokenForTheClientOnTheServer);
-                clientContext.initialize(clientContext.getHandle(), continueToken, serverPrincipalName);
-            }
-
-        } while (clientContext.isContinue());
-
-        clientContext.dispose();
-    }
 }
+

@@ -50,24 +50,69 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send.gssapi;
-
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+package org.mariadb.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
-import java.sql.SQLException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public abstract class GssapiAuth {
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.Utils;
 
-    protected final PacketInputStream reader;
-    protected int packSeq;
+public class NativePasswordPlugin implements AuthenticationPlugin {
 
-    public GssapiAuth(PacketInputStream reader, int packSeq) {
-        this.reader = reader;
-        this.packSeq = packSeq;
+  private final String password;
+  private final String passwordCharacterEncoding;
+  private byte[] authData;
+
+  /**
+   * Native password plugin constructor.
+   *
+   * @param password                    password
+   * @param authData                    seed
+   * @param passwordCharacterEncoding   password encoding option
+   */
+  public NativePasswordPlugin(String password, byte[] authData, String passwordCharacterEncoding) {
+    this.authData = authData;
+    this.password = password;
+    this.passwordCharacterEncoding = passwordCharacterEncoding;
+  }
+
+  /**
+   * Process native password plugin authentication.
+   * see https://mariadb.com/kb/en/library/authentication-plugin-mysql_native_password/
+   *
+   * @param out       out stream
+   * @param in        in stream
+   * @param sequence  packet sequence
+   * @return response packet
+   * @throws IOException  if socket error
+   */
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException {
+    if (password == null || password.isEmpty()) {
+      out.writeEmptyPacket(sequence.incrementAndGet());
+    } else {
+      try {
+        out.startPacket(sequence.incrementAndGet());
+        byte[] seed;
+        if (authData.length > 0) {
+          //Seed is ended with a null byte value.
+          seed = Arrays.copyOfRange(authData, 0, authData.length - 1);
+        } else {
+          seed = new byte[0];
+        }
+        out.write(Utils.encryptPassword(password, seed, passwordCharacterEncoding));
+        out.flush();
+      } catch (NoSuchAlgorithmException e) {
+        throw new RuntimeException("Could not use SHA-1, failing", e);
+      }
     }
 
-    public abstract void authenticate(final PacketOutputStream writer, final String serverPrincipalName, final String mechanisms)
-            throws SQLException, IOException;
+    Buffer buffer = in.getPacket(true);
+    sequence.set(in.getLastPacketSeq());
+    return buffer;
+  }
 }

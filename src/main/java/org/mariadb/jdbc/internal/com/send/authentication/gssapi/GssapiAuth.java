@@ -50,47 +50,18 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send;
-
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.Utils;
+package org.mariadb.jdbc.internal.com.send.authentication.gssapi;
 
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
+import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public class SendNativePasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements InterfaceAuthSwitchSendResponsePacket {
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-    public SendNativePasswordAuthPacket(String password, byte[] authData, int packSeq, String passwordCharacterEncoding) {
-        super(packSeq, authData, password, passwordCharacterEncoding);
-    }
+public interface GssapiAuth {
 
-    /**
-     * Send native password stream.
-     *
-     * @param pos database socket
-     * @throws IOException if a connection error occur
-     */
-    public void send(PacketOutputStream pos) throws IOException {
-        try {
-            if (password == null || password.isEmpty()) {
-                pos.writeEmptyPacket(packSeq);
-                return;
-            }
+  void authenticate(PacketOutputStream writer, PacketInputStream in, AtomicInteger sequence,
+                    String serverPrincipalName, String mechanisms) throws SQLException, IOException;
 
-            pos.startPacket(packSeq);
-
-            byte[] seed;
-            if (authData.length > 0) {
-                //Seed is ended with a null byte value.
-                seed = Arrays.copyOfRange(authData, 0, authData.length - 1);
-            } else {
-                seed = new byte[0];
-            }
-            pos.write(Utils.encryptPassword(password, seed, passwordCharacterEncoding));
-            pos.flush();
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Could not use SHA-1, failing", e);
-        }
-    }
 }

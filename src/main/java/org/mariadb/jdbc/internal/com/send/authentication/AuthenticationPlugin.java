@@ -50,14 +50,28 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send;
-
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+package org.mariadb.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 
-public interface InterfaceSendPacket {
-    void send(PacketOutputStream os) throws IOException, SQLException;
+public interface AuthenticationPlugin {
+
+  /**
+   * Process plugin authentication.
+   *
+   * @param out       out stream
+   * @param in        in stream
+   * @param sequence  packet sequence
+   * @return response packet
+   * @throws IOException  if socket error
+   * @throws SQLException if plugin exception
+   */
+  Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException, SQLException;
 }

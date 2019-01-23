@@ -52,66 +52,61 @@
 
 package org.mariadb.jdbc.internal.protocol.authentication;
 
-import org.mariadb.jdbc.internal.com.send.InterfaceAuthSwitchSendResponsePacket;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
-
 import java.sql.SQLException;
+
+import org.mariadb.jdbc.internal.com.send.authentication.AuthenticationPlugin;
 
 
 /**
- * Provider to handle plugin authentication.
- * This can allow library users to override our default Authentication provider.
+ * Provider to handle plugin authentication. This can allow library users to override our default
+ * Authentication provider.
  */
 public class AuthenticationProviderHolder {
 
-    /**
-     * The default provider will construct a new pool on every request.
-     */
-    public static AuthenticationProvider DEFAULT_PROVIDER = new AuthenticationProvider() {
-        @Override
-        public InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
-                                                                       byte[] authData, int seqNo, String passwordCharacterEncoding)
-                throws SQLException {
-            return DefaultAuthenticationProvider.processAuthPlugin(reader, plugin, password, authData, seqNo, passwordCharacterEncoding);
-        }
-    };
+  /**
+   * The default provider will construct a new pool on every request.
+   */
+  public static final AuthenticationProvider DEFAULT_PROVIDER = DefaultAuthenticationProvider::processAuthPlugin;
 
-    private static volatile AuthenticationProvider currentProvider = null;
+  private static volatile AuthenticationProvider currentProvider = null;
 
-    /**
-     * Get the currently set {@link AuthenticationProvider} from set invocations via
-     * {@link #setAuthenticationProvider(AuthenticationProvider)}.
-     * If none has been set a default provider will be provided (never a {@code null} result).
-     *
-     * @return Provider to get an AuthenticationProvider
-     */
-    public static AuthenticationProvider getAuthenticationProvider() {
-        AuthenticationProvider result = currentProvider;
-        if (result == null) {
-            return DEFAULT_PROVIDER;
-        } else {
-            return result;
-        }
+  /**
+   * Get the currently set {@link AuthenticationProvider} from set invocations via {@link
+   * #setAuthenticationProvider(AuthenticationProvider)}. If none has been set a default provider
+   * will be provided (never a {@code null} result).
+   *
+   * @return Provider to get an AuthenticationProvider
+   */
+  public static AuthenticationProvider getAuthenticationProvider() {
+    AuthenticationProvider result = currentProvider;
+    if (result == null) {
+      return DEFAULT_PROVIDER;
+    } else {
+      return result;
     }
+  }
 
-    /**
-     * Change the current set authentication provider.  This provider will be provided in future requests
-     * to {@link #getAuthenticationProvider()}.
-     *
-     * @param newProvider New provider to use, or {@code null} to use the default provider
-     */
-    public static void setAuthenticationProvider(AuthenticationProvider newProvider) {
-        currentProvider = newProvider;
-    }
+  /**
+   * Change the current set authentication provider.  This provider will be provided in future
+   * requests to {@link #getAuthenticationProvider()}.
+   *
+   * @param newProvider New provider to use, or {@code null} to use the default provider
+   */
+  public static void setAuthenticationProvider(AuthenticationProvider newProvider) {
+    currentProvider = newProvider;
+  }
 
-    /**
-     * Provider to handle authentication.
-     */
-    public interface AuthenticationProvider {
-        InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin, String password,
-                                                                       byte[] authData, int seqNo, String passwordCharacterEncoding)
-                throws SQLException;
-    }
+  /**
+   * Provider to handle authentication.
+   */
+  public interface AuthenticationProvider {
+
+    AuthenticationPlugin processAuthPlugin(String plugin,
+                                           String password,
+                                           byte[] authData,
+                                           String passwordCharacterEncoding)
+        throws SQLException;
+  }
 
 
 }

@@ -52,30 +52,24 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
+import java.io.IOException;
 import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-import java.io.IOException;
 
+public class SendChangeDbPacket {
 
-public class SendChangeDbPacket implements InterfaceSendPacket {
-
-    private final String database;
-
-    public SendChangeDbPacket(final String database) {
-        this.database = database;
-    }
-
-    /**
-     * Change Database.
-     *
-     * @param pos Write outputStream
-     * @throws IOException if connection problem occur
-     */
-    public void send(final PacketOutputStream pos) throws IOException {
-        pos.startPacket(0);
-        pos.write(Packet.COM_INIT_DB);
-        pos.write(database.getBytes("UTF-8"));
-        pos.flush();
-    }
+  /**
+   * Send a COM_INIT_DB request to specify the default schema for the connection.
+   *
+   * @param pos         Write outputStream
+   * @param database    database name
+   * @throws IOException if connection problem occur
+   */
+  public static void send(final PacketOutputStream pos, final String database) throws IOException {
+    pos.startPacket(0);
+    pos.write(Packet.COM_INIT_DB);
+    pos.write(database.getBytes("UTF-8"));
+    pos.flush();
+  }
 }
