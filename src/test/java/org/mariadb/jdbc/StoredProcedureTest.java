@@ -1222,7 +1222,7 @@ public class StoredProcedureTest extends BaseTest {
   }
 
   @Test
-  public void testCallableStatementFormat() throws Exception {
+  public void testCallableStatementFormat() {
     try {
       sharedConnection.prepareCall("CREATE TABLE testCallableStatementFormat(id INT)");
     } catch (Exception exception) {

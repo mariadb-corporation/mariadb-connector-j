@@ -190,7 +190,7 @@ public class PreparedStatementTest extends BaseTest {
   }
 
   @Test
-  public void testNoSuchTableBatchUpdate() throws SQLException, UnsupportedEncodingException {
+  public void testNoSuchTableBatchUpdate() throws SQLException {
     sharedConnection.createStatement().execute("drop table if exists vendor_code_test");
     PreparedStatement preparedStatement = sharedConnection
         .prepareStatement("INSERT INTO vendor_code_test VALUES(?)");

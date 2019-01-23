@@ -68,7 +68,7 @@ public class ShortParameter implements Cloneable, ParameterHolder {
     pos.write(String.valueOf(value).getBytes());
   }
 
-  public long getApproximateTextProtocolLength() throws IOException {
+  public long getApproximateTextProtocolLength() {
     return String.valueOf(value).getBytes().length;
   }
 

@@ -61,6 +61,7 @@ import static org.junit.Assert.fail;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.sql.ClientInfoStatus;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -98,10 +99,9 @@ public class ConnectionTest extends BaseTest {
   /**
    * Conj-166. Connection error code must be thrown
    *
-   * @throws SQLException exception
    */
   @Test
-  public void testAccessDeniedErrorCode() throws SQLException {
+  public void testAccessDeniedErrorCode() {
     try {
       DriverManager.getConnection("jdbc:mariadb://" + ((hostname != null) ? hostname : "localhost")
           + ":" + port + "/" + database + "?user=foo");
@@ -241,7 +241,7 @@ public class ConnectionTest extends BaseTest {
     //Create a SQL stream bigger than maxAllowedPacket
     StringBuilder sb = new StringBuilder();
     String rowData = "('this is a dummy row values')";
-    int rowsToWrite = (maxAllowedPacket / rowData.getBytes("UTF-8").length) + 1;
+    int rowsToWrite = (maxAllowedPacket / rowData.getBytes(StandardCharsets.UTF_8).length) + 1;
     try {
       for (int row = 1; row <= rowsToWrite; row++) {
         if (row >= 2) {
@@ -569,7 +569,7 @@ public class ConnectionTest extends BaseTest {
   }
 
   @Test
-  public void loopSleepTest() throws Exception {
+  public void loopSleepTest() {
     //appveyor vm are very slow, cannot compare time
     Assume.assumeTrue(System.getenv("APPVEYOR") == null);
 

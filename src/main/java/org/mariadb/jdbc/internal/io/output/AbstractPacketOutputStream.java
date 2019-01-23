@@ -801,7 +801,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
   }
 
   @Override
-  public void mark() throws MaxAllowedPacketException {
+  public void mark() {
     mark = pos;
   }
 

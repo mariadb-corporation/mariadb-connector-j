@@ -608,7 +608,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
           BulkStatus status,
           PrepareResult prepareResult)
-          throws SQLException, IOException {
+          throws IOException {
 
         ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
         writer.startPacket(0);
@@ -746,7 +746,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
           BulkStatus status,
           PrepareResult prepareResult)
-          throws SQLException, IOException {
+          throws IOException {
 
         String sql = queries.get(status.sendCmdCounter);
         pos.startPacket(0);
@@ -1855,7 +1855,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     boolean mustReconnect;
     boolean driverPreventError = false;
 
-    if (MaxAllowedPacketException.class.isInstance(initialException)) {
+    if (initialException instanceof MaxAllowedPacketException) {
       mustReconnect = ((MaxAllowedPacketException) initialException).isMustReconnect();
       driverPreventError = !mustReconnect;
     } else {

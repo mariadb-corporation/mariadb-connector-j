@@ -567,8 +567,7 @@ public class BinaryRowProtocol extends RowProtocol {
         } catch (NumberFormatException nfe) {
           SQLException sqlException = new SQLException(
               "Incorrect format for getFloat for data field with type "
-                  + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
-          sqlException.initCause(nfe);
+                  + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264, nfe);
           throw sqlException;
         }
       default:
@@ -581,8 +580,7 @@ public class BinaryRowProtocol extends RowProtocol {
     } catch (NumberFormatException nfe) {
       SQLException sqlException = new SQLException(
           "Incorrect format for getFloat for data field with type "
-              + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
-      sqlException.initCause(nfe);
+              + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264, nfe);
       throw sqlException;
     }
   }
@@ -1447,8 +1445,8 @@ public class BinaryRowProtocol extends RowProtocol {
     }
 
     ZoneId zoneId = timeZone.toZoneId().normalized();
-    if (ZoneOffset.class.isInstance(zoneId)) {
-      ZoneOffset zoneOffset = ZoneOffset.class.cast(zoneId);
+    if (zoneId instanceof ZoneOffset) {
+      ZoneOffset zoneOffset = (ZoneOffset) zoneId;
 
       int day = 0;
       int hour = 0;

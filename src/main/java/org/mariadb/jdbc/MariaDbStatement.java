@@ -125,10 +125,8 @@ public class MariaDbStatement implements Statement, Cloneable {
    * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code>
    *                             or
    *                             <code>ResultSet.CONCUR_UPDATABLE</code>
-   * @throws SQLException if cannot retrieve auto increment value
    */
-  public MariaDbStatement(MariaDbConnection connection, int resultSetScrollType,
-      int resultSetConcurrency) throws SQLException {
+  public MariaDbStatement(MariaDbConnection connection, int resultSetScrollType, int resultSetConcurrency) {
     this.protocol = connection.getProtocol();
     this.connection = connection;
     this.canUseServerTimeout = connection.canUseServerTimeout();
@@ -770,11 +768,9 @@ public class MariaDbStatement implements Statement, Cloneable {
    * discarded. For maximum portability, use values greater than 256.
    *
    * @param max the new column size limit in bytes; zero means there is no limit
-   * @throws SQLException if a database access error occurs, this method is called on a closed
-   *                      <code>Statement</code> or the condition max &gt;= 0 is not satisfied
    * @see #getMaxFieldSize
    */
-  public void setMaxFieldSize(final int max) throws SQLException {
+  public void setMaxFieldSize(final int max) {
     maxFieldSize = max;
   }
 
@@ -785,11 +781,9 @@ public class MariaDbStatement implements Statement, Cloneable {
    *
    * @return the current maximum number of rows for a <code>ResultSet</code> object produced by this
    * <code>Statement</code> object; zero means there is no limit
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *                      <code>Statement</code>
    * @see #setMaxRows
    */
-  public int getMaxRows() throws SQLException {
+  public int getMaxRows() {
     return (int) maxRows;
   }
 
@@ -844,10 +838,8 @@ public class MariaDbStatement implements Statement, Cloneable {
    * <code>PreparedStatements</code> objects will have no effect.
    *
    * @param enable <code>true</code> to enable escape processing; <code>false</code> to disable it
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *                      <code>Statement</code>
    */
-  public void setEscapeProcessing(final boolean enable) throws SQLException {
+  public void setEscapeProcessing(final boolean enable) {
     //not handled
   }
 
@@ -960,10 +952,8 @@ public class MariaDbStatement implements Statement, Cloneable {
    * method, the method <code>getWarnings</code> will return <code>null</code> until a new warning
    * is reported for this <code>Statement</code> object.
    *
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *                      <code>Statement</code>
    */
-  public void clearWarnings() throws SQLException {
+  public void clearWarnings() {
     warningsCleared = true;
   }
 
@@ -993,9 +983,8 @@ public class MariaDbStatement implements Statement, Cloneable {
    * Gets the connection that created this statement.
    *
    * @return the connection
-   * @throws SQLException if connection is invalid
    */
-  public MariaDbConnection getConnection() throws SQLException {
+  public MariaDbConnection getConnection() {
     return this.connection;
   }
 
@@ -1024,11 +1013,9 @@ public class MariaDbStatement implements Statement, Cloneable {
    * <code>Statement</code> object.
    *
    * @return either <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *                      <code>Statement</code>
    * @since 1.4
    */
-  public int getResultSetHoldability() throws SQLException {
+  public int getResultSetHoldability() {
     return ResultSet.HOLD_CURSORS_OVER_COMMIT;
   }
 
@@ -1037,10 +1024,9 @@ public class MariaDbStatement implements Statement, Cloneable {
    * is closed if the method close has been called on it, or if it is automatically closed.
    *
    * @return true if this <code>Statement</code> object is closed; false if it is still open
-   * @throws SQLException if a database access error occurs
    * @since 1.6
    */
-  public boolean isClosed() throws SQLException {
+  public boolean isClosed() {
     return closed;
   }
 
@@ -1049,12 +1035,11 @@ public class MariaDbStatement implements Statement, Cloneable {
    *
    * @return <code>true</code> if the <code>Statement</code> is poolable; <code>false</code>
    *     otherwise
-   * @throws SQLException if this method is called on a closed <code>Statement</code>
    * @see Statement#setPoolable(boolean) setPoolable(boolean)
    * @since 1.6
    */
   @Override
-  public boolean isPoolable() throws SQLException {
+  public boolean isPoolable() {
     return false;
   }
 
@@ -1070,11 +1055,10 @@ public class MariaDbStatement implements Statement, Cloneable {
    *
    * @param poolable requests that the statement be pooled if true and that the statement not be
    *                 pooled if false
-   * @throws SQLException if this method is called on a closed <code>Statement</code>
    * @since 1.6
    */
   @Override
-  public void setPoolable(final boolean poolable) throws SQLException {
+  public void setPoolable(final boolean poolable) {
     // not handled
   }
 
@@ -1098,10 +1082,8 @@ public class MariaDbStatement implements Statement, Cloneable {
    *
    * @return the current result as an update count; -1 if the current result is a ResultSet object
    *     or there are no more results
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *                      Statement
    */
-  public int getUpdateCount() throws SQLException {
+  public int getUpdateCount() {
     if (results != null && results.getCmdInformation() != null && !results.isBatch()) {
       return results.getCmdInformation().getUpdateCount();
     }
@@ -1191,12 +1173,10 @@ public class MariaDbStatement implements Statement, Cloneable {
    *
    * @return the default fetch direction for result sets generated from this <code>Statement</code>
    *     object
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *                      <code>Statement</code>
    * @see #setFetchDirection
    * @since 1.2
    */
-  public int getFetchDirection() throws SQLException {
+  public int getFetchDirection() {
     return ResultSet.FETCH_FORWARD;
   }
 
@@ -1209,15 +1189,10 @@ public class MariaDbStatement implements Statement, Cloneable {
    * its own methods for getting and setting its own fetch direction. </p>
    *
    * @param direction the initial direction for processing rows
-   * @throws SQLException if a database access error occurs, this method is called on a closed
-   *                      <code>Statement</code> or the given direction is not one of
-   *                      <code>ResultSet.FETCH_FORWARD</code>,
-   *                      <code>ResultSet.FETCH_REVERSE</code>,
-   *                      or <code>ResultSet.FETCH_UNKNOWN</code>
    * @see #getFetchDirection
    * @since 1.2
    */
-  public void setFetchDirection(final int direction) throws SQLException {
+  public void setFetchDirection(final int direction) {
     //not implemented
   }
 
@@ -1229,11 +1204,9 @@ public class MariaDbStatement implements Statement, Cloneable {
    *
    * @return the default fetch size for result sets generated from this <code>Statement</code>
    *     object
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *                      <code>Statement</code>
    * @see #setFetchSize
    */
-  public int getFetchSize() throws SQLException {
+  public int getFetchSize() {
     return this.fetchSize;
   }
 
@@ -1265,11 +1238,9 @@ public class MariaDbStatement implements Statement, Cloneable {
    * <code>Statement</code> object.
    *
    * @return either <code>ResultSet.CONCUR_READ_ONLY</code> or <code>ResultSet.CONCUR_UPDATABLE</code>
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *                      <code>Statement</code>
    * @since 1.2
    */
-  public int getResultSetConcurrency() throws SQLException {
+  public int getResultSetConcurrency() {
     return resultSetConcurrency;
   }
 
@@ -1279,10 +1250,8 @@ public class MariaDbStatement implements Statement, Cloneable {
    *
    * @return one of <code>ResultSet.TYPE_FORWARD_ONLY</code>, <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>,
    *     or <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *                      <code>Statement</code>
    */
-  public int getResultSetType() throws SQLException {
+  public int getResultSetType() {
     return resultSetScrollType;
   }
 
@@ -1469,11 +1438,11 @@ public class MariaDbStatement implements Statement, Cloneable {
     return interfaceOrWrapper.isInstance(this);
   }
 
-  public void closeOnCompletion() throws SQLException {
+  public void closeOnCompletion() {
     mustCloseOnCompletion = true;
   }
 
-  public boolean isCloseOnCompletion() throws SQLException {
+  public boolean isCloseOnCompletion() {
     return mustCloseOnCompletion;
   }
 

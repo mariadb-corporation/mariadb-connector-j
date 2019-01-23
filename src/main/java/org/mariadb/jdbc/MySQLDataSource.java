@@ -72,7 +72,7 @@ public class MySQLDataSource extends MariaDbDataSource {
     super(hostname, port, database);
   }
 
-  public MySQLDataSource(String url) throws SQLException {
+  public MySQLDataSource(String url) {
     super(url);
   }
 

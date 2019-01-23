@@ -99,7 +99,7 @@ public class SslTest extends BaseTest {
    * Enable Crypto.
    */
   @BeforeClass
-  public static void enableCrypto() throws Throwable {
+  public static void enableCrypto() {
     Assume.assumeFalse(
         System.getenv("MAXSCALE_VERSION") != null || "true".equals(System.getenv("AURORA")));
     try {

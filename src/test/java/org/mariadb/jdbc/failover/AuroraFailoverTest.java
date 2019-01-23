@@ -144,7 +144,7 @@ public class AuroraFailoverTest extends BaseReplication {
 
 
   @Test
-  public void testReadOnly() throws SQLException, InterruptedException {
+  public void testReadOnly() throws SQLException {
     try (Connection connection = getNewConnection(false)) {
       ResultSet rs = connection.createStatement()
           .executeQuery("show global variables like 'innodb_read_only'");
@@ -233,10 +233,9 @@ public class AuroraFailoverTest extends BaseReplication {
   /**
    * Conj-166 Connection error code must be thrown.
    *
-   * @throws SQLException exception
    */
   @Test
-  public void testAccessDeniedErrorCode() throws SQLException {
+  public void testAccessDeniedErrorCode() {
     try {
       DriverManager.getConnection(defaultUrl + "&retriesAllDown=6", "foouser", "foopwd");
       fail();

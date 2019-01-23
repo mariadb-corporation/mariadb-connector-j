@@ -351,8 +351,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     results.commandEnd();
     ResultSet resultSet = results.getResultSet();
 
-    this.masterConnection = resultSet.next()
-        ? this.masterConnection = "OFF".equals(resultSet.getString(2)) : true;
+    this.masterConnection = !resultSet.next() || (this.masterConnection = "OFF".equals(resultSet.getString(2)));
     reader.setServerThreadId(this.serverThreadId, this.masterConnection);
     writer.setServerThreadId(this.serverThreadId, this.masterConnection);
     //Aurora replicas have read-only flag forced

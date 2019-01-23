@@ -438,9 +438,8 @@ public class TextRowProtocol extends RowProtocol {
    *
    * @param columnInfo column information
    * @return BigDecimal value
-   * @throws SQLException if column type doesn't permit conversion
    */
-  public BigDecimal getInternalBigDecimal(ColumnInformation columnInfo) throws SQLException {
+  public BigDecimal getInternalBigDecimal(ColumnInformation columnInfo) {
     if (lastValueWasNull()) {
       return null;
     }
@@ -794,9 +793,8 @@ public class TextRowProtocol extends RowProtocol {
    *
    * @param columnInfo column information
    * @return boolean value
-   * @throws SQLException if column type doesn't permit conversion
    */
-  public boolean getInternalBoolean(ColumnInformation columnInfo) throws SQLException {
+  public boolean getInternalBoolean(ColumnInformation columnInfo) {
     if (lastValueWasNull()) {
       return false;
     }
@@ -955,8 +953,8 @@ public class TextRowProtocol extends RowProtocol {
     }
 
     ZoneId zoneId = timeZone.toZoneId().normalized();
-    if (ZoneOffset.class.isInstance(zoneId)) {
-      ZoneOffset zoneOffset = ZoneOffset.class.cast(zoneId);
+    if (zoneId instanceof ZoneOffset) {
+      ZoneOffset zoneOffset = (ZoneOffset) zoneId;
       String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
       switch (columnInfo.getColumnType().getSqlType()) {
 

@@ -331,12 +331,9 @@ public class Results {
     if (fetchSize == 0 || resultSet == null) {
       return true;
     }
-    if (resultSet.isFullyLoaded()
-        && executionResults.isEmpty()
-        && !protocol.hasMoreResults()) {
-      return true;
-    }
-    return false;
+    return resultSet.isFullyLoaded()
+            && executionResults.isEmpty()
+            && !protocol.hasMoreResults();
   }
 
   /**

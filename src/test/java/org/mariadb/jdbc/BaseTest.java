@@ -366,9 +366,7 @@ public class BaseTest {
       Statement stmt = sharedConnection.createStatement();
       stmt.execute("drop view if exists " + viewName);
       stmt.execute("create view " + viewName + " AS (" + tableColumns + ") ");
-      if (!tempViewList.contains(viewName)) {
-        tempViewList.add(viewName);
-      }
+      tempViewList.add(viewName);
     }
   }
 
@@ -384,9 +382,7 @@ public class BaseTest {
       Statement stmt = sharedConnection.createStatement();
       stmt.execute("drop procedure IF EXISTS " + name);
       stmt.execute("create  procedure " + name + body);
-      if (!tempProcedureList.contains(name)) {
-        tempProcedureList.add(name);
-      }
+      tempProcedureList.add(name);
     }
   }
 
@@ -402,9 +398,7 @@ public class BaseTest {
       Statement stmt = sharedConnection.createStatement();
       stmt.execute("drop function IF EXISTS " + name);
       stmt.execute("create function " + name + body);
-      if (!tempFunctionList.contains(name)) {
-        tempFunctionList.add(name);
-      }
+      tempFunctionList.add(name);
     }
   }
 

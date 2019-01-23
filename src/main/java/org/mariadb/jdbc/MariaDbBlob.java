@@ -133,9 +133,8 @@ public class MariaDbBlob implements Blob, Serializable {
    * object.
    *
    * @return length of the <code>BLOB</code> in bytes
-   * @throws SQLException if there is an error accessing the length of the <code>BLOB</code>
    */
-  public long length() throws SQLException {
+  public long length() {
     return length;
   }
 

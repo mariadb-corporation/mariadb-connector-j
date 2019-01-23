@@ -181,10 +181,8 @@ public class MariaXaResource implements XAResource {
    * Tells the resource manager to forget about a heuristically completed transaction branch.
    *
    * @param xid A global transaction identifier.
-   * @throws XAException An error has occurred. Possible exception values are XAER_RMERR,
-   *                     XAER_RMFAIL, XAER_NOTA, XAER_INVAL, or XAER_PROTO.
    */
-  public void forget(Xid xid) throws XAException {
+  public void forget(Xid xid) {
     // Not implemented by the server
   }
 
@@ -195,10 +193,8 @@ public class MariaXaResource implements XAResource {
    * setTransactionTimeout call is returned.
    *
    * @return the transaction timeout value in seconds.
-   * @throws XAException An error has occurred. Possible exception values are XAER_RMERR and
-   *                     XAER_RMFAIL.
    */
-  public int getTransactionTimeout() throws XAException {
+  public int getTransactionTimeout() {
     // not implemented
     return 0;
   }
@@ -210,11 +206,9 @@ public class MariaXaResource implements XAResource {
    * @param xaResource An XAResource object whose resource manager instance is to be compared with
    *                   the target object.
    * @return true if it's the same RM instance; otherwise false.
-   * @throws XAException An error has occurred. Possible exception values are XAER_RMERR and
-   *                     XAER_RMFAIL.
    */
   @Override
-  public boolean isSameRM(XAResource xaResource) throws XAException {
+  public boolean isSameRM(XAResource xaResource) {
     // Typically used by transaction manager to "join" transactions. We do not support joins,
     // so always return false;
     return false;
@@ -301,10 +295,8 @@ public class MariaXaResource implements XAResource {
    *
    * @param timeout The transaction timeout value in seconds.
    * @return true if the transaction timeout value is set successfully; otherwise false.
-   * @throws XAException An error has occurred. Possible exception values are XAER_RMERR,
-   *                     XAER_RMFAIL, or XAER_INVAL.
    */
-  public boolean setTransactionTimeout(int timeout) throws XAException {
+  public boolean setTransactionTimeout(int timeout) {
     return false; // not implemented
   }
 

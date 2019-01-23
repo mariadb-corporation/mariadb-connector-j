@@ -162,7 +162,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
   }
 
   @Test
-  public void testMultiHostWriteOnMaster() throws Throwable {
+  public void testMultiHostWriteOnMaster() {
     Assume.assumeTrue(initialGaleraUrl != null);
     try (Connection connection = getNewConnection()) {
       Statement stmt = connection.createStatement();

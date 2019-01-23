@@ -156,7 +156,7 @@ public class UpdatableResultSet extends SelectResultSet {
 
 
   @Override
-  public int getConcurrency() throws SQLException {
+  public int getConcurrency() {
     return CONCUR_UPDATABLE;
   }
 
@@ -904,35 +904,35 @@ public class UpdatableResultSet extends SelectResultSet {
       updateBinaryStream(parameterIndex, (InputStream) obj, scaleOrLength);
     } else if (obj instanceof Reader) {
       updateCharacterStream(parameterIndex, (Reader) obj, scaleOrLength);
-    } else if (LocalDateTime.class.isInstance(obj)) {
-      updateTimestamp(parameterIndex, Timestamp.valueOf(LocalDateTime.class.cast(obj)));
-    } else if (Instant.class.isInstance(obj)) {
-      updateTimestamp(parameterIndex, Timestamp.from(Instant.class.cast(obj)));
-    } else if (LocalDate.class.isInstance(obj)) {
-      updateDate(parameterIndex, Date.valueOf(LocalDate.class.cast(obj)));
-    } else if (OffsetDateTime.class.isInstance(obj)) {
+    } else if (obj instanceof LocalDateTime) {
+      updateTimestamp(parameterIndex, Timestamp.valueOf((LocalDateTime) obj));
+    } else if (obj instanceof Instant) {
+      updateTimestamp(parameterIndex, Timestamp.from((Instant) obj));
+    } else if (obj instanceof LocalDate) {
+      updateDate(parameterIndex, Date.valueOf((LocalDate) obj));
+    } else if (obj instanceof OffsetDateTime) {
       parameterHolders[parameterIndex - 1] =
           new ZonedDateTimeParameter(
-              OffsetDateTime.class.cast(obj).toZonedDateTime(),
+              ((OffsetDateTime) obj).toZonedDateTime(),
               timeZone.toZoneId(),
               options.useFractionalSeconds,
               options);
-    } else if (OffsetTime.class.isInstance(obj)) {
+    } else if (obj instanceof OffsetTime) {
       parameterHolders[parameterIndex - 1] =
           new OffsetTimeParameter(
-              OffsetTime.class.cast(obj),
+                  (OffsetTime) obj,
               timeZone.toZoneId(),
               options.useFractionalSeconds,
               options);
-    } else if (ZonedDateTime.class.isInstance(obj)) {
+    } else if (obj instanceof ZonedDateTime) {
       parameterHolders[parameterIndex - 1] =
           new ZonedDateTimeParameter(
-              ZonedDateTime.class.cast(obj),
+                  (ZonedDateTime) obj,
               timeZone.toZoneId(),
               options.useFractionalSeconds,
               options);
-    } else if (LocalTime.class.isInstance(obj)) {
-      updateTime(parameterIndex, Time.valueOf(LocalTime.class.cast(obj)));
+    } else if (obj instanceof LocalTime) {
+      updateTime(parameterIndex, Time.valueOf((LocalTime) obj));
     } else {
       throw ExceptionMapper.getSqlException(
           "Could not set parameter in setObject, could not convert: " + obj.getClass() + " to "
@@ -1542,7 +1542,7 @@ public class UpdatableResultSet extends SelectResultSet {
   /**
    * {inheritDoc}.
    */
-  public void cancelRowUpdates() throws SQLException {
+  public void cancelRowUpdates() {
     Arrays.fill(parameterHolders, null);
     state = STATE_STANDARD;
   }
@@ -1562,7 +1562,7 @@ public class UpdatableResultSet extends SelectResultSet {
   /**
    * {inheritDoc}.
    */
-  public void moveToCurrentRow() throws SQLException {
+  public void moveToCurrentRow() {
     Arrays.fill(parameterHolders, null);
     state = STATE_STANDARD;
     setRowPointer(notInsertRowPointer);

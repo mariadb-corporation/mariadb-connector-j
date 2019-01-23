@@ -61,6 +61,7 @@ import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -156,7 +157,7 @@ public class StatementTest extends BaseTest {
   }
 
   @Test
-  public void testColumnsDoNotExist() throws SQLException {
+  public void testColumnsDoNotExist() {
 
     try {
       sharedConnection.createStatement().executeQuery(
@@ -185,7 +186,7 @@ public class StatementTest extends BaseTest {
   }
 
   @Test
-  public void testNoSuchTable() throws SQLException, UnsupportedEncodingException {
+  public void testNoSuchTable() throws SQLException {
     Statement statement = sharedConnection.createStatement();
     statement.execute("drop table if exists vendor_code_test_");
     try {
@@ -201,7 +202,7 @@ public class StatementTest extends BaseTest {
   }
 
   @Test
-  public void testNoSuchTableBatchUpdate() throws SQLException, UnsupportedEncodingException {
+  public void testNoSuchTableBatchUpdate() throws SQLException {
     Statement statement = sharedConnection.createStatement();
     statement.execute("drop table if exists vendor_code_test_");
     statement.addBatch("INSERT INTO vendor_code_test_ VALUES('dummyValue')");
@@ -291,7 +292,7 @@ public class StatementTest extends BaseTest {
         String data = "\"1\", \"string1\"\n"
             + "\"2\", \"string2\"\n"
             + "\"3\", \"string3\"\n";
-        ByteArrayInputStream loadDataInfileFile = new ByteArrayInputStream(data.getBytes("utf-8"));
+        ByteArrayInputStream loadDataInfileFile = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         mysqlStatement.setLocalInfileInputStream(loadDataInfileFile);
         mysqlStatement.executeUpdate("LOAD DATA LOCAL INFILE 'dummyFileName' INTO TABLE v2 "
             + "FIELDS ESCAPED BY '\\\\' "
@@ -329,7 +330,7 @@ public class StatementTest extends BaseTest {
         stopProxy();
         otherStatement.execute("SELECT 1");
       } catch (SQLException e) {
-        assertTrue(otherStatement != null ? otherStatement.isClosed() : false);
+        assertTrue(otherStatement != null && otherStatement.isClosed());
         assertTrue(connection.isClosed());
         try {
           statement.execute("SELECT 1");

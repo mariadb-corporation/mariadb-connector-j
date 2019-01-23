@@ -75,7 +75,7 @@ public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeabl
     this.database = database;
   }
 
-  public MariaDbPoolDataSource(String url) throws SQLException {
+  public MariaDbPoolDataSource(String url) {
     this.url = url;
   }
 
@@ -303,10 +303,9 @@ public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeabl
    * the default is for logging to be disabled.</p>
    *
    * @return the log writer for this data source or null if logging is disabled
-   * @throws SQLException if a database access error occurs
    * @see #setLogWriter
    */
-  public PrintWriter getLogWriter() throws SQLException {
+  public PrintWriter getLogWriter() {
     return null;
   }
 
@@ -323,11 +322,10 @@ public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeabl
    * the default is for logging to be disabled.</p>
    *
    * @param out the new log writer; to disable logging, set to null
-   * @throws SQLException if a database access error occurs
    * @see #getLogWriter
    * @since 1.4
    */
-  public void setLogWriter(final PrintWriter out) throws SQLException {
+  public void setLogWriter(final PrintWriter out) {
     //not implemented
   }
 
@@ -338,11 +336,10 @@ public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeabl
    * created, the login timeout is initially zero.
    *
    * @return the data source login time limit
-   * @throws SQLException if a database access error occurs.
    * @see #setLoginTimeout
    * @since 1.4
    */
-  public int getLoginTimeout() throws SQLException {
+  public int getLoginTimeout() {
     if (connectTimeout != null) {
       return connectTimeout / 1000;
     }
@@ -428,7 +425,7 @@ public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeabl
     return new MariaXaConnection((MariaDbConnection) getConnection(user, password));
   }
 
-  public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+  public Logger getParentLogger() {
     return null;
   }
 

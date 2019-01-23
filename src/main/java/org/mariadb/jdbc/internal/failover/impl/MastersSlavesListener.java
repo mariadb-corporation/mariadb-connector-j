@@ -263,7 +263,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
   }
 
   public boolean isMasterConnection() {
-    return (currentProtocol != null) ? currentProtocol.isMasterConnection() : true;
+    return (currentProtocol == null) || currentProtocol.isMasterConnection();
   }
 
   /**
@@ -777,10 +777,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
    * @param killCmd is the fail due to a KILL cmd
    * @return an object to indicate if the previous Exception must be thrown, or the object resulting
    *     if a failover worked
-   * @throws Throwable if failover has not been catch
    */
-  public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd)
-      throws Throwable {
+  public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) {
     boolean alreadyClosed = masterProtocol == null || !masterProtocol.isConnected();
     boolean inTransaction = masterProtocol != null && masterProtocol.inTransaction();
 

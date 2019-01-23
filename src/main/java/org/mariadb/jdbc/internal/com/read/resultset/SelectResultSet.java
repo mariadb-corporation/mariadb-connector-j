@@ -905,7 +905,7 @@ public class SelectResultSet implements ResultSet {
   }
 
   @Override
-  public int getFetchDirection() throws SQLException {
+  public int getFetchDirection() {
     return FETCH_UNKNOWN;
   }
 
@@ -918,7 +918,7 @@ public class SelectResultSet implements ResultSet {
   }
 
   @Override
-  public int getFetchSize() throws SQLException {
+  public int getFetchSize() {
     return this.fetchSize;
   }
 
@@ -943,7 +943,7 @@ public class SelectResultSet implements ResultSet {
   }
 
   @Override
-  public int getType() throws SQLException {
+  public int getType() {
     return resultSetScrollType;
   }
 
@@ -977,7 +977,7 @@ public class SelectResultSet implements ResultSet {
   /**
    * {inheritDoc}.
    */
-  public boolean wasNull() throws SQLException {
+  public boolean wasNull() {
     return row.wasNull();
   }
 
@@ -1280,7 +1280,7 @@ public class SelectResultSet implements ResultSet {
   /**
    * {inheritDoc}.
    */
-  public ResultSetMetaData getMetaData() throws SQLException {
+  public ResultSetMetaData getMetaData() {
     return new MariaDbResultSetMetaData(columnsInformation, options, returnTableAlias);
   }
 
@@ -2368,7 +2368,7 @@ public class SelectResultSet implements ResultSet {
   /**
    * {inheritDoc}.
    */
-  public int getHoldability() throws SQLException {
+  public int getHoldability() {
     return ResultSet.HOLD_CURSORS_OVER_COMMIT;
   }
 

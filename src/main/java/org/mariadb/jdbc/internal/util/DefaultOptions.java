@@ -287,7 +287,7 @@ public enum DefaultOptions {
       + "Log level correspond to Slf4j logging implementation", false),
   PROFILE_SQL("profileSql", Boolean.FALSE, "1.5.0", "log query execution time.", false),
   MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", 1024, 0, "1.5.0", "Max query log size.", false),
-  SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, 0L, "1.5.0",
+  SLOW_QUERY_TIME("slowQueryThresholdNanos", null, 0L, "1.5.0",
       "Will log query with execution time superior"
           + " to this value (if defined )", false),
   PASSWORD_CHARACTER_ENCODING("passwordCharacterEncoding", "1.5.9",
@@ -688,10 +688,8 @@ public enum DefaultOptions {
             sb.append((String) value);
           } else if (o.objType.equals(Boolean.class)) {
             sb.append(((Boolean) value).toString());
-          } else if (o.objType.equals(Integer.class)) {
-            sb.append((Integer) value);
-          } else if (o.objType.equals(Long.class)) {
-            sb.append((Long) value);
+          } else if (o.objType.equals(Integer.class) || o.objType.equals(Long.class)) {
+            sb.append(value);
           }
         }
       }

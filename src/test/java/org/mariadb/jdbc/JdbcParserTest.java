@@ -144,7 +144,7 @@ public class JdbcParserTest {
   }
 
   @Test
-  public void testAcceptsUrl() throws Throwable {
+  public void testAcceptsUrl() {
     Driver driver = new Driver();
     assertTrue(driver.acceptsURL("jdbc:mariadb://localhost/test"));
     assertTrue(driver.acceptsURL("jdbc:mysql://localhost/test"));
@@ -307,7 +307,7 @@ public class JdbcParserTest {
   }
 
   @Test
-  public void testJdbcParserBooleanOption() throws SQLException {
+  public void testJdbcParserBooleanOption() {
     String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308?autoReconnect=truee";
     Properties prop = new Properties();
     prop.setProperty("user", "greg");

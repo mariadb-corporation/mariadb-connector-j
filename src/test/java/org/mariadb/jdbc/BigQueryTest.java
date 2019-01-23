@@ -63,6 +63,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -264,7 +265,7 @@ public class BigQueryTest extends BaseTest {
               .prepareStatement("insert into bigblob4 values(?)")) {
 
             //testing char stream
-            ps.setCharacterStream(1, new InputStreamReader(fis, "UTF-8"));
+            ps.setCharacterStream(1, new InputStreamReader(fis, StandardCharsets.UTF_8));
             ps.executeUpdate();
 
             //testing byte stream
@@ -272,7 +273,7 @@ public class BigQueryTest extends BaseTest {
             ps.executeUpdate();
 
             //testing char stream with length
-            ps.setCharacterStream(1, new InputStreamReader(fis3, "UTF-8"), 10_000_000);
+            ps.setCharacterStream(1, new InputStreamReader(fis3, StandardCharsets.UTF_8), 10_000_000);
             ps.executeUpdate();
           }
         }
@@ -292,7 +293,7 @@ public class BigQueryTest extends BaseTest {
   private void checkResult(File tmpFile, ResultSet rs, int length) throws Exception {
     assertTrue(rs.next());
     String res = rs.getString(1);
-    try (Reader initialReader = new InputStreamReader(new FileInputStream(tmpFile), "UTF-8")) {
+    try (Reader initialReader = new InputStreamReader(new FileInputStream(tmpFile), StandardCharsets.UTF_8)) {
       char[] bb = new char[64 * 1024];
       int len;
       int pos = 0;
@@ -319,7 +320,7 @@ public class BigQueryTest extends BaseTest {
     assertTrue(rs.next());
     res = rs.getString(1);
     assertEquals(length, res.length());
-    try (Reader initialReader = new InputStreamReader(new FileInputStream(tmpFile), "UTF-8")) {
+    try (Reader initialReader = new InputStreamReader(new FileInputStream(tmpFile), StandardCharsets.UTF_8)) {
       char[] bb = new char[64 * 1024];
       int len;
       int pos = 0;

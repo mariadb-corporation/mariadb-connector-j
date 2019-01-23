@@ -80,11 +80,11 @@ public class OffsetTimeParameter implements Cloneable, ParameterHolder {
   public OffsetTimeParameter(OffsetTime offsetTime, ZoneId serverZoneId, boolean fractionalSeconds,
       Options options) throws SQLException {
     ZoneId zoneId = options.useLegacyDatetimeCode ? ZoneOffset.systemDefault() : serverZoneId;
-    if (ZoneOffset.class.isInstance(zoneId)) {
+    if (zoneId instanceof ZoneOffset) {
       throw new SQLException("cannot set OffsetTime, since server time zone is set to '"
           + serverZoneId.toString() + "' (check server variables time_zone and system_time_zone)");
     }
-    this.time = offsetTime.withOffsetSameInstant(ZoneOffset.class.cast(zoneId));
+    this.time = offsetTime.withOffsetSameInstant((ZoneOffset) zoneId);
     this.fractionalSeconds = fractionalSeconds;
   }
 
@@ -101,7 +101,7 @@ public class OffsetTimeParameter implements Cloneable, ParameterHolder {
     pos.write(QUOTE);
   }
 
-  public long getApproximateTextProtocolLength() throws IOException {
+  public long getApproximateTextProtocolLength() {
     return 15;
   }
 

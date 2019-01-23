@@ -26,9 +26,9 @@ public class DefaultOptionsTest {
       DefaultOptions.optionCoherenceValidation(defaultOption);
       for (DefaultOptions o : DefaultOptions.values()) {
         Field field = Options.class.getField(o.getOptionName());
-        assertEquals("field :" + field.getName(), field.get(o.defaultValues(HaMode.NONE)),
+        assertEquals("field :" + field.getName(), field.get(DefaultOptions.defaultValues(HaMode.NONE)),
             field.get(option));
-        assertEquals("field :" + field.getName(), field.get(o.defaultValues(haMode)),
+        assertEquals("field :" + field.getName(), field.get(DefaultOptions.defaultValues(haMode)),
             field.get(defaultOption));
       }
     }
@@ -97,7 +97,7 @@ public class DefaultOptionsTest {
                     (Boolean) field.get(resultOptions));
               } else {
                 assertEquals("field " + field.getName() + " value error for param" + param,
-                    (Boolean) field.get(resultOptions), !bool);
+                        field.get(resultOptions), !bool);
               }
               break;
             case "boolean":

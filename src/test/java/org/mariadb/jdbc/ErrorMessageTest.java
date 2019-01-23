@@ -80,7 +80,7 @@ public class ErrorMessageTest extends BaseTest {
   }
 
   @Test
-  public void testSmallRewriteErrorMessage() throws SQLException {
+  public void testSmallRewriteErrorMessage() {
     try (Connection connection = setBlankConnection("&rewriteBatchedStatements=true"
         + "&dumpQueriesOnException")) {
       executeBatchWithException(connection);
@@ -120,7 +120,7 @@ public class ErrorMessageTest extends BaseTest {
   }
 
   @Test
-  public void testSmallPrepareErrorMessage() throws SQLException {
+  public void testSmallPrepareErrorMessage() {
     try (Connection connection = setBlankConnection("&useBatchMultiSend=false"
         + "&dumpQueriesOnException")) {
       executeBatchWithException(connection);
@@ -153,7 +153,7 @@ public class ErrorMessageTest extends BaseTest {
   }
 
   @Test
-  public void testSmallPrepareBulkErrorMessage() throws SQLException {
+  public void testSmallPrepareBulkErrorMessage() {
     Assume.assumeFalse(sharedIsAurora());
     try (Connection connection = setBlankConnection(
         "&useBatchMultiSend=true&useServerPrepStmts=true&dumpQueriesOnException")) {
@@ -168,7 +168,7 @@ public class ErrorMessageTest extends BaseTest {
 
 
   @Test
-  public void testBigRewriteErrorMessage() throws SQLException {
+  public void testBigRewriteErrorMessage() {
     try (Connection connection = setBlankConnection("&rewriteBatchedStatements=true"
         + "&dumpQueriesOnException")) {
       executeBigBatchWithException(connection);
@@ -253,7 +253,7 @@ public class ErrorMessageTest extends BaseTest {
   }
 
   @Test
-  public void testBigBulkErrorPrepareMessage() throws SQLException {
+  public void testBigBulkErrorPrepareMessage() {
     Assume.assumeFalse(sharedIsAurora());
     try (Connection connection = setBlankConnection(
         "&useBatchMultiSend=true&useServerPrepStmts=true&dumpQueriesOnException")) {
@@ -340,7 +340,7 @@ public class ErrorMessageTest extends BaseTest {
   }
 
   @Test
-  public void testSmallRewriteErrorMessageNoBulk() throws SQLException {
+  public void testSmallRewriteErrorMessageNoBulk() {
     try (Connection connection = setBlankConnection(
         "&rewriteBatchedStatements=true&useBulkStmts=false&dumpQueriesOnException")) {
       executeBatchWithException(connection);
@@ -352,7 +352,7 @@ public class ErrorMessageTest extends BaseTest {
   }
 
   @Test
-  public void testSmallMultiBatchErrorMessageNoBulk() throws SQLException {
+  public void testSmallMultiBatchErrorMessageNoBulk() {
     try (Connection connection = setBlankConnection(
         "&allowMultiQueries=true&useServerPrepStmts=false&useBulkStmts=false"
             + "&dumpQueriesOnException")) {
@@ -373,7 +373,7 @@ public class ErrorMessageTest extends BaseTest {
   }
 
   @Test
-  public void testSmallPrepareErrorMessageNoBulk() throws SQLException {
+  public void testSmallPrepareErrorMessageNoBulk() {
     try (Connection connection = setBlankConnection(
         "&useBatchMultiSend=false&useBulkStmts=false&dumpQueriesOnException")) {
       executeBatchWithException(connection);
@@ -386,7 +386,7 @@ public class ErrorMessageTest extends BaseTest {
   }
 
   @Test
-  public void testSmallBulkErrorMessageNoBulk() throws SQLException {
+  public void testSmallBulkErrorMessageNoBulk() {
     Assume.assumeFalse(sharedIsAurora());
     try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useBulkStmts=false"
         + "&dumpQueriesOnException")) {
@@ -400,7 +400,7 @@ public class ErrorMessageTest extends BaseTest {
   }
 
   @Test
-  public void testSmallPrepareBulkErrorMessageNoBulk() throws SQLException {
+  public void testSmallPrepareBulkErrorMessageNoBulk() {
     Assume.assumeFalse(sharedIsAurora());
     try (Connection connection = setBlankConnection(
         "&useBatchMultiSend=true&useServerPrepStmts=true&useBulkStmts=false"
@@ -416,7 +416,7 @@ public class ErrorMessageTest extends BaseTest {
 
 
   @Test
-  public void testBigRewriteErrorMessageNoBulk() throws SQLException {
+  public void testBigRewriteErrorMessageNoBulk() {
     try (Connection connection = setBlankConnection(
         "&rewriteBatchedStatements=true&useBulkStmts=false&dumpQueriesOnException")) {
       executeBigBatchWithException(connection);
@@ -428,7 +428,7 @@ public class ErrorMessageTest extends BaseTest {
   }
 
   @Test
-  public void testBigMultiErrorMessageNoBulk() throws SQLException {
+  public void testBigMultiErrorMessageNoBulk() {
     try (Connection connection = setBlankConnection(
         "&allowMultiQueries=true&useServerPrepStmts=false&useBulkStmts=false"
             + "&dumpQueriesOnException")) {
@@ -450,7 +450,7 @@ public class ErrorMessageTest extends BaseTest {
   }
 
   @Test
-  public void testBigPrepareErrorMessageNoBulk() throws SQLException {
+  public void testBigPrepareErrorMessageNoBulk() {
     try (Connection connection = setBlankConnection(
         "&useBatchMultiSend=false&useBulkStmts=false&dumpQueriesOnException")) {
       executeBigBatchWithException(connection);
@@ -464,7 +464,7 @@ public class ErrorMessageTest extends BaseTest {
   }
 
   @Test
-  public void testBigBulkErrorMessageNoBulk() throws SQLException {
+  public void testBigBulkErrorMessageNoBulk() {
     Assume.assumeFalse(sharedIsAurora());
     try (Connection connection = setBlankConnection("&useBatchMultiSend=true&useBulkStmts=false"
         + "&dumpQueriesOnException")) {
@@ -479,7 +479,7 @@ public class ErrorMessageTest extends BaseTest {
   }
 
   @Test
-  public void testBigBulkErrorPrepareMessageNoBulk() throws SQLException {
+  public void testBigBulkErrorPrepareMessageNoBulk() {
     Assume.assumeFalse(sharedIsAurora());
     try (Connection connection = setBlankConnection(
         "&useBatchMultiSend=true&useServerPrepStmts=true&useBulkStmts=false"

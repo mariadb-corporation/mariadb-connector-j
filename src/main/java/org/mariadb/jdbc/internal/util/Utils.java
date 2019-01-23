@@ -600,7 +600,7 @@ public class Utils {
    * @throws IOException if connection error occur
    */
   public static Socket createSocket(UrlParser urlParser, String host) throws IOException {
-    return (Socket) socketHandler.apply(urlParser, host);
+    return socketHandler.apply(urlParser, host);
   }
 
   /**

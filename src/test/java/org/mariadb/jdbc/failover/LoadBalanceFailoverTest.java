@@ -122,7 +122,7 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
 
 
   @Test
-  public void testReadonly() throws SQLException {
+  public void testReadonly() {
     try (Connection connection = getNewConnection(false)) {
       connection.setReadOnly(true);
 

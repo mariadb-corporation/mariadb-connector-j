@@ -1168,7 +1168,7 @@ public class DriverTest extends BaseTest {
 
   /* Check that query does not contains SQL statement by default */
   @Test
-  public void shouldNotDumpQueryOnExceptionByDefault() throws Exception {
+  public void shouldNotDumpQueryOnExceptionByDefault() {
     String selectFromNonExistingTable = "select * from mango";
     try {
       Statement st = sharedConnection.createStatement();

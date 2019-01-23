@@ -241,7 +241,7 @@ public class DateTest extends BaseTest {
   }
 
   @Test
-  public void timeTestLegacy() throws SQLException {
+  public void timeTestLegacy() {
     try (Connection connection = setConnection(
         "&useLegacyDatetimeCode=true&serverTimezone=+05:00")) {
 
@@ -276,7 +276,7 @@ public class DateTest extends BaseTest {
   }
 
   @Test
-  public void timeTest() throws SQLException {
+  public void timeTest() {
     try (Connection connection = setConnection(
         "&useLegacyDatetimeCode=false&serverTimezone=+5:00")) {
       setSessionTimeZone(connection, "+5:00");

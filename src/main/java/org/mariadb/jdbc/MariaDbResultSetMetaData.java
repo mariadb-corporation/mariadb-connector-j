@@ -86,9 +86,8 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    * Returns the number of columns in this <code>ResultSet</code> object.
    *
    * @return the number of columns
-   * @throws SQLException if a database access error occurs
    */
-  public int getColumnCount() throws SQLException {
+  public int getColumnCount() {
     return fieldPackets.length;
   }
 
@@ -119,9 +118,8 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    *
    * @param column the first column is 1, the second is 2, ...
    * @return <code>true</code> if so; <code>false</code> otherwise
-   * @throws SQLException if a database access error occurs
    */
-  public boolean isSearchable(final int column) throws SQLException {
+  public boolean isSearchable(final int column) {
     return true;
   }
 
@@ -130,9 +128,8 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    *
    * @param column the first column is 1, the second is 2, ...
    * @return <code>true</code> if so; <code>false</code> otherwise
-   * @throws SQLException if a database access error occurs
    */
-  public boolean isCurrency(final int column) throws SQLException {
+  public boolean isCurrency(final int column) {
     return false;
   }
 
@@ -264,7 +261,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
   }
 
 
-  public String getSchemaName(int column) throws SQLException {
+  public String getSchemaName(int column) {
     return "";
   }
 
@@ -339,9 +336,8 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    *
    * @param column the first column is 1, the second is 2, ...
    * @return <code>true</code> if so; <code>false</code> otherwise
-   * @throws SQLException if a database access error occurs
    */
-  public boolean isReadOnly(final int column) throws SQLException {
+  public boolean isReadOnly(final int column) {
     return false;
   }
 

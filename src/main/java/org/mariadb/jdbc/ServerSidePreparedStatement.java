@@ -380,7 +380,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
   }
 
   @Override
-  public void clearParameters() throws SQLException {
+  public void clearParameters() {
     currentParameterHolder.clear();
   }
 

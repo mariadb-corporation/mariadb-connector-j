@@ -227,13 +227,10 @@ public class MastersSlavesProtocol extends MasterProtocol {
     if (!listener.isSecondaryHostFailReconnect()) {
       return true;
     } else {
-      if (listener.isExplicitClosed()
-          || searchFilter.isFineIfFoundOnlyMaster()
-          || !listener.isSecondaryHostFailReconnect()) {
-        return true;
-      }
+      return listener.isExplicitClosed()
+              || searchFilter.isFineIfFoundOnlyMaster()
+              || !listener.isSecondaryHostFailReconnect();
     }
-    return false;
   }
 
   protected static boolean foundSecondary(MastersSlavesListener listener,
@@ -249,13 +246,10 @@ public class MastersSlavesProtocol extends MasterProtocol {
     if (!listener.isMasterHostFailReconnect()) {
       return true;
     } else {
-      if (listener.isExplicitClosed()
-          || searchFilter.isFineIfFoundOnlySlave()
-          || !listener.isMasterHostFailReconnect()) {
-        return true;
-      }
+      return listener.isExplicitClosed()
+              || searchFilter.isFineIfFoundOnlySlave()
+              || !listener.isMasterHostFailReconnect();
     }
-    return false;
   }
 
   /**

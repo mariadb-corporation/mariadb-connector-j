@@ -138,7 +138,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
             return (String) args[2];
           case 4:
           case 5:
-            if (Charset.class.isInstance(args[3])) {
+            if (args[3] instanceof Charset) {
               return (String) args[2];
             }
             ClientPrepareResult clientPrepareResult = (ClientPrepareResult) args[2];
@@ -166,7 +166,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
           for (String multipleQuery : multipleQueries) {
             if (maxQuerySizeToLog > 0
                 && (sb.length() + multipleQuery.length() + 1) > maxQuerySizeToLog) {
-              sb.append(multipleQuery.substring(1, Math.max(1, maxQuerySizeToLog - sb.length())));
+              sb.append(multipleQuery, 1, Math.max(1, maxQuerySizeToLog - sb.length()));
               break;
             }
             sb.append(multipleQuery).append(";");

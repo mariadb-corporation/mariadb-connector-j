@@ -99,7 +99,7 @@ public class ZonedDateTimeParameter implements Cloneable, ParameterHolder {
     pos.write(QUOTE);
   }
 
-  public long getApproximateTextProtocolLength() throws IOException {
+  public long getApproximateTextProtocolLength() {
     return 27;
   }
 
