@@ -7,11 +7,11 @@
  * You should have received a copy of the CC0 legalcode along with this work. If not, see
  * <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package org.mariadb.jdbc.internal.com.send.ed25519.math;
+package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import org.mariadb.jdbc.internal.com.send.ed25519.Utils;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.Utils;
 
 /**
  * A point $(x,y)$ on an EdDSA curve.
@@ -61,14 +61,14 @@ public class GroupElement implements Serializable {
    * <p>
    * Variable is package private only so that tests run.
    */
-  org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement[][] precmp;
+  org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement[][] precmp;
   /**
-   * Precomputed table for {@link #doubleScalarMultiplyVariableTime(org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement,
+   * Precomputed table for {@link #doubleScalarMultiplyVariableTime(org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement,
    * byte[], byte[])}, filled if necessary.
    * <p>
    * Variable is package private only so that tests run.
    */
-  org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement[] dblPrecmp;
+  org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement[] dblPrecmp;
 
   /**
    * Creates a group element for a curve.
@@ -167,12 +167,12 @@ public class GroupElement implements Serializable {
    * @param Z     The $Z$ coordinate.
    * @return The group element in P2 representation.
    */
-  public static org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement p2(
+  public static org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement p2(
       final Curve curve,
       final FieldElement X,
       final FieldElement Y,
       final FieldElement Z) {
-    return new org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement(curve,
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement(curve,
         Representation.P2, X, Y, Z, null);
   }
 
@@ -186,13 +186,13 @@ public class GroupElement implements Serializable {
    * @param T     The $T$ coordinate.
    * @return The group element in P3 representation.
    */
-  public static org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement p3(
+  public static org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement p3(
       final Curve curve,
       final FieldElement X,
       final FieldElement Y,
       final FieldElement Z,
       final FieldElement T) {
-    return new org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement(curve,
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement(curve,
         Representation.P3, X, Y, Z, T);
   }
 
@@ -206,13 +206,13 @@ public class GroupElement implements Serializable {
    * @param T     The $T$ coordinate.
    * @return The group element in P1P1 representation.
    */
-  public static org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement p1p1(
+  public static org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement p1p1(
       final Curve curve,
       final FieldElement X,
       final FieldElement Y,
       final FieldElement Z,
       final FieldElement T) {
-    return new org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement(curve,
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement(curve,
         Representation.P1P1, X, Y, Z, T);
   }
 
@@ -225,12 +225,12 @@ public class GroupElement implements Serializable {
    * @param xy2d  The $2 * d * x * y$ value.
    * @return The group element in PRECOMP representation.
    */
-  public static org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement precomp(
+  public static org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement precomp(
       final Curve curve,
       final FieldElement ypx,
       final FieldElement ymx,
       final FieldElement xy2d) {
-    return new org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement(curve,
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement(curve,
         Representation.PRECOMP, ypx, ymx, xy2d, null);
   }
 
@@ -244,13 +244,13 @@ public class GroupElement implements Serializable {
    * @param T2d   The $2 * d * T$ value.
    * @return The group element in CACHED representation.
    */
-  public static org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement cached(
+  public static org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement cached(
       final Curve curve,
       final FieldElement YpX,
       final FieldElement YmX,
       final FieldElement Z,
       final FieldElement T2d) {
-    return new org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement(curve,
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement(curve,
         Representation.CACHED, YpX, YmX, Z, T2d);
   }
 
@@ -416,7 +416,7 @@ public class GroupElement implements Serializable {
    *
    * @return The group element in the P2 representation.
    */
-  public org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement toP2() {
+  public org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement toP2() {
     return toRep(Representation.P2);
   }
 
@@ -425,7 +425,7 @@ public class GroupElement implements Serializable {
    *
    * @return The group element in the P3 representation.
    */
-  public org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement toP3() {
+  public org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement toP3() {
     return toRep(Representation.P3);
   }
 
@@ -434,7 +434,7 @@ public class GroupElement implements Serializable {
    *
    * @return The group element in the CACHED representation.
    */
-  public org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement toCached() {
+  public org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement toCached() {
     return toRep(Representation.CACHED);
   }
 
@@ -452,7 +452,7 @@ public class GroupElement implements Serializable {
    * @param repr The representation to convert to.
    * @return A new group element in the given representation.
    */
-  private org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement toRep(
+  private org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement toRep(
       final Representation repr) {
     switch (this.repr) {
       case P2:
@@ -510,21 +510,21 @@ public class GroupElement implements Serializable {
    * Precomputes several tables.
    * <p>
    * The precomputed tables are used for {@link #scalarMultiply(byte[])} and {@link
-   * #doubleScalarMultiplyVariableTime(org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement,
+   * #doubleScalarMultiplyVariableTime(org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement,
    * byte[], byte[])}.
    *
    * @param precomputeSingle should the matrix for scalarMultiply() be precomputed?
    */
   public synchronized void precompute(final boolean precomputeSingle) {
-    org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement Bi;
+    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement Bi;
 
     if (precomputeSingle && this.precmp == null) {
       // Precomputation for single scalar multiplication.
-      this.precmp = new org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement[32][8];
+      this.precmp = new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement[32][8];
       // TODO-CR BR: check that this == base point when the method is called.
       Bi = this;
       for (int i = 0; i < 32; i++) {
-        org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement Bij = Bi;
+        org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement Bij = Bi;
         for (int j = 0; j < 8; j++) {
           final FieldElement recip = Bij.Z.invert();
           final FieldElement x = Bij.X.multiply(recip);
@@ -545,7 +545,7 @@ public class GroupElement implements Serializable {
     if (this.dblPrecmp != null) {
       return;
     }
-    this.dblPrecmp = new org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement[8];
+    this.dblPrecmp = new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement[8];
     Bi = this;
     for (int i = 0; i < 8; i++) {
       final FieldElement recip = Bi.Z.invert();
@@ -588,7 +588,7 @@ public class GroupElement implements Serializable {
    *
    * @return The P1P1 representation
    */
-  public org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement dbl() {
+  public org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement dbl() {
     switch (this.repr) {
       case P2:
       case P3: // Ignore T for P3 representation
@@ -652,8 +652,8 @@ public class GroupElement implements Serializable {
    * @param q the PRECOMP representation of the GroupElement to add.
    * @return the P1P1 representation of the result.
    */
-  private org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement madd(
-      org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement q) {
+  private org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement madd(
+      org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement q) {
     if (this.repr != Representation.P3) {
       throw new UnsupportedOperationException();
     }
@@ -685,8 +685,8 @@ public class GroupElement implements Serializable {
    * @param q the PRECOMP representation of the GroupElement to subtract.
    * @return the P1P1 representation of the result.
    */
-  private org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement msub(
-      org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement q) {
+  private org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement msub(
+      org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement q) {
     if (this.repr != Representation.P3) {
       throw new UnsupportedOperationException();
     }
@@ -731,8 +731,8 @@ public class GroupElement implements Serializable {
    * @param q the CACHED representation of the GroupElement to add.
    * @return the P1P1 representation of the result.
    */
-  public org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement add(
-      org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement q) {
+  public org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement add(
+      org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement q) {
     if (this.repr != Representation.P3) {
       throw new UnsupportedOperationException();
     }
@@ -763,8 +763,8 @@ public class GroupElement implements Serializable {
    * @param q the PRECOMP representation of the GroupElement to subtract.
    * @return the P1P1 representation of the result.
    */
-  public org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement sub(
-      org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement q) {
+  public org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement sub(
+      org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement q) {
     if (this.repr != Representation.P3) {
       throw new UnsupportedOperationException();
     }
@@ -790,7 +790,7 @@ public class GroupElement implements Serializable {
    *
    * @return The negative of this group element.
    */
-  public org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement negate() {
+  public org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement negate() {
     if (this.repr != Representation.P3) {
       throw new UnsupportedOperationException();
     }
@@ -807,10 +807,10 @@ public class GroupElement implements Serializable {
     if (obj == this) {
       return true;
     }
-    if (!(obj instanceof org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement)) {
+    if (!(obj instanceof org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement)) {
       return false;
     }
-    org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement ge = (org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement) obj;
+    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement ge = (org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement) obj;
     if (!this.repr.equals(ge.repr)) {
       try {
         ge = ge.toRep(this.repr);
@@ -865,8 +865,8 @@ public class GroupElement implements Serializable {
    * @param b in $\{0, 1\}$
    * @return $u$ if $b == 1$; this if $b == 0$. Results undefined if $b$ is not in $\{0, 1\}$.
    */
-  org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement cmov(
-      final org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement u, final int b) {
+  org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement cmov(
+          final org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement u, final int b) {
     return precomp(curve, X.cmov(u.X, b), Y.cmov(u.Y, b), Z.cmov(u.Z, b));
   }
 
@@ -883,14 +883,14 @@ public class GroupElement implements Serializable {
    * @param b   $= r_i$
    * @return the GroupElement
    */
-  org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement select(final int pos, final int b) {
+  org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement select(final int pos, final int b) {
     // Is r_i negative?
     final int bnegative = Utils.negative(b);
     // |r_i|
     final int babs = b - (((-bnegative) & b) << 1);
 
     // 16^i |r_i| B
-    final org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement t = this.curve
+    final org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement t = this.curve
         .getZero(Representation.PRECOMP)
         .cmov(this.precmp[pos][0], Utils.equal(babs, 1))
         .cmov(this.precmp[pos][1], Utils.equal(babs, 2))
@@ -901,7 +901,7 @@ public class GroupElement implements Serializable {
         .cmov(this.precmp[pos][6], Utils.equal(babs, 7))
         .cmov(this.precmp[pos][7], Utils.equal(babs, 8));
     // -16^i |r_i| B
-    final org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement tminus = precomp(curve, t.Y,
+    final org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement tminus = precomp(curve, t.Y,
         t.X, t.Z.negate());
     // 16^i r_i B
     return t.cmov(tminus, bnegative);
@@ -917,14 +917,14 @@ public class GroupElement implements Serializable {
    * @param a $= a[0]+256*a[1]+\dots+256^{31} a[31]$
    * @return the GroupElement
    */
-  public org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement scalarMultiply(
+  public org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement scalarMultiply(
       final byte[] a) {
-    org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement t;
+    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement t;
     int i;
 
     final byte[] e = toRadix16(a);
 
-    org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement h = this.curve
+    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement h = this.curve
         .getZero(Representation.P3);
     synchronized (this) {
       // TODO: Get opinion from a crypto professional.
@@ -958,14 +958,14 @@ public class GroupElement implements Serializable {
    * @param b $= b[0]+256*b[1]+\dots+256^{31} b[31]$
    * @return the GroupElement
    */
-  public org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement doubleScalarMultiplyVariableTime(
-      final org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement A, final byte[] a,
-      final byte[] b) {
+  public org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement doubleScalarMultiplyVariableTime(
+          final org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement A, final byte[] a,
+          final byte[] b) {
     // TODO-CR BR: A check that this is the base point is needed.
     final byte[] aslide = slide(a);
     final byte[] bslide = slide(b);
 
-    org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement r = this.curve
+    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement r = this.curve
         .getZero(Representation.P2);
 
     int i;
@@ -982,7 +982,7 @@ public class GroupElement implements Serializable {
       // this should get called on is EdDSA's B.
       //precompute();
       for (; i >= 0; --i) {
-        org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement t = r.dbl();
+        org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement t = r.dbl();
 
         if (aslide[i] > 0) {
           t = t.toP3().madd(A.dblPrecmp[aslide[i] / 2]);

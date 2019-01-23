@@ -1041,9 +1041,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       //send execute query
-      new ComStmtExecute(serverPrepareResult.getStatementId(), parameters,
-          parameterCount, serverPrepareResult.getParameterTypeHeader(), CURSOR_TYPE_NO_CURSOR)
-          .send(writer);
+      ComStmtExecute.send(writer, serverPrepareResult.getStatementId(), parameters,
+              parameterCount, serverPrepareResult.getParameterTypeHeader(), CURSOR_TYPE_NO_CURSOR);
       getResult(results);
 
     } catch (SQLException qex) {
@@ -1234,8 +1233,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     lock.lock();
     try {
 
-      final SendChangeDbPacket packet = new SendChangeDbPacket(database);
-      packet.send(writer);
+      SendChangeDbPacket.send(writer, database);
       final Buffer buffer = reader.getPacket(true);
 
       if (buffer.getByteAt(0) == ERROR) {

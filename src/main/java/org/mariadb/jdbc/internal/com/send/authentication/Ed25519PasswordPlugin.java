@@ -50,7 +50,7 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send;
+package org.mariadb.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -58,33 +58,63 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Arrays;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.ScalarOps;
-import org.mariadb.jdbc.internal.com.send.ed25519.spec.EdDSANamedCurveTable;
-import org.mariadb.jdbc.internal.com.send.ed25519.spec.EdDSAParameterSpec;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.ScalarOps;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec.EdDSANamedCurveTable;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec.EdDSAParameterSpec;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-public class SendEd25519PasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements
-    InterfaceAuthSwitchSendResponsePacket {
+public class Ed25519PasswordPlugin implements AuthenticationPlugin {
 
-  public SendEd25519PasswordAuthPacket(String password, byte[] authData, int packSeq,
-      String passwordCharacterEncoding) {
-    super(packSeq, authData, password, passwordCharacterEncoding);
+  private final String password;
+  private final String passwordCharacterEncoding;
+  private byte[] authData;
+
+  /**
+   * Ed25519 password plugin constructor.
+   *
+   * @param password                    password
+   * @param authData                    seed
+   * @param passwordCharacterEncoding   password encoding
+   */
+  public Ed25519PasswordPlugin(String password, byte[] authData, String passwordCharacterEncoding) {
+    this.authData = authData;
+    this.password = password;
+    this.passwordCharacterEncoding = passwordCharacterEncoding;
   }
 
   /**
-   * The client signs the random seed from server, using the password as a private key. The server
-   * will verifies the signature using the public key from mysql.user table.
+   * Process Ed25519 password plugin authentication.
+   * see https://mariadb.com/kb/en/library/authentication-plugin-ed25519/
    *
-   * @param password                  password
-   * @param seed                      server seed
-   * @param passwordCharacterEncoding password encoding
-   * @return signed hash
-   * @throws SQLException if anything wrong occur
+   * @param out       out stream
+   * @param in        in stream
+   * @param sequence  packet sequence
+   * @return response packet
+   * @throws IOException  if socket error
    */
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException, SQLException {
+    if (password == null || password.isEmpty()) {
+      out.writeEmptyPacket(sequence.incrementAndGet());
+    } else {
+      out.startPacket(sequence.incrementAndGet());
+      out.write(ed25519SignWithPassword(password, authData, passwordCharacterEncoding));
+      out.flush();
+    }
+
+    Buffer buffer = in.getPacket(true);
+    sequence.set(in.getLastPacketSeq());
+    return buffer;
+
+  }
+
+
   private static byte[] ed25519SignWithPassword(final String password, final byte[] seed,
-      String passwordCharacterEncoding)
-      throws SQLException {
+                                                String passwordCharacterEncoding) throws SQLException {
 
     try {
       byte[] bytePwd;
@@ -137,27 +167,6 @@ public class SendEd25519PasswordAuthPacket extends AbstractAuthSwitchSendRespons
       throw new SQLException("Unsupported encoding '" + passwordCharacterEncoding
           + "' (option passwordCharacterEncoding)", use);
     }
-
-  }
-
-  /**
-   * Send Ed25519 plugin authentication result.
-   *
-   * @param pos database socket
-   * @throws IOException  if socket error occur
-   * @throws SQLException if other kind of error occur
-   */
-  public void send(PacketOutputStream pos) throws IOException, SQLException {
-
-    if (password == null || password.isEmpty()) {
-      pos.writeEmptyPacket(packSeq);
-      return;
-    }
-
-    pos.startPacket(packSeq);
-    pos.write(ed25519SignWithPassword(password, authData, passwordCharacterEncoding));
-    pos.flush();
-
   }
 
 }

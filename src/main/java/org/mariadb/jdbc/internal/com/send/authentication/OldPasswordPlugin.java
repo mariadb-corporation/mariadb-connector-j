@@ -50,37 +50,52 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send;
+package org.mariadb.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
+import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.Utils;
 
-public class SendOldPasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements
-    InterfaceAuthSwitchSendResponsePacket {
+public class OldPasswordPlugin implements AuthenticationPlugin {
 
-  public SendOldPasswordAuthPacket(String password, byte[] authData, int packSeq,
-      String passwordCharacterEncoding) {
-    super(packSeq, authData, password, passwordCharacterEncoding);
+  private final String password;
+  private byte[] authData;
+
+  public OldPasswordPlugin(String password, byte[] authData) {
+    this.authData = authData;
+    this.password = password;
   }
 
   /**
-   * Send password stream.
+   * Process old password plugin authentication.
+   * see https://mariadb.com/kb/en/library/authentication-plugin-mysql_old_password/
    *
-   * @param pos database socket
-   * @throws IOException if a connection error occur
+   * @param out       out stream
+   * @param in        in stream
+   * @param sequence  packet sequence
+   * @return response packet
+   * @throws IOException  if socket error
    */
-  public void send(PacketOutputStream pos) throws IOException {
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException {
 
     if (password == null || password.isEmpty()) {
-      pos.writeEmptyPacket(packSeq);
-      return;
+      out.writeEmptyPacket(sequence.incrementAndGet());
+    } else {
+      out.startPacket(sequence.incrementAndGet());
+      byte[] seed = Utils.copyWithLength(authData, 8);
+      out.write(cryptOldFormatPassword(password, new String(seed)));
+      out.write((byte) 0x00);
+      out.flush();
     }
-    pos.startPacket(packSeq);
-    byte[] seed = Utils.copyWithLength(authData, 8);
-    pos.write(cryptOldFormatPassword(password, new String(seed)));
-    pos.write((byte) 0x00);
-    pos.flush();
+
+    Buffer buffer = in.getPacket(true);
+    sequence.set(in.getLastPacketSeq());
+    return buffer;
   }
 
 

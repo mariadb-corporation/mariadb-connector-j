@@ -58,23 +58,18 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 /**
  * Used for starting ssl connections.
  */
-public class SendSslConnectionRequestPacket implements InterfaceSendPacket {
-
-  private final long clientCapabilities;
-  private final byte serverLanguage;
-
-  public SendSslConnectionRequestPacket(long clientCapabilities, byte serverLanguage) {
-    this.clientCapabilities = clientCapabilities;
-    this.serverLanguage = serverLanguage;
-  }
+public class SendSslConnectionRequestPacket {
 
   /**
-   * Send capabilities.
+   * Send SSL request packet.
+   * See https://mariadb.com/kb/en/library/connection/#sslrequest-packet
    *
-   * @param pos database stream.
+   * @param pos                  output stream
+   * @param clientCapabilities   client capabilities
+   * @param serverLanguage       connection charset
    * @throws IOException if any connection error occur
    */
-  public void send(final PacketOutputStream pos) throws IOException {
+  public static void send(final PacketOutputStream pos, final long clientCapabilities, final byte serverLanguage) throws IOException {
     pos.startPacket(1);
     pos.writeInt((int) clientCapabilities);
     pos.writeInt(1024 * 1024 * 1024);

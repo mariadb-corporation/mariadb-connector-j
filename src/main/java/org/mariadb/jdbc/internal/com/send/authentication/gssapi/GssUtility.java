@@ -1,8 +1,6 @@
-package org.mariadb.jdbc.internal.com.send.gssapi;
+package org.mariadb.jdbc.internal.com.send.authentication.gssapi;
 
 import com.sun.jna.Platform;
-import java.util.function.BiFunction;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 
 public class GssUtility {
 
@@ -12,13 +10,13 @@ public class GssUtility {
    *
    * @return authentication method
    */
-  public static BiFunction<PacketInputStream, Integer, GssapiAuth> getAuthenticationMethod() {
+  public static GssapiAuth getAuthenticationMethod() {
     try {
       //Waffle-jna has jna as dependency, so if not available on classpath, just use standard authentication
       if (Platform.isWindows()) {
         try {
           Class.forName("waffle.windows.auth.impl.WindowsAuthProviderImpl");
-          return (reader, packSeq) -> new WindowsNativeSspiAuthentication(reader, packSeq);
+          return new WindowsNativeSspiAuthentication();
         } catch (ClassNotFoundException cle) {
           //waffle not in the classpath
         }
@@ -26,7 +24,7 @@ public class GssUtility {
     } catch (Throwable cle) {
       //jna jar's are not in classpath
     }
-    return (reader, packSeq) -> new StandardGssapiAuthentication(reader, packSeq);
+    return new StandardGssapiAuthentication();
   }
 
 }

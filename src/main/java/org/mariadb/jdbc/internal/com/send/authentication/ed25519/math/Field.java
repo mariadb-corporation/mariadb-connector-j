@@ -7,7 +7,7 @@
  * You should have received a copy of the CC0 legalcode along with this work. If not, see
  * <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package org.mariadb.jdbc.internal.com.send.ed25519.math;
+package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math;
 
 import java.io.Serializable;
 
@@ -90,10 +90,10 @@ public class Field implements Serializable {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof org.mariadb.jdbc.internal.com.send.ed25519.math.Field)) {
+    if (!(obj instanceof org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Field)) {
       return false;
     }
-    org.mariadb.jdbc.internal.com.send.ed25519.math.Field f = (org.mariadb.jdbc.internal.com.send.ed25519.math.Field) obj;
+    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Field f = (org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Field) obj;
     return b == f.b && q.equals(f.q);
   }
 }

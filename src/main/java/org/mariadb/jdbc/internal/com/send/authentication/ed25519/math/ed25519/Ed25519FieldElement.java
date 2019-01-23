@@ -7,12 +7,12 @@
  * You should have received a copy of the CC0 legalcode along with this work. If not, see
  * <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519;
+package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519;
 
 import java.util.Arrays;
-import org.mariadb.jdbc.internal.com.send.ed25519.Utils;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.Field;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.Utils;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Field;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.FieldElement;
 
 /**
  * Class to represent a field element of the finite field $p = 2^{255} - 19$ elements.
@@ -75,12 +75,12 @@ public class Ed25519FieldElement extends FieldElement {
    * @return The field element this + val.
    */
   public FieldElement add(FieldElement val) {
-    int[] g = ((org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement) val).t;
+    int[] g = ((org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement) val).t;
     int[] h = new int[10];
     for (int i = 0; i < 10; i++) {
       h[i] = t[i] + g[i];
     }
-    return new org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement(f, h);
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement(f, h);
   }
 
   /**
@@ -104,12 +104,12 @@ public class Ed25519FieldElement extends FieldElement {
    * @return The field element this - val.
    **/
   public FieldElement subtract(FieldElement val) {
-    int[] g = ((org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement) val).t;
+    int[] g = ((org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement) val).t;
     int[] h = new int[10];
     for (int i = 0; i < 10; i++) {
       h[i] = t[i] - g[i];
     }
-    return new org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement(f, h);
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement(f, h);
   }
 
   /**
@@ -133,7 +133,7 @@ public class Ed25519FieldElement extends FieldElement {
     for (int i = 0; i < 10; i++) {
       h[i] = -t[i];
     }
-    return new org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement(f, h);
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement(f, h);
   }
 
   /**
@@ -172,7 +172,7 @@ public class Ed25519FieldElement extends FieldElement {
    * @return The (reasonably reduced) field element this * val.
    */
   public FieldElement multiply(FieldElement val) {
-    int[] g = ((org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement) val).t;
+    int[] g = ((org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement) val).t;
     int g1_19 = 19 * g[1]; /* 1.959375*2^29 */
     int g2_19 = 19 * g[2]; /* 1.959375*2^30; still ok */
     int g3_19 = 19 * g[3];
@@ -409,7 +409,7 @@ public class Ed25519FieldElement extends FieldElement {
     h[7] = (int) h7;
     h[8] = (int) h8;
     h[9] = (int) h9;
-    return new org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement(f, h);
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement(f, h);
   }
 
   /**
@@ -588,7 +588,7 @@ public class Ed25519FieldElement extends FieldElement {
     h[7] = (int) h7;
     h[8] = (int) h8;
     h[9] = (int) h9;
-    return new org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement(f, h);
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement(f, h);
   }
 
   /**
@@ -773,7 +773,7 @@ public class Ed25519FieldElement extends FieldElement {
     h[7] = (int) h7;
     h[8] = (int) h8;
     h[9] = (int) h9;
-    return new org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement(f, h);
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement(f, h);
   }
 
   /**
@@ -1026,7 +1026,7 @@ public class Ed25519FieldElement extends FieldElement {
    */
   @Override
   public FieldElement cmov(FieldElement val, int b) {
-    org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement that = (org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement) val;
+    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement that = (org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement) val;
     b = -b;
     int[] result = new int[10];
     for (int i = 0; i < 10; i++) {
@@ -1035,7 +1035,7 @@ public class Ed25519FieldElement extends FieldElement {
       x &= b;
       result[i] ^= x;
     }
-    return new org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement(this.f,
+    return new org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement(this.f,
         result);
   }
 
@@ -1046,10 +1046,10 @@ public class Ed25519FieldElement extends FieldElement {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement)) {
+    if (!(obj instanceof org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement)) {
       return false;
     }
-    org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement fe = (org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519FieldElement) obj;
+    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement fe = (org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519FieldElement) obj;
     return 1 == Utils.equal(toByteArray(), fe.toByteArray());
   }
 

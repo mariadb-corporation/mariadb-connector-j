@@ -50,54 +50,69 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send;
-
-import static org.mariadb.jdbc.internal.com.Packet.ERROR;
+package org.mariadb.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
-import java.sql.SQLException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.Utils;
 
-public abstract class AbstractAuthSwitchSendResponsePacket implements
-    InterfaceAuthSwitchSendResponsePacket {
+public class NativePasswordPlugin implements AuthenticationPlugin {
 
-  protected final String password;
-  protected final String passwordCharacterEncoding;
-  protected int packSeq = 0;
-  protected byte[] authData;
+  private final String password;
+  private final String passwordCharacterEncoding;
+  private byte[] authData;
 
   /**
-   * Handle Authentication.
+   * Native password plugin constructor.
    *
-   * @param packSeq                   packet sequence
-   * @param authData                  authentication data
-   * @param password                  password
-   * @param passwordCharacterEncoding password character encoding
+   * @param password                    password
+   * @param authData                    seed
+   * @param passwordCharacterEncoding   password encoding option
    */
-  public AbstractAuthSwitchSendResponsePacket(int packSeq, byte[] authData, String password,
-      String passwordCharacterEncoding) {
-    this.packSeq = packSeq;
+  public NativePasswordPlugin(String password, byte[] authData, String passwordCharacterEncoding) {
     this.authData = authData;
     this.password = password;
     this.passwordCharacterEncoding = passwordCharacterEncoding;
   }
 
   /**
-   * Handle response packet.
+   * Process native password plugin authentication.
+   * see https://mariadb.com/kb/en/library/authentication-plugin-mysql_native_password/
    *
-   * @param reader packet fetcher
-   * @throws SQLException if any functional error occur
-   * @throws IOException  if any connection error occur
+   * @param out       out stream
+   * @param in        in stream
+   * @param sequence  packet sequence
+   * @return response packet
+   * @throws IOException  if socket error
    */
-  public void handleResultPacket(PacketInputStream reader) throws SQLException, IOException {
-    Buffer buffer = reader.getPacket(true);
-    if (buffer.getByteAt(0) == ERROR) {
-      ErrorPacket ep = new ErrorPacket(buffer);
-      String message = ep.getMessage();
-      throw new SQLException("Could not connect: " + message, ep.getSqlState(),
-          ep.getErrorNumber());
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException {
+    if (password == null || password.isEmpty()) {
+      out.writeEmptyPacket(sequence.incrementAndGet());
+    } else {
+      try {
+        out.startPacket(sequence.incrementAndGet());
+        byte[] seed;
+        if (authData.length > 0) {
+          //Seed is ended with a null byte value.
+          seed = Arrays.copyOfRange(authData, 0, authData.length - 1);
+        } else {
+          seed = new byte[0];
+        }
+        out.write(Utils.encryptPassword(password, seed, passwordCharacterEncoding));
+        out.flush();
+      } catch (NoSuchAlgorithmException e) {
+        throw new RuntimeException("Could not use SHA-1, failing", e);
+      }
     }
+
+    Buffer buffer = in.getPacket(true);
+    sequence.set(in.getLastPacketSeq());
+    return buffer;
   }
 }

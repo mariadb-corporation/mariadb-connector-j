@@ -50,39 +50,64 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send;
+package org.mariadb.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.send.authentication.gssapi.GssUtility;
+import org.mariadb.jdbc.internal.com.send.authentication.gssapi.GssapiAuth;
+import org.mariadb.jdbc.internal.com.send.authentication.gssapi.StandardGssapiAuthentication;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-public class SendClearPasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements
-    InterfaceAuthSwitchSendResponsePacket {
+public class SendGssApiAuthPacket implements AuthenticationPlugin {
 
-  public SendClearPasswordAuthPacket(String password, byte[] authData, int packSeq,
-      String passwordCharacterEncoding) {
-    super(packSeq, authData, password, passwordCharacterEncoding);
+  private static final GssapiAuth gssapiAuth;
+  private byte[] authData;
+
+  static {
+    GssapiAuth init;
+    try {
+      init = GssUtility.getAuthenticationMethod();
+    } catch (Throwable t) {
+      init = new StandardGssapiAuthentication();
+    }
+    gssapiAuth = init;
+  }
+
+
+  public SendGssApiAuthPacket(byte[] authData) {
+    this.authData = authData;
   }
 
   /**
-   * Send native password stream.
+   * Process gssapi plugin authentication.
+   * see https://mariadb.com/kb/en/library/authentication-plugin-gssapi/
    *
-   * @param pos database socket
-   * @throws IOException if a connection error occur
+   * @param out       out stream
+   * @param in        in stream
+   * @param sequence  packet sequence
+   * @return response packet
+   * @throws IOException  if socket error
+   * @throws SQLException if plugin exception
    */
-  public void send(PacketOutputStream pos) throws IOException {
-    if (password == null || password.isEmpty()) {
-      pos.writeEmptyPacket(packSeq);
-      return;
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException, SQLException {
+    Buffer buffer = new Buffer(authData);
+    final String serverPrincipalName = buffer.readStringNullEnd(StandardCharsets.UTF_8);
+    String mechanisms = buffer.readStringNullEnd(StandardCharsets.UTF_8);
+    if (mechanisms.isEmpty()) {
+      mechanisms = "Kerberos";
     }
-    pos.startPacket(packSeq);
-    byte[] bytePwd;
-    if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
-      bytePwd = password.getBytes(passwordCharacterEncoding);
-    } else {
-      bytePwd = password.getBytes();
-    }
-    pos.write(bytePwd);
-    pos.write(0);
-    pos.flush();
+
+    gssapiAuth.authenticate(out, in, sequence, serverPrincipalName, mechanisms);
+
+    buffer = in.getPacket(true);
+    sequence.set(in.getLastPacketSeq());
+    return buffer;
   }
+
 }
+

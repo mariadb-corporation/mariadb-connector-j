@@ -50,14 +50,58 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send;
+package org.mariadb.jdbc.internal.com.send.authentication.gssapi;
 
+import com.sun.jna.platform.win32.Sspi;
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import waffle.windows.auth.IWindowsSecurityContext;
+import waffle.windows.auth.impl.WindowsSecurityContextImpl;
 
+public class WindowsNativeSspiAuthentication implements GssapiAuth {
 
-public interface InterfaceAuthSwitchSendResponsePacket extends InterfaceSendPacket {
+  /**
+   * Process native windows GSS plugin authentication.
+   *
+   * @param out                   out stream
+   * @param in                    in stream
+   * @param sequence              packet sequence
+   * @param serverPrincipalName   principal name
+   * @param mechanisms            gssapi mechanism
+   * @throws IOException  if socket error
+   */
+  public void authenticate(final PacketOutputStream out, final PacketInputStream in, final AtomicInteger sequence,
+                           final String serverPrincipalName, final String mechanisms) throws IOException {
 
-  void handleResultPacket(PacketInputStream reader) throws SQLException, IOException;
+    // initialize a security context on the client
+    IWindowsSecurityContext clientContext = WindowsSecurityContextImpl
+        .getCurrent(mechanisms, serverPrincipalName);
+
+    do {
+
+      // Step 1: send token to server
+      byte[] tokenForTheServerOnTheClient = clientContext.getToken();
+      out.startPacket(sequence.incrementAndGet());
+      out.write(tokenForTheServerOnTheClient);
+      out.flush();
+
+      // Step 2: read server response token
+      if (clientContext.isContinue()) {
+        Buffer buffer = in.getPacket(true);
+        sequence.set(in.getLastPacketSeq());
+        byte[] tokenForTheClientOnTheServer = buffer.readRawBytes(buffer.remaining());
+        Sspi.SecBufferDesc continueToken = new Sspi.SecBufferDesc(Sspi.SECBUFFER_TOKEN,
+            tokenForTheClientOnTheServer);
+        clientContext.initialize(clientContext.getHandle(), continueToken, serverPrincipalName);
+      }
+
+    } while (clientContext.isContinue());
+
+    clientContext.dispose();
+  }
 }

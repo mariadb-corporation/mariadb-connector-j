@@ -7,15 +7,15 @@
  * You should have received a copy of the CC0 legalcode along with this work. If not, see
  * <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package org.mariadb.jdbc.internal.com.send.ed25519.spec;
+package org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec;
 
 import java.io.Serializable;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.AlgorithmParameterSpec;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.Curve;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.GroupElement;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.ScalarOps;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Curve;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.ScalarOps;
 
 /**
  * Parameter specification for an EdDSA algorithm.
@@ -86,10 +86,10 @@ public class EdDSAParameterSpec implements AlgorithmParameterSpec, Serializable 
     if (o == this) {
       return true;
     }
-    if (!(o instanceof org.mariadb.jdbc.internal.com.send.ed25519.spec.EdDSAParameterSpec)) {
+    if (!(o instanceof org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec.EdDSAParameterSpec)) {
       return false;
     }
-    org.mariadb.jdbc.internal.com.send.ed25519.spec.EdDSAParameterSpec s = (org.mariadb.jdbc.internal.com.send.ed25519.spec.EdDSAParameterSpec) o;
+    org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec.EdDSAParameterSpec s = (org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec.EdDSAParameterSpec) o;
     return hashAlgo.equals(s.getHashAlgorithm()) &&
         curve.equals(s.getCurve()) &&
         B.equals(s.getB());

@@ -7,10 +7,10 @@
  * You should have received a copy of the CC0 legalcode along with this work. If not, see
  * <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519;
+package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519;
 
-import static org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519LittleEndianEncoding.load_3;
-import static org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519LittleEndianEncoding.load_4;
+import static org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519LittleEndianEncoding.load_3;
+import static org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519LittleEndianEncoding.load_4;
 
 /**
  * Class for reducing a huge integer modulo the group order q and doing a combined multiply plus add

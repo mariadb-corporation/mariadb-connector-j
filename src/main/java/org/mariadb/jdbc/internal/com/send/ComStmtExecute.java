@@ -58,37 +58,7 @@ import org.mariadb.jdbc.internal.com.Packet;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-public class ComStmtExecute implements InterfaceSendPacket {
-
-  private final int parameterCount;
-  private final ParameterHolder[] parameters;
-  private final int statementId;
-  private final byte cursorFlag;
-  private final ColumnType[] parameterTypeHeader;
-
-  /**
-   * Initialize parameters.
-   *
-   * @param statementId         prepareResult object received after preparation.
-   * @param parameters          parameters
-   * @param parameterCount      parameters number
-   * @param parameterTypeHeader parameters header
-   * @param cursorFlag          cursor flag. Possible values : <ol>
-   *                            <li>CURSOR_TYPE_NO_CURSOR = fetch all</li>
-   *                            <li>CURSOR_TYPE_READ_ONLY = fetch by bunch</li>
-   *                            <li>CURSOR_TYPE_FOR_UPDATE = fetch by bunch with lock ?</li>
-   *                            <li>CURSOR_TYPE_SCROLLABLE = //reserved, but not working</li>
-   *                            </ol>
-   */
-  public ComStmtExecute(final int statementId, final ParameterHolder[] parameters,
-      final int parameterCount,
-      ColumnType[] parameterTypeHeader, byte cursorFlag) {
-    this.parameterCount = parameterCount;
-    this.parameters = parameters;
-    this.statementId = statementId;
-    this.parameterTypeHeader = parameterTypeHeader;
-    this.cursorFlag = cursorFlag;
-  }
+public class ComStmtExecute {
 
   /**
    * Write COM_STMT_EXECUTE sub-command to output buffer.
@@ -164,9 +134,20 @@ public class ComStmtExecute implements InterfaceSendPacket {
    * Send a prepare statement binary stream.
    *
    * @param pos database socket
+   * @param statementId         prepareResult object received after preparation.
+   * @param parameters          parameters
+   * @param parameterCount      parameters number
+   * @param parameterTypeHeader parameters header
+   * @param cursorFlag          cursor flag. Possible values : <ol>
+   *                            <li>CURSOR_TYPE_NO_CURSOR = fetch all</li>
+   *                            <li>CURSOR_TYPE_READ_ONLY = fetch by bunch</li>
+   *                            <li>CURSOR_TYPE_FOR_UPDATE = fetch by bunch with lock ?</li>
+   *                            <li>CURSOR_TYPE_SCROLLABLE = //reserved, but not working</li>
+   *                            </ol>
    * @throws IOException if a connection error occur
    */
-  public void send(final PacketOutputStream pos) throws IOException {
+  public static void send(final PacketOutputStream pos, final int statementId, final ParameterHolder[] parameters,
+                   final int parameterCount, ColumnType[] parameterTypeHeader, byte cursorFlag) throws IOException {
     pos.startPacket(0);
     writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, pos, cursorFlag);
     pos.flush();

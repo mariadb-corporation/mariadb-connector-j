@@ -7,7 +7,7 @@
  * You should have received a copy of the CC0 legalcode along with this work. If not, see
  * <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package org.mariadb.jdbc.internal.com.send.ed25519.math;
+package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math;
 
 import java.io.Serializable;
 
@@ -90,10 +90,10 @@ public class Curve implements Serializable {
     if (o == this) {
       return true;
     }
-    if (!(o instanceof org.mariadb.jdbc.internal.com.send.ed25519.math.Curve)) {
+    if (!(o instanceof org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Curve)) {
       return false;
     }
-    org.mariadb.jdbc.internal.com.send.ed25519.math.Curve c = (org.mariadb.jdbc.internal.com.send.ed25519.math.Curve) o;
+    org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Curve c = (org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Curve) o;
     return f.equals(c.getField()) &&
         d.equals(c.getD()) &&
         I.equals(c.getI());

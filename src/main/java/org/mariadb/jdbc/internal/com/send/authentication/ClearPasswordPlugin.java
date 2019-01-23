@@ -50,48 +50,59 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send;
+package org.mariadb.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.Utils;
 
-public class SendNativePasswordAuthPacket extends AbstractAuthSwitchSendResponsePacket implements
-    InterfaceAuthSwitchSendResponsePacket {
+public class ClearPasswordPlugin implements AuthenticationPlugin {
 
-  public SendNativePasswordAuthPacket(String password, byte[] authData, int packSeq,
-      String passwordCharacterEncoding) {
-    super(packSeq, authData, password, passwordCharacterEncoding);
+  private final String password;
+  private final String passwordCharacterEncoding;
+
+  /**
+   * Clear text password plugin constructor.
+   *
+   * @param password                    password
+   * @param passwordCharacterEncoding   password encoding
+   */
+  public ClearPasswordPlugin(String password, String passwordCharacterEncoding) {
+    this.password = password;
+    this.passwordCharacterEncoding = passwordCharacterEncoding;
   }
 
   /**
-   * Send native password stream.
+   * Send password in clear text to server.
    *
-   * @param pos database socket
-   * @throws IOException if a connection error occur
+   * @param out       out stream
+   * @param in        in stream
+   * @param sequence  packet sequence
+   * @return response packet
+   * @throws IOException  if socket error
    */
-  public void send(PacketOutputStream pos) throws IOException {
-    try {
-      if (password == null || password.isEmpty()) {
-        pos.writeEmptyPacket(packSeq);
-        return;
-      }
-
-      pos.startPacket(packSeq);
-
-      byte[] seed;
-      if (authData.length > 0) {
-        //Seed is ended with a null byte value.
-        seed = Arrays.copyOfRange(authData, 0, authData.length - 1);
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException {
+    if (password == null || password.isEmpty()) {
+      out.writeEmptyPacket(sequence.incrementAndGet());
+    } else {
+      out.startPacket(sequence.incrementAndGet());
+      byte[] bytePwd;
+      if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
+        bytePwd = password.getBytes(passwordCharacterEncoding);
       } else {
-        seed = new byte[0];
+        bytePwd = password.getBytes();
       }
-      pos.write(Utils.encryptPassword(password, seed, passwordCharacterEncoding));
-      pos.flush();
-    } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException("Could not use SHA-1, failing", e);
+      out.write(bytePwd);
+      out.write(0);
+      out.flush();
     }
+
+    Buffer buffer = in.getPacket(true);
+    sequence.set(in.getLastPacketSeq());
+    return buffer;
+
   }
 }

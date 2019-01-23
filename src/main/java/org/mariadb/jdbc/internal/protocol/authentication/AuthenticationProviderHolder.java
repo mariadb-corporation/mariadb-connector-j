@@ -53,8 +53,8 @@
 package org.mariadb.jdbc.internal.protocol.authentication;
 
 import java.sql.SQLException;
-import org.mariadb.jdbc.internal.com.send.InterfaceAuthSwitchSendResponsePacket;
-import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+
+import org.mariadb.jdbc.internal.com.send.authentication.AuthenticationPlugin;
 
 
 /**
@@ -101,9 +101,10 @@ public class AuthenticationProviderHolder {
    */
   public interface AuthenticationProvider {
 
-    InterfaceAuthSwitchSendResponsePacket processAuthPlugin(PacketInputStream reader, String plugin,
-        String password,
-        byte[] authData, int seqNo, String passwordCharacterEncoding)
+    AuthenticationPlugin processAuthPlugin(String plugin,
+                                           String password,
+                                           byte[] authData,
+                                           String passwordCharacterEncoding)
         throws SQLException;
   }
 

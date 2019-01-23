@@ -7,15 +7,15 @@
  * You should have received a copy of the CC0 legalcode along with this work. If not, see
  * <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package org.mariadb.jdbc.internal.com.send.ed25519.spec;
+package org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec;
 
 import java.util.Hashtable;
 import java.util.Locale;
-import org.mariadb.jdbc.internal.com.send.ed25519.Utils;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.Curve;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.Field;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.Ed25519LittleEndianEncoding;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519.ScalarOps;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.Utils;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Curve;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Field;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Ed25519LittleEndianEncoding;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.ScalarOps;
 
 /**
  * The named EdDSA curves.

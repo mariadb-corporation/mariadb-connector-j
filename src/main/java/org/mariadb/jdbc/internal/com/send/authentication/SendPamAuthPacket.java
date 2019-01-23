@@ -50,7 +50,7 @@
  *
  */
 
-package org.mariadb.jdbc.internal.com.send;
+package org.mariadb.jdbc.internal.com.send.authentication;
 
 import static org.mariadb.jdbc.internal.com.Packet.EOF;
 import static org.mariadb.jdbc.internal.com.Packet.ERROR;
@@ -58,39 +58,51 @@ import static org.mariadb.jdbc.internal.com.Packet.OK;
 
 import java.awt.HeadlessException;
 import java.io.Console;
-import java.io.EOFException;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.swing.JComponent;
 import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
 import org.mariadb.jdbc.internal.com.read.Buffer;
-import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket implements
-    InterfaceAuthSwitchSendResponsePacket {
+public class SendPamAuthPacket implements AuthenticationPlugin {
 
-  private final PacketInputStream reader;
+  private final String password;
+  private final String passwordCharacterEncoding;
+  private byte[] authData;
 
-  public SendPamAuthPacket(PacketInputStream reader, String password, byte[] authData, int packSeq,
-      String passwordCharacterEncoding) {
-    super(packSeq, authData, password, passwordCharacterEncoding);
-    this.reader = reader;
+  /**
+   * Pam plugin contrusctor.
+   * @param password                    password
+   * @param authData                    authentication data
+   * @param passwordCharacterEncoding   password encoding option
+   */
+  public SendPamAuthPacket(String password, byte[] authData, String passwordCharacterEncoding) {
+    this.authData = authData;
+    this.password = password;
+    this.passwordCharacterEncoding = passwordCharacterEncoding;
   }
 
   /**
-   * Send native password stream.
+   * Process PAM plugin authentication.
+   * see https://mariadb.com/kb/en/library/authentication-plugin-pam/
    *
-   * @param pos database socket
-   * @throws IOException if a connection error occur
+   * @param out       out stream
+   * @param in        in stream
+   * @param sequence  packet sequence
+   * @return response packet
+   * @throws IOException  if socket error
+   * @throws SQLException if plugin exception
    */
-  public void send(PacketOutputStream pos) throws IOException, SQLException {
-    byte type = authData[0];
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
+          throws IOException, SQLException {
+    int type = authData[0];
     String promptb;
     //conversation is :
     // - first byte is information tell if question is a password or clear text.
@@ -100,15 +112,15 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
       promptb = new String(Arrays.copyOfRange(authData, 1, authData.length));
       if ("Password: ".equals(promptb) && password != null && !"".equals(password)) {
         //ask for password
-        pos.startPacket(packSeq);
+        out.startPacket(sequence.incrementAndGet());
         byte[] bytePwd;
         if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
           bytePwd = password.getBytes(passwordCharacterEncoding);
         } else {
           bytePwd = password.getBytes();
         }
-        pos.write(bytePwd, 0, bytePwd.length);
-        pos.write(0);
+        out.write(bytePwd, 0, bytePwd.length);
+        out.write(0);
       } else {
         // 2 means "read the input with the echo enabled"
         // 4 means "password-like input, echo disabled"
@@ -119,40 +131,29 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
         if (password == null) {
           throw new SQLException("Error during PAM authentication : dialog input cancelled");
         }
-        pos.startPacket(packSeq);
+        out.startPacket(sequence.incrementAndGet());
         byte[] bytePwd;
         if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
           bytePwd = password.getBytes(passwordCharacterEncoding);
         } else {
           bytePwd = password.getBytes();
         }
-        pos.write(bytePwd, 0, bytePwd.length);
-        pos.write(0);
+        out.write(bytePwd, 0, bytePwd.length);
+        out.write(0);
       }
+      out.flush();
 
-      pos.flush();
-      try {
-        Buffer buffer = reader.getPacket(true);
+      Buffer buffer = in.getPacket(true);
+      sequence.set(in.getLastPacketSeq());
+      type = buffer.getByteAt(0) & 0xff;
 
-        packSeq = reader.getLastPacketSeq() + 1;
-        type = buffer.getByteAt(0);
-
-        if (type == EOF || type == OK) {
-          return;
-        }
-
-        if (type == ERROR) {
-          ErrorPacket errorPacket = new ErrorPacket(buffer);
-          throw new SQLException("Error during PAM authentication : " + errorPacket.getMessage());
-        }
-        authData = buffer.readRawBytes(buffer.remaining());
-
-      } catch (EOFException eof) {
-        throw new SQLException(
-            "Error during PAM authentication reading server response : " + eof.getMessage()
-                + "\nPlease check that value of @@connect_timeout is not too low.");
+      //PAM continue until finish.
+      if (type == 0xfe //Switch Request
+              || type == 0x00 // OK_Packet
+              || type == 0xff) { //ERR_Packet
+        return buffer;
       }
-
+      authData = buffer.readRawBytes(buffer.remaining());
     }
   }
 
@@ -191,11 +192,6 @@ public class SendPamAuthPacket extends AbstractAuthSwitchSendResponsePacket impl
       throw new IOException("Error during PAM authentication : dialog input cancelled");
     }
 
-  }
-
-  @Override
-  public void handleResultPacket(PacketInputStream reader) throws SQLException, IOException {
-    //do nothing, since the OK packet has already been read in the send conversation
   }
 
 

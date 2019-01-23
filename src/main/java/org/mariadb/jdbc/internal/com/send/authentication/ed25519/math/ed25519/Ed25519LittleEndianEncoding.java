@@ -7,10 +7,10 @@
  * You should have received a copy of the CC0 legalcode along with this work. If not, see
  * <https://creativecommons.org/publicdomain/zero/1.0/>.
  */
-package org.mariadb.jdbc.internal.com.send.ed25519.math.ed25519;
+package org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519;
 
-import org.mariadb.jdbc.internal.com.send.ed25519.math.Encoding;
-import org.mariadb.jdbc.internal.com.send.ed25519.math.FieldElement;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.Encoding;
+import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.FieldElement;
 
 /**
  * Helper class for encoding/decoding from/to the 32 byte representation.
