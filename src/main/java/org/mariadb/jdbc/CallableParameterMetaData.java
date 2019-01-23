@@ -52,8 +52,12 @@
 
 package org.mariadb.jdbc;
 
-
-import java.sql.*;
+import java.sql.ParameterMetaData;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLSyntaxErrorException;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -62,292 +66,326 @@ import java.util.regex.Pattern;
 
 public class CallableParameterMetaData implements ParameterMetaData {
 
-    private static final Pattern PARAMETER_PATTERN =
-            Pattern.compile("\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
-                    Pattern.CASE_INSENSITIVE);
-    private static final Pattern RETURN_PATTERN =
-            Pattern.compile("\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*", Pattern.CASE_INSENSITIVE);
-    private List<CallParameter> params;
-    private final MariaDbConnection con;
-    private String database;
-    private final String name;
-    private boolean valid;
-    private boolean isFunction;
+  private static final Pattern PARAMETER_PATTERN =
+      Pattern.compile(
+          "\\s*(IN\\s+|OUT\\s+|INOUT\\s+)?([\\w\\d]+)\\s+(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*",
+          Pattern.CASE_INSENSITIVE);
+  private static final Pattern RETURN_PATTERN =
+      Pattern.compile("\\s*(UNSIGNED\\s+)?(\\w+)\\s*(\\([\\d,]+\\))?\\s*(CHARSET\\s+)?(\\w+)?\\s*",
+          Pattern.CASE_INSENSITIVE);
+  private final MariaDbConnection con;
+  private final String name;
+  private List<CallParameter> params;
+  private String database;
+  private boolean valid;
+  private boolean isFunction;
 
-    /**
-     * Retrieve Callable metaData.
-     *
-     * @param con        connection
-     * @param database   database name
-     * @param name       procedure/function name
-     * @param isFunction is it a function
-     */
-    public CallableParameterMetaData(MariaDbConnection con, String database, String name, boolean isFunction) {
-        this.params = null;
-        this.con = con;
-        if (database != null) {
-            this.database = database.replace("`", "");
-        } else {
-            this.database = null;
-        }
-        this.name = name.replace("`", "");
-        this.isFunction = isFunction;
+  /**
+   * Retrieve Callable metaData.
+   *
+   * @param con        connection
+   * @param database   database name
+   * @param name       procedure/function name
+   * @param isFunction is it a function
+   */
+  public CallableParameterMetaData(MariaDbConnection con, String database, String name,
+      boolean isFunction) {
+    this.params = null;
+    this.con = con;
+    if (database != null) {
+      this.database = database.replace("`", "");
+    } else {
+      this.database = null;
     }
+    this.name = name.replace("`", "");
+    this.isFunction = isFunction;
+  }
 
-    /**
-     * Search metaData if not already loaded.
-     *
-     * @throws SQLException if error append during loading metaData
-     */
-    public void readMetadataFromDbIfRequired() throws SQLException {
-        if (valid) {
-            return;
-        }
-        readMetadata();
-        valid = true;
+  /**
+   * Search metaData if not already loaded.
+   *
+   * @throws SQLException if error append during loading metaData
+   */
+  public void readMetadataFromDbIfRequired() throws SQLException {
+    if (valid) {
+      return;
     }
+    readMetadata();
+    valid = true;
+  }
 
-    private int mapMariaDbTypeToJdbc(String str) {
-
-        str = str.toUpperCase(Locale.ROOT);
-        if ("BIT".equals(str)) return Types.BIT;
-        if ("TINYINT".equals(str)) return Types.TINYINT;
-        if ("SMALLINT".equals(str)) return Types.SMALLINT;
-        if ("MEDIUMINT".equals(str)) return Types.INTEGER;
-        if ("INT".equals(str)) return Types.INTEGER;
-        if ("INTEGER".equals(str)) return Types.INTEGER;
-        if ("LONG".equals(str)) return Types.INTEGER;
-        if ("BIGINT".equals(str)) return Types.BIGINT;
-        if ("INT24".equals(str)) return Types.INTEGER;
-        if ("REAL".equals(str)) return Types.DOUBLE;
-        if ("FLOAT".equals(str)) return Types.FLOAT;
-        if ("DECIMAL".equals(str)) return Types.DECIMAL;
-        if ("NUMERIC".equals(str)) return Types.NUMERIC;
-        if ("DOUBLE".equals(str)) return Types.DOUBLE;
-        if ("CHAR".equals(str)) return Types.CHAR;
-        if ("VARCHAR".equals(str)) return Types.VARCHAR;
-        if ("DATE".equals(str)) return Types.DATE;
-        if ("TIME".equals(str)) return Types.TIME;
-        if ("YEAR".equals(str)) return Types.SMALLINT;
-        if ("TIMESTAMP".equals(str)) return Types.TIMESTAMP;
-        if ("DATETIME".equals(str)) return Types.TIMESTAMP;
-        if ("TINYBLOB".equals(str)) return Types.BINARY;
-        if ("BLOB".equals(str)) return Types.LONGVARBINARY;
-        if ("MEDIUMBLOB".equals(str)) return Types.LONGVARBINARY;
-        if ("LONGBLOB".equals(str)) return Types.LONGVARBINARY;
-        if ("TINYTEXT".equals(str)) return Types.VARCHAR;
-        if ("TEXT".equals(str)) return Types.LONGVARCHAR;
-        if ("MEDIUMTEXT".equals(str)) return Types.LONGVARCHAR;
-        if ("LONGTEXT".equals(str)) return Types.LONGVARCHAR;
-        if ("ENUM".equals(str)) return Types.VARCHAR;
-        if ("SET".equals(str)) return Types.VARCHAR;
-        if ("GEOMETRY".equals(str)) return Types.LONGVARBINARY;
-        if ("VARBINARY".equals(str)) return Types.VARBINARY;
-
+  private int mapMariaDbTypeToJdbc(String str) {
+    switch (str.toUpperCase(Locale.ROOT)) {
+      case "BIT":
+        return Types.BIT;
+      case "TINYINT":
+        return Types.TINYINT;
+      case "SMALLINT":
+        return Types.SMALLINT;
+      case "MEDIUMINT":
+        return Types.INTEGER;
+      case "INT":
+        return Types.INTEGER;
+      case "INTEGER":
+        return Types.INTEGER;
+      case "LONG":
+        return Types.INTEGER;
+      case "BIGINT":
+        return Types.BIGINT;
+      case "INT24":
+        return Types.INTEGER;
+      case "REAL":
+        return Types.DOUBLE;
+      case "FLOAT":
+        return Types.FLOAT;
+      case "DECIMAL":
+        return Types.DECIMAL;
+      case "NUMERIC":
+        return Types.NUMERIC;
+      case "DOUBLE":
+        return Types.DOUBLE;
+      case "CHAR":
+        return Types.CHAR;
+      case "VARCHAR":
+        return Types.VARCHAR;
+      case "DATE":
+        return Types.DATE;
+      case "TIME":
+        return Types.TIME;
+      case "YEAR":
+        return Types.SMALLINT;
+      case "TIMESTAMP":
+        return Types.TIMESTAMP;
+      case "DATETIME":
+        return Types.TIMESTAMP;
+      case "TINYBLOB":
+        return Types.BINARY;
+      case "BLOB":
+        return Types.LONGVARBINARY;
+      case "MEDIUMBLOB":
+        return Types.LONGVARBINARY;
+      case "LONGBLOB":
+        return Types.LONGVARBINARY;
+      case "TINYTEXT":
+        return Types.VARCHAR;
+      case "TEXT":
+        return Types.LONGVARCHAR;
+      case "MEDIUMTEXT":
+        return Types.LONGVARCHAR;
+      case "LONGTEXT":
+        return Types.LONGVARCHAR;
+      case "ENUM":
+        return Types.VARCHAR;
+      case "SET":
+        return Types.VARCHAR;
+      case "GEOMETRY":
+        return Types.LONGVARBINARY;
+      case "VARBINARY":
+        return Types.VARBINARY;
+      default:
         return Types.OTHER;
-
     }
 
+  }
 
-    private String[] queryMetaInfos(boolean isFunction) throws SQLException {
-        String paramList;
-        String functionReturn;
-        PreparedStatement preparedStatement = null;
-        try {
-            preparedStatement = con.prepareStatement(
-                    "select param_list, returns, db, type from mysql.proc where name=? and db="
-                            + (database != null ? "?" : "DATABASE()"));
-            preparedStatement.setString(1, name);
-            if (database != null) preparedStatement.setString(2, database);
 
-            ResultSet rs = null;
-            try {
-                rs = preparedStatement.executeQuery();
-                if (!rs.next()) {
-                    throw new SQLException((isFunction ? "function" : "procedure") + " `" + name + "` does not exist");
-                }
-                paramList = rs.getString(1);
-                functionReturn = rs.getString(2);
-                database = rs.getString(3);
-                this.isFunction = "FUNCTION".equals(rs.getString(4));
-                return new String[]{paramList, functionReturn};
-            } finally {
-                if (rs != null) rs.close();
-            }
+  private String[] queryMetaInfos(boolean isFunction) throws SQLException {
+    String paramList;
+    String functionReturn;
+    try (PreparedStatement preparedStatement = con.prepareStatement(
+        "select param_list, returns, db, type from mysql.proc where name=? and db="
+            + (database != null ? "?" : "DATABASE()"))) {
 
-        } catch (SQLSyntaxErrorException sqlSyntaxErrorException) {
-            throw new SQLException("Access to metaData informations not granted for current user. Consider grant select access to mysql.proc "
-                    + " or avoid using parameter by name", sqlSyntaxErrorException);
-        } finally {
-            if (preparedStatement != null) preparedStatement.close();
+      preparedStatement.setString(1, name);
+      if (database != null) {
+        preparedStatement.setString(2, database);
+      }
+
+      try (ResultSet rs = preparedStatement.executeQuery()) {
+        if (!rs.next()) {
+          throw new SQLException(
+              (isFunction ? "function" : "procedure") + " `" + name + "` does not exist");
         }
+        paramList = rs.getString(1);
+        functionReturn = rs.getString(2);
+        database = rs.getString(3);
+        this.isFunction = "FUNCTION".equals(rs.getString(4));
+        return new String[]{paramList, functionReturn};
+      }
 
+    } catch (SQLSyntaxErrorException sqlSyntaxErrorException) {
+      throw new SQLException(
+          "Access to metaData informations not granted for current user. Consider grant select access to mysql.proc "
+              + " or avoid using parameter by name", sqlSyntaxErrorException);
     }
 
-    private void parseFunctionReturnParam(String functionReturn) throws SQLException {
-        if (functionReturn == null || functionReturn.length() == 0) {
-            throw new SQLException(name + "is not a function returning value");
-        }
-        Matcher matcher = RETURN_PATTERN.matcher(functionReturn);
-        if (!matcher.matches()) {
-            throw new SQLException("can not parse return value definition :" + functionReturn);
-        }
-        CallParameter callParameter = params.get(0);
+  }
+
+  private void parseFunctionReturnParam(String functionReturn) throws SQLException {
+    if (functionReturn == null || functionReturn.length() == 0) {
+      throw new SQLException(name + "is not a function returning value");
+    }
+    Matcher matcher = RETURN_PATTERN.matcher(functionReturn);
+    if (!matcher.matches()) {
+      throw new SQLException("can not parse return value definition :" + functionReturn);
+    }
+    CallParameter callParameter = params.get(0);
+    callParameter.setOutput(true);
+    callParameter.setSigned(matcher.group(1) == null);
+    callParameter.setTypeName(matcher.group(2).trim());
+    callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
+    String scale = matcher.group(3);
+    if (scale != null) {
+      scale = scale.replace("(", "").replace(")", "").replace(" ", "");
+      callParameter.setScale(Integer.valueOf(scale));
+    }
+  }
+
+  private void parseParamList(boolean isFunction, String paramList) throws SQLException {
+    params = new ArrayList<>();
+    if (isFunction) {
+      //output parameter
+      params.add(new CallParameter());
+    }
+
+    Matcher matcher2 = PARAMETER_PATTERN.matcher(paramList);
+    while (matcher2.find()) {
+      CallParameter callParameter = new CallParameter();
+      String direction = matcher2.group(1);
+      if (direction != null) {
+        direction = direction.trim();
+      }
+
+      callParameter.setName(matcher2.group(2).trim());
+      callParameter.setSigned(matcher2.group(3) == null);
+      callParameter.setTypeName(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
+
+      if (direction == null || direction.equalsIgnoreCase("IN")) {
+        callParameter.setInput(true);
+      } else if (direction.equalsIgnoreCase("OUT")) {
         callParameter.setOutput(true);
-        callParameter.setSigned(matcher.group(1) == null);
-        callParameter.setTypeName(matcher.group(2).trim());
-        callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
-        String scale = matcher.group(3);
-        if (scale != null) {
-            scale = scale.replace("(", "").replace(")", "").replace(" ", "");
-            callParameter.setScale(Integer.valueOf(scale));
+      } else if (direction.equalsIgnoreCase("INOUT")) {
+        callParameter.setInput(true);
+        callParameter.setOutput(true);
+      } else {
+        throw new SQLException(
+            "unknown parameter direction " + direction + "for " + callParameter.getName());
+      }
+
+      callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
+
+      String scale = matcher2.group(5);
+      if (scale != null) {
+        scale = scale.trim().replace("(", "").replace(")", "").replace(" ", "");
+        if (scale.contains(",")) {
+          scale = scale.substring(0, scale.indexOf(","));
         }
+        callParameter.setScale(Integer.valueOf(scale));
+      }
+      params.add(callParameter);
+    }
+  }
+
+  /**
+   * Read procedure metadata from mysql.proc table(column param_list).
+   *
+   * @throws SQLException if data doesn't correspond.
+   */
+  private void readMetadata() throws SQLException {
+    if (valid) {
+      return;
     }
 
-    private void parseParamList(boolean isFunction, String paramList) throws SQLException {
-        params = new ArrayList<CallParameter>();
-        if (isFunction) {
-            //output parameter
-            params.add(new CallParameter());
-        }
+    String[] metaInfos = queryMetaInfos(isFunction);
+    String paramList = metaInfos[0];
+    String functionReturn = metaInfos[1];
 
-        Matcher matcher2 = PARAMETER_PATTERN.matcher(paramList);
-        while (matcher2.find()) {
-            CallParameter callParameter = new CallParameter();
-            String direction = matcher2.group(1);
-            if (direction != null) {
-                direction = direction.trim();
-            }
+    parseParamList(isFunction, paramList);
 
-            callParameter.setName(matcher2.group(2).trim());
-            callParameter.setSigned(matcher2.group(3) == null);
-            callParameter.setTypeName(matcher2.group(4).trim().toUpperCase(Locale.ROOT));
-
-            if (direction == null || direction.equalsIgnoreCase("IN")) {
-                callParameter.setInput(true);
-            } else if (direction.equalsIgnoreCase("OUT")) {
-                callParameter.setOutput(true);
-            } else if (direction.equalsIgnoreCase("INOUT")) {
-                callParameter.setInput(true);
-                callParameter.setOutput(true);
-            } else {
-                throw new SQLException("unknown parameter direction " + direction + "for " + callParameter.getName());
-            }
-
-            callParameter.setSqlType(mapMariaDbTypeToJdbc(callParameter.getTypeName()));
-
-            String scale = matcher2.group(5);
-            if (scale != null) {
-                scale = scale.trim().replace("(", "").replace(")", "").replace(" ", "");
-                if (scale.contains(",")) {
-                    scale = scale.substring(0, scale.indexOf(","));
-                }
-                callParameter.setScale(Integer.valueOf(scale));
-            }
-            params.add(callParameter);
-        }
+    // parse type of the return value (for functions)
+    if (isFunction) {
+      parseFunctionReturnParam(functionReturn);
     }
 
-    /**
-     * Read procedure metadata from mysql.proc table(column param_list).
-     *
-     * @throws SQLException if data doesn't correspond.
-     */
-    private void readMetadata() throws SQLException {
-        if (valid) {
-            return;
-        }
+  }
 
-        String[] metaInfos = queryMetaInfos(isFunction);
-        String paramList = metaInfos[0];
-        String functionReturn = metaInfos[1];
+  public int getParameterCount() {
+    return params.size();
+  }
 
-        parseParamList(isFunction, paramList);
-
-        // parse type of the return value (for functions)
-        if (isFunction) {
-            parseFunctionReturnParam(functionReturn);
-        }
-
+  private CallParameter getParam(int index) throws SQLException {
+    if (index < 1 || index > params.size()) {
+      throw new SQLException("invalid parameter index " + index);
     }
+    readMetadataFromDbIfRequired();
+    return params.get(index - 1);
+  }
 
-    public int getParameterCount() throws SQLException {
-        return params.size();
-    }
+  public int isNullable(int param) throws SQLException {
+    return getParam(param).getCanBeNull();
+  }
 
-    private CallParameter getParam(int index) throws SQLException {
-        if (index < 1 || index > params.size()) {
-            throw new SQLException("invalid parameter index " + index);
-        }
-        readMetadataFromDbIfRequired();
-        return params.get(index - 1);
-    }
+  public boolean isSigned(int param) throws SQLException {
+    return getParam(param).isSigned();
+  }
 
-    public int isNullable(int param) throws SQLException {
-        return getParam(param).getCanBeNull();
-    }
+  public int getPrecision(int param) throws SQLException {
+    return getParam(param).getPrecision();
+  }
 
-    public boolean isSigned(int param) throws SQLException {
-        return getParam(param).isSigned();
-    }
+  public int getScale(int param) throws SQLException {
+    return getParam(param).getScale();
+  }
 
-    public int getPrecision(int param) throws SQLException {
-        return getParam(param).getPrecision();
-    }
+  public int getParameterType(int param) throws SQLException {
+    return getParam(param).getSqlType();
+  }
 
-    public int getScale(int param) throws SQLException {
-        return getParam(param).getScale();
-    }
+  public String getParameterTypeName(int param) throws SQLException {
+    return getParam(param).getTypeName();
+  }
 
-    public int getParameterType(int param) throws SQLException {
-        return getParam(param).getSqlType();
-    }
+  public String getParameterClassName(int param) throws SQLException {
+    return getParam(param).getClassName();
+  }
 
-    public String getParameterTypeName(int param) throws SQLException {
-        return getParam(param).getTypeName();
+  /**
+   * Get mode info.
+   * <ul>
+   * <li>0 : unknown</li>
+   * <li>1 : IN</li>
+   * <li>2 : INOUT</li>
+   * <li>4 : OUT</li>
+   * </ul>
+   *
+   * @param param parameter index
+   * @return mode information
+   * @throws SQLException if index is wrong
+   */
+  public int getParameterMode(int param) throws SQLException {
+    CallParameter callParameter = getParam(param);
+    if (callParameter.isInput() && callParameter.isOutput()) {
+      return parameterModeInOut;
     }
+    if (callParameter.isInput()) {
+      return parameterModeIn;
+    }
+    if (callParameter.isOutput()) {
+      return parameterModeOut;
+    }
+    return parameterModeUnknown;
+  }
 
-    public String getParameterClassName(int param) throws SQLException {
-        return getParam(param).getClassName();
-    }
+  public String getName(int param) throws SQLException {
+    return getParam(param).getName();
+  }
 
-    /**
-     * Get mode info.
-     * <ul>
-     * <li>0 : unknown</li>
-     * <li>1 : IN</li>
-     * <li>2 : INOUT</li>
-     * <li>4 : OUT</li>
-     * </ul>
-     *
-     * @param param parameter index
-     * @return mode information
-     * @throws SQLException if index is wrong
-     */
-    public int getParameterMode(int param) throws SQLException {
-        CallParameter callParameter = getParam(param);
-        if (callParameter.isInput() && callParameter.isOutput()) {
-            return parameterModeInOut;
-        }
-        if (callParameter.isInput()) {
-            return parameterModeIn;
-        }
-        if (callParameter.isOutput()) {
-            return parameterModeOut;
-        }
-        return parameterModeUnknown;
-    }
+  public <T> T unwrap(Class<T> iface) {
+    return null;
+  }
 
-    public String getName(int param) throws SQLException {
-        return getParam(param).getName();
-    }
-
-    public <T> T unwrap(Class<T> iface) throws SQLException {
-        return null;
-    }
-
-    public boolean isWrapperFor(Class<?> iface) throws SQLException {
-        return false;
-    }
+  public boolean isWrapperFor(Class<?> iface) {
+    return false;
+  }
 
 }

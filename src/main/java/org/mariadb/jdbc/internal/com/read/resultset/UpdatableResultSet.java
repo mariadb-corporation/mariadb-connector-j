@@ -147,7 +147,7 @@ public class UpdatableResultSet extends SelectResultSet {
 
 
   @Override
-  public int getConcurrency() throws SQLException {
+  public int getConcurrency() {
     return CONCUR_UPDATABLE;
   }
 
@@ -1488,7 +1488,7 @@ public class UpdatableResultSet extends SelectResultSet {
   /**
    * {inheritDoc}.
    */
-  public void cancelRowUpdates() throws SQLException {
+  public void cancelRowUpdates() {
     Arrays.fill(parameterHolders, null);
     state = STATE_STANDARD;
   }
@@ -1508,7 +1508,7 @@ public class UpdatableResultSet extends SelectResultSet {
   /**
    * {inheritDoc}.
    */
-  public void moveToCurrentRow() throws SQLException {
+  public void moveToCurrentRow() {
     Arrays.fill(parameterHolders, null);
     state = STATE_STANDARD;
     setRowPointer(notInsertRowPointer);

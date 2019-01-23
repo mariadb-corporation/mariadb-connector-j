@@ -429,9 +429,8 @@ public class TextRowProtocol extends RowProtocol {
    *
    * @param columnInfo column information
    * @return BigDecimal value
-   * @throws SQLException if column type doesn't permit conversion
    */
-  public BigDecimal getInternalBigDecimal(ColumnInformation columnInfo) throws SQLException {
+  public BigDecimal getInternalBigDecimal(ColumnInformation columnInfo) {
     if (lastValueWasNull()) {
       return null;
     }
@@ -785,9 +784,8 @@ public class TextRowProtocol extends RowProtocol {
    *
    * @param columnInfo column information
    * @return boolean value
-   * @throws SQLException if column type doesn't permit conversion
    */
-  public boolean getInternalBoolean(ColumnInformation columnInfo) throws SQLException {
+  public boolean getInternalBoolean(ColumnInformation columnInfo) {
     if (lastValueWasNull()) {
       return false;
     }

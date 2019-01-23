@@ -814,9 +814,8 @@ public class MariaDbConnection implements Connection {
    * checks if the connection is closed.
    *
    * @return true if the connection is closed
-   * @throws SQLException if the connection cannot be closed.
    */
-  public boolean isClosed() throws SQLException {
+  public boolean isClosed() {
     return protocol.isClosed();
   }
 
@@ -824,9 +823,8 @@ public class MariaDbConnection implements Connection {
    * returns the meta data about the database.
    *
    * @return meta data about the db.
-   * @throws SQLException if there is a problem creating the meta data.
    */
-  public DatabaseMetaData getMetaData() throws SQLException {
+  public DatabaseMetaData getMetaData() {
     UrlParser urlParser = protocol.getUrlParser();
     return new MariaDbDatabaseMetaData(
         this,
@@ -1056,13 +1054,11 @@ public class MariaDbConnection implements Connection {
    *
    * @return the <code>java.util.Map</code> object associated with this <code>Connection</code>
    *     object
-   * @throws SQLException                    if a database access error occurs or this method is
-   *                                         called on a closed connection
    * @see #setTypeMap
    * @since 1.2
    */
-  public Map<String, Class<?>> getTypeMap() throws SQLException {
-    return null;
+  public Map<String, Class<?>> getTypeMap() {
+    return new HashMap<>();
   }
 
   /**
@@ -1088,14 +1084,12 @@ public class MariaDbConnection implements Connection {
    *
    * @return the holdability, one of <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
    * <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
-   * @throws SQLException if a database access error occurs or this method is called on a closed
-   *                      connection
    * @see #setHoldability
    * @see DatabaseMetaData#getResultSetHoldability
    * @see ResultSet
    * @since 1.4
    */
-  public int getHoldability() throws SQLException {
+  public int getHoldability() {
     return ResultSet.HOLD_CURSORS_OVER_COMMIT;
   }
 
@@ -1108,15 +1102,12 @@ public class MariaDbConnection implements Connection {
    * @param holdability a <code>ResultSet</code> holdability constant; one of
    *                    <code>ResultSet.HOLD_CURSORS_OVER_COMMIT</code> or
    *                    <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
-   * @throws SQLException                    if a database access occurs, this method is called on a
-   *                                         closed connection, or the given parameter is not a
-   *                                         <code>ResultSet</code> constant indicating holdability
    * @see #getHoldability
    * @see DatabaseMetaData#getResultSetHoldability
    * @see ResultSet
    */
   @Override
-  public void setHoldability(final int holdability) throws SQLException {
+  public void setHoldability(final int holdability) {
     //not handled
   }
 
@@ -1190,12 +1181,8 @@ public class MariaDbConnection implements Connection {
    * <code>Clob</code> interface may be used to add data to the <code>Clob</code>.
    *
    * @return An object that implements the <code>Clob</code> interface
-   * @throws SQLException                    if an object that implements the <code>Clob</code>
-   *                                         interface can not be constructed, this method is called
-   *                                         on a closed connection or a database access error
-   *                                         occurs.
    */
-  public Clob createClob() throws SQLException {
+  public Clob createClob() {
     return new MariaDbClob();
   }
 
@@ -1205,12 +1192,8 @@ public class MariaDbConnection implements Connection {
    * of the <code>Blob</code> interface may be used to add data to the <code>Blob</code>.
    *
    * @return An object that implements the <code>Blob</code> interface
-   * @throws SQLException                    if an object that implements the <code>Blob</code>
-   *                                         interface can not be constructed, this method is called
-   *                                         on a closed connection or a database access error
-   *                                         occurs.
    */
-  public Blob createBlob() throws SQLException {
+  public Blob createBlob() {
     return new MariaDbBlob();
   }
 
@@ -1221,12 +1204,8 @@ public class MariaDbConnection implements Connection {
    * <code>NClob</code> interface may be used to add data to the <code>NClob</code>.
    *
    * @return An object that implements the <code>NClob</code> interface
-   * @throws SQLException                    if an object that implements the <code>NClob</code>
-   *                                         interface can not be constructed, this method is called
-   *                                         on a closed connection or a database access error
-   *                                         occurs.
    */
-  public NClob createNClob() throws SQLException {
+  public NClob createNClob() {
     return new MariaDbClob();
   }
 
@@ -1708,12 +1687,12 @@ public class MariaDbConnection implements Connection {
     }
   }
 
-  public String getSchema() throws SQLException {
+  public String getSchema() {
     // We support only catalog
     return null;
   }
 
-  public void setSchema(String arg0) throws SQLException {
+  public void setSchema(String arg0) {
     // We support only catalog, and JDBC indicate "If the driver does not support schemas, it will silently ignore this request."
   }
 

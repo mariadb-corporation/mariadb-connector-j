@@ -56,38 +56,38 @@ import java.sql.SQLException;
 import java.sql.Savepoint;
 
 public class MariaDbSavepoint implements Savepoint {
-    private final int savepointId;
-    private final String name;
 
-    public MariaDbSavepoint(final String name, final int savepointId) {
-        this.savepointId = savepointId;
-        this.name = name;
-    }
+  private final int savepointId;
+  private final String name;
 
-    /**
-     * Retrieves the generated ID for the savepoint that this <code>Savepoint</code> object represents.
-     *
-     * @return the numeric ID of this savepoint
-     * @throws SQLException if this is a named savepoint
-     * @since 1.4
-     */
-    public int getSavepointId() throws SQLException {
-        return savepointId;
-    }
+  public MariaDbSavepoint(final String name, final int savepointId) {
+    this.savepointId = savepointId;
+    this.name = name;
+  }
 
-    /**
-     * Retrieves the name of the savepoint that this <code>Savepoint</code> object represents.
-     *
-     * @return the name of this savepoint
-     * @throws SQLException if this is an un-named savepoint
-     * @since 1.4
-     */
-    public String getSavepointName() throws SQLException {
-        return name;
-    }
+  /**
+   * Retrieves the generated ID for the savepoint that this <code>Savepoint</code> object
+   * represents.
+   *
+   * @return the numeric ID of this savepoint
+   * @since 1.4
+   */
+  public int getSavepointId() {
+    return savepointId;
+  }
 
-    @Override
-    public String toString() {
-        return name + savepointId;
-    }
+  /**
+   * Retrieves the name of the savepoint that this <code>Savepoint</code> object represents.
+   *
+   * @return the name of this savepoint
+   * @since 1.4
+   */
+  public String getSavepointName() {
+    return name;
+  }
+
+  @Override
+  public String toString() {
+    return name + savepointId;
+  }
 }

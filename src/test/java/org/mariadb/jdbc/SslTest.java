@@ -80,13 +80,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mariadb.jdbc.internal.protocol.tls.SslFactory;
+import org.mariadb.jdbc.internal.util.Options;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class SslTest extends BaseTest {
@@ -99,7 +105,7 @@ public class SslTest extends BaseTest {
    * Enable Crypto.
    */
   @BeforeClass
-  public static void enableCrypto() throws Throwable {
+  public static void enableCrypto() {
     Assume.assumeFalse(
         System.getenv("MAXSCALE_VERSION") != null || "true".equals(System.getenv("AURORA")));
     try {
@@ -249,6 +255,26 @@ public class SslTest extends BaseTest {
     if (isMariadbServer()) {
       useSslForceTls("TLSv1.2");
     }
+  }
+
+  @Test
+  public void useSslForceTlsV13() throws Exception {
+    Assume.assumeFalse(Platform.isWindows());
+    Assume.assumeTrue(isMariadbServer());
+
+    List<String> possibleProtocols = getSupportedProtocols();
+    if (possibleProtocols.contains("TLSv1.3")) {
+      useSslForceTls("TLSv1.3, TLSv1.2");
+    }
+  }
+
+  private List<String> getSupportedProtocols() throws Exception {
+
+    SSLSocketFactory sslSocketFactory = SslFactory.getSslSocketFactory(new Options());
+    SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket();
+    List<String> enabledProtocol = Arrays.asList(socket.getEnabledProtocols());
+    socket.close();
+    return enabledProtocol;
   }
 
   @Test
@@ -409,9 +435,9 @@ public class SslTest extends BaseTest {
     try (Connection conn = createConnection(info, user, pwd)) {
       // First do a basic select test:
       try (Statement stmt = conn.createStatement()) {
-        try (ResultSet rs = stmt.executeQuery("SELECT 1")) {
+        try (ResultSet rs = stmt.executeQuery("SHOW STATUS like 'Ssl_version'")) {
           assertTrue(rs.next());
-          assertTrue(rs.getInt(1) == 1);
+          System.out.println(rs.getString(1) + " " + rs.getString(2));
         }
 
         // Then check if SSL matches what is expected
@@ -524,13 +550,11 @@ public class SslTest extends BaseTest {
     String keystorePath = tempKeystore.getAbsolutePath();
     try {
       generateKeystoreFromFile(serverCertificatePath, keystorePath, null);
-
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
-      info.setProperty("trustStore", "file://" + keystorePath);
+      info.setProperty("trustStoreType", "JKS");
+      info.setProperty("trustStore", "file:///" + keystorePath);
       testConnect(info, true);
-    } catch (SQLNonTransientConnectionException nonTransient) {
-      //java 9 doesn't accept empty keystore
     } finally {
       tempKeystore.delete();
     }
@@ -542,14 +566,15 @@ public class SslTest extends BaseTest {
     Assume.assumeTrue(hasSameHost());
     Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
     // generate a truststore from the canned serverCertificate
-    File tempKeystore = File.createTempFile("keystore", ".tmp");
+    File tempKeystore = File.createTempFile("keystore2", ".tmp");
     String keystorePath = tempKeystore.getAbsolutePath();
     try {
       generateKeystoreFromFile(serverCertificatePath, keystorePath, null);
 
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
-      info.setProperty("trustStore", "file://" + keystorePath);
+      info.setProperty("trustStoreType", "JKS");
+      info.setProperty("trustStore", "file:///" + keystorePath);
 
       Assume.assumeTrue(haveSsl(sharedConnection) && isMariadbServer());
 
@@ -579,8 +604,6 @@ public class SslTest extends BaseTest {
           }
         }
       }
-    } catch (SQLNonTransientConnectionException nonTransient) {
-      //java 9 doesn't accept empty keystore
     } finally {
       tempKeystore.delete();
     }
@@ -600,6 +623,7 @@ public class SslTest extends BaseTest {
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
       info.setProperty("trustStore", keystorePath);
+      info.setProperty("trustStoreType", "JKS");
       info.setProperty("trustStorePassword", "mysecret");
       testConnect(info, true);
     } finally {
@@ -626,6 +650,7 @@ public class SslTest extends BaseTest {
 
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
+      info.setProperty("trustStoreType", "JKS");
       testConnect(info, true);
     } finally {
       if (initialTrustStore == null) {
@@ -656,7 +681,8 @@ public class SslTest extends BaseTest {
 
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
-      info.setProperty("trustStore", "file://" + keystorePath);
+      info.setProperty("trustStore", "file:///" + keystorePath);
+      info.setProperty("trustStoreType", "JKS");
       info.setProperty("trustStorePassword", "notthepassword");
       testConnect(info, true);
     } finally {
@@ -676,7 +702,8 @@ public class SslTest extends BaseTest {
 
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
-      info.setProperty("trustStore", "file://" + keystorePath);
+      info.setProperty("trustStoreType", "JKS");
+      info.setProperty("trustStore", "file:///" + keystorePath);
       info.setProperty("trustStorePassword", "mysecret");
       testConnect(info, true);
     } finally {
@@ -707,12 +734,12 @@ public class SslTest extends BaseTest {
 
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
-      info.setProperty("trustStore", "file://" + truststorePath);
-      info.setProperty("keyStore", "file://" + clientKeystorePath);
+      info.setProperty("trustStore", "file:///" + truststorePath);
+      info.setProperty("trustStoreType", "JKS");
+      info.setProperty("keyStoreType", "JKS");
+      info.setProperty("keyStore", "file:///" + clientKeystorePath);
       info.setProperty("keyStorePassword", clientKeystorePassword);
       testConnect(info, true, testUser, "ssltestpassword");
-    } catch (SQLNonTransientConnectionException nonTransient) {
-      //java 9 doesn't accept empty keystore
     } finally {
       tempTruststore.delete();
       deleteSslTestUser(testUser);
@@ -743,10 +770,12 @@ public class SslTest extends BaseTest {
 
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
-      info.setProperty("trustCertificateKeyStoreUrl", "file://" + truststorePath);
+      info.setProperty("trustCertificateKeyStoreUrl", "file:///" + truststorePath);
       info.setProperty("trustCertificateKeyStorePassword", "trustPwd");
-      info.setProperty("clientCertificateKeyStoreUrl", "file://" + clientKeystorePath);
+      info.setProperty("trustCertificateKeyStoreType", "JKS");
+      info.setProperty("clientCertificateKeyStoreUrl", "file:///" + clientKeystorePath);
       info.setProperty("clientCertificateKeyStorePassword", clientKeystorePassword);
+      info.setProperty("clientCertificateKeyStoreType", "JKS");
       testConnect(info, true, testUser, "ssltestpassword");
     } finally {
       tempTruststore.delete();
@@ -772,7 +801,7 @@ public class SslTest extends BaseTest {
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
       info.setProperty("serverSslCert", serverCertificatePath);
-      info.setProperty("keyStore", "file://" + clientKeystorePath);
+      info.setProperty("keyStore", "file:///" + clientKeystorePath);
       info.setProperty("keyStorePassword", clientKeystorePassword);
       testConnect(info, true, testUser, "ssltestpassword");
     } finally {
@@ -803,7 +832,7 @@ public class SslTest extends BaseTest {
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
       info.setProperty("serverSslCert", serverCertificatePath);
-      info.setProperty("keyStore", "file://" + clientKeyStore2Path);
+      info.setProperty("keyStore", "file:///" + clientKeyStore2Path);
       info.setProperty("keyStorePassword", clientKeyStore2Password);
       testConnect(info, true, testUser, "ssltestpassword");
 
@@ -818,7 +847,7 @@ public class SslTest extends BaseTest {
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
       info.setProperty("serverSslCert", serverCertificatePath);
-      info.setProperty("keyStore", "file://" + clientKeyStore2Path);
+      info.setProperty("keyStore", "file:///" + clientKeyStore2Path);
       info.setProperty("keyStorePassword", clientKeyStore2Password);
       info.setProperty("keyPassword", clientKeyPassword);
       testConnect(info, true, testUser, "ssltestpassword");
@@ -846,7 +875,7 @@ public class SslTest extends BaseTest {
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
       info.setProperty("serverSslCert", serverCertificatePath);
-      info.setProperty("keyStore", "file://" + clientKeyStore2Path);
+      info.setProperty("keyStore", "file:///" + clientKeyStore2Path);
       info.setProperty("keyStorePassword", clientKeyStore2Password);
       testConnect(info, true, testUser, "ssltestpassword");
     } finally {
@@ -882,6 +911,8 @@ public class SslTest extends BaseTest {
 
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
+      info.setProperty("trustStoreType", "JKS");
+      info.setProperty("keyStoreType", "JKS");
       testConnect(info, true, testUser, "ssltestpassword");
     } finally {
       if (initialTrustStore == null) {
@@ -936,6 +967,8 @@ public class SslTest extends BaseTest {
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
       info.setProperty("trustServerCertificate", "true");
+      info.setProperty("keyStoreType", "JKS");
+      info.setProperty("trustStoreType", "JKS");
 
       testConnect(info, true, testUser, "ssltestpassword");
     } finally {
@@ -986,8 +1019,10 @@ public class SslTest extends BaseTest {
 
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
-      info.setProperty("keyStore", "file://" + clientKeystorePath);
+      info.setProperty("keyStore", "file:///" + clientKeystorePath);
       info.setProperty("keyStorePassword", clientKeystorePassword);
+      info.setProperty("trustStoreType", "JKS");
+      info.setProperty("keyStoreType", "JKS");
 
       testConnect(info, true, testUser, "ssltestpassword");
     } finally {
@@ -1029,8 +1064,10 @@ public class SslTest extends BaseTest {
 
       Properties info = new Properties();
       info.setProperty("useSSL", "true");
-      info.setProperty("trustStore", "file://" + truststorePath);
-      info.setProperty("keyStore", "file://" + clientKeystorePath);
+      info.setProperty("trustStoreType", "JKS");
+      info.setProperty("keyStoreType", "JKS");
+      info.setProperty("trustStore", "file:///" + truststorePath);
+      info.setProperty("keyStore", "file:///" + clientKeystorePath);
       info.setProperty("keyStorePassword", "notthekeystorepass");
       testConnect(info, true, testUser, "ssltestpassword");
     } finally {
@@ -1078,7 +1115,7 @@ public class SslTest extends BaseTest {
       throws KeyStoreException, CertificateException,
       IOException, NoSuchAlgorithmException {
     InputStream inStream;
-    final KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+    final KeyStore ks = KeyStore.getInstance("JKS");
 
     // generate a keystore from the provided cert
     if (certificateFile.startsWith("classpath:")) {

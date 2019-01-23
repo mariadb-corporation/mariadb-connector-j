@@ -339,12 +339,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
 
       results.commandEnd();
     } catch (SQLException initialSqlEx) {
-      if (results != null) {
-        results.commandEnd();
-        throw executeBatchExceptionEpilogue(initialSqlEx, results.getCmdInformation(),
-            queryParameterSize);
-      }
-      throw executeBatchExceptionEpilogue(initialSqlEx, null, queryParameterSize);
+      throw executeBatchExceptionEpilogue(initialSqlEx, queryParameterSize);
     } finally {
       executeBatchEpilogue();
       lock.unlock();
@@ -379,7 +374,7 @@ public class ServerSidePreparedStatement extends BasePrepareStatement implements
   }
 
   @Override
-  public void clearParameters() throws SQLException {
+  public void clearParameters() {
     currentParameterHolder.clear();
   }
 

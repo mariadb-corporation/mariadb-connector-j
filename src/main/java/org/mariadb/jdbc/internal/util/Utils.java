@@ -585,7 +585,7 @@ public class Utils {
    * @throws IOException if connection error occur
    */
   public static Socket createSocket(UrlParser urlParser, String host) throws IOException {
-    return (Socket) SocketUtility.getSocketHandler(urlParser, host);
+    return SocketUtility.getSocketHandler(urlParser, host);
   }
 
   /**
@@ -872,23 +872,22 @@ public class Utils {
    *                      possible value
    */
   public static int transactionFromString(String txIsolation) throws SQLException {
-    if ("READ-UNCOMMITTED".equals(txIsolation)) {
-      return Connection.TRANSACTION_READ_UNCOMMITTED;
-    }
+    switch (txIsolation) { //tx_isolation
+      case "READ-UNCOMMITTED":
+        return Connection.TRANSACTION_READ_UNCOMMITTED;
 
-    if ("READ-COMMITTED".equals(txIsolation)) {
-      return Connection.TRANSACTION_READ_COMMITTED;
-    }
+      case "READ-COMMITTED":
+        return Connection.TRANSACTION_READ_COMMITTED;
 
-    if ("REPEATABLE-READ".equals(txIsolation)) {
-      return Connection.TRANSACTION_REPEATABLE_READ;
-    }
+      case "REPEATABLE-READ":
+        return Connection.TRANSACTION_REPEATABLE_READ;
 
-    if ("SERIALIZABLE".equals(txIsolation)) {
-      return Connection.TRANSACTION_SERIALIZABLE;
-    }
+      case "SERIALIZABLE":
+        return Connection.TRANSACTION_SERIALIZABLE;
 
-    throw new SQLException("unknown transaction isolation level");
+      default:
+        throw new SQLException("unknown transaction isolation level");
+    }
   }
 
 

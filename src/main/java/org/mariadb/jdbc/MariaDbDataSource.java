@@ -333,10 +333,9 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    * the default is for logging to be disabled.</p>
    *
    * @return the log writer for this data source or null if logging is disabled
-   * @throws SQLException if a database access error occurs
    * @see #setLogWriter
    */
-  public PrintWriter getLogWriter() throws SQLException {
+  public PrintWriter getLogWriter() {
     return null;
   }
 
@@ -353,10 +352,9 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    * the default is for logging to be disabled.</p>
    *
    * @param out the new log writer; to disable logging, set to null
-   * @throws SQLException if a database access error occurs
    * @see #getLogWriter
    */
-  public void setLogWriter(final PrintWriter out) throws SQLException {
+  public void setLogWriter(final PrintWriter out) {
     //not implemented
   }
 
@@ -367,10 +365,9 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    * created, the login timeout is initially zero.
    *
    * @return the data source login time limit
-   * @throws SQLException if a database access error occurs.
    * @see #setLoginTimeout
    */
-  public int getLoginTimeout() throws SQLException {
+  public int getLoginTimeout() {
     if (connectTimeoutInMs != null) {
       return connectTimeoutInMs / 1000;
     }
@@ -384,11 +381,10 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    * is created, the login timeout is initially zero.
    *
    * @param seconds the data source login time limit
-   * @throws SQLException if a database access error occurs.
    * @see #getLoginTimeout
    */
   @Override
-  public void setLoginTimeout(final int seconds) throws SQLException {
+  public void setLoginTimeout(final int seconds) {
     connectTimeoutInMs = seconds * 1000;
   }
 
@@ -479,7 +475,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
     return new MariaXaConnection((MariaDbConnection) getConnection(user, password));
   }
 
-  public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+  public Logger getParentLogger() {
     return null;
   }
 

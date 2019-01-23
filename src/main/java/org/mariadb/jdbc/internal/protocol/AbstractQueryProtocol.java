@@ -227,6 +227,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       getResult(results);
 
     } catch (SQLException sqlException) {
+      if ("70100".equals(sqlException.getSQLState()) && 1927 == sqlException.getErrorCode()) {
+        throw handleIoException(sqlException);
+      }
       throw logQuery.exceptionWithQuery(sql, sqlException, explicitClosed);
     } catch (IOException e) {
       throw handleIoException(e);
@@ -279,7 +282,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
       } else {
         writer.startPacket(0);
-        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
+        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, -1);
         writer.flush();
       }
       getResult(results);
@@ -316,7 +319,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
       } else {
         writer.startPacket(0);
-        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
+        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, queryTimeout);
         writer.flush();
       }
       getResult(results);
@@ -608,11 +611,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
           BulkStatus status,
           PrepareResult prepareResult)
-          throws SQLException, IOException {
+          throws IOException {
 
         ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
         writer.startPacket(0);
-        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
+        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, -1);
         writer.flush();
       }
 
@@ -746,7 +749,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
           BulkStatus status,
           PrepareResult prepareResult)
-          throws SQLException, IOException {
+          throws IOException {
 
         String sql = queries.get(status.sendCmdCounter);
         pos.startPacket(0);
@@ -1851,11 +1854,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @param initialException initial Io error
    * @return the resulting error to return to client.
    */
-  public SQLException handleIoException(IOException initialException) {
+  public SQLException handleIoException(Exception initialException) {
     boolean mustReconnect;
     boolean driverPreventError = false;
 
-    if (MaxAllowedPacketException.class.isInstance(initialException)) {
+    if (initialException instanceof MaxAllowedPacketException) {
       mustReconnect = ((MaxAllowedPacketException) initialException).isMustReconnect();
       driverPreventError = !mustReconnect;
     } else {

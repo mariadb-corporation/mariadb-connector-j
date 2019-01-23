@@ -132,7 +132,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     }
   }
 
-  public Reader getCharacterStream() throws SQLException {
+  public Reader getCharacterStream() {
     return new StringReader(toString());
   }
 
@@ -175,11 +175,11 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
     return getBinaryStream();
   }
 
-  public long position(String searchStr, long start) throws SQLException {
+  public long position(String searchStr, long start) {
     return toString().indexOf(searchStr, (int) start - 1) + 1;
   }
 
-  public long position(Clob searchStr, long start) throws SQLException {
+  public long position(Clob searchStr, long start) {
     return position(searchStr.toString(), start);
   }
 
@@ -281,7 +281,7 @@ public class MariaDbClob extends MariaDbBlob implements Clob, NClob, Serializabl
   }
 
   @Override
-  public void truncate(final long truncateLen) throws SQLException {
+  public void truncate(final long truncateLen) {
 
     //truncate the number of UTF-16 characters
     //this can result in a bad UTF-8 string if string finish with a
