@@ -373,8 +373,12 @@ public enum DefaultOptions {
       false),
   INCLUDE_THREAD_DUMP("includeThreadDumpInDeadlockExceptions", Boolean.FALSE, "2.3.0",
       "add thread dump to exception trace when having a deadlock exception", false),
-  READ_AHEAD("useReadAheadInput", Boolean.TRUE, "2.3.1",
-      "use a buffered inputSteam that read socket available data", false);
+  READ_AHEAD("useReadAheadInput", Boolean.TRUE, "2.4.0",
+      "use a buffered inputSteam that read socket available data", false),
+  KEY_STORE_TYPE("keyStoreType", (String) null, "2.4.0",
+      "indicate key store type (JKS/PKCS12). default is null, then using java default type", false),
+  TRUST_STORE_TYPE("trustStoreType", (String) null, "2.4.0",
+      "indicate trust store type (JKS/PKCS12). default is null, then using java default type", false);
 
   private final String optionName;
   private final String description;

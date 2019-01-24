@@ -22,5 +22,7 @@ public class OptionUtils {
     OPTIONS_MAP.put("trustCertificateKeyStoreUrl", DefaultOptions.TRUSTSTORE);
     OPTIONS_MAP.put("clientCertificateKeyStorePassword", DefaultOptions.KEYSTORE_PASSWORD);
     OPTIONS_MAP.put("clientCertificateKeyStoreUrl", DefaultOptions.KEYSTORE);
+    OPTIONS_MAP.put("trustCertificateKeyStoreType", DefaultOptions.TRUST_STORE_TYPE);
+    OPTIONS_MAP.put("clientCertificateKeyStoreType", DefaultOptions.KEY_STORE_TYPE);
   }
 }
