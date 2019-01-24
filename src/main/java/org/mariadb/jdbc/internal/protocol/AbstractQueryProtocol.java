@@ -227,6 +227,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       getResult(results);
 
     } catch (SQLException sqlException) {
+      if ("70100".equals(sqlException.getSQLState()) && 1927 == sqlException.getErrorCode()) {
+        throw handleIoException(sqlException);
+      }
       throw logQuery.exceptionWithQuery(sql, sqlException, explicitClosed);
     } catch (IOException e) {
       throw handleIoException(e);
@@ -1851,7 +1854,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @param initialException initial Io error
    * @return the resulting error to return to client.
    */
-  public SQLException handleIoException(IOException initialException) {
+  public SQLException handleIoException(Exception initialException) {
     boolean mustReconnect;
     boolean driverPreventError = false;
 

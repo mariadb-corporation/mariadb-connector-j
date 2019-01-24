@@ -246,6 +246,7 @@ public class Results {
 
   /**
    * Indicate that command / batch is finished, so set current resultSet if needed.
+   * @return true id has cmdInformation
    */
   public boolean commandEnd() {
     if (cmdInformation != null) {
