@@ -56,6 +56,7 @@ import static org.junit.Assert.fail;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Assume;
 import org.junit.Test;
 
 import java.sql.Connection;
@@ -163,7 +164,8 @@ public class ClientPreparedStatementTest extends BaseTest {
             preparedStatement.addBatch();
             fail();
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("You need to set exactly 2 parameters on the prepared statement"));
+            assertTrue(e.getMessage().contains("You need to set exactly 2 parameters on the prepared statement")
+                    || e.getMessage().contains("Parameter at position 2 is not set"));
         }
 
         try {
@@ -184,7 +186,8 @@ public class ClientPreparedStatementTest extends BaseTest {
             preparedStatement.addBatch();
             fail();
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("You need to set exactly 2 parameters on the prepared statement"));
+            assertTrue(e.getMessage().contains("You need to set exactly 2 parameters on the prepared statement")
+                    || e.getMessage().contains("Parameter at position 1 is not set"));
         }
 
     }
@@ -192,6 +195,7 @@ public class ClientPreparedStatementTest extends BaseTest {
 
     @Test
     public void setParameterError() throws SQLException {
+        Assume.assumeFalse(sharedOptions().useServerPrepStmts);
         PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT ?, ?");
         preparedStatement.setString(1, "a");
         preparedStatement.setString(2, "a");
