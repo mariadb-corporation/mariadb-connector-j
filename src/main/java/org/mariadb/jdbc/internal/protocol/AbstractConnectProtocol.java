@@ -396,7 +396,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         inStream = new FileInputStream(keyStoreUrl);
       }
 
-      KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
+      KeyStore ks = KeyStore.getInstance(options.keyStoreType != null ? options.keyStoreType : KeyStore.getDefaultType());
       ks.load(inStream, keyStorePasswordChars);
       char[] keyStoreChars =
           (keyPassword == null) ? keyStorePasswordChars : keyPassword.toCharArray();

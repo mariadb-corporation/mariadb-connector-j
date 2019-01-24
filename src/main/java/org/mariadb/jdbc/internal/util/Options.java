@@ -68,6 +68,8 @@ public class Options implements Cloneable {
   public boolean trustServerCertificate;
   public String serverSslCert;
   public String trustStore;
+  public String trustStoreType;
+  public String keyStoreType;
   public String trustStorePassword;
   public String keyStore;
   public String keyStorePassword;
