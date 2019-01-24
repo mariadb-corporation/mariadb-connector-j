@@ -126,7 +126,6 @@ public class BlobTest extends BaseTest {
     assertEquals(11, blob.position(pattern, 1));
     pattern = new byte[]{1, 2};
     assertEquals(1, blob.position(pattern, 1));
-
   }
 
   @Test(expected = SQLException.class)
@@ -599,6 +598,14 @@ public class BlobTest extends BaseTest {
     for (int i = 0; i < 750; i++) {
       assertEquals(bb[i + 50], blobBytes[i]);
     }
+  }
+
+  @Test
+  public void connectionBlob() throws SQLException {
+    Blob blob = sharedConnection.createBlob();
+    assertArrayEquals(new byte[]{0}, blob.getBytes(1, 1));
+    blob.setBytes(5, new byte[]{1, 2, 3, 4, 5, 6});
+    assertArrayEquals(new byte[]{0, 0, 0, 0, 1, 2, 3, 4, 5}, blob.getBytes(1, 9));
   }
 
 }

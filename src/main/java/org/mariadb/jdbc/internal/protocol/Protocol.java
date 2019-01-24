@@ -270,7 +270,7 @@ public interface Protocol {
 
   boolean isServerMariaDb() throws SQLException;
 
-  SQLException handleIoException(IOException initialException);
+  SQLException handleIoException(Exception initialException);
 
   PacketInputStream getReader();
 

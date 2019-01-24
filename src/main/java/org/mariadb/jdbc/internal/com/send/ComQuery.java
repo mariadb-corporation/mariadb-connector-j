@@ -67,6 +67,7 @@ public class ComQuery {
    * @param out                 outputStream
    * @param clientPrepareResult clientPrepareResult
    * @param parameters          parameter
+   * @param queryTimeout        query timeout
    * @throws IOException if connection fail
    */
   public static void sendSubCmd(final PacketOutputStream out,
