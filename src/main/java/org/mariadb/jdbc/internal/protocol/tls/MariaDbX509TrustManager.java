@@ -94,7 +94,7 @@ public class MariaDbX509TrustManager implements X509TrustManager {
 
     KeyStore ks;
     try {
-        ks = KeyStore.getInstance(options.trustStoreType != null ? options.trustStoreType : KeyStore.getDefaultType());
+      ks = KeyStore.getInstance(options.trustStoreType != null ? options.trustStoreType : KeyStore.getDefaultType());
     } catch (GeneralSecurityException generalSecurityEx) {
       throw new SQLException("Failed to create keystore instance",
           SqlStates.CONNECTION_EXCEPTION.getSqlState(), generalSecurityEx);
