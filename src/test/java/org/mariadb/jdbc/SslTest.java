@@ -80,13 +80,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mariadb.jdbc.internal.protocol.tls.SslFactory;
+import org.mariadb.jdbc.internal.util.Options;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class SslTest extends BaseTest {
@@ -249,6 +255,26 @@ public class SslTest extends BaseTest {
     if (isMariadbServer()) {
       useSslForceTls("TLSv1.2");
     }
+  }
+
+  @Test
+  public void useSslForceTlsV13() throws Exception {
+    Assume.assumeFalse(Platform.isWindows());
+    Assume.assumeTrue(isMariadbServer());
+
+    List<String> possibleProtocols = getSupportedProtocols();
+    if (possibleProtocols.contains("TLSv1.3")) {
+      useSslForceTls("TLSv1.3, TLSv1.2");
+    }
+  }
+
+  private List<String> getSupportedProtocols() throws Exception {
+
+    SSLSocketFactory sslSocketFactory = SslFactory.getSslSocketFactory(new Options());
+    SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket();
+    List<String> enabledProtocol = Arrays.asList(socket.getEnabledProtocols());
+    socket.close();
+    return enabledProtocol;
   }
 
   @Test

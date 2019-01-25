@@ -56,20 +56,13 @@ import static org.mariadb.jdbc.internal.com.Packet.COM_QUERY;
 import static org.mariadb.jdbc.internal.com.Packet.EOF;
 import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.sql.ResultSet;
@@ -85,14 +78,10 @@ import java.util.TimeZone;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
@@ -121,8 +110,7 @@ import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.protocol.tls.HostnameVerifierImpl;
-import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509KeyManager;
-import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509TrustManager;
+import org.mariadb.jdbc.internal.protocol.tls.SslFactory;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.Utils;
@@ -340,86 +328,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     if (hasMoreResults()) {
       this.serverStatus = (short) (serverStatus ^ ServerStatus.MORE_RESULTS_EXISTS);
     }
-  }
-
-  private SSLSocketFactory getSslSocketFactory() throws SQLException {
-
-    TrustManager[] trustManager = null;
-    KeyManager[] keyManager = null;
-
-    if (options.trustServerCertificate || options.serverSslCert != null
-        || options.trustStore != null) {
-      trustManager = new X509TrustManager[]{new MariaDbX509TrustManager(options)};
-    }
-
-    if (options.keyStore != null) {
-      keyManager = new KeyManager[]{
-          loadClientCerts(options.keyStore, options.keyStorePassword, options.keyPassword)};
-    } else {
-      String keyStore = System.getProperty("javax.net.ssl.keyStore");
-      String keyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword");
-      if (keyStore != null) {
-        try {
-          keyManager = new KeyManager[]{
-              loadClientCerts(keyStore, keyStorePassword, keyStorePassword)};
-        } catch (SQLException queryException) {
-          keyManager = null;
-          logger.error("Error loading keymanager from system properties", queryException);
-        }
-      }
-    }
-
-    try {
-      SSLContext sslContext = SSLContext.getInstance("TLS");
-      sslContext.init(keyManager, trustManager, null);
-      return sslContext.getSocketFactory();
-    } catch (KeyManagementException keyManagementEx) {
-      throw ExceptionMapper.connException("Could not initialize SSL context", keyManagementEx);
-    } catch (NoSuchAlgorithmException noSuchAlgorithmEx) {
-      throw ExceptionMapper
-          .connException("SSLContext TLS Algorithm not unknown", noSuchAlgorithmEx);
-    }
-
-  }
-
-  private KeyManager loadClientCerts(String keyStoreUrl, String keyStorePassword,
-      String keyPassword) throws SQLException {
-    InputStream inStream = null;
-    try {
-
-      char[] keyStorePasswordChars =
-          keyStorePassword == null ? null : keyStorePassword.toCharArray();
-
-      try {
-        inStream = new URL(keyStoreUrl).openStream();
-      } catch (IOException ioexception) {
-        inStream = new FileInputStream(keyStoreUrl);
-      }
-
-      KeyStore ks = KeyStore.getInstance(options.keyStoreType != null ? options.keyStoreType : KeyStore.getDefaultType());
-      ks.load(inStream, keyStorePasswordChars);
-      char[] keyStoreChars =
-          (keyPassword == null) ? keyStorePasswordChars : keyPassword.toCharArray();
-      return new MariaDbX509KeyManager(ks, keyStoreChars);
-    } catch (GeneralSecurityException generalSecurityEx) {
-      throw ExceptionMapper.connException("Failed to create keyStore instance", generalSecurityEx);
-    } catch (FileNotFoundException fileNotFoundEx) {
-      throw ExceptionMapper
-          .connException("Failed to find keyStore file. Option keyStore=" + keyStoreUrl,
-              fileNotFoundEx);
-    } catch (IOException ioEx) {
-      throw ExceptionMapper
-          .connException("Failed to read keyStore file. Option keyStore=" + keyStoreUrl, ioEx);
-    } finally {
-      try {
-        if (inStream != null) {
-          inStream.close();
-        }
-      } catch (IOException ioEx) {
-        //ignore error
-      }
-    }
-
   }
 
   /**
@@ -796,7 +704,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         clientCapabilities |= MariaDbServerCapabilities.SSL;
         SendSslConnectionRequestPacket.send(writer, clientCapabilities, exchangeCharset);
 
-        SSLSocketFactory sslSocketFactory = getSslSocketFactory();
+        SSLSocketFactory sslSocketFactory = SslFactory.getSslSocketFactory(options);
         SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
             socket.getInetAddress().getHostAddress(), socket.getPort(), true);
 
@@ -1334,9 +1242,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
    * @throws SQLException if protocol isn't a supported protocol
    */
   private void enabledSslProtocolSuites(SSLSocket sslSocket) throws SQLException {
-    if (options.enabledSslProtocolSuites == null) {
-      sslSocket.setEnabledProtocols(new String[]{"TLSv1", "TLSv1.1", "TLSv1.2"});
-    } else {
+    if (options.enabledSslProtocolSuites != null) {
       List<String> possibleProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
       String[] protocols = options.enabledSslProtocolSuites.split("[,;\\s]+");
       for (String protocol : protocols) {
