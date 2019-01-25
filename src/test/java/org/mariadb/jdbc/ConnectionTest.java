@@ -794,6 +794,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void testWarnings() throws SQLException {
+    Assume.assumeTrue(isMariadbServer());
     Statement stmt = sharedConnection.createStatement();
     stmt.executeQuery("select now() = 1");
     SQLWarning warning = sharedConnection.getWarnings();
