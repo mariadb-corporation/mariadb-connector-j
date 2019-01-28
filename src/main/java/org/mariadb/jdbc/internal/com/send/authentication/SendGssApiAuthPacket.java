@@ -99,9 +99,10 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
   public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException, SQLException {
     Buffer buffer = new Buffer(authData);
 
+    final String serverSpn = buffer.readStringNullEnd(StandardCharsets.UTF_8);
     //using provided connection string SPN if set, or if not, using to server information
     final String servicePrincipalName = (optionServicePrincipalName != null && !optionServicePrincipalName.isEmpty())
-        ? optionServicePrincipalName : buffer.readStringNullEnd(StandardCharsets.UTF_8);
+        ? optionServicePrincipalName : serverSpn;
     String mechanisms = buffer.readStringNullEnd(StandardCharsets.UTF_8);
     if (mechanisms.isEmpty()) {
       mechanisms = "Kerberos";
