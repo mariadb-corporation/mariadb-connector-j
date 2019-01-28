@@ -71,16 +71,16 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
    * @param out                   out stream
    * @param in                    in stream
    * @param sequence              packet sequence
-   * @param serverPrincipalName   principal name
+   * @param servicePrincipalName  principal name
    * @param mechanisms            gssapi mechanism
    * @throws IOException  if socket error
    */
   public void authenticate(final PacketOutputStream out, final PacketInputStream in, final AtomicInteger sequence,
-                           final String serverPrincipalName, final String mechanisms) throws IOException {
+                           final String servicePrincipalName, final String mechanisms) throws IOException {
 
     // initialize a security context on the client
     IWindowsSecurityContext clientContext = WindowsSecurityContextImpl
-        .getCurrent(mechanisms, serverPrincipalName);
+        .getCurrent(mechanisms, servicePrincipalName);
 
     do {
 
@@ -97,7 +97,7 @@ public class WindowsNativeSspiAuthentication implements GssapiAuth {
         byte[] tokenForTheClientOnTheServer = buffer.readRawBytes(buffer.remaining());
         Sspi.SecBufferDesc continueToken = new Sspi.SecBufferDesc(Sspi.SECBUFFER_TOKEN,
             tokenForTheClientOnTheServer);
-        clientContext.initialize(clientContext.getHandle(), continueToken, serverPrincipalName);
+        clientContext.initialize(clientContext.getHandle(), continueToken, servicePrincipalName);
       }
 
     } while (clientContext.isContinue());

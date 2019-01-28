@@ -378,7 +378,11 @@ public enum DefaultOptions {
   KEY_STORE_TYPE("keyStoreType", (String) null, "2.4.0",
       "indicate key store type (JKS/PKCS12). default is null, then using java default type", false),
   TRUST_STORE_TYPE("trustStoreType", (String) null, "2.4.0",
-      "indicate trust store type (JKS/PKCS12). default is null, then using java default type", false);
+      "indicate trust store type (JKS/PKCS12). default is null, then using java default type", false),
+  SERVICE_PRINCIPAL_NAME("servicePrincipalName", (String) null, "2.4.0",
+      "when using GSSAPI authentication, SPN (Service Principal Name) use the server SPN information. When set, "
+          + "connector will use this value, ignoring server information", false);
+
 
   private final String optionName;
   private final String description;

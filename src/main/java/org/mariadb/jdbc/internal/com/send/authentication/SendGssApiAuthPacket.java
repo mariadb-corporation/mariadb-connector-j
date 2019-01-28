@@ -67,6 +67,7 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
 
   private static final GssapiAuth gssapiAuth;
   private byte[] authData;
+  private String optionServicePrincipalName;
 
   static {
     GssapiAuth init;
@@ -79,8 +80,9 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
   }
 
 
-  public SendGssApiAuthPacket(byte[] authData) {
+  public SendGssApiAuthPacket(byte[] authData, String servicePrincipalName) {
     this.authData = authData;
+    this.optionServicePrincipalName = servicePrincipalName;
   }
 
   /**
@@ -96,13 +98,16 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
    */
   public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException, SQLException {
     Buffer buffer = new Buffer(authData);
-    final String serverPrincipalName = buffer.readStringNullEnd(StandardCharsets.UTF_8);
+
+    //using provided connection string SPN if set, or if not, using to server information
+    final String servicePrincipalName = (optionServicePrincipalName != null && !optionServicePrincipalName.isEmpty())
+        ? optionServicePrincipalName : buffer.readStringNullEnd(StandardCharsets.UTF_8);
     String mechanisms = buffer.readStringNullEnd(StandardCharsets.UTF_8);
     if (mechanisms.isEmpty()) {
       mechanisms = "Kerberos";
     }
 
-    gssapiAuth.authenticate(out, in, sequence, serverPrincipalName, mechanisms);
+    gssapiAuth.authenticate(out, in, sequence, servicePrincipalName, mechanisms);
 
     buffer = in.getPacket(true);
     sequence.set(in.getLastPacketSeq());

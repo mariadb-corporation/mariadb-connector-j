@@ -128,6 +128,7 @@ public class Options implements Cloneable {
   public boolean autocommit = true;
   public boolean includeInnodbStatusInDeadlockExceptions;
   public boolean includeThreadDumpInDeadlockExceptions;
+  public String servicePrincipalName;
 
   //logging options
   public boolean log;

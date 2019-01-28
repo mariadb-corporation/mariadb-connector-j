@@ -81,17 +81,17 @@ public class StandardGssapiAuthentication implements GssapiAuth {
    * @param out                   out stream
    * @param in                    in stream
    * @param sequence              packet sequence
-   * @param serverPrincipalName   principal name
+   * @param servicePrincipalName  service principal name
    * @param mechanisms            gssapi mechanism
    * @throws IOException  if socket error
    * @throws SQLException in any Exception occur
    */
   public void authenticate(final PacketOutputStream out, final PacketInputStream in, final AtomicInteger sequence,
-                           final String serverPrincipalName, String mechanisms) throws SQLException, IOException {
+                           final String servicePrincipalName, String mechanisms) throws SQLException, IOException {
 
-    if ("".equals(serverPrincipalName)) {
+    if ("".equals(servicePrincipalName)) {
       throw new SQLException("No principal name defined on server. "
-          + "Please set server variable \"gssapi-principal-name\"", "28000");
+          + "Please set server variable \"gssapi-principal-name\" or set option \"servicePrincipalName\"", "28000");
     }
 
     if (System.getProperty("java.security.auth.login.config") == null) {
@@ -125,7 +125,7 @@ public class StandardGssapiAuthentication implements GssapiAuth {
               Oid krb5Mechanism = new Oid("1.2.840.113554.1.2.2");
 
               GSSManager manager = GSSManager.getInstance();
-              GSSName peerName = manager.createName(serverPrincipalName, GSSName.NT_USER_NAME);
+              GSSName peerName = manager.createName(servicePrincipalName, GSSName.NT_USER_NAME);
               GSSContext context =
                   manager.createContext(peerName,
                       krb5Mechanism,
