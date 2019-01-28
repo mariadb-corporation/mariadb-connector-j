@@ -313,13 +313,12 @@ public abstract class AbstractMultiSend {
           }
         }
 
-        futureReadTask = null;
-
         if (protocol.isInterrupted()) {
           //interrupted during read, must throw an exception manually
+          futureReadTask.cancel(true);
           throw new SQLTimeoutException("Timeout during batch execution");
         }
-
+        futureReadTask = null;
 
       } while (status.sendCmdCounter < totalExecutionNumber);
 
@@ -330,6 +329,8 @@ public abstract class AbstractMultiSend {
       return prepareResult;
 
     } catch (IOException e) {
+      status.sendEnded = true;
+      status.sendCmdCounter = 0; //to ensure read doesn't hang
       throw protocol.handleIoException(e);
     }
 

@@ -53,19 +53,23 @@
 package org.mariadb.jdbc;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Properties;
@@ -156,7 +160,7 @@ public class StatementTest extends BaseTest {
   }
 
   @Test
-  public void testColumnsDoNotExist() throws SQLException {
+  public void testColumnsDoNotExist() {
 
     try {
       sharedConnection.createStatement().executeQuery(
@@ -185,7 +189,7 @@ public class StatementTest extends BaseTest {
   }
 
   @Test
-  public void testNoSuchTable() throws SQLException, UnsupportedEncodingException {
+  public void testNoSuchTable() throws SQLException {
     Statement statement = sharedConnection.createStatement();
     statement.execute("drop table if exists vendor_code_test_");
     try {
@@ -201,7 +205,7 @@ public class StatementTest extends BaseTest {
   }
 
   @Test
-  public void testNoSuchTableBatchUpdate() throws SQLException, UnsupportedEncodingException {
+  public void testNoSuchTableBatchUpdate() throws SQLException {
     Statement statement = sharedConnection.createStatement();
     statement.execute("drop table if exists vendor_code_test_");
     statement.addBatch("INSERT INTO vendor_code_test_ VALUES('dummyValue')");
@@ -271,7 +275,7 @@ public class StatementTest extends BaseTest {
   }
 
   @Test
-  public void testLoadDataInvalidColumn() throws SQLException, UnsupportedEncodingException {
+  public void testLoadDataInvalidColumn() throws SQLException {
     Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 0));
     Statement statement = sharedConnection.createStatement();
     try {
@@ -291,7 +295,7 @@ public class StatementTest extends BaseTest {
         String data = "\"1\", \"string1\"\n"
             + "\"2\", \"string2\"\n"
             + "\"3\", \"string3\"\n";
-        ByteArrayInputStream loadDataInfileFile = new ByteArrayInputStream(data.getBytes("utf-8"));
+        ByteArrayInputStream loadDataInfileFile = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         mysqlStatement.setLocalInfileInputStream(loadDataInfileFile);
         mysqlStatement.executeUpdate("LOAD DATA LOCAL INFILE 'dummyFileName' INTO TABLE v2 "
             + "FIELDS ESCAPED BY '\\\\' "
@@ -329,7 +333,7 @@ public class StatementTest extends BaseTest {
         stopProxy();
         otherStatement.execute("SELECT 1");
       } catch (SQLException e) {
-        assertTrue(otherStatement != null ? otherStatement.isClosed() : false);
+        assertTrue(otherStatement != null && otherStatement.isClosed());
         assertTrue(connection.isClosed());
         try {
           statement.execute("SELECT 1");
@@ -497,4 +501,183 @@ public class StatementTest extends BaseTest {
       }
     }
   }
+
+  @Test
+  public void largeUpdate() throws SQLException {
+    createTable("largeUpdate", "a int not null primary key auto_increment, t varchar(256)", "engine=innodb");
+    Statement stmt = sharedConnection.createStatement();
+
+    long updateRes = stmt.executeLargeUpdate("insert into largeUpdate(t) values('a'), ('b')");
+    assertEquals(2L, updateRes);
+    assertEquals(2L, stmt.getLargeUpdateCount());
+
+    updateRes = stmt.executeLargeUpdate("insert into largeUpdate(t) values('c'), ('d')", Statement.RETURN_GENERATED_KEYS);
+    assertEquals(2L, updateRes);
+    ResultSet rs = stmt.getGeneratedKeys();
+    assertEquals(2L, stmt.getLargeUpdateCount());
+    assertTrue(rs.next());
+    assertEquals(3, rs.getInt(1));
+
+    updateRes = stmt.executeLargeUpdate("insert into largeUpdate(t) values('e'), ('f')", new int[] {1});
+    assertEquals(2L, updateRes);
+    assertEquals(2L, stmt.getLargeUpdateCount());
+    rs = stmt.getGeneratedKeys();
+    assertTrue(rs.next());
+    assertEquals(5, rs.getInt(1));
+
+    updateRes = stmt.executeLargeUpdate("insert into largeUpdate(t) values('g'), ('h')", new String[] {"1"});
+    assertEquals(2L, updateRes);
+    rs = stmt.getGeneratedKeys();
+    assertTrue(rs.next());
+    assertEquals(7, rs.getInt(1));
+
+    assertEquals(0L, stmt.getLargeMaxRows());
+    stmt.setLargeMaxRows(10_000L);
+    assertEquals(10_000L, stmt.getLargeMaxRows());
+
+  }
+
+
+  @Test
+  public void closedStatement() throws SQLException {
+
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("SELECT 1");
+    stmt.executeQuery("SELECT 1");
+    stmt.executeUpdate("SELECT 1");
+
+    stmt.close();
+
+    try {
+      stmt.execute("SELECT 1");
+      fail();
+    } catch (SQLException e) {
+      assertTrue(e.getMessage().contains("is called on closed statement"));
+    }
+
+    try {
+      stmt.executeQuery("SELECT 1");
+      fail();
+    } catch (SQLException e) {
+      assertTrue(e.getMessage().contains("is called on closed statement"));
+    }
+
+    try {
+      stmt.executeUpdate("SELECT 1");
+      fail();
+    } catch (SQLException e) {
+      assertTrue(e.getMessage().contains("is called on closed statement"));
+    }
+  }
+
+  @Test
+  public void largePrepareUpdate() throws SQLException {
+    createTable("largePrepareUpdate", "a int not null primary key auto_increment, t varchar(256)", "engine=innodb");
+    Statement stmt = sharedConnection.createStatement();
+    stmt.addBatch("insert into largePrepareUpdate(t) values('a')");
+    stmt.addBatch("insert into largePrepareUpdate(t) values('b')");
+    stmt.addBatch("insert into largePrepareUpdate(t) values('b')");
+    long[] batchRes = stmt.executeLargeBatch();
+    assertArrayEquals(new long[] {1,1,1}, batchRes);
+  }
+
+
+  @Test
+  public void wrongParameterValues() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    try {
+      stmt.setMaxRows(-1);
+      fail();
+    } catch (SQLException e) {
+      e.getMessage().contains("max rows cannot be negative");
+    }
+
+    try {
+      stmt.setLargeMaxRows(-1);
+      fail();
+    } catch (SQLException e) {
+      e.getMessage().contains("max rows cannot be negative");
+    }
+
+
+    try {
+      stmt.setQueryTimeout(-1);
+      fail();
+    } catch (SQLException e) {
+      e.getMessage().contains("Query timeout rows cannot be negative");
+    }
+
+    stmt.setEscapeProcessing(false);
+  }
+
+  @Test
+  public void testWarnings() throws SQLException {
+    Assume.assumeTrue(isMariadbServer());
+    Statement stmt = sharedConnection.createStatement();
+    stmt.executeQuery("select now() = 1");
+    SQLWarning warning = stmt.getWarnings();
+    assertTrue(warning.getMessage().contains("Incorrect datetime value: '1'"));
+    stmt.clearWarnings();
+    assertNull(stmt.getWarnings());
+  }
+
+  @Test
+  public void testNonImplemented() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    try {
+      stmt.setCursorName("name");
+      fail();
+    } catch (SQLFeatureNotSupportedException e) {
+      e.getMessage().contains("Cursors are not supported");
+    }
+  }
+
+  @Test
+  public void testNoQuery() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    ResultSet rs = stmt.getGeneratedKeys();
+    assertFalse(rs.next());
+    assertEquals(-1, stmt.getLargeUpdateCount());
+    assertEquals(ResultSet.FETCH_FORWARD, stmt.getFetchDirection());
+    stmt.setFetchDirection(ResultSet.FETCH_FORWARD);
+    assertEquals(0, stmt.executeLargeBatch().length);
+  }
+
+  @Test
+  public void isPoolable() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    assertFalse(stmt.isPoolable());
+    stmt.setPoolable(true);
+  }
+
+  @Test
+  public void setFetch() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    try {
+      stmt.setFetchSize(-10);
+    } catch (SQLException e) {
+      assertTrue(e.getMessage().contains("invalid fetch size"));
+    }
+  }
+
+  @Test
+  public void scrollType() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    assertEquals(ResultSet.TYPE_FORWARD_ONLY, stmt.getResultSetType());
+    stmt = sharedConnection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+    assertEquals(ResultSet.TYPE_SCROLL_INSENSITIVE, stmt.getResultSetType());
+  }
+
+
+  @Test
+  public void addBatchNull() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    try {
+      stmt.addBatch(null);
+    } catch (SQLException e) {
+      assertTrue(e.getMessage().contains("null cannot be set to addBatch( String sql)"));
+    }
+  }
+
+
 }

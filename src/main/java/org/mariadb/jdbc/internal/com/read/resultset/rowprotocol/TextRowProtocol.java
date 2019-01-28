@@ -438,9 +438,8 @@ public class TextRowProtocol extends RowProtocol {
    *
    * @param columnInfo column information
    * @return BigDecimal value
-   * @throws SQLException if column type doesn't permit conversion
    */
-  public BigDecimal getInternalBigDecimal(ColumnInformation columnInfo) throws SQLException {
+  public BigDecimal getInternalBigDecimal(ColumnInformation columnInfo) {
     if (lastValueWasNull()) {
       return null;
     }
@@ -467,8 +466,33 @@ public class TextRowProtocol extends RowProtocol {
       return null;
     }
 
-    String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
     switch (columnInfo.getColumnType()) {
+      case DATE:
+        int[] datePart = new int[]{0,0,0};
+        int partIdx = 0;
+        for (int begin = pos; begin < pos + length; begin++) {
+          byte b = buf[begin];
+          if (b == '-') {
+            partIdx++;
+            continue;
+          }
+          if (b < '0' || b > '9') {
+            throw new SQLException(
+                "cannot parse data in date string '" + new String(buf, pos, length, StandardCharsets.UTF_8) + "'");
+          }
+          datePart[partIdx] = datePart[partIdx] * 10 + b - 48;
+        }
+
+        if (datePart[0] == 0 && datePart[1] == 0 && datePart[2] == 0) {
+          lastValueNull |= BIT_LAST_ZERO_DATE;
+          return null;
+        }
+
+        return new Date(
+            datePart[0] - 1900,
+            datePart[1] - 1,
+            datePart[2]);
+
       case TIMESTAMP:
       case DATETIME:
         Timestamp timestamp = getInternalTimestamp(columnInfo, cal, timeZone);
@@ -480,20 +504,11 @@ public class TextRowProtocol extends RowProtocol {
       case TIME:
         throw new SQLException("Cannot read DATE using a Types.TIME field");
 
-      case DATE:
-        if ("0000-00-00".equals(rawValue)) {
-          lastValueNull |= BIT_LAST_ZERO_DATE;
-          return null;
-        }
-
-        return new Date(
-            Integer.parseInt(rawValue.substring(0, 4)) - 1900,
-            Integer.parseInt(rawValue.substring(5, 7)) - 1,
-            Integer.parseInt(rawValue.substring(8, 10))
-        );
-
       case YEAR:
-        int year = Integer.parseInt(rawValue);
+        int year = 0;
+        for (int begin = pos; begin < pos + length; begin++) {
+          year = year * 10 + buf[begin] - 48;
+        }
         if (length == 2 && columnInfo.getLength() == 2) {
           if (year <= 69) {
             year += 2000;
@@ -501,16 +516,14 @@ public class TextRowProtocol extends RowProtocol {
             year += 1900;
           }
         }
-
         return new Date(year - 1900, 0, 1);
 
       default:
 
         try {
-
           DateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
           sdf.setTimeZone(timeZone);
-          java.util.Date utilDate = sdf.parse(rawValue);
+          java.util.Date utilDate = sdf.parse(new String(buf, pos, length, StandardCharsets.UTF_8));
           return new Date(utilDate.getTime());
 
         } catch (ParseException e) {
@@ -592,60 +605,90 @@ public class TextRowProtocol extends RowProtocol {
       return null;
     }
 
-    String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
-    if (rawValue.startsWith("0000-00-00 00:00:00")) {
-      lastValueNull |= BIT_LAST_ZERO_DATE;
-      return null;
-    }
-
     switch (columnInfo.getColumnType()) {
+      case TIMESTAMP:
+      case DATETIME:
+      case DATE:
+      case VARCHAR:
+      case VARSTRING:
+      case STRING:
+
+        int nanoBegin = -1;
+        int[] timestampsPart = new int[]{0,0,0,0,0,0,0};
+        int partIdx = 0;
+        for (int begin = pos; begin < pos + length; begin++) {
+          byte b = buf[begin];
+          if (b == '-' || b == ' ' || b == ':') {
+            partIdx++;
+            continue;
+          }
+          if (b == '.') {
+            partIdx++;
+            nanoBegin = begin;
+            continue;
+          }
+          if (b < '0' || b > '9') {
+            throw new SQLException(
+                "cannot parse data in timestamp string '" + new String(buf, pos, length, StandardCharsets.UTF_8) + "'");
+          }
+
+          timestampsPart[partIdx] = timestampsPart[partIdx] * 10 + b - 48;
+        }
+        if (timestampsPart[0] == 0
+            && timestampsPart[1] == 0
+            && timestampsPart[2] == 0
+            && timestampsPart[3] == 0
+            && timestampsPart[4] == 0
+            && timestampsPart[5] == 0
+            && timestampsPart[6] == 0) {
+          lastValueNull |= BIT_LAST_ZERO_DATE;
+          return null;
+        }
+
+        //fix non leading tray for nanoseconds
+        if (nanoBegin > 0) {
+          for (int begin = 0; begin < 6 - (pos + length - nanoBegin - 1); begin++) {
+            timestampsPart[6] = timestampsPart[6] * 10;
+          }
+        }
+
+        Timestamp timestamp;
+
+        Calendar calendar;
+        if (userCalendar != null) {
+          calendar = userCalendar;
+        } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
+          calendar = Calendar.getInstance(timeZone);
+        } else {
+          calendar = Calendar.getInstance();
+        }
+
+        synchronized (calendar) {
+          calendar.clear();
+          calendar.set(Calendar.YEAR, timestampsPart[0]);
+          calendar.set(Calendar.MONTH, timestampsPart[1] - 1);
+          calendar.set(Calendar.DAY_OF_MONTH, timestampsPart[2]);
+          calendar.set(Calendar.HOUR_OF_DAY, timestampsPart[3]);
+          calendar.set(Calendar.MINUTE, timestampsPart[4]);
+          calendar.set(Calendar.SECOND, timestampsPart[5]);
+          calendar.set(Calendar.MILLISECOND, timestampsPart[6] / 1000000);
+          timestamp = new Timestamp(calendar.getTime().getTime());
+        }
+        timestamp.setNanos(timestampsPart[6] * 1000);
+        return timestamp;
+
       case TIME:
         //time does not go after millisecond
+        String rawValue = new String(buf, pos, length, StandardCharsets.UTF_8);
         Timestamp tt = new Timestamp(getInternalTime(columnInfo, userCalendar, timeZone).getTime());
         tt.setNanos(extractNanos(rawValue));
         return tt;
+
+
       default:
-        try {
-          int hour = 0;
-          int minutes = 0;
-          int seconds = 0;
-
-          int year = Integer.parseInt(rawValue.substring(0, 4));
-          int month = Integer.parseInt(rawValue.substring(5, 7));
-          int day = Integer.parseInt(rawValue.substring(8, 10));
-          if (rawValue.length() >= 19) {
-            hour = Integer.parseInt(rawValue.substring(11, 13));
-            minutes = Integer.parseInt(rawValue.substring(14, 16));
-            seconds = Integer.parseInt(rawValue.substring(17, 19));
-          }
-          int nanoseconds = extractNanos(rawValue);
-          Timestamp timestamp;
-
-          Calendar calendar;
-          if (userCalendar != null) {
-            calendar = userCalendar;
-          } else if (columnInfo.getColumnType().getSqlType() == Types.TIMESTAMP) {
-            calendar = Calendar.getInstance(timeZone);
-          } else {
-            calendar = Calendar.getInstance();
-          }
-
-          synchronized (calendar) {
-            calendar.clear();
-            calendar.set(Calendar.YEAR, year);
-            calendar.set(Calendar.MONTH, month - 1);
-            calendar.set(Calendar.DAY_OF_MONTH, day);
-            calendar.set(Calendar.HOUR_OF_DAY, hour);
-            calendar.set(Calendar.MINUTE, minutes);
-            calendar.set(Calendar.SECOND, seconds);
-            calendar.set(Calendar.MILLISECOND, nanoseconds / 1000000);
-            timestamp = new Timestamp(calendar.getTime().getTime());
-          }
-          timestamp.setNanos(nanoseconds);
-          return timestamp;
-        } catch (NumberFormatException | StringIndexOutOfBoundsException n) {
-          throw new SQLException("Value \"" + rawValue + "\" cannot be parse as Timestamp");
-        }
+        String value = new String(buf, pos, length, StandardCharsets.UTF_8);
+        throw new SQLException("Value type \"" + columnInfo.getColumnType().getTypeName()
+            + "\" with value \"" + value + "\" cannot be parse as Timestamp");
     }
   }
 
@@ -689,13 +732,14 @@ public class TextRowProtocol extends RowProtocol {
       case DOUBLE:
         return getInternalDouble(columnInfo);
       case VARCHAR:
+      case VARSTRING:
+      case STRING:
         if (columnInfo.isBinary()) {
           byte[] data = new byte[getLengthMaxFieldSize()];
           System.arraycopy(buf, pos, data, 0, getLengthMaxFieldSize());
           return data;
         }
         return getInternalString(columnInfo, null, timeZone);
-
       case TIMESTAMP:
       case DATETIME:
         return getInternalTimestamp(columnInfo, null, timeZone);
@@ -724,15 +768,8 @@ public class TextRowProtocol extends RowProtocol {
         return getInternalFloat(columnInfo);
       case TIME:
         return getInternalTime(columnInfo, null, timeZone);
-      case VARSTRING:
-      case STRING:
-        if (columnInfo.isBinary()) {
-          byte[] data = new byte[getLengthMaxFieldSize()];
-          System.arraycopy(buf, pos, data, 0, getLengthMaxFieldSize());
-          return data;
-        }
-        return getInternalString(columnInfo, null, timeZone);
       case OLDDECIMAL:
+      case JSON:
         return getInternalString(columnInfo, null, timeZone);
       case GEOMETRY:
         byte[] data = new byte[length];
@@ -756,9 +793,8 @@ public class TextRowProtocol extends RowProtocol {
    *
    * @param columnInfo column information
    * @return boolean value
-   * @throws SQLException if column type doesn't permit conversion
    */
-  public boolean getInternalBoolean(ColumnInformation columnInfo) throws SQLException {
+  public boolean getInternalBoolean(ColumnInformation columnInfo) {
     if (lastValueWasNull()) {
       return false;
     }
@@ -917,8 +953,8 @@ public class TextRowProtocol extends RowProtocol {
     }
 
     ZoneId zoneId = timeZone.toZoneId().normalized();
-    if (ZoneOffset.class.isInstance(zoneId)) {
-      ZoneOffset zoneOffset = ZoneOffset.class.cast(zoneId);
+    if (zoneId instanceof ZoneOffset) {
+      ZoneOffset zoneOffset = (ZoneOffset) zoneId;
       String raw = new String(buf, pos, length, StandardCharsets.UTF_8);
       switch (columnInfo.getColumnType().getSqlType()) {
 

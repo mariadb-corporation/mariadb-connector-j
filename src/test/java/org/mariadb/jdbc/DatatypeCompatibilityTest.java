@@ -323,7 +323,7 @@ public class DatatypeCompatibilityTest extends BaseTest {
   }
 
   @Test
-  public void testTimePrepareStatement() throws SQLException {
+  public void testTimePrepareStatement() {
     Assume.assumeTrue(doPrecisionTest);
     try (Connection connection = setConnection("&useServerPrepStmts=true")) {
       testStatementGetTime(connection);

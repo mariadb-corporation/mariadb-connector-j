@@ -567,8 +567,7 @@ public class BinaryRowProtocol extends RowProtocol {
         } catch (NumberFormatException nfe) {
           SQLException sqlException = new SQLException(
               "Incorrect format for getFloat for data field with type "
-                  + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
-          sqlException.initCause(nfe);
+                  + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264, nfe);
           throw sqlException;
         }
       default:
@@ -581,8 +580,7 @@ public class BinaryRowProtocol extends RowProtocol {
     } catch (NumberFormatException nfe) {
       SQLException sqlException = new SQLException(
           "Incorrect format for getFloat for data field with type "
-              + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264);
-      sqlException.initCause(nfe);
+              + columnInfo.getColumnType().getJavaTypeName(), "22003", 1264, nfe);
       throw sqlException;
     }
   }
@@ -1013,13 +1011,14 @@ public class BinaryRowProtocol extends RowProtocol {
       case DOUBLE:
         return getInternalDouble(columnInfo);
       case VARCHAR:
+      case VARSTRING:
+      case STRING:
         if (columnInfo.isBinary()) {
           byte[] data = new byte[getLengthMaxFieldSize()];
           System.arraycopy(buf, pos, data, 0, getLengthMaxFieldSize());
           return data;
         }
         return getInternalString(columnInfo, null, timeZone);
-
       case TIMESTAMP:
       case DATETIME:
         return getInternalTimestamp(columnInfo, null, timeZone);
@@ -1048,15 +1047,8 @@ public class BinaryRowProtocol extends RowProtocol {
         return getInternalFloat(columnInfo);
       case TIME:
         return getInternalTime(columnInfo, null, timeZone);
-      case VARSTRING:
-      case STRING:
-        if (columnInfo.isBinary()) {
-          byte[] data = new byte[getLengthMaxFieldSize()];
-          System.arraycopy(buf, pos, data, 0, getLengthMaxFieldSize());
-          return data;
-        }
-        return getInternalString(columnInfo, null, timeZone);
       case OLDDECIMAL:
+      case JSON:
         return getInternalString(columnInfo, null, timeZone);
       case GEOMETRY:
         byte[] data = new byte[length];
@@ -1453,8 +1445,8 @@ public class BinaryRowProtocol extends RowProtocol {
     }
 
     ZoneId zoneId = timeZone.toZoneId().normalized();
-    if (ZoneOffset.class.isInstance(zoneId)) {
-      ZoneOffset zoneOffset = ZoneOffset.class.cast(zoneId);
+    if (zoneId instanceof ZoneOffset) {
+      ZoneOffset zoneOffset = (ZoneOffset) zoneId;
 
       int day = 0;
       int hour = 0;

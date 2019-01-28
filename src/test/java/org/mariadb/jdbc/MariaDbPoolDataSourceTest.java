@@ -426,9 +426,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
           ResultSet rs = stmt.executeQuery("SELECT CONNECTION_ID()");
           rs.next();
           Integer connectionId = rs.getInt(1);
-          if (!threadIds.contains(connectionId)) {
-            threadIds.add(connectionId);
-          }
+          threadIds.add(connectionId);
           stmt.execute("SELECT * FROM mysql.user");
 
         } catch (SQLException e) {
@@ -470,6 +468,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
         connection.isValid(10_000);
       }
 
+      Thread.sleep(500);
       assertTrue(getCurrentConnections() > initialConnection);
     }
     Thread.sleep(500); //ensure that previous close are effective

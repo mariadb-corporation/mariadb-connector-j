@@ -180,6 +180,8 @@ public interface Protocol {
 
   void cancelCurrentQuery() throws SQLException;
 
+  void interrupt();
+
   void skip() throws SQLException;
 
   boolean checkIfMaster() throws SQLException;
@@ -268,7 +270,7 @@ public interface Protocol {
 
   boolean isServerMariaDb() throws SQLException;
 
-  SQLException handleIoException(IOException initialException);
+  SQLException handleIoException(Exception initialException);
 
   PacketInputStream getReader();
 

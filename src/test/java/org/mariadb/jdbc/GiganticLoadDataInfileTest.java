@@ -114,7 +114,7 @@ public class GiganticLoadDataInfileTest extends BaseTest {
     }
 
     @Override
-    public int read() throws IOException {
+    public int read() {
       if (currentRow > numberOfRows) {
         return -1;
       }

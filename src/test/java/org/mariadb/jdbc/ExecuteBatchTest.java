@@ -56,18 +56,23 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.Thread.State;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Iterator;
+import java.util.Properties;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -381,6 +386,60 @@ public class ExecuteBatchTest extends BaseTest {
       ResultSet rs = stmt.executeQuery("SELECT count(*) from multipleSimultaneousBatch_" + i);
       assertTrue(rs.next());
       assertEquals(1024, rs.getInt(1));
+    }
+  }
+
+
+  @Test
+  public void useBatchMultiSendWithError() throws Exception {
+    Assume.assumeFalse(sharedIsAurora());
+
+    Iterator<Thread> it = Thread.getAllStackTraces().keySet().iterator();
+    Thread thread;
+
+    while (it.hasNext()) {
+      thread = it.next();
+      if (thread.getName().contains("MariaDb-bulk-")) {
+        assertEquals(State.WAITING, thread.getState());
+      }
+    }
+
+    Properties properties = new Properties();
+    properties.setProperty("useBatchMultiSend", "true");
+    try (Connection connection = createProxyConnection(properties)) {
+      Statement stmt = connection.createStatement();
+      stmt.execute("CREATE TEMPORARY TABLE useBatchMultiSendWithError (id INT NOT NULL,"
+          + "UNIQUE INDEX `index1` (id))");
+      String sql = "insert into useBatchMultiSendWithError (id) values (?)";
+      try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        for (int i = 0; i < 200000; i++) {
+          pstmt.setInt(1, i);
+          pstmt.addBatch();
+        }
+
+        final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
+        executor.schedule(() -> {
+          stopProxy();
+        }, 10, TimeUnit.MILLISECONDS);
+
+        try {
+          pstmt.executeBatch();
+          fail();
+        } catch (SQLException e) {
+          Iterator<Thread> it2 = Thread.getAllStackTraces().keySet().iterator();
+          Thread.sleep(500);
+          Thread thread2;
+
+          while (it2.hasNext()) {
+            thread2 = it2.next();
+            if (thread2.getName().contains("MariaDb-bulk-")) {
+              assertEquals(State.WAITING, thread2.getState());
+            }
+          }
+          restartProxy();
+        }
+
+      }
     }
   }
 

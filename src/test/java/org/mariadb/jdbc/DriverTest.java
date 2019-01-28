@@ -114,6 +114,10 @@ public class DriverTest extends BaseTest {
         "engine=innodb");
     createTable("Drivert4", "id int not null primary key auto_increment, test varchar(20)",
         "engine=innodb");
+    createTable("Drivert5", "id int not null primary key auto_increment, test varchar(20)",
+            "engine=innodb");
+    createTable("Drivert6", "id int not null primary key auto_increment, test varchar(20)",
+            "engine=innodb");
     createTable("test_float", "id int not null primary key auto_increment, a float");
     createTable("test_big_autoinc2",
         "id int not null primary key auto_increment, test varchar(10)");
@@ -477,17 +481,74 @@ public class DriverTest extends BaseTest {
     stmt.executeUpdate("INSERT INTO Drivert4 (test) values('hej6')");
     sharedConnection.commit();
     ResultSet rs = stmt.executeQuery("SELECT * FROM Drivert4");
-    assertEquals(true, rs.next());
+    assertTrue(rs.next());
     assertEquals("hej1", rs.getString(2));
-    assertEquals(true, rs.next());
+    assertTrue(rs.next());
     assertEquals("hej2", rs.getString(2));
-    assertEquals(true, rs.next());
+    assertTrue(rs.next());
     assertEquals("hej5", rs.getString(2));
-    assertEquals(true, rs.next());
+    assertTrue(rs.next());
     assertEquals("hej6", rs.getString(2));
-    assertEquals(false, rs.next());
+    assertFalse(rs.next());
     sharedConnection.setAutoCommit(true);
   }
+
+  @Test
+  public void savepointUnname() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    sharedConnection.setAutoCommit(false);
+    stmt.executeUpdate("INSERT INTO Drivert5 (test) values('hej1')");
+    stmt.executeUpdate("INSERT INTO Drivert5 (test) values('hej2')");
+    Savepoint savepoint = sharedConnection.setSavepoint();
+    stmt.executeUpdate("INSERT INTO Drivert5 (test)  values('hej3')");
+    stmt.executeUpdate("INSERT INTO Drivert5 (test) values('hej4')");
+    sharedConnection.rollback(savepoint);
+    stmt.executeUpdate("INSERT INTO Drivert5 (test) values('hej5')");
+    stmt.executeUpdate("INSERT INTO Drivert5 (test) values('hej6')");
+    sharedConnection.commit();
+    ResultSet rs = stmt.executeQuery("SELECT * FROM Drivert5");
+    assertTrue(rs.next());
+    assertEquals("hej1", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("hej2", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("hej5", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("hej6", rs.getString(2));
+    assertFalse(rs.next());
+    sharedConnection.setAutoCommit(true);
+  }
+
+  @Test
+  public void releaseSavepoint() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    sharedConnection.setAutoCommit(false);
+    stmt.executeUpdate("INSERT INTO Drivert6 (test) values('hej1')");
+    stmt.executeUpdate("INSERT INTO Drivert6 (test) values('hej2')");
+    Savepoint savepoint = sharedConnection.setSavepoint();
+    stmt.executeUpdate("INSERT INTO Drivert6 (test)  values('hej3')");
+    stmt.executeUpdate("INSERT INTO Drivert6 (test) values('hej4')");
+    sharedConnection.releaseSavepoint(savepoint);
+    stmt.executeUpdate("INSERT INTO Drivert6 (test) values('hej5')");
+    stmt.executeUpdate("INSERT INTO Drivert6 (test) values('hej6')");
+    sharedConnection.commit();
+    ResultSet rs = stmt.executeQuery("SELECT * FROM Drivert6");
+    assertTrue(rs.next());
+    assertEquals("hej1", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("hej2", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("hej3", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("hej4", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("hej5", rs.getString(2));
+    assertTrue(rs.next());
+    assertEquals("hej6", rs.getString(2));
+    assertFalse(rs.next());
+    sharedConnection.setAutoCommit(true);
+  }
+
 
   @Test
   public void isolationLevel() throws SQLException {
@@ -501,6 +562,18 @@ public class DriverTest extends BaseTest {
       for (int level : levels) {
         connection.setTransactionIsolation(level);
         assertEquals(level, connection.getTransactionIsolation());
+      }
+    }
+  }
+
+  @Test
+  public void wrongIsolationLevel() throws SQLException {
+    try (Connection connection = setConnection()) {
+      try {
+        connection.setTransactionIsolation(10_000);
+        fail();
+      } catch (SQLException e) {
+        assertTrue(e.getMessage().contains("Unsupported transaction isolation level"));
       }
     }
   }
@@ -638,6 +711,7 @@ public class DriverTest extends BaseTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void connectFailover() throws SQLException {
     Assume.assumeTrue(hostname != null);
     String hosts = hostname + ":" + port + "," + hostname + ":" + (port + 1);
@@ -1143,14 +1217,14 @@ public class DriverTest extends BaseTest {
   @Test
   public void dumpQueryOnSyntaxException() {
     String syntacticallyWrongQuery = "banana";
-    try {
-      Statement st = sharedConnection.createStatement();
+    try (Connection connection = setConnection("&dumpQueriesOnException")) {
+      Statement st = connection.createStatement();
       st.execute(syntacticallyWrongQuery);
     } catch (SQLException sqle) {
       assertTrue(sqle.getCause().getMessage().contains("Query is: " + syntacticallyWrongQuery));
     }
   }
-
+  
   /* Check that query contains SQL statement, if dumpQueryOnException is true */
   @Test
   public void dumpQueryOnException() throws Exception {
@@ -1163,6 +1237,18 @@ public class DriverTest extends BaseTest {
         assertTrue(
             sqle.getCause().getMessage().contains("Query is: " + selectFromNonExistingTable));
       }
+    }
+  }
+
+  /* Check that query does not contains SQL statement by default */
+  @Test
+  public void shouldNotDumpQueryOnExceptionByDefault() {
+    String selectFromNonExistingTable = "select * from mango";
+    try {
+      Statement st = sharedConnection.createStatement();
+      st.execute(selectFromNonExistingTable);
+    } catch (SQLException sqle) {
+      assertFalse(sqle.getCause().getMessage().contains("Query is: " + selectFromNonExistingTable));
     }
   }
 

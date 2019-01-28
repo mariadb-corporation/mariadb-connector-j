@@ -90,12 +90,12 @@ public class ColumnNameMap {
       int counter = 0;
       for (ColumnInformation ci : columnInfo) {
         String columnAlias = ci.getName();
-        if (columnAlias != null && !columnAlias.isEmpty()) {
+        if (columnAlias != null) {
           columnAlias = columnAlias.toLowerCase(Locale.ROOT);
           aliasMap.putIfAbsent(columnAlias, counter);
 
           String tableName = ci.getTable();
-          if (tableName != null && !tableName.isEmpty()) {
+          if (tableName != null) {
             aliasMap.putIfAbsent(tableName.toLowerCase(Locale.ROOT) + "." + columnAlias, counter);
           }
         }
@@ -113,12 +113,12 @@ public class ColumnNameMap {
       int counter = 0;
       for (ColumnInformation ci : columnInfo) {
         String columnRealName = ci.getOriginalName();
-        if (columnRealName != null && !columnRealName.isEmpty()) {
+        if (columnRealName != null) {
           columnRealName = columnRealName.toLowerCase(Locale.ROOT);
           originalMap.putIfAbsent(columnRealName, counter);
 
           String tableName = ci.getOriginalTable();
-          if (tableName != null && !tableName.isEmpty()) {
+          if (tableName != null) {
             originalMap
                 .putIfAbsent(tableName.toLowerCase(Locale.ROOT) + "." + columnRealName, counter);
           }

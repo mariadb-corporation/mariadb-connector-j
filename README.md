@@ -1,6 +1,6 @@
 <p align="center">
-  <a href="http://mariadb.org/">
-    <img src="https://mariadb.com/themes/custom/mariadb/logo.svg">
+  <a href="http://mariadb.com/">
+    <img src="https://mariadb.com/kb/static/images/logo-2018-black.png">
   </a>
 </p>
 

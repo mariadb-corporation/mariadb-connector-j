@@ -79,6 +79,7 @@ public enum ColumnType {
   NEWDATE(14, Types.DATE, "Types.DATE", Date.class.getName()),
   VARCHAR(15, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
   BIT(16, Types.BIT, "Types.BIT", "[B"),
+  JSON(245, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
   DECIMAL(246, Types.DECIMAL, "Types.DECIMAL", BigDecimal.class.getName()),
   ENUM(247, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
   SET(248, Types.VARCHAR, "Types.VARCHAR", String.class.getName()),
@@ -95,17 +96,17 @@ public enum ColumnType {
   static {
     typeMap = new ColumnType[256];
     for (ColumnType v : values()) {
-      typeMap[v.mysqlType] = v;
+      typeMap[v.mariadbType] = v;
     }
   }
 
-  private final short mysqlType;
+  private final short mariadbType;
   private final int javaType;
   private final String javaTypeName;
   private final String className;
 
-  ColumnType(int mysqlType, int javaType, String javaTypeName, String className) {
-    this.mysqlType = (short) mysqlType;
+  ColumnType(int mariadbType, int javaType, String javaTypeName, String className) {
+    this.mariadbType = (short) mariadbType;
     this.javaType = javaType;
     this.javaTypeName = javaTypeName;
     this.className = className;
@@ -239,7 +240,7 @@ public enum ColumnType {
       case BLOB:
         /*
          map to different blob types based on datatype length
-         see http://dev.mysql.com/doc/refman/5.0/en/storage-requirements.html
+         see https://mariadb.com/kb/en/library/data-types/
         */
         if (len < 0) {
           return "LONGBLOB";
@@ -286,7 +287,7 @@ public enum ColumnType {
     }
 
     if (charsetNumber != 63 && typeValue >= 249 && typeValue <= 252) {
-      // MySQL Text dataType
+      // MariaDB Text dataType
       return ColumnType.VARCHAR;
     }
 
@@ -360,7 +361,7 @@ public enum ColumnType {
   }
 
   public short getType() {
-    return mysqlType;
+    return mariadbType;
   }
 
   public String getJavaTypeName() {

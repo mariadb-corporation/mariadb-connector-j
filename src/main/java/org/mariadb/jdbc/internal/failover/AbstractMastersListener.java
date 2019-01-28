@@ -449,6 +449,10 @@ public abstract class AbstractMastersListener implements Listener {
     return currentReadOnlyAsked;
   }
 
+  public boolean inTransaction() {
+    return currentProtocol.inTransaction();
+  }
+
   public boolean isMasterConnection() {
     return true;
   }
@@ -522,7 +526,7 @@ public abstract class AbstractMastersListener implements Listener {
       cause = queryException.getCause();
     }
 
-    if (sqlState.startsWith("08")) {
+    if (sqlState != null && sqlState.startsWith("08")) {
       if (reconnected) {
         //change sqlState to "Transaction has been rolled back", to transaction exception, since reconnection has succeed
         sqlState = "25S03";

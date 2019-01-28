@@ -101,9 +101,8 @@ public class StreamParameter implements Cloneable, ParameterHolder {
    * Return approximated data calculated length.
    *
    * @return approximated data length.
-   * @throws IOException if error reading stream
    */
-  public long getApproximateTextProtocolLength() throws IOException {
+  public long getApproximateTextProtocolLength() {
     return -1;
   }
 

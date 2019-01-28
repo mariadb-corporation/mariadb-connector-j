@@ -262,7 +262,7 @@ public class SelectResultSet implements ResultSet {
    *
    * @param data                 - each element of this array represents a complete row in the
    *                             ResultSet. Each value is given in its string representation, as in
-   *                             MySQL text protocol, except boolean (BIT(1)) values that are
+   *                             MariaDB text protocol, except boolean (BIT(1)) values that are
    *                             represented as "1" or "0" strings
    * @param protocol             protocol
    * @param findColumnReturnsOne - special parameter, used only in generated key result sets
@@ -297,7 +297,7 @@ public class SelectResultSet implements ResultSet {
    * @param columnNames - string array of column names
    * @param columnTypes - column types
    * @param data        - each element of this array represents a complete row in the ResultSet.
-   *                    Each value is given in its string representation, as in MySQL text protocol,
+   *                    Each value is given in its string representation, as in MariaDB text protocol,
    *                    except boolean (BIT(1)) values that are represented as "1" or "0" strings
    * @param protocol    protocol
    * @return resultset
@@ -700,7 +700,7 @@ public class SelectResultSet implements ResultSet {
   }
 
   @Override
-  public void clearWarnings() throws SQLException {
+  public void clearWarnings() {
     if (this.statement != null) {
       this.statement.clearWarnings();
     }
@@ -905,7 +905,7 @@ public class SelectResultSet implements ResultSet {
   }
 
   @Override
-  public int getFetchDirection() throws SQLException {
+  public int getFetchDirection() {
     return FETCH_UNKNOWN;
   }
 
@@ -918,7 +918,7 @@ public class SelectResultSet implements ResultSet {
   }
 
   @Override
-  public int getFetchSize() throws SQLException {
+  public int getFetchSize() {
     return this.fetchSize;
   }
 
@@ -943,12 +943,12 @@ public class SelectResultSet implements ResultSet {
   }
 
   @Override
-  public int getType() throws SQLException {
+  public int getType() {
     return resultSetScrollType;
   }
 
   @Override
-  public int getConcurrency() throws SQLException {
+  public int getConcurrency() {
     return CONCUR_READ_ONLY;
   }
 
@@ -977,7 +977,7 @@ public class SelectResultSet implements ResultSet {
   /**
    * {inheritDoc}.
    */
-  public boolean wasNull() throws SQLException {
+  public boolean wasNull() {
     return row.wasNull();
   }
 
@@ -1280,7 +1280,7 @@ public class SelectResultSet implements ResultSet {
   /**
    * {inheritDoc}.
    */
-  public ResultSetMetaData getMetaData() throws SQLException {
+  public ResultSetMetaData getMetaData() {
     return new MariaDbResultSetMetaData(columnsInformation, options, returnTableAlias);
   }
 
@@ -1325,45 +1325,30 @@ public class SelectResultSet implements ResultSet {
       throw new SQLException("Class type cannot be null");
     }
     checkObjectRange(columnIndex);
+    if (row.lastValueWasNull()) {
+      return null;
+    }
     ColumnInformation col = columnsInformation[columnIndex - 1];
 
     if (type.equals(String.class)) {
       return (T) row.getInternalString(col, null, timeZone);
 
     } else if (type.equals(Integer.class)) {
-      if (row.lastValueWasNull()) {
-        return null;
-      }
       return (T) (Integer) row.getInternalInt(col);
 
     } else if (type.equals(Long.class)) {
-      if (row.lastValueWasNull()) {
-        return null;
-      }
       return (T) (Long) row.getInternalLong(col);
 
     } else if (type.equals(Short.class)) {
-      if (row.lastValueWasNull()) {
-        return null;
-      }
       return (T) (Short) row.getInternalShort(col);
 
     } else if (type.equals(Double.class)) {
-      if (row.lastValueWasNull()) {
-        return null;
-      }
       return (T) (Double) row.getInternalDouble(col);
 
     } else if (type.equals(Float.class)) {
-      if (row.lastValueWasNull()) {
-        return null;
-      }
       return (T) (Float) row.getInternalFloat(col);
 
     } else if (type.equals(Byte.class)) {
-      if (row.lastValueWasNull()) {
-        return null;
-      }
       return (T) (Byte) row.getInternalByte(col);
 
     } else if (type.equals(byte[].class)) {
@@ -1393,15 +1378,9 @@ public class SelectResultSet implements ResultSet {
       return type.cast(calendar);
 
     } else if (type.equals(Clob.class) || type.equals(NClob.class)) {
-      if (row.lastValueWasNull()) {
-        return null;
-      }
       return (T) new MariaDbClob(row.buf, row.pos, row.getLengthMaxFieldSize());
 
     } else if (type.equals(InputStream.class)) {
-      if (row.lastValueWasNull()) {
-        return null;
-      }
       return (T) new ByteArrayInputStream(row.buf, row.pos, row.getLengthMaxFieldSize());
 
     } else if (type.equals(Reader.class)) {
@@ -2389,7 +2368,7 @@ public class SelectResultSet implements ResultSet {
   /**
    * {inheritDoc}.
    */
-  public int getHoldability() throws SQLException {
+  public int getHoldability() {
     return ResultSet.HOLD_CURSORS_OVER_COMMIT;
   }
 

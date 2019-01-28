@@ -69,7 +69,7 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
       boolean allowMultiqueries, String[] partsRewrite,
       String[] partsMulti) throws Exception {
 
-    MariaDbPreparedStatementClient statement = new MariaDbPreparedStatementClient(
+    ClientSidePreparedStatement statement = new ClientSidePreparedStatement(
         (MariaDbConnection) sharedConnection, sql,
         ResultSet.FETCH_FORWARD, ResultSet.CONCUR_READ_ONLY, Statement.NO_GENERATED_KEYS);
     assertEquals(paramNumber, statement.getParameterCount());
@@ -362,7 +362,7 @@ public class ClientPreparedStatementParsingTest extends BaseTest {
 
   @Test
   public void rewriteBatchedError() throws Exception {
-    try (Connection connection = setConnection("&rewriteBatchedStatements=true")) {
+    try (Connection connection = setConnection("&rewriteBatchedStatements=true&dumpQueriesOnException")) {
       PreparedStatement preparedStatement = connection
           .prepareStatement("INSERT INTO errorTable (a, b) VALUES (?, ?, ?)");
 

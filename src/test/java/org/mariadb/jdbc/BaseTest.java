@@ -58,6 +58,7 @@ import static org.junit.Assert.fail;
 
 import com.sun.jna.Platform;
 import java.io.IOException;
+import java.lang.Thread.State;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -71,6 +72,7 @@ import java.sql.Statement;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
@@ -303,6 +305,15 @@ public class BaseTest {
         e.printStackTrace();
       }
     }
+    Iterator<Thread> it = Thread.getAllStackTraces().keySet().iterator();
+    Thread thread;
+
+    while (it.hasNext()) {
+      thread = it.next();
+      if (thread.getName().contains("MariaDb-bulk-")) {
+        assertEquals(State.WAITING, thread.getState());
+      }
+    }
   }
 
   // common function for logging information
@@ -355,9 +366,7 @@ public class BaseTest {
       Statement stmt = sharedConnection.createStatement();
       stmt.execute("drop view if exists " + viewName);
       stmt.execute("create view " + viewName + " AS (" + tableColumns + ") ");
-      if (!tempViewList.contains(viewName)) {
-        tempViewList.add(viewName);
-      }
+      tempViewList.add(viewName);
     }
   }
 
@@ -373,9 +382,7 @@ public class BaseTest {
       Statement stmt = sharedConnection.createStatement();
       stmt.execute("drop procedure IF EXISTS " + name);
       stmt.execute("create  procedure " + name + body);
-      if (!tempProcedureList.contains(name)) {
-        tempProcedureList.add(name);
-      }
+      tempProcedureList.add(name);
     }
   }
 
@@ -391,9 +398,7 @@ public class BaseTest {
       Statement stmt = sharedConnection.createStatement();
       stmt.execute("drop function IF EXISTS " + name);
       stmt.execute("create function " + name + body);
-      if (!tempFunctionList.contains(name)) {
-        tempFunctionList.add(name);
-      }
+      tempFunctionList.add(name);
     }
   }
 

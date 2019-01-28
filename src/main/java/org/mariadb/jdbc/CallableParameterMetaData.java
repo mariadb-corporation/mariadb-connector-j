@@ -309,7 +309,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
 
   }
 
-  public int getParameterCount() throws SQLException {
+  public int getParameterCount() {
     return params.size();
   }
 
@@ -380,11 +380,11 @@ public class CallableParameterMetaData implements ParameterMetaData {
     return getParam(param).getName();
   }
 
-  public <T> T unwrap(Class<T> iface) throws SQLException {
+  public <T> T unwrap(Class<T> iface) {
     return null;
   }
 
-  public boolean isWrapperFor(Class<?> iface) throws SQLException {
+  public boolean isWrapperFor(Class<?> iface) {
     return false;
   }
 

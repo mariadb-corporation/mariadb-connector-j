@@ -97,8 +97,8 @@ public class BlobTest extends BaseTest {
   public static void initClass() throws SQLException {
     createTable("bug716378",
         "id int not null primary key auto_increment, test longblob, test2 blob, test3 text");
-    createTable("BlobTeststreamtest2", "id int primary key not null, st varchar(20), strm text",
-        "CHARSET utf8");
+    createTable("BlobTeststreamtest2", "id int primary key not null, st varchar(20), strm text"
+                    + ", strm2 text, strm3 text","CHARSET utf8");
     createTable("BlobTeststreamtest3", "id int primary key not null, strm text", "CHARSET utf8");
     createTable("BlobTestclobtest", "id int not null primary key, strm text", "CHARSET utf8");
     createTable("BlobTestclobtest2", "strm text", "CHARSET utf8");
@@ -125,7 +125,6 @@ public class BlobTest extends BaseTest {
     assertEquals(11, blob.position(pattern, 1));
     pattern = new byte[]{1, 2};
     assertEquals(1, blob.position(pattern, 1));
-
   }
 
   @Test(expected = SQLException.class)
@@ -163,11 +162,13 @@ public class BlobTest extends BaseTest {
     String toInsert1 = "Øbbcdefgh\njklmn\"";
     String toInsert2 = "Øabcdefgh\njklmn\"";
     PreparedStatement stmt = sharedConnection
-        .prepareStatement("insert into BlobTeststreamtest2 (id, st, strm) values (?,?,?)");
+        .prepareStatement("insert into BlobTeststreamtest2 (id, st, strm, strm2, strm3) values (?,?,?,?,?)");
     stmt.setInt(1, 2);
     stmt.setString(2, toInsert1);
     Reader reader = new StringReader(toInsert2);
     stmt.setCharacterStream(3, reader, 5);
+    stmt.setCharacterStream(4, null);
+    stmt.setCharacterStream(5, null, 5);
     stmt.execute();
 
     ResultSet rs = sharedConnection.createStatement()
@@ -181,6 +182,8 @@ public class BlobTest extends BaseTest {
     }
     assertEquals(toInsert1, rs.getString(2));
     assertEquals(toInsert2.substring(0, 5), sb.toString());
+    assertNull(rs.getString(4));
+    assertNull(rs.getString(5));
   }
 
   @Test
@@ -594,6 +597,14 @@ public class BlobTest extends BaseTest {
     for (int i = 0; i < 750; i++) {
       assertEquals(bb[i + 50], blobBytes[i]);
     }
+  }
+
+  @Test
+  public void connectionBlob() throws SQLException {
+    Blob blob = sharedConnection.createBlob();
+    assertArrayEquals(new byte[]{0}, blob.getBytes(1, 1));
+    blob.setBytes(5, new byte[]{1, 2, 3, 4, 5, 6});
+    assertArrayEquals(new byte[]{0, 0, 0, 0, 1, 2, 3, 4, 5}, blob.getBytes(1, 9));
   }
 
 }

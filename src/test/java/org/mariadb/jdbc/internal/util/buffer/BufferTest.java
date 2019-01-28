@@ -59,7 +59,7 @@ import org.mariadb.jdbc.internal.com.read.Buffer;
 public class BufferTest {
 
   @Test
-  public void testGetLengthEncodedBinary() throws Exception {
+  public void testGetLengthEncodedBinary() {
     Assert.assertEquals(15, new Buffer(new byte[]{(byte) 0x0f}).getLengthEncodedNumeric());
     Assert.assertEquals(65535,
         new Buffer(new byte[]{(byte) 0xfc, (byte) 0xff, (byte) 0xff}).getLengthEncodedNumeric());
@@ -72,7 +72,7 @@ public class BufferTest {
   }
 
   @Test
-  public void testSkipLengthEncodedBytes() throws Exception {
+  public void testSkipLengthEncodedBytes() {
     byte[] arr15 = new byte[1];
     arr15[0] = (byte) 0x0f;
     Buffer buf15 = new Buffer(arr15);

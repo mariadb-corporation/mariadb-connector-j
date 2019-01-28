@@ -55,9 +55,9 @@ package org.mariadb.jdbc.internal.io.input;
 import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_COMPRESSED_PACKET;
 import static org.mariadb.jdbc.internal.io.TraceObject.COMPRESSED_PROTOCOL_NOT_COMPRESSED_PACKET;
 
-import java.io.BufferedInputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
@@ -75,7 +75,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
   private static final Logger logger = LoggerFactory.getLogger(DecompressPacketInputStream.class);
   private final byte[] header = new byte[7];
   private final byte[] reusableArray = new byte[REUSABLE_BUFFER_LENGTH];
-  private final BufferedInputStream inputStream;
+  private final InputStream inputStream;
   private final int maxQuerySizeToLog;
   //compress packet can contain multiple standard packet
   private byte[] cacheData = new byte[0];
@@ -86,7 +86,7 @@ public class DecompressPacketInputStream implements PacketInputStream {
   private String serverThreadLog = "";
   private LruTraceCache traceCache = null;
 
-  public DecompressPacketInputStream(BufferedInputStream in, int maxQuerySizeToLog) {
+  public DecompressPacketInputStream(InputStream in, int maxQuerySizeToLog) {
     inputStream = in;
     this.maxQuerySizeToLog = maxQuerySizeToLog;
   }

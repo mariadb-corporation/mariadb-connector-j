@@ -95,7 +95,7 @@ public enum DefaultOptions {
       "Session timeout is defined by the wait_timeout "
           + "server variable. Setting interactiveClient to true will tell the server to use the interactive_timeout "
           + "server variable.", false),
-  DUMP_QUERY_ON_EXCEPTION("dumpQueriesOnException", Boolean.TRUE, "1.1.0",
+  DUMP_QUERY_ON_EXCEPTION("dumpQueriesOnException", Boolean.FALSE, "1.1.0",
       "If set to 'true', an exception is thrown "
           + "during query execution containing a query string.", false),
   USE_OLD_ALIAS_METADATA_BEHAVIOR("useOldAliasMetadataBehavior", Boolean.FALSE, "1.1.9",
@@ -116,7 +116,7 @@ public enum DefaultOptions {
       "DatabaseMetaData use current catalog"
           + " if null.", false),
   TINY_INT_IS_BIT("tinyInt1isBit", Boolean.TRUE, "1.0.0",
-      "Datatype mapping flag, handle MySQL Tiny as BIT(boolean).",
+      "Datatype mapping flag, handle Tiny as BIT(boolean).",
       false),
   YEAR_IS_DATE_TYPE("yearIsDateType", Boolean.TRUE, "1.0.0",
       "Year is date type, rather than numerical.", false),
@@ -211,7 +211,7 @@ public enum DefaultOptions {
           + " time difference), doesn't take\n"
           + "timezone in account.", false),
   MAXIMIZE_MYSQL_COMPATIBILITY("maximizeMysqlCompatibility", Boolean.FALSE, "1.3.0",
-      "maximize Mysql compatibility.\n"
+      "maximize MySQL compatibility.\n"
           + "when using jdbc setDate(), will store date in client timezone, not in server timezone when "
           + "useLegacyDatetimeCode = false.\n"
           + "default to false.", false),
@@ -287,7 +287,7 @@ public enum DefaultOptions {
       + "Log level correspond to Slf4j logging implementation", false),
   PROFILE_SQL("profileSql", Boolean.FALSE, "1.5.0", "log query execution time.", false),
   MAX_QUERY_LOG_SIZE("maxQuerySizeToLog", 1024, 0, "1.5.0", "Max query log size.", false),
-  SLOW_QUERY_TIME("slowQueryThresholdNanos", (Long) null, 0L, "1.5.0",
+  SLOW_QUERY_TIME("slowQueryThresholdNanos", null, 0L, "1.5.0",
       "Will log query with execution time superior"
           + " to this value (if defined )", false),
   PASSWORD_CHARACTER_ENCODING("passwordCharacterEncoding", "1.5.9",
@@ -298,7 +298,7 @@ public enum DefaultOptions {
       + " pipeline (all queries are send, then only all results are reads), permitting faster connection "
       + "creation", false),
   ENABLE_PACKET_DEBUG("enablePacketDebug", Boolean.FALSE, "1.6.0",
-      "Driver will save the last 16 MySQL packet "
+      "Driver will save the last 16 MariaDB packet "
           + "exchanges (limited to first 1000 bytes). Hexadecimal value of those packets will be added to stacktrace"
           + " when an IOException occur.\n"
           + "This option has no impact on performance but driver will then take 16kb more memory.",
@@ -372,7 +372,17 @@ public enum DefaultOptions {
       "add \"SHOW ENGINE INNODB STATUS\" result to exception trace when having a deadlock exception",
       false),
   INCLUDE_THREAD_DUMP("includeThreadDumpInDeadlockExceptions", Boolean.FALSE, "2.3.0",
-      "add thread dump to exception trace when having a deadlock exception", false);
+      "add thread dump to exception trace when having a deadlock exception", false),
+  READ_AHEAD("useReadAheadInput", Boolean.TRUE, "2.4.0",
+      "use a buffered inputSteam that read socket available data", false),
+  KEY_STORE_TYPE("keyStoreType", (String) null, "2.4.0",
+      "indicate key store type (JKS/PKCS12). default is null, then using java default type", false),
+  TRUST_STORE_TYPE("trustStoreType", (String) null, "2.4.0",
+      "indicate trust store type (JKS/PKCS12). default is null, then using java default type", false),
+  SERVICE_PRINCIPAL_NAME("servicePrincipalName", (String) null, "2.4.0",
+      "when using GSSAPI authentication, SPN (Service Principal Name) use the server SPN information. When set, "
+          + "connector will use this value, ignoring server information", false);
+
 
   private final String optionName;
   private final String description;
@@ -686,10 +696,8 @@ public enum DefaultOptions {
             sb.append((String) value);
           } else if (o.objType.equals(Boolean.class)) {
             sb.append(((Boolean) value).toString());
-          } else if (o.objType.equals(Integer.class)) {
-            sb.append((Integer) value);
-          } else if (o.objType.equals(Long.class)) {
-            sb.append((Long) value);
+          } else if (o.objType.equals(Integer.class) || o.objType.equals(Long.class)) {
+            sb.append(value);
           }
         }
       }

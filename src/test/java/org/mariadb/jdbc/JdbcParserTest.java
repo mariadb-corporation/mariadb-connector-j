@@ -144,7 +144,7 @@ public class JdbcParserTest {
   }
 
   @Test
-  public void testAcceptsUrl() throws Throwable {
+  public void testAcceptsUrl() {
     Driver driver = new Driver();
     assertTrue(driver.acceptsURL("jdbc:mariadb://localhost/test"));
     assertTrue(driver.acceptsURL("jdbc:mysql://localhost/test"));
@@ -185,27 +185,15 @@ public class JdbcParserTest {
     assertNull(jdbc.getOptions().user);
     assertFalse(jdbc.getOptions().createDatabaseIfNotExist);
     assertNull(jdbc.getOptions().socketTimeout);
-
-  }
-
-  @Test
-  public void testOptionTakeDefaultAurora() throws Throwable {
-    UrlParser jdbc = UrlParser.parse(
-        "jdbc:mariadb:aurora://cluster-identifier.cluster-customerID.region.rds.amazonaws.com/test");
-    assertEquals(30000, jdbc.getOptions().connectTimeout);
-    assertTrue(jdbc.getOptions().validConnectionTimeout == 0);
-    assertFalse(jdbc.getOptions().autoReconnect);
-    assertNull(jdbc.getOptions().user);
-    assertFalse(jdbc.getOptions().createDatabaseIfNotExist);
-    assertTrue(jdbc.getOptions().socketTimeout == 10000);
   }
 
   @Test
   public void testOptionParse() throws Throwable {
     UrlParser jdbc = UrlParser
         .parse("jdbc:mariadb://localhost/test?user=root&password=toto&createDB=true"
-            + "&autoReconnect=true&validConnectionTimeout=2&connectTimeout=5");
+            + "&autoReconnect=true&validConnectionTimeout=2&connectTimeout=5&socketTimeout=20");
     assertTrue(jdbc.getOptions().connectTimeout == 5);
+    assertTrue(jdbc.getOptions().socketTimeout == 20);
     assertTrue(jdbc.getOptions().validConnectionTimeout == 2);
     assertTrue(jdbc.getOptions().autoReconnect);
     assertTrue(jdbc.getOptions().createDatabaseIfNotExist);
@@ -319,7 +307,7 @@ public class JdbcParserTest {
   }
 
   @Test
-  public void testJdbcParserBooleanOption() throws SQLException {
+  public void testJdbcParserBooleanOption() {
     String url = "jdbc:mariadb://master:3306,slave1:3307,slave2:3308?autoReconnect=truee";
     Properties prop = new Properties();
     prop.setProperty("user", "greg");

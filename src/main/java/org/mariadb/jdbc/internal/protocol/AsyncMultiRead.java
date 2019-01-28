@@ -55,6 +55,8 @@ package org.mariadb.jdbc.internal.protocol;
 import static org.mariadb.jdbc.internal.util.SqlStates.INTERRUPTED_EXCEPTION;
 
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLTransientConnectionException;
 import java.util.List;
 import java.util.concurrent.Callable;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
@@ -132,12 +134,17 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
     int counter = 0;
 
     //ensure to not finished loop while all bulk has not been send
+    outerloop:
     while (!status.sendEnded || counter < status.sendSubCmdCounter) {
       //read results for each send data
       while (counter < status.sendSubCmdCounter) {
         try {
           protocol.getResult(results);
         } catch (SQLException qex) {
+          if (qex instanceof SQLNonTransientConnectionException
+              || qex instanceof SQLTransientConnectionException) {
+            break outerloop;
+          }
           if (asyncMultiReadResult.getException() == null) {
             asyncMultiReadResult.setException(bulkSend.handleResultException(qex, results,
                 parametersList, queries, counter, sendCmdInitialCounter, paramCount,

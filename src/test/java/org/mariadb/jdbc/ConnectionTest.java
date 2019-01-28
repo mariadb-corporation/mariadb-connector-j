@@ -61,6 +61,7 @@ import static org.junit.Assert.fail;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.sql.ClientInfoStatus;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -68,7 +69,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLClientInfoException;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.SQLPermission;
+import java.sql.SQLWarning;
 import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Map;
@@ -98,10 +101,9 @@ public class ConnectionTest extends BaseTest {
   /**
    * Conj-166. Connection error code must be thrown
    *
-   * @throws SQLException exception
    */
   @Test
-  public void testAccessDeniedErrorCode() throws SQLException {
+  public void testAccessDeniedErrorCode() {
     try {
       DriverManager.getConnection("jdbc:mariadb://" + ((hostname != null) ? hostname : "localhost")
           + ":" + port + "/" + database + "?user=foo");
@@ -163,6 +165,23 @@ public class ConnectionTest extends BaseTest {
           //normal exception
         }
       }
+    }
+  }
+
+  @Test
+  public void abortTestAlreadyClosed() throws SQLException {
+    Connection connection = setConnection();
+    connection.close();
+    Executor executor = Runnable::run;
+    connection.abort(executor);
+  }
+
+  @Test
+  public void abortTestNoExecutor() {
+    try {
+      sharedConnection.abort(null);
+    } catch (SQLException e) {
+      assertTrue(e.getMessage().contains("Cannot abort the connection: null executor passed"));
     }
   }
 
@@ -241,7 +260,7 @@ public class ConnectionTest extends BaseTest {
     //Create a SQL stream bigger than maxAllowedPacket
     StringBuilder sb = new StringBuilder();
     String rowData = "('this is a dummy row values')";
-    int rowsToWrite = (maxAllowedPacket / rowData.getBytes("UTF-8").length) + 1;
+    int rowsToWrite = (maxAllowedPacket / rowData.getBytes(StandardCharsets.UTF_8).length) + 1;
     try {
       for (int row = 1; row <= rowsToWrite; row++) {
         if (row >= 2) {
@@ -332,9 +351,9 @@ public class ConnectionTest extends BaseTest {
    */
   @Test
   public void testConnectionClientInfos() throws Exception {
-    assertEquals(null, sharedConnection.getClientInfo("ApplicationName"));
-    assertEquals(null, sharedConnection.getClientInfo("ClientUser"));
-    assertEquals(null, sharedConnection.getClientInfo("ClientHostname"));
+    assertNull(sharedConnection.getClientInfo("ApplicationName"));
+    assertNull(sharedConnection.getClientInfo("ClientUser"));
+    assertNull(sharedConnection.getClientInfo("ClientHostname"));
 
     try {
       sharedConnection.getClientInfo("otherName");
@@ -344,12 +363,28 @@ public class ConnectionTest extends BaseTest {
     }
 
     Properties properties = sharedConnection.getClientInfo();
-    assertEquals(null, properties.get("ApplicationName"));
-    assertEquals(null, properties.get("ClientUser"));
-    assertEquals(null, properties.get("ClientHostname"));
+    assertNull(properties.get("ApplicationName"));
+    assertNull(properties.get("ClientUser"));
+    assertNull(properties.get("ClientHostname"));
 
     sharedConnection.setClientInfo("ClientHostname", "testHostName");
     assertEquals("testHostName", sharedConnection.getClientInfo("ClientHostname"));
+    properties = sharedConnection.getClientInfo();
+    assertNull(properties.get("ApplicationName"));
+    assertNull(properties.get("ClientUser"));
+    assertEquals("testHostName", properties.get("ClientHostname"));
+
+    sharedConnection.setClientInfo("ClientUser", "bbb");
+    properties = sharedConnection.getClientInfo();
+    assertNull(properties.get("ApplicationName"));
+    assertEquals("bbb", properties.get("ClientUser"));
+    assertEquals("testHostName", properties.get("ClientHostname"));
+
+    sharedConnection.setClientInfo("ApplicationName", "ccc");
+    properties = sharedConnection.getClientInfo();
+    assertEquals("ccc", properties.get("ApplicationName"));
+    assertEquals("bbb", properties.get("ClientUser"));
+    assertEquals("testHostName", properties.get("ClientHostname"));
 
     sharedConnection.setClientInfo("ClientHostname", null);
     assertNull(sharedConnection.getClientInfo("ClientHostname"));
@@ -358,8 +393,8 @@ public class ConnectionTest extends BaseTest {
     assertEquals("", sharedConnection.getClientInfo("ClientHostname"));
 
     properties = new Properties();
-    properties.setProperty("ApplicationName", "testDriver");
-    properties.setProperty("ClientUser", "testClientUser");
+    properties.setProperty("ApplicationName", "test\\Driver");
+    properties.setProperty("ClientUser", "test Client User");
     properties.setProperty("NotPermitted", "blabla");
     properties.setProperty("NotPermitted2", "blabla");
 
@@ -375,13 +410,13 @@ public class ConnectionTest extends BaseTest {
       assertEquals(2, failedProperties.size());
     }
 
-    assertEquals("testDriver", sharedConnection.getClientInfo("ApplicationName"));
-    assertEquals("testClientUser", sharedConnection.getClientInfo("ClientUser"));
+    assertEquals("test\\Driver", sharedConnection.getClientInfo("ApplicationName"));
+    assertEquals("test Client User", sharedConnection.getClientInfo("ClientUser"));
     assertEquals(null, sharedConnection.getClientInfo("ClientHostname"));
 
     sharedConnection.setClientInfo("ClientUser", "otherValue");
 
-    assertEquals("testDriver", sharedConnection.getClientInfo("ApplicationName"));
+    assertEquals("test\\Driver", sharedConnection.getClientInfo("ApplicationName"));
     assertEquals("otherValue", sharedConnection.getClientInfo("ClientUser"));
     assertEquals(null, sharedConnection.getClientInfo("ClientHostname"));
 
@@ -395,6 +430,18 @@ public class ConnectionTest extends BaseTest {
       Map<String, ClientInfoStatus> failedProperties = sqle.getFailedProperties();
       assertTrue(failedProperties.containsKey("NotPermitted"));
       assertEquals(1, failedProperties.size());
+    }
+  }
+
+  @Test
+  public void setClientError() throws SQLException {
+    Connection connection = setConnection("");
+    connection.close();
+    try {
+      connection.setClientInfo("ClientUser", "otherValue");
+      fail();
+    } catch (SQLClientInfoException e) {
+      assertTrue(e.getMessage().contains("setClientInfo() is called on closed connection"));
     }
   }
 
@@ -501,7 +548,6 @@ public class ConnectionTest extends BaseTest {
       assertTrue(rs.next());
       fail();
     } catch (SQLException sqle) {
-      sqle.printStackTrace();
       assertTrue(sqle.getMessage().contains("Operation not permit on a closed resultSet"));
     }
   }
@@ -570,7 +616,7 @@ public class ConnectionTest extends BaseTest {
   }
 
   @Test
-  public void loopSleepTest() throws Exception {
+  public void loopSleepTest() {
     //appveyor vm are very slow, cannot compare time
     Assume.assumeTrue(System.getenv("APPVEYOR") == null);
 
@@ -631,4 +677,228 @@ public class ConnectionTest extends BaseTest {
       }
     }
   }
+
+
+  @Test
+  public void multiAuthPlugin() throws Throwable {
+    Assume.assumeTrue(isMariadbServer() && minVersion(10, 4, 2));
+    Statement stmt = sharedConnection.createStatement();
+    try {
+      stmt.execute("INSTALL SONAME 'auth_ed25519'");
+    } catch (SQLException sqle) {
+      throw new AssumptionViolatedException("server doesn't have ed25519 plugin, cancelling test");
+    }
+
+    stmt.execute("drop user IF EXISTS mysqltest1@'%'");
+    try {
+      stmt.execute("CREATE USER mysqltest1@'%' IDENTIFIED "
+              + "VIA mysql_old_password USING '021bec665bf663f1' "
+              + " OR ed25519 as password('good') "
+              + " OR mysql_native_password as password('works')");
+    } catch (SQLException sqle) {
+      //already existing
+      sqle.printStackTrace();
+    }
+    stmt.execute("GRANT ALL on " + database + ".* to mysqltest1@'%'");
+
+    try (Connection connection = openNewConnection(
+            "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
+            + "?user=mysqltest1&password=good")) {
+      //must have succeed
+    }
+
+    try (Connection connection = openNewConnection(
+            "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
+                    + "?user=mysqltest1&password=works")) {
+      //must have succeed
+    }
+
+    stmt.execute("drop user mysqltest1@'%'");
+  }
+
+  @Test
+  @SuppressWarnings("deprecation")
+  public void quoteIdentifier() {
+    assertEquals("`te``st`", MariaDbConnection.quoteIdentifier("te`st"));
+    assertEquals("test", MariaDbConnection.unquoteIdentifier("`test`"));
+    assertEquals("te`st", MariaDbConnection.unquoteIdentifier("`te``st`"));
+    assertEquals("te`st", MariaDbConnection.unquoteIdentifier("te`st"));
+  }
+
+  @Test
+  public void connectionUnexpectedClose() throws SQLException {
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    try (Connection connection =  DriverManager
+            .getConnection("jdbc:mariadb:failover//" + ((hostname != null) ? hostname : "localhost")
+                    + ":" + port + "/" + database + "?user=" + username
+                    + ((password != null) ? "&password=" + password : "")
+                    + "&socketTimeout=1000&useServerPrepStmts=true")) {
+      Statement stmt = connection.createStatement();
+      try {
+        stmt.executeQuery("KILL CONNECTION_ID()");
+        fail();
+      } catch (SQLException e) {
+        //eat
+      }
+      try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT 1")) {
+        preparedStatement.execute();
+      }
+    }
+  }
+
+  @Test
+  public void prepareStatementCols() throws SQLException {
+    try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT 1", new int[]{})) {
+      preparedStatement.execute();
+    }
+    try (PreparedStatement preparedStatement = sharedConnection.prepareStatement("SELECT 1", new String[]{})) {
+      preparedStatement.execute();
+    }
+    try {
+      sharedConnection.prepareStatement(null);
+    } catch (SQLException e) {
+      assertTrue(e.getMessage().contains("SQL value can not be NULL"));
+    }
+  }
+
+
+  @Test
+  public void nativeSql() throws SQLException {
+    assertEquals("select timestampdiff(HOUR, convert('SQL_', INTEGER))",
+            sharedConnection.nativeSQL("select {fn timestampdiff(SQL_TSI_HOUR, {fn convert('SQL_', SQL_INTEGER)})}"));
+  }
+
+  @Test
+  public void setReadonlyError() throws SQLException {
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    try (Connection connection =  DriverManager
+            .getConnection("jdbc:mariadb:replication://" + ((hostname != null) ? hostname : "localhost")
+                    + ":" + port
+                    + "," + ((hostname != null) ? hostname : "localhost")
+                    + ":" + port + "/" + database + "?user=" + username
+                    + ((password != null) ? "&password=" + password : ""))) {
+      connection.setReadOnly(true);
+      long threadId = ((MariaDbConnection) connection).getServerThreadId();
+      connection.setReadOnly(false);
+      Statement stmt = connection.createStatement();
+      stmt.executeQuery("KILL " + threadId);
+      try {
+        stmt.executeQuery("KILL CONNECTION_ID()");
+        fail();
+      } catch (SQLException e) {
+        //eat
+      }
+      connection.setReadOnly(true);
+    }
+  }
+
+  @Test
+  public void testWarnings() throws SQLException {
+    Assume.assumeTrue(isMariadbServer());
+    Statement stmt = sharedConnection.createStatement();
+    stmt.executeQuery("select now() = 1");
+    SQLWarning warning = sharedConnection.getWarnings();
+    assertTrue(warning.getMessage().contains("Incorrect datetime value: '1'"));
+    sharedConnection.clearWarnings();
+    assertNull(sharedConnection.getWarnings());
+  }
+
+  @Test
+  public void typeMap() throws SQLException {
+    try {
+      sharedConnection.setTypeMap(null);
+      fail();
+    } catch (SQLFeatureNotSupportedException e) {
+      assertTrue(e.getMessage().contains("Not yet supported"));
+    }
+
+    assertTrue(sharedConnection.getTypeMap().isEmpty());
+  }
+
+  @Test
+  public void getHoldability() throws SQLException {
+    sharedConnection.setHoldability(10_000);
+    assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, sharedConnection.getHoldability());
+  }
+
+
+  @Test
+  public void notSupported() throws SQLException {
+    try {
+      sharedConnection.createSQLXML();
+      fail();
+    } catch (SQLFeatureNotSupportedException e) {
+      assertTrue(e.getMessage().contains("Not supported"));
+    }
+
+    try {
+      sharedConnection.createArrayOf("", null);
+      fail();
+    } catch (SQLFeatureNotSupportedException e) {
+      assertTrue(e.getMessage().contains("Not yet supported"));
+    }
+
+    try {
+      sharedConnection.createStruct("", null);
+      fail();
+    } catch (SQLFeatureNotSupportedException e) {
+      assertTrue(e.getMessage().contains("Not yet supported"));
+    }
+    sharedConnection.setSchema("bbb");
+    assertNull(sharedConnection.getSchema());
+  }
+
+  @Test
+  public void unwrapp() throws Throwable {
+    assertTrue(sharedConnection.isWrapperFor(MariaDbConnection.class));
+    MariaDbConnection cc = sharedConnection.unwrap(MariaDbConnection.class);
+  }
+
+  @Test
+  public void setClientNotConnectError() throws SQLException {
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    try (Connection connection =  DriverManager
+            .getConnection("jdbc:mariadb:replication://" + ((hostname != null) ? hostname : "localhost")
+                    + ":" + port
+                    + "," + ((hostname != null) ? hostname : "localhost")
+                    + ":" + port + "/" + database + "?user=" + username
+                    + ((password != null) ? "&password=" + password : ""))) {
+      connection.setReadOnly(true);
+      long threadId = ((MariaDbConnection) connection).getServerThreadId();
+      connection.setReadOnly(false);
+      Statement stmt = connection.createStatement();
+      stmt.executeQuery("KILL " + threadId);
+      try {
+        stmt.executeQuery("KILL CONNECTION_ID()");
+        fail();
+      } catch (SQLException e) {
+        //eat
+      }
+      connection.setClientInfo("ClientUser", "otherValue");
+    }
+  }
+
+  @Test
+  public void testNetworkTimeoutError() throws SQLException {
+    Connection connection = setConnection("&socketTimeout=10000");
+    assertEquals(10_000, connection.getNetworkTimeout());
+    connection.setNetworkTimeout(null, 5_000);
+
+    try {
+      connection.setNetworkTimeout(null, -5_000);
+    } catch (SQLException e) {
+      assertTrue(e.getMessage().contains("Connection.setNetworkTimeout cannot be called with a negative timeout"));
+    }
+    connection.close();
+    try {
+      connection.setNetworkTimeout(null, 3_000);
+    } catch (SQLException e) {
+      assertTrue(e.getMessage().contains("Connection.setNetworkTimeout cannot be called on a closed connection"));
+    }
+
+    try (Connection connection2 = setConnection("&socketTimeout=10000")) {
+      assertEquals(10_000, connection2.getNetworkTimeout());
+    }
+  }
+
 }

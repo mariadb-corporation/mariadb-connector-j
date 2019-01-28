@@ -107,6 +107,8 @@ public class ClientPrepareResult implements PrepareResult {
         if (state == LexState.Escape && !((car == '\'' && singleQuotes) || (car == '"'
             && !singleQuotes))) {
           state = LexState.String;
+          lastChar = car;
+          continue;
         }
         switch (car) {
           case '*':
@@ -238,6 +240,8 @@ public class ClientPrepareResult implements PrepareResult {
       if (state == LexState.Escape && !((car == '\'' && singleQuotes) || (car == '"'
           && !singleQuotes))) {
         state = LexState.String;
+        lastChar = car;
+        continue;
       }
 
       switch (car) {
@@ -400,6 +404,7 @@ public class ClientPrepareResult implements PrepareResult {
         if (state == LexState.Escape && !((car == '\'' && singleQuotes) || (car == '"'
             && !singleQuotes))) {
           sb.append(car);
+          lastChar = car;
           state = LexState.String;
           continue;
         }

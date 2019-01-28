@@ -146,7 +146,7 @@ public class MariaDbParameterMetaData implements ParameterMetaData {
   }
 
   @Override
-  public int getParameterMode(int param) throws SQLException {
+  public int getParameterMode(int param) {
     return parameterModeIn;
   }
 

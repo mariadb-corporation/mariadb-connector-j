@@ -562,7 +562,7 @@ public class TimezoneDaylightSavingTimeTest extends BaseTest {
               ResultSet.CONCUR_READ_ONLY);
     } else {
       MariaDbConnection mariaDbConnection = (MariaDbConnection) connection;
-      pst = new MariaDbPreparedStatementClient(mariaDbConnection,
+      pst = new ClientSidePreparedStatement(mariaDbConnection,
           "SELECT * from daylight where 1 = ?",
           ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY,
           Statement.NO_GENERATED_KEYS);

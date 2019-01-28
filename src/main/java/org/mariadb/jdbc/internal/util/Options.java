@@ -68,6 +68,8 @@ public class Options implements Cloneable {
   public boolean trustServerCertificate;
   public String serverSslCert;
   public String trustStore;
+  public String trustStoreType;
+  public String keyStoreType;
   public String trustStorePassword;
   public String keyStore;
   public String keyStorePassword;
@@ -102,7 +104,7 @@ public class Options implements Cloneable {
   public boolean createDatabaseIfNotExist;
   public String serverTimezone;
   public boolean nullCatalogMeansCurrent = true;
-  public boolean dumpQueriesOnException = true;
+  public boolean dumpQueriesOnException;
   public boolean useOldAliasMetadataBehavior;
   public boolean allowLocalInfile = true;
   public boolean cachePrepStmts = true;
@@ -126,6 +128,7 @@ public class Options implements Cloneable {
   public boolean autocommit = true;
   public boolean includeInnodbStatusInDeadlockExceptions;
   public boolean includeThreadDumpInDeadlockExceptions;
+  public String servicePrincipalName;
 
   //logging options
   public boolean log;
@@ -154,7 +157,7 @@ public class Options implements Cloneable {
   public boolean registerJmxPool = true;
   public int poolValidMinDelay = 1000;
   public boolean useResetConnection;
-
+  public boolean useReadAheadInput = true;
 
   @Override
   public String toString() {
@@ -329,6 +332,9 @@ public class Options implements Cloneable {
       return false;
     }
     if (useResetConnection != opt.useResetConnection) {
+      return false;
+    }
+    if (useReadAheadInput != opt.useReadAheadInput) {
       return false;
     }
     if (maxPoolSize != opt.maxPoolSize) {
@@ -546,6 +552,7 @@ public class Options implements Cloneable {
     result = 31 * result + (pool ? 1 : 0);
     result = 31 * result + (registerJmxPool ? 1 : 0);
     result = 31 * result + (useResetConnection ? 1 : 0);
+    result = 31 * result + (useReadAheadInput ? 1 : 0);
     result = 31 * result + (staticGlobal ? 1 : 0);
     result = 31 * result + (poolName != null ? poolName.hashCode() : 0);
     result = 31 * result + (galeraAllowedState != null ? galeraAllowedState.hashCode() : 0);

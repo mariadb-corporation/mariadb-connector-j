@@ -246,8 +246,9 @@ public class Results {
 
   /**
    * Indicate that command / batch is finished, so set current resultSet if needed.
+   * @return true id has cmdInformation
    */
-  public void commandEnd() {
+  public boolean commandEnd() {
     if (cmdInformation != null) {
       if (executionResults != null && !cmdInformation.isCurrentUpdateCount()) {
         resultSet = executionResults.poll();
@@ -258,6 +259,7 @@ public class Results {
     } else {
       resultSet = null;
     }
+    return cmdInformation != null;
   }
 
   public SelectResultSet getResultSet() {
@@ -331,12 +333,9 @@ public class Results {
     if (fetchSize == 0 || resultSet == null) {
       return true;
     }
-    if (resultSet.isFullyLoaded()
-        && executionResults.isEmpty()
-        && !protocol.hasMoreResults()) {
-      return true;
-    }
-    return false;
+    return resultSet.isFullyLoaded()
+            && executionResults.isEmpty()
+            && !protocol.hasMoreResults();
   }
 
   /**

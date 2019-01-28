@@ -75,7 +75,7 @@ import org.mariadb.jdbc.internal.util.dao.Identifier;
 
 public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
-  public static final String DRIVER_NAME = "MariaDB connector/J";
+  public static final String DRIVER_NAME = "MariaDB Connector/J";
   private final String url;
   private final MariaDbConnection connection;
   private final String username;
@@ -486,13 +486,13 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
   /**
    * Generate part of the information schema query that restricts catalog names In the driver,
-   * catalogs is the equivalent to MySQL schemas.
+   * catalogs is the equivalent to MariaDB schemas.
    *
    * @param columnName - column name in the information schema table
    * @param catalog    - catalog name. This driver does not (always) follow JDBC standard for
    *                   following special values, due to ConnectorJ compatibility 1. empty string
    *                   ("") - matches current catalog (i.e database). JDBC standard says only tables
-   *                   without catalog should be returned - such tables do not exist in MySQL. If
+   *                   without catalog should be returned - such tables do not exist in MariaDB. If
    *                   there is no current catalog, then empty string matches any catalog. 2. null -
    *                   if nullCatalogMeansCurrent=true (which is the default), then the handling is
    *                   the same as for "" . i.e return current catalog.JDBC-conforming way would be
@@ -575,7 +575,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   }
 
   /**
-   * Maps standard table types to mysql ones - helper since table type is never "table" in mysql, it
+   * Maps standard table types to MariaDB ones - helper since table type is never "table" in MariaDB, it
    * is "base table".
    *
    * @param tableType the table type defined by user
@@ -1022,7 +1022,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     return executeQuery(sql);
   }
 
-  public boolean generatedKeyAlwaysReturned() throws SQLException {
+  public boolean generatedKeyAlwaysReturned() {
     return true;
   }
 
@@ -1092,56 +1092,56 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + "WHERE 1=0");
   }
 
-  public boolean allProceduresAreCallable() throws SQLException {
+  public boolean allProceduresAreCallable() {
     return true;
   }
 
-  public boolean allTablesAreSelectable() throws SQLException {
+  public boolean allTablesAreSelectable() {
     return true;
   }
 
   @Override
-  public String getURL() throws SQLException {
+  public String getURL() {
     return url;
   }
 
-  public String getUserName() throws SQLException {
+  public String getUserName() {
     return username;
   }
 
-  public boolean isReadOnly() throws SQLException {
+  public boolean isReadOnly() {
     return false;
   }
 
-  public boolean nullsAreSortedHigh() throws SQLException {
+  public boolean nullsAreSortedHigh() {
     return false;
   }
 
-  public boolean nullsAreSortedLow() throws SQLException {
+  public boolean nullsAreSortedLow() {
     return !nullsAreSortedHigh();
   }
 
-  public boolean nullsAreSortedAtStart() throws SQLException {
+  public boolean nullsAreSortedAtStart() {
     return false;
   }
 
-  public boolean nullsAreSortedAtEnd() throws SQLException {
+  public boolean nullsAreSortedAtEnd() {
     return !nullsAreSortedAtStart();
   }
 
   public String getDatabaseProductName() throws SQLException {
-    return "MySQL";
+    return connection.getProtocol().isServerMariaDb() ? "MariaDB" : "MySQL";
   }
 
-  public String getDatabaseProductVersion() throws SQLException {
+  public String getDatabaseProductVersion() {
     return connection.getProtocol().getServerVersion();
   }
 
-  public String getDriverName() throws SQLException {
+  public String getDriverName() {
     return DRIVER_NAME;
   }
 
-  public String getDriverVersion() throws SQLException {
+  public String getDriverVersion() {
     return Version.version;
   }
 
@@ -1153,11 +1153,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     return Version.minorVersion;
   }
 
-  public boolean usesLocalFiles() throws SQLException {
+  public boolean usesLocalFiles() {
     return false;
   }
 
-  public boolean usesLocalFilePerTable() throws SQLException {
+  public boolean usesLocalFilePerTable() {
     return false;
   }
 
@@ -1165,7 +1165,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     return (connection.getLowercaseTableNames() == 0);
   }
 
-  public boolean storesUpperCaseIdentifiers() throws SQLException {
+  public boolean storesUpperCaseIdentifiers() {
     return false;
   }
 
@@ -1181,7 +1181,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     return supportsMixedCaseIdentifiers();
   }
 
-  public boolean storesUpperCaseQuotedIdentifiers() throws SQLException {
+  public boolean storesUpperCaseQuotedIdentifiers() {
     return storesUpperCaseIdentifiers();
   }
 
@@ -1193,7 +1193,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     return storesMixedCaseIdentifiers();
   }
 
-  public String getIdentifierQuoteString() throws SQLException {
+  public String getIdentifierQuoteString() {
     return "`";
   }
 
@@ -1202,10 +1202,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * SQL:2003 keywords.
    *
    * @return the list of this database's keywords that are not also SQL:2003 keywords
-   * @throws SQLException if a database access error occurs
    */
   @Override
-  public String getSQLKeywords() throws SQLException {
+  public String getSQLKeywords() {
     return
         "ACCESSIBLE,ANALYZE,ASENSITIVE,BEFORE,BIGINT,BINARY,BLOB,CALL,CHANGE,CONDITION,DATABASE,DATABASES,"
             + "DAY_HOUR,DAY_MICROSECOND,DAY_MINUTE,DAY_SECOND,DELAYED,DETERMINISTIC,DISTINCTROW,DIV,DUAL,EACH,"
@@ -1274,334 +1273,333 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
             + "UNIX_TIMESTAMP,UTC_DATE,UTC_TIME,UTC_TIMESTAMP,WEEK,WEEKDAY,WEEKOFYEAR,YEAR,YEARWEEK";
   }
 
-  public String getSearchStringEscape() throws SQLException {
+  public String getSearchStringEscape() {
     return "\\";
   }
 
-  public String getExtraNameCharacters() throws SQLException {
+  public String getExtraNameCharacters() {
     return "#@";
   }
 
-  public boolean supportsAlterTableWithAddColumn() throws SQLException {
+  public boolean supportsAlterTableWithAddColumn() {
     return true;
   }
 
-  public boolean supportsAlterTableWithDropColumn() throws SQLException {
+  public boolean supportsAlterTableWithDropColumn() {
     return true;
   }
 
-  public boolean supportsColumnAliasing() throws SQLException {
+  public boolean supportsColumnAliasing() {
     return true;
   }
 
-  public boolean nullPlusNonNullIsNull() throws SQLException {
+  public boolean nullPlusNonNullIsNull() {
     return true;
   }
 
-  public boolean supportsConvert() throws SQLException {
+  public boolean supportsConvert() {
     return true;
   }
 
-  public boolean supportsConvert(int fromType, int toType)
-      throws SQLException {
+  public boolean supportsConvert(int fromType, int toType) {
     return false;
   }
 
-  public boolean supportsTableCorrelationNames() throws SQLException {
+  public boolean supportsTableCorrelationNames() {
     return true;
   }
 
-  public boolean supportsDifferentTableCorrelationNames() throws SQLException {
+  public boolean supportsDifferentTableCorrelationNames() {
     return true;
   }
 
-  public boolean supportsExpressionsInOrderBy() throws SQLException {
+  public boolean supportsExpressionsInOrderBy() {
     return true;
   }
 
-  public boolean supportsOrderByUnrelated() throws SQLException {
+  public boolean supportsOrderByUnrelated() {
     return false;
   }
 
-  public boolean supportsGroupBy() throws SQLException {
+  public boolean supportsGroupBy() {
     return true;
   }
 
-  public boolean supportsGroupByUnrelated() throws SQLException {
+  public boolean supportsGroupByUnrelated() {
     return true;
   }
 
-  public boolean supportsGroupByBeyondSelect() throws SQLException {
+  public boolean supportsGroupByBeyondSelect() {
     return true;
   }
 
-  public boolean supportsLikeEscapeClause() throws SQLException {
+  public boolean supportsLikeEscapeClause() {
     return true;
   }
 
-  public boolean supportsMultipleResultSets() throws SQLException {
+  public boolean supportsMultipleResultSets() {
     return false;
   }
 
-  public boolean supportsMultipleTransactions() throws SQLException {
+  public boolean supportsMultipleTransactions() {
     return true;
   }
 
-  public boolean supportsNonNullableColumns() throws SQLException {
+  public boolean supportsNonNullableColumns() {
     return true;
   }
 
   @Override
-  public boolean supportsMinimumSQLGrammar() throws SQLException {
+  public boolean supportsMinimumSQLGrammar() {
     return true;
   }
 
   @Override
-  public boolean supportsCoreSQLGrammar() throws SQLException {
+  public boolean supportsCoreSQLGrammar() {
     return true;
   }
 
   @Override
-  public boolean supportsExtendedSQLGrammar() throws SQLException {
+  public boolean supportsExtendedSQLGrammar() {
     return false;
   }
 
   @Override
-  public boolean supportsANSI92EntryLevelSQL() throws SQLException {
+  public boolean supportsANSI92EntryLevelSQL() {
     return true;
   }
 
   @Override
-  public boolean supportsANSI92IntermediateSQL() throws SQLException {
+  public boolean supportsANSI92IntermediateSQL() {
     return false;
   }
 
   @Override
-  public boolean supportsANSI92FullSQL() throws SQLException {
+  public boolean supportsANSI92FullSQL() {
     return false;
   }
 
-  public boolean supportsIntegrityEnhancementFacility() throws SQLException {
-    return false; //TODO: verify
-  }
-
-  public boolean supportsOuterJoins() throws SQLException {
-    return true;
-  }
-
-  public boolean supportsFullOuterJoins() throws SQLException {
+  public boolean supportsIntegrityEnhancementFacility() {
     return false;
   }
 
-  public boolean supportsLimitedOuterJoins() throws SQLException {
+  public boolean supportsOuterJoins() {
     return true;
   }
 
-  public String getSchemaTerm() throws SQLException {
+  public boolean supportsFullOuterJoins() {
+    return false;
+  }
+
+  public boolean supportsLimitedOuterJoins() {
+    return true;
+  }
+
+  public String getSchemaTerm() {
     return "";
   }
 
-  public String getProcedureTerm() throws SQLException {
+  public String getProcedureTerm() {
     return "procedure";
   }
 
-  public String getCatalogTerm() throws SQLException {
+  public String getCatalogTerm() {
     return "database";
   }
 
-  public boolean isCatalogAtStart() throws SQLException {
+  public boolean isCatalogAtStart() {
     return true;
   }
 
-  public String getCatalogSeparator() throws SQLException {
+  public String getCatalogSeparator() {
     return ".";
   }
 
-  public boolean supportsSchemasInDataManipulation() throws SQLException {
+  public boolean supportsSchemasInDataManipulation() {
     return false;
   }
 
-  public boolean supportsSchemasInProcedureCalls() throws SQLException {
+  public boolean supportsSchemasInProcedureCalls() {
     return false;
   }
 
-  public boolean supportsSchemasInTableDefinitions() throws SQLException {
+  public boolean supportsSchemasInTableDefinitions() {
     return false;
   }
 
-  public boolean supportsSchemasInIndexDefinitions() throws SQLException {
+  public boolean supportsSchemasInIndexDefinitions() {
     return false;
   }
 
-  public boolean supportsSchemasInPrivilegeDefinitions() throws SQLException {
+  public boolean supportsSchemasInPrivilegeDefinitions() {
     return true;
   }
 
-  public boolean supportsCatalogsInDataManipulation() throws SQLException {
+  public boolean supportsCatalogsInDataManipulation() {
     return true;
   }
 
-  public boolean supportsCatalogsInProcedureCalls() throws SQLException {
+  public boolean supportsCatalogsInProcedureCalls() {
     return true;
   }
 
-  public boolean supportsCatalogsInTableDefinitions() throws SQLException {
+  public boolean supportsCatalogsInTableDefinitions() {
     return true;
   }
 
-  public boolean supportsCatalogsInIndexDefinitions() throws SQLException {
+  public boolean supportsCatalogsInIndexDefinitions() {
     return true;
   }
 
-  public boolean supportsCatalogsInPrivilegeDefinitions() throws SQLException {
+  public boolean supportsCatalogsInPrivilegeDefinitions() {
     return true;
   }
 
-  public boolean supportsPositionedDelete() throws SQLException {
+  public boolean supportsPositionedDelete() {
     return false;
   }
 
-  public boolean supportsPositionedUpdate() throws SQLException {
+  public boolean supportsPositionedUpdate() {
     return false;
   }
 
-  public boolean supportsSelectForUpdate() throws SQLException {
+  public boolean supportsSelectForUpdate() {
     return true;
   }
 
-  public boolean supportsStoredProcedures() throws SQLException {
+  public boolean supportsStoredProcedures() {
     return true;
   }
 
-  public boolean supportsSubqueriesInComparisons() throws SQLException {
+  public boolean supportsSubqueriesInComparisons() {
     return true;
   }
 
-  public boolean supportsSubqueriesInExists() throws SQLException {
+  public boolean supportsSubqueriesInExists() {
     return true;
   }
 
-  public boolean supportsSubqueriesInIns() throws SQLException {
+  public boolean supportsSubqueriesInIns() {
     return true;
   }
 
-  public boolean supportsSubqueriesInQuantifieds() throws SQLException {
+  public boolean supportsSubqueriesInQuantifieds() {
     return true;
   }
 
-  public boolean supportsCorrelatedSubqueries() throws SQLException {
+  public boolean supportsCorrelatedSubqueries() {
     return true;
   }
 
-  public boolean supportsUnion() throws SQLException {
+  public boolean supportsUnion() {
     return true;
   }
 
-  public boolean supportsUnionAll() throws SQLException {
+  public boolean supportsUnionAll() {
     return true;
   }
 
-  public boolean supportsOpenCursorsAcrossCommit() throws SQLException {
+  public boolean supportsOpenCursorsAcrossCommit() {
     return true;
   }
 
-  public boolean supportsOpenCursorsAcrossRollback() throws SQLException {
+  public boolean supportsOpenCursorsAcrossRollback() {
     return true;
   }
 
-  public boolean supportsOpenStatementsAcrossCommit() throws SQLException {
+  public boolean supportsOpenStatementsAcrossCommit() {
     return true;
   }
 
-  public boolean supportsOpenStatementsAcrossRollback() throws SQLException {
+  public boolean supportsOpenStatementsAcrossRollback() {
     return true;
   }
 
-  public int getMaxBinaryLiteralLength() throws SQLException {
+  public int getMaxBinaryLiteralLength() {
     return 16777208;
   }
 
-  public int getMaxCharLiteralLength() throws SQLException {
+  public int getMaxCharLiteralLength() {
     return 16777208;
   }
 
-  public int getMaxColumnNameLength() throws SQLException {
+  public int getMaxColumnNameLength() {
     return 64;
   }
 
-  public int getMaxColumnsInGroupBy() throws SQLException {
+  public int getMaxColumnsInGroupBy() {
     return 64;
   }
 
-  public int getMaxColumnsInIndex() throws SQLException {
+  public int getMaxColumnsInIndex() {
     return 16;
   }
 
-  public int getMaxColumnsInOrderBy() throws SQLException {
+  public int getMaxColumnsInOrderBy() {
     return 64;
   }
 
-  public int getMaxColumnsInSelect() throws SQLException {
+  public int getMaxColumnsInSelect() {
     return 256;
   }
 
-  public int getMaxColumnsInTable() throws SQLException {
+  public int getMaxColumnsInTable() {
     return 0;
   }
 
-  public int getMaxConnections() throws SQLException {
+  public int getMaxConnections() {
     return 0;
   }
 
-  public int getMaxCursorNameLength() throws SQLException {
+  public int getMaxCursorNameLength() {
     return 0;
   }
 
-  public int getMaxIndexLength() throws SQLException {
+  public int getMaxIndexLength() {
     return 256;
   }
 
-  public int getMaxSchemaNameLength() throws SQLException {
+  public int getMaxSchemaNameLength() {
     return 32;
   }
 
-  public int getMaxProcedureNameLength() throws SQLException {
+  public int getMaxProcedureNameLength() {
     return 256;
   }
 
-  public int getMaxCatalogNameLength() throws SQLException {
+  public int getMaxCatalogNameLength() {
     return 0;
   }
 
-  public int getMaxRowSize() throws SQLException {
+  public int getMaxRowSize() {
     return 0;
   }
 
-  public boolean doesMaxRowSizeIncludeBlobs() throws SQLException {
+  public boolean doesMaxRowSizeIncludeBlobs() {
     return false;
   }
 
-  public int getMaxStatementLength() throws SQLException {
+  public int getMaxStatementLength() {
     return 0;
   }
 
-  public int getMaxStatements() throws SQLException {
+  public int getMaxStatements() {
     return 0;
   }
 
-  public int getMaxTableNameLength() throws SQLException {
+  public int getMaxTableNameLength() {
     return 64;
   }
 
-  public int getMaxTablesInSelect() throws SQLException {
+  public int getMaxTablesInSelect() {
     return 256;
   }
 
-  public int getMaxUserNameLength() throws SQLException {
+  public int getMaxUserNameLength() {
     return 16;
   }
 
-  public int getDefaultTransactionIsolation() throws SQLException {
+  public int getDefaultTransactionIsolation() {
     return Connection.TRANSACTION_REPEATABLE_READ;
   }
 
@@ -1611,9 +1609,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * <code>TRANSACTION_NONE</code>.
    *
    * @return <code>true</code> if transactions are supported; <code>false</code> otherwise
-   * @throws SQLException if a database access error occurs
    */
-  public boolean supportsTransactions() throws SQLException {
+  public boolean supportsTransactions() {
     return true;
   }
 
@@ -1626,10 +1623,9 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    *
    * @param level one of the transaction isolation levels defined in <code>java.sql.Connection</code>
    * @return <code>true</code> if so; <code>false</code> otherwise
-   * @throws SQLException if a database access error occurs
    * @see Connection
    */
-  public boolean supportsTransactionIsolationLevel(int level) throws SQLException {
+  public boolean supportsTransactionIsolationLevel(int level) {
     switch (level) {
       case Connection.TRANSACTION_READ_UNCOMMITTED:
       case Connection.TRANSACTION_READ_COMMITTED:
@@ -1641,19 +1637,19 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     }
   }
 
-  public boolean supportsDataDefinitionAndDataManipulationTransactions() throws SQLException {
+  public boolean supportsDataDefinitionAndDataManipulationTransactions() {
     return true;
   }
 
-  public boolean supportsDataManipulationTransactionsOnly() throws SQLException {
+  public boolean supportsDataManipulationTransactionsOnly() {
     return false;
   }
 
-  public boolean dataDefinitionCausesTransactionCommit() throws SQLException {
+  public boolean dataDefinitionCausesTransactionCommit() {
     return true;
   }
 
-  public boolean dataDefinitionIgnoredInTransactions() throws SQLException {
+  public boolean dataDefinitionIgnoredInTransactions() {
     return false;
   }
 
@@ -2342,9 +2338,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * length in bytes. Null is returned for data types where the column size is not applicable.</p>
    *
    * @return a <code>ResultSet</code> object in which each row is an SQL type description
-   * @throws SQLException if a database access error occurs
    */
-  public ResultSet getTypeInfo() throws SQLException {
+  public ResultSet getTypeInfo() {
     String[] columnNames = {
         "TYPE_NAME", "DATA_TYPE", "PRECISION", "LITERAL_PREFIX", "LITERAL_SUFFIX",
         "CREATE_PARAMS", "NULLABLE", "CASE_SENSITIVE", "SEARCHABLE", "UNSIGNED_ATTRIBUTE",
@@ -2555,9 +2550,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    *             <li><code>ResultSet.TYPE_SCROLL_SENSITIVE</code></li>
    *             </ul>
    * @return true if supported
-   * @throws SQLException cannot occur here
    */
-  public boolean supportsResultSetType(int type) throws SQLException {
+  public boolean supportsResultSetType(int type) {
     return (type == ResultSet.TYPE_SCROLL_INSENSITIVE || type == ResultSet.TYPE_FORWARD_ONLY);
   }
 
@@ -2578,51 +2572,50 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    *                    <li><code>ResultSet.CONCUR_UPDATABLE</code></li>
    *                    </ul>
    * @return true if supported
-   * @throws SQLException cannot occur here
    */
-  public boolean supportsResultSetConcurrency(int type, int concurrency) throws SQLException {
+  public boolean supportsResultSetConcurrency(int type, int concurrency) {
     //Support all concurrency (ResultSet.CONCUR_READ_ONLY and ResultSet.CONCUR_UPDATABLE)
     //so just return scroll type
     return type == ResultSet.TYPE_SCROLL_INSENSITIVE || type == ResultSet.TYPE_FORWARD_ONLY;
   }
 
-  public boolean ownUpdatesAreVisible(int type) throws SQLException {
+  public boolean ownUpdatesAreVisible(int type) {
     return supportsResultSetType(type);
   }
 
-  public boolean ownDeletesAreVisible(int type) throws SQLException {
+  public boolean ownDeletesAreVisible(int type) {
     return supportsResultSetType(type);
   }
 
-  public boolean ownInsertsAreVisible(int type) throws SQLException {
+  public boolean ownInsertsAreVisible(int type) {
     return supportsResultSetType(type);
   }
 
-  public boolean othersUpdatesAreVisible(int type) throws SQLException {
+  public boolean othersUpdatesAreVisible(int type) {
     return false;
   }
 
-  public boolean othersDeletesAreVisible(int type) throws SQLException {
+  public boolean othersDeletesAreVisible(int type) {
     return false;
   }
 
-  public boolean othersInsertsAreVisible(int type) throws SQLException {
+  public boolean othersInsertsAreVisible(int type) {
     return false;
   }
 
-  public boolean updatesAreDetected(int type) throws SQLException {
+  public boolean updatesAreDetected(int type) {
     return false;
   }
 
-  public boolean deletesAreDetected(int type) throws SQLException {
+  public boolean deletesAreDetected(int type) {
     return false;
   }
 
-  public boolean insertsAreDetected(int type) throws SQLException {
+  public boolean insertsAreDetected(int type) {
     return false;
   }
 
-  public boolean supportsBatchUpdates() throws SQLException {
+  public boolean supportsBatchUpdates() {
     return true;
   }
 
@@ -2684,23 +2677,23 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     return executeQuery(sql);
   }
 
-  public Connection getConnection() throws SQLException {
+  public Connection getConnection() {
     return connection;
   }
 
-  public boolean supportsSavepoints() throws SQLException {
+  public boolean supportsSavepoints() {
     return true;
   }
 
-  public boolean supportsNamedParameters() throws SQLException {
+  public boolean supportsNamedParameters() {
     return false;
   }
 
-  public boolean supportsMultipleOpenResults() throws SQLException {
+  public boolean supportsMultipleOpenResults() {
     return false;
   }
 
-  public boolean supportsGetGeneratedKeys() throws SQLException {
+  public boolean supportsGetGeneratedKeys() {
     return true;
   }
 
@@ -2865,55 +2858,54 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     return executeQuery(sql);
   }
 
-  public boolean supportsResultSetHoldability(int holdability)
-      throws SQLException {
+  public boolean supportsResultSetHoldability(int holdability) {
     return holdability == ResultSet.HOLD_CURSORS_OVER_COMMIT;
   }
 
-  public int getResultSetHoldability() throws SQLException {
+  public int getResultSetHoldability() {
     return ResultSet.HOLD_CURSORS_OVER_COMMIT;
   }
 
-  public int getDatabaseMajorVersion() throws SQLException {
+  public int getDatabaseMajorVersion() {
     return connection.getProtocol().getMajorServerVersion();
   }
 
-  public int getDatabaseMinorVersion() throws SQLException {
+  public int getDatabaseMinorVersion() {
     return connection.getProtocol().getMinorServerVersion();
   }
 
   @Override
-  public int getJDBCMajorVersion() throws SQLException {
+  public int getJDBCMajorVersion() {
     return 4;
   }
 
   @Override
-  public int getJDBCMinorVersion() throws SQLException {
+  public int getJDBCMinorVersion() {
     return 2;
   }
 
   @Override
-  public int getSQLStateType() throws SQLException {
+  public int getSQLStateType() {
     return sqlStateSQL;
   }
 
-  public boolean locatorsUpdateCopy() throws SQLException {
+  public boolean locatorsUpdateCopy() {
     return false;
   }
 
-  public boolean supportsStatementPooling() throws SQLException {
+  public boolean supportsStatementPooling() {
     return false;
   }
 
-  public RowIdLifetime getRowIdLifetime() throws SQLException {
+  public RowIdLifetime getRowIdLifetime() {
     return RowIdLifetime.ROWID_UNSUPPORTED;
   }
 
-  public boolean supportsStoredFunctionsUsingCallSyntax() throws SQLException {
+  public boolean supportsStoredFunctionsUsingCallSyntax() {
     return true;
   }
 
-  public boolean autoCommitFailureClosesAllResultSets() throws SQLException {
+  public boolean autoCommitFailureClosesAllResultSets() {
     return false;
   }
 
@@ -2931,9 +2923,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * The ResultSet is sorted by the NAME column
    *
    * @return A ResultSet object; each row is a supported client info property
-   * @throws SQLException if connection error occur
    */
-  public ResultSet getClientInfoProperties() throws SQLException {
+  public ResultSet getClientInfoProperties() {
     ColumnInformation[] columns = new ColumnInformation[4];
     columns[0] = ColumnInformation.create("NAME", ColumnType.STRING);
     columns[1] = ColumnInformation.create("MAX_LEN", ColumnType.INTEGER);
@@ -3026,21 +3017,21 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     return executeQuery(sql);
   }
 
-  public <T> T unwrap(final Class<T> iface) throws SQLException {
+  public <T> T unwrap(final Class<T> iface) {
     return null;
   }
 
-  public boolean isWrapperFor(final Class<?> iface) throws SQLException {
+  public boolean isWrapperFor(final Class<?> iface) {
     return false;
   }
 
   @Override
-  public long getMaxLogicalLobSize() throws SQLException {
+  public long getMaxLogicalLobSize() {
     return 4294967295L;
   }
 
   @Override
-  public boolean supportsRefCursors() throws SQLException {
+  public boolean supportsRefCursors() {
     return false;
   }
 

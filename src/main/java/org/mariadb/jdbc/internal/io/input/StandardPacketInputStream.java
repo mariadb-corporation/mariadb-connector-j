@@ -65,6 +65,7 @@ import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.io.TraceObject;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
+import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
 
 public class StandardPacketInputStream implements PacketInputStream {
@@ -75,7 +76,7 @@ public class StandardPacketInputStream implements PacketInputStream {
   private final byte[] header = new byte[4];
   private final byte[] reusableArray = new byte[REUSABLE_BUFFER_LENGTH];
 
-  private final BufferedInputStream inputStream;
+  private final InputStream inputStream;
   private final int maxQuerySizeToLog;
   private int packetSeq;
   private int lastPacketLength;
@@ -83,9 +84,16 @@ public class StandardPacketInputStream implements PacketInputStream {
 
   private LruTraceCache traceCache = null;
 
-  public StandardPacketInputStream(InputStream in, int maxQuerySizeToLog) {
-    inputStream = new BufferedInputStream(in, 64 * 1024);
-    this.maxQuerySizeToLog = maxQuerySizeToLog;
+  /**
+   * Constructor of standard socket MySQL packet stream reader.
+   *
+   * @param in        stream
+   * @param options   connection options
+   */
+  public StandardPacketInputStream(InputStream in, Options options) {
+    inputStream = options.useReadAheadInput ? new ReadAheadBufferedStream(in)
+        : new BufferedInputStream(in, 16384);
+    this.maxQuerySizeToLog = options.maxQuerySizeToLog;
   }
 
   /**
@@ -208,12 +216,12 @@ public class StandardPacketInputStream implements PacketInputStream {
   }
 
   /**
-   * Get current Buffered input stream for creating compress input stream, to avoid losing already
+   * Get current input stream for creating compress input stream, to avoid losing already
    * read bytes in case of pipelining.
    *
-   * @return buffer input stream.
+   * @return input stream.
    */
-  public BufferedInputStream getBufferedInputStream() {
+  public InputStream getInputStream() {
     return inputStream;
   }
 

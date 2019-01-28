@@ -82,8 +82,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
 import java.sql.SQLTimeoutException;
+import java.sql.SQLTransientConnectionException;
 import java.sql.Statement;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.ServiceLoader;
@@ -127,6 +129,8 @@ import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 public class AbstractQueryProtocol extends AbstractConnectProtocol implements Protocol {
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
+  private static final String CHECK_GALERA_STATE_QUERY = "show status like 'wsrep_local_state'";
+
   protected static ThreadPoolExecutor readScheduler = null;
   private final LogQueryTool logQuery;
   private int transactionIsolationLevel = 0;
@@ -135,6 +139,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   private volatile int statementIdToRelease = -1;
   private FutureTask activeFutureTask = null;
   private boolean interrupted;
+  private final List<String> galeraAllowedStates;
 
   /**
    * Get a protocol instance.
@@ -147,6 +152,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       final ReentrantLock lock) {
     super(urlParser, globalInfo, lock);
     logQuery = new LogQueryTool(options);
+    galeraAllowedStates = urlParser.getOptions().galeraAllowedState == null
+        ? Collections.emptyList() :
+        Arrays.asList(urlParser.getOptions().galeraAllowedState.split(","));
   }
 
   /**
@@ -219,6 +227,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       getResult(results);
 
     } catch (SQLException sqlException) {
+      if ("70100".equals(sqlException.getSQLState()) && 1927 == sqlException.getErrorCode()) {
+        throw handleIoException(sqlException);
+      }
       throw logQuery.exceptionWithQuery(sql, sqlException, explicitClosed);
     } catch (IOException e) {
       throw handleIoException(e);
@@ -271,7 +282,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
       } else {
         writer.startPacket(0);
-        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
+        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, -1);
         writer.flush();
       }
       getResult(results);
@@ -308,7 +319,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
         }
       } else {
         writer.startPacket(0);
-        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
+        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, queryTimeout);
         writer.flush();
       }
       getResult(results);
@@ -332,7 +343,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    */
   public boolean executeBatchClient(boolean mustExecuteOnMaster, Results results,
       final ClientPrepareResult prepareResult,
-      final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException {
+      final List<ParameterHolder[]> parametersList, boolean hasLongData)
+      throws SQLException {
 
     //***********************************************************************************************************
     // Multiple solution for batching :
@@ -599,11 +611,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
           BulkStatus status,
           PrepareResult prepareResult)
-          throws SQLException, IOException {
+          throws IOException {
 
         ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
         writer.startPacket(0);
-        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters);
+        ComQuery.sendSubCmd(writer, clientPrepareResult, parameters, -1);
         writer.flush();
       }
 
@@ -737,7 +749,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
           BulkStatus status,
           PrepareResult prepareResult)
-          throws SQLException, IOException {
+          throws IOException {
 
         String sql = queries.get(status.sendCmdCounter);
         pos.startPacket(0);
@@ -1032,9 +1044,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
 
       //send execute query
-      new ComStmtExecute(serverPrepareResult.getStatementId(), parameters,
-          parameterCount, serverPrepareResult.getParameterTypeHeader(), CURSOR_TYPE_NO_CURSOR)
-          .send(writer);
+      ComStmtExecute.send(writer, serverPrepareResult.getStatementId(), parameters,
+              parameterCount, serverPrepareResult.getParameterTypeHeader(), CURSOR_TYPE_NO_CURSOR);
       getResult(results);
 
     } catch (SQLException qex) {
@@ -1157,23 +1168,21 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       if (initialTimeout == 0) {
         socket.setSoTimeout(timeout);
       }
-      if (isMasterConnection() && urlParser.getOptions().galeraAllowedState != null) {
+      if (isMasterConnection() && !galeraAllowedStates.isEmpty()) {
         //this is a galera node.
         //checking not only that node is responding, but that galera state is allowed.
         Results results = new Results();
-        executeQuery(true, results, "show status like 'wsrep_local_state'");
+        executeQuery(true, results, CHECK_GALERA_STATE_QUERY);
         results.commandEnd();
         ResultSet rs = results.getResultSet();
-        if (rs == null || !rs.next()) {
-          return false;
-        }
-        String[] allowedValues = urlParser.getOptions().galeraAllowedState.split(",");
-        return Arrays.asList(allowedValues).contains(rs.getString(2)); //SYNC mode
+
+        return rs != null && rs.next() && galeraAllowedStates.contains(rs.getString(2));
       }
 
       return ping();
 
     } catch (SocketException socketException) {
+      logger.trace("Connection is not valid", socketException);
       connected = false;
       return false;
     } finally {
@@ -1184,12 +1193,12 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           socket.setSoTimeout(initialTimeout);
         }
       } catch (SocketException socketException) {
+        logger.warn("Could not set socket timeout back to " + initialTimeout, socketException);
         connected = false;
         //eat
       }
     }
   }
-
 
   @Override
   public String getCatalog() throws SQLException {
@@ -1227,8 +1236,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     lock.lock();
     try {
 
-      final SendChangeDbPacket packet = new SendChangeDbPacket(database);
-      packet.send(writer);
+      SendChangeDbPacket.send(writer, database);
       final Buffer buffer = reader.getPacket(true);
 
       if (buffer.getByteAt(0) == ERROR) {
@@ -1552,7 +1560,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     return autoIncrementIncrement;
   }
 
-
   /**
    * Read ERR_Packet.
    *
@@ -1770,7 +1777,6 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     return serverPrepareStatementCache.put(key, serverPrepareResult);
   }
 
-
   private void cmdPrologue() throws SQLException {
 
     //load active result if any so buffer are clean for next query
@@ -1848,11 +1854,11 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @param initialException initial Io error
    * @return the resulting error to return to client.
    */
-  public SQLException handleIoException(IOException initialException) {
+  public SQLException handleIoException(Exception initialException) {
     boolean mustReconnect;
     boolean driverPreventError = false;
 
-    if (MaxAllowedPacketException.class.isInstance(initialException)) {
+    if (initialException instanceof MaxAllowedPacketException) {
       mustReconnect = ((MaxAllowedPacketException) initialException).isMustReconnect();
       driverPreventError = !mustReconnect;
     } else {
@@ -1877,14 +1883,14 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             UNDEFINED_SQLSTATE.getSqlState() + getTraces(), initialException);
       }
 
-      return new SQLException("Could not send query: query size is >= to max_allowed_packet ("
+      return new SQLTransientConnectionException("Could not send query: query size is >= to max_allowed_packet ("
           + writer.getMaxAllowedPacket() + ")" + getTraces(), UNDEFINED_SQLSTATE.getSqlState(),
           initialException);
     }
     if (!driverPreventError) {
       connected = false;
     }
-    return new SQLException(initialException.getMessage() + getTraces(),
+    return new SQLNonTransientConnectionException(initialException.getMessage() + getTraces(),
         driverPreventError ? UNDEFINED_SQLSTATE.getSqlState() : CONNECTION_EXCEPTION.getSqlState(),
         initialException);
 
@@ -1892,6 +1898,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
   public void setActiveFutureTask(FutureTask activeFutureTask) {
     this.activeFutureTask = activeFutureTask;
+  }
+
+  public void interrupt() {
+    interrupted = true;
   }
 
   public boolean isInterrupted() {

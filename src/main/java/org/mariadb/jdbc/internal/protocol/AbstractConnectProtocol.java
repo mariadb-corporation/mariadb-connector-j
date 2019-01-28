@@ -56,20 +56,13 @@ import static org.mariadb.jdbc.internal.com.Packet.COM_QUERY;
 import static org.mariadb.jdbc.internal.com.Packet.EOF;
 import static org.mariadb.jdbc.internal.com.Packet.ERROR;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
-import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.NoSuchAlgorithmException;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.sql.ResultSet;
@@ -83,15 +76,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
-import javax.net.ssl.KeyManager;
-import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
@@ -101,11 +91,12 @@ import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.OkPacket;
 import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
-import org.mariadb.jdbc.internal.com.send.InterfaceAuthSwitchSendResponsePacket;
+
 import org.mariadb.jdbc.internal.com.send.SendClosePacket;
 import org.mariadb.jdbc.internal.com.send.SendHandshakeResponsePacket;
-import org.mariadb.jdbc.internal.com.send.SendOldPasswordAuthPacket;
 import org.mariadb.jdbc.internal.com.send.SendSslConnectionRequestPacket;
+import org.mariadb.jdbc.internal.com.send.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.internal.com.send.authentication.OldPasswordPlugin;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.io.LruTraceCache;
 import org.mariadb.jdbc.internal.io.input.DecompressPacketInputStream;
@@ -119,8 +110,7 @@ import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.authentication.AuthenticationProviderHolder;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.protocol.tls.HostnameVerifierImpl;
-import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509KeyManager;
-import org.mariadb.jdbc.internal.protocol.tls.MariaDbX509TrustManager;
+import org.mariadb.jdbc.internal.protocol.tls.SslFactory;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.Utils;
@@ -199,11 +189,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
       PacketOutputStream packetOutputStream, Socket socket) {
     try {
       try {
+        long maxCurrentMillis = System.currentTimeMillis() + 10;
         socket.shutdownOutput();
         socket.setSoTimeout(3);
         InputStream is = socket.getInputStream();
         //noinspection StatementWithEmptyBody
-        while (is.read() != -1) {
+        while (is.read() != -1 && System.currentTimeMillis() < maxCurrentMillis) {
           //read byte
         }
       } catch (Throwable t) {
@@ -339,92 +330,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
   }
 
-  private SSLSocketFactory getSslSocketFactory() throws SQLException {
-    if (!options.trustServerCertificate
-        && options.serverSslCert == null
-        && options.trustStore == null
-        && options.keyStore == null) {
-      return (SSLSocketFactory) SSLSocketFactory.getDefault();
-    }
-
-    TrustManager[] trustManager = null;
-    KeyManager[] keyManager = null;
-
-    if (options.trustServerCertificate || options.serverSslCert != null
-        || options.trustStore != null) {
-      trustManager = new X509TrustManager[]{new MariaDbX509TrustManager(options)};
-    }
-
-    if (options.keyStore != null) {
-      keyManager = new KeyManager[]{
-          loadClientCerts(options.keyStore, options.keyStorePassword, options.keyPassword)};
-    } else {
-      String keyStore = System.getProperty("javax.net.ssl.keyStore");
-      String keyStorePassword = System.getProperty("javax.net.ssl.keyStorePassword");
-      if (keyStore != null) {
-        try {
-          keyManager = new KeyManager[]{
-              loadClientCerts(keyStore, keyStorePassword, keyStorePassword)};
-        } catch (SQLException queryException) {
-          keyManager = null;
-          logger.error("Error loading keymanager from system properties", queryException);
-        }
-      }
-    }
-
-    try {
-      SSLContext sslContext = SSLContext.getInstance("TLS");
-      sslContext.init(keyManager, trustManager, null);
-      return sslContext.getSocketFactory();
-    } catch (KeyManagementException keyManagementEx) {
-      throw ExceptionMapper.connException("Could not initialize SSL context", keyManagementEx);
-    } catch (NoSuchAlgorithmException noSuchAlgorithmEx) {
-      throw ExceptionMapper
-          .connException("SSLContext TLS Algorithm not unknown", noSuchAlgorithmEx);
-    }
-
-  }
-
-  private KeyManager loadClientCerts(String keyStoreUrl, String keyStorePassword,
-      String keyPassword) throws SQLException {
-    InputStream inStream = null;
-    try {
-
-      char[] keyStorePasswordChars =
-          keyStorePassword == null ? null : keyStorePassword.toCharArray();
-
-      try {
-        inStream = new URL(keyStoreUrl).openStream();
-      } catch (IOException ioexception) {
-        inStream = new FileInputStream(keyStoreUrl);
-      }
-
-      KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-      ks.load(inStream, keyStorePasswordChars);
-      char[] keyStoreChars =
-          (keyPassword == null) ? keyStorePasswordChars : keyPassword.toCharArray();
-      return new MariaDbX509KeyManager(ks, keyStoreChars);
-    } catch (GeneralSecurityException generalSecurityEx) {
-      throw ExceptionMapper.connException("Failed to create keyStore instance", generalSecurityEx);
-    } catch (FileNotFoundException fileNotFoundEx) {
-      throw ExceptionMapper
-          .connException("Failed to find keyStore file. Option keyStore=" + keyStoreUrl,
-              fileNotFoundEx);
-    } catch (IOException ioEx) {
-      throw ExceptionMapper
-          .connException("Failed to read keyStore file. Option keyStore=" + keyStoreUrl, ioEx);
-    } finally {
-      try {
-        if (inStream != null) {
-          inStream.close();
-        }
-      } catch (IOException ioEx) {
-        //ignore error
-      }
-    }
-
-  }
-
   /**
    * InitializeSocketOption.
    */
@@ -512,7 +417,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
         writer = new CompressPacketOutputStream(writer.getOutputStream(),
             options.maxQuerySizeToLog);
         reader = new DecompressPacketInputStream(
-            ((StandardPacketInputStream) reader).getBufferedInputStream(),
+            ((StandardPacketInputStream) reader).getInputStream(),
             options.maxQuerySizeToLog);
         if (options.enablePacketDebug) {
           writer.setTraceCache(traceCache);
@@ -772,8 +677,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   private void handleConnectionPhases(String host) throws SQLException {
     try {
-      reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
-      writer = new StandardPacketOutputStream(socket.getOutputStream(), options.maxQuerySizeToLog);
+      reader = new StandardPacketInputStream(socket.getInputStream(), options);
+      writer = new StandardPacketOutputStream(socket.getOutputStream(), options);
 
       if (options.enablePacketDebug) {
         writer.setTraceCache(traceCache);
@@ -789,19 +694,17 @@ public abstract class AbstractConnectProtocol implements Protocol {
       this.serverMariaDb = greetingPacket.isServerMariaDb();
       this.serverCapabilities = greetingPacket.getServerCapabilities();
 
-      byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage() & 0xFF);
       parseVersion();
+      byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage() & 0xFF);
       long clientCapabilities = initializeClientCapabilities(serverCapabilities);
 
       byte packetSeq = 1;
       if (options.useSsl
           && (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.SSL) != 0) {
         clientCapabilities |= MariaDbServerCapabilities.SSL;
-        SendSslConnectionRequestPacket amcap = new SendSslConnectionRequestPacket(
-            clientCapabilities, exchangeCharset);
-        amcap.send(writer);
+        SendSslConnectionRequestPacket.send(writer, clientCapabilities, exchangeCharset);
 
-        SSLSocketFactory sslSocketFactory = getSslSocketFactory();
+        SSLSocketFactory sslSocketFactory = SslFactory.getSslSocketFactory(options);
         SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
             socket.getInetAddress().getHostAddress(), socket.getPort(), true);
 
@@ -834,9 +737,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
         }
 
         socket = sslSocket;
-        writer = new StandardPacketOutputStream(socket.getOutputStream(),
-            options.maxQuerySizeToLog);
-        reader = new StandardPacketInputStream(socket.getInputStream(), options.maxQuerySizeToLog);
+        writer = new StandardPacketOutputStream(socket.getOutputStream(), options);
+        reader = new StandardPacketInputStream(socket.getInputStream(), options);
 
         if (options.enablePacketDebug) {
           writer.setTraceCache(traceCache);
@@ -885,59 +787,83 @@ public abstract class AbstractConnectProtocol implements Protocol {
         options,
         greetingPacket);
 
+    writer.permitTrace(false);
+
     Buffer buffer = reader.getPacket(false);
+    AtomicInteger sequence = new AtomicInteger(reader.getLastPacketSeq());
 
-    if ((buffer.getByteAt(0) & 0xFF) == 0xFE) {
+    authentication_loop:
+    while (true) {
+      switch (buffer.getByteAt(0) & 0xFF) {
 
-      writer.permitTrace(false);
-      InterfaceAuthSwitchSendResponsePacket interfaceSendPacket;
-      if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-        buffer.readByte();
-        byte[] authData;
-        String plugin;
-        if (buffer.remaining() > 0) {
-          //AuthSwitchRequest packet.
-          plugin = buffer.readStringNullEnd(Charset.forName("ASCII"));
-          authData = buffer.readRawBytes(buffer.remaining());
-        } else {
-          //OldAuthSwitchRequest
-          plugin = DefaultAuthenticationProvider.MYSQL_OLD_PASSWORD;
-          authData = Utils.copyWithLength(greetingPacket.getSeed(), 8);
-        }
+        case 0xFE:
+          /**********************************************************************
+           * Authentication Switch Request
+           * see https://mariadb.com/kb/en/library/connection/#authentication-switch-request
+           *********************************************************************/
+          sequence.set(reader.getLastPacketSeq());
+          AuthenticationPlugin authenticationPlugin;
+          if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
+            buffer.readByte();
+            byte[] authData;
+            String plugin;
+            if (buffer.remaining() > 0) {
+              //AuthSwitchRequest packet.
+              plugin = buffer.readStringNullEnd(Charset.forName("ASCII"));
+              authData = buffer.readRawBytes(buffer.remaining());
+            } else {
+              //OldAuthSwitchRequest
+              plugin = DefaultAuthenticationProvider.MYSQL_OLD_PASSWORD;
+              authData = Utils.copyWithLength(greetingPacket.getSeed(), 8);
+            }
 
-        //Authentication according to plugin.
-        //see AuthenticationProviderHolder for implement other plugin
-        interfaceSendPacket = AuthenticationProviderHolder.getAuthenticationProvider()
-            .processAuthPlugin(reader, plugin, password, authData, reader.getLastPacketSeq() + 1,
-                options.passwordCharacterEncoding);
-      } else {
-        interfaceSendPacket = new SendOldPasswordAuthPacket(this.password,
-            Utils.copyWithLength(greetingPacket.getSeed(), 8),
-            reader.getLastPacketSeq() + 1, options.passwordCharacterEncoding);
+            //Authentication according to plugin.
+            //see AuthenticationProviderHolder for implement other plugin
+            authenticationPlugin = AuthenticationProviderHolder.getAuthenticationProvider()
+                    .processAuthPlugin(plugin, password, authData, options);
+          } else {
+            authenticationPlugin = new OldPasswordPlugin(
+                    this.password,
+                    Utils.copyWithLength(greetingPacket.getSeed(), 8));
+          }
+          buffer = authenticationPlugin.process(writer, reader, sequence);
+          break;
+
+        case 0xFF:
+          /**********************************************************************
+           * ERR_Packet
+           * see https://mariadb.com/kb/en/library/err_packet/
+           *********************************************************************/
+          ErrorPacket errorPacket = new ErrorPacket(buffer);
+          if (password != null
+                  && !password.isEmpty()
+                  && errorPacket.getErrorNumber() == 1045
+                  && "28000".equals(errorPacket.getSqlState())) {
+            //Access denied
+            throw new SQLException(errorPacket.getMessage()
+                    + "\nCurrent charset is " + Charset.defaultCharset().displayName()
+                    + ". If password has been set using other charset, consider "
+                    + "using option 'passwordCharacterEncoding'",
+                    errorPacket.getSqlState(), errorPacket.getErrorNumber());
+          }
+          throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(),
+                  errorPacket.getErrorNumber());
+
+        case 0x00:
+          /**********************************************************************
+           * Authenticated !
+           * OK_Packet
+           * see https://mariadb.com/kb/en/library/ok_packet/
+           *********************************************************************/
+          serverStatus = new OkPacket(buffer).getServerStatus();
+          break authentication_loop;
+
+        default:
+            throw new SQLException("unexpected data during authentication (header=" + (buffer.getByteAt(0) & 0xFF));
+
       }
-      interfaceSendPacket.send(writer);
-      interfaceSendPacket.handleResultPacket(reader);
-
-    } else {
-      if (buffer.getByteAt(0) == ERROR) {
-        ErrorPacket errorPacket = new ErrorPacket(buffer);
-        if (password != null && !password.isEmpty() && errorPacket.getErrorNumber() == 1045
-            && "28000".equals(errorPacket.getSqlState())) {
-          //Access denied
-          throw new SQLException(errorPacket.getMessage()
-              + "\nCurrent charset is " + Charset.defaultCharset().displayName()
-              + ". If password has been set using other charset, consider "
-              + "using option 'passwordCharacterEncoding'",
-              errorPacket.getSqlState(), errorPacket.getErrorNumber());
-        }
-        throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(),
-            errorPacket.getErrorNumber());
-      }
-      serverStatus = new OkPacket(buffer).getServerStatus();
     }
-
     writer.permitTrace(true);
-
   }
 
   private long initializeClientCapabilities(long serverCapabilities) {
@@ -1059,6 +985,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
         || serverLanguage == 223 //utf8_general_mysql500_ci
         || (serverLanguage >= 192 && serverLanguage <= 215)) {
       return (byte) serverLanguage;
+    }
+    if (getMajorServerVersion() == 5 && getMinorServerVersion() <= 1) {
+      return (byte) 33; //utf8_general_ci
     }
     return (byte) 224; //UTF8MB4_UNICODE_CI;
 
@@ -1313,9 +1242,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
    * @throws SQLException if protocol isn't a supported protocol
    */
   private void enabledSslProtocolSuites(SSLSocket sslSocket) throws SQLException {
-    if (options.enabledSslProtocolSuites == null) {
-      sslSocket.setEnabledProtocols(new String[]{"TLSv1", "TLSv1.1", "TLSv1.2"});
-    } else {
+    if (options.enabledSslProtocolSuites != null) {
       List<String> possibleProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
       String[] protocols = options.enabledSslProtocolSuites.split("[,;\\s]+");
       for (String protocol : protocols) {

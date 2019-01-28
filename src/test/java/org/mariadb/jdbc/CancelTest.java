@@ -54,6 +54,7 @@ package org.mariadb.jdbc;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.BatchUpdateException;
 import java.sql.Connection;
@@ -124,24 +125,34 @@ public class CancelTest extends BaseTest {
     }
   }
 
-  @Test(timeout = 5000, expected = BatchUpdateException.class)
+  @Test(timeout = 5000)
   public void timeoutBatch() throws Exception {
     Assume.assumeFalse(sharedIsAurora());
     Assume.assumeTrue(!sharedOptions().allowMultiQueries && !sharedIsRewrite());
-    createTable("timeoutBatch", "aa text");
+    createTable("timeoutBatch", "id int not null primary key auto_increment, aa text");
 
-    Statement stmt = sharedConnection.createStatement();
-    char[] arr = new char[1000];
-    Arrays.fill(arr, 'a');
-    String str = String.valueOf(arr);
-    for (int i = 0; i < 20000; i++) {
-      stmt.addBatch("INSERT INTO timeoutBatch VALUES ('" + str + "')");
+    try (Connection connection = setConnection("&maxQuerySizeToLog=92")) {
+      Statement stmt = connection.createStatement();
+
+      char[] arr = new char[1000];
+      Arrays.fill(arr, 'a');
+      String str = String.valueOf(arr);
+      for (int i = 0; i < 20000; i++) {
+        stmt.addBatch("INSERT INTO timeoutBatch (aa) VALUES ('" + str + "')");
+      }
+      stmt.setQueryTimeout(1);
+      try {
+        stmt.executeBatch();
+        fail();
+      } catch (BatchUpdateException b) {
+        ResultSet rs2 = stmt.executeQuery("SELECT 2");
+        assertTrue(rs2.next());
+        assertEquals("2", rs2.getString(1));
+      }
     }
-    stmt.setQueryTimeout(1);
-    stmt.executeBatch();
   }
 
-  @Test(timeout = 5000, expected = BatchUpdateException.class)
+  @Test(timeout = 5000)
   public void timeoutPrepareBatch() throws Exception {
     Assume.assumeFalse(sharedIsAurora());
     Assume.assumeTrue(!sharedOptions().allowMultiQueries && !sharedIsRewrite());
@@ -158,7 +169,14 @@ public class CancelTest extends BaseTest {
           stmt.setString(1, str);
           stmt.addBatch();
         }
-        stmt.executeBatch();
+        try {
+          stmt.executeBatch();
+          fail();
+        } catch (BatchUpdateException b) {
+          ResultSet rs2 = stmt.executeQuery("SELECT 2");
+          assertTrue(rs2.next());
+          assertEquals("2", rs2.getString(1));
+        }
       }
     }
   }

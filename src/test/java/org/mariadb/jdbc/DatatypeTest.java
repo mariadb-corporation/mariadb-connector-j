@@ -52,6 +52,7 @@
 
 package org.mariadb.jdbc;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -69,6 +70,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.Date;
@@ -627,7 +629,7 @@ public class DatatypeTest extends BaseTest {
         int read = is.read();
         assertEquals(i, read);
       }
-      assertEquals(rs.getString(1), new String(allBytes, "UTF-8"));
+      assertEquals(rs.getString(1), new String(allBytes, StandardCharsets.UTF_8));
 
       is = rs.getBinaryStream(2);
 
@@ -635,7 +637,7 @@ public class DatatypeTest extends BaseTest {
         int read = is.read();
         assertEquals(i, read);
       }
-      assertEquals(rs.getString(2), new String(allBytes, "UTF-8"));
+      assertEquals(rs.getString(2), new String(allBytes, StandardCharsets.UTF_8));
     } else {
       fail("Must have result !");
     }
@@ -1037,13 +1039,13 @@ public class DatatypeTest extends BaseTest {
       }
 
       try {
-        preparedStatement.setBytes(1, str.getBytes("UTF-8"));
+        preparedStatement.setBytes(1, str.getBytes(StandardCharsets.UTF_8));
         preparedStatement.execute();
       } catch (SQLException sqle) {
         assertTrue(sqle.getMessage().contains("Incorrect string value"));
       }
 
-      ByteArrayInputStream bais = new ByteArrayInputStream(str.getBytes("UTF-8"));
+      ByteArrayInputStream bais = new ByteArrayInputStream(str.getBytes(StandardCharsets.UTF_8));
       preparedStatement.setBinaryStream(1, bais);
       preparedStatement.execute();
     }
@@ -1068,6 +1070,25 @@ public class DatatypeTest extends BaseTest {
         .prepareStatement("SELECT * FROM testShortBit")) {
       validResultSetBitValue(preparedStatement.executeQuery());
     }
+  }
+
+  /**
+   * CONJ-650 : NegativeArraySizeException while executing getObject(columnName, byte[].class) with null value
+   *
+   * @throws SQLException if any exception occur.
+   */
+  @Test
+  public void testNullGetObject() throws SQLException {
+    createTable("testTextNullValue", "id int, val text");
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute(
+        "INSERT INTO testTextNullValue VALUES (1, 'abc'), (2, null)");
+    ResultSet rs = stmt.executeQuery("SELECT * FROM testTextNullValue");
+    assertTrue(rs.next());
+    assertArrayEquals(rs.getObject(2, byte[].class), "abc".getBytes());
+    assertTrue(rs.next());
+    assertNull(rs.getObject(2, byte[].class));
+
   }
 
   private void validResultSetBitValue(ResultSet rs) throws SQLException {

@@ -94,6 +94,7 @@ public class FailoverProxy implements InvocationHandler {
   private static final String METHOD_GET_CATALOG = "getCatalog";
   private static final String METHOD_GET_TIMEOUT = "getTimeout";
   private static final String METHOD_GET_MAJOR_VERSION = "getMajorServerVersion";
+  private static final String METHOD_IN_TRANSACTION = "inTransaction";
 
 
   private static final Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
@@ -199,6 +200,8 @@ public class FailoverProxy implements InvocationHandler {
         return null;
       case METHOD_GET_READ_ONLY:
         return this.listener.isReadOnly();
+      case METHOD_IN_TRANSACTION:
+        return this.listener.inTransaction();
       case METHOD_IS_MASTER_CONNECTION:
         return this.listener.isMasterConnection();
       case METHOD_ABORT:
@@ -297,7 +300,7 @@ public class FailoverProxy implements InvocationHandler {
             return handleFailOver(queryException, method, args, protocol);
           }
 
-          //error is "The MySQL server is running with the %s option so it cannot execute this statement"
+          //error is "The MariaDB server is running with the %s option so it cannot execute this statement"
           //checking that server was master has not been demote to slave without resetting connections
           if (queryException.getErrorCode() == 1290
               && !isSecondExecution
