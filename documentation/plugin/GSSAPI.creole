@@ -103,12 +103,11 @@ if waffle-jna (and dependencies) is in classpath, native implementation will aut
 (This permit to avoid any specific problem with admin right, registry, kinit ...)
 
 Dependencies :
-* [[https://maven-badges.herokuapp.com/maven-central/com.github.dblock.waffle/waffle-jna|waffle-jna 1.8.1]]
-* [[https://maven-badges.herokuapp.com/maven-central/net.java.dev.jna/jna|jna 4.2.1]]
-* [[https://maven-badges.herokuapp.com/maven-central/net.java.dev.jna/jna-platform|jna-platform 4.2.1]]
+* [[https://maven-badges.herokuapp.com/maven-central/com.github.dblock.waffle/waffle-jna|waffle-jna 1.9.0]]
+* [[https://maven-badges.herokuapp.com/maven-central/net.java.dev.jna/jna|jna 4.5.1]]
+* [[https://maven-badges.herokuapp.com/maven-central/net.java.dev.jna/jna-platform|jna-platform 4.5.1]]
 * [[https://maven-badges.herokuapp.com/maven-central/org.slf4j/jcl-over-slf4j|jcl-over-slf4j 1.7.14]]
 * [[https://maven-badges.herokuapp.com/maven-central/org.slf4j/slf4j-api|slf4j-api 1.7.14]]
-* [[https://maven-badges.herokuapp.com/com.google.guava/guava|guava 19.0]]
 
 ==Possible errors
 
