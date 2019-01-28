@@ -64,7 +64,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jna.version>4.2.1</jna.version>
+        <jna.version>4.5.1</jna.version>
         <version.template.file>src/main/resources/Version.java.template</version.template.file>
         <version.file>src/main/java/org/mariadb/jdbc/internal/util/constant/Version.java</version.file>
         <checkstyleVersion>8.12</checkstyleVersion>
