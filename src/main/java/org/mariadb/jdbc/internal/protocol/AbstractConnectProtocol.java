@@ -820,7 +820,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
             //Authentication according to plugin.
             //see AuthenticationProviderHolder for implement other plugin
             authenticationPlugin = AuthenticationProviderHolder.getAuthenticationProvider()
-                    .processAuthPlugin(plugin, password, authData, options.passwordCharacterEncoding);
+                    .processAuthPlugin(plugin, password, authData, options);
           } else {
             authenticationPlugin = new OldPasswordPlugin(
                     this.password,

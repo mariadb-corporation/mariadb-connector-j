@@ -55,6 +55,7 @@ package org.mariadb.jdbc.internal.protocol.authentication;
 import java.sql.SQLException;
 
 import org.mariadb.jdbc.internal.com.send.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.internal.util.Options;
 
 
 /**
@@ -104,7 +105,7 @@ public class AuthenticationProviderHolder {
     AuthenticationPlugin processAuthPlugin(String plugin,
                                            String password,
                                            byte[] authData,
-                                           String passwordCharacterEncoding)
+                                           Options options)
         throws SQLException;
   }
 

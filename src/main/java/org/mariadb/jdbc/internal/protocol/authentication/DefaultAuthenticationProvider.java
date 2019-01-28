@@ -62,6 +62,7 @@ import org.mariadb.jdbc.internal.com.send.authentication.NativePasswordPlugin;
 import org.mariadb.jdbc.internal.com.send.authentication.OldPasswordPlugin;
 import org.mariadb.jdbc.internal.com.send.authentication.SendGssApiAuthPacket;
 import org.mariadb.jdbc.internal.com.send.authentication.SendPamAuthPacket;
+import org.mariadb.jdbc.internal.util.Options;
 
 public class DefaultAuthenticationProvider {
 
@@ -78,26 +79,28 @@ public class DefaultAuthenticationProvider {
    * @param plugin                    plugin name
    * @param password                  password
    * @param authData                  auth data
-   * @param passwordCharacterEncoding password character encoding
+   * @param options                   connection string options
    * @return authentication response according to parameters
    * @throws SQLException if error occur.
    */
-  public static AuthenticationPlugin processAuthPlugin(String plugin, String password,
-                                                       byte[] authData, String passwordCharacterEncoding)
+  public static AuthenticationPlugin processAuthPlugin(String plugin,
+                                                       String password,
+                                                       byte[] authData,
+                                                       Options options)
       throws SQLException {
     switch (plugin) {
       case MYSQL_NATIVE_PASSWORD:
-        return new NativePasswordPlugin(password, authData, passwordCharacterEncoding);
+        return new NativePasswordPlugin(password, authData, options.passwordCharacterEncoding);
       case MYSQL_OLD_PASSWORD:
         return new OldPasswordPlugin(password, authData);
       case MYSQL_CLEAR_PASSWORD:
-        return new ClearPasswordPlugin(password, passwordCharacterEncoding);
+        return new ClearPasswordPlugin(password, options.passwordCharacterEncoding);
       case DIALOG:
-        return new SendPamAuthPacket(password, authData, passwordCharacterEncoding);
+        return new SendPamAuthPacket(password, authData, options.passwordCharacterEncoding);
       case GSSAPI_CLIENT:
-        return new SendGssApiAuthPacket(authData);
+        return new SendGssApiAuthPacket(authData, options.servicePrincipalName);
       case MYSQL_ED25519_PASSWORD:
-        return new Ed25519PasswordPlugin(password, authData, passwordCharacterEncoding);
+        return new Ed25519PasswordPlugin(password, authData, options.passwordCharacterEncoding);
 
       default:
         throw new SQLException(
