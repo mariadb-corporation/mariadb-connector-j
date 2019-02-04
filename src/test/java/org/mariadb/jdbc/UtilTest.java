@@ -104,9 +104,13 @@ public class UtilTest extends BaseTest {
 
     @Test
     public void backTickQuote() throws SQLException {
-        try (Connection conn = setConnection()) {
+        Connection conn = null;
+        try {
+            conn = setConnection();
             Statement stmt = conn.createStatement();
             stmt.execute("CREATE TEMPORARY TABLE `{tt1}`(`{Document id}` int, tt text)");
+        } finally {
+            if (conn != null) conn.close();
         }
     }
 }
