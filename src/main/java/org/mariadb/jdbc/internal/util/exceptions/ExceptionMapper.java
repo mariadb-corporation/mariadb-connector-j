@@ -67,6 +67,9 @@ import java.sql.SQLTransactionRollbackException;
 import java.sql.SQLTransientException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.Iterator;
+import java.util.Map;
+
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.util.SqlStates;
@@ -146,7 +149,12 @@ public class ExceptionMapper {
 
                 if (connection.includeThreadsTraces()) {
                     message.append("\n\ncurrent threads: ");
-                    Thread.getAllStackTraces().forEach((thread, traces) -> {
+                    Iterator<Map.Entry<Thread, StackTraceElement[]>> stacks =
+                        Thread.getAllStackTraces().entrySet().iterator();
+                    while (stacks.hasNext()) {
+                        Map.Entry<Thread, StackTraceElement[]> entry = stacks.next();
+                        Thread thread = entry.getKey();
+                        StackTraceElement[] traces = entry.getValue();
                         message.append("\n  name:\"")
                             .append(thread.getName())
                             .append("\" pid:")
@@ -156,7 +164,7 @@ public class ExceptionMapper {
                         for (int i = 0; i < traces.length; i++) {
                             message.append("\n    ").append(traces[i]);
                         }
-                    });
+                    };
                 }
             }
             sqlException = get(message.toString(), exception.getSQLState(), exception.getErrorCode(), exception, timeout);
