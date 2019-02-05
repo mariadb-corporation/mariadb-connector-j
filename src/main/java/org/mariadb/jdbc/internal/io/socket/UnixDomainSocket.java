@@ -205,7 +205,7 @@ public class UnixDomainSocket extends Socket {
             allocateMemory();
         }
 
-        protected java.util.List getFieldOrder() {
+        protected java.util.List<String> getFieldOrder() {
             return Arrays.asList("sun_family", "sun_path");
         }
 

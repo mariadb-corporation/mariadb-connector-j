@@ -323,7 +323,7 @@ public class SharedMemorySocket extends Socket {
             public Pointer lpSecurityDescriptor;
             public boolean bInheritHandle;
 
-            protected java.util.List getFieldOrder() {
+            protected java.util.List<String> getFieldOrder() {
                 return Arrays.asList("nLength", "lpSecurityDescriptor", "bInheritHandle");
             }
         }

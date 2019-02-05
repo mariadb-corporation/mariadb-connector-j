@@ -52,10 +52,10 @@
 
 package org.mariadb.jdbc.internal.protocol.authentication;
 
-import java.sql.SQLException;
-
 import org.mariadb.jdbc.internal.com.send.authentication.AuthenticationPlugin;
 import org.mariadb.jdbc.internal.util.Options;
+
+import java.sql.SQLException;
 
 
 /**
@@ -67,7 +67,16 @@ public class AuthenticationProviderHolder {
   /**
    * The default provider will construct a new pool on every request.
    */
-  public static final AuthenticationProvider DEFAULT_PROVIDER = DefaultAuthenticationProvider::processAuthPlugin;
+  public static final AuthenticationProvider DEFAULT_PROVIDER = new AuthenticationProvider() {
+    @Override
+    public AuthenticationPlugin processAuthPlugin(String plugin,
+                                                  String password,
+                                                  byte[] authData,
+                                                  Options options)
+        throws SQLException {
+      return DefaultAuthenticationProvider.processAuthPlugin(plugin, password, authData, options);
+    }
+  };
 
   private static volatile AuthenticationProvider currentProvider = null;
 
