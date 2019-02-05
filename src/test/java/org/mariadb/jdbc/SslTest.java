@@ -1111,7 +1111,7 @@ public class SslTest extends BaseTest {
   }
 
   private void generateKeystoreFromFile(String certificateFile, String keystoreFile,
-      String password)
+                                        String password)
       throws KeyStoreException, CertificateException,
       IOException, NoSuchAlgorithmException {
     InputStream inStream;

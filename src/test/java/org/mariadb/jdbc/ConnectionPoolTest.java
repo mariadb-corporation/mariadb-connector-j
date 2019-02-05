@@ -54,107 +54,118 @@ package org.mariadb.jdbc;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import javax.sql.DataSource;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import javax.sql.DataSource;
-import java.sql.*;
-
 public class ConnectionPoolTest extends BaseTest {
 
-    /**
-     * Tables initialisation.
-     *
-     * @throws SQLException exception
-     */
-    @BeforeClass()
-    public static void initClass() throws SQLException {
-        for (int i = 0; i < 50; i++) {
-            createTable("test_pool_batch" + i, "id int not null primary key auto_increment, test varchar(10)");
+  /**
+   * Tables initialisation.
+   *
+   * @throws SQLException exception
+   */
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    for (int i = 0; i < 50; i++) {
+      createTable("test_pool_batch" + i, "id int not null primary key auto_increment, test varchar(10)");
+    }
+  }
+
+  @Test
+  public void testBasicPool() throws SQLException {
+
+    final HikariDataSource ds = new HikariDataSource();
+    ds.setMaximumPoolSize(20);
+    ds.setDriverClassName("org.mariadb.jdbc.Driver");
+    ds.setJdbcUrl(connU);
+    ds.addDataSourceProperty("user", username);
+    if (password != null) {
+      ds.addDataSourceProperty("password", password);
+    }
+    ds.setAutoCommit(false);
+    Assert.assertTrue(validateDataSource(ds));
+    ds.close();
+  }
+
+  @Test
+  public void testPoolHikariCpWithConfig() throws SQLException {
+
+    HikariConfig config = new HikariConfig();
+    config.setJdbcUrl(connU);
+    config.setUsername(username);
+    if (password != null) {
+      config.setPassword(password);
+    }
+    config.addDataSourceProperty("cachePrepStmts", "true");
+    config.addDataSourceProperty("prepStmtCacheSize", "250");
+    config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+    HikariDataSource ds = null;
+    try {
+      ds = new HikariDataSource(config);
+      Assert.assertTrue(validateDataSource(ds));
+    } finally {
+      ds.close();
+    }
+
+  }
+
+  private boolean validateDataSource(DataSource ds) throws SQLException {
+    Connection connection = null;
+    try {
+      connection = ds.getConnection();
+      Statement statement = connection.createStatement();
+      ResultSet rs = statement.executeQuery("SELECT 1");
+      Assert.assertTrue(rs.next());
+      Assert.assertEquals(1, rs.getInt(1));
+      return true;
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
+    }
+  }
+
+  private class InsertThread implements Runnable {
+    private final DataSource dataSource;
+    private final int insertNumber;
+    private final int tableNumber;
+
+    public InsertThread(int tableNumber, int insertNumber, DataSource dataSource) {
+      this.insertNumber = insertNumber;
+      this.tableNumber = tableNumber;
+      this.dataSource = dataSource;
+    }
+
+    public void run() {
+
+      Connection connection = null;
+      try {
+        connection = dataSource.getConnection();
+        PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test_pool_batch"
+            + tableNumber + "(test) VALUES (?)");
+        for (int i = 1; i < insertNumber; i++) {
+          preparedStatement.setString(1, i + "");
+          preparedStatement.addBatch();
         }
-    }
-
-    @Test
-    public void testBasicPool() throws SQLException {
-
-        final HikariDataSource ds = new HikariDataSource();
-        ds.setMaximumPoolSize(20);
-        ds.setDriverClassName("org.mariadb.jdbc.Driver");
-        ds.setJdbcUrl(connU);
-        ds.addDataSourceProperty("user", username);
-        if (password != null) ds.addDataSourceProperty("password", password);
-        ds.setAutoCommit(false);
-        Assert.assertTrue(validateDataSource(ds));
-        ds.close();
-    }
-
-    @Test
-    public void testPoolHikariCpWithConfig() throws SQLException {
-
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(connU);
-        config.setUsername(username);
-        if (password != null) config.setPassword(password);
-        config.addDataSourceProperty("cachePrepStmts", "true");
-        config.addDataSourceProperty("prepStmtCacheSize", "250");
-        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-        HikariDataSource ds = null;
+        preparedStatement.executeBatch();
+      } catch (SQLException e) {
+        Assert.fail("ERROR insert : " + e.getMessage());
+      } finally {
         try {
-            ds = new HikariDataSource(config);
-            Assert.assertTrue(validateDataSource(ds));
-        } finally {
-            ds.close();
+          if (connection != null) {
+            connection.close();
+          }
+        } catch (SQLException sqle) {
+          //eat
         }
-
+      }
     }
-
-    private boolean validateDataSource(DataSource ds) throws SQLException {
-        Connection connection = null;
-        try {
-            connection = ds.getConnection();
-            Statement statement = connection.createStatement();
-            ResultSet rs = statement.executeQuery("SELECT 1");
-            Assert.assertTrue(rs.next());
-            Assert.assertEquals(1, rs.getInt(1));
-            return true;
-        } finally {
-            if (connection != null) connection.close();
-        }
-    }
-
-    private class InsertThread implements Runnable {
-        private final DataSource dataSource;
-        private final int insertNumber;
-        private final int tableNumber;
-
-        public InsertThread(int tableNumber, int insertNumber, DataSource dataSource) {
-            this.insertNumber = insertNumber;
-            this.tableNumber = tableNumber;
-            this.dataSource = dataSource;
-        }
-
-        public void run() {
-
-            Connection connection = null;
-            try {
-                connection = dataSource.getConnection();
-                PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO test_pool_batch"
-                        + tableNumber + "(test) VALUES (?)");
-                for (int i = 1; i < insertNumber; i++) {
-                    preparedStatement.setString(1, i + "");
-                    preparedStatement.addBatch();
-                }
-                preparedStatement.executeBatch();
-            } catch (SQLException e) {
-                Assert.fail("ERROR insert : " + e.getMessage());
-            } finally {
-                try {
-                    if (connection != null) connection.close();
-                } catch (SQLException sqle) {
-                    //eat
-                }
-            }
-        }
-    }
+  }
 }

@@ -56,8 +56,8 @@ import java.sql.SQLException;
 
 public class ReconnectDuringTransactionException extends SQLException {
 
-    public ReconnectDuringTransactionException(String message, int errorCode, String sqlState) {
-        super(message, sqlState, errorCode);
-    }
+  public ReconnectDuringTransactionException(String message, int errorCode, String sqlState) {
+    super(message, sqlState, errorCode);
+  }
 
 }

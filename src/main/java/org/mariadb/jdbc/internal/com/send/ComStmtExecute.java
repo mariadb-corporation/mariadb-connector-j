@@ -77,9 +77,9 @@ public class ComStmtExecute {
    * @throws IOException if a connection error occur
    */
   public static void writeCmd(final int statementId, final ParameterHolder[] parameters,
-      final int parameterCount,
-      ColumnType[] parameterTypeHeader, final PacketOutputStream pos,
-      final byte cursorFlag) throws IOException {
+                              final int parameterCount,
+                              ColumnType[] parameterTypeHeader, final PacketOutputStream pos,
+                              final byte cursorFlag) throws IOException {
     pos.write(Packet.COM_STMT_EXECUTE);
     pos.writeInt(statementId);
     pos.write(cursorFlag);
@@ -133,7 +133,7 @@ public class ComStmtExecute {
   /**
    * Send a prepare statement binary stream.
    *
-   * @param pos database socket
+   * @param pos                 database socket
    * @param statementId         prepareResult object received after preparation.
    * @param parameters          parameters
    * @param parameterCount      parameters number
@@ -147,7 +147,7 @@ public class ComStmtExecute {
    * @throws IOException if a connection error occur
    */
   public static void send(final PacketOutputStream pos, final int statementId, final ParameterHolder[] parameters,
-                   final int parameterCount, ColumnType[] parameterTypeHeader, byte cursorFlag) throws IOException {
+                          final int parameterCount, ColumnType[] parameterTypeHeader, byte cursorFlag) throws IOException {
     pos.startPacket(0);
     writeCmd(statementId, parameters, parameterCount, parameterTypeHeader, pos, cursorFlag);
     pos.flush();

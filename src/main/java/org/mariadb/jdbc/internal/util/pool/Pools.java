@@ -22,100 +22,104 @@
 
 package org.mariadb.jdbc.internal.util.pool;
 
-import org.mariadb.jdbc.UrlParser;
-import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
-
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
 
 public class Pools {
 
-    private static final AtomicInteger poolIndex = new AtomicInteger();
-    private static final Map<UrlParser, Pool> poolMap = new ConcurrentHashMap<UrlParser, Pool>();
-    private static ScheduledThreadPoolExecutor poolExecutor = null;
+  private static final AtomicInteger poolIndex = new AtomicInteger();
+  private static final Map<UrlParser, Pool> poolMap = new ConcurrentHashMap<UrlParser, Pool>();
+  private static ScheduledThreadPoolExecutor poolExecutor = null;
 
-    /**
-     * Get existing pool for a configuration. Create it if doesn't exists.
-     *
-     * @param urlParser configuration parser
-     * @return pool
-     */
-    public static Pool retrievePool(UrlParser urlParser) {
+  /**
+   * Get existing pool for a configuration. Create it if doesn't exists.
+   *
+   * @param urlParser configuration parser
+   * @return pool
+   */
+  public static Pool retrievePool(UrlParser urlParser) {
+    if (!poolMap.containsKey(urlParser)) {
+      synchronized (poolMap) {
         if (!poolMap.containsKey(urlParser)) {
-            synchronized (poolMap) {
-                if (!poolMap.containsKey(urlParser)) {
-                    if (poolExecutor == null) {
-                        poolExecutor = new ScheduledThreadPoolExecutor(1,
-                                new MariaDbThreadFactory("MariaDbPool-maxTimeoutIdle-checker"));
-                    }
-                    Pool pool = new Pool(urlParser, poolIndex.incrementAndGet(), poolExecutor);
-                    poolMap.put(urlParser, pool);
-                    return pool;
-                }
-            }
+          if (poolExecutor == null) {
+            poolExecutor = new ScheduledThreadPoolExecutor(1,
+                new MariaDbThreadFactory("MariaDbPool-maxTimeoutIdle-checker"));
+          }
+          Pool pool = new Pool(urlParser, poolIndex.incrementAndGet(), poolExecutor);
+          poolMap.put(urlParser, pool);
+          return pool;
         }
-        return poolMap.get(urlParser);
+      }
     }
+    return poolMap.get(urlParser);
+  }
 
-    /**
-     * Remove pool.
-     * @param pool pool to remove
-     */
-    public static void remove(Pool pool) {
+  /**
+   * Remove pool.
+   *
+   * @param pool pool to remove
+   */
+  public static void remove(Pool pool) {
+    if (poolMap.containsKey(pool.getUrlParser())) {
+      synchronized (poolMap) {
         if (poolMap.containsKey(pool.getUrlParser())) {
-            synchronized (poolMap) {
-                if (poolMap.containsKey(pool.getUrlParser())) {
-                    poolMap.remove(pool.getUrlParser());
-                    shutdownExecutor();
-                }
-            }
+          poolMap.remove(pool.getUrlParser());
+          shutdownExecutor();
         }
+      }
     }
+  }
 
-    /**
-     * Close all pools.
-     */
-    public static void close() {
-        synchronized (poolMap) {
-            for (Pool pool : poolMap.values()) {
-                pool.close();
-            }
-            shutdownExecutor();
-            poolMap.clear();
+  /**
+   * Close all pools.
+   */
+  public static void close() {
+    synchronized (poolMap) {
+      for (Pool pool : poolMap.values()) {
+        pool.close();
+      }
+      shutdownExecutor();
+      poolMap.clear();
+    }
+  }
+
+  /**
+   * Closing a pool with name defined in url.
+   *
+   * @param poolName the option "poolName" value
+   */
+  public static void close(String poolName) {
+    if (poolName == null) {
+      return;
+    }
+    synchronized (poolMap) {
+      for (Pool pool : poolMap.values()) {
+        if (poolName.equals(pool.getUrlParser().getOptions().poolName)) {
+          pool.close();
+          poolMap.remove(pool.getUrlParser());
+          return;
         }
+      }
+
+      if (poolMap.isEmpty()) {
+        shutdownExecutor();
+      }
     }
+  }
 
-    /**
-     * Closing a pool with name defined in url.
-     *
-     * @param poolName the option "poolName" value
-     */
-    public static void close(String poolName) {
-        if (poolName == null) return;
-        synchronized (poolMap) {
-            for (Pool pool : poolMap.values()) {
-                if (poolName.equals(pool.getUrlParser().getOptions().poolName)) {
-                    pool.close();
-                    poolMap.remove(pool.getUrlParser());
-                    return;
-                }
-            }
-
-            if (poolMap.isEmpty()) shutdownExecutor();
-        }
+  private static void shutdownExecutor() {
+    poolExecutor.shutdown();
+    try {
+      poolExecutor.awaitTermination(10, TimeUnit.SECONDS);
+    } catch (InterruptedException interrupted) {
+      //eat
     }
+    poolExecutor = null;
 
-    private static void shutdownExecutor() {
-        poolExecutor.shutdown();
-        try {
-            poolExecutor.awaitTermination(10, TimeUnit.SECONDS);
-        } catch (InterruptedException interrupted) {
-            //eat
-        }
-        poolExecutor = null;
-
-    }
+  }
 }

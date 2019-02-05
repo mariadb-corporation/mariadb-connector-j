@@ -80,7 +80,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
-
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.AssumptionViolatedException;
@@ -102,7 +101,6 @@ public class ConnectionTest extends BaseTest {
 
   /**
    * Conj-166. Connection error code must be thrown
-   *
    */
   @Test
   public void testAccessDeniedErrorCode() {
@@ -252,7 +250,7 @@ public class ConnectionTest extends BaseTest {
   /**
    * Conj-116: Make SQLException prettier when too large stream is sent to the server.
    *
-   * @throws Throwable                 exception
+   * @throws Throwable exception
    */
   @Test
   public void checkMaxAllowedPacket() throws Throwable {
@@ -696,9 +694,9 @@ public class ConnectionTest extends BaseTest {
     stmt.execute("drop user IF EXISTS mysqltest1@'%'");
     try {
       stmt.execute("CREATE USER mysqltest1@'%' IDENTIFIED "
-              + "VIA mysql_old_password USING '021bec665bf663f1' "
-              + " OR ed25519 as password('good') "
-              + " OR mysql_native_password as password('works')");
+          + "VIA mysql_old_password USING '021bec665bf663f1' "
+          + " OR ed25519 as password('good') "
+          + " OR mysql_native_password as password('works')");
     } catch (SQLException sqle) {
       //already existing
       sqle.printStackTrace();
@@ -706,14 +704,14 @@ public class ConnectionTest extends BaseTest {
     stmt.execute("GRANT ALL on " + database + ".* to mysqltest1@'%'");
 
     try (Connection connection = openNewConnection(
-            "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
+        "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
             + "?user=mysqltest1&password=good")) {
       //must have succeed
     }
 
     try (Connection connection = openNewConnection(
-            "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
-                    + "?user=mysqltest1&password=works")) {
+        "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
+            + "?user=mysqltest1&password=works")) {
       //must have succeed
     }
 
@@ -732,11 +730,11 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void connectionUnexpectedClose() throws SQLException {
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
-    try (Connection connection =  DriverManager
-            .getConnection("jdbc:mariadb:failover//" + ((hostname != null) ? hostname : "localhost")
-                    + ":" + port + "/" + database + "?user=" + username
-                    + ((password != null) ? "&password=" + password : "")
-                    + "&socketTimeout=1000&useServerPrepStmts=true")) {
+    try (Connection connection = DriverManager
+        .getConnection("jdbc:mariadb:failover//" + ((hostname != null) ? hostname : "localhost")
+            + ":" + port + "/" + database + "?user=" + username
+            + ((password != null) ? "&password=" + password : "")
+            + "&socketTimeout=1000&useServerPrepStmts=true")) {
       Statement stmt = connection.createStatement();
       try {
         stmt.executeQuery("KILL CONNECTION_ID()");
@@ -769,18 +767,18 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void nativeSql() throws SQLException {
     assertEquals("select timestampdiff(HOUR, convert('SQL_', INTEGER))",
-            sharedConnection.nativeSQL("select {fn timestampdiff(SQL_TSI_HOUR, {fn convert('SQL_', SQL_INTEGER)})}"));
+        sharedConnection.nativeSQL("select {fn timestampdiff(SQL_TSI_HOUR, {fn convert('SQL_', SQL_INTEGER)})}"));
   }
 
   @Test
   public void setReadonlyError() throws SQLException {
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
-    try (Connection connection =  DriverManager
-            .getConnection("jdbc:mariadb:replication://" + ((hostname != null) ? hostname : "localhost")
-                    + ":" + port
-                    + "," + ((hostname != null) ? hostname : "localhost")
-                    + ":" + port + "/" + database + "?user=" + username
-                    + ((password != null) ? "&password=" + password : ""))) {
+    try (Connection connection = DriverManager
+        .getConnection("jdbc:mariadb:replication://" + ((hostname != null) ? hostname : "localhost")
+            + ":" + port
+            + "," + ((hostname != null) ? hostname : "localhost")
+            + ":" + port + "/" + database + "?user=" + username
+            + ((password != null) ? "&password=" + password : ""))) {
       connection.setReadOnly(true);
       long threadId = ((MariaDbConnection) connection).getServerThreadId();
       connection.setReadOnly(false);
@@ -861,12 +859,12 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void setClientNotConnectError() throws SQLException {
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
-    try (Connection connection =  DriverManager
-            .getConnection("jdbc:mariadb:replication://" + ((hostname != null) ? hostname : "localhost")
-                    + ":" + port
-                    + "," + ((hostname != null) ? hostname : "localhost")
-                    + ":" + port + "/" + database + "?user=" + username
-                    + ((password != null) ? "&password=" + password : ""))) {
+    try (Connection connection = DriverManager
+        .getConnection("jdbc:mariadb:replication://" + ((hostname != null) ? hostname : "localhost")
+            + ":" + port
+            + "," + ((hostname != null) ? hostname : "localhost")
+            + ":" + port + "/" + database + "?user=" + username
+            + ((password != null) ? "&password=" + password : ""))) {
       connection.setReadOnly(true);
       long threadId = ((MariaDbConnection) connection).getServerThreadId();
       connection.setReadOnly(false);

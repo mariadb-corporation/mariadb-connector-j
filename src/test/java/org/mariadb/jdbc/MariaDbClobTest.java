@@ -90,7 +90,7 @@ public class MariaDbClobTest extends BaseTest {
 
   @Test
   public void setCharacterStream() throws SQLException, IOException {
-    final byte[] bytes =  "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
+    final byte[] bytes = "abcde🙏fgh".getBytes(StandardCharsets.UTF_8);
     MariaDbClob clob = new MariaDbClob(bytes);
     assureReaderEqual("abcde🙏", clob.getCharacterStream(1, 7));
 

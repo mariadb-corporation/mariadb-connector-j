@@ -517,7 +517,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
       buf[pos++] = QUOTE;
       if (noBackslashEscapes) {
         for (; charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80;
-            charsOffset++) {
+             charsOffset++) {
           if (currChar == QUOTE) {
             buf[pos++] = QUOTE;
           }
@@ -525,7 +525,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
         }
       } else {
         for (; charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80;
-            charsOffset++) {
+             charsOffset++) {
           if (currChar == BACKSLASH || currChar == QUOTE || currChar == 0
               || currChar == DBL_QUOTE) {
             buf[pos++] = BACKSLASH;
@@ -535,7 +535,7 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
       }
     } else {
       for (; charsOffset < charsLength && (currChar = str.charAt(charsOffset)) < 0x80;
-          charsOffset++) {
+           charsOffset++) {
         buf[pos++] = (byte) currChar;
       }
     }

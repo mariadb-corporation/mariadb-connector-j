@@ -115,9 +115,9 @@ public class DriverTest extends BaseTest {
     createTable("Drivert4", "id int not null primary key auto_increment, test varchar(20)",
         "engine=innodb");
     createTable("Drivert5", "id int not null primary key auto_increment, test varchar(20)",
-            "engine=innodb");
+        "engine=innodb");
     createTable("Drivert6", "id int not null primary key auto_increment, test varchar(20)",
-            "engine=innodb");
+        "engine=innodb");
     createTable("test_float", "id int not null primary key auto_increment, a float");
     createTable("test_big_autoinc2",
         "id int not null primary key auto_increment, test varchar(10)");
@@ -1103,13 +1103,13 @@ public class DriverTest extends BaseTest {
     try {
       try (Connection connection = setConnection("&profileSql=true")) {
         try (PreparedStatement preparedStatement =
-            connection.prepareStatement("insert into testString2(a) values(?)")) {
+                 connection.prepareStatement("insert into testString2(a) values(?)")) {
           preparedStatement.setString(1, "'\\");
           int affectedRows = preparedStatement.executeUpdate();
           assertEquals(affectedRows, 1);
         }
         try (PreparedStatement preparedStatement =
-            connection.prepareStatement("select * from testString2")) {
+                 connection.prepareStatement("select * from testString2")) {
           rs = preparedStatement.executeQuery();
           assertTrue(rs.next());
           String out = rs.getString(1);

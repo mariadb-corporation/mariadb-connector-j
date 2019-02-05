@@ -199,7 +199,9 @@ public class MultiTest extends BaseTest {
       assertTrue(count > 0);
       assertFalse(statement.getMoreResults());
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -231,7 +233,9 @@ public class MultiTest extends BaseTest {
       assertEquals(-1, statement.getUpdateCount());
 
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -255,7 +259,9 @@ public class MultiTest extends BaseTest {
       int updateNb = statement.getUpdateCount();
       assertEquals(2, updateNb);
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -279,7 +285,9 @@ public class MultiTest extends BaseTest {
       }
       assertTrue(count > 0);
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -316,7 +324,9 @@ public class MultiTest extends BaseTest {
       rs.close();
       assertEquals(1, cnt);
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -368,7 +378,9 @@ public class MultiTest extends BaseTest {
       assertTrue(rs.next());
       assertEquals(100, rs.getInt(1));
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -385,7 +397,9 @@ public class MultiTest extends BaseTest {
       PreparedStatement statement = connection.prepareStatement("SELECT 1");
       statement.executeQuery();
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -425,7 +439,9 @@ public class MultiTest extends BaseTest {
         statement.close();
       }
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -462,12 +478,14 @@ public class MultiTest extends BaseTest {
       assertTrue(rs.next());
       assertEquals(3, rs.getInt(1));
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
   private void verifyInsertBehaviorBasedOnRewriteBatchedStatements(Boolean rewriteBatchedStatements,
-      int totalInsertCommands) throws SQLException {
+                                                                   int totalInsertCommands) throws SQLException {
     Properties props = new Properties();
     props.setProperty("rewriteBatchedStatements", rewriteBatchedStatements.toString());
     props.setProperty("allowMultiQueries", "true");
@@ -489,7 +507,9 @@ public class MultiTest extends BaseTest {
       assertEquals(totalInsertCommands, totalUpdates);
       verifyInsertCount(tmpConnection, totalInsertCommands);
     } finally {
-      if (tmpConnection != null) tmpConnection.close();
+      if (tmpConnection != null) {
+        tmpConnection.close();
+      }
     }
   }
 
@@ -507,7 +527,9 @@ public class MultiTest extends BaseTest {
         return resultSet.getInt(2);
       }
     } finally {
-      if (resultSet != null) resultSet.close();
+      if (resultSet != null) {
+        resultSet.close();
+      }
     }
     throw new SQLException("Unable to retrieve, variable value from Server " + variable);
   }
@@ -539,7 +561,9 @@ public class MultiTest extends BaseTest {
       sqlInsert.addBatch();
       sqlInsert.executeBatch();
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
 
   }
@@ -617,7 +641,9 @@ public class MultiTest extends BaseTest {
         }
       }
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -667,7 +693,9 @@ public class MultiTest extends BaseTest {
       sqlInsert.executeBatch();
       verifyInsertCount(tmpConnection, 200);
     } finally {
-      if (tmpConnection != null) tmpConnection.close();
+      if (tmpConnection != null) {
+        tmpConnection.close();
+      }
     }
   }
 
@@ -706,7 +734,9 @@ public class MultiTest extends BaseTest {
 
       verifyUpdateCount(tmpConnection, cycles); //1000 update commande launched
     } finally {
-      if (tmpConnection != null) tmpConnection.close();
+      if (tmpConnection != null) {
+        tmpConnection.close();
+      }
     }
   }
 
@@ -747,7 +777,9 @@ public class MultiTest extends BaseTest {
       updateCounts = preparedStatement.executeBatch();
       assertEquals(1, updateCounts.length);
     } finally {
-      if (tmpConnection != null) tmpConnection.close();
+      if (tmpConnection != null) {
+        tmpConnection.close();
+      }
     }
   }
 
@@ -777,7 +809,9 @@ public class MultiTest extends BaseTest {
       verifyInsertCount(tmpConnection, 100);
       verifyUpdateCount(tmpConnection, 0);
     } finally {
-      if (tmpConnection != null) tmpConnection.close();
+      if (tmpConnection != null) {
+        tmpConnection.close();
+      }
     }
   }
 
@@ -831,7 +865,9 @@ public class MultiTest extends BaseTest {
       assertEquals(0, updateCounts[1]);
       assertEquals(2, updateCounts[2]);
     } finally {
-      if (tmpConnection != null) tmpConnection.close();
+      if (tmpConnection != null) {
+        tmpConnection.close();
+      }
     }
   }
 
@@ -884,7 +920,9 @@ public class MultiTest extends BaseTest {
       insertStmt.addBatch();
       insertStmt.executeBatch();
     } finally {
-      if (tmpConnection != null) tmpConnection.close();
+      if (tmpConnection != null) {
+        tmpConnection.close();
+      }
     }
   }
 
@@ -939,7 +977,9 @@ public class MultiTest extends BaseTest {
       insertStmt.addBatch();
       insertStmt.executeBatch();
     } finally {
-      if (tmpConnection != null) tmpConnection.close();
+      if (tmpConnection != null) {
+        tmpConnection.close();
+      }
     }
   }
 
@@ -965,7 +1005,9 @@ public class MultiTest extends BaseTest {
       insertStmt.addBatch();
       insertStmt.executeBatch();
     } finally {
-      if (tmpConnection != null) tmpConnection.close();
+      if (tmpConnection != null) {
+        tmpConnection.close();
+      }
     }
   }
 
@@ -978,7 +1020,7 @@ public class MultiTest extends BaseTest {
   }
 
   private void continueOnBatchError(boolean continueBatch, boolean serverPrepare,
-      boolean rewrite, boolean batchMulti) throws SQLException {
+                                    boolean rewrite, boolean batchMulti) throws SQLException {
     System.out.println("continueBatch:" + continueBatch
         + " serverPrepare:" + serverPrepare
         + " rewrite:" + rewrite
@@ -989,10 +1031,10 @@ public class MultiTest extends BaseTest {
     Connection connection = null;
     try {
       connection = setBlankConnection(
-        "&useServerPrepStmts=" + serverPrepare
-            + "&useBatchMultiSend=" + batchMulti
-            + "&continueBatchOnError=" + continueBatch
-            + "&rewriteBatchedStatements=" + rewrite);
+          "&useServerPrepStmts=" + serverPrepare
+              + "&useBatchMultiSend=" + batchMulti
+              + "&continueBatchOnError=" + continueBatch
+              + "&rewriteBatchedStatements=" + rewrite);
       PreparedStatement pstmt = connection
           .prepareStatement("INSERT INTO MultiTestt9 (id, test) VALUES (?, ?)");
       for (int i = 0; i < 10; i++) {
@@ -1066,7 +1108,9 @@ public class MultiTest extends BaseTest {
         assertFalse(rs.next());
       }
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -1143,7 +1187,7 @@ public class MultiTest extends BaseTest {
 
 
   private void prepareBatchUpdateException(Boolean rewriteBatchedStatements,
-      Boolean allowMultiQueries) throws SQLException {
+                                           Boolean allowMultiQueries) throws SQLException {
 
     createTable("batchUpdateException", "i int,PRIMARY KEY (i)");
     Properties props = new Properties();
@@ -1192,7 +1236,9 @@ public class MultiTest extends BaseTest {
 
       }
     } finally {
-      if (tmpConnection != null) tmpConnection.close();
+      if (tmpConnection != null) {
+        tmpConnection.close();
+      }
     }
   }
 
@@ -1244,7 +1290,9 @@ public class MultiTest extends BaseTest {
       checkResultsPrepareMulti(tmpConnection);
       checkResultsPrepareBatch(tmpConnection);
     } finally {
-      if (tmpConnection != null) tmpConnection.close();
+      if (tmpConnection != null) {
+        tmpConnection.close();
+      }
     }
   }
 
@@ -1265,7 +1313,9 @@ public class MultiTest extends BaseTest {
       checkResultsPrepareMulti(tmpConnection);
       checkResultsPrepareBatch(tmpConnection);
     } finally {
-      if (tmpConnection != null) tmpConnection.close();
+      if (tmpConnection != null) {
+        tmpConnection.close();
+      }
     }
 
   }
@@ -1481,7 +1531,9 @@ public class MultiTest extends BaseTest {
       int rowCount = stmt.executeUpdate("UPDATE testAffectedRow set id = 1");
       assertEquals(useAffectedRows ? 2 : 4, rowCount);
     } finally {
-      if (con != null) con.close();
+      if (con != null) {
+        con.close();
+      }
     }
   }
 }

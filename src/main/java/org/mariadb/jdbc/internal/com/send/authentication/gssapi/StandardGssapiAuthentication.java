@@ -77,11 +77,11 @@ public class StandardGssapiAuthentication implements GssapiAuth {
   /**
    * Process default GSS plugin authentication.
    *
-   * @param out                   out stream
-   * @param in                    in stream
-   * @param sequence              packet sequence
-   * @param servicePrincipalName  service principal name
-   * @param mechanisms            gssapi mechanism
+   * @param out                  out stream
+   * @param in                   in stream
+   * @param sequence             packet sequence
+   * @param servicePrincipalName service principal name
+   * @param mechanisms           gssapi mechanism
    * @throws IOException  if socket error
    * @throws SQLException in any Exception occur
    */

@@ -53,9 +53,7 @@
 package org.mariadb.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
@@ -75,11 +73,11 @@ public class OldPasswordPlugin implements AuthenticationPlugin {
    * Process old password plugin authentication.
    * see https://mariadb.com/kb/en/library/authentication-plugin-mysql_old_password/
    *
-   * @param out       out stream
-   * @param in        in stream
-   * @param sequence  packet sequence
+   * @param out      out stream
+   * @param in       in stream
+   * @param sequence packet sequence
    * @return response packet
-   * @throws IOException  if socket error
+   * @throws IOException if socket error
    */
   public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException {
 

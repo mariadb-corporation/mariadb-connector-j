@@ -988,8 +988,8 @@ public class StoredProcedureTest extends BaseTest {
   }
 
   private void validateResult(ResultSet rs, String[] parameterNames, int[] parameterTypes,
-      int[] precision,
-      int[] scale, int[] direction) throws SQLException {
+                              int[] precision,
+                              int[] scale, int[] direction) throws SQLException {
     int index = 0;
     while (rs.next()) {
       assertEquals(parameterNames[index], rs.getString("COLUMN_NAME"));

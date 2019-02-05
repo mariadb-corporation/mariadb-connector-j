@@ -66,8 +66,8 @@ import org.junit.Test;
 public class ClientPreparedStatementParsingTest extends BaseTest {
 
   private boolean checkParsing(String sql, int paramNumber, boolean rewritable,
-      boolean allowMultiqueries, String[] partsRewrite,
-      String[] partsMulti) throws Exception {
+                               boolean allowMultiqueries, String[] partsRewrite,
+                               String[] partsMulti) throws Exception {
 
     ClientSidePreparedStatement statement = new ClientSidePreparedStatement(
         (MariaDbConnection) sharedConnection, sql,

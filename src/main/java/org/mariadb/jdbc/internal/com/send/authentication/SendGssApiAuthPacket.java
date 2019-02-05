@@ -66,8 +66,6 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 public class SendGssApiAuthPacket implements AuthenticationPlugin {
 
   private static final GssapiAuth gssapiAuth;
-  private byte[] authData;
-  private String optionServicePrincipalName;
 
   static {
     GssapiAuth init;
@@ -79,6 +77,9 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
     gssapiAuth = init;
   }
 
+  private byte[] authData;
+  private String optionServicePrincipalName;
+
 
   public SendGssApiAuthPacket(byte[] authData, String servicePrincipalName) {
     this.authData = authData;
@@ -89,9 +90,9 @@ public class SendGssApiAuthPacket implements AuthenticationPlugin {
    * Process gssapi plugin authentication.
    * see https://mariadb.com/kb/en/library/authentication-plugin-gssapi/
    *
-   * @param out       out stream
-   * @param in        in stream
-   * @param sequence  packet sequence
+   * @param out      out stream
+   * @param in       in stream
+   * @param sequence packet sequence
    * @return response packet
    * @throws IOException  if socket error
    * @throws SQLException if plugin exception

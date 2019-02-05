@@ -333,9 +333,9 @@ public class MariaDbBlob implements Blob, Serializable {
    * @see #getBytes
    */
   public int setBytes(final long pos,
-      final byte[] bytes,
-      final int offset,
-      final int len) throws SQLException {
+                      final byte[] bytes,
+                      final int offset,
+                      final int len) throws SQLException {
 
     if (pos < 1) {
       throw ExceptionMapper.getSqlException("pos should be > 0, first position is 1.");

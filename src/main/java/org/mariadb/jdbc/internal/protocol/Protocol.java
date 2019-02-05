@@ -155,26 +155,26 @@ public interface Protocol {
       throws SQLException;
 
   void executeQuery(boolean mustExecuteOnMaster, Results results,
-      final ClientPrepareResult clientPrepareResult,
-      ParameterHolder[] parameters) throws SQLException;
+                    final ClientPrepareResult clientPrepareResult,
+                    ParameterHolder[] parameters) throws SQLException;
 
   void executeQuery(boolean mustExecuteOnMaster, Results results,
-      final ClientPrepareResult clientPrepareResult,
-      ParameterHolder[] parameters, int timeout) throws SQLException;
+                    final ClientPrepareResult clientPrepareResult,
+                    ParameterHolder[] parameters, int timeout) throws SQLException;
 
   boolean executeBatchClient(boolean mustExecuteOnMaster, Results results,
-      final ClientPrepareResult prepareResult,
-      final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException;
+                             final ClientPrepareResult prepareResult,
+                             final List<ParameterHolder[]> parametersList, boolean hasLongData) throws SQLException;
 
   void executeBatchStmt(boolean mustExecuteOnMaster, Results results, final List<String> queries)
       throws SQLException;
 
   void executePreparedQuery(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-      Results results, ParameterHolder[] parameters) throws SQLException;
+                            Results results, ParameterHolder[] parameters) throws SQLException;
 
   boolean executeBatchServer(boolean mustExecuteOnMaster, ServerPrepareResult serverPrepareResult,
-      Results results, String sql, List<ParameterHolder[]> parameterList,
-      boolean hasLongData) throws SQLException;
+                             Results results, String sql, List<ParameterHolder[]> parameterList,
+                             boolean hasLongData) throws SQLException;
 
   void getResult(Results results) throws SQLException;
 
@@ -233,10 +233,10 @@ public interface Protocol {
   TimeZone getTimeZone();
 
   void prolog(long maxRows, boolean hasProxy, MariaDbConnection connection,
-      MariaDbStatement statement) throws SQLException;
+              MariaDbStatement statement) throws SQLException;
 
   void prologProxy(ServerPrepareResult serverPrepareResult, long maxRows, boolean hasProxy,
-      MariaDbConnection connection, MariaDbStatement statement) throws SQLException;
+                   MariaDbConnection connection, MariaDbStatement statement) throws SQLException;
 
   Results getActiveStreamingResult();
 
@@ -263,7 +263,7 @@ public interface Protocol {
   void removeActiveStreamingResult();
 
   void resetStateAfterFailover(long maxRows, int transactionIsolationLevel, String database,
-      boolean autocommit)
+                               boolean autocommit)
       throws SQLException;
 
   void setActiveFutureTask(FutureTask activeFutureTask);

@@ -95,8 +95,8 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
    * @param prepareResult         prepare result
    */
   public AsyncMultiRead(ComStmtPrepare comStmtPrepare, BulkStatus status, Protocol protocol,
-      boolean readPrepareStmtResult, AbstractMultiSend bulkSend, int paramCount, Results results,
-      List<ParameterHolder[]> parametersList, List<String> queries, PrepareResult prepareResult) {
+                        boolean readPrepareStmtResult, AbstractMultiSend bulkSend, int paramCount, Results results,
+                        List<ParameterHolder[]> parametersList, List<String> queries, PrepareResult prepareResult) {
     this.comStmtPrepare = comStmtPrepare;
     this.status = status;
     this.sendCmdInitialCounter = status.sendCmdCounter - 1;

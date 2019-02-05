@@ -16,60 +16,61 @@ import java.io.Serializable;
  * Note: concrete subclasses must implement hashCode() and equals()
  */
 public abstract class FieldElement implements Serializable {
-    private static final long serialVersionUID = 1239527465875676L;
+  private static final long serialVersionUID = 1239527465875676L;
 
-    protected final Field f;
+  protected final Field f;
 
-    public FieldElement(Field f) {
-        if (null == f) {
-            throw new IllegalArgumentException("field cannot be null");
-        }
-        this.f = f;
+  public FieldElement(Field f) {
+    if (null == f) {
+      throw new IllegalArgumentException("field cannot be null");
     }
+    this.f = f;
+  }
 
-    /**
-     * Encode a FieldElement in its $(b-1)$-bit encoding.
-     * @return the $(b-1)$-bit encoding of this FieldElement.
-     */
-    public byte[] toByteArray() {
-        return f.getEncoding().encode(this);
-    }
+  /**
+   * Encode a FieldElement in its $(b-1)$-bit encoding.
+   *
+   * @return the $(b-1)$-bit encoding of this FieldElement.
+   */
+  public byte[] toByteArray() {
+    return f.getEncoding().encode(this);
+  }
 
-    public abstract boolean isNonZero();
+  public abstract boolean isNonZero();
 
-    public boolean isNegative() {
-        return f.getEncoding().isNegative(this);
-    }
+  public boolean isNegative() {
+    return f.getEncoding().isNegative(this);
+  }
 
-    public abstract FieldElement add(FieldElement val);
+  public abstract FieldElement add(FieldElement val);
 
-    public FieldElement addOne() {
-        return add(f.ONE);
-    }
+  public FieldElement addOne() {
+    return add(f.ONE);
+  }
 
-    public abstract FieldElement subtract(FieldElement val);
+  public abstract FieldElement subtract(FieldElement val);
 
-    public FieldElement subtractOne() {
-        return subtract(f.ONE);
-    }
+  public FieldElement subtractOne() {
+    return subtract(f.ONE);
+  }
 
-    public abstract FieldElement negate();
+  public abstract FieldElement negate();
 
-    public FieldElement divide(FieldElement val) {
-        return multiply(val.invert());
-    }
+  public FieldElement divide(FieldElement val) {
+    return multiply(val.invert());
+  }
 
-    public abstract FieldElement multiply(FieldElement val);
+  public abstract FieldElement multiply(FieldElement val);
 
-    public abstract FieldElement square();
+  public abstract FieldElement square();
 
-    public abstract FieldElement squareAndDouble();
+  public abstract FieldElement squareAndDouble();
 
-    public abstract FieldElement invert();
+  public abstract FieldElement invert();
 
-    public abstract FieldElement pow22523();
+  public abstract FieldElement pow22523();
 
-    public abstract FieldElement cmov(FieldElement val, final int b);
+  public abstract FieldElement cmov(FieldElement val, final int b);
 
-    // Note: concrete subclasses must implement hashCode() and equals()
+  // Note: concrete subclasses must implement hashCode() and equals()
 }

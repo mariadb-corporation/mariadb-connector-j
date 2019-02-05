@@ -79,7 +79,6 @@ import org.mariadb.jdbc.internal.util.constant.HaMode;
  * cluster identifier. example : -DAURORA_CLUSTER_IDENTIFIER=instance-1-cluster
  *
  * <p>"AURORA" environment variable must be set to a value</p>
- *
  */
 public class AuroraFailoverTest extends BaseReplication {
 
@@ -232,7 +231,6 @@ public class AuroraFailoverTest extends BaseReplication {
 
   /**
    * Conj-166 Connection error code must be thrown.
-   *
    */
   @Test
   public void testAccessDeniedErrorCode() {

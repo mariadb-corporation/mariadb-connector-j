@@ -42,10 +42,10 @@ import java.io.InputStream;
  */
 public class ReadAheadBufferedStream extends FilterInputStream {
 
+  private static final int BUF_SIZE = 16384;
   private volatile byte[] buf;
   private int end;
   private int pos;
-  private static final int BUF_SIZE = 16384;
 
   public ReadAheadBufferedStream(InputStream in) {
     super(in);
@@ -71,9 +71,9 @@ public class ReadAheadBufferedStream extends FilterInputStream {
   /**
    * Returing byte array, from cache of reading socket if needed.
    *
-   * @param externalBuf   buffer to fill
-   * @param off           offset
-   * @param len           length to read
+   * @param externalBuf buffer to fill
+   * @param off         offset
+   * @param len         length to read
    * @return number of added bytes
    * @throws IOException if exception during socket reading
    */
@@ -122,7 +122,7 @@ public class ReadAheadBufferedStream extends FilterInputStream {
   /**
    * Fill buffer with required length, or available bytes.
    *
-   * @param minNeededBytes  asked number of bytes
+   * @param minNeededBytes asked number of bytes
    * @throws IOException in case of failing reading stream.
    */
   private void fillBuffer(int minNeededBytes) throws IOException {

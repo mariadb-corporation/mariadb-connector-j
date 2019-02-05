@@ -278,12 +278,12 @@ public class ExecuteBatchTest extends BaseTest {
   }
 
   private void addBatchData(PreparedStatement preparedStatement, int batchNumber,
-      Connection connection) throws SQLException {
+                            Connection connection) throws SQLException {
     addBatchData(preparedStatement, batchNumber, connection, false);
   }
 
   private void addBatchData(PreparedStatement preparedStatement, int batchNumber,
-      Connection connection, boolean additionnalParameter)
+                            Connection connection, boolean additionnalParameter)
       throws SQLException {
     for (int i = 0; i < batchNumber; i++) {
       preparedStatement.setString(1, oneHundredLengthString);
@@ -380,7 +380,9 @@ public class ExecuteBatchTest extends BaseTest {
             e.printStackTrace();
           } finally {
             try {
-              if (connection != null) connection.close();
+              if (connection != null) {
+                connection.close();
+              }
             } catch (SQLException sqle) {
               sqle.printStackTrace();
             }
@@ -431,11 +433,11 @@ public class ExecuteBatchTest extends BaseTest {
 
         final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1);
         executor.schedule(new Runnable() {
-                           @Override
-                           public void run() {
-                             stopProxy();
-                           }
-                         }, 10, TimeUnit.MILLISECONDS);
+          @Override
+          public void run() {
+            stopProxy();
+          }
+        }, 10, TimeUnit.MILLISECONDS);
 
         try {
           pstmt.executeBatch();

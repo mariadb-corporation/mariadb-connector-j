@@ -52,80 +52,89 @@
 
 package org.mariadb.jdbc.failover;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLTimeoutException;
+import java.sql.Statement;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
-import java.sql.*;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 public class CancelTest extends BaseMultiHostTest {
 
-    /**
-     * Initialisation.
-     */
-    @BeforeClass()
-    public static void beforeClass2() {
-        proxyUrl = proxyGaleraUrl;
-        Assume.assumeTrue(initialGaleraUrl != null);
+  /**
+   * Initialisation.
+   */
+  @BeforeClass()
+  public static void beforeClass2() {
+    proxyUrl = proxyGaleraUrl;
+    Assume.assumeTrue(initialGaleraUrl != null);
+  }
+
+  /**
+   * Initialisation.
+   */
+  @Before
+  public void init() {
+    defaultUrl = initialGaleraUrl;
+    currentType = HaMode.FAILOVER;
+  }
+
+
+  @Test(expected = SQLTimeoutException.class)
+  public void timeoutSleep() throws Exception {
+    Connection connection = null;
+    try {
+      connection = getNewConnection(false);
+      PreparedStatement stmt = connection.prepareStatement(
+          "select * from information_schema.columns as c1,"
+              + "information_schema.tables as t1, "
+              + "information_schema.tables as t2");
+      stmt.setQueryTimeout(1);
+      stmt.execute();
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
+    }
+  }
+
+  @Test
+  public void noTimeoutSleep() throws Exception {
+    Connection connection = null;
+    try {
+      connection = getNewConnection(false);
+      Statement stmt = connection.createStatement();
+      stmt.setQueryTimeout(1);
+      stmt.execute("select sleep(0.5)");
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
     }
 
-    /**
-     * Initialisation.
-     */
-    @Before
-    public void init() {
-        defaultUrl = initialGaleraUrl;
-        currentType = HaMode.FAILOVER;
+  }
+
+  @Test
+  public void cancelIdleStatement() throws Exception {
+    Connection connection = null;
+    try {
+      connection = getNewConnection(false);
+      Statement stmt = connection.createStatement();
+      stmt.cancel();
+      ResultSet rs = stmt.executeQuery("select 1");
+      assertTrue(rs.next());
+      assertEquals(rs.getInt(1), 1);
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
     }
-
-
-    @Test(expected = SQLTimeoutException.class)
-    public void timeoutSleep() throws Exception {
-        Connection connection = null;
-        try {
-            connection = getNewConnection(false);
-            PreparedStatement stmt = connection.prepareStatement(
-                    "select * from information_schema.columns as c1,"
-                            + "information_schema.tables as t1, "
-                            + "information_schema.tables as t2");
-            stmt.setQueryTimeout(1);
-            stmt.execute();
-        } finally {
-            if (connection != null) connection.close();
-        }
-    }
-
-    @Test
-    public void noTimeoutSleep() throws Exception {
-        Connection connection = null;
-        try {
-            connection = getNewConnection(false);
-            Statement stmt = connection.createStatement();
-            stmt.setQueryTimeout(1);
-            stmt.execute("select sleep(0.5)");
-        } finally {
-            if (connection != null) connection.close();
-        }
-
-    }
-
-    @Test
-    public void cancelIdleStatement() throws Exception {
-        Connection connection = null;
-        try {
-            connection = getNewConnection(false);
-            Statement stmt = connection.createStatement();
-            stmt.cancel();
-            ResultSet rs = stmt.executeQuery("select 1");
-            assertTrue(rs.next());
-            assertEquals(rs.getInt(1), 1);
-        } finally {
-            if (connection != null) connection.close();
-        }
-    }
+  }
 }

@@ -179,7 +179,7 @@ public abstract class AbstractMastersListener implements Listener {
    * @throws Throwable when method and parameters does not exist.
    */
   public HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args,
-      Protocol protocol) throws Throwable {
+                                          Protocol protocol) throws Throwable {
     if (isExplicitClosed()) {
       throw new SQLException("Connection has been closed !");
     }
@@ -495,8 +495,8 @@ public abstract class AbstractMastersListener implements Listener {
    */
   @Override
   public void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster,
-      SQLException queryException,
-      boolean reconnected) throws SQLException {
+                                   SQLException queryException,
+                                   boolean reconnected) throws SQLException {
     String firstPart = "Communications link failure with "
         + (wasMaster ? "primary" : "secondary")
         + ((failHostAddress != null) ? " host " + failHostAddress.host + ":" + failHostAddress.port

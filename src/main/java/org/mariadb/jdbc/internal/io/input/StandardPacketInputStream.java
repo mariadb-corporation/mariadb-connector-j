@@ -87,8 +87,8 @@ public class StandardPacketInputStream implements PacketInputStream {
   /**
    * Constructor of standard socket MySQL packet stream reader.
    *
-   * @param in        stream
-   * @param options   connection options
+   * @param in      stream
+   * @param options connection options
    */
   public StandardPacketInputStream(InputStream in, Options options) {
     inputStream = options.useReadAheadInput ? new ReadAheadBufferedStream(in)

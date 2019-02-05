@@ -69,7 +69,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
-import org.mariadb.jdbc.internal.com.read.dao.CmdInformation;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.logging.Logger;
@@ -407,13 +406,13 @@ public class MariaDbStatement implements Statement, Cloneable {
    *                          <code>Statement.NO_GENERATED_KEYS</code>
    * @return <code>true</code> if the first result is a <code>ResultSet</code> object;
    *     <code>false</code> if it is an update count or there are no results
-   * @throws SQLException                    if a database access error occurs, this method is
-   *                                         called on a closed
-   *                                         <code>Statement</code> or the second parameter
-   *                                         supplied
-   *                                         to this method is not <code>Statement.RETURN_GENERATED_KEYS</code>
-   *                                         or
-   *                                         <code>Statement.NO_GENERATED_KEYS</code>.
+   * @throws SQLException if a database access error occurs, this method is
+   *                      called on a closed
+   *                      <code>Statement</code> or the second parameter
+   *                      supplied
+   *                      to this method is not <code>Statement.RETURN_GENERATED_KEYS</code>
+   *                      or
+   *                      <code>Statement.NO_GENERATED_KEYS</code>.
    * @see #getResultSet
    * @see #getUpdateCount
    * @see #getMoreResults
@@ -446,11 +445,11 @@ public class MariaDbStatement implements Statement, Cloneable {
    *                      <code>getGeneratedKeys</code>
    * @return <code>true</code> if the first result is a <code>ResultSet</code> object;
    *     <code>false</code> if it is an update count or there are no results
-   * @throws SQLException                    if a database access error occurs, this method is
-   *                                         called on a closed
-   *                                         <code>Statement</code> or the elements in
-   *                                         the <code>int</code> array passed to this method are
-   *                                         not valid column indexes
+   * @throws SQLException if a database access error occurs, this method is
+   *                      called on a closed
+   *                      <code>Statement</code> or the elements in
+   *                      the <code>int</code> array passed to this method are
+   *                      not valid column indexes
    * @see #getResultSet
    * @see #getUpdateCount
    * @see #getMoreResults
@@ -481,11 +480,11 @@ public class MariaDbStatement implements Statement, Cloneable {
    *                    available for retrieval by a call to the method <code>getGeneratedKeys</code>
    * @return <code>true</code> if the next result is a <code>ResultSet</code> object;
    *     <code>false</code> if it is an update count or there are no more results
-   * @throws SQLException                    if a database access error occurs, this method is
-   *                                         called on a closed
-   *                                         <code>Statement</code> or the elements of
-   *                                         the <code>String</code> array passed to this method are
-   *                                         not valid column names
+   * @throws SQLException if a database access error occurs, this method is
+   *                      called on a closed
+   *                      <code>Statement</code> or the elements of
+   *                      the <code>String</code> array passed to this method are
+   *                      not valid column names
    * @see #getResultSet
    * @see #getUpdateCount
    * @see #getMoreResults
@@ -542,11 +541,11 @@ public class MariaDbStatement implements Statement, Cloneable {
    *                          <code>Statement.RETURN_GENERATED_KEYS</code> <code>Statement.NO_GENERATED_KEYS</code>
    * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0
    *     for SQL statements that return nothing
-   * @throws SQLException                    if a database access error occurs, this method is
-   *                                         called on a closed
-   *                                         <code>Statement</code>, the given SQL
-   *                                         statement returns a <code>ResultSet</code> object, or
-   *                                         the given constant is not one of those allowed
+   * @throws SQLException if a database access error occurs, this method is
+   *                      called on a closed
+   *                      <code>Statement</code>, the given SQL
+   *                      statement returns a <code>ResultSet</code> object, or
+   *                      the given constant is not one of those allowed
    */
   public int executeUpdate(final String sql, final int autoGeneratedKeys) throws SQLException {
     if (executeInternal(sql, fetchSize, autoGeneratedKeys)) {
@@ -571,13 +570,13 @@ public class MariaDbStatement implements Statement, Cloneable {
    *                      from the inserted row
    * @return either (1) the row count for SQL Data Manipulation Language (DML) statements or (2) 0
    *     for SQL statements that return nothing
-   * @throws SQLException                    if a database access error occurs, this method is
-   *                                         called on a closed
-   *                                         <code>Statement</code>, the SQL statement returns a
-   *                                         <code>ResultSet</code>
-   *                                         object, or the second argument supplied to this method
-   *                                         is not an <code>int</code> array whose elements are
-   *                                         valid column indexes
+   * @throws SQLException if a database access error occurs, this method is
+   *                      called on a closed
+   *                      <code>Statement</code>, the SQL statement returns a
+   *                      <code>ResultSet</code>
+   *                      object, or the second argument supplied to this method
+   *                      is not an <code>int</code> array whose elements are
+   *                      valid column indexes
    */
   public int executeUpdate(final String sql, final int[] columnIndexes) throws SQLException {
     return executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
@@ -599,13 +598,13 @@ public class MariaDbStatement implements Statement, Cloneable {
    *                    inserted row
    * @return either the row count for <code>INSERT</code>, <code>UPDATE</code>, or
    *     <code>DELETE</code> statements, or 0 for SQL statements that return nothing
-   * @throws SQLException                    if a database access error occurs, this method is
-   *                                         called on a closed
-   *                                         <code>Statement</code>, the SQL statement returns a
-   *                                         <code>ResultSet</code>
-   *                                         object, or the second argument supplied to this method
-   *                                         is not a <code>String</code> array whose elements are
-   *                                         valid column names
+   * @throws SQLException if a database access error occurs, this method is
+   *                      called on a closed
+   *                      <code>Statement</code>, the SQL statement returns a
+   *                      <code>ResultSet</code>
+   *                      object, or the second argument supplied to this method
+   *                      is not a <code>String</code> array whose elements are
+   *                      valid column names
    */
   public int executeUpdate(final String sql, final String[] columnNames) throws SQLException {
     return executeUpdate(sql, Statement.RETURN_GENERATED_KEYS);
@@ -753,7 +752,7 @@ public class MariaDbStatement implements Statement, Cloneable {
    * silently dropped.
    *
    * @return the current maximum number of rows for a <code>ResultSet</code> object produced by this
-   * <code>Statement</code> object; zero means there is no limit
+   *     <code>Statement</code> object; zero means there is no limit
    * @see #setMaxRows
    */
   public int getMaxRows() {
@@ -864,9 +863,9 @@ public class MariaDbStatement implements Statement, Cloneable {
    * <p>In case there is result-set from this Statement that are still streaming data from server, will
    * cancel streaming.</p>
    *
-   * @throws SQLException                    if a database access error occurs or this method is
-   *                                         called on a closed
-   *                                         <code>Statement</code>
+   * @throws SQLException if a database access error occurs or this method is
+   *                      called on a closed
+   *                      <code>Statement</code>
    */
   public void cancel() throws SQLException {
     checkClose();
@@ -922,7 +921,6 @@ public class MariaDbStatement implements Statement, Cloneable {
    * Clears all the warnings reported on this <code>Statement</code> object. After a call to this
    * method, the method <code>getWarnings</code> will return <code>null</code> until a new warning
    * is reported for this <code>Statement</code> object.
-   *
    */
   public void clearWarnings() {
     warningsCleared = true;
@@ -942,9 +940,9 @@ public class MariaDbStatement implements Statement, Cloneable {
    * within a connection.</p>
    *
    * @param name the new cursor name, which must be unique within a connection
-   * @throws SQLException                    if a database access error occurs or this method is
-   *                                         called on a closed
-   *                                         <code>Statement</code>
+   * @throws SQLException if a database access error occurs or this method is
+   *                      called on a closed
+   *                      <code>Statement</code>
    */
   public void setCursorName(final String name) throws SQLException {
     throw ExceptionMapper.getFeatureNotSupportedException("Cursors are not supported");
@@ -968,9 +966,9 @@ public class MariaDbStatement implements Statement, Cloneable {
    *
    * @return a <code>ResultSet</code> object containing the auto-generated key(s) generated by the
    *     execution of this <code>Statement</code> object
-   * @throws SQLException                    if a database access error occurs or this method is
-   *                                         called on a closed
-   *                                         <code>Statement</code>
+   * @throws SQLException if a database access error occurs or this method is
+   *                      called on a closed
+   *                      <code>Statement</code>
    */
   public ResultSet getGeneratedKeys() throws SQLException {
     if (results != null) {
@@ -1119,13 +1117,13 @@ public class MariaDbStatement implements Statement, Cloneable {
    *                or <code>Statement.CLOSE_ALL_RESULTS</code>
    * @return <code>true</code> if the next result is a <code>ResultSet</code> object;
    *     <code>false</code> if it is an update count or there are no more results
-   * @throws SQLException                    if a database access error occurs, this method is
-   *                                         called on a closed
-   *                                         <code>Statement</code> or the argument supplied is not
-   *                                         one of the following:
-   *                                         <code>Statement.CLOSE_CURRENT_RESULT</code>,
-   *                                         <code>Statement.KEEP_CURRENT_RESULT</code> or
-   *                                         <code>Statement.CLOSE_ALL_RESULTS</code>
+   * @throws SQLException if a database access error occurs, this method is
+   *                      called on a closed
+   *                      <code>Statement</code> or the argument supplied is not
+   *                      one of the following:
+   *                      <code>Statement.CLOSE_CURRENT_RESULT</code>,
+   *                      <code>Statement.KEEP_CURRENT_RESULT</code> or
+   *                      <code>Statement.CLOSE_ALL_RESULTS</code>
    * @see #execute
    */
   public boolean getMoreResults(final int current) throws SQLException {

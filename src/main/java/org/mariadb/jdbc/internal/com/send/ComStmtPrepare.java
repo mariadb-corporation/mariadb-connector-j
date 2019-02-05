@@ -52,6 +52,12 @@
 
 package org.mariadb.jdbc.internal.com.send;
 
+import static org.mariadb.jdbc.internal.com.Packet.COM_STMT_PREPARE;
+import static org.mariadb.jdbc.internal.com.Packet.ERROR;
+import static org.mariadb.jdbc.internal.com.Packet.OK;
+
+import java.io.IOException;
+import java.sql.SQLException;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
@@ -60,111 +66,114 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
-import java.io.IOException;
-import java.sql.SQLException;
-
-import static org.mariadb.jdbc.internal.com.Packet.*;
-
 public class ComStmtPrepare {
-    private final Protocol protocol;
-    private final String sql;
+  private final Protocol protocol;
+  private final String sql;
 
-    public ComStmtPrepare(Protocol protocol, String sql) {
-        this.protocol = protocol;
-        this.sql = sql;
+  public ComStmtPrepare(Protocol protocol, String sql) {
+    this.protocol = protocol;
+    this.sql = sql;
+  }
+
+  /**
+   * Send directly to socket the sql data.
+   *
+   * @param pos the writer
+   * @throws IOException if connection error occur
+   */
+  public void send(PacketOutputStream pos) throws IOException {
+    pos.startPacket(0);
+    pos.write(COM_STMT_PREPARE);
+    pos.write(sql);
+    pos.flush();
+  }
+
+  /**
+   * Read COM_PREPARE_RESULT.
+   *
+   * @param reader        inputStream
+   * @param eofDeprecated are EOF_packet deprecated
+   * @return ServerPrepareResult prepare result
+   * @throws IOException  if connection has error
+   * @throws SQLException if server answer with error.
+   */
+  public ServerPrepareResult read(PacketInputStream reader, boolean eofDeprecated) throws IOException, SQLException {
+    Buffer buffer = reader.getPacket(true);
+    byte firstByte = buffer.getByteAt(buffer.position);
+
+    if (firstByte == ERROR) {
+      throw buildErrorException(buffer);
     }
 
-    /**
-     * Send directly to socket the sql data.
-     *
-     * @param pos the writer
-     * @throws IOException  if connection error occur
-     */
-    public void send(PacketOutputStream pos) throws IOException {
-        pos.startPacket(0);
-        pos.write(COM_STMT_PREPARE);
-        pos.write(sql);
-        pos.flush();
-    }
+    if (firstByte == OK) {
 
-    /**
-     * Read COM_PREPARE_RESULT.
-     *
-     * @param reader        inputStream
-     * @param eofDeprecated are EOF_packet deprecated
-     * @return ServerPrepareResult prepare result
-     * @throws IOException  if connection has error
-     * @throws SQLException if server answer with error.
-     */
-    public ServerPrepareResult read(PacketInputStream reader, boolean eofDeprecated) throws IOException, SQLException {
-        Buffer buffer = reader.getPacket(true);
-        byte firstByte = buffer.getByteAt(buffer.position);
+      /* Prepared Statement OK */
+      buffer.readByte(); /* skip field count */
+      final int statementId = buffer.readInt();
+      final int numColumns = buffer.readShort() & 0xffff;
+      final int numParams = buffer.readShort() & 0xffff;
 
-        if (firstByte == ERROR) throw buildErrorException(buffer);
+      ColumnInformation[] params = new ColumnInformation[numParams];
+      ColumnInformation[] columns = new ColumnInformation[numColumns];
 
-        if (firstByte == OK) {
-
-            /* Prepared Statement OK */
-            buffer.readByte(); /* skip field count */
-            final int statementId = buffer.readInt();
-            final int numColumns = buffer.readShort() & 0xffff;
-            final int numParams = buffer.readShort() & 0xffff;
-
-            ColumnInformation[] params = new ColumnInformation[numParams];
-            ColumnInformation[] columns = new ColumnInformation[numColumns];
-
-            if (numParams > 0) {
-                for (int i = 0; i < numParams; i++) {
-                    params[i] = new ColumnInformation(reader.getPacket(false));
-                }
-
-                if (numColumns > 0) {
-                    if (!eofDeprecated) protocol.skipEofPacket();
-                    for (int i = 0; i < numColumns; i++) {
-                        columns[i] = new ColumnInformation(reader.getPacket(false));
-                    }
-                }
-                if (!eofDeprecated) protocol.readEofPacket();
-            } else {
-                if (numColumns > 0) {
-                    for (int i = 0; i < numColumns; i++) {
-                        columns[i] = new ColumnInformation(reader.getPacket(false));
-                    }
-                    if (!eofDeprecated) protocol.readEofPacket();
-                } else {
-                    //read warning only if no param / columns, because will be overwritten by EOF warning data
-                    buffer.readByte(); // reserved
-                    protocol.setHasWarnings(buffer.readShort() > 0);
-                }
-            }
-
-            ServerPrepareResult serverPrepareResult = new ServerPrepareResult(sql, statementId, columns, params, protocol);
-            if (protocol.getOptions().cachePrepStmts
-                    && protocol.getOptions().useServerPrepStmts
-                    && sql != null
-                    && sql.length() < protocol.getOptions().prepStmtCacheSqlLimit) {
-                String key = protocol.getDatabase() + "-" + sql;
-                ServerPrepareResult cachedServerPrepareResult = protocol.addPrepareInCache(key, serverPrepareResult);
-                return cachedServerPrepareResult != null ? cachedServerPrepareResult : serverPrepareResult;
-            }
-            return serverPrepareResult;
-
-        } else {
-            throw new SQLException("Unexpected packet returned by server, first byte " + firstByte);
+      if (numParams > 0) {
+        for (int i = 0; i < numParams; i++) {
+          params[i] = new ColumnInformation(reader.getPacket(false));
         }
-    }
 
-    private SQLException buildErrorException(Buffer buffer) {
-        ErrorPacket ep = new ErrorPacket(buffer);
-        String message = ep.getMessage();
-        if (1054 == ep.getErrorNumber()) {
-            return new SQLException(message
-                    + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
-                    + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
-                    ep.getSqlState(), ep.getErrorNumber());
-        } else {
-            return new SQLException(message, ep.getSqlState(), ep.getErrorNumber());
+        if (numColumns > 0) {
+          if (!eofDeprecated) {
+            protocol.skipEofPacket();
+          }
+          for (int i = 0; i < numColumns; i++) {
+            columns[i] = new ColumnInformation(reader.getPacket(false));
+          }
         }
+        if (!eofDeprecated) {
+          protocol.readEofPacket();
+        }
+      } else {
+        if (numColumns > 0) {
+          for (int i = 0; i < numColumns; i++) {
+            columns[i] = new ColumnInformation(reader.getPacket(false));
+          }
+          if (!eofDeprecated) {
+            protocol.readEofPacket();
+          }
+        } else {
+          //read warning only if no param / columns, because will be overwritten by EOF warning data
+          buffer.readByte(); // reserved
+          protocol.setHasWarnings(buffer.readShort() > 0);
+        }
+      }
+
+      ServerPrepareResult serverPrepareResult = new ServerPrepareResult(sql, statementId, columns, params, protocol);
+      if (protocol.getOptions().cachePrepStmts
+          && protocol.getOptions().useServerPrepStmts
+          && sql != null
+          && sql.length() < protocol.getOptions().prepStmtCacheSqlLimit) {
+        String key = protocol.getDatabase() + "-" + sql;
+        ServerPrepareResult cachedServerPrepareResult = protocol.addPrepareInCache(key, serverPrepareResult);
+        return cachedServerPrepareResult != null ? cachedServerPrepareResult : serverPrepareResult;
+      }
+      return serverPrepareResult;
+
+    } else {
+      throw new SQLException("Unexpected packet returned by server, first byte " + firstByte);
     }
+  }
+
+  private SQLException buildErrorException(Buffer buffer) {
+    ErrorPacket ep = new ErrorPacket(buffer);
+    String message = ep.getMessage();
+    if (1054 == ep.getErrorNumber()) {
+      return new SQLException(message
+          + "\nIf column exists but type cannot be identified (example 'select ? `field1` from dual'). "
+          + "Use CAST function to solve this problem (example 'select CAST(? as integer) `field1` from dual')",
+          ep.getSqlState(), ep.getErrorNumber());
+    } else {
+      return new SQLException(message, ep.getSqlState(), ep.getErrorNumber());
+    }
+  }
 
 }

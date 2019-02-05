@@ -59,7 +59,6 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement;
 import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.ScalarOps;
@@ -77,41 +76,15 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
   /**
    * Ed25519 password plugin constructor.
    *
-   * @param password                    password
-   * @param authData                    seed
-   * @param passwordCharacterEncoding   password encoding
+   * @param password                  password
+   * @param authData                  seed
+   * @param passwordCharacterEncoding password encoding
    */
   public Ed25519PasswordPlugin(String password, byte[] authData, String passwordCharacterEncoding) {
     this.authData = authData;
     this.password = password;
     this.passwordCharacterEncoding = passwordCharacterEncoding;
   }
-
-  /**
-   * Process Ed25519 password plugin authentication.
-   * see https://mariadb.com/kb/en/library/authentication-plugin-ed25519/
-   *
-   * @param out       out stream
-   * @param in        in stream
-   * @param sequence  packet sequence
-   * @return response packet
-   * @throws IOException  if socket error
-   */
-  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException, SQLException {
-    if (password == null || password.isEmpty()) {
-      out.writeEmptyPacket(sequence.incrementAndGet());
-    } else {
-      out.startPacket(sequence.incrementAndGet());
-      out.write(ed25519SignWithPassword(password, authData, passwordCharacterEncoding));
-      out.flush();
-    }
-
-    Buffer buffer = in.getPacket(true);
-    sequence.set(in.getLastPacketSeq());
-    return buffer;
-
-  }
-
 
   private static byte[] ed25519SignWithPassword(final String password, final byte[] seed,
                                                 String passwordCharacterEncoding) throws SQLException {
@@ -167,6 +140,31 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
       throw new SQLException("Unsupported encoding '" + passwordCharacterEncoding
           + "' (option passwordCharacterEncoding)", use);
     }
+  }
+
+  /**
+   * Process Ed25519 password plugin authentication.
+   * see https://mariadb.com/kb/en/library/authentication-plugin-ed25519/
+   *
+   * @param out      out stream
+   * @param in       in stream
+   * @param sequence packet sequence
+   * @return response packet
+   * @throws IOException if socket error
+   */
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException, SQLException {
+    if (password == null || password.isEmpty()) {
+      out.writeEmptyPacket(sequence.incrementAndGet());
+    } else {
+      out.startPacket(sequence.incrementAndGet());
+      out.write(ed25519SignWithPassword(password, authData, passwordCharacterEncoding));
+      out.flush();
+    }
+
+    Buffer buffer = in.getPacket(true);
+    sequence.set(in.getLastPacketSeq());
+    return buffer;
+
   }
 
 }

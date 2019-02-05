@@ -435,6 +435,34 @@ public class BaseTest {
   }
 
   /**
+   * Check if version if at minimum the version asked.
+   *
+   * @param major database major version
+   * @param minor database minor version
+   * @param patch database patch version
+   * @throws SQLException exception
+   */
+  public static boolean minVersion(int major, int minor, int patch) {
+    return ((MariaDbConnection) sharedConnection).versionGreaterOrEqual(major, minor, patch);
+  }
+
+  /**
+   * Check if version if at minimum the version asked.
+   *
+   * @param major database major version
+   * @param minor database minor version
+   * @throws SQLException exception
+   */
+  public boolean minVersion(int major, int minor) throws SQLException {
+    DatabaseMetaData md = sharedConnection.getMetaData();
+    int dbMajor = md.getDatabaseMajorVersion();
+    int dbMinor = md.getDatabaseMinorVersion();
+    return (dbMajor > major
+        || (dbMajor == major && dbMinor >= minor));
+
+  }
+
+  /**
    * Indicate if there is a anonymous user.
    *
    * @return true if anonymous user exist
@@ -871,34 +899,6 @@ public class BaseTest {
     } catch (Exception e) {
       return false; /* maybe 4.x ? */
     }
-  }
-
-  /**
-   * Check if version if at minimum the version asked.
-   *
-   * @param major database major version
-   * @param minor database minor version
-   * @throws SQLException exception
-   */
-  public boolean minVersion(int major, int minor) throws SQLException {
-    DatabaseMetaData md = sharedConnection.getMetaData();
-    int dbMajor = md.getDatabaseMajorVersion();
-    int dbMinor = md.getDatabaseMinorVersion();
-    return (dbMajor > major
-        || (dbMajor == major && dbMinor >= minor));
-
-  }
-
-  /**
-   * Check if version if at minimum the version asked.
-   *
-   * @param major database major version
-   * @param minor database minor version
-   * @param patch database patch version
-   * @throws SQLException exception
-   */
-  public static boolean minVersion(int major, int minor, int patch) {
-    return ((MariaDbConnection) sharedConnection).versionGreaterOrEqual(major, minor, patch);
   }
 
   /**

@@ -72,7 +72,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
   private boolean mustBeMasterConnection = false;
 
   public MastersSlavesProtocol(final UrlParser url, final GlobalStateInfo globalInfo,
-      final ReentrantLock lock) {
+                               final ReentrantLock lock) {
     super(url, globalInfo, lock);
   }
 
@@ -87,7 +87,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
    * @throws SQLException if not found
    */
   public static void loop(MastersSlavesListener listener, final GlobalStateInfo globalInfo,
-      final List<HostAddress> addresses, SearchFilter searchFilter) throws SQLException {
+                          final List<HostAddress> addresses, SearchFilter searchFilter) throws SQLException {
 
     MastersSlavesProtocol protocol;
     ArrayDeque<HostAddress> loopAddresses = new ArrayDeque<>(addresses);
@@ -200,7 +200,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
    * @param loopAddresses the list to reinitialize
    */
   private static void resetHostList(MastersSlavesListener listener,
-      Deque<HostAddress> loopAddresses) {
+                                    Deque<HostAddress> loopAddresses) {
     //if all servers have been connected without result
     //add back all servers
     List<HostAddress> servers = new ArrayList<>();
@@ -215,8 +215,8 @@ public class MastersSlavesProtocol extends MasterProtocol {
   }
 
   protected static boolean foundMaster(MastersSlavesListener listener,
-      MastersSlavesProtocol protocol,
-      SearchFilter searchFilter) {
+                                       MastersSlavesProtocol protocol,
+                                       SearchFilter searchFilter) {
     protocol.setMustBeMasterConnection(true);
     if (listener.isMasterHostFailReconnect()) {
       listener.foundActiveMaster(protocol);
@@ -228,14 +228,14 @@ public class MastersSlavesProtocol extends MasterProtocol {
       return true;
     } else {
       return listener.isExplicitClosed()
-              || searchFilter.isFineIfFoundOnlyMaster()
-              || !listener.isSecondaryHostFailReconnect();
+          || searchFilter.isFineIfFoundOnlyMaster()
+          || !listener.isSecondaryHostFailReconnect();
     }
   }
 
   protected static boolean foundSecondary(MastersSlavesListener listener,
-      MastersSlavesProtocol protocol,
-      SearchFilter searchFilter) throws SQLException {
+                                          MastersSlavesProtocol protocol,
+                                          SearchFilter searchFilter) throws SQLException {
     protocol.setMustBeMasterConnection(false);
     if (listener.isSecondaryHostFailReconnect()) {
       listener.foundActiveSecondary(protocol);
@@ -247,8 +247,8 @@ public class MastersSlavesProtocol extends MasterProtocol {
       return true;
     } else {
       return listener.isExplicitClosed()
-              || searchFilter.isFineIfFoundOnlySlave()
-              || !listener.isMasterHostFailReconnect();
+          || searchFilter.isFineIfFoundOnlySlave()
+          || !listener.isMasterHostFailReconnect();
     }
   }
 
@@ -260,7 +260,7 @@ public class MastersSlavesProtocol extends MasterProtocol {
    * @return a new MastersSlavesProtocol instance
    */
   private static MastersSlavesProtocol getNewProtocol(FailoverProxy proxy,
-      final GlobalStateInfo globalInfo, UrlParser urlParser) {
+                                                      final GlobalStateInfo globalInfo, UrlParser urlParser) {
     MastersSlavesProtocol newProtocol = new MastersSlavesProtocol(urlParser, globalInfo,
         proxy.lock);
     newProtocol.setProxy(proxy);

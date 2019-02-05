@@ -89,7 +89,7 @@ public class CallableParameterMetaData implements ParameterMetaData {
    * @param isFunction is it a function
    */
   public CallableParameterMetaData(MariaDbConnection con, String database, String name,
-      boolean isFunction) {
+                                   boolean isFunction) {
     this.params = null;
     this.con = con;
     if (database != null) {

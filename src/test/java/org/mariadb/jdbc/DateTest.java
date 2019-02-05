@@ -398,7 +398,7 @@ public class DateTest extends BaseTest {
   }
 
   private void checkResult(ResultSet rs, Timestamp currentTimeStamp, Calendar cal,
-      Date dateWithoutTime) throws SQLException {
+                           Date dateWithoutTime) throws SQLException {
     if (rs.next()) {
       assertEquals(rs.getTimestamp(1), currentTimeStamp);
       assertEquals(rs.getTimestamp(2), currentTimeStamp);

@@ -91,7 +91,6 @@ import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.OkPacket;
 import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
-
 import org.mariadb.jdbc.internal.com.send.SendClosePacket;
 import org.mariadb.jdbc.internal.com.send.SendHandshakeResponsePacket;
 import org.mariadb.jdbc.internal.com.send.SendSslConnectionRequestPacket;
@@ -170,7 +169,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
    */
 
   public AbstractConnectProtocol(final UrlParser urlParser, final GlobalStateInfo globalInfo,
-      final ReentrantLock lock) {
+                                 final ReentrantLock lock) {
     urlParser.auroraPipelineQuirks();
     this.lock = lock;
     this.urlParser = urlParser;
@@ -186,7 +185,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
   }
 
   private static void closeSocket(PacketInputStream packetInputStream,
-      PacketOutputStream packetOutputStream, Socket socket) {
+                                  PacketOutputStream packetOutputStream, Socket socket) {
     try {
       try {
         long maxCurrentMillis = System.currentTimeMillis() + 10;
@@ -772,7 +771,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
   }
 
   private void authentication(byte exchangeCharset, long clientCapabilities, byte packetSeq,
-      ReadInitialHandShakePacket greetingPacket)
+                              ReadInitialHandShakePacket greetingPacket)
       throws SQLException, IOException {
 
     //send handshake response
@@ -820,11 +819,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
             //Authentication according to plugin.
             //see AuthenticationProviderHolder for implement other plugin
             authenticationPlugin = AuthenticationProviderHolder.getAuthenticationProvider()
-                    .processAuthPlugin(plugin, password, authData, options);
+                .processAuthPlugin(plugin, password, authData, options);
           } else {
             authenticationPlugin = new OldPasswordPlugin(
-                    this.password,
-                    Utils.copyWithLength(greetingPacket.getSeed(), 8));
+                this.password,
+                Utils.copyWithLength(greetingPacket.getSeed(), 8));
           }
           buffer = authenticationPlugin.process(writer, reader, sequence);
           break;
@@ -836,18 +835,18 @@ public abstract class AbstractConnectProtocol implements Protocol {
            *********************************************************************/
           ErrorPacket errorPacket = new ErrorPacket(buffer);
           if (password != null
-                  && !password.isEmpty()
-                  && errorPacket.getErrorNumber() == 1045
-                  && "28000".equals(errorPacket.getSqlState())) {
+              && !password.isEmpty()
+              && errorPacket.getErrorNumber() == 1045
+              && "28000".equals(errorPacket.getSqlState())) {
             //Access denied
             throw new SQLException(errorPacket.getMessage()
-                    + "\nCurrent charset is " + Charset.defaultCharset().displayName()
-                    + ". If password has been set using other charset, consider "
-                    + "using option 'passwordCharacterEncoding'",
-                    errorPacket.getSqlState(), errorPacket.getErrorNumber());
+                + "\nCurrent charset is " + Charset.defaultCharset().displayName()
+                + ". If password has been set using other charset, consider "
+                + "using option 'passwordCharacterEncoding'",
+                errorPacket.getSqlState(), errorPacket.getErrorNumber());
           }
           throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(),
-                  errorPacket.getErrorNumber());
+              errorPacket.getErrorNumber());
 
         case 0x00:
           /**********************************************************************
@@ -859,7 +858,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
           break authentication_loop;
 
         default:
-            throw new SQLException("unexpected data during authentication (header=" + (buffer.getByteAt(0) & 0xFF));
+          throw new SQLException("unexpected data during authentication (header=" + (buffer.getByteAt(0) & 0xFF));
 
       }
     }
@@ -1437,6 +1436,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
   /**
    * Get a String containing readable information about last 10 send/received packets.
+   *
    * @return String value
    */
   public String getTraces() {

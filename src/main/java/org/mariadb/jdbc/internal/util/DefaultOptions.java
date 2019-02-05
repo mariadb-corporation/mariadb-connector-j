@@ -394,7 +394,7 @@ public enum DefaultOptions {
   private final String implementationVersion;
 
   DefaultOptions(final String optionName, final String implementationVersion, String description,
-      boolean required) {
+                 boolean required) {
     this.optionName = optionName;
     this.implementationVersion = implementationVersion;
     this.description = description;
@@ -406,10 +406,10 @@ public enum DefaultOptions {
   }
 
   DefaultOptions(final String optionName,
-      final String defaultValue,
-      final String implementationVersion,
-      String description,
-      boolean required) {
+                 final String defaultValue,
+                 final String implementationVersion,
+                 String description,
+                 boolean required) {
     this.optionName = optionName;
     this.implementationVersion = implementationVersion;
     this.description = description;
@@ -421,10 +421,10 @@ public enum DefaultOptions {
   }
 
   DefaultOptions(final String optionName,
-      final Boolean defaultValue,
-      final String implementationVersion,
-      String description,
-      boolean required) {
+                 final Boolean defaultValue,
+                 final String implementationVersion,
+                 String description,
+                 boolean required) {
     this.optionName = optionName;
     this.objType = Boolean.class;
     this.defaultValue = defaultValue;
@@ -436,11 +436,11 @@ public enum DefaultOptions {
   }
 
   DefaultOptions(final String optionName,
-      final Integer defaultValue,
-      final Integer minValue,
-      final String implementationVersion,
-      String description,
-      boolean required) {
+                 final Integer defaultValue,
+                 final Integer minValue,
+                 final String implementationVersion,
+                 String description,
+                 boolean required) {
     this.optionName = optionName;
     this.objType = Integer.class;
     this.defaultValue = defaultValue;
@@ -452,11 +452,11 @@ public enum DefaultOptions {
   }
 
   DefaultOptions(final String optionName,
-      final Long defaultValue,
-      final Long minValue,
-      final String implementationVersion,
-      String description,
-      boolean required) {
+                 final Long defaultValue,
+                 final Long minValue,
+                 final String implementationVersion,
+                 String description,
+                 boolean required) {
     this.optionName = optionName;
     this.objType = Long.class;
     this.defaultValue = defaultValue;
@@ -469,11 +469,11 @@ public enum DefaultOptions {
 
 
   DefaultOptions(final String optionName,
-      final Integer[] defaultValue,
-      final Integer minValue,
-      final String implementationVersion,
-      String description,
-      boolean required) {
+                 final Integer[] defaultValue,
+                 final Integer minValue,
+                 final String implementationVersion,
+                 String description,
+                 boolean required) {
     this.optionName = optionName;
     this.objType = Integer.class;
     this.defaultValue = defaultValue;
@@ -517,7 +517,7 @@ public enum DefaultOptions {
   }
 
   private static Options parse(final HaMode haMode, final String urlParameters,
-      final Properties properties) {
+                               final Properties properties) {
     Options options = parse(haMode, urlParameters, properties, null);
     optionCoherenceValidation(options);
     return options;
@@ -533,9 +533,9 @@ public enum DefaultOptions {
    * @return options
    */
   public static Options parse(final HaMode haMode,
-      final String urlParameters,
-      final Properties properties,
-      final Options options) {
+                              final String urlParameters,
+                              final Properties properties,
+                              final Options options) {
     if (urlParameters != null && !urlParameters.isEmpty()) {
       String[] parameters = urlParameters.split("&");
       for (String parameter : parameters) {
@@ -556,7 +556,7 @@ public enum DefaultOptions {
   }
 
   private static Options parse(final HaMode haMode, final Properties properties,
-      final Options paramOptions) {
+                               final Options paramOptions) {
     final Options options = paramOptions != null ? paramOptions : new Options();
 
     try {
@@ -672,7 +672,7 @@ public enum DefaultOptions {
    * @param sb      String builder
    */
   public static void propertyString(final Options options, final HaMode haMode,
-      final StringBuilder sb) {
+                                    final StringBuilder sb) {
     try {
       boolean first = true;
       for (DefaultOptions o : DefaultOptions.values()) {

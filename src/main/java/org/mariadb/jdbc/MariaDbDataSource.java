@@ -56,7 +56,6 @@ package org.mariadb.jdbc;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -458,7 +457,7 @@ public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, 
    * @param password the user's password
    * @return a <code>PooledConnection</code> object that is a physical connection to the database
    *     that this
-   * <code>ConnectionPoolDataSource</code> object represents
+   *     <code>ConnectionPoolDataSource</code> object represents
    * @throws SQLException if a database access error occurs
    */
   public PooledConnection getPooledConnection(String user, String password) throws SQLException {

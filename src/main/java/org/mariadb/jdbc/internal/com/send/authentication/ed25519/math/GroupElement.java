@@ -866,7 +866,7 @@ public class GroupElement implements Serializable {
    * @return $u$ if $b == 1$; this if $b == 0$. Results undefined if $b$ is not in $\{0, 1\}$.
    */
   org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement cmov(
-          final org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement u, final int b) {
+      final org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement u, final int b) {
     return precomp(curve, X.cmov(u.X, b), Y.cmov(u.Y, b), Z.cmov(u.Z, b));
   }
 
@@ -959,8 +959,8 @@ public class GroupElement implements Serializable {
    * @return the GroupElement
    */
   public org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement doubleScalarMultiplyVariableTime(
-          final org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement A, final byte[] a,
-          final byte[] b) {
+      final org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.GroupElement A, final byte[] a,
+      final byte[] b) {
     // TODO-CR BR: A check that this is the base point is needed.
     final byte[] aslide = slide(a);
     final byte[] bslide = slide(b);

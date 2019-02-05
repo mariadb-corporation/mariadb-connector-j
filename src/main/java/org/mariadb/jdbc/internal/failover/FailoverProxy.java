@@ -128,7 +128,7 @@ public class FailoverProxy implements InvocationHandler {
    * @param protocol  protocol to have hostname
    */
   private static SQLException addHostInformationToException(SQLException exception,
-      Protocol protocol) {
+                                                            Protocol protocol) {
     if (protocol != null) {
       return new SQLException(exception.getMessage()
           + "\non " + protocol.getHostAddress().toString() + ",master="

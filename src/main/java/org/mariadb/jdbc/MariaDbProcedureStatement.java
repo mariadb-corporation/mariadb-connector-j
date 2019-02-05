@@ -52,138 +52,137 @@
 
 package org.mariadb.jdbc;
 
+import java.sql.SQLException;
+import java.util.ArrayList;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.com.send.parameters.NullParameter;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.CloneableCallableStatement;
 
-import java.sql.SQLException;
-import java.util.ArrayList;
-
 public class MariaDbProcedureStatement extends CallableProcedureStatement implements CloneableCallableStatement {
 
-    private SelectResultSet outputResultSet = null;
+  private SelectResultSet outputResultSet = null;
 
-    /**
-     * Specific implementation of CallableStatement to handle function call, represent by call like
-     * {?= call procedure-name[(arg1,arg2, ...)]}.
-     *
-     * @param query                 query
-     * @param connection            current connection
-     * @param procedureName         procedure name
-     * @param database              database
-     * @param resultSetType         a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>,
-     *                              <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
-     *                              <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
-     * @param resultSetConcurrency  a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
-     *                              <code>ResultSet.CONCUR_UPDATABLE</code>
-     *@throws SQLException exception
-     */
-    public MariaDbProcedureStatement(String query, MariaDbConnection connection,
-                                     String procedureName, String database, int resultSetType, int resultSetConcurrency) throws SQLException {
-        super(connection, query, resultSetType, resultSetConcurrency);
-        this.parameterMetadata = new CallableParameterMetaData(connection, database, procedureName, false);
-        setParamsAccordingToSetArguments();
-        setParametersVariables();
+  /**
+   * Specific implementation of CallableStatement to handle function call, represent by call like
+   * {?= call procedure-name[(arg1,arg2, ...)]}.
+   *
+   * @param query                query
+   * @param connection           current connection
+   * @param procedureName        procedure name
+   * @param database             database
+   * @param resultSetType        a result set type; one of <code>ResultSet.TYPE_FORWARD_ONLY</code>,
+   *                             <code>ResultSet.TYPE_SCROLL_INSENSITIVE</code>, or
+   *                             <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
+   * @param resultSetConcurrency a concurrency type; one of <code>ResultSet.CONCUR_READ_ONLY</code> or
+   *                             <code>ResultSet.CONCUR_UPDATABLE</code>
+   * @throws SQLException exception
+   */
+  public MariaDbProcedureStatement(String query, MariaDbConnection connection,
+                                   String procedureName, String database, int resultSetType, int resultSetConcurrency) throws SQLException {
+    super(connection, query, resultSetType, resultSetConcurrency);
+    this.parameterMetadata = new CallableParameterMetaData(connection, database, procedureName, false);
+    setParamsAccordingToSetArguments();
+    setParametersVariables();
+  }
+
+  private void setParamsAccordingToSetArguments() {
+    params = new ArrayList<CallParameter>(parameterCount);
+    for (int index = 0; index < parameterCount; index++) {
+      params.add(new CallParameter());
     }
+  }
 
-    private void setParamsAccordingToSetArguments() {
-        params = new ArrayList<CallParameter>(parameterCount);
-        for (int index = 0; index < parameterCount; index++) {
-            params.add(new CallParameter());
-        }
+  private void setInputOutputParameterMap() {
+    if (outputParameterMapper == null) {
+      outputParameterMapper = new int[params.size()];
+      int currentOutputMapper = 1;
+
+      for (int index = 0; index < params.size(); index++) {
+        outputParameterMapper[index] = params.get(index).isOutput() ? currentOutputMapper++ : -1;
+      }
     }
+  }
 
-    private void setInputOutputParameterMap() {
-        if (outputParameterMapper == null) {
-            outputParameterMapper = new int[params.size()];
-            int currentOutputMapper = 1;
-
-            for (int index = 0; index < params.size(); index++) {
-                outputParameterMapper[index] = params.get(index).isOutput() ? currentOutputMapper++ : -1;
-            }
-        }
-    }
-
-    protected SelectResultSet getOutputResult() throws SQLException {
-        if (outputResultSet == null) {
-            if (fetchSize != 0) {
-                results.loadFully(false, protocol);
-                outputResultSet = results.getCallableResultSet();
-                if (outputResultSet != null) {
-                    outputResultSet.next();
-                    return outputResultSet;
-                }
-            }
-            throw new SQLException("No output result.");
-        }
-        return outputResultSet;
-    }
-
-    /**
-     * Clone statement.
-     *
-     * @param connection connection
-     * @return Clone statement.
-     * @throws CloneNotSupportedException if any error occur.
-     */
-    public MariaDbProcedureStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
-        MariaDbProcedureStatement clone = (MariaDbProcedureStatement) super.clone(connection);
-        clone.outputResultSet = null;
-        return clone;
-    }
-
-    private void retrieveOutputResult() throws SQLException {
-        //resultSet will be just before last packet
+  protected SelectResultSet getOutputResult() throws SQLException {
+    if (outputResultSet == null) {
+      if (fetchSize != 0) {
+        results.loadFully(false, protocol);
         outputResultSet = results.getCallableResultSet();
         if (outputResultSet != null) {
-            outputResultSet.next();
+          outputResultSet.next();
+          return outputResultSet;
         }
+      }
+      throw new SQLException("No output result.");
     }
+    return outputResultSet;
+  }
 
-    public void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
-        params.get(parameterIndex - 1).setInput(true);
-        super.setParameter(parameterIndex, holder);
+  /**
+   * Clone statement.
+   *
+   * @param connection connection
+   * @return Clone statement.
+   * @throws CloneNotSupportedException if any error occur.
+   */
+  public MariaDbProcedureStatement clone(MariaDbConnection connection) throws CloneNotSupportedException {
+    MariaDbProcedureStatement clone = (MariaDbProcedureStatement) super.clone(connection);
+    clone.outputResultSet = null;
+    return clone;
+  }
+
+  private void retrieveOutputResult() throws SQLException {
+    //resultSet will be just before last packet
+    outputResultSet = results.getCallableResultSet();
+    if (outputResultSet != null) {
+      outputResultSet.next();
     }
+  }
 
-    @Override
-    public boolean execute() throws SQLException {
-        connection.lock.lock();
-        try {
-            validAllParameters();
-            super.executeInternal(fetchSize);
-            retrieveOutputResult();
-            return results != null && results.getResultSet() != null;
-        } finally {
-            connection.lock.unlock();
-        }
+  public void setParameter(final int parameterIndex, final ParameterHolder holder) throws SQLException {
+    params.get(parameterIndex - 1).setInput(true);
+    super.setParameter(parameterIndex, holder);
+  }
+
+  @Override
+  public boolean execute() throws SQLException {
+    connection.lock.lock();
+    try {
+      validAllParameters();
+      super.executeInternal(fetchSize);
+      retrieveOutputResult();
+      return results != null && results.getResultSet() != null;
+    } finally {
+      connection.lock.unlock();
     }
+  }
 
 
-    /**
-     * Valid that all parameters are set.
-     *
-     * @throws SQLException if set parameters is not right
-     */
-    private void validAllParameters() throws SQLException {
+  /**
+   * Valid that all parameters are set.
+   *
+   * @throws SQLException if set parameters is not right
+   */
+  private void validAllParameters() throws SQLException {
 
-        setInputOutputParameterMap();
-        //Set value for OUT parameters
-        for (int index = 0; index < params.size(); index++) {
-            if (!params.get(index).isInput()) {
-                super.setParameter(index + 1, new NullParameter());
-            }
-        }
-        validParameters();
+    setInputOutputParameterMap();
+    //Set value for OUT parameters
+    for (int index = 0; index < params.size(); index++) {
+      if (!params.get(index).isInput()) {
+        super.setParameter(index + 1, new NullParameter());
+      }
     }
+    validParameters();
+  }
 
-    @Override
-    public int[] executeBatch() throws SQLException {
-        if (!hasInOutParameters) {
-            return super.executeBatch();
-        } else {
-            throw new SQLException("executeBatch not permit for procedure with output parameter");
-        }
+  @Override
+  public int[] executeBatch() throws SQLException {
+    if (!hasInOutParameters) {
+      return super.executeBatch();
+    } else {
+      throw new SQLException("executeBatch not permit for procedure with output parameter");
     }
+  }
 
 }

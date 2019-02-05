@@ -226,7 +226,7 @@ public enum ColumnType {
    * @return type
    */
   public static String getColumnTypeName(ColumnType type, long len, boolean signed,
-      boolean binary) {
+                                         boolean binary) {
     switch (type) {
       case SMALLINT:
       case MEDIUMINT:
@@ -320,7 +320,7 @@ public enum ColumnType {
    * @return class name
    */
   public static String getClassName(ColumnType type, int len, boolean signed, boolean binary,
-      Options options) {
+                                    Options options) {
     switch (type) {
       case TINYINT:
         if (len == 1 && options.tinyInt1isBit) {

@@ -97,7 +97,7 @@ public class DefaultOptionsTest {
                     (Boolean) field.get(resultOptions));
               } else {
                 assertEquals("field " + field.getName() + " value error for param" + param,
-                        field.get(resultOptions), !bool);
+                    field.get(resultOptions), !bool);
               }
               break;
             case "boolean":

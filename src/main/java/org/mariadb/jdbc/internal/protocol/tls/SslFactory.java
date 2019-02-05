@@ -27,7 +27,7 @@ public class SslFactory {
   /**
    * Create an SSL factory according to connection string options.
    *
-   * @param options   connection options
+   * @param options connection options
    * @return SSL socket factory
    * @throws SQLException in case of error initializing context.
    */

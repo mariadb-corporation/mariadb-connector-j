@@ -105,7 +105,7 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
    * @throws SQLException is prepareStatement connection throw any error
    */
   public CallableProcedureStatement(MariaDbConnection connection, String sql,
-      int resultSetScrollType, int resultSetConcurrency)
+                                    int resultSetScrollType, int resultSetConcurrency)
       throws SQLException {
     super(connection, sql, resultSetScrollType, resultSetConcurrency, Statement.NO_GENERATED_KEYS);
   }
@@ -561,9 +561,9 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
    * @param parameterIndex the first parameter is 1, the second is 2,...
    * @param sqlType        a value from {@link Types}
    * @param typeName       the fully-qualified name of an SQL structured type
-   * @throws SQLException                    if the parameterIndex is not valid; if a database
-   *                                         access error occurs or this method is called on a
-   *                                         closed <code>CallableStatement</code>
+   * @throws SQLException if the parameterIndex is not valid; if a database
+   *                      access error occurs or this method is called on a
+   *                      closed <code>CallableStatement</code>
    * @see Types
    */
   public void registerOutParameter(int parameterIndex, int sqlType, String typeName)
@@ -594,9 +594,9 @@ public abstract class CallableProcedureStatement extends ServerSidePreparedState
    * @param sqlType        the SQL type code defined by <code>java.sql.Types</code>.
    * @param scale          the desired number of digits to the right of the decimal point.  It must
    *                       be greater than or equal to zero.
-   * @throws SQLException                    if the parameterIndex is not valid; if a database
-   *                                         access error occurs or this method is called on a
-   *                                         closed <code>CallableStatement</code>
+   * @throws SQLException if the parameterIndex is not valid; if a database
+   *                      access error occurs or this method is called on a
+   *                      closed <code>CallableStatement</code>
    * @see Types
    */
   @Override

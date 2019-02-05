@@ -201,7 +201,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
   }
 
   private String getQueryFromPrepareParameters(String sql, List<ParameterHolder[]> parameterList,
-      int parameterLength) {
+                                               int parameterLength) {
 
     if (parameterLength == 0) {
       return sql;
@@ -231,7 +231,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
   }
 
   private String getQueryFromPrepareParameters(PrepareResult serverPrepareResult,
-      ParameterHolder[] paramHolders, int parameterLength) {
+                                               ParameterHolder[] paramHolders, int parameterLength) {
     StringBuilder sb = new StringBuilder(serverPrepareResult.getSql());
     if (paramHolders.length > 0) {
       sb.append(", parameters [");

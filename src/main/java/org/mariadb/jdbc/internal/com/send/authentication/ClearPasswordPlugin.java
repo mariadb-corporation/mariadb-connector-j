@@ -54,7 +54,6 @@ package org.mariadb.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
@@ -67,8 +66,8 @@ public class ClearPasswordPlugin implements AuthenticationPlugin {
   /**
    * Clear text password plugin constructor.
    *
-   * @param password                    password
-   * @param passwordCharacterEncoding   password encoding
+   * @param password                  password
+   * @param passwordCharacterEncoding password encoding
    */
   public ClearPasswordPlugin(String password, String passwordCharacterEncoding) {
     this.password = password;
@@ -78,11 +77,11 @@ public class ClearPasswordPlugin implements AuthenticationPlugin {
   /**
    * Send password in clear text to server.
    *
-   * @param out       out stream
-   * @param in        in stream
-   * @param sequence  packet sequence
+   * @param out      out stream
+   * @param in       in stream
+   * @param sequence packet sequence
    * @return response packet
-   * @throws IOException  if socket error
+   * @throws IOException if socket error
    */
   public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException {
     if (password == null || password.isEmpty()) {

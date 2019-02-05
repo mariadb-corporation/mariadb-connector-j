@@ -52,6 +52,16 @@
 
 package org.mariadb.jdbc.failover;
 
+import static org.junit.Assert.assertTrue;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -62,17 +72,6 @@ import org.mariadb.jdbc.MariaDbPoolDataSource;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.Assert.assertTrue;
-
 /**
  * test for galera
  * The node must be configure with specific names :
@@ -82,113 +81,123 @@ import static org.junit.Assert.assertTrue;
  * exemple mvn test  -DdbUrl=jdbc:mariadb://localhost:3306,localhost:3307/test?user=root
  */
 public class GaleraFailoverTest extends SequentialFailoverTest {
-    /**
-     * Initialisation.
-     */
-    @BeforeClass()
-    public static void beforeClass2() {
-        proxyUrl = proxyGaleraUrl;
-        Assume.assumeTrue(initialGaleraUrl != null);
-    }
+  /**
+   * Initialisation.
+   */
+  @BeforeClass()
+  public static void beforeClass2() {
+    proxyUrl = proxyGaleraUrl;
+    Assume.assumeTrue(initialGaleraUrl != null);
+  }
 
-    /**
-     * Initialisation.
-     */
-    @Before
-    public void init() {
-        defaultUrl = initialGaleraUrl;
-        currentType = HaMode.FAILOVER;
-    }
+  /**
+   * Initialisation.
+   */
+  @Before
+  public void init() {
+    defaultUrl = initialGaleraUrl;
+    currentType = HaMode.FAILOVER;
+  }
 
 
-    @Test
-    public void showRep() throws Exception {
-        UrlParser urlParser = UrlParser.parse(initialGaleraUrl);
-        List<HostAddress> initAddresses = urlParser.getHostAddresses();
+  @Test
+  public void showRep() throws Exception {
+    UrlParser urlParser = UrlParser.parse(initialGaleraUrl);
+    List<HostAddress> initAddresses = urlParser.getHostAddresses();
 
-        for (int i = 0; i < initAddresses.size(); i++) {
-            urlParser.setHostAddresses(Arrays.asList(initAddresses.get(i)));
-            Connection master = null;
-            try {
-                master = MariaDbConnection.newConnection(urlParser, null);
-                Statement stmt = master.createStatement();
-                ResultSet rs = stmt.executeQuery("show status like 'wsrep_local_state'");
-                assertTrue(rs.next());
-                System.out.println("host:" + initAddresses.get(i) + " status:" + rs.getString(2));
-            } finally {
-                if (master != null) master.close();
-            }
+    for (int i = 0; i < initAddresses.size(); i++) {
+      urlParser.setHostAddresses(Arrays.asList(initAddresses.get(i)));
+      Connection master = null;
+      try {
+        master = MariaDbConnection.newConnection(urlParser, null);
+        Statement stmt = master.createStatement();
+        ResultSet rs = stmt.executeQuery("show status like 'wsrep_local_state'");
+        assertTrue(rs.next());
+        System.out.println("host:" + initAddresses.get(i) + " status:" + rs.getString(2));
+      } finally {
+        if (master != null) {
+          master.close();
         }
-
+      }
     }
 
-    @Test
-    public void validGaleraPing() throws Exception {
-        long start = System.currentTimeMillis();
-        MariaDbPoolDataSource pool = null;
-        try {
-            pool = new MariaDbPoolDataSource(initialGaleraUrl + "&maxPoolSize=1");
-            Connection connection = null;
-            try {
-                connection = pool.getConnection();
-                Statement statement = connection.createStatement();
-                statement.execute("SELECT 1 ");
-            } finally {
-                if (connection != null) connection.close();
-            }
-            Thread.sleep(2000);
-            //Galera ping must occur
-            connection = null;
-            try {
-                connection = pool.getConnection();
-                Statement statement = connection.createStatement();
-                statement.execute("SELECT 1 ");
-            } finally {
-                if (connection != null) connection.close();
-            }
-        } finally {
-            pool.close();
+  }
+
+  @Test
+  public void validGaleraPing() throws Exception {
+    long start = System.currentTimeMillis();
+    MariaDbPoolDataSource pool = null;
+    try {
+      pool = new MariaDbPoolDataSource(initialGaleraUrl + "&maxPoolSize=1");
+      Connection connection = null;
+      try {
+        connection = pool.getConnection();
+        Statement statement = connection.createStatement();
+        statement.execute("SELECT 1 ");
+      } finally {
+        if (connection != null) {
+          connection.close();
         }
-        //if fail, will loop until connectTimeout = 30s
-        assertTrue(System.currentTimeMillis() - start < 5000);
+      }
+      Thread.sleep(2000);
+      //Galera ping must occur
+      connection = null;
+      try {
+        connection = pool.getConnection();
+        Statement statement = connection.createStatement();
+        statement.execute("SELECT 1 ");
+      } finally {
+        if (connection != null) {
+          connection.close();
+        }
+      }
+    } finally {
+      pool.close();
+    }
+    //if fail, will loop until connectTimeout = 30s
+    assertTrue(System.currentTimeMillis() - start < 5000);
+  }
+
+  @Test
+  @Override
+  public void connectionOrder() throws Throwable {
+    Assume.assumeTrue(initialGaleraUrl.contains("failover"));
+    Map<String, MutableInt> connectionMap = new HashMap<String, MutableInt>();
+    for (int i = 0; i < 20; i++) {
+      Connection connection = null;
+      try {
+        connection = getNewConnection(false);
+        int serverId = getServerId(connection);
+        MutableInt count = connectionMap.get(String.valueOf(serverId));
+        if (count == null) {
+          connectionMap.put(String.valueOf(serverId), new MutableInt());
+        } else {
+          count.increment();
+        }
+      } finally {
+        if (connection != null) {
+          connection.close();
+        }
+      }
     }
 
-    @Test
-    @Override
-    public void connectionOrder() throws Throwable {
-        Assume.assumeTrue(initialGaleraUrl.contains("failover"));
-        Map<String, MutableInt> connectionMap = new HashMap<String, MutableInt>();
-        for (int i = 0; i < 20; i++) {
-            Connection connection = null;
-            try {
-                connection = getNewConnection(false);
-                int serverId = getServerId(connection);
-                MutableInt count = connectionMap.get(String.valueOf(serverId));
-                if (count == null) {
-                    connectionMap.put(String.valueOf(serverId), new MutableInt());
-                } else {
-                    count.increment();
-                }
-            } finally {
-                if (connection != null) connection.close();
-            }
-        }
-
-        assertTrue(connectionMap.size() >= 2);
-        for (String key : connectionMap.keySet()) {
-            Integer connectionCount = connectionMap.get(key).get();
-            assertTrue(connectionCount > 1);
-        }
+    assertTrue(connectionMap.size() >= 2);
+    for (String key : connectionMap.keySet()) {
+      Integer connectionCount = connectionMap.get(key).get();
+      assertTrue(connectionCount > 1);
     }
+  }
 
-    @Test
-    public void isValidGaleraConnection() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = getNewConnection(false);
-            assertTrue(connection.isValid(0));
-        } finally {
-            if (connection != null) connection.close();
-        }
+  @Test
+  public void isValidGaleraConnection() throws SQLException {
+    Connection connection = null;
+    try {
+      connection = getNewConnection(false);
+      assertTrue(connection.isValid(0));
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
     }
+  }
 }

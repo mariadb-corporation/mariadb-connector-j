@@ -339,7 +339,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
   }
 
   public void rePrepareOnSlave(ServerPrepareResult oldServerPrepareResult,
-      boolean mustExecuteOnSlave) {
+                               boolean mustExecuteOnSlave) {
     //no slave
   }
 

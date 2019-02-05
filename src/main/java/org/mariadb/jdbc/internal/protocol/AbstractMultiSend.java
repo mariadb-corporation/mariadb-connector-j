@@ -97,8 +97,8 @@ public abstract class AbstractMultiSend {
    * @param sql                   sql query.
    */
   public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results,
-      ServerPrepareResult serverPrepareResult,
-      List<ParameterHolder[]> parametersList, boolean readPrepareStmtResult, String sql) {
+                           ServerPrepareResult serverPrepareResult,
+                           List<ParameterHolder[]> parametersList, boolean readPrepareStmtResult, String sql) {
     this.protocol = protocol;
     this.writer = writer;
     this.results = results;
@@ -119,7 +119,7 @@ public abstract class AbstractMultiSend {
    * @param parametersList      parameters
    */
   public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results,
-      final ClientPrepareResult clientPrepareResult, List<ParameterHolder[]> parametersList) {
+                           final ClientPrepareResult clientPrepareResult, List<ParameterHolder[]> parametersList) {
     this.protocol = protocol;
     this.writer = writer;
     this.results = results;
@@ -138,7 +138,7 @@ public abstract class AbstractMultiSend {
    * @param queries  query list
    */
   public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results,
-      List<String> queries) {
+                           List<String> queries) {
     this.protocol = protocol;
     this.writer = writer;
     this.results = results;
@@ -148,13 +148,13 @@ public abstract class AbstractMultiSend {
   }
 
   public abstract void sendCmd(PacketOutputStream writer, Results results,
-      List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
-      BulkStatus status,
-      PrepareResult prepareResult) throws SQLException, IOException;
+                               List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
+                               BulkStatus status,
+                               PrepareResult prepareResult) throws SQLException, IOException;
 
   public abstract SQLException handleResultException(SQLException qex, Results results,
-      List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-      int sendCmdCounter, int paramCount, PrepareResult prepareResult);
+                                                     List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
+                                                     int sendCmdCounter, int paramCount, PrepareResult prepareResult);
 
   public abstract int getParamCount();
 

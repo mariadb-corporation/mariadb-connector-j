@@ -133,13 +133,13 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
   protected static ThreadPoolExecutor readScheduler = null;
   private final LogQueryTool logQuery;
+  private final List<String> galeraAllowedStates;
   private int transactionIsolationLevel = 0;
   private InputStream localInfileInputStream;
   private long maxRows;  /* max rows returned by a statement */
   private volatile int statementIdToRelease = -1;
   private FutureTask activeFutureTask = null;
   private boolean interrupted;
-  private final List<String> galeraAllowedStates;
 
   /**
    * Get a protocol instance.
@@ -149,7 +149,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    */
 
   AbstractQueryProtocol(final UrlParser urlParser, final GlobalStateInfo globalInfo,
-      final ReentrantLock lock) {
+                        final ReentrantLock lock) {
     super(urlParser, globalInfo, lock);
     logQuery = new LogQueryTool(options);
     galeraAllowedStates = urlParser.getOptions().galeraAllowedState == null
@@ -239,7 +239,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
   @Override
   public void executeQuery(boolean mustExecuteOnMaster, Results results, final String sql,
-      Charset charset) throws SQLException {
+                           Charset charset) throws SQLException {
     cmdPrologue();
     try {
 
@@ -268,8 +268,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException exception
    */
   public void executeQuery(boolean mustExecuteOnMaster, Results results,
-      final ClientPrepareResult clientPrepareResult,
-      ParameterHolder[] parameters) throws SQLException {
+                           final ClientPrepareResult clientPrepareResult,
+                           ParameterHolder[] parameters) throws SQLException {
     cmdPrologue();
     try {
 
@@ -305,8 +305,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException exception
    */
   public void executeQuery(boolean mustExecuteOnMaster, Results results,
-      final ClientPrepareResult clientPrepareResult,
-      ParameterHolder[] parameters, int queryTimeout) throws SQLException {
+                           final ClientPrepareResult clientPrepareResult,
+                           ParameterHolder[] parameters, int queryTimeout) throws SQLException {
     cmdPrologue();
     try {
 
@@ -342,8 +342,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException exception
    */
   public boolean executeBatchClient(boolean mustExecuteOnMaster, Results results,
-      final ClientPrepareResult prepareResult,
-      final List<ParameterHolder[]> parametersList, boolean hasLongData)
+                                    final ClientPrepareResult prepareResult,
+                                    final List<ParameterHolder[]> parametersList, boolean hasLongData)
       throws SQLException {
 
     //***********************************************************************************************************
@@ -410,8 +410,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException exception
    */
   private boolean executeBulkBatch(Results results, String sql,
-      ServerPrepareResult serverPrepareResult,
-      final List<ParameterHolder[]> parametersList) throws SQLException {
+                                   ServerPrepareResult serverPrepareResult,
+                                   final List<ParameterHolder[]> parametersList) throws SQLException {
 
     //**************************************************************************************
     // Ensure BULK can be use :
@@ -600,7 +600,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException exception
    */
   private void executeBatchMulti(Results results, final ClientPrepareResult clientPrepareResult,
-      final List<ParameterHolder[]> parametersList) throws SQLException {
+                                 final List<ParameterHolder[]> parametersList) throws SQLException {
 
     cmdPrologue();
     initializeBatchReader();
@@ -608,9 +608,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       @Override
       public void sendCmd(PacketOutputStream writer, Results results,
-          List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
-          BulkStatus status,
-          PrepareResult prepareResult)
+                          List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
+                          BulkStatus status,
+                          PrepareResult prepareResult)
           throws IOException {
 
         ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
@@ -622,8 +622,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       @Override
       public SQLException handleResultException(SQLException qex, Results results,
-          List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-          int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
+                                                List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
+                                                int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
 
         int counter = results.getCurrentStatNumber() - 1;
         ParameterHolder[] parameters = parametersList.get(counter);
@@ -662,7 +662,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException if any exception occur
    */
   public void executeBatchStmt(boolean mustExecuteOnMaster, Results results,
-      final List<String> queries)
+                               final List<String> queries)
       throws SQLException {
     cmdPrologue();
     if (this.options.rewriteBatchedStatements) {
@@ -746,9 +746,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       @Override
       public void sendCmd(PacketOutputStream pos, Results results,
-          List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
-          BulkStatus status,
-          PrepareResult prepareResult)
+                          List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
+                          BulkStatus status,
+                          PrepareResult prepareResult)
           throws IOException {
 
         String sql = queries.get(status.sendCmdCounter);
@@ -760,8 +760,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       @Override
       public SQLException handleResultException(SQLException qex, Results results,
-          List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-          int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
+                                                List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
+                                                int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
 
         String sql = queries.get(currentCounter + sendCmdCounter);
         return logQuery.exceptionWithQuery(sql, qex, explicitClosed);
@@ -890,8 +890,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException exception
    */
   private void executeBatchRewrite(Results results,
-      final ClientPrepareResult prepareResult, List<ParameterHolder[]> parameterList,
-      boolean rewriteValues) throws SQLException {
+                                   final ClientPrepareResult prepareResult, List<ParameterHolder[]> parameterList,
+                                   boolean rewriteValues) throws SQLException {
 
     cmdPrologue();
 
@@ -936,9 +936,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException if parameter error or connection error occur.
    */
   public boolean executeBatchServer(boolean mustExecuteOnMaster,
-      ServerPrepareResult serverPrepareResult,
-      Results results, String sql, final List<ParameterHolder[]> parametersList,
-      boolean hasLongData) throws SQLException {
+                                    ServerPrepareResult serverPrepareResult,
+                                    Results results, String sql, final List<ParameterHolder[]> parametersList,
+                                    boolean hasLongData) throws SQLException {
 
     cmdPrologue();
 
@@ -957,9 +957,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
     new AbstractMultiSend(this, writer, results, serverPrepareResult, parametersList, true, sql) {
       @Override
       public void sendCmd(PacketOutputStream writer, Results results,
-          List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
-          BulkStatus status,
-          PrepareResult prepareResult)
+                          List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,
+                          BulkStatus status,
+                          PrepareResult prepareResult)
           throws SQLException, IOException {
 
         ParameterHolder[] parameters = parametersList.get(status.sendCmdCounter);
@@ -990,8 +990,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       @Override
       public SQLException handleResultException(SQLException qex, Results results,
-          List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
-          int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
+                                                List<ParameterHolder[]> parametersList, List<String> queries, int currentCounter,
+                                                int sendCmdCounter, int paramCount, PrepareResult prepareResult) {
         return logQuery.exceptionWithQuery(qex, prepareResult);
       }
 
@@ -1021,8 +1021,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    */
   @Override
   public void executePreparedQuery(boolean mustExecuteOnMaster,
-      ServerPrepareResult serverPrepareResult, Results results,
-      ParameterHolder[] parameters)
+                                   ServerPrepareResult serverPrepareResult, Results results,
+                                   ParameterHolder[] parameters)
       throws SQLException {
 
     cmdPrologue();
@@ -1045,7 +1045,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
       //send execute query
       ComStmtExecute.send(writer, serverPrepareResult.getStatementId(), parameters,
-              parameterCount, serverPrepareResult.getParameterTypeHeader(), CURSOR_TYPE_NO_CURSOR);
+          parameterCount, serverPrepareResult.getParameterTypeHeader(), CURSOR_TYPE_NO_CURSOR);
       getResult(results);
 
     } catch (SQLException qex) {
@@ -1427,7 +1427,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @param results result object
    * @throws SQLException if sub-result connection fail
    * @see <a href="https://mariadb.com/kb/en/mariadb/4-server-response-packets/">server response
-   * packets</a>
+   *     packets</a>
    */
   private void readPacket(Results results) throws SQLException {
     Buffer buffer;
@@ -1735,7 +1735,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   public void prologProxy(ServerPrepareResult serverPrepareResult, long maxRows, boolean hasProxy,
-      MariaDbConnection connection, MariaDbStatement statement) throws SQLException {
+                          MariaDbConnection connection, MariaDbStatement statement) throws SQLException {
     prolog(maxRows, hasProxy, connection, statement);
   }
 
@@ -1749,7 +1749,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @throws SQLException if any error occur.
    */
   public void prolog(long maxRows, boolean hasProxy, MariaDbConnection connection,
-      MariaDbStatement statement)
+                     MariaDbStatement statement)
       throws SQLException {
     if (explicitClosed) {
       throw new SQLException("execute() is called on closed connection");
@@ -1773,7 +1773,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   public ServerPrepareResult addPrepareInCache(String key,
-      ServerPrepareResult serverPrepareResult) {
+                                               ServerPrepareResult serverPrepareResult) {
     return serverPrepareStatementCache.put(key, serverPrepareResult);
   }
 
@@ -1821,7 +1821,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    */
   //TODO set all client affected variables when implementing CONJ-319
   public void resetStateAfterFailover(long maxRows, int transactionIsolationLevel, String database,
-      boolean autocommit) throws SQLException {
+                                      boolean autocommit) throws SQLException {
     setMaxRows(maxRows);
 
     if (transactionIsolationLevel != 0) {

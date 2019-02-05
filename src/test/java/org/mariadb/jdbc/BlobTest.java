@@ -99,7 +99,7 @@ public class BlobTest extends BaseTest {
     createTable("bug716378",
         "id int not null primary key auto_increment, test longblob, test2 blob, test3 text");
     createTable("BlobTeststreamtest2", "id int primary key not null, st varchar(20), strm text"
-                    + ", strm2 text, strm3 text","CHARSET utf8");
+        + ", strm2 text, strm3 text", "CHARSET utf8");
     createTable("BlobTeststreamtest3", "id int primary key not null, strm text", "CHARSET utf8");
     createTable("BlobTestclobtest", "id int not null primary key, strm text", "CHARSET utf8");
     createTable("BlobTestclobtest2", "strm text", "CHARSET utf8");
@@ -579,7 +579,9 @@ public class BlobTest extends BaseTest {
           Class<?> statusClass = Class.forName("java.io.ObjectInputFilter$Status");
           Field rejected = statusClass.getField("REJECTED");
           Field allowed = statusClass.getField("ALLOWED");
-          if (arrayLength > filterSize) return rejected.get(null);
+          if (arrayLength > filterSize) {
+            return rejected.get(null);
+          }
           return allowed.get(null);
         }
       });

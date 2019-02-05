@@ -54,7 +54,6 @@
 package org.mariadb.jdbc.internal.protocol.authentication;
 
 import java.sql.SQLException;
-
 import org.mariadb.jdbc.internal.com.send.authentication.AuthenticationPlugin;
 import org.mariadb.jdbc.internal.com.send.authentication.ClearPasswordPlugin;
 import org.mariadb.jdbc.internal.com.send.authentication.Ed25519PasswordPlugin;
@@ -76,10 +75,10 @@ public class DefaultAuthenticationProvider {
   /**
    * Process AuthenticationSwitch.
    *
-   * @param plugin                    plugin name
-   * @param password                  password
-   * @param authData                  auth data
-   * @param options                   connection string options
+   * @param plugin   plugin name
+   * @param password password
+   * @param authData auth data
+   * @param options  connection string options
    * @return authentication response according to parameters
    * @throws SQLException if error occur.
    */

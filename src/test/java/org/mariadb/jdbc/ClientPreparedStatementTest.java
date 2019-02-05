@@ -63,7 +63,6 @@ import java.sql.SQLException;
 import java.sql.SQLSyntaxErrorException;
 import java.sql.Statement;
 import java.sql.Types;
-
 import org.junit.Assume;
 import org.junit.Test;
 
@@ -241,7 +240,7 @@ public class ClientPreparedStatementTest extends BaseTest {
       Statement stmt = connection.createStatement();
       stmt.execute("CREATE TEMPORARY TABLE executeBatchOneByOne (c1 varchar(16), c2 varchar(16))");
       PreparedStatement preparedStatement = connection.prepareStatement(
-              "INSERT INTO executeBatchOneByOne values (?, ?)");
+          "INSERT INTO executeBatchOneByOne values (?, ?)");
       preparedStatement.setString(1, "1");
       preparedStatement.setString(2, "1");
       preparedStatement.addBatch();

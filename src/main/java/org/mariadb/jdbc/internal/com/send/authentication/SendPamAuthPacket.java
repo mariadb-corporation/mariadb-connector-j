@@ -52,10 +52,6 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication;
 
-import static org.mariadb.jdbc.internal.com.Packet.EOF;
-import static org.mariadb.jdbc.internal.com.Packet.ERROR;
-import static org.mariadb.jdbc.internal.com.Packet.OK;
-
 import java.awt.HeadlessException;
 import java.io.Console;
 import java.io.IOException;
@@ -79,9 +75,10 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
 
   /**
    * Pam plugin contrusctor.
-   * @param password                    password
-   * @param authData                    authentication data
-   * @param passwordCharacterEncoding   password encoding option
+   *
+   * @param password                  password
+   * @param authData                  authentication data
+   * @param passwordCharacterEncoding password encoding option
    */
   public SendPamAuthPacket(String password, byte[] authData, String passwordCharacterEncoding) {
     this.authData = authData;
@@ -93,15 +90,15 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
    * Process PAM plugin authentication.
    * see https://mariadb.com/kb/en/library/authentication-plugin-pam/
    *
-   * @param out       out stream
-   * @param in        in stream
-   * @param sequence  packet sequence
+   * @param out      out stream
+   * @param in       in stream
+   * @param sequence packet sequence
    * @return response packet
    * @throws IOException  if socket error
    * @throws SQLException if plugin exception
    */
   public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
-          throws IOException, SQLException {
+      throws IOException, SQLException {
     int type = authData[0];
     String promptb;
     //conversation is :
@@ -149,8 +146,8 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
 
       //PAM continue until finish.
       if (type == 0xfe //Switch Request
-              || type == 0x00 // OK_Packet
-              || type == 0xff) { //ERR_Packet
+          || type == 0x00 // OK_Packet
+          || type == 0xff) { //ERR_Packet
         return buffer;
       }
       authData = buffer.readRawBytes(buffer.remaining());

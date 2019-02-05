@@ -164,7 +164,7 @@ public class SelectResultSet implements ResultSet {
    * @throws SQLException if any connection error occur
    */
   public SelectResultSet(ColumnInformation[] columnInformation, Results results, Protocol protocol,
-      PacketInputStream reader, boolean callableResult, boolean eofDeprecated)
+                         PacketInputStream reader, boolean callableResult, boolean eofDeprecated)
       throws IOException, SQLException {
     this.statement = results.getStatement();
     this.isClosed = false;
@@ -220,8 +220,8 @@ public class SelectResultSet implements ResultSet {
    *                            <code>ResultSet.TYPE_SCROLL_SENSITIVE</code>
    */
   public SelectResultSet(ColumnInformation[] columnInformation, List<byte[]> resultSet,
-      Protocol protocol,
-      int resultSetScrollType) {
+                         Protocol protocol,
+                         int resultSetScrollType) {
     this.statement = null;
     this.isClosed = false;
     if (protocol != null) {
@@ -262,7 +262,7 @@ public class SelectResultSet implements ResultSet {
    * @return resultset
    */
   public static ResultSet createGeneratedData(long[] data, Protocol protocol,
-      boolean findColumnReturnsOne) {
+                                              boolean findColumnReturnsOne) {
     ColumnInformation[] columns = new ColumnInformation[1];
     columns[0] = ColumnInformation.create("insert_id", ColumnType.BIGINT);
 
@@ -296,8 +296,8 @@ public class SelectResultSet implements ResultSet {
    * @return resultset
    */
   public static ResultSet createResultSet(String[] columnNames, ColumnType[] columnTypes,
-      String[][] data,
-      Protocol protocol) {
+                                          String[][] data,
+                                          Protocol protocol) {
     int columnNameLength = columnNames.length;
     ColumnInformation[] columns = new ColumnInformation[columnNameLength];
 
@@ -2344,7 +2344,7 @@ public class SelectResultSet implements ResultSet {
   }
 
   private void rangeCheck(Object className, long minValue, long maxValue, long value,
-      ColumnInformation columnInfo) throws SQLException {
+                          ColumnInformation columnInfo) throws SQLException {
     if (value < minValue || value > maxValue) {
       throw new SQLException(
           "Out of range value for column '" + columnInfo.getName() + "' : value " + value

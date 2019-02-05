@@ -106,8 +106,8 @@ public interface Listener {
   UrlParser getUrlParser();
 
   void throwFailoverMessage(HostAddress failHostAddress, boolean wasMaster,
-      SQLException queryException,
-      boolean reconnected) throws SQLException;
+                            SQLException queryException,
+                            boolean reconnected) throws SQLException;
 
   boolean isAutoReconnect();
 

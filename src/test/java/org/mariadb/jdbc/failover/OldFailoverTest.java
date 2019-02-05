@@ -52,55 +52,56 @@
 
 package org.mariadb.jdbc.failover;
 
+import java.sql.Connection;
+import java.sql.Statement;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mariadb.jdbc.BaseTest;
 
-import java.sql.Connection;
-import java.sql.Statement;
-
 public class OldFailoverTest extends BaseTest {
 
-    /**
-     * Check old connection way before multihost was handle.
-     */
-    @Test
-    public void isOldConfigurationValid() {
-        String falseUrl = "jdbc:mariadb://localhost:1111," + ((hostname == null) ? "localhost" : hostname) + ":"
-                + port + "/" + database + "?user=" + username
-                + (password != null && !"".equals(password) ? "&password=" + password : "")
-                + (parameters != null ? "&" + parameters : "");
+  /**
+   * Check old connection way before multihost was handle.
+   */
+  @Test
+  public void isOldConfigurationValid() {
+    String falseUrl = "jdbc:mariadb://localhost:1111," + ((hostname == null) ? "localhost" : hostname) + ":"
+        + port + "/" + database + "?user=" + username
+        + (password != null && !"".equals(password) ? "&password=" + password : "")
+        + (parameters != null ? "&" + parameters : "");
 
+    try {
+      //the first host doesn't exist, so with the random host selection, verifying that we connect to the good
+      //host
+      for (int i = 0; i < 10; i++) {
+        Connection tmpConnection = null;
         try {
-            //the first host doesn't exist, so with the random host selection, verifying that we connect to the good
-            //host
-            for (int i = 0; i < 10; i++) {
-                Connection tmpConnection = null;
-                try {
-                    tmpConnection = openNewConnection(falseUrl);
-                    Statement tmpStatement = tmpConnection.createStatement();
-                    tmpStatement.execute("SELECT 1");
-                } finally {
-                    if (tmpConnection != null) tmpConnection.close();
-                }
-            }
-        } catch (Exception e) {
-            Assert.fail();
+          tmpConnection = openNewConnection(falseUrl);
+          Statement tmpStatement = tmpConnection.createStatement();
+          tmpStatement.execute("SELECT 1");
+        } finally {
+          if (tmpConnection != null) {
+            tmpConnection.close();
+          }
         }
+      }
+    } catch (Exception e) {
+      Assert.fail();
     }
+  }
 
 
-    @Test
-    public void errorUrl() {
-        String falseUrl = "jdbc:mariadb://localhost:1111/test";
+  @Test
+  public void errorUrl() {
+    String falseUrl = "jdbc:mariadb://localhost:1111/test";
 
-        try {
-            openNewConnection(falseUrl);
-            Assert.fail();
-        } catch (Exception e) {
-            //normal exception
-        }
+    try {
+      openNewConnection(falseUrl);
+      Assert.fail();
+    } catch (Exception e) {
+      //normal exception
     }
+  }
 
 
 }

@@ -53,50 +53,49 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
+import java.io.IOException;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-import java.io.IOException;
-
 public class LongParameter implements Cloneable, ParameterHolder {
-    private final long value;
+  private final long value;
 
-    public LongParameter(long value) {
-        this.value = value;
-    }
+  public LongParameter(long value) {
+    this.value = value;
+  }
 
-    public void writeTo(final PacketOutputStream os) throws IOException {
-        os.write(String.valueOf(value).getBytes());
-    }
+  public void writeTo(final PacketOutputStream os) throws IOException {
+    os.write(String.valueOf(value).getBytes());
+  }
 
-    public long getApproximateTextProtocolLength() {
-        return String.valueOf(value).getBytes().length;
-    }
+  public long getApproximateTextProtocolLength() {
+    return String.valueOf(value).getBytes().length;
+  }
 
-    /**
-     * Write data to socket in binary format.
-     *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
-     */
-    public void writeBinary(final PacketOutputStream pos) throws IOException {
-        pos.writeLong(value);
-    }
+  /**
+   * Write data to socket in binary format.
+   *
+   * @param pos socket output stream
+   * @throws IOException if socket error occur
+   */
+  public void writeBinary(final PacketOutputStream pos) throws IOException {
+    pos.writeLong(value);
+  }
 
-    public ColumnType getColumnType() {
-        return ColumnType.BIGINT;
-    }
+  public ColumnType getColumnType() {
+    return ColumnType.BIGINT;
+  }
 
-    public String toString() {
-        return Long.toString(value);
-    }
+  public String toString() {
+    return Long.toString(value);
+  }
 
-    public boolean isNullData() {
-        return false;
-    }
+  public boolean isNullData() {
+    return false;
+  }
 
-    public boolean isLongData() {
-        return false;
-    }
+  public boolean isLongData() {
+    return false;
+  }
 
 }

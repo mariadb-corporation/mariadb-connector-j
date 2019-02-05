@@ -52,41 +52,40 @@
 
 package org.mariadb.jdbc.internal.com.read.dao;
 
+import java.sql.ResultSet;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 
-import java.sql.ResultSet;
-
 public interface CmdInformation {
-    int RESULT_SET_VALUE = -1;
+  int RESULT_SET_VALUE = -1;
 
-    int[] getUpdateCounts();
+  int[] getUpdateCounts();
 
-    int[] getServerUpdateCounts();
+  int[] getServerUpdateCounts();
 
-    long[] getLargeUpdateCounts();
+  long[] getLargeUpdateCounts();
 
-    int getUpdateCount();
+  int getUpdateCount();
 
-    long getLargeUpdateCount();
+  long getLargeUpdateCount();
 
-    void addSuccessStat(long updateCount, long insertId);
+  void addSuccessStat(long updateCount, long insertId);
 
-    void addErrorStat();
+  void addErrorStat();
 
-    void reset();
+  void reset();
 
-    void addResultSetStat();
+  void addResultSetStat();
 
-    ResultSet getGeneratedKeys(Protocol protocol);
+  ResultSet getGeneratedKeys(Protocol protocol);
 
-    ResultSet getBatchGeneratedKeys(Protocol protocol);
+  ResultSet getBatchGeneratedKeys(Protocol protocol);
 
-    int getCurrentStatNumber();
+  int getCurrentStatNumber();
 
-    boolean moreResults();
+  boolean moreResults();
 
-    boolean isCurrentUpdateCount();
+  boolean isCurrentUpdateCount();
 
-    void setRewrite(boolean rewritten);
+  void setRewrite(boolean rewritten);
 
 }

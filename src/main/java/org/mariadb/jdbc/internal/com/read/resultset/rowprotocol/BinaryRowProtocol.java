@@ -80,7 +80,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @param options                 connection options
    */
   public BinaryRowProtocol(ColumnInformation[] columnInformation, int columnInformationLength,
-      int maxFieldSize, Options options) {
+                           int maxFieldSize, Options options) {
     super(maxFieldSize, options);
     this.columnInformation = columnInformation;
     this.columnInformationLength = columnInformationLength;
@@ -91,7 +91,7 @@ public class BinaryRowProtocol extends RowProtocol {
    *
    * @param newIndex index (0 is first).
    * @see <a href="https://mariadb.com/kb/en/mariadb/resultset-row/">Resultset row protocol
-   * documentation</a>
+   *     documentation</a>
    */
   public void setPosition(int newIndex) {
 
@@ -852,7 +852,7 @@ public class BinaryRowProtocol extends RowProtocol {
    * @throws SQLException if column type is not compatible
    */
   public Timestamp getInternalTimestamp(ColumnInformation columnInfo, Calendar userCalendar,
-      TimeZone timeZone) throws SQLException {
+                                        TimeZone timeZone) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }

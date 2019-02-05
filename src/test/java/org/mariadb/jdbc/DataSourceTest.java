@@ -87,7 +87,9 @@ public class DataSourceTest extends BaseTest {
       connection = ds.getConnection(username, password);
       assertEquals(connection.isValid(0), true);
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -101,7 +103,9 @@ public class DataSourceTest extends BaseTest {
       connection = ds.getConnection(username, password);
       assertEquals(connection.isValid(0), true);
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -116,7 +120,9 @@ public class DataSourceTest extends BaseTest {
       connection = ds.getConnection(username, password);
       assertEquals(connection.isValid(0), true);
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -181,10 +187,14 @@ public class DataSourceTest extends BaseTest {
         assertEquals(ds.getDatabaseName(), connection2.getCatalog());
         connection2.createStatement().execute("DROP DATABASE IF EXISTS test2");
       } finally {
-        if (connection2 != null) connection2.close();
+        if (connection2 != null) {
+          connection2.close();
+        }
       }
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -208,10 +218,14 @@ public class DataSourceTest extends BaseTest {
         Statement stmt = connection2.createStatement();
         assertTrue(stmt.execute("Select 1"));
       } finally {
-        if (connection2 != null) connection2.close();
+        if (connection2 != null) {
+          connection2.close();
+        }
       }
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -232,7 +246,9 @@ public class DataSourceTest extends BaseTest {
       assureBlackList(connection2);
       connection2.close();
     } finally {
-      if (connection2 != null) connection2.close();
+      if (connection2 != null) {
+        connection2.close();
+      }
     }
 
     ds.setPort(3407);
@@ -271,13 +287,17 @@ public class DataSourceTest extends BaseTest {
           assertTrue(rs.next());
           assertEquals("ALLOW_INVALID_DATES", rs.getString(1));
         } finally {
-          if (connection2 != null) connection2.close();
+          if (connection2 != null) {
+            connection2.close();
+          }
         }
       } else {
         fail();
       }
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
 
   }

@@ -459,7 +459,7 @@ public class TextRowProtocol extends RowProtocol {
 
     switch (columnInfo.getColumnType()) {
       case DATE:
-        int[] datePart = new int[]{0,0,0};
+        int[] datePart = new int[]{0, 0, 0};
         int partIdx = 0;
         for (int begin = pos; begin < pos + length; begin++) {
           byte b = buf[begin];
@@ -591,7 +591,7 @@ public class TextRowProtocol extends RowProtocol {
    * @throws SQLException if column type doesn't permit conversion
    */
   public Timestamp getInternalTimestamp(ColumnInformation columnInfo, Calendar userCalendar,
-      TimeZone timeZone) throws SQLException {
+                                        TimeZone timeZone) throws SQLException {
     if (lastValueWasNull()) {
       return null;
     }
@@ -605,7 +605,7 @@ public class TextRowProtocol extends RowProtocol {
       case STRING:
 
         int nanoBegin = -1;
-        int[] timestampsPart = new int[]{0,0,0,0,0,0,0};
+        int[] timestampsPart = new int[]{0, 0, 0, 0, 0, 0, 0};
         int partIdx = 0;
         for (int begin = pos; begin < pos + length; begin++) {
           byte b = buf[begin];

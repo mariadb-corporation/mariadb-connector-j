@@ -52,8 +52,6 @@
 
 package org.mariadb.jdbc;
 
-import java.sql.SQLException;
-
 /**
  * Keep the class name for compatibility
  *

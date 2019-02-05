@@ -52,65 +52,66 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Test;
-import org.mariadb.jdbc.internal.util.Utils;
+import static org.junit.Assert.assertEquals;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+import org.mariadb.jdbc.internal.util.Utils;
 
 
 public class UtilTest extends BaseTest {
-    @Test
-    public void escape() throws SQLException {
-        String[] inputs = new String[]{
-                "select {fn timestampdiff(SQL_TSI_HOUR, {fn convert('SQL_', SQL_INTEGER)})}",
-                "{call foo({fn now()})}",
-                "{?=call foo({fn now()})}",
-                "SELECT 'David_' LIKE 'David|_' {escape '|'}",
-                "select {fn dayname ({fn abs({fn now()})})}",
-                "{d '1997-05-24'}",
-                "{d'1997-05-24'}",
-                "{t '10:30:29'}",
-                "{t'10:30:29'}",
-                "{ts '1997-05-24 10:30:29.123'}",
-                "{ts'1997-05-24 10:30:29.123'}",
-                "'{string data with { or } will not be altered'",
-                "`{string data with { or } will not be altered`",
-                "--  Also note that you can safely include { and } in comments"
-        };
-        String[] outputs = new String[]{
-                "select timestampdiff(HOUR, convert('SQL_', INTEGER))",
-                "call foo(now())",
-                "?=call foo(now())",
-                "SELECT 'David_' LIKE 'David|_' escape '|'",
-                "select dayname (abs(now()))",
-                "'1997-05-24'",
-                "'1997-05-24'",
-                "'10:30:29'",
-                "'10:30:29'",
-                "'1997-05-24 10:30:29.123'",
-                "'1997-05-24 10:30:29.123'",
-                "'{string data with { or } will not be altered'",
-                "`{string data with { or } will not be altered`",
-                "--  Also note that you can safely include { and } in comments"
-        };
-        for (int i = 0; i < inputs.length; i++) {
-            assertEquals(Utils.nativeSql(inputs[i], false), outputs[i]);
-        }
+  @Test
+  public void escape() throws SQLException {
+    String[] inputs = new String[]{
+        "select {fn timestampdiff(SQL_TSI_HOUR, {fn convert('SQL_', SQL_INTEGER)})}",
+        "{call foo({fn now()})}",
+        "{?=call foo({fn now()})}",
+        "SELECT 'David_' LIKE 'David|_' {escape '|'}",
+        "select {fn dayname ({fn abs({fn now()})})}",
+        "{d '1997-05-24'}",
+        "{d'1997-05-24'}",
+        "{t '10:30:29'}",
+        "{t'10:30:29'}",
+        "{ts '1997-05-24 10:30:29.123'}",
+        "{ts'1997-05-24 10:30:29.123'}",
+        "'{string data with { or } will not be altered'",
+        "`{string data with { or } will not be altered`",
+        "--  Also note that you can safely include { and } in comments"
+    };
+    String[] outputs = new String[]{
+        "select timestampdiff(HOUR, convert('SQL_', INTEGER))",
+        "call foo(now())",
+        "?=call foo(now())",
+        "SELECT 'David_' LIKE 'David|_' escape '|'",
+        "select dayname (abs(now()))",
+        "'1997-05-24'",
+        "'1997-05-24'",
+        "'10:30:29'",
+        "'10:30:29'",
+        "'1997-05-24 10:30:29.123'",
+        "'1997-05-24 10:30:29.123'",
+        "'{string data with { or } will not be altered'",
+        "`{string data with { or } will not be altered`",
+        "--  Also note that you can safely include { and } in comments"
+    };
+    for (int i = 0; i < inputs.length; i++) {
+      assertEquals(Utils.nativeSql(inputs[i], false), outputs[i]);
     }
+  }
 
-    @Test
-    public void backTickQuote() throws SQLException {
-        Connection conn = null;
-        try {
-            conn = setConnection();
-            Statement stmt = conn.createStatement();
-            stmt.execute("CREATE TEMPORARY TABLE `{tt1}`(`{Document id}` int, tt text)");
-        } finally {
-            if (conn != null) conn.close();
-        }
+  @Test
+  public void backTickQuote() throws SQLException {
+    Connection conn = null;
+    try {
+      conn = setConnection();
+      Statement stmt = conn.createStatement();
+      stmt.execute("CREATE TEMPORARY TABLE `{tt1}`(`{Document id}` int, tt text)");
+    } finally {
+      if (conn != null) {
+        conn.close();
+      }
     }
+  }
 }

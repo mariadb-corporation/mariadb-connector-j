@@ -1225,6 +1225,7 @@ public class ResultSetTest extends BaseTest {
 
   /**
    * CONJ-669: No such column when having empty column without alias.
+   *
    * @throws SQLException exception
    */
   @Test

@@ -16,19 +16,19 @@ import org.mariadb.jdbc.internal.com.send.authentication.ed25519.math.ed25519.Sc
 
 /**
  * EdDSA Curve specification that can also be referred to by name.
- * @author str4d
  *
+ * @author str4d
  */
 public class EdDSANamedCurveSpec extends EdDSAParameterSpec {
-    private final String name;
+  private final String name;
 
-    public EdDSANamedCurveSpec(String name, Curve curve,
-                               String hashAlgo, ScalarOps sc, GroupElement B) {
-        super(curve, hashAlgo, sc, B);
-        this.name = name;
-    }
+  public EdDSANamedCurveSpec(String name, Curve curve,
+                             String hashAlgo, ScalarOps sc, GroupElement B) {
+    super(curve, hashAlgo, sc, B);
+    this.name = name;
+  }
 
-    public String getName() {
-        return name;
-    }
+  public String getName() {
+    return name;
+  }
 }

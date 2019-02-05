@@ -66,8 +66,8 @@ public class ClientPrepareResult implements PrepareResult {
   private boolean isQueryMultipleRewritable = true;
 
   private ClientPrepareResult(String sql, List<byte[]> queryParts,
-      boolean isQueryMultiValuesRewritable,
-      boolean isQueryMultipleRewritable, boolean rewriteType) {
+                              boolean isQueryMultiValuesRewritable,
+                              boolean isQueryMultipleRewritable, boolean rewriteType) {
     this.sql = sql;
     this.queryParts = queryParts;
     this.isQueryMultiValuesRewritable = isQueryMultiValuesRewritable;
@@ -358,10 +358,10 @@ public class ClientPrepareResult implements PrepareResult {
    * </p>
    *
    * <ul>
-   *   <li>pre value part : INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES </li>
-   *   <li>after value part : "(9 "</li>
-   *   <li> part after parameter 1: ", 5," - ", 5," - ",8)"</li>
-   *   <li>last part : ON DUPLICATE KEY UPDATE col2=col2+10</li>
+   * <li>pre value part : INSERT INTO TABLE(col1,col2,col3,col4, col5) VALUES </li>
+   * <li>after value part : "(9 "</li>
+   * <li> part after parameter 1: ", 5," - ", 5," - ",8)"</li>
+   * <li>last part : ON DUPLICATE KEY UPDATE col2=col2+10</li>
    * </ul>
    *
    * <p> With 2 series of parameters, this query will be rewritten like [INSERT INTO
@@ -373,7 +373,7 @@ public class ClientPrepareResult implements PrepareResult {
    * @return List of query part.
    */
   public static ClientPrepareResult rewritableParts(String queryString,
-      boolean noBackslashEscapes) {
+                                                    boolean noBackslashEscapes) {
     try {
       boolean reWritablePrepare = true;
       boolean multipleQueriesPrepare = true;

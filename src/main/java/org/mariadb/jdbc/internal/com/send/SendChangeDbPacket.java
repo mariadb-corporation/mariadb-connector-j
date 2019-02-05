@@ -62,8 +62,8 @@ public class SendChangeDbPacket {
   /**
    * Send a COM_INIT_DB request to specify the default schema for the connection.
    *
-   * @param pos         Write outputStream
-   * @param database    database name
+   * @param pos      Write outputStream
+   * @param database database name
    * @throws IOException if connection problem occur
    */
   public static void send(final PacketOutputStream pos, final String database) throws IOException {

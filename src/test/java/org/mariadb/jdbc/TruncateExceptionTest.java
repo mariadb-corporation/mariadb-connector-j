@@ -52,147 +52,161 @@
 
 package org.mariadb.jdbc;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.sql.*;
-
-import static org.junit.Assert.*;
-
 public class TruncateExceptionTest extends BaseTest {
-    /**
-     * Tables initialisation.
-     */
-    @BeforeClass()
-    public static void initClass() throws SQLException {
-        createTable("TruncateExceptionTest", "id tinyint");
-        createTable("TruncateExceptionTest2", "id tinyint not null primary key auto_increment, id2 tinyint ");
+  /**
+   * Tables initialisation.
+   */
+  @BeforeClass()
+  public static void initClass() throws SQLException {
+    createTable("TruncateExceptionTest", "id tinyint");
+    createTable("TruncateExceptionTest2", "id tinyint not null primary key auto_increment, id2 tinyint ");
 
+  }
+
+  @Test
+  public void truncationThrowError() {
+    try {
+      queryTruncation(true);
+      fail("Must have thrown SQLException");
+    } catch (SQLException e) {
+      //normal error
     }
+  }
 
-    @Test
-    public void truncationThrowError() {
-        try {
-            queryTruncation(true);
-            fail("Must have thrown SQLException");
-        } catch (SQLException e) {
-            //normal error
-        }
+  @Test
+  public void truncationThrowNoError() {
+    try {
+      ResultSet resultSet = sharedConnection.createStatement().executeQuery("SELECT @@sql_mode");
+      resultSet.next();
+      //if server is already throwing truncation, cancel test
+      Assume.assumeFalse(resultSet.getString(1).contains("STRICT_TRANS_TABLES"));
+
+      queryTruncation(false);
+    } catch (SQLException e) {
+      e.printStackTrace();
+
+      fail("Must not have thrown exception");
     }
+  }
 
-    @Test
-    public void truncationThrowNoError() {
-        try {
-            ResultSet resultSet = sharedConnection.createStatement().executeQuery("SELECT @@sql_mode");
-            resultSet.next();
-            //if server is already throwing truncation, cancel test
-            Assume.assumeFalse(resultSet.getString(1).contains("STRICT_TRANS_TABLES"));
-
-            queryTruncation(false);
-        } catch (SQLException e) {
-            e.printStackTrace();
-
-            fail("Must not have thrown exception");
-        }
+  /**
+   * Execute a query with truncated data.
+   *
+   * @param truncation connection parameter.
+   * @throws SQLException if SQLException occur
+   */
+  public void queryTruncation(boolean truncation) throws SQLException {
+    Connection connection = null;
+    try {
+      connection = setConnection("&jdbcCompliantTruncation=" + truncation);
+      Statement stmt = connection.createStatement();
+      stmt.execute("INSERT INTO TruncateExceptionTest (id) VALUES (999)");
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
     }
+  }
 
-    /**
-     * Execute a query with truncated data.
-     *
-     * @param truncation connection parameter.
-     * @throws SQLException if SQLException occur
-     */
-    public void queryTruncation(boolean truncation) throws SQLException {
-        Connection connection = null;
-        try {
-            connection = setConnection("&jdbcCompliantTruncation=" + truncation);
-            Statement stmt = connection.createStatement();
-            stmt.execute("INSERT INTO TruncateExceptionTest (id) VALUES (999)");
-        } finally {
-            if (connection != null) connection.close();
-        }
+
+  @Test
+  public void queryTruncationFetch() throws SQLException {
+    final int[] autoInc = setAutoInc();
+    Connection connection = null;
+    try {
+      connection = setConnection("&jdbcCompliantTruncation=true");
+      Statement stmt = connection.createStatement();
+      stmt.execute("TRUNCATE TABLE TruncateExceptionTest2");
+      stmt.setFetchSize(1);
+      PreparedStatement pstmt = connection.prepareStatement("INSERT INTO TruncateExceptionTest2 (id2) VALUES (?)",
+          Statement.RETURN_GENERATED_KEYS);
+      pstmt.setInt(1, 45);
+      pstmt.addBatch();
+      pstmt.setInt(1, 999);
+      pstmt.addBatch();
+      pstmt.setInt(1, 55);
+      pstmt.addBatch();
+      try {
+        pstmt.executeBatch();
+        fail("Must have thrown SQLException");
+      } catch (SQLException e) {
+        //eat
+      }
+      //resultSet must have been fetch
+      ResultSet rs = pstmt.getGeneratedKeys();
+      assertTrue(rs.next());
+      assertEquals(autoInc[0] + autoInc[1], rs.getInt(1));
+      if (sharedIsRewrite()) {
+        //rewritten with semi-colons -> error has stopped
+        assertFalse(rs.next());
+      } else {
+        assertTrue(rs.next());
+        assertEquals(autoInc[1] + autoInc[0] * 2, rs.getInt(1));
+        assertFalse(rs.next());
+      }
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
     }
+  }
 
-
-    @Test
-    public void queryTruncationFetch() throws SQLException {
-        final int[] autoInc = setAutoInc();
-        Connection connection = null;
-        try {
-            connection = setConnection("&jdbcCompliantTruncation=true");
-            Statement stmt = connection.createStatement();
-            stmt.execute("TRUNCATE TABLE TruncateExceptionTest2");
-            stmt.setFetchSize(1);
-            PreparedStatement pstmt = connection.prepareStatement("INSERT INTO TruncateExceptionTest2 (id2) VALUES (?)",
-                    Statement.RETURN_GENERATED_KEYS);
-            pstmt.setInt(1, 45);
-            pstmt.addBatch();
-            pstmt.setInt(1, 999);
-            pstmt.addBatch();
-            pstmt.setInt(1, 55);
-            pstmt.addBatch();
-            try {
-                pstmt.executeBatch();
-                fail("Must have thrown SQLException");
-            } catch (SQLException e) {
-            }
-            //resultSet must have been fetch
-            ResultSet rs = pstmt.getGeneratedKeys();
-            assertTrue(rs.next());
-            assertEquals(autoInc[0] + autoInc[1], rs.getInt(1));
-            if (sharedIsRewrite()) {
-                //rewritten with semi-colons -> error has stopped
-                assertFalse(rs.next());
-            } else {
-                assertTrue(rs.next());
-                assertEquals(autoInc[1] + autoInc[0] * 2, rs.getInt(1));
-                assertFalse(rs.next());
-            }
-        } finally {
-            if (connection != null) connection.close();
-        }
+  @Test
+  public void queryTruncationBatch() throws SQLException {
+    final int[] autoInc = setAutoInc();
+    Connection connection = null;
+    try {
+      connection = setConnection("&jdbcCompliantTruncation=true&useBatchMultiSendNumber=3&profileSql=true&log=true");
+      Statement stmt = connection.createStatement();
+      stmt.execute("TRUNCATE TABLE TruncateExceptionTest2");
+      PreparedStatement pstmt = connection.prepareStatement("INSERT INTO TruncateExceptionTest2 (id2) VALUES (?)",
+          Statement.RETURN_GENERATED_KEYS);
+      pstmt.setInt(1, 45);
+      pstmt.addBatch();
+      pstmt.setInt(1, 46);
+      pstmt.addBatch();
+      pstmt.setInt(1, 47);
+      pstmt.addBatch();
+      pstmt.setInt(1, 48);
+      pstmt.addBatch();
+      pstmt.setInt(1, 999);
+      pstmt.addBatch();
+      pstmt.setInt(1, 49);
+      pstmt.addBatch();
+      pstmt.setInt(1, 50);
+      pstmt.addBatch();
+      try {
+        pstmt.executeBatch();
+        fail("Must have thrown SQLException");
+      } catch (SQLException e) {
+        //eat
+      }
+      //resultSet must have been fetch
+      ResultSet rs = pstmt.getGeneratedKeys();
+      for (int i = 1; i <= (sharedIsRewrite() ? 4 : 6); i++) {
+        assertTrue(rs.next());
+        assertEquals(autoInc[1] + autoInc[0] * i, rs.getInt(1));
+      }
+      assertFalse(rs.next());
+    } finally {
+      if (connection != null) {
+        connection.close();
+      }
     }
-
-    @Test
-    public void queryTruncationBatch() throws SQLException {
-        final int[] autoInc = setAutoInc();
-        Connection connection = null;
-        try {
-            connection = setConnection("&jdbcCompliantTruncation=true&useBatchMultiSendNumber=3&profileSql=true&log=true");
-            Statement stmt = connection.createStatement();
-            stmt.execute("TRUNCATE TABLE TruncateExceptionTest2");
-            PreparedStatement pstmt = connection.prepareStatement("INSERT INTO TruncateExceptionTest2 (id2) VALUES (?)",
-                    Statement.RETURN_GENERATED_KEYS);
-            pstmt.setInt(1, 45);
-            pstmt.addBatch();
-            pstmt.setInt(1, 46);
-            pstmt.addBatch();
-            pstmt.setInt(1, 47);
-            pstmt.addBatch();
-            pstmt.setInt(1, 48);
-            pstmt.addBatch();
-            pstmt.setInt(1, 999);
-            pstmt.addBatch();
-            pstmt.setInt(1, 49);
-            pstmt.addBatch();
-            pstmt.setInt(1, 50);
-            pstmt.addBatch();
-            try {
-                pstmt.executeBatch();
-                fail("Must have thrown SQLException");
-            } catch (SQLException e) {
-            }
-            //resultSet must have been fetch
-            ResultSet rs = pstmt.getGeneratedKeys();
-            for (int i = 1; i <= (sharedIsRewrite() ? 4 : 6); i++) {
-                assertTrue(rs.next());
-                assertEquals(autoInc[1] + autoInc[0] * i, rs.getInt(1));
-            }
-            assertFalse(rs.next());
-        } finally {
-            if (connection != null) connection.close();
-        }
-    }
+  }
 
 }

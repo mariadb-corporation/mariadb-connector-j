@@ -74,7 +74,7 @@ import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
 public class AuroraProtocol extends MastersSlavesProtocol {
 
   public AuroraProtocol(final UrlParser url, final GlobalStateInfo globalInfo,
-      final ReentrantLock lock) {
+                        final ReentrantLock lock) {
     super(url, globalInfo, lock);
   }
 
@@ -87,8 +87,8 @@ public class AuroraProtocol extends MastersSlavesProtocol {
    * @param probableMaster probable master host
    */
   private static void searchProbableMaster(AuroraListener listener,
-      final GlobalStateInfo globalInfo,
-      HostAddress probableMaster) {
+                                           final GlobalStateInfo globalInfo,
+                                           HostAddress probableMaster) {
 
     AuroraProtocol protocol = getNewProtocol(listener.getProxy(), globalInfo,
         listener.getUrlParser());
@@ -124,8 +124,8 @@ public class AuroraProtocol extends MastersSlavesProtocol {
    * @throws SQLException if not found
    */
   public static void loop(AuroraListener listener, final GlobalStateInfo globalInfo,
-      final List<HostAddress> addresses,
-      SearchFilter initialSearchFilter) throws SQLException {
+                          final List<HostAddress> addresses,
+                          SearchFilter initialSearchFilter) throws SQLException {
 
     SearchFilter searchFilter = initialSearchFilter;
     AuroraProtocol protocol;
@@ -333,7 +333,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
    * @return new AuroraProtocol
    */
   public static AuroraProtocol getNewProtocol(FailoverProxy proxy, final GlobalStateInfo globalInfo,
-      UrlParser urlParser) {
+                                              UrlParser urlParser) {
     AuroraProtocol newProtocol = new AuroraProtocol(urlParser, globalInfo, proxy.lock);
     newProtocol.setProxy(proxy);
     return newProtocol;

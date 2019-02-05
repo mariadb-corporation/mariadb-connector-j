@@ -56,7 +56,6 @@ import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
@@ -71,9 +70,9 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
   /**
    * Native password plugin constructor.
    *
-   * @param password                    password
-   * @param authData                    seed
-   * @param passwordCharacterEncoding   password encoding option
+   * @param password                  password
+   * @param authData                  seed
+   * @param passwordCharacterEncoding password encoding option
    */
   public NativePasswordPlugin(String password, byte[] authData, String passwordCharacterEncoding) {
     this.authData = authData;
@@ -85,11 +84,11 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
    * Process native password plugin authentication.
    * see https://mariadb.com/kb/en/library/authentication-plugin-mysql_native_password/
    *
-   * @param out       out stream
-   * @param in        in stream
-   * @param sequence  packet sequence
+   * @param out      out stream
+   * @param in       in stream
+   * @param sequence packet sequence
    * @return response packet
-   * @throws IOException  if socket error
+   * @throws IOException if socket error
    */
   public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException {
     if (password == null || password.isEmpty()) {

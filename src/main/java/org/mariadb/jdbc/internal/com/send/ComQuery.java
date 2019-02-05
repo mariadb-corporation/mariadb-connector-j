@@ -71,7 +71,7 @@ public class ComQuery {
    * @throws IOException if connection fail
    */
   public static void sendSubCmd(final PacketOutputStream out,
-      final ClientPrepareResult clientPrepareResult, ParameterHolder[] parameters, int queryTimeout)
+                                final ClientPrepareResult clientPrepareResult, ParameterHolder[] parameters, int queryTimeout)
       throws IOException {
     out.write(Packet.COM_QUERY);
     if (queryTimeout > 0) {
@@ -114,8 +114,8 @@ public class ComQuery {
    * @throws IOException if connection fail
    */
   public static int sendRewriteCmd(final PacketOutputStream pos, final List<byte[]> queryParts,
-      int currentIndex,
-      int paramCount, List<ParameterHolder[]> parameterList, boolean rewriteValues)
+                                   int currentIndex,
+                                   int paramCount, List<ParameterHolder[]> parameterList, boolean rewriteValues)
       throws IOException {
     pos.startPacket(0);
     pos.write(Packet.COM_QUERY);
@@ -265,7 +265,7 @@ public class ComQuery {
    * @throws IOException if connection error occur
    */
   public static int sendBatchAggregateSemiColon(final PacketOutputStream writer, String firstQuery,
-      List<String> queries, int currentIndex) throws IOException {
+                                                List<String> queries, int currentIndex) throws IOException {
     writer.startPacket(0);
     writer.write(Packet.COM_QUERY);
     //index is already set to 1 for first one
@@ -347,7 +347,7 @@ public class ComQuery {
    * @throws IOException if connection error occur
    */
   public static void sendMultiDirect(final PacketOutputStream pos, List<byte[]> sqlBytes,
-      int queryTimeout) throws IOException {
+                                     int queryTimeout) throws IOException {
     pos.startPacket(0);
     pos.write(Packet.COM_QUERY);
     pos.write(("SET STATEMENT max_statement_time=" + queryTimeout + " FOR ").getBytes());

@@ -361,11 +361,11 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
   }
 
   private void checkJmxInfo(MBeanServer server,
-      ObjectName name,
-      long expectedActive,
-      long expectedTotal,
-      long expectedIdle,
-      long expectedRequest)
+                            ObjectName name,
+                            long expectedActive,
+                            long expectedTotal,
+                            long expectedIdle,
+                            long expectedRequest)
       throws Exception {
 
     assertEquals(expectedActive,
@@ -429,7 +429,9 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
             ResultSet rs = stmt.executeQuery("SELECT CONNECTION_ID()");
             rs.next();
             Integer connectionId = rs.getInt(1);
-            if (!threadIds.contains(connectionId)) threadIds.add(connectionId);
+            if (!threadIds.contains(connectionId)) {
+              threadIds.add(connectionId);
+            }
 
             stmt.execute("SELECT * FROM mysql.user");
 

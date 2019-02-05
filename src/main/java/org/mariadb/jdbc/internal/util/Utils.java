@@ -164,7 +164,7 @@ public class Utils {
    * @throws UnsupportedEncodingException if passwordCharacterEncoding is not a valid charset name
    */
   public static byte[] encryptPassword(final String password, final byte[] seed,
-      String passwordCharacterEncoding)
+                                       String passwordCharacterEncoding)
       throws NoSuchAlgorithmException, UnsupportedEncodingException {
 
     if (password == null || password.isEmpty()) {
@@ -680,7 +680,7 @@ public class Utils {
    * @param outputBuilder string builder
    */
   private static void writeHex(byte[] bytes, int offset, int dataLength,
-      StringBuilder outputBuilder) {
+                               StringBuilder outputBuilder) {
 
     if (bytes == null || bytes.length == 0) {
       return;

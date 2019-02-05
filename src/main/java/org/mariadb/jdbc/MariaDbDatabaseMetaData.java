@@ -231,7 +231,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @throws ParseException exception
    */
   private static ResultSet getImportedKeys(String tableDef, String tableName, String catalog,
-      MariaDbConnection connection) throws ParseException {
+                                           MariaDbConnection connection) throws ParseException {
     String[] columnNames = {
         "PKTABLE_CAT", "PKTABLE_SCHEM", "PKTABLE_NAME",
         "PKCOLUMN_NAME", "FKTABLE_CAT", "FKTABLE_SCHEM",
@@ -632,7 +632,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @see #getSearchStringEscape
    */
   public ResultSet getTables(String catalog, String schemaPattern, String tableNamePattern,
-      String[] types)
+                             String[] types)
       throws SQLException {
 
     StringBuilder sql =
@@ -741,7 +741,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @see #getSearchStringEscape
    */
   public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
-      String columnNamePattern)
+                              String columnNamePattern)
       throws SQLException {
     Options options = connection.getProtocol().getUrlParser().getOptions();
     String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
@@ -1003,7 +1003,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @throws SQLException if a database access error occurs
    */
   public ResultSet getBestRowIdentifier(String catalog, String schema, String table, int scope,
-      final boolean nullable)
+                                        final boolean nullable)
       throws SQLException {
 
     if (table == null) {
@@ -1085,7 +1085,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @throws SQLException if a database access error occurs
    */
   public ResultSet getPseudoColumns(String catalog, String schemaPattern, String tableNamePattern,
-      String columnNamePattern) throws SQLException {
+                                    String columnNamePattern) throws SQLException {
     return connection.createStatement().executeQuery(
         "SELECT ' ' TABLE_CAT, ' ' TABLE_SCHEM,"
             + "' ' TABLE_NAME, ' ' COLUMN_NAME, 0 DATA_TYPE, 0 COLUMN_SIZE, 0 DECIMAL_DIGITS,"
@@ -1794,8 +1794,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @see #getSearchStringEscape
    */
   public ResultSet getProcedureColumns(String catalog, String schemaPattern,
-      String procedureNamePattern,
-      String columnNamePattern) throws SQLException {
+                                       String procedureNamePattern,
+                                       String columnNamePattern) throws SQLException {
     String sql;
 
     if (haveInformationSchemaParameters()) {
@@ -1966,8 +1966,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @since 1.6
    */
   public ResultSet getFunctionColumns(String catalog, String schemaPattern,
-      String functionNamePattern,
-      String columnNamePattern) throws SQLException {
+                                      String functionNamePattern,
+                                      String columnNamePattern) throws SQLException {
 
     String sql;
     if (haveInformationSchemaParameters()) {
@@ -2064,7 +2064,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @see #getSearchStringEscape
    */
   public ResultSet getColumnPrivileges(String catalog, String schema, String table,
-      String columnNamePattern) throws SQLException {
+                                       String columnNamePattern) throws SQLException {
 
     if (table == null) {
       throw new SQLException("'table' parameter must not be null");
@@ -2240,7 +2240,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @see #getImportedKeys
    */
   public ResultSet getCrossReference(String parentCatalog, String parentSchema, String parentTable,
-      String foreignCatalog, String foreignSchema, String foreignTable)
+                                     String foreignCatalog, String foreignSchema, String foreignTable)
       throws SQLException {
 
     String sql =
@@ -2523,7 +2523,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @throws SQLException if a database access error occurs
    */
   public ResultSet getIndexInfo(String catalog, String schema, String table,
-      boolean unique, boolean approximate) throws SQLException {
+                                boolean unique, boolean approximate) throws SQLException {
 
     String sql =
         "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, NON_UNIQUE, "
@@ -2669,7 +2669,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    */
   @Override
   public ResultSet getUDTs(String catalog, String schemaPattern, String typeNamePattern,
-      int[] types)
+                           int[] types)
       throws SQLException {
     String sql =
         "SELECT ' ' TYPE_CAT, NULL TYPE_SCHEM, ' ' TYPE_NAME, ' ' CLASS_NAME, 0 DATA_TYPE, ' ' REMARKS, 0 BASE_TYPE"
@@ -2845,7 +2845,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * @since 1.4
    */
   public ResultSet getAttributes(String catalog, String schemaPattern, String typeNamePattern,
-      String attributeNamePattern) throws SQLException {
+                                 String attributeNamePattern) throws SQLException {
 
     String sql =
         "SELECT ' ' TYPE_CAT, ' ' TYPE_SCHEM, ' ' TYPE_NAME, ' ' ATTR_NAME, 0 DATA_TYPE,"
@@ -2969,22 +2969,22 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * <P>Each function description has the the following columns:</p>
    *
    * <OL>
-   *   <li><B>FUNCTION_CAT</B> String {@code =>} function catalog (may be <code>null</code>)</li>
-   *   <li><B>FUNCTION_SCHEM</B> String {@code =>} function schema (may be <code>null</code>)</li>
-   *   <li><B>FUNCTION_NAME</B> String {@code =>} function name. This is the name used to invoke
-   *   the function </li>
-   *   <li><B>REMARKS</B> String {@code =>} explanatory comment on the function</li>
-   *   <li><B>FUNCTION_TYPE</B> short {@code =>} kind of function:
-   *     <UL>
-   *       <li>functionResultUnknown - Cannot determine if a return value or table will be
-   *       returned</li>
-   *       <li> functionNoTable- Does not return a table</li>
-   *       <li> functionReturnsTable - Returns a table</li>
-   *     </UL>
-   *   </li>
-   *   <li><B>SPECIFIC_NAME</B> String  {@code =>} the name which uniquely identifies this function
-   *   within its schema.  This is a user specified, or DBMS generated, name that may be different
-   *   then the <code>FUNCTION_NAME</code> for example with overload functions</li>
+   * <li><B>FUNCTION_CAT</B> String {@code =>} function catalog (may be <code>null</code>)</li>
+   * <li><B>FUNCTION_SCHEM</B> String {@code =>} function schema (may be <code>null</code>)</li>
+   * <li><B>FUNCTION_NAME</B> String {@code =>} function name. This is the name used to invoke
+   * the function </li>
+   * <li><B>REMARKS</B> String {@code =>} explanatory comment on the function</li>
+   * <li><B>FUNCTION_TYPE</B> short {@code =>} kind of function:
+   * <UL>
+   * <li>functionResultUnknown - Cannot determine if a return value or table will be
+   * returned</li>
+   * <li> functionNoTable- Does not return a table</li>
+   * <li> functionReturnsTable - Returns a table</li>
+   * </UL>
+   * </li>
+   * <li><B>SPECIFIC_NAME</B> String  {@code =>} the name which uniquely identifies this function
+   * within its schema.  This is a user specified, or DBMS generated, name that may be different
+   * then the <code>FUNCTION_NAME</code> for example with overload functions</li>
    * </OL>
    *
    * <p>A user may not have

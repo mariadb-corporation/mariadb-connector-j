@@ -59,71 +59,72 @@ import com.sun.jna.platform.win32.Kernel32;
 
 public class PidFactory {
 
-    private static PidRequestInter pidRequest = null;
+  private static PidRequestInter pidRequest = null;
 
-    /**
-     * Factory method to avoid loading JNA classes every connection.
-     *
-     * @return factory that implement PID according to environment.
-     */
-    public static PidRequestInter getInstance() {
+  /**
+   * Factory method to avoid loading JNA classes every connection.
+   *
+   * @return factory that implement PID according to environment.
+   */
+  public static PidRequestInter getInstance() {
+    if (pidRequest == null) {
+      synchronized (PidFactory.class) {
+        // check again within synchronized block to guard for race condition
         if (pidRequest == null) {
-            synchronized (PidFactory.class) {
-                // check again within synchronized block to guard for race condition
-                if (pidRequest == null) {
-                    //initialize JNA methods
-                    try {
-                        if (Platform.isLinux()) {
-                            //Linux pid implementation
-                            pidRequest = new PidRequestInter() {
-                                @Override
-                                public String getPid() {
-                                    return String.valueOf(CLibrary.INSTANCE.getpid());
-                                }
-                            };
-
-                        } else {
-                            if (Platform.isWindows()) {
-                                //Windows pid implementation
-                                pidRequest = new PidRequestInter() {
-                                    @Override
-                                    public String getPid() {
-                                        try {
-                                            return String.valueOf(Kernel32.INSTANCE.GetCurrentProcessId());
-                                        } catch (Throwable cle) {
-                                            //jna plateform jar's are not in classpath, no PID returned
-                                        }
-                                        return null;
-                                    }
-                                };
-                            }
-                        }
-                    } catch (Throwable cle) {
-                        //jna jar's are not in classpath, no PID returned
-                    }
-
-                    //No JNA, or environment not Linux/windows -> return no PID
-                    if (pidRequest == null) {
-                        pidRequest = new PidRequestInter() {
-                            @Override
-                            public String getPid() {
-                                return null;
-                            }
-                        };
-                    }
+          //initialize JNA methods
+          try {
+            if (Platform.isLinux()) {
+              //Linux pid implementation
+              pidRequest = new PidRequestInter() {
+                @Override
+                public String getPid() {
+                  return String.valueOf(CLibrary.INSTANCE.getpid());
                 }
+              };
+
+            } else {
+              if (Platform.isWindows()) {
+                //Windows pid implementation
+                pidRequest = new PidRequestInter() {
+                  @Override
+                  public String getPid() {
+                    try {
+                      return String.valueOf(Kernel32.INSTANCE.GetCurrentProcessId());
+                    } catch (Throwable cle) {
+                      //jna plateform jar's are not in classpath, no PID returned
+                    }
+                    return null;
+                  }
+                };
+              }
             }
+          } catch (Throwable cle) {
+            //jna jar's are not in classpath, no PID returned
+          }
+
+          //No JNA, or environment not Linux/windows -> return no PID
+          if (pidRequest == null) {
+            pidRequest = new PidRequestInter() {
+              @Override
+              public String getPid() {
+                return null;
+              }
+            };
+          }
         }
-        return pidRequest;
+      }
     }
+    return pidRequest;
+  }
 
-    public interface PidRequestInter {
-        String getPid();
-    }
+  public interface PidRequestInter {
+    String getPid();
+  }
 
-    private interface CLibrary extends Library {
-        CLibrary INSTANCE = (CLibrary) Native.loadLibrary("c", CLibrary.class);
-        int getpid();
-    }
+  private interface CLibrary extends Library {
+    CLibrary INSTANCE = (CLibrary) Native.loadLibrary("c", CLibrary.class);
+
+    int getpid();
+  }
 }
 

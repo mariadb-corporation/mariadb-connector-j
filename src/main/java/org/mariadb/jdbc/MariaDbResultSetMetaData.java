@@ -76,7 +76,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    * @param returnTableAlias must return table alias or real table name
    */
   public MariaDbResultSetMetaData(ColumnInformation[] fieldPackets, Options options,
-      boolean returnTableAlias) {
+                                  boolean returnTableAlias) {
     this.fieldPackets = fieldPackets;
     this.options = options;
     this.returnTableAlias = returnTableAlias;
@@ -138,7 +138,7 @@ public class MariaDbResultSetMetaData implements ResultSetMetaData {
    *
    * @param column the first column is 1, the second is 2, ...
    * @return the nullability status of the given column; one of <code>columnNoNulls</code>,
-   * <code>columnNullable</code> or <code>columnNullableUnknown</code>
+   *     <code>columnNullable</code> or <code>columnNullableUnknown</code>
    * @throws SQLException if a database access error occurs
    */
   public int isNullable(final int column) throws SQLException {

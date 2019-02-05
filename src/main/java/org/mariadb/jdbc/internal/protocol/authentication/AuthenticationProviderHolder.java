@@ -52,10 +52,9 @@
 
 package org.mariadb.jdbc.internal.protocol.authentication;
 
+import java.sql.SQLException;
 import org.mariadb.jdbc.internal.com.send.authentication.AuthenticationPlugin;
 import org.mariadb.jdbc.internal.util.Options;
-
-import java.sql.SQLException;
 
 
 /**

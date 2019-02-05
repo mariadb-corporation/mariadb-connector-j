@@ -196,8 +196,8 @@ public class DatatypeCompatibilityTest extends BaseTest {
   }
 
   private void assertType(String columnType, Class expectedClass, int expectedJdbcType,
-      String strValue,
-      Object expectedObjectValue) throws SQLException {
+                          String strValue,
+                          Object expectedObjectValue) throws SQLException {
     assertNotNull(expectedObjectValue);
     assertSame("bad test spec: ", expectedClass, expectedObjectValue.getClass());
 

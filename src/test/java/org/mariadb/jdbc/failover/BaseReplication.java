@@ -77,8 +77,8 @@ public abstract class BaseReplication extends BaseMonoServer {
     Connection connection = null;
     try {
       connection = getNewConnection(
-        "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000"
-            + "&useBatchMultiSend=false&useServerPrepStmts", true);
+          "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000"
+              + "&useBatchMultiSend=false&useServerPrepStmts", true);
       Statement stmt = connection.createStatement();
       stmt.execute("drop table  if exists replicationFailoverBinary" + jobId);
       stmt.execute("create table replicationFailoverBinary" + jobId
@@ -133,7 +133,9 @@ public abstract class BaseReplication extends BaseMonoServer {
       }
       assertTrue("Prepare statement has not return on Slave", hasReturnOnSlave);
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -142,8 +144,8 @@ public abstract class BaseReplication extends BaseMonoServer {
     Connection connection = null;
     try {
       connection = getNewConnection(
-        "&rewriteBatchedStatements=true&retriesAllDown=6&connectTimeout=2000&socketTimeout=2000",
-        true);
+          "&rewriteBatchedStatements=true&retriesAllDown=6&connectTimeout=2000&socketTimeout=2000",
+          true);
       int masterServerId = getServerId(connection);
       connection.setReadOnly(true);
       int firstSlaveId = getServerId(connection);
@@ -166,7 +168,9 @@ public abstract class BaseReplication extends BaseMonoServer {
         fail();
       }
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -175,7 +179,7 @@ public abstract class BaseReplication extends BaseMonoServer {
     Connection connection = null;
     try {
       connection = getNewConnection(
-        "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
+          "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
       int masterServerId = getServerId(connection);
       connection.setReadOnly(true);
       int slaveServerId = getServerId(connection);
@@ -187,7 +191,9 @@ public abstract class BaseReplication extends BaseMonoServer {
       assertTrue(masterServerId == currentServerId);
       assertFalse(connection.isReadOnly());
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -206,7 +212,9 @@ public abstract class BaseReplication extends BaseMonoServer {
       assertFalse(slaveServerId == masterServerId);
       assertFalse(connection.isReadOnly());
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
     Thread.sleep(2500); //for not interfering with other tests
   }
@@ -232,7 +240,9 @@ public abstract class BaseReplication extends BaseMonoServer {
         fail();
       }
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -241,7 +251,7 @@ public abstract class BaseReplication extends BaseMonoServer {
     Connection connection = null;
     try {
       connection = getNewConnection(
-        "&retriesAllDown=6&connectTimeout=2000&socketTimeout=2000", true);
+          "&retriesAllDown=6&connectTimeout=2000&socketTimeout=2000", true);
 
       //search actual server_id for master and slave
       int masterServerId = getServerId(connection);
@@ -259,7 +269,9 @@ public abstract class BaseReplication extends BaseMonoServer {
       assertTrue(currentSlaveId != firstSlaveId);
       assertTrue(currentSlaveId != masterServerId);
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -269,7 +281,7 @@ public abstract class BaseReplication extends BaseMonoServer {
     Connection connection = null;
     try {
       connection = getNewConnection(
-        "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
+          "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
       int masterServerId = getServerId(connection);
 
       stopProxy(masterServerId, 250);
@@ -279,7 +291,9 @@ public abstract class BaseReplication extends BaseMonoServer {
       assertTrue(currentServerId == masterServerId);
       assertFalse(connection.isReadOnly());
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
     Thread.sleep(500); //for not interfering with other tests
   }
@@ -289,7 +303,7 @@ public abstract class BaseReplication extends BaseMonoServer {
     Connection connection = null;
     try {
       connection = getNewConnection(
-        "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
+          "&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
       //if super user can write on slave
       Assume.assumeTrue(!hasSuperPrivilege(connection, "writeToSlaveAfterFailover"));
       Statement st = connection.createStatement();
@@ -311,7 +325,9 @@ public abstract class BaseReplication extends BaseMonoServer {
         st.execute("drop table if exists writeToSlave" + jobId);
       }
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -337,7 +353,9 @@ public abstract class BaseReplication extends BaseMonoServer {
           count.increment();
         }
       } finally {
-        if (connection != null) connection.close();
+        if (connection != null) {
+          connection.close();
+        }
       }
     }
 
@@ -354,7 +372,7 @@ public abstract class BaseReplication extends BaseMonoServer {
     Connection connection = null;
     try {
       connection = getNewConnection("&connectTimeout=1000&socketTimeout=1000",
-        true);
+          true);
       int masterId = getServerId(connection);
       connection.setReadOnly(true);
       //close all slave proxy
@@ -367,7 +385,9 @@ public abstract class BaseReplication extends BaseMonoServer {
       //launch connection close during failover must not throw error
       Thread.sleep(200);
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -376,7 +396,7 @@ public abstract class BaseReplication extends BaseMonoServer {
     Connection connection = null;
     try {
       connection = getNewConnection(
-        "&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true);
+          "&connectTimeout=1000&socketTimeout=1000&retriesAllDown=6", true);
 
       int masterServerId = getServerId(connection);
       connection.setReadOnly(true);
@@ -395,7 +415,9 @@ public abstract class BaseReplication extends BaseMonoServer {
       }
       restartProxy(masterServerId);
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -417,7 +439,9 @@ public abstract class BaseReplication extends BaseMonoServer {
       assertTrue(connection.isReadOnly());
       restartProxy(masterServerId);
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 
@@ -428,7 +452,9 @@ public abstract class BaseReplication extends BaseMonoServer {
       connection = getNewConnection("&retriesAllDown=6&connectTimeout=1000&socketTimeout=1000", true);
       assertTrue(connection.isValid(2));
     } finally {
-      if (connection != null) connection.close();
+      if (connection != null) {
+        connection.close();
+      }
     }
   }
 

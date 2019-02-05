@@ -269,7 +269,7 @@ public class BaseMultiHostTest {
   }
 
   protected Connection getNewConnection(String additionnalConnectionData, boolean proxy,
-      boolean forceNewProxy)
+                                        boolean forceNewProxy)
       throws SQLException {
     if (proxy) {
       String tmpProxyUrl = proxyUrl;

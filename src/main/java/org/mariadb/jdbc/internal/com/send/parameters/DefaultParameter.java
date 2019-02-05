@@ -52,54 +52,53 @@
 
 package org.mariadb.jdbc.internal.com.send.parameters;
 
+import java.io.IOException;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
-import java.io.IOException;
-
 
 public class DefaultParameter implements Cloneable, ParameterHolder {
-    private static final byte[] defaultBytes = "DEFAULT".getBytes();
+  private static final byte[] defaultBytes = "DEFAULT".getBytes();
 
-    /**
-     * Send escaped String to outputStream.
-     *
-     * @param pos outpustream.
-     */
-    public void writeTo(final PacketOutputStream pos) throws IOException {
-        pos.write(defaultBytes);
-    }
+  /**
+   * Send escaped String to outputStream.
+   *
+   * @param pos outpustream.
+   */
+  public void writeTo(final PacketOutputStream pos) throws IOException {
+    pos.write(defaultBytes);
+  }
 
-    public long getApproximateTextProtocolLength() {
-        return 7;
-    }
+  public long getApproximateTextProtocolLength() {
+    return 7;
+  }
 
-    /**
-     * Write data to socket in binary format.
-     *
-     * @param pos socket output stream
-     * @throws IOException if socket error occur
-     */
+  /**
+   * Write data to socket in binary format.
+   *
+   * @param pos socket output stream
+   * @throws IOException if socket error occur
+   */
 
-    public void writeBinary(final PacketOutputStream pos) throws IOException {
-        pos.writeFieldLength(defaultBytes.length);
-        pos.write(defaultBytes);
-    }
+  public void writeBinary(final PacketOutputStream pos) throws IOException {
+    pos.writeFieldLength(defaultBytes.length);
+    pos.write(defaultBytes);
+  }
 
-    public ColumnType getColumnType() {
-        return ColumnType.VARCHAR;
-    }
+  public ColumnType getColumnType() {
+    return ColumnType.VARCHAR;
+  }
 
-    @Override
-    public String toString() {
-        return "DEFAULT";
-    }
+  @Override
+  public String toString() {
+    return "DEFAULT";
+  }
 
-    public boolean isNullData() {
-        return false;
-    }
+  public boolean isNullData() {
+    return false;
+  }
 
-    public boolean isLongData() {
-        return false;
-    }
+  public boolean isLongData() {
+    return false;
+  }
 }

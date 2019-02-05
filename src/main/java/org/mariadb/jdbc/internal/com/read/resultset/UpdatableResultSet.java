@@ -74,7 +74,6 @@ import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.TimeZone;
-import org.mariadb.jdbc.BasePrepareStatement;
 import org.mariadb.jdbc.ClientSidePreparedStatement;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.ServerSidePreparedStatement;
@@ -138,7 +137,7 @@ public class UpdatableResultSet extends SelectResultSet {
    * @throws SQLException if any connection error occur
    */
   public UpdatableResultSet(ColumnInformation[] columnsInformation, Results results,
-      Protocol protocol, PacketInputStream reader, boolean callableResult, boolean eofDeprecated)
+                            Protocol protocol, PacketInputStream reader, boolean callableResult, boolean eofDeprecated)
       throws IOException, SQLException {
     super(columnsInformation, results, protocol, reader, callableResult, eofDeprecated);
     checkIfUpdatable(results);
@@ -722,8 +721,8 @@ public class UpdatableResultSet extends SelectResultSet {
 
 
   private void updateInternalObject(final int parameterIndex, final Object obj,
-      final int targetSqlType,
-      final long scaleOrLength) throws SQLException {
+                                    final int targetSqlType,
+                                    final long scaleOrLength) throws SQLException {
     switch (targetSqlType) {
       case Types.ARRAY:
       case Types.DATALINK:
