@@ -126,11 +126,11 @@ public class MariaDbConnection implements Connection {
    */
   private final Options options;
   public MariaDbPooledConnection pooledConnection;
-  protected boolean nullCatalogMeansCurrent = true;
+  protected boolean nullCatalogMeansCurrent;
   private CallableStatementCache callableStatementCache;
   private volatile int lowercaseTableNames = -1;
-  private boolean canUseServerTimeout = false;
-  private boolean sessionStateAware = true;
+  private boolean canUseServerTimeout;
+  private boolean sessionStateAware;
   private int stateFlag = 0;
   private int defaultTransactionIsolation = 0;
   /**
@@ -223,12 +223,8 @@ public class MariaDbConnection implements Connection {
    *                             <code>ResultSet.CONCUR_UPDATABLE</code>
    * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects
    *     with the given type and concurrency
-   * @throws SQLException if a database access error occurs, this method is called on a closed
-   *                      connection or the given parameters are not <code>ResultSet</code>
-   *                      constants indicating type and concurrency
    */
-  public Statement createStatement(final int resultSetType, final int resultSetConcurrency)
-      throws SQLException {
+  public Statement createStatement(final int resultSetType, final int resultSetConcurrency) {
     return new MariaDbStatement(this, resultSetType, resultSetConcurrency);
   }
 
@@ -250,15 +246,10 @@ public class MariaDbConnection implements Connection {
    *                             <code>ResultSet.CLOSE_CURSORS_AT_COMMIT</code>
    * @return a new <code>Statement</code> object that will generate <code>ResultSet</code> objects
    *      with the given type, concurrency, and holdability
-   * @throws SQLException                    if a database access error occurs, this method is
-   *                                         called on a closed connection or the given parameters
-   *                                         are not <code>ResultSet</code> constants indicating
-   *                                         type, concurrency, and holdability
    * @see ResultSet
    */
   public Statement createStatement(final int resultSetType, final int resultSetConcurrency,
-      final int resultSetHoldability)
-      throws SQLException {
+      final int resultSetHoldability) {
     return new MariaDbStatement(this, resultSetType, resultSetConcurrency);
   }
 
@@ -382,15 +373,13 @@ public class MariaDbConnection implements Connection {
    * @see ResultSet
    */
   public PreparedStatement prepareStatement(final String sql,
-      final int resultSetType,
-      final int resultSetConcurrency,
-      final int resultSetHoldability) throws SQLException {
-    if (resultSetConcurrency != ResultSet.CONCUR_READ_ONLY) {
-      throw ExceptionMapper.getFeatureNotSupportedException("Only read-only result sets allowed");
-    }
-    //TODO : implement parameters
-    // resultSetType is ignored since we always are scroll insensitive
-    return prepareStatement(sql);
+                                            final int resultSetType,
+                                            final int resultSetConcurrency,
+                                            final int resultSetHoldability) throws SQLException {
+    return internalPrepareStatement(sql,
+        resultSetType,
+        resultSetConcurrency,
+        Statement.NO_GENERATED_KEYS);
   }
 
   /**
@@ -626,7 +615,7 @@ public class MariaDbConnection implements Connection {
     String procedureName = matcher.group(13);
     String arguments = matcher.group(16);
     if (database == null && sessionStateAware) {
-      database = getDatabase();
+      database = protocol.getDatabase();
     }
 
     if (database != null && options.cacheCallableStmts) {
@@ -732,7 +721,7 @@ public class MariaDbConnection implements Connection {
    * @throws SQLException if there is an error
    */
   public boolean getAutoCommit() throws SQLException {
-    return protocol != null && protocol.getAutocommit();
+    return protocol.getAutocommit();
   }
 
   /**
@@ -872,7 +861,7 @@ public class MariaDbConnection implements Connection {
       stateFlag |= ConnectionState.STATE_READ_ONLY;
       protocol.setReadonly(readOnly);
     } catch (SQLException e) {
-      ExceptionMapper.throwException(e, this, null);
+      throw ExceptionMapper.getException(e, this, null, false);
     }
   }
 
@@ -908,7 +897,7 @@ public class MariaDbConnection implements Connection {
       stateFlag |= ConnectionState.STATE_DATABASE;
       protocol.setCatalog(catalog);
     } catch (SQLException e) {
-      ExceptionMapper.throwException(e, this, null);
+      throw ExceptionMapper.getException(e, this, null, false);
     }
   }
 
@@ -932,47 +921,35 @@ public class MariaDbConnection implements Connection {
    * @see #setTransactionIsolation
    */
   public int getTransactionIsolation() throws SQLException {
-    try (Statement stmt = createStatement()) {
-      String sql = "SELECT @@tx_isolation";
+    Statement stmt = createStatement();
+    String sql = "SELECT @@tx_isolation";
 
-      if (!protocol.isServerMariaDb()) {
-        if ((protocol.getMajorServerVersion() >= 8 && protocol.versionGreaterOrEqual(8, 0, 3))
-            || (protocol.getMajorServerVersion() < 8 && protocol.versionGreaterOrEqual(5, 7, 20))) {
-          sql = "SELECT @@transaction_isolation";
-        }
+    if (!protocol.isServerMariaDb()) {
+      if ((protocol.getMajorServerVersion() >= 8 && protocol.versionGreaterOrEqual(8, 0, 3))
+          || (protocol.getMajorServerVersion() < 8 && protocol.versionGreaterOrEqual(5, 7, 20))) {
+        sql = "SELECT @@transaction_isolation";
       }
+    }
 
-      try (ResultSet rs = stmt.executeQuery(sql)) {
-        if (rs.next()) {
-          final String response = rs.getString(1);
-          switch (response) {
-            case "REPEATABLE-READ":
-              return Connection.TRANSACTION_REPEATABLE_READ;
+    ResultSet rs = stmt.executeQuery(sql);
+    if (rs.next()) {
+      final String response = rs.getString(1);
+      switch (response) {
+        case "REPEATABLE-READ":
+          return Connection.TRANSACTION_REPEATABLE_READ;
 
-            case "READ-UNCOMMITTED":
-              return Connection.TRANSACTION_READ_UNCOMMITTED;
+        case "READ-UNCOMMITTED":
+          return Connection.TRANSACTION_READ_UNCOMMITTED;
 
-            case "READ-COMMITTED":
-              return Connection.TRANSACTION_READ_COMMITTED;
+        case "READ-COMMITTED":
+          return Connection.TRANSACTION_READ_COMMITTED;
 
-            case "SERIALIZABLE":
-              return Connection.TRANSACTION_SERIALIZABLE;
+        case "SERIALIZABLE":
+          return Connection.TRANSACTION_SERIALIZABLE;
 
-            default:
-              if (!protocol.isServerMariaDb()) {
-                if ((protocol.getMajorServerVersion() >= 8 && protocol
-                    .versionGreaterOrEqual(8, 0, 3))
-                    || (protocol.getMajorServerVersion() < 8 && protocol
-                    .versionGreaterOrEqual(5, 7, 20))) {
-                  throw ExceptionMapper
-                      .getSqlException("Could not get transaction isolation level: "
-                          + "Invalid @@transaction_isolation value \"" + response + "\"");
-                }
-              }
-              throw ExceptionMapper.getSqlException("Could not get transaction isolation level: "
-                  + "Invalid @@tx_isolation value \"" + response + "\"");
-          }
-        }
+        default:
+          throw ExceptionMapper.getSqlException("Could not get transaction isolation level: "
+              + "Invalid value \"" + response + "\"");
       }
     }
     throw ExceptionMapper.getSqlException("Could not get transaction isolation level");
@@ -1003,7 +980,7 @@ public class MariaDbConnection implements Connection {
       stateFlag |= ConnectionState.STATE_TRANSACTION_ISOLATION;
       protocol.setTransactionIsolation(level);
     } catch (SQLException e) {
-      ExceptionMapper.throwException(e, this, null);
+      throw ExceptionMapper.getException(e, this, null, false);
     }
   }
 
@@ -1618,11 +1595,9 @@ public class MariaDbConnection implements Connection {
    * @param iface a Class defining an interface.
    * @return true if this implements the interface or directly or indirectly wraps an object that
    *     does.
-   * @throws SQLException if an error occurs while determining whether this is a wrapper for an
-   *                      object with the given interface.
    * @since 1.6
    */
-  public boolean isWrapperFor(final Class<?> iface) throws SQLException {
+  public boolean isWrapperFor(final Class<?> iface) {
     return iface.isInstance(this);
   }
 
@@ -1631,6 +1606,7 @@ public class MariaDbConnection implements Connection {
    *
    * @return the username.
    */
+  @Deprecated
   public String getUsername() {
     return protocol.getUsername();
   }
@@ -1640,6 +1616,7 @@ public class MariaDbConnection implements Connection {
    *
    * @return the hostname.
    */
+  @Deprecated
   public String getHostname() {
     return protocol.getHost();
   }
@@ -1649,17 +1626,9 @@ public class MariaDbConnection implements Connection {
    *
    * @return the port
    */
+  @Deprecated
   public int getPort() {
     return protocol.getPort();
-  }
-
-  /**
-   * returns the database.
-   *
-   * @return the database
-   */
-  private String getDatabase() {
-    return protocol.getDatabase();
   }
 
   protected boolean getPinGlobalTxToPhysicalConnection() {
@@ -1779,7 +1748,7 @@ public class MariaDbConnection implements Connection {
   }
 
   public long getServerThreadId() {
-    return (protocol != null) ? protocol.getServerThreadId() : -1;
+    return protocol.getServerThreadId();
   }
 
   public boolean canUseServerTimeout() {
