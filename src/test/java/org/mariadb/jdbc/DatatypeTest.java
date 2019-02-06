@@ -103,7 +103,7 @@ public class DatatypeTest extends BaseTest {
     createTable("objecttest", "int_test int primary key not null, string_test varchar(30), "
         + "timestamp_test timestamp, serial_test blob");
     createTable("bintest",
-        "id int not null primary key auto_increment, bin1 varbinary(300), bin2 varbinary(300), str1 varchar(256)");
+        "id int not null primary key auto_increment, bin1 varbinary(300), bin2 varbinary(300)");
     createTable("bigdectest", "id int not null primary key auto_increment, bd decimal",
         "engine=innodb");
     createTable("bytetest", "id int not null primary key auto_increment, a int", "engine=innodb");
@@ -607,17 +607,16 @@ public class DatatypeTest extends BaseTest {
     }
     ByteArrayInputStream bais = new ByteArrayInputStream(allBytes);
     PreparedStatement ps = sharedConnection
-        .prepareStatement("insert into bintest (bin1,bin2, str1) values (?,?,?)");
+        .prepareStatement("insert into bintest (bin1,bin2) values (?,?)");
     ps.setBytes(1, allBytes);
     ps.setBinaryStream(2, bais);
-    ps.setString(3, new String(allBytes, StandardCharsets.UTF_8) );
     ps.execute();
 
-    try (ResultSet rs = getResultSet("select bin1,bin2,str1 from bintest", false)) {
+    try (ResultSet rs = getResultSet("select bin1,bin2 from bintest", false)) {
       binTestResult(rs, allBytes);
     }
 
-    try (ResultSet rs = getResultSet("select bin1,bin2,str1 from bintest", true)) {
+    try (ResultSet rs = getResultSet("select bin1,bin2 from bintest", true)) {
       binTestResult(rs, allBytes);
     }
   }
@@ -641,7 +640,6 @@ public class DatatypeTest extends BaseTest {
 
       assertEquals(new String(rs.getBytes(1), StandardCharsets.UTF_8), new String(allBytes, StandardCharsets.UTF_8));
       assertEquals(new String(rs.getBytes(2), StandardCharsets.UTF_8), new String(allBytes, StandardCharsets.UTF_8));
-      assertEquals(rs.getString(3), new String(allBytes, StandardCharsets.UTF_8));
 
     } else {
       fail("Must have result !");
