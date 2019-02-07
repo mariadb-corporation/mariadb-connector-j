@@ -1,4 +1,4 @@
-== 1.8.0
+== 1.8.0 - release 08 fev 2019
 
 Evolutions
 * [CONJ-675] permit multiple alternative authentication methods for the same user (future MariaDB 10.4 feature)
