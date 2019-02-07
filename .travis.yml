@@ -85,8 +85,6 @@ matrix:
     - env: DB=mariadb:10.2 PACKET=40M COMPRESSION=true
       jdk: openjdk7
     - env: DB=mariadb:10.3 PACKET=8M
-      jdk: oraclejdk7
-    - env: DB=mariadb:10.3 PACKET=8M
       jdk: openjdk8
     - env: DB=mariadb:10.3 PACKET=8M
       jdk: openjdk11
