@@ -67,12 +67,16 @@ import java.sql.SQLTransactionRollbackException;
 import java.sql.SQLTransientException;
 import java.sql.SQLWarning;
 import java.sql.Statement;
+import java.util.stream.IntStream;
+
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.MariaDbStatement;
 import org.mariadb.jdbc.internal.util.SqlStates;
 
 
 public class ExceptionMapper {
+
+  private static final int[] LOCK_DEADLOCK_ERROR_CODES = new int[]{1205, 1213, 1614};
 
   /**
    * Helper to throw exception.
@@ -132,7 +136,7 @@ public class ExceptionMapper {
     if (exception.getSQLState() != null) {
       if (connection != null
           && exception.getSQLState() != null
-          && (1205 == exception.getErrorCode() || 1614 == exception.getErrorCode())) {
+          && (IntStream.of(LOCK_DEADLOCK_ERROR_CODES).anyMatch(lockCode -> lockCode == exception.getErrorCode()))) {
 
         if (connection.includeDeadLockInfo()) {
           try {
