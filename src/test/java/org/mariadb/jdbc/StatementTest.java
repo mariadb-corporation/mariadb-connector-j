@@ -616,7 +616,7 @@ public class StatementTest extends BaseTest {
     Statement stmt = sharedConnection.createStatement();
     stmt.executeQuery("select now() = 1");
     SQLWarning warning = stmt.getWarnings();
-    assertTrue(warning.getMessage().contains("Incorrect datetime value: '1'"));
+    assertTrue(warning.getMessage().contains("ncorrect datetime value: '1'"));
     stmt.clearWarnings();
     assertNull(stmt.getWarnings());
   }
