@@ -750,8 +750,7 @@ public class DatabaseMetadataTest extends BaseTest {
   @Test
   public void getColumnsBasic() throws SQLException {
     cancelForVersion(10, 1); //due to server error MDEV-8984
-    if (sharedConnection.getMetaData().getDatabaseProductVersion().startsWith("10.2")
-        || sharedConnection.getMetaData().getDatabaseProductVersion().startsWith("10.3")) {
+    if (minVersion(10, 2)) {
       testResultSetColumns(sharedConnection.getMetaData().getColumns(null, null, null, null),
           "TABLE_CAT String,TABLE_SCHEM String,TABLE_NAME String,COLUMN_NAME String,"
               + "DATA_TYPE int,TYPE_NAME String,COLUMN_SIZE decimal,BUFFER_LENGTH int,"
