@@ -324,7 +324,6 @@ public class SharedMemorySocket extends Socket {
 
     Pointer LocalFree(Pointer p);
 
-
   }
 
   public interface Advapi32 extends StdCallLibrary {
@@ -341,7 +340,8 @@ public class SharedMemorySocket extends Socket {
       public Pointer lpSecurityDescriptor;
       public boolean bInheritHandle;
 
-      protected java.util.List getFieldOrder() {
+      @Override
+      protected java.util.List<String> getFieldOrder() {
         return Arrays.asList("nLength", "lpSecurityDescriptor", "bInheritHandle");
       }
     }
