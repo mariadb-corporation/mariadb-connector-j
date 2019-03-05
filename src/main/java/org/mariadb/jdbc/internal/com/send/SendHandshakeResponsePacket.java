@@ -55,6 +55,8 @@ package org.mariadb.jdbc.internal.com.send;
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.util.StringTokenizer;
+import java.util.function.Supplier;
+
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
@@ -63,17 +65,16 @@ import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.util.Options;
-import org.mariadb.jdbc.internal.util.PidFactory;
-import org.mariadb.jdbc.internal.util.PidRequestInter;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
+import org.mariadb.jdbc.internal.util.pid.PidFactory;
 
 /**
  * See https://mariadb.com/kb/en/library/connection/#client-handshake-response for reference.
  */
 public class SendHandshakeResponsePacket {
 
-  private static final PidRequestInter pidRequest;
+  private static final Supplier<String> pidRequest = PidFactory.getInstance();
   private static final byte[] _CLIENT_NAME = "_client_name".getBytes();
   private static final byte[] _CLIENT_VERSION = "_client_version".getBytes();
   private static final byte[] _SERVER_HOST = "_server_host".getBytes();
@@ -82,16 +83,6 @@ public class SendHandshakeResponsePacket {
   private static final byte[] _THREAD = "_thread".getBytes();
   private static final byte[] _JAVA_VENDOR = "_java_vendor".getBytes();
   private static final byte[] _JAVA_VERSION = "_java_version".getBytes();
-
-  static {
-    PidRequestInter init;
-    try {
-      init = PidFactory.getInstance();
-    } catch (Throwable t) {
-      init = () -> null;
-    }
-    pidRequest = init;
-  }
 
   /**
    * Send handshake response packet.
@@ -210,7 +201,7 @@ public class SendHandshakeResponsePacket {
 
     buffer.writeStringSmallLength(_OS);
     buffer.writeStringLength(System.getProperty("os.name"));
-    String pid = pidRequest.getPid();
+    String pid = pidRequest.get();
     if (pid != null) {
       buffer.writeStringSmallLength(_PID);
       buffer.writeStringLength(pid);

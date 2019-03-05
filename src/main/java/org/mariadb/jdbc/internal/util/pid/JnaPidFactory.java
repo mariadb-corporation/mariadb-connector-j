@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -50,52 +50,55 @@
  *
  */
 
-package org.mariadb.jdbc.internal.util;
+package org.mariadb.jdbc.internal.util.pid;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.Platform;
 import com.sun.jna.platform.win32.Kernel32;
 
-public class PidFactory {
+import java.util.function.Supplier;
+
+public class JnaPidFactory {
+  private static Supplier<String> instance;
+  static {
+    try {
+      if (Platform.isLinux()) {
+        //Linux pid implementation
+        CLibrary.INSTANCE.getpid();
+        instance = () -> String.valueOf(CLibrary.INSTANCE.getpid());
+      } else if (Platform.isWindows()) {
+        //Windows pid implementation
+        try {
+          Kernel32.INSTANCE.GetCurrentProcessId();
+          instance = () -> {
+            return String.valueOf(Kernel32.INSTANCE.GetCurrentProcessId());
+          };
+        } catch (Throwable cle) {
+          //jna plateform jar's are not in classpath, no PID returned
+          instance = () -> null;
+        }
+      } else {
+        instance = () -> null;
+      }
+
+    } catch (Throwable cle) {
+      //jna jar's are not in classpath, no PID returned
+      instance = () -> null;
+    }
+  }
 
   /**
    * Factory method to avoid loading JNA classes every connection.
    *
    * @return factory that implement PID according to environment.
    */
-  public static PidRequestInter getInstance() {
-    try {
-      if (Platform.isLinux()) {
-        //Linux pid implementation
-        return () -> String.valueOf(CLibrary.INSTANCE.getpid());
-      } else {
-        if (Platform.isWindows()) {
-          //Windows pid implementation
-          return () -> {
-            try {
-              return String.valueOf(Kernel32.INSTANCE.GetCurrentProcessId());
-            } catch (Throwable cle) {
-              //jna plateform jar's are not in classpath, no PID returned
-            }
-            return null;
-          };
-
-        }
-      }
-    } catch (Throwable cle) {
-      //jna jar's are not in classpath, no PID returned
-    }
-
-    //No JNA, or environment not Linux/windows -> return no PID
-    return () -> null;
+  public static Supplier<String> getInstance() {
+    return instance;
   }
 
-
   private interface CLibrary extends Library {
-
-    CLibrary INSTANCE = (CLibrary) Native.loadLibrary("c", CLibrary.class);
-
+    CLibrary INSTANCE = Native.loadLibrary("c", CLibrary.class);
     int getpid();
   }
 }
