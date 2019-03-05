@@ -257,46 +257,50 @@ public class Pool implements AutoCloseable, PoolMBean {
   private MariaDbPooledConnection getIdleConnection(long timeout, TimeUnit timeUnit)
       throws InterruptedException {
 
-    MariaDbPooledConnection item =
-        (timeout == 0) ? idleConnections.pollFirst() : idleConnections.pollFirst(timeout, timeUnit);
+    while (true) {
+      MariaDbPooledConnection item =
+              (timeout == 0) ? idleConnections.pollFirst() : idleConnections.pollFirst(timeout, timeUnit);
 
-    if (item != null) {
-      MariaDbConnection connection = item.getConnection();
-      try {
-        if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - item.getLastUsed().get())
-            > options.poolValidMinDelay) {
+      if (item != null) {
+        MariaDbConnection connection = item.getConnection();
+        try {
+          if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - item.getLastUsed().get())
+                  > options.poolValidMinDelay) {
 
-          //validate connection
-          if (connection.isValid(10)) { //10 seconds timeout
+            //validate connection
+            if (connection.isValid(10)) { //10 seconds timeout
+              item.lastUsedToNow();
+              return item;
+            }
+
+          } else {
+
+            // connection has been retrieved recently -> skip connection validation
             item.lastUsedToNow();
             return item;
+
           }
 
-        } else {
-
-          // connection has been retrieved recently -> skip connection validation
-          item.lastUsedToNow();
-          return item;
-
+        } catch (SQLException sqle) {
+          //eat
         }
 
-      } catch (SQLException sqle) {
-        //eat
+        totalConnection.decrementAndGet();
+
+        // validation failed
+        silentAbortConnection(item);
+        addConnectionRequest();
+        if (logger.isDebugEnabled()) {
+          logger.debug(
+                  "pool {} connection removed from pool due to failed validation (total:{}, active:{}, pending:{})",
+                  poolTag, totalConnection.get(), getActiveConnections(), pendingRequestNumber.get());
+        }
+        continue;
       }
 
-      totalConnection.decrementAndGet();
+      return null;
 
-      // validation failed
-      silentAbortConnection(item);
-
-      if (logger.isDebugEnabled()) {
-        logger.debug(
-            "pool {} connection removed from pool due to failed validation (total:{}, active:{}, pending:{})",
-            poolTag, totalConnection.get(), getActiveConnections(), pendingRequestNumber.get());
-      }
     }
-
-    return null;
   }
 
   private void silentCloseConnection(MariaDbPooledConnection item) {
@@ -351,10 +355,12 @@ public class Pool implements AutoCloseable, PoolMBean {
       public void connectionErrorOccurred(ConnectionEvent event) {
 
         MariaDbPooledConnection item = ((MariaDbPooledConnection) event.getSource());
-        totalConnection.decrementAndGet();
+        if (idleConnections.remove(item))
+          totalConnection.decrementAndGet();
         silentCloseConnection(item);
-        logger.debug("connection removed from pool {} due to having throw a Connection exception",
-            poolTag);
+        addConnectionRequest();
+        logger.debug("connection {} removed from pool {} due to having throw a Connection exception (total:{}, active:{}, pending:{})",
+                item.getConnection().getServerThreadId(), poolTag, totalConnection.get(), getActiveConnections(), pendingRequestNumber.get());
 
       }
 
