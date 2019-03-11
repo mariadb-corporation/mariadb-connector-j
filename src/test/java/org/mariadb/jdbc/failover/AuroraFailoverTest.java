@@ -147,19 +147,19 @@ public class AuroraFailoverTest extends BaseReplication {
   public void testReadOnly() throws SQLException {
     try (Connection connection = getNewConnection(false)) {
       ResultSet rs = connection.createStatement()
-          .executeQuery("show global variables like 'innodb_read_only'");
+          .executeQuery("select @@innodb_read_only");
 
       assertTrue(rs.next());
-      assertEquals("OFF", rs.getString(2));
+      assertEquals(0, rs.getInt(1));
       assertFalse(connection.isReadOnly());
 
       connection.setReadOnly(true);
 
       rs = connection.createStatement()
-          .executeQuery("show global variables like 'innodb_read_only'");
+          .executeQuery("select @@innodb_read_only");
 
       assertTrue(rs.next());
-      assertNotEquals("OFF", rs.getString(2));
+      assertNotEquals(0, rs.getInt(1));
       assertTrue(connection.isReadOnly());
     }
   }
