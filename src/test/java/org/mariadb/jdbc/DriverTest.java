@@ -1664,5 +1664,16 @@ public class DriverTest extends BaseTest {
     }
   }
 
-
+  @Test
+  public void databaseType() throws SQLException {
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    Assume.assumeTrue(System.getenv("TRAVIS") != null);
+    boolean isMysql = System.getenv("DB").contains("mysql");
+    assertEquals(isMysql ? "MySQL" : "MariaDB" , sharedConnection.getMetaData().getDatabaseProductName());
+    if (!isMysql) {
+      try (Connection connection = setConnection("&useMysqlMetadata=true")) {
+        assertEquals("MySQL", connection.getMetaData().getDatabaseProductName());
+      }
+    }
+  }
 }
