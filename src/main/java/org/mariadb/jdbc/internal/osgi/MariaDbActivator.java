@@ -55,6 +55,7 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 
 import org.mariadb.jdbc.Driver;
+import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
@@ -73,8 +74,8 @@ public class MariaDbActivator implements BundleActivator {
   public void start(BundleContext context) throws Exception {
     Dictionary<String, Object> properties = new Hashtable<>();
     properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_CLASS, Driver.class.getName());
-    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, "JDBC driver for MariaDB and MySQL");
-    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION, Version.majorVersion + "." + Version.minorVersion);
+    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_NAME, MariaDbDatabaseMetaData.DRIVER_NAME);
+    properties.put(DataSourceFactory.OSGI_JDBC_DRIVER_VERSION, Version.version);
     service = context.registerService(DataSourceFactory.class, new MariaDbDataSourceFactory(), properties);
   }
 
