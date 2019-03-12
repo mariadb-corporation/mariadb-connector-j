@@ -51,7 +51,7 @@ RUN apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xcbcb082a1bb943db
 RUN echo 'deb http://yum.mariadb.org/galera/repo/deb jessie main' > /etc/apt/sources.list.d/galera-test-repo.list
 RUN apt-get update -y
 
-RUN apt-get install -y curl libdbi-perl rsync socat galera3 libnuma1 libaio1 zlib1g-dev libreadline5 libjemalloc1 libsnappy1 libcrack2
+RUN apt-get install -y curl libdbi-perl rsync socat galera4 libnuma1 libaio1 zlib1g-dev libreadline5 libjemalloc1 libsnappy1 libcrack2
 
 COPY *.deb /root/
 RUN chmod 777 /root/*
