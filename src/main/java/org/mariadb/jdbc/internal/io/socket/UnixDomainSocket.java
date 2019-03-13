@@ -85,6 +85,7 @@ public class UnixDomainSocket extends Socket {
   private final int fd;
   private InputStream is;
   private OutputStream os;
+  private boolean connected;
 
   public UnixDomainSocket(String path) throws IOException {
     if (Platform.isWindows() || Platform.isWindowsCE()) {
@@ -97,6 +98,11 @@ public class UnixDomainSocket extends Socket {
     } catch (LastErrorException lee) {
       throw new IOException("native socket() failed : " + formatError(lee));
     }
+  }
+
+  @Override
+  public boolean isConnected() {
+    return connected;
   }
 
   public static native int socket(int domain, int type, int protocol) throws LastErrorException;
@@ -130,6 +136,7 @@ public class UnixDomainSocket extends Socket {
       } catch (LastErrorException lee) {
         throw new IOException("native close() failed : " + formatError(lee));
       }
+      connected = false;
     }
   }
 
@@ -144,6 +151,7 @@ public class UnixDomainSocket extends Socket {
       if (ret != 0) {
         throw new IOException(strerror(Native.getLastError()));
       }
+      connected = true;
     } catch (LastErrorException lee) {
       throw new IOException("native connect() failed : " + formatError(lee));
     }

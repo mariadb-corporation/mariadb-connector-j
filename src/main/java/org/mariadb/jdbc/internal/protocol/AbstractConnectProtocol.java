@@ -706,7 +706,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         SSLSocketFactory sslSocketFactory = SslFactory.getSslSocketFactory(options);
         SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
-            socket.getInetAddress().getHostAddress(), socket.getPort(), true);
+                socket.getInetAddress() == null ? null : socket.getInetAddress().getHostAddress(), socket.getPort(), true);
 
         enabledSslProtocolSuites(sslSocket);
         enabledSslCipherSuites(sslSocket);
