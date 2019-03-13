@@ -24,7 +24,7 @@ Tracker link <a href="https://jira.mariadb.org/projects/CONJ/issues/">https://ji
 |:------------:|:-------------------------:|
 | 6 | 1.7.4 |
 | 7 | 1.7.4 |
-| 8+ | 2.3.0 |
+| 8+ | 2.4.0 |
 
 The driver (jar) can be downloaded from [mariadb connector download](https://mariadb.com/products/connectors-plugins)
 or maven : 
@@ -32,7 +32,7 @@ or maven :
 <dependency>
 	<groupId>org.mariadb.jdbc</groupId>
 	<artifactId>mariadb-java-client</artifactId>
-	<version>2.3.0</version>
+	<version>2.4.0</version>
 </dependency>
 ```
 
@@ -50,7 +50,7 @@ Development snapshot are available on sonatype nexus repository
     <dependency>
         <groupId>org.mariadb.jdbc</groupId>
         <artifactId>mariadb-java-client</artifactId>
-        <version>2.3.1-SNAPSHOT</version>
+        <version>2.5.0-SNAPSHOT</version>
     </dependency>
 </dependencies>
 ```
