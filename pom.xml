@@ -402,6 +402,12 @@
             <version>[1.4.0,1.7.25]</version>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-rds</artifactId>
+            <version>1.11.511</version>
+            <optional>true</optional>
+        </dependency>
 
         <dependency>
             <groupId>ch.qos.logback</groupId>

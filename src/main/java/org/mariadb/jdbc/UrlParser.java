@@ -62,6 +62,9 @@ import java.util.regex.Pattern;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.DefaultOptions;
 import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.aws.AwsRdsIamPasswordGenerator;
+import org.mariadb.jdbc.internal.util.aws.AwsUtility;
+import org.mariadb.jdbc.internal.util.aws.Sdk1AwsRdsIamPasswordGenerator;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 
@@ -101,6 +104,8 @@ public class UrlParser implements Cloneable {
   private HaMode haMode;
   private String initialUrl;
   private boolean multiMaster;
+
+  private AwsRdsIamPasswordGenerator awsRdsIamPasswordGenerator;
 
   private UrlParser() {
   }
@@ -205,6 +210,9 @@ public class UrlParser implements Cloneable {
       defineUrlParserParameters(urlParser, properties, hostAddressesString, additionalParameters);
       setDefaultHostAddressType(urlParser);
       urlParser.loadMultiMasterValue();
+      if (urlParser.getOptions().awsIamAuthentication) {
+        configureAwsIamAuthentication(urlParser);
+      }
     } catch (IllegalArgumentException i) {
       throw new SQLException("error parsing url : " + i.getMessage(), i);
     }
@@ -305,6 +313,19 @@ public class UrlParser implements Cloneable {
     }
   }
 
+  private static void configureAwsIamAuthentication(UrlParser urlParser) {
+    urlParser.options.useSsl = true;
+    if (urlParser.options.serverSslCert == null) {
+      urlParser.options.serverSslCert = "classpath:aws-rds-iam/rds-ca-2015-root.pem";
+    }
+    if (AwsUtility.isAwsSdk1RdsPresent()) {
+      urlParser.awsRdsIamPasswordGenerator = new Sdk1AwsRdsIamPasswordGenerator(urlParser);
+    } else {
+      throw new RuntimeException("Option awsIamAuthentication is used but AWS SDK 1.x RDS is not "
+        + "found on the classpath; please add 'com.amazonaws:aws-java-sdk-rds' to your project.");
+    }
+  }
+
   private void setInitialUrl() {
     StringBuilder sb = new StringBuilder();
     sb.append("jdbc:mariadb:");
@@ -402,11 +423,20 @@ public class UrlParser implements Cloneable {
   }
 
   public String getPassword() {
+    if (options.awsIamAuthentication && awsRdsIamPasswordGenerator.isPasswordExpired()) {
+      synchronized (this) {
+        if (awsRdsIamPasswordGenerator.isPasswordExpired()) {
+          options.password = awsRdsIamPasswordGenerator.generateNewPassword();
+        }
+      }
+    }
     return options.password;
   }
 
   public void setPassword(String password) {
-    options.password = password;
+    if (!options.awsIamAuthentication) {
+      options.password = password;
+    }
   }
 
   public String getDatabase() {

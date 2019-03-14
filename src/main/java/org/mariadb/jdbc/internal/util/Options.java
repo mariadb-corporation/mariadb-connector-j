@@ -159,6 +159,9 @@ public class Options implements Cloneable {
   public boolean useResetConnection;
   public boolean useReadAheadInput = true;
 
+  // AWS Identity and Access Management (IAM) options
+  public boolean awsIamAuthentication = false;
+
   @Override
   public String toString() {
     StringBuilder result = new StringBuilder();
@@ -468,6 +471,9 @@ public class Options implements Cloneable {
         : opt.galeraAllowedState != null) {
       return false;
     }
+    if (awsIamAuthentication != opt.awsIamAuthentication) {
+      return false;
+    }
     return minPoolSize != null ? minPoolSize.equals(opt.minPoolSize) : opt.minPoolSize == null;
   }
 
@@ -561,6 +567,7 @@ public class Options implements Cloneable {
     result = 31 * result + maxIdleTime;
     result = 31 * result + poolValidMinDelay;
     result = 31 * result + (autocommit ? 1 : 0);
+    result = 31 * result + (awsIamAuthentication ? 1 : 0);
 
     return result;
   }

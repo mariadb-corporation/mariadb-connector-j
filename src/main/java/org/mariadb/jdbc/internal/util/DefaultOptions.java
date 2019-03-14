@@ -381,7 +381,10 @@ public enum DefaultOptions {
       "indicate trust store type (JKS/PKCS12). default is null, then using java default type", false),
   SERVICE_PRINCIPAL_NAME("servicePrincipalName", (String) null, "2.4.0",
       "when using GSSAPI authentication, SPN (Service Principal Name) use the server SPN information. When set, "
-          + "connector will use this value, ignoring server information", false);
+          + "connector will use this value, ignoring server information", false),
+  AWS_IAM_AUTHENTICATION("awsIamAuthentication", Boolean.FALSE, "2.4.1",
+      "Enables AWS Identity and Access Management (IAM) database authentication; when using this option the "
+          + "password is not used and instead a temporary generated authentication token is used.", false);
 
 
   private final String optionName;
