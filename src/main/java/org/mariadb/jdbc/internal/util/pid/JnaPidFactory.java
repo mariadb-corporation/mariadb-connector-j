@@ -61,6 +61,7 @@ import java.util.function.Supplier;
 
 public class JnaPidFactory {
   private static Supplier<String> instance;
+
   static {
     try {
       if (Platform.isLinux()) {
