@@ -57,6 +57,7 @@ import java.util.function.Supplier;
 
 public class PidFactory {
   private static Supplier<String> instance;
+
   static {
     try {
       //if java 9+

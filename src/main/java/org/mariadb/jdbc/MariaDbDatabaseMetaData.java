@@ -1128,11 +1128,20 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     return !nullsAreSortedAtStart();
   }
 
+  /**
+   * Return Server type.
+   * MySQL or MariaDB. MySQL can be forced for compatibility with option "useMysqlMetadata"
+   *
+   * @return server type
+   * @throws SQLException in case of socket error.
+   */
   public String getDatabaseProductName() throws SQLException {
-    if (urlParser.getOptions().useMysqlMetadata) return "MySQL";
+    if (urlParser.getOptions().useMysqlMetadata) {
+      return "MySQL";
+    }
     if (connection.getProtocol().isServerMariaDb()
             && connection.getProtocol().getServerVersion().toLowerCase(Locale.ROOT).contains("mariadb")) {
-        return "MariaDB";
+      return "MariaDB";
     }
     return "MySQL";
   }

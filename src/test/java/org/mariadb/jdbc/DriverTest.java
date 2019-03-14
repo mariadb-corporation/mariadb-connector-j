@@ -1669,7 +1669,7 @@ public class DriverTest extends BaseTest {
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
     Assume.assumeTrue(System.getenv("TRAVIS") != null);
     boolean isMysql = System.getenv("AURORA") != null || System.getenv("DB").contains("mysql");
-    assertEquals(isMysql ? "MySQL" : "MariaDB" , sharedConnection.getMetaData().getDatabaseProductName());
+    assertEquals(isMysql ? "MySQL" : "MariaDB", sharedConnection.getMetaData().getDatabaseProductName());
     if (!isMysql) {
       try (Connection connection = setConnection("&useMysqlMetadata=true")) {
         assertEquals("MySQL", connection.getMetaData().getDatabaseProductName());
