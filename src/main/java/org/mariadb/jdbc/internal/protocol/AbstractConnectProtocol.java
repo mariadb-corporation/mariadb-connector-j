@@ -126,7 +126,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
       + "@@system_time_zone,"
       + "@@time_zone,"
       + "@@auto_increment_increment").getBytes(StandardCharsets.UTF_8);
-  private static final byte[] IS_MASTER_QUERY = "show global variables like 'innodb_read_only'"
+  private static final byte[] IS_MASTER_QUERY = "select @@innodb_read_only"
       .getBytes(StandardCharsets.UTF_8);
   private static final Logger logger = LoggerFactory.getLogger(AbstractConnectProtocol.class);
   protected final ReentrantLock lock;
@@ -706,7 +706,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         SSLSocketFactory sslSocketFactory = SslFactory.getSslSocketFactory(options);
         SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
-            socket.getInetAddress().getHostAddress(), socket.getPort(), true);
+                socket.getInetAddress() == null ? null : socket.getInetAddress().getHostAddress(), socket.getPort(), true);
 
         enabledSslProtocolSuites(sslSocket);
         enabledSslCipherSuites(sslSocket);

@@ -351,7 +351,7 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     results.commandEnd();
     ResultSet resultSet = results.getResultSet();
 
-    this.masterConnection = !resultSet.next() || (this.masterConnection = "OFF".equals(resultSet.getString(2)));
+    this.masterConnection = !resultSet.next() || (this.masterConnection = (0 == resultSet.getInt(1)));
     reader.setServerThreadId(this.serverThreadId, this.masterConnection);
     writer.setServerThreadId(this.serverThreadId, this.masterConnection);
     //Aurora replicas have read-only flag forced
@@ -399,11 +399,11 @@ public class AuroraProtocol extends MastersSlavesProtocol {
     try {
       Results results = new Results();
       executeQuery(this.isMasterConnection(), results,
-          "show global variables like 'innodb_read_only'");
+          "select @@innodb_read_only");
       results.commandEnd();
       ResultSet queryResult = results.getResultSet();
       if (queryResult != null && queryResult.next()) {
-        this.masterConnection = "OFF".equals(queryResult.getString(2));
+        this.masterConnection = (0 == queryResult.getInt(1));
 
         reader.setServerThreadId(this.serverThreadId, this.masterConnection);
         writer.setServerThreadId(this.serverThreadId, this.masterConnection);

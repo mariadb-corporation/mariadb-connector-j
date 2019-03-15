@@ -64,6 +64,8 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
@@ -76,22 +78,19 @@ import org.mariadb.jdbc.internal.util.dao.Identifier;
 public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
   public static final String DRIVER_NAME = "MariaDB Connector/J";
-  private final String url;
   private final MariaDbConnection connection;
-  private final String username;
+  private final UrlParser urlParser;
   private boolean datePrecisionColumnExist = true;
 
   /**
    * Constructor.
    *
    * @param connection connection
-   * @param user       userName
-   * @param url        connection String url.
+   * @param urlParser  Url parser
    */
-  public MariaDbDatabaseMetaData(Connection connection, String user, String url) {
+  public MariaDbDatabaseMetaData(Connection connection, UrlParser urlParser) {
     this.connection = (MariaDbConnection) connection;
-    this.username = user;
-    this.url = url;
+    this.urlParser = urlParser;
   }
 
   private static String columnTypeClause(Options options) {
@@ -426,7 +425,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   }
 
   private String dataTypeClause(String fullTypeColumnName) {
-    Options options = connection.getProtocol().getUrlParser().getOptions();
+    Options options = urlParser.getOptions();
     return " CASE data_type"
         + " WHEN 'bit' THEN " + Types.BIT
         + " WHEN 'tinyblob' THEN " + Types.VARBINARY
@@ -740,7 +739,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   public ResultSet getColumns(String catalog, String schemaPattern, String tableNamePattern,
       String columnNamePattern)
       throws SQLException {
-    Options options = connection.getProtocol().getUrlParser().getOptions();
+    Options options = urlParser.getOptions();
     String sql = "SELECT TABLE_SCHEMA TABLE_CAT, NULL TABLE_SCHEM, TABLE_NAME, COLUMN_NAME,"
         + dataTypeClause("COLUMN_TYPE") + " DATA_TYPE,"
         + columnTypeClause(options) + " TYPE_NAME, "
@@ -1050,8 +1049,8 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
    * data types where DECIMAL_DIGITS is not applicable.
    * <LI><B>NUM_PREC_RADIX</B> int {@code =>} Radix (typically either 10 or 2)
    * <LI><B>COLUMN_USAGE</B> String {@code =>} The allowed usage for the column.  The value
-   * returned will correspond to the enum name returned by {@link PseudoColumnUsage#name
-   * PseudoColumnUsage.name()} <LI><B>REMARKS</B> String {@code =>} comment describing column (may
+   * returned will correspond to the enum name returned by
+   * PseudoColumnUsage.name() <LI><B>REMARKS</B> String {@code =>} comment describing column (may
    * be <code>null</code>)
    * <LI><B>CHAR_OCTET_LENGTH</B> int {@code =>} for char types the maximum number of bytes in the
    * column <LI><B>IS_NULLABLE</B> String  {@code =>} ISO rules are used to determine the
@@ -1102,11 +1101,11 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 
   @Override
   public String getURL() {
-    return url;
+    return urlParser.getInitialUrl();
   }
 
   public String getUserName() {
-    return username;
+    return urlParser.getUsername();
   }
 
   public boolean isReadOnly() {
@@ -1129,8 +1128,22 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
     return !nullsAreSortedAtStart();
   }
 
+  /**
+   * Return Server type.
+   * MySQL or MariaDB. MySQL can be forced for compatibility with option "useMysqlMetadata"
+   *
+   * @return server type
+   * @throws SQLException in case of socket error.
+   */
   public String getDatabaseProductName() throws SQLException {
-    return connection.getProtocol().isServerMariaDb() ? "MariaDB" : "MySQL";
+    if (urlParser.getOptions().useMysqlMetadata) {
+      return "MySQL";
+    }
+    if (connection.getProtocol().isServerMariaDb()
+            && connection.getProtocol().getServerVersion().toLowerCase(Locale.ROOT).contains("mariadb")) {
+      return "MariaDB";
+    }
+    return "MySQL";
   }
 
   public String getDatabaseProductVersion() {

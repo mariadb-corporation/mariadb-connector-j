@@ -381,7 +381,10 @@ public enum DefaultOptions {
       "indicate trust store type (JKS/PKCS12). default is null, then using java default type", false),
   SERVICE_PRINCIPAL_NAME("servicePrincipalName", (String) null, "2.4.0",
       "when using GSSAPI authentication, SPN (Service Principal Name) use the server SPN information. When set, "
-          + "connector will use this value, ignoring server information", false);
+          + "connector will use this value, ignoring server information", false),
+  USE_MYSQL_AS_DATABASE("useMysqlMetadata", Boolean.FALSE, "2.4.1",
+          "force DatabaseMetadata.getDatabaseProductName() "
+          + "to return \"MySQL\" as database, not real database type", false);
 
 
   private final String optionName;

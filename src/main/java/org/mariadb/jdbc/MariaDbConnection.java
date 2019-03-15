@@ -827,11 +827,7 @@ public class MariaDbConnection implements Connection {
    * @return meta data about the db.
    */
   public DatabaseMetaData getMetaData() {
-    UrlParser urlParser = protocol.getUrlParser();
-    return new MariaDbDatabaseMetaData(
-        this,
-        urlParser.getUsername(),
-        urlParser.getInitialUrl());
+    return new MariaDbDatabaseMetaData(this, protocol.getUrlParser());
   }
 
   /**

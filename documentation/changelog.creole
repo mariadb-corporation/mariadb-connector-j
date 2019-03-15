@@ -1,4 +1,17 @@
 
+== 2.4.1 - Released on 15 Mar. 2019
+
+Evolutions
+* [misc] enabled running of 'SHOW ENGINE INNODB STATUS' for error code 1213 (@mtykhenko)
+* [misc] reduce mutex using select @@innodb_read_only for aurora (@matsuzayaws)
+
+Bugs
+* [misc] updating checkstyle version dependency
+* [misc] permit using SSL on localsocket
+* [CONJ-687] addition of option "useMysqlMetadata" to permit MySQL meta compatibility
+* [misc] java PID using java 9 ProcessHandle if existing, relying on JNA if present
+* [CONJ-682] internal pool correction: when receiving an RST during connection validation, the pool will end up throwing connection timeout exception in place of reusing another connection.
+
 == 2.4.0 - Released on 28 Jan. 2019
 
 Evolutions

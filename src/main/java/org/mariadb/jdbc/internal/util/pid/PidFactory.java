@@ -50,12 +50,40 @@
  *
  */
 
-package org.mariadb.jdbc.internal.util.constant;
+package org.mariadb.jdbc.internal.util.pid;
 
-public final class Version {
-  public static final String version = "2.4.1";
-  public static final int majorVersion = 2;
-  public static final int minorVersion = 4;
-  public static final int patchVersion = 1;
-  public static final String qualifier = "";
+import java.lang.reflect.Method;
+import java.util.function.Supplier;
+
+public class PidFactory {
+  private static Supplier<String> instance;
+
+  static {
+    try {
+      //if java 9+
+      Class<?> processHandle = Class.forName("java.lang.ProcessHandle");
+      instance = () -> {
+        try {
+          Method currentProcessMethod = processHandle.getMethod("current");
+          Object currentProcess = currentProcessMethod.invoke(null);
+          Method pidMethod = processHandle.getMethod("pid");
+          return String.valueOf((Long) pidMethod.invoke(currentProcess));
+        } catch (Throwable throwable) {
+          return null;
+        }
+      };
+    } catch (Throwable cle) {
+      try {
+        instance = JnaPidFactory.getInstance();
+      } catch (Throwable throwable) {
+        instance = () -> null;
+      }
+
+    }
+  }
+
+  public static Supplier<String> getInstance() {
+    return instance;
+  }
 }
+
