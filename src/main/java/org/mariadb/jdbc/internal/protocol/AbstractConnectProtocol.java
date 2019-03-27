@@ -969,24 +969,20 @@ public abstract class AbstractConnectProtocol implements Protocol {
   }
 
   /**
-   * Default collation used for string exchanges with server. (always use utf8)
+   * Default collation used for string exchanges with server.
    *
    * @param serverLanguage server default collation
    * @return collation byte
    */
   private byte decideLanguage(int serverLanguage) {
-    //force UTF8mb4 if possible, UTF8 if not.
+    //return current server utf8mb4 collation
     if (serverLanguage == 45        //utf8mb4_general_ci
         || serverLanguage == 46 //utf8mb4_bin
         || (serverLanguage >= 224 && serverLanguage <= 247)) {
       return (byte) serverLanguage;
-    } else if (serverLanguage == 33        //utf8_general_ci
-        || serverLanguage == 83 //utf8_bin
-        || serverLanguage == 223 //utf8_general_mysql500_ci
-        || (serverLanguage >= 192 && serverLanguage <= 215)) {
-      return (byte) serverLanguage;
     }
     if (getMajorServerVersion() == 5 && getMinorServerVersion() <= 1) {
+      //5.1 version doesn't know 4 bytes utf8
       return (byte) 33; //utf8_general_ci
     }
     return (byte) 224; //UTF8MB4_UNICODE_CI;
