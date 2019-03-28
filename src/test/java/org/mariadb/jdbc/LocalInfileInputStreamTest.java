@@ -144,7 +144,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
       fail("Must have been intercepted");
     } catch (SQLException sqle) {
       assertTrue(
-          sqle.getMessage().contains("LOCAL DATA LOCAL INFILE request to send local file named")
+          sqle.getMessage().contains("LOAD DATA LOCAL INFILE request to send local file named")
               && sqle.getMessage().contains(
               "not validated by interceptor \"org.mariadb.jdbc.LocalInfileInterceptorImpl\""));
     }

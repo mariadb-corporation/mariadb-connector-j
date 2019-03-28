@@ -67,6 +67,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import javax.net.SocketFactory;
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
@@ -905,11 +906,24 @@ public class Utils {
     }
   }
 
-
   private enum Parse {
     Normal,
     String, /* inside string */
     Quote,
     Escape /* found backslash */
+  }
+
+  public static boolean validateFileName(String sql, ParameterHolder[] parameters, String fileName) {
+    Pattern pattern = Pattern.compile("^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'" + fileName + "'",
+            Pattern.CASE_INSENSITIVE);
+    if (pattern.matcher(sql).find()) return true;
+
+    if (parameters != null) {
+      pattern = Pattern.compile("^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?", Pattern.CASE_INSENSITIVE);
+      if (pattern.matcher(sql).find() && parameters.length > 0) {
+        return parameters[0].toString().toLowerCase().equals("'" + fileName.toLowerCase() + "'");
+      }
+    }
+    return false;
   }
 }

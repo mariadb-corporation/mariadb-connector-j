@@ -871,13 +871,16 @@ public abstract class AbstractConnectProtocol implements Protocol {
         | MariaDbServerCapabilities.CLIENT_PROTOCOL_41
         | MariaDbServerCapabilities.TRANSACTIONS
         | MariaDbServerCapabilities.SECURE_CONNECTION
-        | MariaDbServerCapabilities.LOCAL_FILES
         | MariaDbServerCapabilities.MULTI_RESULTS
         | MariaDbServerCapabilities.PS_MULTI_RESULTS
         | MariaDbServerCapabilities.PLUGIN_AUTH
         | MariaDbServerCapabilities.CONNECT_ATTRS
         | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
         | MariaDbServerCapabilities.CLIENT_SESSION_TRACK;
+
+    if (options.allowLocalInfile) {
+      capabilities |= MariaDbServerCapabilities.LOCAL_FILES;
+    }
 
     // MySQL/MariaDB has two ways of calculating row count, eg for an UPDATE statement.
     // The default (and JDBC standard) is "found rows". The other option is "affected rows".
