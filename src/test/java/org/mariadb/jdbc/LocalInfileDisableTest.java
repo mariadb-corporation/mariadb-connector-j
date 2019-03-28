@@ -77,7 +77,7 @@ public class LocalInfileDisableTest extends BaseTest {
   @Test
   public void testLocalInfileWithoutInputStream() throws SQLException {
     Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 3));
-    try (Connection connection = setConnection("&allowLocalInfile=false")) {
+    try (Connection connection = setConnection()) {
       Exception ex = null;
       try (Statement stmt = connection.createStatement()) {
         stmt.executeUpdate("LOAD DATA LOCAL INFILE 'dummy.tsv' INTO TABLE t (id, test)");

@@ -107,7 +107,7 @@ public class Options implements Cloneable {
   public boolean dumpQueriesOnException;
   public boolean useOldAliasMetadataBehavior;
   public boolean useMysqlMetadata;
-  public boolean allowLocalInfile = true;
+  public boolean allowLocalInfile = false;
   public boolean cachePrepStmts = true;
   public int prepStmtCacheSize = 250;
   public int prepStmtCacheSqlLimit = 2048;
