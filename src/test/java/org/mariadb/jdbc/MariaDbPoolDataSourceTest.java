@@ -230,6 +230,7 @@ public class MariaDbPoolDataSourceTest extends BaseTest {
 
   @Test
   public void testResetTransactionIsolation() throws SQLException {
+    Assume.assumeFalse(sharedIsAurora());
     try (MariaDbPoolDataSource pool = new MariaDbPoolDataSource(connUri + "&maxPoolSize=1")) {
 
       try (Connection connection = pool.getConnection()) {
