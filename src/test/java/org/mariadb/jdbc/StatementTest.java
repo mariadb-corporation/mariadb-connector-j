@@ -309,6 +309,7 @@ public class StatementTest extends BaseTest {
           fail();
         }
         assertEquals(ER_LOAD_DATA_INVALID_COLUMN_STATE, sqlException.getSQLState());
+        mysqlStatement.setLocalInfileInputStream(null); //otherwise, localInfileInputStream will not be null, which cause false logic in readLocalInfilePacket and test like LocalInfileInputStreamTest#testLocalInfileUnValidInterceptor will fail if run after it
       }
     } finally {
       try {
