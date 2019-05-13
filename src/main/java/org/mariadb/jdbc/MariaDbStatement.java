@@ -128,6 +128,7 @@ public class MariaDbStatement implements Statement, Cloneable {
     this.resultSetConcurrency = resultSetConcurrency;
     this.lock = this.connection.lock;
     this.options = this.protocol.getOptions();
+    this.fetchSize = this.options.defaultFetchSize;
   }
 
   /**
@@ -145,8 +146,9 @@ public class MariaDbStatement implements Statement, Cloneable {
     clone.batchQueries = new ArrayList<>();
     clone.closed = false;
     clone.warningsCleared = true;
-    clone.fetchSize = 0;
     clone.maxRows = 0;
+    clone.fetchSize = this.options.defaultFetchSize;
+
     return clone;
   }
 
