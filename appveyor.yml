@@ -1,17 +1,17 @@
 version: '{build}'
 environment:
   matrix:
-    - DB: '10.2.22'
+    - DB: '10.2.24'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
 
-    - DB: '10.3.13'
+    - DB: '10.3.15'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
 
-    - DB: '10.1.38'
+    - DB: '10.1.40'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
@@ -21,7 +21,7 @@ environment:
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
 
-    - DB: '5.5.63'
+    - DB: '5.5.64'
       APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       CMAKE_PARAM: 'Visual Studio 15 2017 Win64'
       JAVA_HOME: C:\Program Files\Java\jdk1.8.0
@@ -35,7 +35,7 @@ install:
         [System.IO.Compression.ZipFile]::ExtractToDirectory("C:\maven-bin.zip", "C:\maven")
       }
   # Prepend Java entry, remove Ruby entry (C:\Ruby193\bin;) from PATH
-  - cmd: set FILE=http://mariadb.mirrors.ovh.net/MariaDB/mariadb-%DB%/winx64-packages/mariadb-%DB%-winx64.msi
+  - cmd: set FILE=ftp.hosteurope.de/mirror/archive.mariadb.org//mariadb-%DB%/winx64-packages/mariadb-%DB%-winx64.msi
   - ps: Start-FileDownload $Env:FILE -FileName server.msi -Timeout 900000
   - cmd: msiexec /i server.msi INSTALLDIR=c:\projects\server SERVICENAME=mariadb ALLOWREMOTEROOTACCESS=true /qn
   - cmd: "\"c:\\projects\\server\\bin\\mysql.exe\" -e \"create database testj\" --user=root"
