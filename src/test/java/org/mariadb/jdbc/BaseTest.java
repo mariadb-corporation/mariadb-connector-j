@@ -681,21 +681,13 @@ public class BaseTest {
     assertTrue(rs.next());
     long maxAllowedPacket = rs.getLong(1);
 
-    rs = st.executeQuery("select @@innodb_log_file_size");
-    assertTrue(rs.next());
-    long innodbLogFileSize = rs.getLong(1);
-
     if (maxAllowedPacket < 8 * 1024 * 1024L) {
 
       System.out.println(
           "test '" + testName + "' skipped  due to server variable max_allowed_packet < 8M");
       return false;
     }
-    if (innodbLogFileSize < 80 * 1024 * 1024L) {
-      System.out.println(
-          "test '" + testName + "' skipped  due to server variable innodb_log_file_size < 80M");
-      return false;
-    }
+
     return true;
   }
 
@@ -725,10 +717,6 @@ public class BaseTest {
     assertTrue(rs.next());
     long maxAllowedPacket = rs.getLong(1);
 
-    rs = st.executeQuery("select @@innodb_log_file_size");
-    assertTrue(rs.next());
-    long innodbLogFileSize = rs.getLong(1);
-
     if (maxAllowedPacket < 20 * 1024 * 1024L) {
 
       if (displayMessage) {
@@ -737,13 +725,7 @@ public class BaseTest {
       }
       return false;
     }
-    if (innodbLogFileSize < 200 * 1024 * 1024L) {
-      if (displayMessage) {
-        System.out.println(
-            "test '" + testName + "' skipped  due to server variable innodb_log_file_size < 200M");
-      }
-      return false;
-    }
+
     return true;
   }
 
@@ -773,21 +755,10 @@ public class BaseTest {
     assertTrue(rs.next());
     long maxAllowedPacket = rs.getLong(1);
 
-    rs = st.executeQuery("select @@innodb_log_file_size");
-    assertTrue(rs.next());
-    long innodbLogFileSize = rs.getLong(1);
-
     if (maxAllowedPacket < 40 * 1024 * 1024L) {
       if (displayMsg) {
         System.out.println(
             "test '" + testName + "' skipped  due to server variable max_allowed_packet < 40M");
-      }
-      return false;
-    }
-    if (innodbLogFileSize < 400 * 1024 * 1024L) {
-      if (displayMsg) {
-        System.out.println(
-            "test '" + testName + "' skipped  due to server variable innodb_log_file_size < 400M");
       }
       return false;
     }
