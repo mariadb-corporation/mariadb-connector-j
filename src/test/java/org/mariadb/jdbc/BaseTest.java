@@ -181,7 +181,7 @@ public class BaseTest {
   @BeforeClass()
   public static void beforeClassBaseTest() throws SQLException {
     String url = System.getProperty("dbUrl", mDefUrl);
-    runLongTest = Boolean.getBoolean(System.getProperty("runLongTest", "false"));
+    runLongTest = Boolean.parseBoolean(System.getProperty("runLongTest", "false"));
     testSingleHost = Boolean.parseBoolean(System.getProperty("testSingleHost", "true"));
 
     if (testSingleHost) {
