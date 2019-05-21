@@ -382,6 +382,8 @@ public enum DefaultOptions {
   SERVICE_PRINCIPAL_NAME("servicePrincipalName", (String) null, "2.4.0",
       "when using GSSAPI authentication, SPN (Service Principal Name) use the server SPN information. When set, "
           + "connector will use this value, ignoring server information", false),
+  DEFAULT_FETCH_SIZE("defaultFetchSize", 0, 0, "2.4.2",
+     "The driver will call setFetchSize(n) with this value on all newly-created Statements", false),
   USE_MYSQL_AS_DATABASE("useMysqlMetadata", Boolean.FALSE, "2.4.1",
           "force DatabaseMetadata.getDatabaseProductName() "
           + "to return \"MySQL\" as database, not real database type", false);
@@ -670,6 +672,10 @@ public enum DefaultOptions {
           : Math.min(options.minPoolSize, options.maxPoolSize);
     }
 
+    // if fetchSize is set to less than 0, default it to 0
+    if (options.defaultFetchSize < 0) {
+      options.defaultFetchSize = 0;
+    }
   }
 
   /**
