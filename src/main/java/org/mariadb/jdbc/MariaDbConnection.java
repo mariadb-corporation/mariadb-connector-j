@@ -80,6 +80,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -1790,6 +1791,6 @@ public class MariaDbConnection implements Connection {
   }
 
   public boolean includeThreadsTraces() {
-    return options.includeInnodbStatusInDeadlockExceptions;
+    return options.includeThreadDumpInDeadlockExceptions;
   }
 }
