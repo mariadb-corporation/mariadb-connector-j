@@ -128,14 +128,6 @@ public class CmdInformationSingle implements CmdInformation {
       return SelectResultSet.createEmptyResultSet();
     }
 
-    if (updateCount > 1) {
-      long[] insertIds = new long[(int) updateCount];
-      for (int i = 0; i < updateCount; i++) {
-        insertIds[i] = insertId + i * autoIncrement;
-      }
-      return SelectResultSet.createGeneratedData(insertIds, protocol, true);
-    }
-
     return SelectResultSet.createGeneratedData(new long[]{insertId}, protocol, true);
   }
 

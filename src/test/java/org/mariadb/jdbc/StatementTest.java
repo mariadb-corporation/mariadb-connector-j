@@ -680,6 +680,4 @@ public class StatementTest extends BaseTest {
       assertTrue(e.getMessage().contains("null cannot be set to addBatch( String sql)"));
     }
   }
-
-
 }

@@ -1374,4 +1374,88 @@ public class MultiTest extends BaseTest {
       assertEquals(useAffectedRows ? 2 : 4, rowCount);
     }
   }
+
+
+  @Test
+  public void shouldDuplicateKeyUpdateNotReturnExtraRows() throws Throwable {
+    try (Connection con = openNewConnection(connUri, new Properties())) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("truncate table testMultiGeneratedKey");
+      }
+      try (PreparedStatement pstmt = con.prepareStatement(
+              "INSERT INTO testMultiGeneratedKey (id, text) VALUES (?, ?) "
+                      + "ON DUPLICATE KEY UPDATE text = VALUES(text)",
+              Statement.RETURN_GENERATED_KEYS)) {
+        // Insert a row.
+        pstmt.setInt(1, 1);
+        pstmt.setString(2, "initial");
+        assertEquals(1, pstmt.executeUpdate());
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(1, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+        // Update the row.
+        pstmt.setInt(1, 1);
+        pstmt.setString(2, "updated");
+        assertEquals(2, pstmt.executeUpdate());
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(1, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+      }
+    }
+  }
+
+  @Test
+  public void insertBatchMultiInsert() throws Throwable {
+    Properties properties = new Properties();
+    properties.setProperty("allowMultiQueries", "true");
+    try (Connection con = openNewConnection(connUri, properties)) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("truncate table testMultiGeneratedKey");
+      }
+      try (PreparedStatement pstmt = con.prepareStatement(
+              "INSERT INTO testMultiGeneratedKey (text) VALUES (?)",
+              Statement.RETURN_GENERATED_KEYS)) {
+        // Insert a row.
+        pstmt.setString(1, "initial");
+        pstmt.addBatch();
+        pstmt.setString(1, "updated");
+        pstmt.addBatch();
+        pstmt.executeBatch();
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(1, rs.getInt(1));
+          assertTrue(rs.next());
+          assertEquals(2, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+      }
+    }
+  }
+
+
+  @Test
+  public void multiInsertReturnOneGenerated() throws Throwable {
+    try (Connection con = openNewConnection(connUri, new Properties())) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("truncate table testMultiGeneratedKey");
+      }
+      try (PreparedStatement pstmt = con.prepareStatement(
+              "INSERT INTO testMultiGeneratedKey (text) VALUES (?), (?)",
+              Statement.RETURN_GENERATED_KEYS)) {
+        // Insert a row.
+        pstmt.setString(1, "initial");
+        pstmt.setString(2, "updated");
+        pstmt.executeUpdate();
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(1, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+      }
+    }
+  }
 }
