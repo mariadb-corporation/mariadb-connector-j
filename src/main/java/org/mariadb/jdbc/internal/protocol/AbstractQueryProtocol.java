@@ -1872,43 +1872,52 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @return the resulting error to return to client.
    */
   public SQLException handleIoException(Exception initialException) {
-    boolean mustReconnect;
-    boolean driverPreventError = false;
+    boolean mustReconnect = options.autoReconnect;
+    boolean maxSizeError;
 
     if (initialException instanceof MaxAllowedPacketException) {
-      mustReconnect = ((MaxAllowedPacketException) initialException).isMustReconnect();
-      driverPreventError = !mustReconnect;
+      maxSizeError = true;
+      if (((MaxAllowedPacketException) initialException).isMustReconnect()) {
+        mustReconnect = true;
+      }
     } else {
-      mustReconnect = writer.exceedMaxLength();
+      maxSizeError = writer.exceedMaxLength();
+      if (maxSizeError) mustReconnect = true;
     }
 
     if (mustReconnect) {
       try {
         connect();
+
+        try {
+          resetStateAfterFailover(getMaxRows(), getTransactionIsolationLevel(), getDatabase(),
+                  getAutocommit());
+
+          if (maxSizeError) {
+            return new SQLTransientConnectionException("Could not send query: query size is >= to max_allowed_packet ("
+                    + writer.getMaxAllowedPacket() + ")" + getTraces(), UNDEFINED_SQLSTATE.getSqlState(),
+                    initialException);
+          }
+
+          return new SQLNonTransientConnectionException(initialException.getMessage() + getTraces(),
+                  UNDEFINED_SQLSTATE.getSqlState(),
+                  initialException);
+
+        } catch (SQLException queryException) {
+          return new SQLNonTransientConnectionException("reconnection succeed, but resetting previous state failed",
+                  UNDEFINED_SQLSTATE.getSqlState() + getTraces(), initialException);
+        }
+
       } catch (SQLException queryException) {
         connected = false;
         return new SQLNonTransientConnectionException(initialException.getMessage()
             + "\nError during reconnection" + getTraces(), CONNECTION_EXCEPTION.getSqlState(),
             initialException);
       }
-
-      try {
-        resetStateAfterFailover(getMaxRows(), getTransactionIsolationLevel(), getDatabase(),
-            getAutocommit());
-      } catch (SQLException queryException) {
-        return new SQLException("reconnection succeed, but resetting previous state failed",
-            UNDEFINED_SQLSTATE.getSqlState() + getTraces(), initialException);
-      }
-
-      return new SQLTransientConnectionException("Could not send query: query size is >= to max_allowed_packet ("
-          + writer.getMaxAllowedPacket() + ")" + getTraces(), UNDEFINED_SQLSTATE.getSqlState(),
-          initialException);
     }
-    if (!driverPreventError) {
-      connected = false;
-    }
+
     return new SQLNonTransientConnectionException(initialException.getMessage() + getTraces(),
-        driverPreventError ? UNDEFINED_SQLSTATE.getSqlState() : CONNECTION_EXCEPTION.getSqlState(),
+        CONNECTION_EXCEPTION.getSqlState(),
         initialException);
 
   }
