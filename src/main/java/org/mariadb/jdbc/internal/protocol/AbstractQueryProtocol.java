@@ -1879,6 +1879,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       maxSizeError = true;
       if (((MaxAllowedPacketException) initialException).isMustReconnect()) {
         mustReconnect = true;
+      } else {
+        return new SQLNonTransientConnectionException(initialException.getMessage() + getTraces(),
+                UNDEFINED_SQLSTATE.getSqlState(),
+                initialException);
       }
     } else {
       maxSizeError = writer.exceedMaxLength();
@@ -1915,7 +1919,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
             initialException);
       }
     }
-
+    connected = false;
     return new SQLNonTransientConnectionException(initialException.getMessage() + getTraces(),
         CONNECTION_EXCEPTION.getSqlState(),
         initialException);
