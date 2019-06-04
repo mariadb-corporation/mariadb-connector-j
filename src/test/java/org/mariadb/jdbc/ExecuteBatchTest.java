@@ -215,7 +215,6 @@ public class ExecuteBatchTest extends BaseTest {
     }
   }
 
-
   @Test
   public void serverStd8mTest() throws SQLException {
     Assume.assumeTrue(checkMaxAllowedPacketMore8m("serverStd8mTest"));
@@ -256,10 +255,9 @@ public class ExecuteBatchTest extends BaseTest {
         "&rewriteBatchedStatements=true&profileSql=" + profileSql)) {
       PreparedStatement preparedStatement = connection.prepareStatement(
           "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?) ON DUPLICATE KEY UPDATE id=?");
-      addBatchData(preparedStatement, 60000, connection, true);
+      addBatchData(preparedStatement, 60000, connection, true, true);
     }
   }
-
 
   @Test
   public void clientRewriteValuesNotPossible20mTest() throws SQLException {
@@ -270,17 +268,17 @@ public class ExecuteBatchTest extends BaseTest {
         "&rewriteBatchedStatements=true&profileSql=" + profileSql)) {
       PreparedStatement preparedStatement = connection.prepareStatement(
           "INSERT INTO ExecuteBatchTest(test, test2) values (?, ?) ON DUPLICATE KEY UPDATE id=?");
-      addBatchData(preparedStatement, 160000, connection, true);
+      addBatchData(preparedStatement, 160000, connection, true, true);
     }
   }
 
   private void addBatchData(PreparedStatement preparedStatement, int batchNumber,
       Connection connection) throws SQLException {
-    addBatchData(preparedStatement, batchNumber, connection, false);
+    addBatchData(preparedStatement, batchNumber, connection, false, false);
   }
 
   private void addBatchData(PreparedStatement preparedStatement, int batchNumber,
-      Connection connection, boolean additionnalParameter)
+      Connection connection, boolean additionnalParameter, boolean sendUnique)
       throws SQLException {
     for (int i = 0; i < batchNumber; i++) {
       preparedStatement.setString(1, oneHundredLengthString);
@@ -295,7 +293,14 @@ public class ExecuteBatchTest extends BaseTest {
     //test result Size
     assertEquals(batchNumber, resultInsert.length);
     for (int i = 0; i < batchNumber; i++) {
-      assertEquals(1, resultInsert[i]);
+      if (( !sendUnique && sharedIsRewrite())
+              || (sharedOptions().useBulkStmts
+              && isMariadbServer()
+              && minVersion(10, 2))) {
+        assertEquals(Statement.SUCCESS_NO_INFO, resultInsert[i]);
+      } else {
+        assertEquals(1, resultInsert[i]);
+      }
     }
 
     //check that connection is OK and results are well inserted
@@ -303,7 +308,7 @@ public class ExecuteBatchTest extends BaseTest {
         .executeQuery("SELECT * FROM ExecuteBatchTest");
     for (int i = 0; i < batchNumber; i++) {
       assertTrue(resultSet.next());
-      assertEquals(i + 1, resultSet.getInt(1));
+      if (!sharedOptions().useBulkStmts) assertEquals(i + 1, resultSet.getInt(1));
       assertEquals(oneHundredLengthString, resultSet.getString(2));
       assertEquals(i, resultSet.getInt(3));
     }
