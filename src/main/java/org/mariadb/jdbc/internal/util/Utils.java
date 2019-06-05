@@ -913,13 +913,26 @@ public class Utils {
     Escape /* found backslash */
   }
 
+  /**
+   * Validate that file name correspond to send query.
+   *
+   * @param sql         sql command
+   * @param parameters  sql parameter
+   * @param fileName    server file name
+   * @return true if correspond
+   */
   public static boolean validateFileName(String sql, ParameterHolder[] parameters, String fileName) {
-    Pattern pattern = Pattern.compile("^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'" + fileName + "'",
+    Pattern pattern = Pattern.compile(
+            "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'" + fileName + "'",
             Pattern.CASE_INSENSITIVE);
-    if (pattern.matcher(sql).find()) return true;
+    if (pattern.matcher(sql).find()) {
+      return true;
+    }
 
     if (parameters != null) {
-      pattern = Pattern.compile("^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?", Pattern.CASE_INSENSITIVE);
+      pattern = Pattern.compile(
+              "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
+              Pattern.CASE_INSENSITIVE);
       if (pattern.matcher(sql).find() && parameters.length > 0) {
         return parameters[0].toString().toLowerCase().equals("'" + fileName.toLowerCase() + "'");
       }

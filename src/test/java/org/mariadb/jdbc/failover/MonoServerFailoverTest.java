@@ -208,6 +208,7 @@ public class MonoServerFailoverTest extends BaseMonoServer {
         //normal exception
       }
       restartProxy(masterServerId);
+      stmt.execute("SELECT 1");
     }
   }
 

@@ -1674,11 +1674,7 @@ public class MariaDbConnection implements Connection {
    * @throws SQLException if database socket error occur
    */
   public int getNetworkTimeout() throws SQLException {
-    try {
-      return this.protocol.getTimeout();
-    } catch (SocketException se) {
-      throw ExceptionMapper.getSqlException("Cannot retrieve the network timeout", se);
-    }
+    return this.protocol.getTimeout();
   }
 
   public String getSchema() {

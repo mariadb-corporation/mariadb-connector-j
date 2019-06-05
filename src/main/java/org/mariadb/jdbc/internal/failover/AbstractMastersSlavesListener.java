@@ -91,10 +91,10 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
    * @param protocol current protocol
    * @return HandleErrorResult object to indicate if query has finally been relaunched or exception
    *     if not.
-   * @throws Throwable if method with parameters doesn't exist
+   * @throws SQLException if primary fail reconnection fails
    */
   public HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args,
-      Protocol protocol) throws Throwable {
+      Protocol protocol, boolean isClosed) throws SQLException {
     if (isExplicitClosed()) {
       throw new SQLException("Connection has been closed !");
     }
@@ -120,7 +120,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
 
           addToBlacklist(protocol.getHostAddress());
         }
-        return primaryFail(method, args, killCmd);
+        return primaryFail(method, args, killCmd, isClosed);
       } else {
         if (setSecondaryHostFail()) {
           logger.warn("SQL secondary node [{}, conn={}] connection fail. Reason : {}",
@@ -132,7 +132,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
         return secondaryFail(method, args, killCmd);
       }
     } else {
-      return primaryFail(method, args, killCmd);
+      return primaryFail(method, args, killCmd, isClosed);
     }
   }
 
@@ -198,7 +198,7 @@ public abstract class AbstractMastersSlavesListener extends AbstractMastersListe
   }
 
   public abstract HandleErrorResult secondaryFail(Method method, Object[] args, boolean killCmd)
-      throws Throwable;
+      throws SQLException;
 
   public abstract void foundActiveSecondary(Protocol newSecondaryProtocol) throws SQLException;
 

@@ -148,7 +148,7 @@ public class ConnectionValidator {
 
             if (masterFail && listener.setMasterHostFail()) {
               try {
-                listener.primaryFail(null, null, false);
+                listener.primaryFail(null, null, false, false);
               } catch (Throwable t) {
                 //do nothing
               }

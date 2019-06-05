@@ -84,13 +84,13 @@ public interface Listener {
 
   void switchReadOnlyConnection(Boolean readonly) throws SQLException;
 
-  HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) throws Throwable;
+  HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd, boolean wasClosed) throws SQLException;
 
   Object invoke(Method method, Object[] args, Protocol specificProtocol) throws Throwable;
 
   Object invoke(Method method, Object[] args) throws Throwable;
 
-  HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args, Protocol protocol)
+  HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args, Protocol protocol, boolean wasClosed)
       throws Throwable;
 
   void foundActiveMaster(Protocol protocol) throws SQLException;

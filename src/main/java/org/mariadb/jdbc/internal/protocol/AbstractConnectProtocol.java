@@ -160,6 +160,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
   private int minorVersion;
   private int patchVersion;
   private TimeZone timeZone;
+  protected int socketTimeout;
 
   /**
    * Get a protocol instance.
@@ -217,8 +218,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
    * Closes socket and stream readers/writers Attempts graceful shutdown.
    */
   public void close() {
+    boolean locked = false;
     if (lock != null) {
-      lock.lock();
+      locked = lock.tryLock();
     }
     this.connected = false;
     try {
@@ -231,7 +233,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     SendClosePacket.send(writer);
     closeSocket(reader, writer, socket);
     cleanMemory();
-    if (lock != null) {
+    if (locked) {
       lock.unlock();
     }
   }
@@ -387,7 +389,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     try {
       socket = Utils.createSocket(urlParser, host);
       if (options.socketTimeout != null) {
-        socket.setSoTimeout(options.socketTimeout);
+        this.changeSocketSoTimeout(options.socketTimeout);
       }
 
       initializeSocketOption();
@@ -1411,7 +1413,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
   }
 
   public void changeSocketSoTimeout(int setSoTimeout) throws SocketException {
-    socket.setSoTimeout(setSoTimeout);
+    this.socketTimeout = setSoTimeout;
+    socket.setSoTimeout(this.socketTimeout);
   }
 
   public boolean isServerMariaDb() {

@@ -293,7 +293,7 @@ public class ExecuteBatchTest extends BaseTest {
     //test result Size
     assertEquals(batchNumber, resultInsert.length);
     for (int i = 0; i < batchNumber; i++) {
-      if (( !sendUnique && sharedIsRewrite())
+      if ((!sendUnique && sharedIsRewrite())
               || (sharedOptions().useBulkStmts
               && isMariadbServer()
               && minVersion(10, 2))) {
@@ -308,7 +308,9 @@ public class ExecuteBatchTest extends BaseTest {
         .executeQuery("SELECT * FROM ExecuteBatchTest");
     for (int i = 0; i < batchNumber; i++) {
       assertTrue(resultSet.next());
-      if (!sharedOptions().useBulkStmts) assertEquals(i + 1, resultSet.getInt(1));
+      if (!sharedOptions().useBulkStmts) {
+        assertEquals(i + 1, resultSet.getInt(1));
+      }
       assertEquals(oneHundredLengthString, resultSet.getString(2));
       assertEquals(i, resultSet.getInt(3));
     }

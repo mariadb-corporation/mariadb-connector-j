@@ -1165,9 +1165,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     int initialTimeout = -1;
     try {
-      initialTimeout = socket.getSoTimeout();
+      initialTimeout = this.socketTimeout;
       if (initialTimeout == 0) {
-        socket.setSoTimeout(timeout);
+        this.changeSocketSoTimeout(timeout);
       }
       if (isMasterConnection() && !galeraAllowedStates.isEmpty()) {
         //this is a galera node.
@@ -1191,7 +1191,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       //set back initial socket timeout
       try {
         if (initialTimeout != -1) {
-          socket.setSoTimeout(initialTimeout);
+          this.changeSocketSoTimeout(initialTimeout);
         }
       } catch (SocketException socketException) {
         logger.warn("Could not set socket timeout back to " + initialTimeout, socketException);
@@ -1343,11 +1343,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * Returns the connection timeout in milliseconds.
    *
    * @return the connection timeout in milliseconds.
-   * @throws SocketException if there is an error in the underlying protocol, such as a TCP error.
    */
   @Override
-  public int getTimeout() throws SocketException {
-    return this.socket.getSoTimeout();
+  public int getTimeout() {
+    return this.socketTimeout;
   }
 
   /**
@@ -1360,7 +1359,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   public void setTimeout(int timeout) throws SocketException {
     lock.lock();
     try {
-      this.socket.setSoTimeout(timeout);
+      this.changeSocketSoTimeout(timeout);
     } finally {
       lock.unlock();
     }
@@ -1886,7 +1885,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
     } else {
       maxSizeError = writer.exceedMaxLength();
-      if (maxSizeError) mustReconnect = true;
+      if (maxSizeError) {
+        mustReconnect = true;
+      }
     }
 
     if (mustReconnect) {

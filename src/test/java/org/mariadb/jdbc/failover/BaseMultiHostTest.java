@@ -140,9 +140,11 @@ public class BaseMultiHostTest {
     initialAuroraUrl = System.getProperty("defaultAuroraUrl");
     jobId = System.getProperty("jobId", "_0");
 
-    if (initialUrl != null) {
-      proxyUrl = createProxies(initialUrl, HaMode.NONE);
+    if (initialUrl == null) {
+      String url = System.getProperty("dbUrl", "jdbc:mariadb://localhost:3306/testj?user=root");
+      initialUrl = url.replaceAll("jdbc:mariadb://", "jdbc:mariadb:failover://");
     }
+    proxyUrl = createProxies(initialUrl, HaMode.NONE);
     if (initialReplicationUrl != null) {
       proxyReplicationUrl = createProxies(initialReplicationUrl, HaMode.REPLICATION);
     }

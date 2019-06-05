@@ -117,6 +117,7 @@ public abstract class BaseMonoServer extends BaseMultiHostTest {
             "error type not normal after " + (System.currentTimeMillis() - startTime) + "ms",
             "25S03", e.getSQLState());
       }
+      Thread.sleep(2000);
       st.execute("drop table if exists baseReplicationTransaction" + jobId);
     }
   }

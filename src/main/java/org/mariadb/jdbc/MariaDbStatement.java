@@ -54,7 +54,14 @@ package org.mariadb.jdbc;
 
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.sql.*;
+import java.sql.BatchUpdateException;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
+import java.sql.SQLTimeoutException;
+import java.sql.SQLWarning;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -63,7 +70,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
-import org.mariadb.jdbc.internal.com.read.dao.CmdInformation;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.logging.Logger;
@@ -227,7 +233,10 @@ public class MariaDbStatement implements Statement, Cloneable {
     }
 
     if (sqle.getErrorCode() == 1148 && !options.allowLocalInfile) {
-      return new SQLFeatureNotSupportedException("(conn:" + getServerThreadId() + ") Usage of LOCAL INFILE is disabled. To use it enable it via the connection property allowLocalInfile=true", "42000",
+      return new SQLFeatureNotSupportedException(
+              "(conn:" + getServerThreadId() + ") Usage of LOCAL INFILE is disabled. "
+              + "To use it enable it via the connection property allowLocalInfile=true",
+              "42000",
               1148, sqle);
     }
 

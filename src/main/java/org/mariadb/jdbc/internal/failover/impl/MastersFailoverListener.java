@@ -147,8 +147,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
   }
 
   @Override
-  public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) {
-    boolean alreadyClosed = !currentProtocol.isConnected();
+  public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd, boolean alreadyClosed) {
     boolean inTransaction = currentProtocol != null && currentProtocol.inTransaction();
 
     if (currentProtocol.isConnected()) {

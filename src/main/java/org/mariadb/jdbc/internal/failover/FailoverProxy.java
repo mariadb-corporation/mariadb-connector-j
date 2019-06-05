@@ -185,13 +185,14 @@ public class FailoverProxy implements InvocationHandler {
         listener.prolog((long) args[0], (MariaDbConnection) args[2], (MariaDbStatement) args[3]);
         return null;
       case METHOD_EXECUTE_QUERY:
+        boolean isClosed = this.listener.isClosed();
         try {
           this.listener.preExecute();
         } catch (SQLException e) {
           //handle failover only if connection error
           //normal error can be thrown upon reconnection if there was a transaction in progress.
           if (hasToHandleFailover(e)) {
-            return handleFailOver(e, method, args, listener.getCurrentProtocol());
+            return handleFailOver(e, method, args, listener.getCurrentProtocol(), isClosed);
           }
         }
         break;
@@ -227,6 +228,7 @@ public class FailoverProxy implements InvocationHandler {
               //error during re-prepare, will do executed on master.
             }
           }
+          boolean wasClosed = this.listener.isClosed();
           try {
             return listener.invoke(method, args, serverPrepareResult.getUnProxiedProtocol());
           } catch (InvocationTargetException e) {
@@ -234,7 +236,7 @@ public class FailoverProxy implements InvocationHandler {
               if (e.getTargetException() instanceof SQLException
                   && hasToHandleFailover((SQLException) e.getTargetException())) {
                 return handleFailOver((SQLException) e.getTargetException(), method, args,
-                    serverPrepareResult.getUnProxiedProtocol());
+                    serverPrepareResult.getUnProxiedProtocol(), wasClosed);
               }
               throw e.getTargetException();
             }
@@ -243,6 +245,7 @@ public class FailoverProxy implements InvocationHandler {
         }
         break;
       case METHOD_PROLOG_PROXY:
+        boolean wasClosed = this.listener.isClosed();
         try {
           if (args[0] != null) {
             return listener
@@ -254,7 +257,7 @@ public class FailoverProxy implements InvocationHandler {
             if (e.getTargetException() instanceof SQLException
                 && hasToHandleFailover((SQLException) e.getTargetException())) {
               return handleFailOver((SQLException) e.getTargetException(), method, args,
-                  ((ServerPrepareResult) args[0]).getUnProxiedProtocol());
+                  ((ServerPrepareResult) args[0]).getUnProxiedProtocol(), wasClosed);
             }
             throw e.getTargetException();
           }
@@ -273,7 +276,7 @@ public class FailoverProxy implements InvocationHandler {
 
   private Object executeInvocation(Method method, Object[] args, boolean isSecondExecution)
       throws Throwable {
-
+    boolean isClosed = listener.isClosed();
     try {
       return listener.invoke(method, args);
     } catch (InvocationTargetException e) {
@@ -292,12 +295,12 @@ public class FailoverProxy implements InvocationHandler {
               && 1927 == queryException.getErrorCode();
 
           if (killCmd) {
-            handleFailOver(queryException, method, args, protocol);
+            handleFailOver(queryException, method, args, protocol, isClosed);
             return null;
           }
 
           if (hasToHandleFailover(queryException)) {
-            return handleFailOver(queryException, method, args, protocol);
+            return handleFailOver(queryException, method, args, protocol, isClosed);
           }
 
           //error is "The MariaDB server is running with the %s option so it cannot execute this statement"
@@ -319,7 +322,7 @@ public class FailoverProxy implements InvocationHandler {
             lock.lock();
             try {
               protocol.close();
-              isReconnected = listener.primaryFail(null, null, false).isReconnected;
+              isReconnected = listener.primaryFail(null, null, false, isClosed).isReconnected;
             } finally {
               lock.unlock();
             }
@@ -330,7 +333,7 @@ public class FailoverProxy implements InvocationHandler {
             }
 
             //throw exception if not reconnected, or was in a transaction
-            return handleFailOver(queryException, method, args, listener.getCurrentProtocol());
+            return handleFailOver(queryException, method, args, listener.getCurrentProtocol(), isClosed);
 
           }
         }
@@ -349,7 +352,7 @@ public class FailoverProxy implements InvocationHandler {
    * @return the object return from the method
    * @throws Throwable throwable
    */
-  private Object handleFailOver(SQLException qe, Method method, Object[] args, Protocol protocol)
+  private Object handleFailOver(SQLException qe, Method method, Object[] args, Protocol protocol, boolean isClosed)
       throws Throwable {
     HostAddress failHostAddress = null;
     boolean failIsMaster = true;
@@ -358,7 +361,7 @@ public class FailoverProxy implements InvocationHandler {
       failIsMaster = protocol.isMasterConnection();
     }
 
-    HandleErrorResult handleErrorResult = listener.handleFailover(qe, method, args, protocol);
+    HandleErrorResult handleErrorResult = listener.handleFailover(qe, method, args, protocol, isClosed);
     if (handleErrorResult.mustThrowError) {
       listener
           .throwFailoverMessage(failHostAddress, failIsMaster, qe, handleErrorResult.isReconnected);

@@ -379,7 +379,8 @@ public class SelectResultSet implements ResultSet {
 
   private SQLException handleIoException(IOException ioe) {
     return ExceptionMapper.getException(new SQLException("Server has closed the connection. \n"
-        + "Please check net_read_timeout/net_write_timeout/wait_timeout server variables. If result set contain huge amount of data, Server expects client to"
+        + "Please check net_read_timeout/net_write_timeout/wait_timeout server variables. "
+        + "If result set contain huge amount of data, Server expects client to"
         + " read off the result set relatively fast. "
         + "In this case, please consider increasing net_read_timeout session variable"
         + " / processing your result set faster (check Streaming result sets documentation for more information)",
