@@ -857,11 +857,14 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void setClientNotConnectError() throws SQLException {
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
-    try (Connection connection =  DriverManager
+    //only mariadb return a specific error when connection has explicitly been killed
+    Assume.assumeTrue(isMariadbServer());
+
+    try (Connection connection = DriverManager
             .getConnection("jdbc:mariadb:replication://" + ((hostname != null) ? hostname : "localhost")
                     + ":" + port
                     + "," + ((hostname != null) ? hostname : "localhost")
-                    + ":" + port + "/" + database + "?user=" + username
+                    + ":" + port + "/" + database + "?log&user=" + username
                     + ((password != null) ? "&password=" + password : ""))) {
       connection.setReadOnly(true);
       long threadId = ((MariaDbConnection) connection).getServerThreadId();
@@ -876,6 +879,7 @@ public class ConnectionTest extends BaseTest {
       }
       connection.setClientInfo("ClientUser", "otherValue");
     }
+
   }
 
   @Test
