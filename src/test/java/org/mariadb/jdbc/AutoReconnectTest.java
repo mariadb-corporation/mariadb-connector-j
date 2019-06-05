@@ -59,12 +59,14 @@ import java.sql.SQLTransientConnectionException;
 import java.sql.Statement;
 
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 
 public class AutoReconnectTest extends BaseTest {
 
   @Test
   public void autoReconnect() throws SQLException, InterruptedException {
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
     try (Connection conn = setConnection("&autoReconnect")) {
       Statement stmt = conn.createStatement();
       stmt.executeQuery("SELECT 1");
@@ -92,6 +94,7 @@ public class AutoReconnectTest extends BaseTest {
 
   @Test
   public void autoReconnectPing() throws SQLException, InterruptedException {
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
     try (Connection conn = setConnection("&autoReconnect")) {
       Statement stmt = conn.createStatement();
       stmt.executeQuery("SELECT 1");
