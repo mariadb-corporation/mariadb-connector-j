@@ -1768,7 +1768,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       MariaDbStatement statement)
       throws SQLException {
     if (explicitClosed) {
-      throw new SQLException("execute() is called on closed connection");
+      throw new SQLNonTransientConnectionException("execute() is called on closed connection");
     }
     //old failover handling
     if (!hasProxy && shouldReconnectWithoutProxy()) {
