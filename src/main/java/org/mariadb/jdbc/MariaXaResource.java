@@ -116,11 +116,14 @@ public class MariaXaResource implements XAResource {
         xaErrorCode = 0;
         break;
     }
+    XAException xaException;
     if (xaErrorCode != 0) {
-      return new XAException(xaErrorCode);
+      xaException = new XAException(xaErrorCode);
     } else {
-      return new XAException(sqle.getMessage());
+      xaException = new XAException(sqle.getMessage());
     }
+    xaException.initCause(sqle);
+    return xaException;
   }
 
   /**
