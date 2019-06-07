@@ -760,6 +760,23 @@ public class Utils {
     return (bytes != null) ? getHex(bytes) : "";
   }
 
+  public static String intToHexString(final int value) {
+    final StringBuilder hex = new StringBuilder(8);
+    int offset = 24;
+    byte b;
+    boolean nullEnd = false;
+    while (offset >= 0) {
+      b = (byte) (value >> offset);
+      offset -= 8;
+      if (b != 0 || nullEnd) {
+        nullEnd = true;
+        hex.append(hexArray[(b & 0xF0) >> 4])
+                .append(hexArray[(b & 0x0F)]);
+      }
+    }
+    return hex.toString();
+  }
+
   /**
    * Parse the option "sessionVariable" to ensure having no injection. semi-column not in string
    * will be replaced by comma.

@@ -69,10 +69,10 @@ public class MariaXaResource implements XAResource {
     this.connection = connection;
   }
 
-  private static String xidToString(Xid xid) {
+  protected static String xidToString(Xid xid) {
     return "0x" + Utils.byteArrayToHexString(xid.getGlobalTransactionId())
         + ",0x" + Utils.byteArrayToHexString(xid.getBranchQualifier())
-        + "," + xid.getFormatId();
+        + ",0x" + Utils.intToHexString(xid.getFormatId());
   }
 
   private static String flagsToString(int flags) {
