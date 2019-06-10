@@ -1375,6 +1375,132 @@ public class MultiTest extends BaseTest {
     }
   }
 
+    @Test
+    public void testAffectedRowBatch() throws SQLException {
+        createTable("testAffectedRowBatch", "id int PRIMARY KEY, data varchar(10)");
+        testAffectedRowBatch(false);
+        testAffectedRowBatch(true);
+
+        testAffectedRowLongBatch(false);
+        testAffectedRowLongBatch(true);
+    }
+
+    private void testAffectedRowBatch(boolean useAffectedRows) throws SQLException {
+      try (Connection con = setConnection("&rewriteBatchedStatements" + (useAffectedRows ? "&useAffectedRows" : ""))) {
+        Statement stmt = con.createStatement();
+        stmt.execute("TRUNCATE testAffectedRowBatch");
+        try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO testAffectedRowBatch values (?, ?)")) {
+          preparedStatement.setInt(1, 1);
+          preparedStatement.setString(2, "1");
+          preparedStatement.addBatch();
+          preparedStatement.setInt(1, 2);
+          preparedStatement.setString(2, "0");
+          preparedStatement.addBatch();
+          int[] res = preparedStatement.executeBatch();
+          assertEquals(2, res.length);
+          assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+          assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+
+          preparedStatement.setInt(1, 3);
+          preparedStatement.setString(2, "0");
+          preparedStatement.addBatch();
+          res = preparedStatement.executeBatch();
+          assertEquals(1, res.length);
+          assertEquals(1, res[0]);
+        }
+        try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO testAffectedRowBatch (id) values (?) ON DUPLICATE KEY UPDATE data = '0'")) {
+          preparedStatement.setInt(1, 1);
+          preparedStatement.addBatch();
+          preparedStatement.setInt(1, 2);
+          preparedStatement.addBatch();
+          int[] res = preparedStatement.executeBatch();
+
+          assertEquals(2, res.length);
+          assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+          assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+
+          preparedStatement.setInt(1, 6);
+          preparedStatement.addBatch();
+          res = preparedStatement.executeBatch();
+
+          assertEquals(1, res.length);
+          assertEquals(1, res[0]);
+
+          preparedStatement.setInt(1, 1);
+
+          preparedStatement.addBatch();
+          preparedStatement.setInt(1, 2);
+          preparedStatement.addBatch();
+          res = preparedStatement.executeBatch();
+          assertEquals(2, res.length);
+          if (useAffectedRows) {
+            assertEquals(0, res[0]);
+            assertEquals(0, res[1]);
+          } else {
+            assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+            assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+          }
+        }
+      }
+    }
+
+    private void testAffectedRowLongBatch(boolean useAffectedRows) throws SQLException {
+      try (Connection con = setConnection("&rewriteBatchedStatements" + (useAffectedRows ? "&useAffectedRows" : ""))) {
+        Statement stmt = con.createStatement();
+        stmt.execute("TRUNCATE testAffectedRowBatch");
+        try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO testAffectedRowBatch values (?, ?)")) {
+          preparedStatement.setInt(1, 1);
+          preparedStatement.setString(2, "1");
+          preparedStatement.addBatch();
+          preparedStatement.setInt(1, 2);
+          preparedStatement.setString(2, "0");
+          preparedStatement.addBatch();
+          long[] res = preparedStatement.executeLargeBatch();
+          assertEquals(2, res.length);
+          assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+          assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+
+          preparedStatement.setInt(1, 3);
+          preparedStatement.setString(2, "0");
+          preparedStatement.addBatch();
+          res = preparedStatement.executeLargeBatch();
+          assertEquals(1, res.length);
+          assertEquals(1, res[0]);
+        }
+        try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO testAffectedRowBatch (id) values (?) ON DUPLICATE KEY UPDATE data = '0'")) {
+          preparedStatement.setInt(1, 1);
+          preparedStatement.addBatch();
+          preparedStatement.setInt(1, 2);
+          preparedStatement.addBatch();
+          long[] res = preparedStatement.executeLargeBatch();
+          assertEquals(2, res.length);
+          assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+          assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+
+          preparedStatement.setInt(1, 6);
+          preparedStatement.addBatch();
+          res = preparedStatement.executeLargeBatch();
+
+          assertEquals(1, res.length);
+          assertEquals(1, res[0]);
+
+          preparedStatement.setInt(1, 1);
+
+          preparedStatement.addBatch();
+          preparedStatement.setInt(1, 2);
+          preparedStatement.addBatch();
+          res = preparedStatement.executeLargeBatch();
+          assertEquals(2, res.length);
+          if (useAffectedRows) {
+            assertEquals(0, res[0]);
+            assertEquals(0, res[1]);
+          } else {
+            assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+            assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+          }
+        }
+      }
+    }
 
   @Test
   public void shouldDuplicateKeyUpdateNotReturnExtraRows() throws Throwable {
@@ -1436,6 +1562,216 @@ public class MultiTest extends BaseTest {
     }
   }
 
+
+  @Test
+  public void multiInsertReturnOneGenerated() throws Throwable {
+    try (Connection con = openNewConnection(connUri, new Properties())) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("truncate table testMultiGeneratedKey");
+      }
+      try (PreparedStatement pstmt = con.prepareStatement(
+              "INSERT INTO testMultiGeneratedKey (text) VALUES (?), (?)",
+              Statement.RETURN_GENERATED_KEYS)) {
+        // Insert a row.
+        pstmt.setString(1, "initial");
+        pstmt.setString(2, "updated");
+        pstmt.executeUpdate();
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(1, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+      }
+    }
+  }
+
+  @Test
+  public void testAffectedRowBatch() throws SQLException {
+    createTable("testAffectedRowBatch", "id int PRIMARY KEY, data varchar(10)");
+    testAffectedRowBatch(false);
+    testAffectedRowBatch(true);
+
+    testAffectedRowLongBatch(false);
+    testAffectedRowLongBatch(true);
+  }
+
+  private void testAffectedRowBatch(boolean useAffectedRows) throws SQLException {
+    try (Connection con = setConnection("&rewriteBatchedStatements" + (useAffectedRows ? "&useAffectedRows" : ""))) {
+      Statement stmt = con.createStatement();
+      stmt.execute("TRUNCATE testAffectedRowBatch");
+      try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO testAffectedRowBatch values (?, ?)")) {
+        preparedStatement.setInt(1, 1);
+        preparedStatement.setString(2, "1");
+        preparedStatement.addBatch();
+        preparedStatement.setInt(1, 2);
+        preparedStatement.setString(2, "0");
+        preparedStatement.addBatch();
+        int[] res = preparedStatement.executeBatch();
+        assertEquals(2, res.length);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+
+        preparedStatement.setInt(1, 3);
+        preparedStatement.setString(2, "0");
+        preparedStatement.addBatch();
+        res = preparedStatement.executeBatch();
+        assertEquals(1, res.length);
+        assertEquals(1, res[0]);
+      }
+      try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO testAffectedRowBatch (id) values (?) ON DUPLICATE KEY UPDATE data = '0'")) {
+        preparedStatement.setInt(1, 1);
+        preparedStatement.addBatch();
+        preparedStatement.setInt(1, 2);
+        preparedStatement.addBatch();
+        int[] res = preparedStatement.executeBatch();
+
+        assertEquals(2, res.length);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+
+        preparedStatement.setInt(1, 6);
+        preparedStatement.addBatch();
+        res = preparedStatement.executeBatch();
+
+        assertEquals(1, res.length);
+        assertEquals(1, res[0]);
+
+        preparedStatement.setInt(1, 1);
+
+        preparedStatement.addBatch();
+        preparedStatement.setInt(1, 2);
+        preparedStatement.addBatch();
+        res = preparedStatement.executeBatch();
+        assertEquals(2, res.length);
+        if (useAffectedRows) {
+          assertEquals(0, res[0]);
+          assertEquals(0, res[1]);
+        } else {
+          assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+          assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+        }
+      }
+    }
+  }
+
+  private void testAffectedRowLongBatch(boolean useAffectedRows) throws SQLException {
+    try (Connection con = setConnection("&rewriteBatchedStatements" + (useAffectedRows ? "&useAffectedRows" : ""))) {
+      Statement stmt = con.createStatement();
+      stmt.execute("TRUNCATE testAffectedRowBatch");
+      try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO testAffectedRowBatch values (?, ?)")) {
+        preparedStatement.setInt(1, 1);
+        preparedStatement.setString(2, "1");
+        preparedStatement.addBatch();
+        preparedStatement.setInt(1, 2);
+        preparedStatement.setString(2, "0");
+        preparedStatement.addBatch();
+        long[] res = preparedStatement.executeLargeBatch();
+        assertEquals(2, res.length);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+
+        preparedStatement.setInt(1, 3);
+        preparedStatement.setString(2, "0");
+        preparedStatement.addBatch();
+        res = preparedStatement.executeLargeBatch();
+        assertEquals(1, res.length);
+        assertEquals(1, res[0]);
+      }
+      try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO testAffectedRowBatch (id) values (?) ON DUPLICATE KEY UPDATE data = '0'")) {
+        preparedStatement.setInt(1, 1);
+        preparedStatement.addBatch();
+        preparedStatement.setInt(1, 2);
+        preparedStatement.addBatch();
+        long[] res = preparedStatement.executeLargeBatch();
+
+        assertEquals(2, res.length);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+        assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+
+        preparedStatement.setInt(1, 6);
+        preparedStatement.addBatch();
+        res = preparedStatement.executeLargeBatch();
+
+        assertEquals(1, res.length);
+        assertEquals(1, res[0]);
+
+        preparedStatement.setInt(1, 1);
+
+        preparedStatement.addBatch();
+        preparedStatement.setInt(1, 2);
+        preparedStatement.addBatch();
+        res = preparedStatement.executeLargeBatch();
+        assertEquals(2, res.length);
+        if (useAffectedRows) {
+          assertEquals(0, res[0]);
+          assertEquals(0, res[1]);
+        } else {
+          assertEquals(Statement.SUCCESS_NO_INFO, res[0]);
+          assertEquals(Statement.SUCCESS_NO_INFO, res[1]);
+        }
+      }
+    }
+  }
+
+  @Test
+  public void shouldDuplicateKeyUpdateNotReturnExtraRows() throws Throwable {
+    try (Connection con = openNewConnection(connUri, new Properties())) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("truncate table testMultiGeneratedKey");
+      }
+      try (PreparedStatement pstmt = con.prepareStatement(
+              "INSERT INTO testMultiGeneratedKey (id, text) VALUES (?, ?) "
+                      + "ON DUPLICATE KEY UPDATE text = VALUES(text)",
+              Statement.RETURN_GENERATED_KEYS)) {
+        // Insert a row.
+        pstmt.setInt(1, 1);
+        pstmt.setString(2, "initial");
+        assertEquals(1, pstmt.executeUpdate());
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(1, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+        // Update the row.
+        pstmt.setInt(1, 1);
+        pstmt.setString(2, "updated");
+        assertEquals(2, pstmt.executeUpdate());
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(1, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+      }
+    }
+  }
+
+  @Test
+  public void insertBatchMultiInsert() throws Throwable {
+    Properties properties = new Properties();
+    properties.setProperty("allowMultiQueries", "true");
+    try (Connection con = openNewConnection(connUri, properties)) {
+      try (Statement stmt = con.createStatement()) {
+        stmt.execute("truncate table testMultiGeneratedKey");
+      }
+      try (PreparedStatement pstmt = con.prepareStatement(
+              "INSERT INTO testMultiGeneratedKey (text) VALUES (?)",
+              Statement.RETURN_GENERATED_KEYS)) {
+        // Insert a row.
+        pstmt.setString(1, "initial");
+        pstmt.addBatch();
+        pstmt.setString(1, "updated");
+        pstmt.addBatch();
+        pstmt.executeBatch();
+        try (ResultSet rs = pstmt.getGeneratedKeys()) {
+          assertTrue(rs.next());
+          assertEquals(1, rs.getInt(1));
+          assertTrue(rs.next());
+          assertEquals(2, rs.getInt(1));
+          assertFalse(rs.next());
+        }
+      }
+    }
+  }
 
   @Test
   public void multiInsertReturnOneGenerated() throws Throwable {
