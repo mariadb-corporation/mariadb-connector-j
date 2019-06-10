@@ -122,10 +122,14 @@ public class CmdInformationBatch implements CmdInformation {
       int resultValue;
       if (hasException) {
         resultValue = Statement.EXECUTE_FAILED;
-      } else if (updateCounts.size() == 1 && updateCounts.element() == 0) {
-        resultValue = 0;
+      } else if (expectedSize == 1) {
+        resultValue = updateCounts.element().intValue();
       } else {
-        resultValue = Statement.SUCCESS_NO_INFO;
+        resultValue = 0;
+        Iterator<Long> iterator = updateCounts.iterator();
+        while (iterator.hasNext()) {
+            if (iterator.next().intValue() != 0) resultValue = Statement.SUCCESS_NO_INFO;
+        }
       }
       Arrays.fill(ret, resultValue);
       return ret;
@@ -165,10 +169,14 @@ public class CmdInformationBatch implements CmdInformation {
       long resultValue;
       if (hasException) {
         resultValue = Statement.EXECUTE_FAILED;
-      } else if (updateCounts.size() == 1 && updateCounts.element() == 0) {
-        resultValue = 0;
+      } else if (expectedSize == 1) {
+        resultValue = updateCounts.element().longValue();
       } else {
-        resultValue = Statement.SUCCESS_NO_INFO;
+        resultValue = 0;
+        Iterator<Long> iterator = updateCounts.iterator();
+        while (iterator.hasNext()) {
+          if (iterator.next().intValue() != 0) resultValue = Statement.SUCCESS_NO_INFO;
+        }
       }
       Arrays.fill(ret, resultValue);
       return ret;
