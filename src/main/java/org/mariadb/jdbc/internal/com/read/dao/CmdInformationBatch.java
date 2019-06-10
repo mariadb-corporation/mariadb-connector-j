@@ -170,6 +170,7 @@ public class CmdInformationBatch implements CmdInformation {
       } else {
         resultValue = Statement.SUCCESS_NO_INFO;
       }
+      Arrays.fill(ret, resultValue);
       return ret;
     }
 
