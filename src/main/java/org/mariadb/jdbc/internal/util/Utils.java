@@ -760,6 +760,12 @@ public class Utils {
     return (bytes != null) ? getHex(bytes) : "";
   }
 
+  /**
+   * Convert int value to hexadecimal String.
+   *
+   * @param value value to transform
+   * @return Hexadecimal String value of integer.
+   */
   public static String intToHexString(final int value) {
     final StringBuilder hex = new StringBuilder(8);
     int offset = 24;

@@ -128,7 +128,9 @@ public class CmdInformationBatch implements CmdInformation {
         resultValue = 0;
         Iterator<Long> iterator = updateCounts.iterator();
         while (iterator.hasNext()) {
-            if (iterator.next().intValue() != 0) resultValue = Statement.SUCCESS_NO_INFO;
+          if (iterator.next().intValue() != 0) {
+            resultValue = Statement.SUCCESS_NO_INFO;
+          }
         }
       }
       Arrays.fill(ret, resultValue);
@@ -175,7 +177,9 @@ public class CmdInformationBatch implements CmdInformation {
         resultValue = 0;
         Iterator<Long> iterator = updateCounts.iterator();
         while (iterator.hasNext()) {
-          if (iterator.next().intValue() != 0) resultValue = Statement.SUCCESS_NO_INFO;
+          if (iterator.next().intValue() != 0) {
+            resultValue = Statement.SUCCESS_NO_INFO;
+          }
         }
       }
       Arrays.fill(ret, resultValue);

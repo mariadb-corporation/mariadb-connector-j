@@ -1471,7 +1471,8 @@ public class MultiTest extends BaseTest {
     try (Connection con = setConnection("&rewriteBatchedStatements" + (useAffectedRows ? "&useAffectedRows" : ""))) {
       Statement stmt = con.createStatement();
       stmt.execute("TRUNCATE testAffectedRowBatch");
-      try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO testAffectedRowBatch values (?, ?)")) {
+      try (PreparedStatement preparedStatement = con.prepareStatement(
+              "INSERT INTO testAffectedRowBatch values (?, ?)")) {
         preparedStatement.setInt(1, 1);
         preparedStatement.setString(2, "1");
         preparedStatement.addBatch();
@@ -1490,7 +1491,8 @@ public class MultiTest extends BaseTest {
         assertEquals(1, res.length);
         assertEquals(1, res[0]);
       }
-      try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO testAffectedRowBatch (id) values (?) ON DUPLICATE KEY UPDATE data = '0'")) {
+      try (PreparedStatement preparedStatement = con.prepareStatement(
+              "INSERT INTO testAffectedRowBatch (id) values (?) ON DUPLICATE KEY UPDATE data = '0'")) {
         preparedStatement.setInt(1, 1);
         preparedStatement.addBatch();
         preparedStatement.setInt(1, 2);
@@ -1530,7 +1532,8 @@ public class MultiTest extends BaseTest {
     try (Connection con = setConnection("&rewriteBatchedStatements" + (useAffectedRows ? "&useAffectedRows" : ""))) {
       Statement stmt = con.createStatement();
       stmt.execute("TRUNCATE testAffectedRowBatch");
-      try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO testAffectedRowBatch values (?, ?)")) {
+      try (PreparedStatement preparedStatement = con.prepareStatement(
+              "INSERT INTO testAffectedRowBatch values (?, ?)")) {
         preparedStatement.setInt(1, 1);
         preparedStatement.setString(2, "1");
         preparedStatement.addBatch();
@@ -1549,7 +1552,8 @@ public class MultiTest extends BaseTest {
         assertEquals(1, res.length);
         assertEquals(1, res[0]);
       }
-      try (PreparedStatement preparedStatement = con.prepareStatement("INSERT INTO testAffectedRowBatch (id) values (?) ON DUPLICATE KEY UPDATE data = '0'")) {
+      try (PreparedStatement preparedStatement = con.prepareStatement(
+              "INSERT INTO testAffectedRowBatch (id) values (?) ON DUPLICATE KEY UPDATE data = '0'")) {
         preparedStatement.setInt(1, 1);
         preparedStatement.addBatch();
         preparedStatement.setInt(1, 2);

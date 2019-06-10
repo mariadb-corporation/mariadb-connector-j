@@ -140,7 +140,7 @@ public class BaseMultiHostTest {
     initialAuroraUrl = System.getProperty("defaultAuroraUrl");
     jobId = System.getProperty("jobId", "_0");
 
-    if (initialUrl == null) {
+    if (initialUrl == null && !"true".equals(System.getenv("AURORA"))) {
       String url = System.getProperty("dbUrl", "jdbc:mariadb://localhost:3306/testj?user=root");
       initialUrl = url.replaceAll("jdbc:mariadb://", "jdbc:mariadb:failover://");
     }
