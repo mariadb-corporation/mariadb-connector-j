@@ -119,7 +119,15 @@ public class CmdInformationBatch implements CmdInformation {
   public int[] getUpdateCounts() {
     if (rewritten) {
       int[] ret = new int[expectedSize];
-      Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : (updateCounts[0] == 0 ? 0 : Statement.SUCCESS_NO_INFO));
+      int resultValue;
+      if (hasException) {
+        resultValue = Statement.EXECUTE_FAILED;
+      } else if (updateCounts.size() == 1 && updateCounts.element() == 0) {
+        resultValue = 0;
+      } else {
+        resultValue = Statement.SUCCESS_NO_INFO;
+      }
+      Arrays.fill(ret, resultValue);
       return ret;
     }
 
@@ -154,7 +162,14 @@ public class CmdInformationBatch implements CmdInformation {
   public long[] getLargeUpdateCounts() {
     if (rewritten) {
       long[] ret = new long[expectedSize];
-      Arrays.fill(ret, hasException ? Statement.EXECUTE_FAILED : (updateCounts[0] == 0 ? 0 : Statement.SUCCESS_NO_INFO));
+      int resultValue;
+      if (hasException) {
+        resultValue = Statement.EXECUTE_FAILED;
+      } else if (updateCounts.size() == 1 && updateCounts.element() == 0) {
+        resultValue = 0;
+      } else {
+        resultValue = Statement.SUCCESS_NO_INFO;
+      }
       return ret;
     }
 
