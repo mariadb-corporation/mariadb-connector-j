@@ -258,30 +258,6 @@
                     <prefix>git</prefix>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>1.4.0</version>
-                <executions>
-                    <execution>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <executable>git</executable>
-                    <arguments>
-                        <argument>archive</argument>
-                        <argument>--format</argument>
-                        <argument>tar.gz</argument>
-                        <argument>--output</argument>
-                        <argument>${project.name}-${git.commit.id.describe}.tar.gz</argument>
-                        <argument>${git.branch}</argument>
-                    </arguments>
-                </configuration>
-            </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
