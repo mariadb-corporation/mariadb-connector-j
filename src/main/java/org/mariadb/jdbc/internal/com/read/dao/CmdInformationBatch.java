@@ -162,7 +162,7 @@ public class CmdInformationBatch implements CmdInformation {
   public long[] getLargeUpdateCounts() {
     if (rewritten) {
       long[] ret = new long[expectedSize];
-      int resultValue;
+      long resultValue;
       if (hasException) {
         resultValue = Statement.EXECUTE_FAILED;
       } else if (updateCounts.size() == 1 && updateCounts.element() == 0) {
