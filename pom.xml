@@ -262,7 +262,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.0.2</version>
+                <version>3.1.2</version>
                 <configuration>
                     <archive>
                         <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
@@ -273,9 +273,7 @@
                             <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
                             <Automatic-Module-Name>org.mariadb.jdbc</Automatic-Module-Name>
                             <Export-Package>org.mariadb.jdbc</Export-Package>
-                            <Import-Package>
-                                javax.naming,javax.management,javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql,javax.transaction.xa;resolution:=optional,org.slf4j;resolution:=optional
-                            </Import-Package>
+                            <Import-Package>javax.naming, javax.management, javax.net;resolution:=optional, javax.net.ssl;resolution:=optional, javax.sql, javax.transaction.xa;resolution:=optional, waffle.windows.auth;resolution:=optional, waffle.windows.auth.impl;resolution:=optional, * </Import-Package>
                         </manifestEntries>
                     </archive>
                 </configuration>
