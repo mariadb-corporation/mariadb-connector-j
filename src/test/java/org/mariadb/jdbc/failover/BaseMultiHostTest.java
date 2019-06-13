@@ -144,7 +144,9 @@ public class BaseMultiHostTest {
       String url = System.getProperty("dbUrl", "jdbc:mariadb://localhost:3306/testj?user=root");
       initialUrl = url.replaceAll("jdbc:mariadb://", "jdbc:mariadb:failover://");
     }
-    proxyUrl = createProxies(initialUrl, HaMode.NONE);
+    if (initialUrl != null) {
+      proxyUrl = createProxies(initialUrl, HaMode.NONE);
+    }
     if (initialReplicationUrl != null) {
       proxyReplicationUrl = createProxies(initialReplicationUrl, HaMode.REPLICATION);
     }
