@@ -1420,7 +1420,7 @@ public class DriverTest extends BaseTest {
   @Test
   public void localSocket() throws Exception {
     requireMinimumVersion(5, 1);
-    Assume.assumeTrue(System.getenv("TRAVIS") == null);
+    Assume.assumeTrue(System.getenv("TRAVIS") == null && System.getenv("DOCKER_SOCKET") == null);
     Assume.assumeTrue(isLocalConnection("localSocket"));
 
     Statement st = sharedConnection.createStatement();
@@ -1435,10 +1435,19 @@ public class DriverTest extends BaseTest {
     }
 
     String path = rs.getString(2);
-    try (Connection connection = setConnection("&localSocket=" + path + "&profileSql=true")) {
+    st.execute("CREATE USER testSocket@'" + ((hostname == null) ? "localhost" : hostname) + "'  IDENTIFIED VIA unix_socket");
+    try {
+      st.execute("INSTALL SONAME 'auth_socket'");
+    } catch (SQLException e) {
+      //dismiss, can already be installed
+    }
+    String connString = connU + "?user=testSocket&localSocket=" + path + "&profileSql=true";
+    System.out.println(connString);
+    try (Connection connection = openConnection(connString, null)) {
       rs = connection.createStatement().executeQuery("select 1");
       assertTrue(rs.next());
     }
+    st.execute("DROP user testSocket@'" + ((hostname == null) ? "localhost" : hostname) +"'");
   }
 
   @Test
@@ -1456,12 +1465,16 @@ public class DriverTest extends BaseTest {
       return;  // skip test on non-Windows
     }
 
-    rs = st.executeQuery("select @@shared_memory,@@shared_memory_base_name");
-    if (!rs.next()) {
-      return;
-    }
+    try {
+      rs = st.executeQuery("select @@shared_memory,@@shared_memory_base_name");
+      if (!rs.next()) {
+        return;
+      }
 
-    if (!rs.getString(1).equals("1")) {
+      if (!rs.getString(1).equals("1")) {
+        return;
+      }
+    } catch (SQLException e) {
       return;
     }
 
