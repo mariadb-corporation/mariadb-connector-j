@@ -282,8 +282,9 @@ public class UrlParser implements Cloneable {
     }
 
     try {
-      return HaMode
-          .valueOf(url.substring(secondColonPos + 1, thirdColonPos).toUpperCase(Locale.ROOT));
+      String haModeString = url.substring(secondColonPos + 1, thirdColonPos).toUpperCase(Locale.ROOT);
+      if ("FAILOVER".equals(haModeString)) haModeString = "LOADBALANCE";
+      return HaMode.valueOf(haModeString);
     } catch (IllegalArgumentException i) {
       throw new IllegalArgumentException(
           "wrong failover parameter format in connection String " + url);
@@ -480,7 +481,7 @@ public class UrlParser implements Cloneable {
   private void loadMultiMasterValue() {
     if (haMode == HaMode.SEQUENTIAL
         || haMode == HaMode.REPLICATION
-        || haMode == HaMode.FAILOVER) {
+        || haMode == HaMode.LOADBALANCE) {
       boolean firstMaster = false;
       for (HostAddress host : addresses) {
         if (host.type.equals(ParameterConstant.TYPE_MASTER)) {

@@ -257,6 +257,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
       // force end by executing an KILL connection
       forceAbort();
       try {
+        socket.setSoTimeout(10);
         socket.setSoLinger(true, 0);
       } catch (IOException ioException) {
         //eat

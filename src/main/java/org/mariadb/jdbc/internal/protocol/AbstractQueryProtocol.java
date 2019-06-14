@@ -1890,7 +1890,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       }
     }
 
-    if (mustReconnect) {
+    if (mustReconnect && !explicitClosed) {
       try {
         connect();
 

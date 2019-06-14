@@ -53,5 +53,5 @@
 package org.mariadb.jdbc.internal.util.constant;
 
 public enum HaMode {
-  AURORA, REPLICATION, FAILOVER, SEQUENTIAL, LOADBALANCE, NONE
+  AURORA, REPLICATION, SEQUENTIAL, LOADBALANCE, NONE
 }

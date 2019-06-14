@@ -116,7 +116,7 @@ public class ParserTest extends BaseTest {
     assertFalse(UrlParser.parse("jdbc:mariadb:aurora://host1,host2/", emptyProps).isMultiMaster());
     assertTrue(
         UrlParser.parse("jdbc:mariadb:sequential://host1,host2/", emptyProps).isMultiMaster());
-    assertFalse(
+    assertTrue(
         UrlParser.parse("jdbc:mariadb:loadbalance://host1,host2/", emptyProps).isMultiMaster());
 
   }

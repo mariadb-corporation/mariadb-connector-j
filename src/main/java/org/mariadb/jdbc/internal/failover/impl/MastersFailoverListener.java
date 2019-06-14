@@ -200,7 +200,7 @@ public class MastersFailoverListener extends AbstractMastersListener {
       resetOldsBlackListHosts();
 
       List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
-      if (HaMode.FAILOVER.equals(mode)) {
+      if (HaMode.LOADBALANCE.equals(mode)) {
         //put the list in the following order
         // - random order not connected host
         // - random order blacklist host

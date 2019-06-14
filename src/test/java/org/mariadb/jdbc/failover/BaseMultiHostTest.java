@@ -137,6 +137,7 @@ public class BaseMultiHostTest {
     initialGaleraUrl = System.getProperty("defaultGaleraUrl");
     initialReplicationUrl = System.getProperty("defaultReplicationUrl");
     initialLoadbalanceUrl = System.getProperty("defaultLoadbalanceUrl");
+    initialSequentialUrl = System.getProperty("defaultSequentialUrl");
     initialAuroraUrl = System.getProperty("defaultAuroraUrl");
     jobId = System.getProperty("jobId", "_0");
 
@@ -154,10 +155,10 @@ public class BaseMultiHostTest {
       proxyLoadbalanceUrl = createProxies(initialLoadbalanceUrl, HaMode.LOADBALANCE);
     }
     if (initialGaleraUrl != null) {
-      proxyGaleraUrl = createProxies(initialGaleraUrl, HaMode.FAILOVER);
+      proxyGaleraUrl = createProxies(initialGaleraUrl, HaMode.SEQUENTIAL);
     }
-    if (initialGaleraUrl != null) {
-      proxySequentialUrl = createProxies(initialGaleraUrl, HaMode.SEQUENTIAL);
+    if (initialSequentialUrl != null) {
+      proxySequentialUrl = createProxies(initialSequentialUrl, HaMode.SEQUENTIAL);
     }
     if (initialAuroraUrl != null) {
       proxyAuroraUrl = createProxies(initialAuroraUrl, HaMode.AURORA);

@@ -83,7 +83,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
   @BeforeClass()
   public static void beforeClass2() {
     proxyUrl = proxySequentialUrl;
-    Assume.assumeTrue(initialGaleraUrl != null);
+    Assume.assumeTrue(initialSequentialUrl != null);
   }
 
   /**
@@ -91,7 +91,7 @@ public class SequentialFailoverTest extends BaseMultiHostTest {
    */
   @Before
   public void init() {
-    defaultUrl = initialGaleraUrl;
+    defaultUrl = initialSequentialUrl;
     currentType = HaMode.SEQUENTIAL;
   }
 

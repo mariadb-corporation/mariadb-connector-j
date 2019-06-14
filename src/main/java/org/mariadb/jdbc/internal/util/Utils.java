@@ -549,7 +549,7 @@ public class Utils {
                 MastersSlavesProtocol.class.getClassLoader(),
                 new Class[]{Protocol.class},
                 new FailoverProxy(new MastersSlavesListener(urlParser, globalInfo), lock)));
-      case FAILOVER:
+      case LOADBALANCE:
       case SEQUENTIAL:
         return getProxyLoggingIfNeeded(urlParser, (Protocol) Proxy.newProxyInstance(
             MasterProtocol.class.getClassLoader(),

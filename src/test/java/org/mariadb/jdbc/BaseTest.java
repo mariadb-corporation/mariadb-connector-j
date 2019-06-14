@@ -251,12 +251,10 @@ public class BaseTest {
   private static void setUri() {
     connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/"
         + ((database == null) ? "" : database);
-    connUri = connU + "?user=" + username
-        + (password != null && !"".equals(password) ? "&password=" + password : "")
-        + (parameters != null ? "&" + parameters : "");
-    connDnsUri = "jdbc:mariadb://mariadb.example.com:" + port + "/" + database + "?user=" + username
-        + (password != null && !"".equals(password) ? "&password=" + password : "")
-        + (parameters != null ? "&" + parameters : "");
+    connUri = connU + "?" + parameters
+        + (password != null && !"".equals(password) ? "&password=" + password : "");
+    connDnsUri = "jdbc:mariadb://mariadb.example.com:" + port + "/" + database + "?" + parameters
+        + (password != null && !"".equals(password) ? "&password=" + password : "");
   }
 
   /**
