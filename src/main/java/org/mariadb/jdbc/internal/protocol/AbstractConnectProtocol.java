@@ -593,6 +593,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
       //fallback in case of galera non primary nodes that permit only show / set command,
       //not SELECT when not part of quorum
       requestSessionDataWithShow(serverData);
+      connected = true;
+      return;
     }
 
     if (resultingException != null) {
