@@ -93,7 +93,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void testLocalInfileInputStream() throws SQLException {
     Assume.assumeFalse(
-            (isMariadbServer() && minVersion(10, 4, 0) )
+            (isMariadbServer() && minVersion(10, 4, 0))
                     || (!isMariadbServer() && minVersion(8, 0, 3)));
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
       try (Statement st = connection.createStatement()) {
@@ -124,7 +124,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void testLocalInfileValidInterceptor() throws Exception {
     Assume.assumeFalse(
-            (isMariadbServer() && minVersion(10, 4, 0) )
+            (isMariadbServer() && minVersion(10, 4, 0))
                     || (!isMariadbServer() && minVersion(8, 0, 3)));
     File temp = File.createTempFile("validateInfile", ".txt");
     StringBuilder builder = new StringBuilder();
@@ -141,7 +141,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void testLocalInfileUnValidInterceptor() throws Exception {
     Assume.assumeFalse(
-            (isMariadbServer() && minVersion(10, 4, 0) )
+            (isMariadbServer() && minVersion(10, 4, 0))
                     || (!isMariadbServer() && minVersion(8, 0, 3)));
     File temp = File.createTempFile("localInfile", ".txt");
     StringBuilder builder = new StringBuilder();
@@ -191,7 +191,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void loadDataInfileEmpty() throws SQLException, IOException {
     Assume.assumeFalse(
-            (isMariadbServer() && minVersion(10, 4, 0) )
+            (isMariadbServer() && minVersion(10, 4, 0))
                     || (!isMariadbServer() && minVersion(8, 0, 3)));
     // Create temp file.
     File temp = File.createTempFile("validateInfile", ".tmp");
@@ -210,7 +210,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void testPrepareLocalInfileWithoutInputStream() throws SQLException {
     Assume.assumeFalse(
-            (isMariadbServer() && minVersion(10, 4, 0) )
+            (isMariadbServer() && minVersion(10, 4, 0))
                     || (!isMariadbServer() && minVersion(8, 0, 3)));
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
       try {
@@ -296,7 +296,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void testSmallBigLocalInfileInputStream() throws Exception {
     Assume.assumeFalse(
-            (isMariadbServer() && minVersion(10, 4, 0) )
+            (isMariadbServer() && minVersion(10, 4, 0))
                     || (!isMariadbServer() && minVersion(8, 0, 3)));
     checkBigLocalInfile(256);
   }
@@ -304,7 +304,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void test2xBigLocalInfileInputStream() throws Exception {
     Assume.assumeFalse(
-            (isMariadbServer() && minVersion(10, 4, 0) )
+            (isMariadbServer() && minVersion(10, 4, 0))
                     || (!isMariadbServer() && minVersion(8, 0, 3)));
     Assume.assumeTrue(checkMaxAllowedPacketMore40m("test2xBigLocalInfileInputStream"));
     checkBigLocalInfile(16777216 * 2);
@@ -313,7 +313,7 @@ public class LocalInfileInputStreamTest extends BaseTest {
   @Test
   public void testMoreThanMaxAllowedPacketLocalInfileInputStream() throws Exception {
     Assume.assumeFalse(
-            (isMariadbServer() && minVersion(10, 4, 0) )
+            (isMariadbServer() && minVersion(10, 4, 0))
                     || (!isMariadbServer() && minVersion(8, 0, 3)));
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
     Assume.assumeFalse(sharedIsAurora());

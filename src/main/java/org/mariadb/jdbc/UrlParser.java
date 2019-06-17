@@ -283,7 +283,9 @@ public class UrlParser implements Cloneable {
 
     try {
       String haModeString = url.substring(secondColonPos + 1, thirdColonPos).toUpperCase(Locale.ROOT);
-      if ("FAILOVER".equals(haModeString)) haModeString = "LOADBALANCE";
+      if ("FAILOVER".equals(haModeString)) {
+        haModeString = "LOADBALANCE";
+      }
       return HaMode.valueOf(haModeString);
     } catch (IllegalArgumentException i) {
       throw new IllegalArgumentException(

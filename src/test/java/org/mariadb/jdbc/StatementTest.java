@@ -277,7 +277,7 @@ public class StatementTest extends BaseTest {
   @Test
   public void testLoadDataInvalidColumn() throws SQLException {
     Assume.assumeFalse(
-            (isMariadbServer() && minVersion(10, 4, 0) )
+            (isMariadbServer() && minVersion(10, 4, 0))
                     || (!isMariadbServer() && minVersion(8, 0, 3)));
     try (Connection connection = setConnection("&allowLocalInfile=true")) {
       Statement statement = connection.createStatement();
@@ -313,7 +313,9 @@ public class StatementTest extends BaseTest {
           }
           assertEquals(ER_LOAD_DATA_INVALID_COLUMN_STATE, sqlException.getSQLState());
 
-          //otherwise, localInfileInputStream will not be null, which cause false logic in readLocalInfilePacket and test like LocalInfileInputStreamTest#testLocalInfileUnValidInterceptor will fail if run after it
+          //otherwise, localInfileInputStream will not be null,
+          // which cause false logic in readLocalInfilePacket
+          // and test like LocalInfileInputStreamTest#testLocalInfileUnValidInterceptor will fail if run after it
           mysqlStatement.setLocalInfileInputStream(null);
 
         }

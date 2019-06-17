@@ -1,4 +1,19 @@
 
+== 2.4.2 - Released on 17 Jun. 2019
+
+Security
+* [CONJ-679] parse Query when receiving LOAD LOCAL INFILE
+
+Bugs
+* [CONJ-703] ClassNotFoundException when trying to connect using two-authentication in an OSGI environment.
+* [CONJ-711] Xid format id is unsigned integer, currently sending as signed value.
+* [CONJ-700] autoReconnect=true on Basic Failover doesn't reconnect
+* [CONJ-707] failover might throw an unexpected exception with using "failover"/"sequential" configuration on socket error
+* [CONJ-709] includeThreadDumpInDeadlockExceptions is thrown only if option includeInnodbStatusInDeadlockExceptions is set
+* [CONJ-710] Throw complete stackTrace when having an exception on XA Commands
+* [CONJ-714] Error on connection on galera server when in detached mode.
+* [CONJ-701] typo in error message in SelectResultSet.java
+
 == 2.4.1 - Released on 15 Mar. 2019
 
 Evolutions

@@ -1447,7 +1447,7 @@ public class DriverTest extends BaseTest {
       rs = connection.createStatement().executeQuery("select 1");
       assertTrue(rs.next());
     }
-    st.execute("DROP user testSocket@'" + ((hostname == null) ? "localhost" : hostname) +"'");
+    st.execute("DROP user testSocket@'" + ((hostname == null) ? "localhost" : hostname) + "'");
   }
 
   @Test
