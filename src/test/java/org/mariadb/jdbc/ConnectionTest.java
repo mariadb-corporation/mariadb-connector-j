@@ -256,6 +256,7 @@ public class ConnectionTest extends BaseTest {
     ResultSet rs = statement.executeQuery("show variables like 'max_allowed_packet'");
     assertTrue(rs.next());
     int maxAllowedPacket = rs.getInt(2);
+    Assume.assumeTrue(maxAllowedPacket < 40_000_000);
 
     //Create a SQL stream bigger than maxAllowedPacket
     StringBuilder sb = new StringBuilder();
@@ -508,7 +509,7 @@ public class ConnectionTest extends BaseTest {
       delayProxy(1500);
       long start = System.currentTimeMillis();
       assertFalse(connection.isValid(1)); //1 second
-      assertTrue(System.currentTimeMillis() - start < 1050);
+      assertTrue(System.currentTimeMillis() - start < 1250);
       Thread.sleep(5000);
     } finally {
       closeProxy();
@@ -589,14 +590,14 @@ public class ConnectionTest extends BaseTest {
     }
     try {
       stmt.execute("CREATE USER verificationEd25519AuthPlugin@'%' IDENTIFIED "
-          + "VIA ed25519 USING 'ZIgUREUg5PVgQ6LskhXmO+eZLS0nC8be6HPjYWR4YJY'");
+          + "VIA ed25519 USING 'Dl7wP5om2lNrAfxWw3ooyZKDAoBztFNuhtVFdIrWfi0'");
     } catch (SQLException sqle) {
       //already existing
     }
     stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin@'%'");
 
     String url = "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
-        + "?user=verificationEd25519AuthPlugin&password=secret&debug=true";
+        + "?user=verificationEd25519AuthPlugin&password=!Passw0rd3&debug=true";
 
     try (Connection connection = openNewConnection(url)) {
       //must have succeed
@@ -692,9 +693,9 @@ public class ConnectionTest extends BaseTest {
     stmt.execute("drop user IF EXISTS mysqltest1@'%'");
     try {
       stmt.execute("CREATE USER mysqltest1@'%' IDENTIFIED "
-              + "VIA mysql_old_password USING '021bec665bf663f1' "
-              + " OR ed25519 as password('good') "
-              + " OR mysql_native_password as password('works')");
+              + "VIA ed25519 as password('!Passw0rd3') "
+              + " OR mysql_native_password as password('!Passw0rd3Works')");
+
     } catch (SQLException sqle) {
       //already existing
       sqle.printStackTrace();
@@ -703,13 +704,13 @@ public class ConnectionTest extends BaseTest {
 
     try (Connection connection = openNewConnection(
             "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
-            + "?user=mysqltest1&password=good")) {
+            + "?user=mysqltest1&password=!Passw0rd3")) {
       //must have succeed
     }
 
     try (Connection connection = openNewConnection(
             "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
-                    + "?user=mysqltest1&password=works")) {
+                    + "?user=mysqltest1&password=!Passw0rd3Works")) {
       //must have succeed
     }
 
@@ -857,11 +858,14 @@ public class ConnectionTest extends BaseTest {
   @Test
   public void setClientNotConnectError() throws SQLException {
     Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
-    try (Connection connection =  DriverManager
+    //only mariadb return a specific error when connection has explicitly been killed
+    Assume.assumeTrue(isMariadbServer());
+
+    try (Connection connection = DriverManager
             .getConnection("jdbc:mariadb:replication://" + ((hostname != null) ? hostname : "localhost")
                     + ":" + port
                     + "," + ((hostname != null) ? hostname : "localhost")
-                    + ":" + port + "/" + database + "?user=" + username
+                    + ":" + port + "/" + database + "?log&user=" + username
                     + ((password != null) ? "&password=" + password : ""))) {
       connection.setReadOnly(true);
       long threadId = ((MariaDbConnection) connection).getServerThreadId();
@@ -876,6 +880,7 @@ public class ConnectionTest extends BaseTest {
       }
       connection.setClientInfo("ClientUser", "otherValue");
     }
+
   }
 
   @Test

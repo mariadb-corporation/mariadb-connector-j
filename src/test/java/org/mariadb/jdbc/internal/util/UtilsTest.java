@@ -53,8 +53,12 @@
 package org.mariadb.jdbc.internal.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
+import org.mariadb.jdbc.internal.com.send.parameters.StringParameter;
 
 public class UtilsTest {
 
@@ -92,6 +96,38 @@ public class UtilsTest {
     assertEquals("net_write_timeout=3600,init_connect='SELECT 1;SELECT 2'",
         Utils.parseSessionVariables("net_write_timeout=3600;init_connect='SELECT 1;SELECT 2'"));
 
+  }
+
+  @Test
+  public void localLocalParsing() {
+    assertTrue(Utils.validateFileName("LOAD DATA LOCAL INFILE 'file_name'", null,"file_name"));
+    assertTrue(Utils.validateFileName("LOAD DATA LOW_PRIORITY LOCAL INFILE 'file_name'", null, "file_name"));
+    assertTrue(Utils.validateFileName("LOAD DATA CONCURRENT LOCAL INFILE 'file_name'", null,"file_name"));
+    assertTrue(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE 'file_name' /*gni*/", null,"file_name"));
+    assertTrue(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE\n'/etc/tto/file_name'", null,"/etc/tto/file_name"));
+
+    assertFalse(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE\n'/etc/tto/file_name'", null,"file_name"));
+    assertFalse(Utils.validateFileName("LOAD DATA INFILE 'file_name' /**/", null,"file_name"));
+
+    ParameterHolder[] goodParameterHolders = new ParameterHolder[] {new StringParameter("file_name", false)};
+
+    assertTrue(Utils.validateFileName("LOAD DATA LOCAL INFILE ?", goodParameterHolders,"file_name"));
+    assertTrue(Utils.validateFileName("LOAD DATA LOW_PRIORITY LOCAL INFILE ?", goodParameterHolders, "file_name"));
+    assertTrue(Utils.validateFileName("LOAD DATA CONCURRENT LOCAL INFILE ?", goodParameterHolders,"file_name"));
+    assertTrue(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE ? /*gni*/", goodParameterHolders,"file_name"));
+    ParameterHolder[] pathParameterHolders = new ParameterHolder[] {new StringParameter("/etc/tto/file_name", false)};
+    assertTrue(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE\n?", pathParameterHolders,"/etc/tto/file_name"));
+
+    assertFalse(Utils.validateFileName("/*test*/ LOAD DATA LOCAL INFILE\n?", pathParameterHolders,"file_name"));
+    assertFalse(Utils.validateFileName("LOAD DATA INFILE ? /**/", goodParameterHolders,"file_name"));
+  }
+
+  @Test
+  public void intToHexString() {
+    assertEquals("05", Utils.intToHexString(5));
+    assertEquals("0400", Utils.intToHexString(1024));
+    assertEquals("C3C20186", Utils.intToHexString(-1010695802));
+    assertEquals("FFFFFFFF", Utils.intToHexString(-1));
   }
 
 }

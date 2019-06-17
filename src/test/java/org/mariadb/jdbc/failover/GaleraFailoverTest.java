@@ -94,7 +94,7 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
   @Before
   public void init() {
     defaultUrl = initialGaleraUrl;
-    currentType = HaMode.FAILOVER;
+    currentType = HaMode.LOADBALANCE;
   }
 
 

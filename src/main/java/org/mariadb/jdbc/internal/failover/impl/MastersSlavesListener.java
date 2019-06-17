@@ -778,8 +778,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
    * @return an object to indicate if the previous Exception must be thrown, or the object resulting
    *     if a failover worked
    */
-  public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd) {
-    boolean alreadyClosed = masterProtocol == null || !masterProtocol.isConnected();
+  public HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd, boolean isClosed) {
+    boolean alreadyClosed = masterProtocol == null || isClosed;
     boolean inTransaction = masterProtocol != null && masterProtocol.inTransaction();
 
     //in case of SocketTimeoutException due to having set socketTimeout, must force connection close
@@ -919,10 +919,10 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
    * @param killCmd is fail due to a KILL command
    * @return an object to indicate if the previous Exception must be thrown, or the object resulting
    *     if a failover worked
-   * @throws Throwable if failover has not catch error
+   * @throws SQLException if relaunch operation fails
    */
   public HandleErrorResult secondaryFail(Method method, Object[] args, boolean killCmd)
-      throws Throwable {
+      throws SQLException {
     proxy.lock.lock();
     try {
       if (pingSecondaryProtocol(this.secondaryProtocol)) {

@@ -137,9 +137,14 @@ public class BaseMultiHostTest {
     initialGaleraUrl = System.getProperty("defaultGaleraUrl");
     initialReplicationUrl = System.getProperty("defaultReplicationUrl");
     initialLoadbalanceUrl = System.getProperty("defaultLoadbalanceUrl");
+    initialSequentialUrl = System.getProperty("defaultSequentialUrl");
     initialAuroraUrl = System.getProperty("defaultAuroraUrl");
     jobId = System.getProperty("jobId", "_0");
 
+    if (initialUrl == null && !"true".equals(System.getenv("AURORA"))) {
+      String url = System.getProperty("dbUrl", "jdbc:mariadb://localhost:3306/testj?user=root");
+      initialUrl = url.replaceAll("jdbc:mariadb://", "jdbc:mariadb:failover://");
+    }
     if (initialUrl != null) {
       proxyUrl = createProxies(initialUrl, HaMode.NONE);
     }
@@ -150,10 +155,10 @@ public class BaseMultiHostTest {
       proxyLoadbalanceUrl = createProxies(initialLoadbalanceUrl, HaMode.LOADBALANCE);
     }
     if (initialGaleraUrl != null) {
-      proxyGaleraUrl = createProxies(initialGaleraUrl, HaMode.FAILOVER);
+      proxyGaleraUrl = createProxies(initialGaleraUrl, HaMode.SEQUENTIAL);
     }
-    if (initialGaleraUrl != null) {
-      proxySequentialUrl = createProxies(initialGaleraUrl, HaMode.SEQUENTIAL);
+    if (initialSequentialUrl != null) {
+      proxySequentialUrl = createProxies(initialSequentialUrl, HaMode.SEQUENTIAL);
     }
     if (initialAuroraUrl != null) {
       proxyAuroraUrl = createProxies(initialAuroraUrl, HaMode.AURORA);

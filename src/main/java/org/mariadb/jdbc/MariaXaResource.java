@@ -69,10 +69,10 @@ public class MariaXaResource implements XAResource {
     this.connection = connection;
   }
 
-  private static String xidToString(Xid xid) {
+  protected static String xidToString(Xid xid) {
     return "0x" + Utils.byteArrayToHexString(xid.getGlobalTransactionId())
         + ",0x" + Utils.byteArrayToHexString(xid.getBranchQualifier())
-        + "," + xid.getFormatId();
+        + ",0x" + Utils.intToHexString(xid.getFormatId());
   }
 
   private static String flagsToString(int flags) {
@@ -116,11 +116,14 @@ public class MariaXaResource implements XAResource {
         xaErrorCode = 0;
         break;
     }
+    XAException xaException;
     if (xaErrorCode != 0) {
-      return new XAException(xaErrorCode);
+      xaException = new XAException(xaErrorCode);
     } else {
-      return new XAException(sqle.getMessage());
+      xaException = new XAException(sqle.getMessage());
     }
+    xaException.initCause(sqle);
+    return xaException;
   }
 
   /**

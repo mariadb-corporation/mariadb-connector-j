@@ -143,12 +143,13 @@ public class AsyncMultiRead implements Callable<AsyncMultiReadResult> {
         } catch (SQLException qex) {
           if (qex instanceof SQLNonTransientConnectionException
               || qex instanceof SQLTransientConnectionException) {
+            asyncMultiReadResult.setException(qex);
             break outerloop;
           }
           if (asyncMultiReadResult.getException() == null) {
             asyncMultiReadResult.setException(bulkSend.handleResultException(qex, results,
-                parametersList, queries, counter, sendCmdInitialCounter, paramCount,
-                asyncMultiReadResult.getPrepareResult()));
+                    parametersList, queries, counter, sendCmdInitialCounter, paramCount,
+                    asyncMultiReadResult.getPrepareResult()));
           }
         }
         counter++;

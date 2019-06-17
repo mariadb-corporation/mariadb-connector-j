@@ -130,6 +130,7 @@ public class Options implements Cloneable {
   public boolean includeInnodbStatusInDeadlockExceptions;
   public boolean includeThreadDumpInDeadlockExceptions;
   public String servicePrincipalName;
+  public int defaultFetchSize;
 
   //logging options
   public boolean log;
@@ -285,6 +286,9 @@ public class Options implements Cloneable {
       return false;
     }
     if (includeThreadDumpInDeadlockExceptions != opt.includeThreadDumpInDeadlockExceptions) {
+      return false;
+    }
+    if (defaultFetchSize != opt.defaultFetchSize) {
       return false;
     }
     if (useBulkStmts != opt.useBulkStmts) {
@@ -536,6 +540,7 @@ public class Options implements Cloneable {
     result = 31 * result + (includeInnodbStatusInDeadlockExceptions ? 1 : 0);
     result = 31 * result + (includeThreadDumpInDeadlockExceptions ? 1 : 0);
     result = 31 * result + (useBulkStmts ? 1 : 0);
+    result = 31 * result + defaultFetchSize;
     result = 31 * result + (disableSslHostnameVerification ? 1 : 0);
     result = 31 * result + (log ? 1 : 0);
     result = 31 * result + (profileSql ? 1 : 0);

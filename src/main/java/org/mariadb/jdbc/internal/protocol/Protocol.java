@@ -200,7 +200,7 @@ public interface Protocol {
 
   void setLocalInfileInputStream(InputStream inputStream);
 
-  int getTimeout() throws SocketException;
+  int getTimeout();
 
   void setTimeout(int timeout) throws SocketException;
 

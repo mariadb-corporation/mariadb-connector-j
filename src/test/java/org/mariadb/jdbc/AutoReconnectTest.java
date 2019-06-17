@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2017 MariaDB Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -50,8 +50,73 @@
  *
  */
 
-package org.mariadb.jdbc.internal.util.constant;
+package org.mariadb.jdbc;
 
-public enum HaMode {
-  AURORA, REPLICATION, SEQUENTIAL, LOADBALANCE, NONE
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
+import java.sql.SQLTransientConnectionException;
+import java.sql.Statement;
+
+import org.junit.Assert;
+import org.junit.Assume;
+import org.junit.Test;
+
+public class AutoReconnectTest extends BaseTest {
+
+  @Test
+  public void autoReconnect() throws SQLException, InterruptedException {
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    try (Connection conn = setConnection("&autoReconnect")) {
+      Statement stmt = conn.createStatement();
+      stmt.executeQuery("SELECT 1");
+
+      stmt.execute("SET SESSION wait_timeout = 1");
+      Thread.sleep(3000);
+
+      try {
+        stmt.executeQuery("SELECT 2");
+      } catch (SQLTransientConnectionException e) {
+        Assert.fail("Must have send a SQLNonTransientConnectionException !");
+      } catch (SQLNonTransientConnectionException e) {
+        try {
+          stmt.executeQuery("SELECT 3");
+        } catch (SQLException ee) {
+          ee.printStackTrace();
+          Assert.fail("Must have reconnect automatically !");
+        }
+      } catch (SQLException e) {
+        e.printStackTrace();
+        Assert.fail("Must have reconnect automatically !");
+      }
+    }
+  }
+
+  @Test
+  public void autoReconnectPing() throws SQLException, InterruptedException {
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
+    try (Connection conn = setConnection("&autoReconnect")) {
+      Statement stmt = conn.createStatement();
+      stmt.executeQuery("SELECT 1");
+
+      stmt.execute("SET SESSION wait_timeout = 1");
+      Thread.sleep(30000);
+
+      try {
+        conn.isValid(0);
+      } catch (SQLTransientConnectionException e) {
+        Assert.fail("Must have send a SQLNonTransientConnectionException !");
+      } catch (SQLNonTransientConnectionException e) {
+        try {
+          stmt.executeQuery("SELECT 3");
+        } catch (SQLException ee) {
+          ee.printStackTrace();
+          Assert.fail("Must have reconnect automatically !");
+        }
+      } catch (SQLException e) {
+        e.printStackTrace();
+        Assert.fail("Must have reconnect automatically !");
+      }
+    }
+  }
 }

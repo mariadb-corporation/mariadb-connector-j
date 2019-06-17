@@ -125,7 +125,7 @@ public class CancelTest extends BaseTest {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test(timeout = 10000)
   public void timeoutBatch() throws Exception {
     Assume.assumeFalse(sharedIsAurora());
     Assume.assumeTrue(!sharedOptions().allowMultiQueries && !sharedIsRewrite());
@@ -152,7 +152,7 @@ public class CancelTest extends BaseTest {
     }
   }
 
-  @Test(timeout = 5000)
+  @Test(timeout = 10000)
   public void timeoutPrepareBatch() throws Exception {
     Assume.assumeFalse(sharedIsAurora());
     Assume.assumeTrue(!sharedOptions().allowMultiQueries && !sharedIsRewrite());

@@ -208,10 +208,10 @@ The fastest way to load lots of data is using [[https://mariadb.com/kb/en/mariad
 * A "man in the middle" proxy server can change the actual file requested from the server so the client will send a local file to this proxy.
 * if someone can execute a query from the client, he can have access to any file on the client (according to the rights of the user running the client process).
 
-A specific option "allowLocalInfile" (default to true) can deactivate functionality on the client side.
+A specific option "allowLocalInfile" (default to false) permit to enable functionality on the client side.
 The global variable [[server-system-variables#local_infile|local_infile]] can disable LOAD DATA LOCAL INFILE on the server side.
 
-A non-JDBC method can permit using this kind of query without this security issue: The application has to create an InputStream with the file to load. If MariaDbStatement.setLocalInfileInputStream(InputStream inputStream) is set, the inputStream will be sent to the server, replacing the file content (working even with the "allowLocalInfile" option disabled).
+A non-JDBC method can permit using this kind of query without this security issue: The application has to create an InputStream with the file to load. If MariaDbStatement.setLocalInfileInputStream(InputStream inputStream) is set, the inputStream will be sent to the server, replacing the file content.
 
 Code example:
 {{{

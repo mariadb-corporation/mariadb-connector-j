@@ -80,6 +80,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
@@ -255,7 +256,7 @@ public class MariaDbConnection implements Connection {
 
   private void checkConnection() throws SQLException {
     if (protocol.isExplicitClosed()) {
-      throw new SQLException("createStatement() is called on closed connection");
+      throw new SQLNonTransientConnectionException("createStatement() is called on closed connection");
     }
     if (protocol.isClosed() && protocol.getProxy() != null) {
       lock.lock();
@@ -1673,11 +1674,7 @@ public class MariaDbConnection implements Connection {
    * @throws SQLException if database socket error occur
    */
   public int getNetworkTimeout() throws SQLException {
-    try {
-      return this.protocol.getTimeout();
-    } catch (SocketException se) {
-      throw ExceptionMapper.getSqlException("Cannot retrieve the network timeout", se);
-    }
+    return this.protocol.getTimeout();
   }
 
   public String getSchema() {
@@ -1790,6 +1787,6 @@ public class MariaDbConnection implements Connection {
   }
 
   public boolean includeThreadsTraces() {
-    return options.includeInnodbStatusInDeadlockExceptions;
+    return options.includeThreadDumpInDeadlockExceptions;
   }
 }

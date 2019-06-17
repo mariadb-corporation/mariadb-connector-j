@@ -160,6 +160,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
   private int minorVersion;
   private int patchVersion;
   private TimeZone timeZone;
+  protected int socketTimeout;
 
   /**
    * Get a protocol instance.
@@ -217,8 +218,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
    * Closes socket and stream readers/writers Attempts graceful shutdown.
    */
   public void close() {
+    boolean locked = false;
     if (lock != null) {
-      lock.lock();
+      locked = lock.tryLock();
     }
     this.connected = false;
     try {
@@ -231,7 +233,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     SendClosePacket.send(writer);
     closeSocket(reader, writer, socket);
     cleanMemory();
-    if (lock != null) {
+    if (locked) {
       lock.unlock();
     }
   }
@@ -255,6 +257,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
       // force end by executing an KILL connection
       forceAbort();
       try {
+        socket.setSoTimeout(10);
         socket.setSoLinger(true, 0);
       } catch (IOException ioException) {
         //eat
@@ -387,7 +390,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     try {
       socket = Utils.createSocket(urlParser, host);
       if (options.socketTimeout != null) {
-        socket.setSoTimeout(options.socketTimeout);
+        this.changeSocketSoTimeout(options.socketTimeout);
       }
 
       initializeSocketOption();
@@ -590,6 +593,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
       //fallback in case of galera non primary nodes that permit only show / set command,
       //not SELECT when not part of quorum
       requestSessionDataWithShow(serverData);
+      connected = true;
+      return;
     }
 
     if (resultingException != null) {
@@ -871,13 +876,16 @@ public abstract class AbstractConnectProtocol implements Protocol {
         | MariaDbServerCapabilities.CLIENT_PROTOCOL_41
         | MariaDbServerCapabilities.TRANSACTIONS
         | MariaDbServerCapabilities.SECURE_CONNECTION
-        | MariaDbServerCapabilities.LOCAL_FILES
         | MariaDbServerCapabilities.MULTI_RESULTS
         | MariaDbServerCapabilities.PS_MULTI_RESULTS
         | MariaDbServerCapabilities.PLUGIN_AUTH
         | MariaDbServerCapabilities.CONNECT_ATTRS
         | MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA
         | MariaDbServerCapabilities.CLIENT_SESSION_TRACK;
+
+    if (options.allowLocalInfile) {
+      capabilities |= MariaDbServerCapabilities.LOCAL_FILES;
+    }
 
     // MySQL/MariaDB has two ways of calculating row count, eg for an UPDATE statement.
     // The default (and JDBC standard) is "found rows". The other option is "affected rows".
@@ -969,24 +977,20 @@ public abstract class AbstractConnectProtocol implements Protocol {
   }
 
   /**
-   * Default collation used for string exchanges with server. (always use utf8)
+   * Default collation used for string exchanges with server.
    *
    * @param serverLanguage server default collation
    * @return collation byte
    */
   private byte decideLanguage(int serverLanguage) {
-    //force UTF8mb4 if possible, UTF8 if not.
+    //return current server utf8mb4 collation
     if (serverLanguage == 45        //utf8mb4_general_ci
         || serverLanguage == 46 //utf8mb4_bin
         || (serverLanguage >= 224 && serverLanguage <= 247)) {
       return (byte) serverLanguage;
-    } else if (serverLanguage == 33        //utf8_general_ci
-        || serverLanguage == 83 //utf8_bin
-        || serverLanguage == 223 //utf8_general_mysql500_ci
-        || (serverLanguage >= 192 && serverLanguage <= 215)) {
-      return (byte) serverLanguage;
     }
     if (getMajorServerVersion() == 5 && getMinorServerVersion() <= 1) {
+      //5.1 version doesn't know 4 bytes utf8
       return (byte) 33; //utf8_general_ci
     }
     return (byte) 224; //UTF8MB4_UNICODE_CI;
@@ -1412,7 +1416,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
   }
 
   public void changeSocketSoTimeout(int setSoTimeout) throws SocketException {
-    socket.setSoTimeout(setSoTimeout);
+    this.socketTimeout = setSoTimeout;
+    socket.setSoTimeout(this.socketTimeout);
   }
 
   public boolean isServerMariaDb() {

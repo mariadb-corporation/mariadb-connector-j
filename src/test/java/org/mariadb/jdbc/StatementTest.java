@@ -276,46 +276,55 @@ public class StatementTest extends BaseTest {
 
   @Test
   public void testLoadDataInvalidColumn() throws SQLException {
-    Assume.assumeFalse(!isMariadbServer() && minVersion(8, 0, 0));
-    Statement statement = sharedConnection.createStatement();
-    try {
-      statement.execute("drop view if exists v2");
-    } catch (SQLException e) {
-      //if view doesn't exist, and mode throw warning as error
-    }
-    statement.execute("CREATE VIEW v2 AS SELECT 1 + 2 AS c0, c1, c2 FROM StatementTestt1;");
-    try {
-      MariaDbStatement mysqlStatement;
-      if (statement.isWrapperFor(MariaDbStatement.class)) {
-        mysqlStatement = statement.unwrap(MariaDbStatement.class);
-      } else {
-        throw new SQLException("Mariadb JDBC adaptor must be used");
-      }
-      try {
-        String data = "\"1\", \"string1\"\n"
-            + "\"2\", \"string2\"\n"
-            + "\"3\", \"string3\"\n";
-        ByteArrayInputStream loadDataInfileFile = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
-        mysqlStatement.setLocalInfileInputStream(loadDataInfileFile);
-        mysqlStatement.executeUpdate("LOAD DATA LOCAL INFILE 'dummyFileName' INTO TABLE v2 "
-            + "FIELDS ESCAPED BY '\\\\' "
-            + "TERMINATED BY ',' "
-            + "ENCLOSED BY '\"'"
-            + "LINES TERMINATED BY '\n' (c0, c2)");
-        fail("The above statement should result in an exception");
-      } catch (SQLException sqlException) {
-        if (sqlException.getErrorCode() != ER_LOAD_DATA_INVALID_COLUMN
-            && sqlException.getErrorCode() != ER_NONUPDATEABLE_COLUMN) {
-          fail();
-        }
-        assertEquals(ER_LOAD_DATA_INVALID_COLUMN_STATE, sqlException.getSQLState());
-        mysqlStatement.setLocalInfileInputStream(null); //otherwise, localInfileInputStream will not be null, which cause false logic in readLocalInfilePacket and test like LocalInfileInputStreamTest#testLocalInfileUnValidInterceptor will fail if run after it
-      }
-    } finally {
+    Assume.assumeFalse(
+            (isMariadbServer() && minVersion(10, 4, 0))
+                    || (!isMariadbServer() && minVersion(8, 0, 3)));
+    try (Connection connection = setConnection("&allowLocalInfile=true")) {
+      Statement statement = connection.createStatement();
       try {
         statement.execute("drop view if exists v2");
       } catch (SQLException e) {
         //if view doesn't exist, and mode throw warning as error
+      }
+      statement.execute("CREATE VIEW v2 AS SELECT 1 + 2 AS c0, c1, c2 FROM StatementTestt1;");
+      try {
+        MariaDbStatement mysqlStatement;
+        if (statement.isWrapperFor(MariaDbStatement.class)) {
+          mysqlStatement = statement.unwrap(MariaDbStatement.class);
+        } else {
+          throw new SQLException("Mariadb JDBC adaptor must be used");
+        }
+        try {
+          String data = "\"1\", \"string1\"\n"
+                  + "\"2\", \"string2\"\n"
+                  + "\"3\", \"string3\"\n";
+          ByteArrayInputStream loadDataInfileFile = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
+          mysqlStatement.setLocalInfileInputStream(loadDataInfileFile);
+          mysqlStatement.executeUpdate("LOAD DATA LOCAL INFILE 'dummyFileName' INTO TABLE v2 "
+                  + "FIELDS ESCAPED BY '\\\\' "
+                  + "TERMINATED BY ',' "
+                  + "ENCLOSED BY '\"'"
+                  + "LINES TERMINATED BY '\n' (c0, c2)");
+          fail("The above statement should result in an exception");
+        } catch (SQLException sqlException) {
+          if (sqlException.getErrorCode() != ER_LOAD_DATA_INVALID_COLUMN
+                  && sqlException.getErrorCode() != ER_NONUPDATEABLE_COLUMN) {
+            fail();
+          }
+          assertEquals(ER_LOAD_DATA_INVALID_COLUMN_STATE, sqlException.getSQLState());
+
+          //otherwise, localInfileInputStream will not be null,
+          // which cause false logic in readLocalInfilePacket
+          // and test like LocalInfileInputStreamTest#testLocalInfileUnValidInterceptor will fail if run after it
+          mysqlStatement.setLocalInfileInputStream(null);
+
+        }
+      } finally {
+        try {
+          statement.execute("drop view if exists v2");
+        } catch (SQLException e) {
+          //if view doesn't exist, and mode throw warning as error
+        }
       }
     }
   }
@@ -679,6 +688,4 @@ public class StatementTest extends BaseTest {
       assertTrue(e.getMessage().contains("null cannot be set to addBatch( String sql)"));
     }
   }
-
-
 }

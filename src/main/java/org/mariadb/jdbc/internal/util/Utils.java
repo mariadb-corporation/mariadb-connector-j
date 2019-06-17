@@ -67,6 +67,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import javax.net.SocketFactory;
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.failover.impl.AuroraListener;
 import org.mariadb.jdbc.internal.failover.impl.MastersFailoverListener;
@@ -548,7 +549,7 @@ public class Utils {
                 MastersSlavesProtocol.class.getClassLoader(),
                 new Class[]{Protocol.class},
                 new FailoverProxy(new MastersSlavesListener(urlParser, globalInfo), lock)));
-      case FAILOVER:
+      case LOADBALANCE:
       case SEQUENTIAL:
         return getProxyLoggingIfNeeded(urlParser, (Protocol) Proxy.newProxyInstance(
             MasterProtocol.class.getClassLoader(),
@@ -760,6 +761,29 @@ public class Utils {
   }
 
   /**
+   * Convert int value to hexadecimal String.
+   *
+   * @param value value to transform
+   * @return Hexadecimal String value of integer.
+   */
+  public static String intToHexString(final int value) {
+    final StringBuilder hex = new StringBuilder(8);
+    int offset = 24;
+    byte b;
+    boolean nullEnd = false;
+    while (offset >= 0) {
+      b = (byte) (value >> offset);
+      offset -= 8;
+      if (b != 0 || nullEnd) {
+        nullEnd = true;
+        hex.append(hexArray[(b & 0xF0) >> 4])
+                .append(hexArray[(b & 0x0F)]);
+      }
+    }
+    return hex.toString();
+  }
+
+  /**
    * Parse the option "sessionVariable" to ensure having no injection. semi-column not in string
    * will be replaced by comma.
    *
@@ -905,11 +929,37 @@ public class Utils {
     }
   }
 
-
   private enum Parse {
     Normal,
     String, /* inside string */
     Quote,
     Escape /* found backslash */
+  }
+
+  /**
+   * Validate that file name correspond to send query.
+   *
+   * @param sql         sql command
+   * @param parameters  sql parameter
+   * @param fileName    server file name
+   * @return true if correspond
+   */
+  public static boolean validateFileName(String sql, ParameterHolder[] parameters, String fileName) {
+    Pattern pattern = Pattern.compile(
+            "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'" + fileName + "'",
+            Pattern.CASE_INSENSITIVE);
+    if (pattern.matcher(sql).find()) {
+      return true;
+    }
+
+    if (parameters != null) {
+      pattern = Pattern.compile(
+              "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
+              Pattern.CASE_INSENSITIVE);
+      if (pattern.matcher(sql).find() && parameters.length > 0) {
+        return parameters[0].toString().toLowerCase().equals("'" + fileName.toLowerCase() + "'");
+      }
+    }
+    return false;
   }
 }

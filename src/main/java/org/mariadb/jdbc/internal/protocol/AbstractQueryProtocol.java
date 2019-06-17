@@ -114,6 +114,7 @@ import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.BulkStatus;
 import org.mariadb.jdbc.internal.util.LogQueryTool;
+import org.mariadb.jdbc.internal.util.SqlStates;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.constant.StateChange;
@@ -1164,9 +1165,9 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     int initialTimeout = -1;
     try {
-      initialTimeout = socket.getSoTimeout();
+      initialTimeout = this.socketTimeout;
       if (initialTimeout == 0) {
-        socket.setSoTimeout(timeout);
+        this.changeSocketSoTimeout(timeout);
       }
       if (isMasterConnection() && !galeraAllowedStates.isEmpty()) {
         //this is a galera node.
@@ -1190,7 +1191,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       //set back initial socket timeout
       try {
         if (initialTimeout != -1) {
-          socket.setSoTimeout(initialTimeout);
+          this.changeSocketSoTimeout(initialTimeout);
         }
       } catch (SocketException socketException) {
         logger.warn("Could not set socket timeout back to " + initialTimeout, socketException);
@@ -1342,11 +1343,10 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * Returns the connection timeout in milliseconds.
    *
    * @return the connection timeout in milliseconds.
-   * @throws SocketException if there is an error in the underlying protocol, such as a TCP error.
    */
   @Override
-  public int getTimeout() throws SocketException {
-    return this.socket.getSoTimeout();
+  public int getTimeout() {
+    return this.socketTimeout;
   }
 
   /**
@@ -1359,7 +1359,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   public void setTimeout(int timeout) throws SocketException {
     lock.lock();
     try {
-      this.socket.setSoTimeout(timeout);
+      this.changeSocketSoTimeout(timeout);
     } finally {
       lock.unlock();
     }
@@ -1630,10 +1630,26 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
           if (!interceptor.validate(fileName)) {
             writer.writeEmptyPacket();
             reader.getPacket(true);
-            throw new SQLException("LOCAL DATA LOCAL INFILE request to send local file named \""
+            throw new SQLException("LOAD DATA LOCAL INFILE request to send local file named \""
                 + fileName + "\" not validated by interceptor \"" + interceptor.getClass().getName()
                 + "\"");
           }
+        }
+
+        if (results.getSql() == null) {
+          writer.writeEmptyPacket();
+          reader.getPacket(true);
+          throw new SQLException(
+                  "LOAD DATA LOCAL INFILE not permit in batch. file '" + fileName + "'",
+                  SqlStates.INVALID_AUTHORIZATION.getSqlState(), -1);
+
+        } else if (!Utils.validateFileName(results.getSql(), results.getParameters(), fileName)) {
+          writer.writeEmptyPacket();
+          reader.getPacket(true);
+          throw new SQLException(
+                  "LOAD DATA LOCAL INFILE asked for file '" + fileName + "' that doesn't correspond to initial query " + results.getSql()
+                          + ". Possible malicious proxy changing server answer ! Command interrupted",
+                  SqlStates.INVALID_AUTHORIZATION.getSqlState(), -1);
         }
 
         try {
@@ -1855,43 +1871,58 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
    * @return the resulting error to return to client.
    */
   public SQLException handleIoException(Exception initialException) {
-    boolean mustReconnect;
-    boolean driverPreventError = false;
+    boolean mustReconnect = options.autoReconnect;
+    boolean maxSizeError;
 
     if (initialException instanceof MaxAllowedPacketException) {
-      mustReconnect = ((MaxAllowedPacketException) initialException).isMustReconnect();
-      driverPreventError = !mustReconnect;
+      maxSizeError = true;
+      if (((MaxAllowedPacketException) initialException).isMustReconnect()) {
+        mustReconnect = true;
+      } else {
+        return new SQLNonTransientConnectionException(initialException.getMessage() + getTraces(),
+                UNDEFINED_SQLSTATE.getSqlState(),
+                initialException);
+      }
     } else {
-      mustReconnect = writer.exceedMaxLength();
+      maxSizeError = writer.exceedMaxLength();
+      if (maxSizeError) {
+        mustReconnect = true;
+      }
     }
 
-    if (mustReconnect) {
+    if (mustReconnect && !explicitClosed) {
       try {
         connect();
+
+        try {
+          resetStateAfterFailover(getMaxRows(), getTransactionIsolationLevel(), getDatabase(),
+                  getAutocommit());
+
+          if (maxSizeError) {
+            return new SQLTransientConnectionException("Could not send query: query size is >= to max_allowed_packet ("
+                    + writer.getMaxAllowedPacket() + ")" + getTraces(), UNDEFINED_SQLSTATE.getSqlState(),
+                    initialException);
+          }
+
+          return new SQLNonTransientConnectionException(initialException.getMessage() + getTraces(),
+                  UNDEFINED_SQLSTATE.getSqlState(),
+                  initialException);
+
+        } catch (SQLException queryException) {
+          return new SQLNonTransientConnectionException("reconnection succeed, but resetting previous state failed",
+                  UNDEFINED_SQLSTATE.getSqlState() + getTraces(), initialException);
+        }
+
       } catch (SQLException queryException) {
         connected = false;
         return new SQLNonTransientConnectionException(initialException.getMessage()
             + "\nError during reconnection" + getTraces(), CONNECTION_EXCEPTION.getSqlState(),
             initialException);
       }
-
-      try {
-        resetStateAfterFailover(getMaxRows(), getTransactionIsolationLevel(), getDatabase(),
-            getAutocommit());
-      } catch (SQLException queryException) {
-        return new SQLException("reconnection succeed, but resetting previous state failed",
-            UNDEFINED_SQLSTATE.getSqlState() + getTraces(), initialException);
-      }
-
-      return new SQLTransientConnectionException("Could not send query: query size is >= to max_allowed_packet ("
-          + writer.getMaxAllowedPacket() + ")" + getTraces(), UNDEFINED_SQLSTATE.getSqlState(),
-          initialException);
     }
-    if (!driverPreventError) {
-      connected = false;
-    }
+    connected = false;
     return new SQLNonTransientConnectionException(initialException.getMessage() + getTraces(),
-        driverPreventError ? UNDEFINED_SQLSTATE.getSqlState() : CONNECTION_EXCEPTION.getSqlState(),
+        CONNECTION_EXCEPTION.getSqlState(),
         initialException);
 
   }

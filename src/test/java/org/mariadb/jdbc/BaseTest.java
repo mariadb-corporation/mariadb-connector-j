@@ -68,6 +68,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLNonTransientConnectionException;
 import java.sql.Statement;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
@@ -144,6 +145,14 @@ public class BaseTest {
           ResultSet rs = preparedStatement.executeQuery();
           assertTrue(rs.next());
           assertEquals(randInt, rs.getInt(1));
+        } catch (SQLNonTransientConnectionException connFail) {
+          connFail.printStackTrace();
+          try {
+              beforeClassBaseTest();
+            } catch (SQLException e) {
+              System.out.println("ERROR reconnecting");
+              e.printStackTrace();
+            }
         } catch (Exception e) {
           e.printStackTrace();
           fail("Prepare after test fail for " + description.getClassName() + "." + description
@@ -242,12 +251,10 @@ public class BaseTest {
   private static void setUri() {
     connU = "jdbc:mariadb://" + ((hostname == null) ? "localhost" : hostname) + ":" + port + "/"
         + ((database == null) ? "" : database);
-    connUri = connU + "?user=" + username
-        + (password != null && !"".equals(password) ? "&password=" + password : "")
-        + (parameters != null ? "&" + parameters : "");
-    connDnsUri = "jdbc:mariadb://mariadb.example.com:" + port + "/" + database + "?user=" + username
-        + (password != null && !"".equals(password) ? "&password=" + password : "")
-        + (parameters != null ? "&" + parameters : "");
+    connUri = connU + "?" + parameters
+        + (password != null && !"".equals(password) ? "&password=" + password : "");
+    connDnsUri = "jdbc:mariadb://mariadb.example.com:" + port + "/" + database + "?" + parameters
+        + (password != null && !"".equals(password) ? "&password=" + password : "");
   }
 
   /**

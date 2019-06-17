@@ -176,10 +176,10 @@ public abstract class AbstractMastersListener implements Listener {
    * @param protocol current protocol
    * @return a HandleErrorResult object to indicate if query has been relaunched, and the exception
    *     if not
-   * @throws Throwable when method and parameters does not exist.
+   * @throws SQLException when method and parameters does not exist.
    */
   public HandleErrorResult handleFailover(SQLException qe, Method method, Object[] args,
-      Protocol protocol) throws Throwable {
+      Protocol protocol, boolean isClosed) throws SQLException {
     if (isExplicitClosed()) {
       throw new SQLException("Connection has been closed !");
     }
@@ -200,7 +200,7 @@ public abstract class AbstractMastersListener implements Listener {
         && qe.getSQLState().equals("70100")
         && 1927 == qe.getErrorCode();
 
-    return primaryFail(method, args, killCmd);
+    return primaryFail(method, args, killCmd, isClosed);
   }
 
   /**
@@ -297,14 +297,13 @@ public abstract class AbstractMastersListener implements Listener {
    * After a failover that has bean done, relaunch the operation that was in progress. In case of
    * special operation that crash server, doesn't relaunched it;
    *
-   * @param method the methode accessed
+   * @param method the method accessed
    * @param args   the parameters
    * @return An object that indicate the result or that the exception as to be thrown
-   * @throws IllegalAccessException    if the initial call is not permit
-   * @throws InvocationTargetException if there is any error relaunching initial method
+   * @throws SQLException if there is any error relaunching initial method
    */
   public HandleErrorResult relaunchOperation(Method method, Object[] args)
-      throws IllegalAccessException, InvocationTargetException {
+      throws SQLException {
     HandleErrorResult handleErrorResult = new HandleErrorResult(true);
     if (method != null) {
       switch (method.getName()) {
@@ -317,8 +316,12 @@ public abstract class AbstractMastersListener implements Listener {
               logger.debug("relaunch query to new connection {}",
                   ((currentProtocol != null) ? "(conn=" + currentProtocol.getServerThreadId() + ")"
                       : ""));
-              handleErrorResult.resultObject = method.invoke(currentProtocol, args);
-              handleErrorResult.mustThrowError = false;
+              try {
+                handleErrorResult.resultObject = method.invoke(currentProtocol, args);
+                handleErrorResult.mustThrowError = false;
+              } catch (IllegalAccessException | InvocationTargetException e) {
+                throw new SQLException(e);
+              }
             }
           }
           break;
@@ -342,9 +345,13 @@ public abstract class AbstractMastersListener implements Listener {
           break;
 
         default:
-          handleErrorResult.resultObject = method.invoke(currentProtocol, args);
-          handleErrorResult.mustThrowError = false;
-          break;
+          try {
+            handleErrorResult.resultObject = method.invoke(currentProtocol, args);
+            handleErrorResult.mustThrowError = false;
+            break;
+          } catch (IllegalAccessException | InvocationTargetException e) {
+            throw new SQLException(e);
+          }
       }
     }
     return handleErrorResult;
@@ -481,8 +488,8 @@ public abstract class AbstractMastersListener implements Listener {
 
   public abstract void switchReadOnlyConnection(Boolean readonly) throws SQLException;
 
-  public abstract HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd)
-      throws Throwable;
+  public abstract HandleErrorResult primaryFail(Method method, Object[] args, boolean killCmd, boolean isClosed)
+      throws SQLException;
 
   /**
    * Throw a human readable message after a failoverException.

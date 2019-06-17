@@ -87,12 +87,14 @@ public class LoadBalanceFailoverTest extends BaseMultiHostTest {
     currentType = HaMode.LOADBALANCE;
   }
 
-  @Test(expected = SQLException.class)
+  @Test
   public void failover() throws Throwable {
-    try (Connection connection = getNewConnection("&autoReconnect=true&retriesAllDown=6", true)) {
+    try (Connection connection = getNewConnection("&retriesAllDown=6", true)) {
       int master1ServerId = getServerId(connection);
       stopProxy(master1ServerId);
-      connection.createStatement().execute("SELECT 1");
+      connection.createStatement().executeQuery("SELECT 1");
+      int secondServerId = getServerId(connection);
+      Assert.assertNotEquals(master1ServerId, secondServerId);
     }
   }
 

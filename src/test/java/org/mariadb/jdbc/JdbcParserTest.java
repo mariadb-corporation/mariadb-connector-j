@@ -461,7 +461,8 @@ public class JdbcParserTest {
     checkHaMode("jdbc:mariadb:replication://localhost/test", HaMode.REPLICATION);
     checkHaMode("jdbc:mariadb:replication//localhost/test", HaMode.REPLICATION);
     checkHaMode("jdbc:mariadb:aurora://localhost/test", HaMode.AURORA);
-    checkHaMode("jdbc:mariadb:failover//localhost:3306/test", HaMode.FAILOVER);
+    checkHaMode("jdbc:mariadb:failover://localhost:3306/test", HaMode.LOADBALANCE);
+    checkHaMode("jdbc:mariadb:loadbalance://localhost:3306/test", HaMode.LOADBALANCE);
 
     try {
       checkHaMode("jdbc:mariadb:replicati//localhost/test", HaMode.REPLICATION);

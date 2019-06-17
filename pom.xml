@@ -58,7 +58,7 @@
     <artifactId>mariadb-java-client</artifactId>
     <packaging>jar</packaging>
     <name>mariadb-java-client</name>
-    <version>2.4.1</version>
+    <version>2.4.2</version>
     <description>JDBC driver for MariaDB and MySQL</description>
     <url>https://mariadb.com/kb/en/mariadb/about-mariadb-connector-j/</url>
 
@@ -71,7 +71,7 @@
         <checkstyle.plugin.version>2.17</checkstyle.plugin.version>
         <driver.version.major>2</driver.version.major>
         <driver.version.minor>4</driver.version.minor>
-        <driver.version.patch>1</driver.version.patch>
+        <driver.version.patch>2</driver.version.patch>
         <driver.version.qualifier></driver.version.qualifier>
     </properties>
 
@@ -149,6 +149,9 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>2.10.4</version>
+                <configuration>
+                    <source>8</source>
+                </configuration>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -255,35 +258,11 @@
                     <prefix>git</prefix>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>1.4.0</version>
-                <executions>
-                    <execution>
-                        <phase>install</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <executable>git</executable>
-                    <arguments>
-                        <argument>archive</argument>
-                        <argument>--format</argument>
-                        <argument>tar.gz</argument>
-                        <argument>--output</argument>
-                        <argument>${project.name}-${git.commit.id.describe}.tar.gz</argument>
-                        <argument>${git.branch}</argument>
-                    </arguments>
-                </configuration>
-            </plugin>
 
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.0.2</version>
+                <version>3.1.2</version>
                 <configuration>
                     <archive>
                         <manifestFile>src/main/resources/META-INF/MANIFEST.MF</manifestFile>
@@ -294,9 +273,7 @@
                             <Bundle-SymbolicName>org.mariadb.jdbc</Bundle-SymbolicName>
                             <Automatic-Module-Name>org.mariadb.jdbc</Automatic-Module-Name>
                             <Export-Package>org.mariadb.jdbc</Export-Package>
-                            <Import-Package>
-                                javax.naming,javax.management,javax.net;resolution:=optional,javax.net.ssl;resolution:=optional,javax.sql,javax.transaction.xa;resolution:=optional,org.slf4j;resolution:=optional
-                            </Import-Package>
+                            <Import-Package>javax.naming, javax.management, javax.net;resolution:=optional, javax.net.ssl;resolution:=optional, javax.sql, javax.transaction.xa;resolution:=optional, waffle.windows.auth;resolution:=optional, waffle.windows.auth.impl;resolution:=optional, * </Import-Package>
                         </manifestEntries>
                     </archive>
                 </configuration>
