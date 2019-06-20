@@ -71,6 +71,7 @@ public class AttributeTest extends BaseTest {
 	  @Test
 	  public void testServerHost() throws SQLException  {
 		  //test for _server_host attribute
+          Assume.assumeTrue(isMariadbServer() || minVersion(5,6)); //session_connect_attrs does not exist in MySQL 5.5
 
 		  Statement statement = sharedConnection.createStatement();
 		  try {
@@ -92,7 +93,7 @@ public class AttributeTest extends BaseTest {
 			  Protocol protocolVal = (Protocol) protocolField.get(connection);
 
 			  Statement attributeStatement = connection.createStatement();
-			  ResultSet result = attributeStatement.executeQuery("select * from performance_schema.session_connect_attrs where ATTR_NAME='_server_host'");
+			  ResultSet result = attributeStatement.executeQuery("select * from performance_schema.session_connect_attrs where ATTR_NAME='_server_host' and processlist_id = connection_id()");
 			  while(result.next()) {
 				  String str = result.getString("ATTR_NAME");
 			      String strVal = result.getString("ATTR_VALUE");
