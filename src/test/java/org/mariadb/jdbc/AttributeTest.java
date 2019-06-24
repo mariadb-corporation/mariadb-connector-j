@@ -71,11 +71,7 @@ public class AttributeTest extends BaseTest {
 	  @Test
 	  public void testServerHost() throws SQLException  {
 		  //test for _server_host attribute
-          System.out.println("major version "+sharedConnection.getMetaData().getDatabaseMajorVersion());
-          System.out.println("minor version "+sharedConnection.getMetaData().getDatabaseMinorVersion());
-          System.out.println("isMariadbServer "+isMariadbServer());
-          System.out.println("product version "+sharedConnection.getMetaData().getDatabaseProductVersion());
-          Assume.assumeTrue(isMariadbServer() || minVersion(5,6)); //session_connect_attrs does not exist in MySQL 5.5
+          Assume.assumeTrue((isMariadbServer() && minVersion(10,0)) || minVersion(5,6)); //session_connect_attrs does not exist in MySQL 5.5, or before MariaDB 10.0.5
 
 		  Statement statement = sharedConnection.createStatement();
 		  try {
