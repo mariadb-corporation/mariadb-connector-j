@@ -43,17 +43,18 @@ jobs:
           targetPath: $(System.DefaultWorkingDirectory)
 
       - task: DownloadPipelineArtifact@1
-        displayName: 'Download server artifact files'
+        displayName: 'Download 10.4 enterprise server artifact files'
         inputs:
           buildType: 'specific'
           project: '6d15af64-176c-496d-b583-fd2ae21d4df4'
           pipeline: 'mariadb-corporation.MariaDBEnterprise'
+          branchName: 'refs/heads/10.4-enterprise'
           artifactName: Windows
-          buildId: 373
-          #buildVersionToDownload: 'latest'
-          buildVersionToDownload: 'specific'
           definition: '3'
           downloadPath: $(System.DefaultWorkingDirectory)
+          #buildVersionToDownload: 'latest'
+          buildVersionToDownload: 'specific'
+          buildId: 373
       - script: |
           choco install jdk8 -ia "INSTALLDIR=""c:\java"""
           type C:\ProgramData\chocolatey\logs\chocolatey.log
@@ -112,33 +113,32 @@ jobs:
         displayName: Set up sudo
 
       - task: DownloadPipelineArtifact@1
-        displayName: 'Download server artifact files'
+        displayName: 'Download 10.4 enterprise server artifact files'
         inputs:
           buildType: 'specific'
           downloadPath: $(System.DefaultWorkingDirectory)
           project: '6d15af64-176c-496d-b583-fd2ae21d4df4'
           pipeline: 'mariadb-corporation.MariaDBEnterprise'
           artifactName: $(containerImage)
+          branchName: 'refs/heads/10.4-enterprise'
           #buildVersionToDownload: 'latest'
           definition: '3'
           buildVersionToDownload: 'specific'
           buildId: 373
-      - script: |
-          sudo apt-get install -y software-properties-common wget
-          wget -qO- 'https://github.com/tianon/pgp-happy-eyeballs/raw/master/hack-my-builds.sh' | bash
-          sudo apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 0xcbcb082a1bb943db
-          sudo apt-key adv --recv-keys --keyserver ha.pool.sks-keyservers.net F1656F24C74CD1D8
-        displayName: 'Add galera signature keys'
 
-      - script: |
-          sudo bash -c "echo 'deb http://yum.mariadb.org/galera/repo/deb xenial main' > /etc/apt/sources.list.d/galera-test-repo.list"
-        condition: eq(variables['containerImage'], 'ubuntu-1604')
-        displayName: 'Add xenial galera repo'
-
-      - script: |
-          sudo bash -c "echo 'deb http://yum.mariadb.org/galera/repo/deb bionic main' > /etc/apt/sources.list.d/galera-test-repo.list"
-        condition: eq(variables['containerImage'], 'ubuntu-1804')
-        displayName: 'Add bionic galera repo'
+      - task: DownloadPipelineArtifact@1
+        displayName: 'Download galera server artifact files'
+        inputs:
+          buildType: 'specific'
+          downloadPath: $(System.DefaultWorkingDirectory)
+          project: '6d15af64-176c-496d-b583-fd2ae21d4df4'
+          pipeline: 'mariadb-corporation.es-galera'
+          artifactName: $(containerImage)
+          branchName: 'refs/heads/es-mariadb-4.x'
+          #buildVersionToDownload: 'latest'
+          definition: '2'
+          buildVersionToDownload: 'specific'
+          buildId: 337
 
       - script: |
           ls -lrt .
@@ -155,7 +155,7 @@ jobs:
           sudo debconf-set-selections <<< "mariadb-server-10.4 mysql-server/root_password_again password !Passw0rd"
           sudo apt-get update -y
 
-          sudo apt-get install --allow-unauthenticated -y curl libdbi-perl rsync socat libnuma1 libaio1 zlib1g-dev libreadline5 libjemalloc1 libsnappy1v5 libcrack2 galera-4 gawk lsof psmisc libaio1 perl libreadline5
+          sudo apt-get install --allow-unauthenticated -y curl libdbi-perl rsync socat libnuma1 libaio1 zlib1g-dev libreadline5 libjemalloc1 libsnappy1v5 libcrack2 gawk lsof psmisc libaio1 perl libreadline5
 
           echo 'Installing deb files'
           sudo apt install -f -y ./*.deb
