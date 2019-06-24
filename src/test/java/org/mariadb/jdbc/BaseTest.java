@@ -148,11 +148,14 @@ public class BaseTest {
         } catch (SQLNonTransientConnectionException connFail) {
           connFail.printStackTrace();
           try {
-              beforeClassBaseTest();
-            } catch (SQLException e) {
-              System.out.println("ERROR reconnecting");
-              e.printStackTrace();
-            }
+            beforeClassBaseTest();
+          } catch (SQLException e) {
+            System.out.println("ERROR reconnecting");
+            e.printStackTrace();
+          }
+          fail("Prepare after test fail for " + description.getClassName() + "." + description
+                  .getMethodName());
+
         } catch (Exception e) {
           e.printStackTrace();
           fail("Prepare after test fail for " + description.getClassName() + "." + description
