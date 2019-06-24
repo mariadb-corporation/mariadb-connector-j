@@ -46,12 +46,13 @@ jobs:
         displayName: 'Download server artifact files'
         inputs:
           buildType: 'specific'
-          project: 'test mariadb ent'
-          pipeline: 'rusher.MariaDBEnterprise'
+          project: '6d15af64-176c-496d-b583-fd2ae21d4df4'
+          pipeline: 'mariadb-corporation.MariaDBEnterprise'
           artifactName: Windows
+          buildId: 373
           #buildVersionToDownload: 'latest'
-          buildId: 73
           buildVersionToDownload: 'specific'
+          definition: '3'
           downloadPath: $(System.DefaultWorkingDirectory)
       - script: |
           choco install jdk8 -ia "INSTALLDIR=""c:\java"""
@@ -114,14 +115,14 @@ jobs:
         displayName: 'Download server artifact files'
         inputs:
           buildType: 'specific'
-          project: 'test mariadb ent'
-          pipeline: 'rusher.MariaDBEnterprise'
+          downloadPath: $(System.DefaultWorkingDirectory)
+          project: '6d15af64-176c-496d-b583-fd2ae21d4df4'
+          pipeline: 'mariadb-corporation.MariaDBEnterprise'
           artifactName: $(containerImage)
           #buildVersionToDownload: 'latest'
-          buildId: 47
+          definition: '3'
           buildVersionToDownload: 'specific'
-          downloadPath: $(System.DefaultWorkingDirectory)
-
+          buildId: 373
       - script: |
           sudo apt-get install -y software-properties-common wget
           wget -qO- 'https://github.com/tianon/pgp-happy-eyeballs/raw/master/hack-my-builds.sh' | bash
