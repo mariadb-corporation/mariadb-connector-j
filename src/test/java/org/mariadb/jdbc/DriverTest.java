@@ -1435,19 +1435,16 @@ public class DriverTest extends BaseTest {
     }
 
     String path = rs.getString(2);
-    st.execute("CREATE USER testSocket@'" + ((hostname == null) ? "localhost" : hostname) + "'  IDENTIFIED VIA unix_socket");
-    try {
-      st.execute("INSTALL SONAME 'auth_socket'");
-    } catch (SQLException e) {
-      //dismiss, can already be installed
-    }
-    String connString = connU + "?user=testSocket&localSocket=" + path + "&profileSql=true";
+    st.execute("CREATE USER testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
+    st.execute("GRANT ALL on *.* to testSocket@'localhost' IDENTIFIED BY 'MySup5%rPassw@ord'");
+    st.execute("FLUSH PRIVILEGES");
+    String connString = connU + "?user=testSocket&password=MySup5%rPassw@ord&localSocket=" + path;
     System.out.println(connString);
     try (Connection connection = openConnection(connString, null)) {
       rs = connection.createStatement().executeQuery("select 1");
       assertTrue(rs.next());
     }
-    st.execute("DROP user testSocket@'" + ((hostname == null) ? "localhost" : hostname) + "'");
+    st.execute("DROP user testSocket@'localhost'");
   }
 
   @Test

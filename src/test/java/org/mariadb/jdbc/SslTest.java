@@ -237,6 +237,7 @@ public class SslTest extends BaseTest {
 
   @Test
   public void useSslForceTlsV1() throws Exception {
+    Assume.assumeFalse(isMariadbServer() && minVersion(10, 4));
     useSslForceTls("TLSv1");
   }
 
@@ -279,10 +280,10 @@ public class SslTest extends BaseTest {
 
   @Test
   public void useSslForceTlsV12AndCipher() throws Exception {
-    Assume.assumeFalse(Platform.isWindows());
+    Assume.assumeFalse((Platform.isWindows() && !isMariadbServer()) || (isMariadbServer() && Platform.isWindows() && !minVersion(10, 4)));
     // Only test with MariaDB since MySQL community is compiled with yaSSL
     if (isMariadbServer()) {
-      useSslForceTls("TLSv1.2", "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
+      useSslForceTls("TLSv1.2", "TLS_DHE_RSA_WITH_AES_256_CBC_SHA, TLS_DHE_RSA_WITH_AES_128_GCM_SHA256");
     }
   }
 

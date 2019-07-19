@@ -431,11 +431,11 @@ public class StoredProcedureTest extends BaseTest {
     } catch (SQLException e) {
       //eat exception
     }
-    statement.execute("CREATE USER 'test_jdbc'@'%' IDENTIFIED BY 'test_jdbc'");
-    statement.execute("GRANT ALL PRIVILEGES ON testj.* TO 'test_jdbc'@'%' WITH GRANT OPTION");
+    statement.execute("CREATE USER 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1'");
+    statement.execute("GRANT ALL PRIVILEGES ON testj.* TO 'test_jdbc'@'%' IDENTIFIED BY 'testJ@dc1' WITH GRANT OPTION");
     Properties properties = new Properties();
     properties.put("user", "test_jdbc");
-    properties.put("password", "test_jdbc");
+    properties.put("password", "testJ@dc1");
 
     createProcedure("testMetaCatalog", "(x int, out y int)\nBEGIN\nSET y = 2;\n end\n");
 
