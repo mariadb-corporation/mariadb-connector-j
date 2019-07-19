@@ -315,19 +315,20 @@ public class BaseTest {
         e.printStackTrace();
       }
     }
-    Iterator<Thread> it = Thread.getAllStackTraces().keySet().iterator();
-    Thread thread;
-
-    while (it.hasNext()) {
-      thread = it.next();
-      if (thread.getName().contains("MariaDb-bulk-")) {
-        if (thread.getState() != State.WAITING) {
-          //print stack trace to console.
-          for (StackTraceElement ste : thread.getStackTrace()) {
-            System.out.println(ste);
+    if (!Platform.isWindows()) {
+      Iterator<Thread> it = Thread.getAllStackTraces().keySet().iterator();
+      Thread thread;
+      while (it.hasNext()) {
+        thread = it.next();
+        if (thread.getName().contains("MariaDb-bulk-")) {
+          if (thread.getState() != State.WAITING) {
+            //print stack trace to console.
+            for (StackTraceElement ste : thread.getStackTrace()) {
+              System.out.println(ste);
+            }
           }
+          assertEquals(State.WAITING, thread.getState());
         }
-        assertEquals(State.WAITING, thread.getState());
       }
     }
   }
