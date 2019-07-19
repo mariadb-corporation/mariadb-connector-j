@@ -321,6 +321,12 @@ public class BaseTest {
     while (it.hasNext()) {
       thread = it.next();
       if (thread.getName().contains("MariaDb-bulk-")) {
+        if (thread.getState() != State.WAITING) {
+          //print stack trace to console.
+          for (StackTraceElement ste : thread.getStackTrace()) {
+            System.out.println(ste);
+          }
+        }
         assertEquals(State.WAITING, thread.getState());
       }
     }
