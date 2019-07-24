@@ -84,6 +84,7 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.util.Calendar;
 import java.util.TimeZone;
 import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.com.send.parameters.LocalTimeParameter;
 import org.mariadb.jdbc.internal.com.send.parameters.BigDecimalParameter;
 import org.mariadb.jdbc.internal.com.send.parameters.ByteArrayParameter;
 import org.mariadb.jdbc.internal.com.send.parameters.ByteParameter;
@@ -1052,7 +1053,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
               useFractionalSeconds,
               options));
     } else if (obj instanceof LocalTime) {
-      setTime(parameterIndex, Time.valueOf((LocalTime) obj));
+      setParameter(parameterIndex, new LocalTimeParameter((LocalTime) obj, useFractionalSeconds));
     } else {
       //fallback to sending serialized object
       setParameter(parameterIndex, new SerializableParameter(obj, noBackslashEscapes));
@@ -1274,7 +1275,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
               useFractionalSeconds,
               options));
     } else if (obj instanceof LocalTime) {
-      setTime(parameterIndex, Time.valueOf((LocalTime) obj));
+      setParameter(parameterIndex, new LocalTimeParameter((LocalTime) obj, useFractionalSeconds));
     } else {
       throw ExceptionMapper.getSqlException(
           "Could not set parameter in setObject, could not convert: " + obj.getClass() + " to "
