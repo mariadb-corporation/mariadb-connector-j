@@ -180,7 +180,7 @@ public class Utils {
    * @throws UnsupportedEncodingException if passwordCharacterEncoding is not a valid charset name
    */
   public static byte[] encryptPassword(final String password, final byte[] seed,
-      String passwordCharacterEncoding)
+                                       String passwordCharacterEncoding)
       throws NoSuchAlgorithmException, UnsupportedEncodingException {
 
     if (password == null || password.isEmpty()) {
@@ -249,19 +249,20 @@ public class Utils {
   }
 
   /**
-   * Helper function to replace function parameters in escaped string. 3 functions are handles : -
-   * CONVERT(value, type) , we replace SQL_XXX types with XXX, i.e SQL_INTEGER with INTEGER -
-   * TIMESTAMPDIFF(type, ...) or TIMESTAMPADD(type, ...) , we replace SQL_TSI_XXX in type with XXX,
-   * i.e SQL_TSI_HOUR with HOUR
+   * Helper function to replace function parameters in escaped string.
+   * 3 functions are handles :
+   * <ul>
+   * <li>CONVERT(value, type): replacing SQL_XXX types to convertible type, i.e SQL_BIGINT to INTEGER</li>
+   * <li>TIMESTAMPDIFF(type, ...): replacing type SQL_TSI_XXX in type with XXX, i.e SQL_TSI_HOUR with HOUR</li>
+   * <li>TIMESTAMPADD(type, ...): replacing type SQL_TSI_XXX in type with XXX, i.e SQL_TSI_HOUR with HOUR</li>
+   * </ul>
+   * caution: this use MariaDB server conversion: 'SELECT CONVERT('2147483648', INTEGER)' will return a BIGINT.
+   * MySQL will throw a syntax error.
    *
    * @param functionString - input string
    * @return unescaped string
    */
   private static String replaceFunctionParameter(String functionString) {
-
-    if (!functionString.contains("SQL_")) {
-      return functionString;
-    }
 
     char[] input = functionString.toCharArray();
     StringBuilder sb = new StringBuilder();
@@ -277,52 +278,91 @@ public class Utils {
       sb.append(input[index]);
     }
     String func = sb.toString().toLowerCase(Locale.ROOT);
+    switch (func) {
+      case "convert":
+        // Handle "convert(value, type)" case
+        // extract last parameter, after the last ','
+        int lastCommaIndex = functionString.lastIndexOf(',');
 
-    if ("convert".equals(func) || "timestampdiff".equals(func) || "timestampadd".equals(func)) {
-      String paramPrefix;
+        for (index = lastCommaIndex + 1; index < input.length; index++) {
+          if (!Character.isWhitespace(input[index])) {
+            break;
+          }
+        }
 
-      if ("timestampdiff".equals(func) || "timestampadd".equals(func)) {
+        int endParam = index + 1;
+        for (; endParam < input.length; endParam++) {
+          if ((input[endParam] < 'a' || input[endParam] > 'z') && (input[endParam] < 'A' || input[endParam] > 'Z') && input[endParam] != '_'){
+            break;
+          }
+        }
+        String typeParam = new String(input, index, endParam - index).toUpperCase(Locale.ROOT);
+        if (typeParam.startsWith("SQL_")) typeParam = typeParam.substring(4);
+
+        switch (typeParam) {
+          case "BIGINT":
+          case "BOOLEAN":
+          case "SMALLINT":
+          case "TINYINT":
+          case "BIT":
+            typeParam = "INTEGER";
+            break;
+
+          case "BLOB":
+          case "VARBINARY":
+          case "LONGVARBINARY":
+          case "ROWID":
+            typeParam = "BINARY";
+            break;
+
+          case "NCHAR":
+          case "CLOB":
+          case "NCLOB":
+          case "DATALINK":
+          case "VARCHAR":
+          case "NVARCHAR":
+          case "LONGVARCHAR":
+          case "LONGNVARCHAR":
+          case "SQLXML":
+          case "LONGNCHAR":
+            typeParam = "CHAR";
+            break;
+
+          case "FLOAT":
+            typeParam = "DOUBLE";
+            break;
+
+          case "REAL":
+          case "NUMERIC":
+            typeParam = "DECIMAL";
+            break;
+
+          case "TIMESTAMP":
+            typeParam = "DATETIME";
+            break;
+        }
+        return new String(input, 0, index) + typeParam + new String(input, endParam, input.length - endParam);
+
+      case "timestampdiff":
+      case "timestampadd":
         // Skip to first parameter
         for (; index < input.length; index++) {
           if (!Character.isWhitespace(input[index]) && input[index] != '(') {
             break;
           }
         }
-        if (index == input.length) {
-          return new String(input);
+        if (index < input.length - 8) {
+          String paramPrefix = new String(input, index, 8);
+          if ("SQL_TSI_".equals(paramPrefix)) {
+            return new String(input, 0, index) + new String(input, index + 8,input.length - (index + 8));
+          }
         }
 
-        if (index >= input.length - 8) {
-          return new String(input);
-        }
-        paramPrefix = new String(input, index, 8);
-        if ("SQL_TSI_".equals(paramPrefix)) {
-          return new String(input, 0, index) + new String(input, index + 8,
-              input.length - (index + 8));
-        }
-        return new String(input);
-      }
-
-      // Handle "convert(value, type)" case
-      // extract last parameter, after the last ','
-      int lastCommaIndex = functionString.lastIndexOf(',');
-
-      for (index = lastCommaIndex + 1; index < input.length; index++) {
-        if (!Character.isWhitespace(input[index])) {
-          break;
-        }
-      }
-      if (index >= input.length - 4) {
-        return new String(input);
-      }
-      paramPrefix = new String(input, index, 4);
-      if ("SQL_".equals(paramPrefix)) {
-        return new String(input, 0, index) + new String(input, index + 4,
-            input.length - (index + 4));
-      }
-
+      default:
+        return functionString;
     }
-    return new String(input);
+
+
   }
 
   private static String resolveEscapes(String escaped, boolean noBackslashEscapes)
@@ -458,27 +498,6 @@ public class Utils {
                 isSlashSlashComment = false;
               }
             }
-          }
-          break;
-        case 'S':
-          // skip SQL_xxx and SQL_TSI_xxx in functions
-          // This would convert e.g SQL_INTEGER => INTEGER, SQL_TSI_HOUR=>HOUR
-
-          if (!inQuote && !inComment && inEscapeSeq > 0
-              && i + 4 < charArray.length && charArray[i + 1] == 'Q'
-              && charArray[i + 2] == 'L' && charArray[i + 3] == 'L'
-              && charArray[i + 4] == '_') {
-
-            if (i + 8 < charArray.length
-                && charArray[i + 5] == 'T'
-                && charArray[i + 6] == 'S'
-                && charArray[i + 7] == 'I'
-                && charArray[i + 8] == '_') {
-              i += 8;
-              continue;
-            }
-            i += 4;
-            continue;
           }
           break;
         case '\n':
@@ -696,7 +715,7 @@ public class Utils {
    * @param outputBuilder string builder
    */
   private static void writeHex(byte[] bytes, int offset, int dataLength,
-      StringBuilder outputBuilder) {
+                               StringBuilder outputBuilder) {
 
     if (bytes == null || bytes.length == 0) {
       return;
@@ -777,7 +796,7 @@ public class Utils {
       if (b != 0 || nullEnd) {
         nullEnd = true;
         hex.append(hexArray[(b & 0xF0) >> 4])
-                .append(hexArray[(b & 0x0F)]);
+            .append(hexArray[(b & 0x0F)]);
       }
     }
     return hex.toString();
@@ -946,16 +965,16 @@ public class Utils {
    */
   public static boolean validateFileName(String sql, ParameterHolder[] parameters, String fileName) {
     Pattern pattern = Pattern.compile(
-            "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'" + fileName + "'",
-            Pattern.CASE_INSENSITIVE);
+        "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+'" + fileName + "'",
+        Pattern.CASE_INSENSITIVE);
     if (pattern.matcher(sql).find()) {
       return true;
     }
 
     if (parameters != null) {
       pattern = Pattern.compile(
-              "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
-              Pattern.CASE_INSENSITIVE);
+          "^(\\s*\\/\\*([^\\*]|\\*[^\\/])*\\*\\/)*\\s*LOAD\\s+DATA\\s+((LOW_PRIORITY|CONCURRENT)\\s+)?LOCAL\\s+INFILE\\s+\\?",
+          Pattern.CASE_INSENSITIVE);
       if (pattern.matcher(sql).find() && parameters.length > 0) {
         return parameters[0].toString().toLowerCase().equals("'" + fileName.toLowerCase() + "'");
       }
