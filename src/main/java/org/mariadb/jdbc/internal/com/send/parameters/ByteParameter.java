@@ -58,18 +58,21 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 public class ByteParameter implements Cloneable, ParameterHolder {
 
-  private final byte value;
+  private final int value;
+  private static final char[] hexArray = "0123456789ABCDEF".toCharArray();
 
   public ByteParameter(byte value) {
-    this.value = value;
+    this.value = value & 0xFF;
   }
 
   public void writeTo(final PacketOutputStream os) throws IOException {
-    os.write(String.valueOf(value).getBytes());
+    os.write("0x");
+    os.write(hexArray[value >>> 4]);
+    os.write(hexArray[value & 0x0F]);
   }
 
   public long getApproximateTextProtocolLength() {
-    return String.valueOf(value).getBytes().length * 2;
+    return 4;
   }
 
   /**
@@ -88,7 +91,7 @@ public class ByteParameter implements Cloneable, ParameterHolder {
 
   @Override
   public String toString() {
-    return Byte.toString(value);
+    return "0x" + hexArray[value >>> 4] + hexArray[value & 0x0F];
   }
 
   public boolean isNullData() {

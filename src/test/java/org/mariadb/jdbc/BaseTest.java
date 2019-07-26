@@ -74,6 +74,7 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
@@ -107,7 +108,7 @@ public class BaseTest {
   private static final Set<String> tempViewList = new HashSet<>();
   private static final Set<String> tempProcedureList = new HashSet<>();
   private static final Set<String> tempFunctionList = new HashSet<>();
-  private static final NumberFormat numberFormat = DecimalFormat.getInstance();
+  private static final NumberFormat numberFormat = DecimalFormat.getInstance(Locale.ROOT);
   protected static String connU;
   protected static String connUri;
   protected static String connDnsUri;

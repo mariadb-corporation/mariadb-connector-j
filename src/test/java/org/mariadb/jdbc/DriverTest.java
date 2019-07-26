@@ -1491,7 +1491,7 @@ public class DriverTest extends BaseTest {
 
   @Test
   public void preparedStatementToString() throws Exception {
-    try (PreparedStatement ps = sharedConnection.prepareStatement("SELECT ?,?,?,?,?,?")) {
+    try (PreparedStatement ps = sharedConnection.prepareStatement("SELECT ?,?,?,?,?,?,?")) {
       ps.setInt(1, 1);
       ps.setBigDecimal(2, new BigDecimal("1"));
       ps.setString(3, "one");
@@ -1499,7 +1499,8 @@ public class DriverTest extends BaseTest {
       Calendar calendar = new GregorianCalendar(1972, 3, 22);
       ps.setDate(5, new Date(calendar.getTime().getTime()));
       ps.setDouble(6, 1.5);
-      assertEquals("sql : 'SELECT ?,?,?,?,?,?', parameters : [1,1,'one',1,'1972-04-22',1.5]",
+      ps.setByte(7, (byte) 0xfe);
+      assertEquals("sql : 'SELECT ?,?,?,?,?,?,?', parameters : [1,1,'one',true,'1972-04-22',1.5,0xFE]",
           ps.toString());
     }
   }

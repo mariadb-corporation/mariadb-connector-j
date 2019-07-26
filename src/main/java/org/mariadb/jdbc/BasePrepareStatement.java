@@ -86,6 +86,7 @@ import java.util.TimeZone;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.send.parameters.LocalTimeParameter;
 import org.mariadb.jdbc.internal.com.send.parameters.BigDecimalParameter;
+import org.mariadb.jdbc.internal.com.send.parameters.BooleanParameter;
 import org.mariadb.jdbc.internal.com.send.parameters.ByteArrayParameter;
 import org.mariadb.jdbc.internal.com.send.parameters.ByteParameter;
 import org.mariadb.jdbc.internal.com.send.parameters.DateParameter;
@@ -1478,7 +1479,7 @@ public abstract class BasePrepareStatement extends MariaDbStatement implements P
    *                      <code>PreparedStatement</code>
    */
   public void setBoolean(final int parameterIndex, final boolean value) throws SQLException {
-    setParameter(parameterIndex, new ByteParameter(value ? (byte) 1 : (byte) 0));
+    setParameter(parameterIndex, new BooleanParameter(value));
   }
 
   /**
