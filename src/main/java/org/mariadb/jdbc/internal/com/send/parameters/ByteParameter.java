@@ -65,6 +65,12 @@ public class ByteParameter implements Cloneable, ParameterHolder {
     this.value = value & 0xFF;
   }
 
+  /**
+   * Write Byte value to stream using TEXT protocol.
+   *
+   * @param os the stream to write to
+   * @throws IOException if any socket error occur
+   */
   public void writeTo(final PacketOutputStream os) throws IOException {
     os.write("0x");
     os.write(hexArray[value >>> 4]);

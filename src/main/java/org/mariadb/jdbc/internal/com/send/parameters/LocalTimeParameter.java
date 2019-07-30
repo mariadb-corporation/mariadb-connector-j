@@ -21,14 +21,12 @@
  *
  */
 
-
 package org.mariadb.jdbc.internal.com.send.parameters;
-
-import org.mariadb.jdbc.internal.ColumnType;
-import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 import java.io.IOException;
 import java.time.LocalTime;
+import org.mariadb.jdbc.internal.ColumnType;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 
 public class LocalTimeParameter implements Cloneable, ParameterHolder {
 
@@ -38,7 +36,7 @@ public class LocalTimeParameter implements Cloneable, ParameterHolder {
   /**
    * Constructor.
    *
-   * @param time              time to write
+   * @param time time to write
    * @param fractionalSeconds must fractional seconds be send.
    */
   public LocalTimeParameter(LocalTime time, boolean fractionalSeconds) {
@@ -54,12 +52,12 @@ public class LocalTimeParameter implements Cloneable, ParameterHolder {
   public void writeTo(final PacketOutputStream pos) throws IOException {
     StringBuilder dateString = new StringBuilder(15);
     dateString
-            .append(time.getHour() < 10 ? "0" : "")
-            .append(time.getHour())
-            .append(time.getMinute() < 10 ? ":0" : ":")
-            .append(time.getMinute())
-            .append(time.getSecond() < 10 ? ":0" : ":")
-            .append(time.getSecond());
+        .append(time.getHour() < 10 ? "0" : "")
+        .append(time.getHour())
+        .append(time.getMinute() < 10 ? ":0" : ":")
+        .append(time.getMinute())
+        .append(time.getSecond() < 10 ? ":0" : ":")
+        .append(time.getSecond());
     int microseconds = time.getNano() / 1000;
     if (microseconds > 0 && fractionalSeconds) {
       dateString.append(".");
@@ -85,7 +83,6 @@ public class LocalTimeParameter implements Cloneable, ParameterHolder {
    * @param pos socket output stream
    * @throws IOException if socket error occur
    */
-
   public void writeBinary(final PacketOutputStream pos) throws IOException {
     int nano = time.getNano();
     if (fractionalSeconds && nano > 0) {
@@ -97,7 +94,7 @@ public class LocalTimeParameter implements Cloneable, ParameterHolder {
       pos.write((byte) time.getSecond());
       pos.writeInt(nano / 1000);
     } else {
-      pos.write((byte) 8);//length
+      pos.write((byte) 8); // length
       pos.write((byte) 0);
       pos.writeInt(0);
       pos.write((byte) time.getHour());

@@ -27,19 +27,21 @@
 
 package org.mariadb.jdbc;
 
-import org.junit.Test;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.math.BigInteger;
-import java.sql.*;
-import java.util.Arrays;
-
-import static org.junit.Assert.*;
-
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import org.junit.Test;
 
 public class ScalarFunctionsTest extends BaseTest {
 
   @Test
-  public void nativeSQLTest() throws SQLException {
+  public void nativeSqlTest() throws SQLException {
     assertEquals(
         "SELECT convert(foo(a,b,c), INTEGER)"
             + ", convert(convert(?, CHAR), INTEGER)"
@@ -101,8 +103,7 @@ public class ScalarFunctionsTest extends BaseTest {
                 + ", {fn convert(?, SQL_REAL)}"
                 + ", {fn convert(?, SQL_NUMERIC)}"
                 + ", {fn convert(?, SQL_TIMESTAMP)}"
-                + ", {fn convert(?, SQL_DATETIME)}")
-    );
+                + ", {fn convert(?, SQL_DATETIME)}"));
   }
 
   @Test
@@ -115,7 +116,10 @@ public class ScalarFunctionsTest extends BaseTest {
     queryScalar("SELECT {fn convert(?, SQL_TINYINT)}", 5000, 5000);
     queryScalar("SELECT {fn convert(?, SQL_BIT)}", 255, 255);
     queryScalar("SELECT {fn convert(?, SQL_BINARY)}", "test", "test".getBytes());
-    queryScalar("SELECT {fn convert(?, SQL_DATETIME)}", "2020-12-31 12:13.15.12", new Timestamp(2020 - 1900, 11, 31, 12, 13, 15, 0));
+    queryScalar(
+        "SELECT {fn convert(?, SQL_DATETIME)}",
+        "2020-12-31 12:13.15.12",
+        new Timestamp(2020 - 1900, 11, 31, 12, 13, 15, 0));
   }
 
   private void queryScalar(String sql, Object val, Object res) throws SQLException {
@@ -125,12 +129,11 @@ public class ScalarFunctionsTest extends BaseTest {
       assertTrue(rs.next());
       Object obj = rs.getObject(1);
       if (obj instanceof byte[]) {
-        byte[] arr = (byte[]) obj ;
+        byte[] arr = (byte[]) obj;
         assertArrayEquals((byte[]) res, arr);
       } else {
         assertEquals(res, rs.getObject(1));
       }
     }
   }
-
 }
