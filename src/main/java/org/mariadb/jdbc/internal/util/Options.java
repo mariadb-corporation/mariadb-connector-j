@@ -18,53 +18,24 @@
  * You should have received a copy of the GNU Lesser General Public License along
  * with this library; if not, write to Monty Program Ab info@montyprogram.com.
  *
- * This particular MariaDB Client for Java file is work
- * derived from a Drizzle-JDBC. Drizzle-JDBC file which is covered by subject to
- * the following copyright and notice provisions:
- *
- * Copyright (c) 2009-2011, Marcus Eriksson
- *
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted provided that the following conditions are met:
- * Redistributions of source code must retain the above copyright notice, this list
- * of conditions and the following disclaimer.
- *
- * Redistributions in binary form must reproduce the above copyright notice, this
- * list of conditions and the following disclaimer in the documentation and/or
- * other materials provided with the distribution.
- *
- * Neither the name of the driver nor the names of its contributors may not be
- * used to endorse or promote products derived from this software without specific
- * prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS  AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
- * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
- * NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
- * OF SUCH DAMAGE.
- *
  */
 
 package org.mariadb.jdbc.internal.util;
 
 import java.lang.reflect.Field;
 import java.sql.DriverManager;
+import java.util.Objects;
 
 @SuppressWarnings("ConstantConditions")
 public class Options implements Cloneable {
 
   public static final int MIN_VALUE__MAX_IDLE_TIME = 60;
 
-  //standard options
+  // standard options
   public String user;
   public String password;
 
-  //divers
+  // divers
   public boolean trustServerCertificate;
   public String serverSslCert;
   public String trustStore;
@@ -95,6 +66,7 @@ public class Options implements Cloneable {
   public boolean useCompression;
   public boolean interactiveClient;
   public String passwordCharacterEncoding;
+  public boolean blankTableNameMeta;
 
   public boolean useSsl;
   public String enabledSslCipherSuites;
@@ -132,13 +104,13 @@ public class Options implements Cloneable {
   public String servicePrincipalName;
   public int defaultFetchSize;
 
-  //logging options
+  // logging options
   public boolean log;
   public boolean profileSql;
   public int maxQuerySizeToLog = 1024;
   public Long slowQueryThresholdNanos;
 
-  //HA options
+  // HA options
   public boolean assureReadOnly;
   public boolean autoReconnect;
   public boolean failOnReadOnly;
@@ -149,7 +121,7 @@ public class Options implements Cloneable {
   public boolean allowMasterDownConnection;
   public String galeraAllowedState;
 
-  //Pool options
+  // Pool options
   public boolean pool;
   public String poolName;
   public int maxPoolSize = 8;
@@ -175,10 +147,10 @@ public class Options implements Cloneable {
       try {
         result.append(field.getName());
         result.append(": ");
-        //requires access to private field:
+        // requires access to private field:
         result.append(field.get(this));
       } catch (IllegalAccessException ex) {
-        //ignore error
+        // ignore error
       }
       result.append(newLine);
     }
@@ -214,6 +186,9 @@ public class Options implements Cloneable {
       return false;
     }
     if (tcpAbortiveClose != opt.tcpAbortiveClose) {
+      return false;
+    }
+    if (blankTableNameMeta != opt.blankTableNameMeta) {
       return false;
     }
     if (allowMultiQueries != opt.allowMultiQueries) {
@@ -351,31 +326,28 @@ public class Options implements Cloneable {
     if (poolValidMinDelay != opt.poolValidMinDelay) {
       return false;
     }
-    if (user != null ? !user.equals(opt.user) : opt.user != null) {
+    if (!Objects.equals(user, opt.user)) {
       return false;
     }
-    if (password != null ? !password.equals(opt.password) : opt.password != null) {
+    if (!Objects.equals(password, opt.password)) {
       return false;
     }
-    if (serverSslCert != null ? !serverSslCert.equals(opt.serverSslCert)
-        : opt.serverSslCert != null) {
+    if (!Objects.equals(serverSslCert, opt.serverSslCert)) {
       return false;
     }
-    if (trustStore != null ? !trustStore.equals(opt.trustStore) : opt.trustStore != null) {
+    if (!Objects.equals(trustStore, opt.trustStore)) {
       return false;
     }
-    if (trustStorePassword != null ? !trustStorePassword.equals(opt.trustStorePassword)
-        : opt.trustStorePassword != null) {
+    if (!Objects.equals(trustStorePassword, opt.trustStorePassword)) {
       return false;
     }
-    if (keyStore != null ? !keyStore.equals(opt.keyStore) : opt.keyStore != null) {
+    if (!Objects.equals(keyStore, opt.keyStore)) {
       return false;
     }
-    if (keyStorePassword != null ? !keyStorePassword.equals(opt.keyStorePassword)
-        : opt.keyStorePassword != null) {
+    if (!Objects.equals(keyStorePassword, opt.keyStorePassword)) {
       return false;
     }
-    if (keyPassword != null ? !keyPassword.equals(opt.keyPassword) : opt.keyPassword != null) {
+    if (!Objects.equals(keyPassword, opt.keyPassword)) {
       return false;
     }
     if (enabledSslProtocolSuites != null) {
@@ -385,34 +357,31 @@ public class Options implements Cloneable {
     } else if (opt.enabledSslProtocolSuites != null) {
       return false;
     }
-    if (socketFactory != null ? !socketFactory.equals(opt.socketFactory)
-        : opt.socketFactory != null) {
+    if (!Objects.equals(socketFactory, opt.socketFactory)) {
       return false;
     }
     if (connectTimeout != opt.connectTimeout) {
       return false;
     }
-    if (pipe != null ? !pipe.equals(opt.pipe) : opt.pipe != null) {
+    if (!Objects.equals(pipe, opt.pipe)) {
       return false;
     }
-    if (localSocket != null ? !localSocket.equals(opt.localSocket) : opt.localSocket != null) {
+    if (!Objects.equals(localSocket, opt.localSocket)) {
       return false;
     }
-    if (sharedMemory != null ? !sharedMemory.equals(opt.sharedMemory) : opt.sharedMemory != null) {
+    if (!Objects.equals(sharedMemory, opt.sharedMemory)) {
       return false;
     }
-    if (tcpRcvBuf != null ? !tcpRcvBuf.equals(opt.tcpRcvBuf) : opt.tcpRcvBuf != null) {
+    if (!Objects.equals(tcpRcvBuf, opt.tcpRcvBuf)) {
       return false;
     }
-    if (tcpSndBuf != null ? !tcpSndBuf.equals(opt.tcpSndBuf) : opt.tcpSndBuf != null) {
+    if (!Objects.equals(tcpSndBuf, opt.tcpSndBuf)) {
       return false;
     }
-    if (localSocketAddress != null ? !localSocketAddress.equals(opt.localSocketAddress)
-        : opt.localSocketAddress != null) {
+    if (!Objects.equals(localSocketAddress, opt.localSocketAddress)) {
       return false;
     }
-    if (socketTimeout != null ? !socketTimeout.equals(opt.socketTimeout)
-        : opt.socketTimeout != null) {
+    if (!Objects.equals(socketTimeout, opt.socketTimeout)) {
       return false;
     }
     if (passwordCharacterEncoding != null) {
@@ -423,16 +392,13 @@ public class Options implements Cloneable {
       return false;
     }
 
-    if (enabledSslCipherSuites != null ? !enabledSslCipherSuites.equals(opt.enabledSslCipherSuites)
-        : opt.enabledSslCipherSuites != null) {
+    if (!Objects.equals(enabledSslCipherSuites, opt.enabledSslCipherSuites)) {
       return false;
     }
-    if (sessionVariables != null ? !sessionVariables.equals(opt.sessionVariables)
-        : opt.sessionVariables != null) {
+    if (!Objects.equals(sessionVariables, opt.sessionVariables)) {
       return false;
     }
-    if (serverTimezone != null ? !serverTimezone.equals(opt.serverTimezone)
-        : opt.serverTimezone != null) {
+    if (!Objects.equals(serverTimezone, opt.serverTimezone)) {
       return false;
     }
     if (prepStmtCacheSize != opt.prepStmtCacheSize) {
@@ -444,36 +410,31 @@ public class Options implements Cloneable {
     if (callableStmtCacheSize != opt.callableStmtCacheSize) {
       return false;
     }
-    if (connectionAttributes != null ? !connectionAttributes.equals(opt.connectionAttributes)
-        : opt.connectionAttributes != null) {
+    if (!Objects.equals(connectionAttributes, opt.connectionAttributes)) {
       return false;
     }
-    if (useBatchMultiSend != null ? !useBatchMultiSend.equals(opt.useBatchMultiSend)
-        : opt.useBatchMultiSend != null) {
+    if (!Objects.equals(useBatchMultiSend, opt.useBatchMultiSend)) {
       return false;
     }
-    if (usePipelineAuth != null ? !usePipelineAuth.equals(opt.usePipelineAuth)
-        : opt.usePipelineAuth != null) {
+    if (!Objects.equals(usePipelineAuth, opt.usePipelineAuth)) {
       return false;
     }
     if (maxQuerySizeToLog != opt.maxQuerySizeToLog) {
       return false;
     }
-    if (slowQueryThresholdNanos != null ? !slowQueryThresholdNanos
-        .equals(opt.slowQueryThresholdNanos) : opt.slowQueryThresholdNanos != null) {
+    if (!Objects.equals(slowQueryThresholdNanos, opt.slowQueryThresholdNanos)) {
       return false;
     }
     if (autocommit != opt.autocommit) {
       return false;
     }
-    if (poolName != null ? !poolName.equals(opt.poolName) : opt.poolName != null) {
+    if (!Objects.equals(poolName, opt.poolName)) {
       return false;
     }
-    if (galeraAllowedState != null ? !galeraAllowedState.equals(opt.galeraAllowedState)
-        : opt.galeraAllowedState != null) {
+    if (!Objects.equals(galeraAllowedState, opt.galeraAllowedState)) {
       return false;
     }
-    return minPoolSize != null ? minPoolSize.equals(opt.minPoolSize) : opt.minPoolSize == null;
+    return Objects.equals(minPoolSize, opt.minPoolSize);
   }
 
   @SuppressWarnings("SimplifiableIfStatement")
@@ -508,8 +469,9 @@ public class Options implements Cloneable {
     result = 31 * result + (rewriteBatchedStatements ? 1 : 0);
     result = 31 * result + (useCompression ? 1 : 0);
     result = 31 * result + (interactiveClient ? 1 : 0);
-    result = 31 * result + (passwordCharacterEncoding != null ? passwordCharacterEncoding.hashCode()
-        : 0);
+    result =
+        31 * result
+            + (passwordCharacterEncoding != null ? passwordCharacterEncoding.hashCode() : 0);
     result = 31 * result + (useSsl ? 1 : 0);
     result = 31 * result + (enabledSslCipherSuites != null ? enabledSslCipherSuites.hashCode() : 0);
     result = 31 * result + (sessionVariables != null ? sessionVariables.hashCode() : 0);

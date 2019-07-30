@@ -472,7 +472,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
         ResultSet.CONCUR_READ_ONLY);
     SelectResultSet rs = (SelectResultSet) stmt.executeQuery(sql);
     rs.setStatement(null); // bypass Hibernate statement tracking (CONJ-49)
-    rs.setReturnTableAlias(true);
+    rs.setForceTableAlias();
     return rs;
   }
 
