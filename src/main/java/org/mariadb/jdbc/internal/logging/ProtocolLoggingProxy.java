@@ -69,8 +69,8 @@ import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
 
 public class ProtocolLoggingProxy implements InvocationHandler {
 
-  private static final NumberFormat numberFormat = DecimalFormat.getInstance();
   private static final Logger logger = LoggerFactory.getLogger(ProtocolLoggingProxy.class);
+  private final NumberFormat numberFormat;
   private final boolean profileSql;
   private final Long slowQueryThresholdNanos;
   private final int maxQuerySizeToLog;
@@ -89,11 +89,11 @@ public class ProtocolLoggingProxy implements InvocationHandler {
     this.slowQueryThresholdNanos = options.slowQueryThresholdNanos;
     this.maxQuerySizeToLog = options.maxQuerySizeToLog;
     this.logQuery = new LogQueryTool(options);
+    this.numberFormat = DecimalFormat.getInstance();
   }
 
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-    long startTime = System.nanoTime();
     try {
 
       switch (method.getName()) {
@@ -104,6 +104,7 @@ public class ProtocolLoggingProxy implements InvocationHandler {
         case "executeBatchClient":
         case "executeBatchServer":
 
+          final long startTime = System.nanoTime();
           Object returnObj = method.invoke(protocol, args);
           if (logger.isInfoEnabled() && (profileSql
               || (slowQueryThresholdNanos != null

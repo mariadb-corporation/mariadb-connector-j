@@ -74,6 +74,7 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
@@ -107,7 +108,7 @@ public class BaseTest {
   private static final Set<String> tempViewList = new HashSet<>();
   private static final Set<String> tempProcedureList = new HashSet<>();
   private static final Set<String> tempFunctionList = new HashSet<>();
-  private static final NumberFormat numberFormat = DecimalFormat.getInstance();
+  private static final NumberFormat numberFormat = DecimalFormat.getInstance(Locale.ROOT);
   protected static String connU;
   protected static String connUri;
   protected static String connDnsUri;
@@ -148,11 +149,14 @@ public class BaseTest {
         } catch (SQLNonTransientConnectionException connFail) {
           connFail.printStackTrace();
           try {
-              beforeClassBaseTest();
-            } catch (SQLException e) {
-              System.out.println("ERROR reconnecting");
-              e.printStackTrace();
-            }
+            beforeClassBaseTest();
+          } catch (SQLException e) {
+            System.out.println("ERROR reconnecting");
+            e.printStackTrace();
+          }
+          fail("Prepare after test fail for " + description.getClassName() + "." + description
+                  .getMethodName());
+
         } catch (Exception e) {
           e.printStackTrace();
           fail("Prepare after test fail for " + description.getClassName() + "." + description
@@ -312,13 +316,20 @@ public class BaseTest {
         e.printStackTrace();
       }
     }
-    Iterator<Thread> it = Thread.getAllStackTraces().keySet().iterator();
-    Thread thread;
-
-    while (it.hasNext()) {
-      thread = it.next();
-      if (thread.getName().contains("MariaDb-bulk-")) {
-        assertEquals(State.WAITING, thread.getState());
+    if (!Platform.isWindows()) {
+      Iterator<Thread> it = Thread.getAllStackTraces().keySet().iterator();
+      Thread thread;
+      while (it.hasNext()) {
+        thread = it.next();
+        if (thread.getName().contains("MariaDb-bulk-")) {
+          if (thread.getState() != State.WAITING) {
+            //print stack trace to console.
+            for (StackTraceElement ste : thread.getStackTrace()) {
+              System.out.println(ste);
+            }
+          }
+          assertEquals(State.WAITING, thread.getState());
+        }
       }
     }
   }

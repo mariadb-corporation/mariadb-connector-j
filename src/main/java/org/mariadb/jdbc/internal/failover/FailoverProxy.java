@@ -95,6 +95,7 @@ public class FailoverProxy implements InvocationHandler {
   private static final String METHOD_GET_TIMEOUT = "getTimeout";
   private static final String METHOD_GET_MAJOR_VERSION = "getMajorServerVersion";
   private static final String METHOD_IN_TRANSACTION = "inTransaction";
+  private static final String METHOD_IS_MARIADB = "isServerMariaDb";
 
 
   private static final Logger logger = LoggerFactory.getLogger(FailoverProxy.class);
@@ -157,6 +158,8 @@ public class FailoverProxy implements InvocationHandler {
         return this.lock;
       case METHOD_GET_NO_BACKSLASH:
         return listener.noBackslashEscapes();
+      case METHOD_IS_MARIADB:
+        return listener.isServerMariaDb();
       case METHOD_GET_CATALOG:
         return listener.getCatalog();
       case METHOD_GET_TIMEOUT:

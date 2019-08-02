@@ -580,6 +580,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void verificationEd25519AuthPlugin() throws Throwable {
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 2));
     Statement stmt = sharedConnection.createStatement();
 
@@ -589,20 +590,25 @@ public class ConnectionTest extends BaseTest {
       throw new AssumptionViolatedException("server doesn't have ed25519 plugin, cancelling test");
     }
     try {
-      stmt.execute("CREATE USER verificationEd25519AuthPlugin@'%' IDENTIFIED "
-          + "VIA ed25519 USING 'Dl7wP5om2lNrAfxWw3ooyZKDAoBztFNuhtVFdIrWfi0'");
+      if (minVersion(10, 4)) {
+        stmt.execute("CREATE USER verificationEd25519AuthPlugin IDENTIFIED "
+                + "VIA ed25519 USING PASSWORD('MySup8%rPassw@ord')");
+      } else {
+        stmt.execute("CREATE USER verificationEd25519AuthPlugin IDENTIFIED "
+                + "VIA ed25519 USING '6aW9C7ENlasUfymtfMvMZZtnkCVlcb1ssxOLJ0kj/AA'");
+      }
     } catch (SQLException sqle) {
       //already existing
     }
-    stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin@'%'");
+    stmt.execute("GRANT ALL on " + database + ".* to verificationEd25519AuthPlugin");
 
     String url = "jdbc:mariadb://" + hostname + ((port == 0) ? "" : ":" + port) + "/" + database
-        + "?user=verificationEd25519AuthPlugin&password=!Passw0rd3&debug=true";
+        + "?user=verificationEd25519AuthPlugin&password=MySup8%rPassw@ord";
 
     try (Connection connection = openNewConnection(url)) {
       //must have succeed
     }
-    stmt.execute("drop user verificationEd25519AuthPlugin@'%'");
+    stmt.execute("drop user verificationEd25519AuthPlugin");
   }
 
 

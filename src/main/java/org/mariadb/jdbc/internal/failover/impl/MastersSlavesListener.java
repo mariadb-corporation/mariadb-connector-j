@@ -236,6 +236,12 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
   }
 
   @Override
+  public boolean isServerMariaDb() {
+    Protocol protocol = (currentProtocol != null) ? currentProtocol : secondaryProtocol;
+    return (protocol == null) ? false : protocol.isServerMariaDb();
+  }
+
+  @Override
   public boolean sessionStateAware() {
     Protocol protocol = (currentProtocol != null) ? currentProtocol : secondaryProtocol;
     if (protocol == null) {

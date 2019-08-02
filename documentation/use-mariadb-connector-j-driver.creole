@@ -187,6 +187,7 @@ See [[use-mariadb-connector-j-driver.creole#using-pooling|using pooling]] for mo
 |=useAffectedRows|default correspond to the JDBC standard, reporting real affected rows. if enable, will report "affected" rows. example : if enable, an update command that doesn't change a row value will still be "affected", then report.\\//Default: false. Since 2.2.6//
 |=includeInnodbStatusInDeadlockExceptions|add "SHOW ENGINE INNODB STATUS" result to exception trace when having a deadlock exception\\//Default: false. Since 2.3.0//
 |=includeThreadDumpInDeadlockExceptions|add thread dump to exception trace when having a deadlock exception\\//Default: false. Since 2.3.0//
+|=blankTableNameMeta|Result-set metadata getTableName always return blank. This option is mainly for ORACLE db compatibility\\//Default: false. Since 2.4.3//
 
 \\\\
 == Failover/High availability URL parameters

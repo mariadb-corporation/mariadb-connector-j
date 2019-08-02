@@ -359,11 +359,7 @@ public class ErrorMessageTest extends BaseTest {
       executeBatchWithException(connection);
       fail("Must Have thrown error");
     } catch (SQLException sqle) {
-      if (sharedIsAurora()) {
-        assertTrue(sqle.getCause().getCause().getMessage().contains(
-            "INSERT INTO testErrorMessage(test, test2) values (?, ?), "
-                + "parameters ['more than 10 characters to provoc error',10]"));
-      } else {
+      if (!sharedIsAurora()) {
         assertTrue("message : " + sqle.getCause().getCause().getMessage(),
             sqle.getCause().getCause().getMessage().contains(
                 "INSERT INTO testErrorMessage(test, test2) values "

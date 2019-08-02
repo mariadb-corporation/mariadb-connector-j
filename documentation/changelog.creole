@@ -1,4 +1,11 @@
 
+== 2.4.3 - Released on 02 Jul. 2019
+
+* [CONJ-717] conversion function support for other data type than default MariaDB conversion type
+* [CONJ-722] Permit suppression of result-set metadata getTableName for oracle compatibility
+* [CONJ-719] Saving values using Java 8 LocalTime does not store fractional parts of seconds
+* [CONJ-716] Correcting possible NPE on non thread safe NumberFormat (logging)
+
 == 2.4.2 - Released on 17 Jun. 2019
 
 Security

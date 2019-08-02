@@ -268,7 +268,7 @@ public interface Protocol {
 
   void setActiveFutureTask(FutureTask activeFutureTask);
 
-  boolean isServerMariaDb() throws SQLException;
+  boolean isServerMariaDb();
 
   SQLException handleIoException(Exception initialException);
 

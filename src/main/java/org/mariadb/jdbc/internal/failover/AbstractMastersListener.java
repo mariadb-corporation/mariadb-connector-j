@@ -432,6 +432,10 @@ public abstract class AbstractMastersListener implements Listener {
     return currentProtocol.versionGreaterOrEqual(major, minor, patch);
   }
 
+  public boolean isServerMariaDb() {
+    return currentProtocol.isServerMariaDb();
+  }
+
   public boolean sessionStateAware() {
     return currentProtocol.sessionStateAware();
   }

@@ -100,6 +100,23 @@ public class BooleanTest extends BaseTest {
   }
 
   @Test
+  public void testBooleanSet() throws SQLException {
+    Statement stmt = sharedConnection.createStatement();
+    stmt.execute("CREATE TEMPORARY TABLE testBooleanSet (test BOOLEAN)");
+    try (PreparedStatement prep = sharedConnection.prepareStatement("INSERT INTO testBooleanSet VALUE (?)")) {
+      prep.setBoolean(1, true);
+      prep.execute();
+      prep.setBoolean(1, false);
+      prep.execute();
+    }
+    ResultSet rs = stmt.executeQuery("select * from testBooleanSet");
+    assertTrue(rs.next());
+    assertTrue(rs.getBoolean(1));
+    assertTrue(rs.next());
+    assertFalse(rs.getBoolean(1));
+  }
+
+  @Test
   public void testBooleanString() throws SQLException {
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("insert into booleanvalue values(true)");

@@ -60,7 +60,7 @@
     </encoder>
   </appender>
 
-  <logger additivity="false" level="debug" name="org.mariadb.jdbc">
+  <logger additivity="false" level="trace" name="org.mariadb.jdbc">
     <appender-ref ref="STDOUT"/>
   </logger>
 

@@ -95,7 +95,7 @@ public class ErrorPacket {
   }
 
   public String getSqlState() {
-    return new String(sqlState);
+    return sqlState;
   }
 
   public byte getSqlStateMarker() {
