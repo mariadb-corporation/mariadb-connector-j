@@ -147,6 +147,9 @@ public class ScalarFunctionsTest extends BaseTest {
 
   @Test
   public void scalarFctTest() throws SQLException {
+    if (!isMariadbServer()) {
+      cancelForVersion(5, 5);
+    }
     queryScalar("SELECT {fn convert(?, SQL_BIGINT)}", 2147483648L, 2147483648L);
     queryScalar("SELECT {fn convert(?, SQL_BIGINT)}", BigInteger.valueOf(2147483648L), 2147483648L);
     queryScalar("SELECT {fn convert(?, SQL_BIGINT)}", 20, new Object[] {20, 20L});
