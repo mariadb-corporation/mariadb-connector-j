@@ -19,6 +19,9 @@ public class LocalTimeTest extends BaseTest {
 
   @Test
   public void localTimeTest() throws SQLException {
+    if (!isMariadbServer()) {
+      cancelForVersion(5, 5);
+    }
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("CREATE TEMPORARY TABLE LocalTimeTest(val TIME(6), val2 TIME)");
     try (PreparedStatement prep =
@@ -77,6 +80,9 @@ public class LocalTimeTest extends BaseTest {
 
   @Test
   public void localDateTest() throws SQLException {
+    if (!isMariadbServer()) {
+      cancelForVersion(5, 5);
+    }
     Statement stmt = sharedConnection.createStatement();
     stmt.execute("CREATE TEMPORARY TABLE LocalDateTest(val DATE)");
     try (PreparedStatement prep =
