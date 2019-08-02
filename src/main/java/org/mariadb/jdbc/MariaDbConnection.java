@@ -522,7 +522,7 @@ public class MariaDbConnection implements Connection {
 
     if (sql != null) {
 
-      String sqlQuery = Utils.nativeSql(sql, protocol.noBackslashEscapes());
+      String sqlQuery = Utils.nativeSql(sql, protocol);
 
       if (options.useServerPrepStmts && PREPARABLE_STATEMENT_PATTERN.matcher(sqlQuery).find()) {
         //prepare isn't delayed -> if prepare fail, fallback to client preparedStatement?
@@ -608,7 +608,7 @@ public class MariaDbConnection implements Connection {
               + sql);
     }
 
-    String query = Utils.nativeSql(matcher.group(2), protocol.noBackslashEscapes());
+    String query = Utils.nativeSql(matcher.group(2), protocol);
 
     boolean isFunction = (matcher.group(3) != null);
     String databaseAndProcedure = matcher.group(8);
@@ -712,7 +712,7 @@ public class MariaDbConnection implements Connection {
 
   @Override
   public String nativeSQL(final String sql) throws SQLException {
-    return Utils.nativeSql(sql, protocol.noBackslashEscapes());
+    return Utils.nativeSql(sql, protocol);
   }
 
   /**

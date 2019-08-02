@@ -98,7 +98,7 @@ public class UtilTest extends BaseTest {
         "--  Also note that you can safely include { and } in comments"
     };
     for (int i = 0; i < inputs.length; i++) {
-      assertEquals(Utils.nativeSql(inputs[i], false), outputs[i]);
+      assertEquals(sharedConnection.nativeSQL(inputs[i]), outputs[i]);
     }
   }
 

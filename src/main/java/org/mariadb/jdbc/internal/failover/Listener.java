@@ -129,6 +129,8 @@ public interface Listener {
 
   boolean versionGreaterOrEqual(int major, int minor, int patch);
 
+  boolean isServerMariaDb();
+
   boolean sessionStateAware();
 
   boolean noBackslashEscapes();

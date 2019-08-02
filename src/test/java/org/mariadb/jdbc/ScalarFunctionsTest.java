@@ -30,6 +30,7 @@ package org.mariadb.jdbc;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.math.BigInteger;
 import java.sql.PreparedStatement;
@@ -42,37 +43,75 @@ public class ScalarFunctionsTest extends BaseTest {
 
   @Test
   public void nativeSqlTest() throws SQLException {
+    String exp;
+    if (isMariadbServer() || minVersion(8, 0, 17)) {
+      exp =
+          "SELECT convert(foo(a,b,c), SIGNED INTEGER)"
+              + ", convert(convert(?, CHAR), SIGNED INTEGER)"
+              + ", 1=?"
+              + ", 1=?"
+              + ", convert(?,   SIGNED INTEGER   )"
+              + ",  convert (?,   SIGNED INTEGER   )"
+              + ", convert(?, UNSIGNED INTEGER)"
+              + ", convert(?, BINARY)"
+              + ", convert(?, BINARY)"
+              + ", convert(?, BINARY)"
+              + ", convert(?, BINARY)"
+              + ", convert(?, BINARY)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, DOUBLE)"
+              + ", convert(?, DOUBLE)"
+              + ", convert(?, DECIMAL)"
+              + ", convert(?, DECIMAL)"
+              + ", convert(?, DECIMAL)"
+              + ", convert(?, DATETIME)"
+              + ", convert(?, DATETIME)";
+    } else {
+      exp =
+          "SELECT convert(foo(a,b,c), SIGNED INTEGER)"
+              + ", convert(convert(?, CHAR), SIGNED INTEGER)"
+              + ", 1=?"
+              + ", 1=?"
+              + ", convert(?,   SIGNED INTEGER   )"
+              + ",  convert (?,   SIGNED INTEGER   )"
+              + ", convert(?, UNSIGNED INTEGER)"
+              + ", convert(?, BINARY)"
+              + ", convert(?, BINARY)"
+              + ", convert(?, BINARY)"
+              + ", convert(?, BINARY)"
+              + ", convert(?, BINARY)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", convert(?, CHAR)"
+              + ", 0.0+?"
+              + ", 0.0+?"
+              + ", convert(?, DECIMAL)"
+              + ", convert(?, DECIMAL)"
+              + ", convert(?, DECIMAL)"
+              + ", convert(?, DATETIME)"
+              + ", convert(?, DATETIME)";
+    }
+
     assertEquals(
-        "SELECT convert(foo(a,b,c), INTEGER)"
-            + ", convert(convert(?, CHAR), INTEGER)"
-            + ", convert(?, INTEGER )"
-            + ", convert(?, INTEGER)"
-            + ", convert(?,   INTEGER   )"
-            + ",  convert (?,   INTEGER   )"
-            + ", convert(?, INTEGER)"
-            + ", convert(?, BINARY)"
-            + ", convert(?, BINARY)"
-            + ", convert(?, BINARY)"
-            + ", convert(?, BINARY)"
-            + ", convert(?, BINARY)"
-            + ", convert(?, CHAR)"
-            + ", convert(?, CHAR)"
-            + ", convert(?, CHAR)"
-            + ", convert(?, CHAR)"
-            + ", convert(?, CHAR)"
-            + ", convert(?, CHAR)"
-            + ", convert(?, CHAR)"
-            + ", convert(?, CHAR)"
-            + ", convert(?, CHAR)"
-            + ", convert(?, CHAR)"
-            + ", convert(?, CHAR)"
-            + ", convert(?, DOUBLE)"
-            + ", convert(?, DOUBLE)"
-            + ", convert(?, DECIMAL)"
-            + ", convert(?, DECIMAL)"
-            + ", convert(?, DECIMAL)"
-            + ", convert(?, DATETIME)"
-            + ", convert(?, DATETIME)",
+        exp,
         sharedConnection.nativeSQL(
             "SELECT {fn convert(foo(a,b,c), SQL_BIGINT)}"
                 + ", {fn convert({fn convert(?, SQL_VARCHAR)}, SQL_BIGINT)}"
@@ -110,11 +149,12 @@ public class ScalarFunctionsTest extends BaseTest {
   public void scalarFctTest() throws SQLException {
     queryScalar("SELECT {fn convert(?, SQL_BIGINT)}", 2147483648L, 2147483648L);
     queryScalar("SELECT {fn convert(?, SQL_BIGINT)}", BigInteger.valueOf(2147483648L), 2147483648L);
-    queryScalar("SELECT {fn convert(?, SQL_BIGINT)}", 20, 20);
-    queryScalar("SELECT {fn convert(?, SQL_BOOLEAN)}", true, 1);
-    queryScalar("SELECT {fn convert(?, SQL_SMALLINT)}", 5000, 5000);
-    queryScalar("SELECT {fn convert(?, SQL_TINYINT)}", 5000, 5000);
-    queryScalar("SELECT {fn convert(?, SQL_BIT)}", 255, 255);
+    queryScalar("SELECT {fn convert(?, SQL_BIGINT)}", 20, new Object[] {20, 20L});
+    queryScalar("SELECT {fn convert(?, SQL_BOOLEAN)}", true, new Object[] {1, 1L});
+    queryScalar("SELECT {fn convert(?, SQL_SMALLINT)}", 5000, new Object[] {5000, 5000L});
+    queryScalar("SELECT {fn convert(?, SQL_TINYINT)}", 5000, new Object[] {5000, 5000L});
+    queryScalar(
+        "SELECT {fn convert(?, SQL_BIT)}", 255, new Object[] {255L, BigInteger.valueOf(255L)});
     queryScalar("SELECT {fn convert(?, SQL_BINARY)}", "test", "test".getBytes());
     queryScalar(
         "SELECT {fn convert(?, SQL_DATETIME)}",
@@ -131,6 +171,12 @@ public class ScalarFunctionsTest extends BaseTest {
       if (obj instanceof byte[]) {
         byte[] arr = (byte[]) obj;
         assertArrayEquals((byte[]) res, arr);
+      } else if (res instanceof Object[]) {
+        Object[] resArr = (Object[]) res;
+        for (int i = 0; i < resArr.length; i++) {
+          if (resArr[i].equals(obj)) return;
+        }
+        fail("not expected result");
       } else {
         assertEquals(res, rs.getObject(1));
       }

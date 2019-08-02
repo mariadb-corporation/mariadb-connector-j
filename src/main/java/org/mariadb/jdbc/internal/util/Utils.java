@@ -267,10 +267,11 @@ public class Utils {
    * <p>caution: this use MariaDB server conversion: 'SELECT CONVERT('2147483648', INTEGER)' will
    * return a BIGINT. MySQL will throw a syntax error.</p>
    *
-   * @param functionString - input string
+   * @param functionString input string
+   * @param protocol protocol
    * @return unescaped string
    */
-  private static String replaceFunctionParameter(String functionString) {
+  private static String replaceFunctionParameter(String functionString, Protocol protocol) {
 
     char[] input = functionString.toCharArray();
     StringBuilder sb = new StringBuilder();
@@ -293,7 +294,8 @@ public class Utils {
         // Handle "convert(value, type)" case
         // extract last parameter, after the last ','
         int lastCommaIndex = functionString.lastIndexOf(',');
-
+        int firstParentheses = functionString.indexOf('(');
+        String value = functionString.substring(firstParentheses + 1, lastCommaIndex);
         for (index = lastCommaIndex + 1; index < input.length; index++) {
           if (!Character.isWhitespace(input[index])) {
             break;
@@ -314,12 +316,17 @@ public class Utils {
         }
 
         switch (typeParam) {
-          case "BIGINT":
           case "BOOLEAN":
+            return "1=" + value;
+
+          case "BIGINT":
           case "SMALLINT":
           case "TINYINT":
+            typeParam = "SIGNED INTEGER";
+            break;
+
           case "BIT":
-            typeParam = "INTEGER";
+            typeParam = "UNSIGNED INTEGER";
             break;
 
           case "BLOB":
@@ -342,9 +349,13 @@ public class Utils {
             typeParam = "CHAR";
             break;
 
+          case "DOUBLE":
           case "FLOAT":
-            typeParam = "DOUBLE";
-            break;
+            if (protocol.isServerMariaDb() || protocol.versionGreaterOrEqual(8,0,17)) {
+              typeParam = "DOUBLE";
+              break;
+            }
+            return "0.0+" + value;
 
           case "REAL":
           case "NUMERIC":
@@ -384,7 +395,7 @@ public class Utils {
     }
   }
 
-  private static String resolveEscapes(String escaped, boolean noBackslashEscapes)
+  private static String resolveEscapes(String escaped, Protocol protocol)
       throws SQLException {
     if (escaped.charAt(0) != '{' || escaped.charAt(escaped.length() - 1) != '}') {
       throw new SQLException("unexpected escaped string");
@@ -392,12 +403,12 @@ public class Utils {
     int endIndex = escaped.length() - 1;
     String escapedLower = escaped.toLowerCase(Locale.ROOT);
     if (escaped.startsWith("{fn ")) {
-      String resolvedParams = replaceFunctionParameter(escaped.substring(4, endIndex));
-      return nativeSql(resolvedParams, noBackslashEscapes);
+      String resolvedParams = replaceFunctionParameter(escaped.substring(4, endIndex), protocol);
+      return nativeSql(resolvedParams, protocol);
     } else if (escapedLower.startsWith("{oj ")) {
       // Outer join
       // the server supports "oj" in any case, even "oJ"
-      return nativeSql(escaped.substring(4, endIndex), noBackslashEscapes);
+      return nativeSql(escaped.substring(4, endIndex), protocol);
     } else if (escaped.startsWith("{d ")) {
       // date literal
       return escaped.substring(3, endIndex);
@@ -420,19 +431,19 @@ public class Utils {
       // We support uppercase "{CALL" only because Connector/J supports it. It is not in the JDBC
       // spec.
 
-      return nativeSql(escaped.substring(1, endIndex), noBackslashEscapes);
+      return nativeSql(escaped.substring(1, endIndex), protocol);
     } else if (escaped.startsWith("{escape ")) {
       return escaped.substring(1, endIndex);
     } else if (escaped.startsWith("{?")) {
       // likely ?=call(...)
-      return nativeSql(escaped.substring(1, endIndex), noBackslashEscapes);
+      return nativeSql(escaped.substring(1, endIndex), protocol);
     } else if (escaped.startsWith("{ ") || escaped.startsWith("{\n")) {
       // Spaces and newlines before keyword, this is not JDBC compliant, however some it works in
       // some drivers,
       // so we support it, too
       for (int i = 2; i < escaped.length(); i++) {
         if (!Character.isWhitespace(escaped.charAt(i))) {
-          return resolveEscapes("{" + escaped.substring(i), noBackslashEscapes);
+          return resolveEscapes("{" + escaped.substring(i), protocol);
         }
       }
     } else if (escaped.startsWith("{\r\n")) {
@@ -441,7 +452,7 @@ public class Utils {
       // so we support it, too
       for (int i = 3; i < escaped.length(); i++) {
         if (!Character.isWhitespace(escaped.charAt(i))) {
-          return resolveEscapes("{" + escaped.substring(i), noBackslashEscapes);
+          return resolveEscapes("{" + escaped.substring(i), protocol);
         }
       }
     }
@@ -452,12 +463,12 @@ public class Utils {
    * Escape sql String.
    *
    * @param sql initial sql
-   * @param noBackslashEscapes must backslash be escape
+   * @param protocol protocol
    * @return escaped sql string
    * @throws SQLException if escape sequence is incorrect.
    */
   @SuppressWarnings("ConstantConditions")
-  public static String nativeSql(String sql, boolean noBackslashEscapes) throws SQLException {
+  public static String nativeSql(String sql, Protocol protocol) throws SQLException {
     if (!sql.contains("{")) {
       return sql;
     }
@@ -475,7 +486,7 @@ public class Utils {
 
     for (int i = 0; i < charArray.length; i++) {
       char car = charArray[i];
-      if (lastChar == '\\' && !noBackslashEscapes) {
+      if (lastChar == '\\' && !protocol.noBackslashEscapes()) {
         sqlBuffer.append(car);
         continue;
       }
@@ -539,7 +550,7 @@ public class Utils {
             inEscapeSeq--;
             if (inEscapeSeq == 0) {
               escapeSequenceBuf.append(car);
-              sqlBuffer.append(resolveEscapes(escapeSequenceBuf.toString(), noBackslashEscapes));
+              sqlBuffer.append(resolveEscapes(escapeSequenceBuf.toString(), protocol));
               escapeSequenceBuf.setLength(0);
               continue;
             }

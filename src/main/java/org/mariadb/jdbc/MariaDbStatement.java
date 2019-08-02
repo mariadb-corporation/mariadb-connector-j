@@ -330,7 +330,7 @@ public class MariaDbStatement implements Statement, Cloneable {
           sql, null);
 
       protocol.executeQuery(protocol.isMasterConnection(), results,
-          getTimeoutSql(Utils.nativeSql(sql, protocol.noBackslashEscapes())));
+          getTimeoutSql(Utils.nativeSql(sql, protocol)));
       results.commandEnd();
       return results.getResultSet() != null;
 
@@ -366,7 +366,7 @@ public class MariaDbStatement implements Statement, Cloneable {
       results = new Results(this, fetchSize, false, 1, false, resultSetScrollType,
           resultSetConcurrency, Statement.NO_GENERATED_KEYS, protocol.getAutoIncrementIncrement(), sql, null);
       protocol.executeQuery(protocol.isMasterConnection(), results,
-          getTimeoutSql(Utils.nativeSql(sql, protocol.noBackslashEscapes())), charset);
+          getTimeoutSql(Utils.nativeSql(sql, protocol)), charset);
       results.commandEnd();
       return results.getResultSet() != null;
 
