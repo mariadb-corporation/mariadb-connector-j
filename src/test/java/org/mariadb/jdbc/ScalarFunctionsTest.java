@@ -174,7 +174,9 @@ public class ScalarFunctionsTest extends BaseTest {
       } else if (res instanceof Object[]) {
         Object[] resArr = (Object[]) res;
         for (int i = 0; i < resArr.length; i++) {
-          if (resArr[i].equals(obj)) return;
+          if (resArr[i].equals(obj)) {
+            return;
+          }
         }
         fail("not expected result");
       } else {
