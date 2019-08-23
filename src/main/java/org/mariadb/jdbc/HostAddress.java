@@ -116,7 +116,7 @@ public class HostAddress {
     if (haMode == HaMode.AURORA) {
       Pattern clusterPattern =
           Pattern.compile(
-              "(.+)\\.cluster-([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)",
+              "(.+)\\.(?:cluster-|cluster-ro-)([a-z0-9]+\\.[a-z0-9\\-]+\\.rds\\.amazonaws\\.com)",
               Pattern.CASE_INSENSITIVE);
       Matcher matcher = clusterPattern.matcher(spec);
 
