@@ -76,7 +76,7 @@ public class AuroraListener extends MastersSlavesListener {
   private static final Logger logger = Logger.getLogger(AuroraListener.class.getName());
   private final Pattern auroraDnsPattern =
       Pattern.compile(
-          "(.+)\\.(cluster-)?([a-zA-Z0-9]+\\.[a-zA-Z0-9\\-]+\\.rds\\.amazonaws\\.com)",
+          "(.+)\\.(cluster-|cluster-ro-)?([a-zA-Z0-9]+\\.[a-zA-Z0-9\\-]+\\.rds\\.amazonaws\\.com)",
           Pattern.CASE_INSENSITIVE);
   private final HostAddress clusterHostAddress;
   private String clusterDnsSuffix = null;
