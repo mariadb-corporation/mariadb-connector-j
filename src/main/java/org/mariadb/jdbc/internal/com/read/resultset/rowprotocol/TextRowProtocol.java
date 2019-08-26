@@ -572,7 +572,7 @@ public class TextRowProtocol extends RowProtocol {
         int hour = Integer.parseInt(rawPart[0]);
         int minutes = Integer.parseInt(rawPart[1]);
         int seconds = Integer.parseInt(rawPart[2].substring(0, 2));
-        Calendar calendar = Calendar.getInstance();
+        Calendar calendar = cal != null ? cal : Calendar.getInstance();
         if (options.useLegacyDatetimeCode) {
           calendar.setLenient(true);
         }

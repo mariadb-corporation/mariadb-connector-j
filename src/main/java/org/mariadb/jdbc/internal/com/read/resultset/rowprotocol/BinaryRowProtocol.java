@@ -811,7 +811,7 @@ public class BinaryRowProtocol extends RowProtocol {
       case DATE:
         throw new SQLException("Cannot read Time using a Types.DATE field");
       default:
-        Calendar calendar = Calendar.getInstance();
+        Calendar calendar = cal != null ? cal : Calendar.getInstance();
         calendar.clear();
         int day = 0;
         int hour = 0;
