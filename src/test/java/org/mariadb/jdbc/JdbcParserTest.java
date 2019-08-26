@@ -651,4 +651,19 @@ public class JdbcParserTest {
     UrlParser jdbc = UrlParser.parse(url);
     assertEquals(Long.MAX_VALUE, jdbc.getOptions().slowQueryThresholdNanos.longValue());
   }
+
+  /**
+   * MDEV-15935 : Connection Redirection Mechanism in MariaDB Client/Server Protocol
+   *
+   * @throws SQLException if any exception occur
+   */
+  @Test
+  public void checkEnableRedirectValue() throws SQLException {
+      UrlParser jdbc = UrlParser.parse("jdbc:mysql://hostName:3306?enableRedirect=true");
+      assertTrue(jdbc.getOptions().enableRedirect);
+
+      UrlParser jdbc2 = UrlParser.parse("jdbc:mysql://hostName:3306");
+      assertFalse(jdbc2.getOptions().enableRedirect);
+
+  }
 }
