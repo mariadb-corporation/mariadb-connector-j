@@ -102,15 +102,15 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
    */
   public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
           throws IOException, SQLException {
-    int type = authData[0];
+    int type = authData.length == 0 ? 0 : authData[0];
     String promptb;
     //conversation is :
     // - first byte is information tell if question is a password or clear text.
     // - other bytes are the question to user
 
     while (true) {
-      promptb = new String(Arrays.copyOfRange(authData, 1, authData.length));
-      if ("Password: ".equals(promptb) && password != null && !"".equals(password)) {
+      promptb = authData.length <= 1 ? null : new String(Arrays.copyOfRange(authData, 1, authData.length));
+      if ((promptb == null || "Password: ".equals(promptb)) && password != null && !"".equals(password)) {
         //ask for password
         out.startPacket(sequence.incrementAndGet());
         byte[] bytePwd;
