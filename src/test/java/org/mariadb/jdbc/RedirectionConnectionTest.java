@@ -187,6 +187,7 @@ public class RedirectionConnectionTest extends BaseTest {
 	  
 	  @Test 
 	  public void basicSelectTest() {
+
 		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=true")) {
 			    Statement stmt = sharedConnection.createStatement();
 			    ResultSet result = stmt.executeQuery("select 1");
@@ -202,6 +203,7 @@ public class RedirectionConnectionTest extends BaseTest {
 	  
 	  @Test
 	  public void BasicErrorTest() {
+
 		  try (Connection connection = setBlankConnection("&verifyServerCertificate=false&useSSL=true&requireSSL=true&enableRedirect=true")) {
 			  Statement stmt;
 			  stmt = connection.createStatement();
