@@ -18,29 +18,29 @@ public class SocketUtility {
       //forcing use of JNA to ensure AOT compilation
       Platform.getOSType();
 
-      return (urlParser, host) -> {
-        if (urlParser.getOptions().pipe != null) {
-          return new NamedPipeSocket(host, urlParser.getOptions().pipe);
-        } else if (urlParser.getOptions().localSocket != null) {
+      return (options, host) -> {
+        if (options.pipe != null) {
+          return new NamedPipeSocket(host, options.pipe);
+        } else if (options.localSocket != null) {
           try {
-            return new UnixDomainSocket(urlParser.getOptions().localSocket);
+            return new UnixDomainSocket(options.localSocket);
           } catch (RuntimeException re) {
             throw new IOException(re.getMessage(), re.getCause());
           }
-        } else if (urlParser.getOptions().sharedMemory != null) {
+        } else if (options.sharedMemory != null) {
           try {
-            return new SharedMemorySocket(urlParser.getOptions().sharedMemory);
+            return new SharedMemorySocket(options.sharedMemory);
           } catch (RuntimeException re) {
             throw new IOException(re.getMessage(), re.getCause());
           }
         } else {
-          return Utils.standardSocket(urlParser, host);
+          return Utils.standardSocket(options, host);
         }
 
       };
     } catch (Throwable cle) {
       //jna jar's are not in classpath
     }
-    return (urlParser, host) -> Utils.standardSocket(urlParser, host);
+    return (options, host) -> Utils.standardSocket(options, host);
   }
 }

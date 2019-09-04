@@ -499,6 +499,7 @@ public class SslTest extends BaseTest {
     Assume.assumeTrue(hasSameHost());
     Properties info = new Properties();
     info.setProperty("useSSL", "true");
+    info.setProperty("log", "true");
     info.setProperty("serverSslCert", serverCertificatePath);
     testConnect(info, true);
   }

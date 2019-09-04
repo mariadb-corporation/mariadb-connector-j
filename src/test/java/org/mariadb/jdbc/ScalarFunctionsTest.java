@@ -146,6 +146,7 @@ public class ScalarFunctionsTest extends BaseTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void scalarFctTest() throws SQLException {
     if (!isMariadbServer()) {
       cancelForVersion(5, 5);

@@ -105,7 +105,7 @@ public class Utils {
       init = SocketUtility.getSocketHandler();
     } catch (Throwable t) {
       SocketHandlerFunction defaultSocketHandler =
-          (urlParser, host) -> Utils.standardSocket(urlParser, host);
+          (options, host) -> Utils.standardSocket(options, host);
       init = defaultSocketHandler;
     }
     socketHandler = init;
@@ -114,14 +114,14 @@ public class Utils {
   /**
    * Use standard socket implementation.
    *
-   * @param urlParser url parser
+   * @param options url options
    * @param host host to connect
    * @return socket
    * @throws IOException in case of error establishing socket.
    */
-  public static Socket standardSocket(UrlParser urlParser, String host) throws IOException {
+  public static Socket standardSocket(Options options, String host) throws IOException {
     SocketFactory socketFactory;
-    String socketFactoryName = urlParser.getOptions().socketFactory;
+    String socketFactoryName = options.socketFactory;
     if (socketFactoryName != null) {
       try {
         @SuppressWarnings("unchecked")
@@ -135,7 +135,7 @@ public class Utils {
       } catch (Exception exp) {
         throw new IOException(
             "Socket factory failed to initialized with option \"socketFactory\" set to \""
-                + urlParser.getOptions().socketFactory
+                + options.socketFactory
                 + "\"",
             exp);
       }
@@ -655,13 +655,13 @@ public class Utils {
   /**
    * Create socket accordingly to options.
    *
-   * @param urlParser urlParser
+   * @param options Url options
    * @param host hostName ( mandatory only for named pipe)
    * @return a nex socket
    * @throws IOException if connection error occur
    */
-  public static Socket createSocket(UrlParser urlParser, String host) throws IOException {
-    return socketHandler.apply(urlParser, host);
+  public static Socket createSocket(Options options, String host) throws IOException {
+    return socketHandler.apply(options, host);
   }
 
   /**

@@ -334,13 +334,110 @@ public abstract class AbstractConnectProtocol implements Protocol {
   }
 
   /**
-   * InitializeSocketOption.
+   * Connect to currentHost.
+   *
+   * @throws SQLException exception
    */
-  private void initializeSocketOption() {
+  public void connect() throws SQLException {
+    if (!isClosed()) {
+      close();
+    }
+
+    try {
+      createConnection((currentHost != null) ? currentHost.host : null,
+          (currentHost != null) ? currentHost.port : 3306,
+          username);
+    } catch (SQLException exception) {
+      throw ExceptionMapper.connException(
+          "Could not connect to " + currentHost + ". " + exception.getMessage() + getTraces(),
+          exception);
+    }
+  }
+
+  private void createConnection(String host, int port, String username) throws SQLException {
+    this.socket = createSocket(host, port, options);
+    assignStream(this.socket, options);
+
     try {
 
+      //parse server greeting packet.
+      final ReadInitialHandShakePacket greetingPacket = new ReadInitialHandShakePacket(reader);
+      this.serverThreadId = greetingPacket.getServerThreadId();
+      this.serverVersion = greetingPacket.getServerVersion();
+      this.serverMariaDb = greetingPacket.isServerMariaDb();
+      this.serverCapabilities = greetingPacket.getServerCapabilities();
+      this.reader.setServerThreadId(serverThreadId, null);
+      this.writer.setServerThreadId(serverThreadId, null);
+
+      parseVersion(greetingPacket.getServerVersion());
+
+      byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage() & 0xFF);
+      long clientCapabilities = initializeClientCapabilities(options, serverCapabilities, database);
+
+      sslWrapper(
+          host,
+          socket,
+          options,
+          greetingPacket.getServerCapabilities(),
+          clientCapabilities,
+          exchangeCharset,
+          serverThreadId);
+
+      authenticationHandler(
+          exchangeCharset,
+          clientCapabilities,
+          greetingPacket.getPluginName(),
+          greetingPacket.getSeed(),
+          options,
+          database,
+          username,
+          password,
+          host);
+
+      compressionHandler(options);
+    } catch (IOException ioException) {
+      closeSocket();
+      if (host == null) {
+        throw ExceptionMapper.connException(
+            "Could not connect to socket : " + ioException.getMessage(),
+            ioException);
+      }
+      throw ExceptionMapper.connException(
+          "Could not connect to " + host + ":" + socket.getPort() + " : " + ioException
+              .getMessage(),
+          ioException);
+    } catch (SQLException sqlException) {
+      closeSocket();
+      throw sqlException;
+    }
+
+    connected = true;
+
+    this.reader.setServerThreadId(this.serverThreadId, isMasterConnection());
+    this.writer.setServerThreadId(this.serverThreadId, isMasterConnection());
+
+    if (this.options.socketTimeout != null) {
+      this.socketTimeout = this.options.socketTimeout;
+    }
+    if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_DEPRECATE_EOF) != 0) {
+      eofDeprecated = true;
+    }
+
+    postConnectionQueries();
+
+    activeStreamingResult = null;
+    hostFailed = false;
+  }
+
+  private static Socket createSocket(final String host, final int port, final Options options) throws SQLException {
+    Socket socket;
+    try {
+      socket = Utils.createSocket(options, host);
       socket.setTcpNoDelay(options.tcpNoDelay);
 
+      if (options.socketTimeout != null) {
+        socket.setSoTimeout(options.socketTimeout);
+      }
       if (options.tcpKeepAlive) {
         socket.setKeepAlive(true);
       }
@@ -353,47 +450,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
       if (options.tcpAbortiveClose) {
         socket.setSoLinger(true, 0);
       }
-    } catch (Exception e) {
-      logger.debug("Failed to set socket option", e);
-    }
-  }
-
-  /**
-   * Connect to currentHost.
-   *
-   * @throws SQLException exception
-   */
-  public void connect() throws SQLException {
-    if (!isClosed()) {
-      close();
-    }
-
-    try {
-      connect((currentHost != null) ? currentHost.host : null,
-          (currentHost != null) ? currentHost.port : 3306);
-    } catch (IOException ioException) {
-      throw ExceptionMapper.connException(
-          "Could not connect to " + currentHost + ". " + ioException.getMessage() + getTraces(),
-          ioException);
-    }
-  }
-
-  /**
-   * Connect the client and perform handshake.
-   *
-   * @param host host
-   * @param port port
-   * @throws SQLException handshake error, e.g wrong user or password
-   * @throws IOException  connection error (host/port not available)
-   */
-  private void connect(String host, int port) throws SQLException, IOException {
-    try {
-      socket = Utils.createSocket(urlParser, host);
-      if (options.socketTimeout != null) {
-        this.changeSocketSoTimeout(options.socketTimeout);
-      }
-
-      initializeSocketOption();
 
       // Bind the socket to a particular interface if the connection property
       // localSocketAddress has been defined.
@@ -403,30 +459,224 @@ public abstract class AbstractConnectProtocol implements Protocol {
       }
 
       if (!socket.isConnected()) {
-        InetSocketAddress sockAddr =
-            urlParser.getOptions().pipe == null ? new InetSocketAddress(host, port) : null;
-        if (options.connectTimeout != 0) {
-          socket.connect(sockAddr, options.connectTimeout);
-        } else {
-          socket.connect(sockAddr);
+        InetSocketAddress sockAddr = options.pipe == null ? new InetSocketAddress(host, port) : null;
+        socket.connect(sockAddr, options.connectTimeout);
+      }
+      return socket;
+
+    } catch (IOException ioe) {
+      throw ExceptionMapper.connException(
+          "Socket fail to connect to host:" + host + ", port:" + port + ". " + ioe.getMessage(),
+          ioe);
+    }
+  }
+
+  public void closeSocket() {
+    if (this.reader != null) {
+      try {
+        this.reader.close();
+      } catch (IOException ee) {
+        //eat exception
+      }
+    }
+    if (this.writer != null) {
+      try {
+        this.writer.close();
+      } catch (IOException ee) {
+        //eat exception
+      }
+    }
+    if (this.socket != null) {
+      try {
+        this.socket.close();
+      } catch (IOException ee) {
+        //eat exception
+      }
+    }
+  }
+
+  private void sslWrapper(final String host, final Socket socket,
+                                 final Options options, final long serverCapabilities,
+                                 long clientCapabilities, final byte exchangeCharset,
+                                 long serverThreadId)
+      throws SQLException, IOException {
+    if (options.useSsl) {
+
+      if ((serverCapabilities & MariaDbServerCapabilities.SSL) == 0) {
+        throw new SQLException("Trying to connect with ssl, but ssl not enabled in the server");
+      }
+      clientCapabilities |= MariaDbServerCapabilities.SSL;
+      SendSslConnectionRequestPacket.send(writer, clientCapabilities, exchangeCharset);
+
+      SSLSocketFactory sslSocketFactory = SslFactory.getSslSocketFactory(options);
+      SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
+          socket.getInetAddress() == null ? null : socket.getInetAddress().getHostAddress(), socket.getPort(), true);
+
+      enabledSslProtocolSuites(sslSocket, options);
+      enabledSslCipherSuites(sslSocket, options);
+
+      sslSocket.setUseClientMode(true);
+      sslSocket.startHandshake();
+
+      // perform hostname verification
+      // (rfc2818 indicate that if "client has external information as to the expected identity of the server,
+      // the hostname check MAY be omitted")
+      if (!options.disableSslHostnameVerification && !options.trustServerCertificate) {
+        HostnameVerifierImpl hostnameVerifier = new HostnameVerifierImpl();
+        SSLSession session = sslSocket.getSession();
+        if (!hostnameVerifier.verify(host, session, serverThreadId)) {
+
+          //Use proprietary verify method in order to have an exception with a better description of error.
+          try {
+            Certificate[] certs = session.getPeerCertificates();
+            X509Certificate cert = (X509Certificate) certs[0];
+            hostnameVerifier.verify(host, cert, serverThreadId);
+          } catch (SSLException ex) {
+            throw new SQLNonTransientConnectionException(
+                "SSL hostname verification failed : " + ex.getMessage()
+                    + "\nThis verification can be disabled using the option \"disableSslHostnameVerification\" "
+                    + "but won't prevent man-in-the-middle attacks anymore", "08006");
+          }
         }
       }
 
-      handleConnectionPhases(host);
+      assignStream(sslSocket, options);
+    }
+  }
 
-      connected = true;
+  private void authenticationHandler(byte exchangeCharset, long clientCapabilities,
+                                     String pluginName, byte[] seed,
+                                     Options options,
+                                     String database, String username, String password,
+                                     String host)
+      throws SQLException, IOException {
 
-      if (options.useCompression) {
-        writer = new CompressPacketOutputStream(writer.getOutputStream(),
-            options.maxQuerySizeToLog);
-        reader = new DecompressPacketInputStream(
-            ((StandardPacketInputStream) reader).getInputStream(),
-            options.maxQuerySizeToLog);
-        if (options.enablePacketDebug) {
-          writer.setTraceCache(traceCache);
-          reader.setTraceCache(traceCache);
-        }
+    //send Client Handshake Response
+    SendHandshakeResponsePacket.send(writer,
+        username,
+        password,
+        host,
+        database,
+        clientCapabilities,
+        serverCapabilities,
+        exchangeCharset,
+        (byte) (options.useSsl ? 0x02 : 0x01),
+        options,
+        pluginName,
+        seed);
+
+    writer.permitTrace(false);
+
+    Buffer buffer = reader.getPacket(false);
+    AtomicInteger sequence = new AtomicInteger(reader.getLastPacketSeq());
+
+    authentication_loop:
+    while (true) {
+      switch (buffer.getByteAt(0) & 0xFF) {
+
+        case 0xFE:
+          /**********************************************************************
+           * Authentication Switch Request
+           * see https://mariadb.com/kb/en/library/connection/#authentication-switch-request
+           *********************************************************************/
+          sequence.set(reader.getLastPacketSeq());
+          AuthenticationPlugin authenticationPlugin;
+          if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
+            buffer.readByte();
+            byte[] authData;
+            String plugin;
+            if (buffer.remaining() > 0) {
+              //AuthSwitchRequest packet.
+              plugin = buffer.readStringNullEnd(Charset.forName("ASCII"));
+              authData = buffer.readRawBytes(buffer.remaining());
+            } else {
+              //OldAuthSwitchRequest
+              plugin = DefaultAuthenticationProvider.MYSQL_OLD_PASSWORD;
+              authData = Utils.copyWithLength(seed, 8);
+            }
+
+            //Authentication according to plugin.
+            //see AuthenticationProviderHolder for implement other plugin
+            authenticationPlugin = AuthenticationProviderHolder.getAuthenticationProvider()
+                .processAuthPlugin(plugin, password, authData, options);
+          } else {
+            authenticationPlugin = new OldPasswordPlugin(
+                password,
+                Utils.copyWithLength(seed, 8));
+          }
+          buffer = authenticationPlugin.process(writer, reader, sequence);
+          break;
+
+        case 0xFF:
+          /**********************************************************************
+           * ERR_Packet
+           * see https://mariadb.com/kb/en/library/err_packet/
+           *********************************************************************/
+          ErrorPacket errorPacket = new ErrorPacket(buffer);
+          if (password != null
+              && !password.isEmpty()
+              && errorPacket.getErrorNumber() == 1045
+              && "28000".equals(errorPacket.getSqlState())) {
+            //Access denied
+            throw new SQLException(errorPacket.getMessage()
+                + "\nCurrent charset is " + Charset.defaultCharset().displayName()
+                + ". If password has been set using other charset, consider "
+                + "using option 'passwordCharacterEncoding'",
+                errorPacket.getSqlState(), errorPacket.getErrorNumber());
+          }
+          throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(),
+              errorPacket.getErrorNumber());
+
+        case 0x00:
+          /**********************************************************************
+           * Authenticated !
+           * OK_Packet
+           * see https://mariadb.com/kb/en/library/ok_packet/
+           *********************************************************************/
+          OkPacket okPacket = new OkPacket(buffer);
+          serverStatus = okPacket.getServerStatus();
+          break authentication_loop;
+
+        default:
+          throw new SQLException("unexpected data during authentication (header=" + (buffer.getByteAt(0) & 0xFF));
+
       }
+    }
+    writer.permitTrace(true);
+  }
+
+  private void compressionHandler(Options options) {
+    if (options.useCompression) {
+      writer = new CompressPacketOutputStream(writer.getOutputStream(),
+          options.maxQuerySizeToLog);
+      reader = new DecompressPacketInputStream(
+          ((StandardPacketInputStream) reader).getInputStream(),
+          options.maxQuerySizeToLog);
+      if (options.enablePacketDebug) {
+        writer.setTraceCache(traceCache);
+        reader.setTraceCache(traceCache);
+      }
+    }
+  }
+
+  private void assignStream(Socket socket, Options options) throws SQLException {
+    try {
+      this.writer = new StandardPacketOutputStream(socket.getOutputStream(), options);
+      this.reader = new StandardPacketInputStream(socket.getInputStream(), options);
+
+      if (options.enablePacketDebug) {
+        writer.setTraceCache(traceCache);
+        reader.setTraceCache(traceCache);
+      }
+
+    } catch (IOException ioe) {
+      closeSocket();
+      throw ExceptionMapper.connException("Socket error: " + ioe.getMessage(), ioe);
+    }
+  }
+
+  private void postConnectionQueries() throws SQLException {
+    try {
 
       boolean mustLoadAdditionalInfo = true;
       if (globalInfo != null) {
@@ -469,9 +719,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
       activeStreamingResult = null;
       hostFailed = false;
-    } catch (IOException | SQLException ioException) {
-      ensureClosingSocketOnException();
-      throw ioException;
+    } catch (IOException ioException) {
+      closeSocket();
+      throw ExceptionMapper.connException(
+          "Socket error during post connection queries: " + ioException.getMessage(),
+          ioException);
+    } catch (SQLException sqlException) {
+      closeSocket();
+      throw sqlException;
     }
   }
 
@@ -661,16 +916,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
   }
 
-  private void ensureClosingSocketOnException() {
-    if (socket != null) {
-      try {
-        socket.close();
-      } catch (IOException ioe) {
-        //eat exception
-      }
-    }
-  }
-
   /**
    * Is the connection closed.
    *
@@ -680,198 +925,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
     return !this.connected;
   }
 
-  private void handleConnectionPhases(String host) throws SQLException {
-    try {
-      reader = new StandardPacketInputStream(socket.getInputStream(), options);
-      writer = new StandardPacketOutputStream(socket.getOutputStream(), options);
-
-      if (options.enablePacketDebug) {
-        writer.setTraceCache(traceCache);
-        reader.setTraceCache(traceCache);
-      }
-
-      final ReadInitialHandShakePacket greetingPacket = new ReadInitialHandShakePacket(reader);
-      this.serverThreadId = greetingPacket.getServerThreadId();
-      reader.setServerThreadId(this.serverThreadId, null);
-      writer.setServerThreadId(this.serverThreadId, null);
-
-      this.serverVersion = greetingPacket.getServerVersion();
-      this.serverMariaDb = greetingPacket.isServerMariaDb();
-      this.serverCapabilities = greetingPacket.getServerCapabilities();
-
-      parseVersion();
-      byte exchangeCharset = decideLanguage(greetingPacket.getServerLanguage() & 0xFF);
-      long clientCapabilities = initializeClientCapabilities(serverCapabilities);
-
-      byte packetSeq = 1;
-      if (options.useSsl
-          && (greetingPacket.getServerCapabilities() & MariaDbServerCapabilities.SSL) != 0) {
-        clientCapabilities |= MariaDbServerCapabilities.SSL;
-        SendSslConnectionRequestPacket.send(writer, clientCapabilities, exchangeCharset);
-
-        SSLSocketFactory sslSocketFactory = SslFactory.getSslSocketFactory(options);
-        SSLSocket sslSocket = (SSLSocket) sslSocketFactory.createSocket(socket,
-                socket.getInetAddress() == null ? null : socket.getInetAddress().getHostAddress(), socket.getPort(), true);
-
-        enabledSslProtocolSuites(sslSocket);
-        enabledSslCipherSuites(sslSocket);
-
-        sslSocket.setUseClientMode(true);
-        sslSocket.startHandshake();
-
-        // perform hostname verification
-        // (rfc2818 indicate that if "client has external information as to the expected identity of the server,
-        // the hostname check MAY be omitted")
-        if (!options.disableSslHostnameVerification && !options.trustServerCertificate) {
-          HostnameVerifierImpl hostnameVerifier = new HostnameVerifierImpl();
-          SSLSession session = sslSocket.getSession();
-          if (!hostnameVerifier.verify(host, session, serverThreadId)) {
-
-            //Use proprietary verify method in order to have an exception with a better description of error.
-            try {
-              Certificate[] certs = session.getPeerCertificates();
-              X509Certificate cert = (X509Certificate) certs[0];
-              hostnameVerifier.verify(host, cert, serverThreadId);
-            } catch (SSLException ex) {
-              throw new SQLNonTransientConnectionException(
-                  "SSL hostname verification failed : " + ex.getMessage()
-                      + "\nThis verification can be disabled using the option \"disableSslHostnameVerification\" "
-                      + "but won't prevent man-in-the-middle attacks anymore", "08006");
-            }
-          }
-        }
-
-        socket = sslSocket;
-        writer = new StandardPacketOutputStream(socket.getOutputStream(), options);
-        reader = new StandardPacketInputStream(socket.getInputStream(), options);
-
-        if (options.enablePacketDebug) {
-          writer.setTraceCache(traceCache);
-          reader.setTraceCache(traceCache);
-        }
-        packetSeq++;
-      } else if (options.useSsl) {
-        throw new SQLException("Trying to connect with ssl, but ssl not enabled in the server");
-      }
-
-      authentication(exchangeCharset, clientCapabilities, packetSeq, greetingPacket);
-
-    } catch (IOException ioException) {
-      if (reader != null) {
-        try {
-          reader.close();
-        } catch (IOException ee) {
-          //eat exception
-        }
-      }
-      if (currentHost == null) {
-        throw ExceptionMapper.connException(
-            "Could not connect to socket : " + ioException.getMessage(),
-            ioException);
-      }
-      throw ExceptionMapper.connException(
-          "Could not connect to " + currentHost.host + ":" + currentHost.port + " : " + ioException
-              .getMessage(),
-          ioException);
-    }
-  }
-
-  private void authentication(byte exchangeCharset, long clientCapabilities, byte packetSeq,
-      ReadInitialHandShakePacket greetingPacket)
-      throws SQLException, IOException {
-
-    //send handshake response
-    SendHandshakeResponsePacket.send(writer, this.username,
-        this.password,
-        this.currentHost,
-        database,
-        clientCapabilities,
-        serverCapabilities,
-        exchangeCharset,
-        packetSeq,
-        options,
-        greetingPacket);
-
-    writer.permitTrace(false);
-
-    Buffer buffer = reader.getPacket(false);
-    AtomicInteger sequence = new AtomicInteger(reader.getLastPacketSeq());
-
-    authentication_loop:
-    while (true) {
-      switch (buffer.getByteAt(0) & 0xFF) {
-
-        case 0xFE:
-          /**********************************************************************
-           * Authentication Switch Request
-           * see https://mariadb.com/kb/en/library/connection/#authentication-switch-request
-           *********************************************************************/
-          sequence.set(reader.getLastPacketSeq());
-          AuthenticationPlugin authenticationPlugin;
-          if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-            buffer.readByte();
-            byte[] authData;
-            String plugin;
-            if (buffer.remaining() > 0) {
-              //AuthSwitchRequest packet.
-              plugin = buffer.readStringNullEnd(Charset.forName("ASCII"));
-              authData = buffer.readRawBytes(buffer.remaining());
-            } else {
-              //OldAuthSwitchRequest
-              plugin = DefaultAuthenticationProvider.MYSQL_OLD_PASSWORD;
-              authData = Utils.copyWithLength(greetingPacket.getSeed(), 8);
-            }
-
-            //Authentication according to plugin.
-            //see AuthenticationProviderHolder for implement other plugin
-            authenticationPlugin = AuthenticationProviderHolder.getAuthenticationProvider()
-                    .processAuthPlugin(plugin, password, authData, options);
-          } else {
-            authenticationPlugin = new OldPasswordPlugin(
-                    this.password,
-                    Utils.copyWithLength(greetingPacket.getSeed(), 8));
-          }
-          buffer = authenticationPlugin.process(writer, reader, sequence);
-          break;
-
-        case 0xFF:
-          /**********************************************************************
-           * ERR_Packet
-           * see https://mariadb.com/kb/en/library/err_packet/
-           *********************************************************************/
-          ErrorPacket errorPacket = new ErrorPacket(buffer);
-          if (password != null
-                  && !password.isEmpty()
-                  && errorPacket.getErrorNumber() == 1045
-                  && "28000".equals(errorPacket.getSqlState())) {
-            //Access denied
-            throw new SQLException(errorPacket.getMessage()
-                    + "\nCurrent charset is " + Charset.defaultCharset().displayName()
-                    + ". If password has been set using other charset, consider "
-                    + "using option 'passwordCharacterEncoding'",
-                    errorPacket.getSqlState(), errorPacket.getErrorNumber());
-          }
-          throw new SQLException(errorPacket.getMessage(), errorPacket.getSqlState(),
-                  errorPacket.getErrorNumber());
-
-        case 0x00:
-          /**********************************************************************
-           * Authenticated !
-           * OK_Packet
-           * see https://mariadb.com/kb/en/library/ok_packet/
-           *********************************************************************/
-          serverStatus = new OkPacket(buffer).getServerStatus();
-          break authentication_loop;
-
-        default:
-            throw new SQLException("unexpected data during authentication (header=" + (buffer.getByteAt(0) & 0xFF));
-
-      }
-    }
-    writer.permitTrace(true);
-  }
-
-  private long initializeClientCapabilities(long serverCapabilities) {
+  private static long initializeClientCapabilities(final Options options,
+                                                   final long serverCapabilities,
+                                                   final String database) {
     long capabilities = MariaDbServerCapabilities.IGNORE_SPACE
         | MariaDbServerCapabilities.CLIENT_PROTOCOL_41
         | MariaDbServerCapabilities.TRANSACTIONS
@@ -900,7 +956,6 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
     if ((serverCapabilities & MariaDbServerCapabilities.CLIENT_DEPRECATE_EOF) != 0) {
       capabilities |= MariaDbServerCapabilities.CLIENT_DEPRECATE_EOF;
-      eofDeprecated = true;
     }
 
     if (options.useCompression) {
@@ -1110,13 +1165,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
     //CONJ-293 : handle name-pipe without host
     if (hosts.isEmpty() && options.pipe != null) {
       try {
-        connect(null, 0);
+        createConnection(null, 0, username);
         return;
-      } catch (IOException ioException) {
+      } catch (SQLException exception) {
         throw ExceptionMapper.connException(
-            "Could not connect to named pipe '" + options.pipe + "' : " + ioException.getMessage()
+            "Could not connect to named pipe '" + options.pipe + "' : " + exception.getMessage()
                 + getTraces(),
-            ioException);
+            exception);
       }
     }
 
@@ -1125,18 +1180,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
     while (!hosts.isEmpty()) {
       currentHost = hosts.poll();
       try {
-        connect(currentHost.host, currentHost.port);
+        createConnection(currentHost.host, currentHost.port, username);
         return;
       } catch (SQLException e) {
         if (hosts.isEmpty()) {
-          throw ExceptionMapper.getException(e, null, null, false);
-        }
-      } catch (IOException ioException) {
-        if (hosts.isEmpty()) {
           throw ExceptionMapper.connException(
-              "Could not connect to " + HostAddress.toString(addrs) + " : " + ioException
-                  .getMessage() + getTraces(),
-              ioException);
+              "Could not connect to " + HostAddress.toString(addrs) + " : " + e.getMessage()
+                  + getTraces(),
+              e);
         }
       }
     }
@@ -1192,7 +1243,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     return username;
   }
 
-  private void parseVersion() {
+  private void parseVersion(String serverVersion) {
     int length = serverVersion.length();
     char car;
     int offset = 0;
@@ -1245,7 +1296,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
    * @param sslSocket current sslSocket
    * @throws SQLException if protocol isn't a supported protocol
    */
-  private void enabledSslProtocolSuites(SSLSocket sslSocket) throws SQLException {
+  private static void enabledSslProtocolSuites(SSLSocket sslSocket, Options options) throws SQLException {
     if (options.enabledSslProtocolSuites != null) {
       List<String> possibleProtocols = Arrays.asList(sslSocket.getSupportedProtocols());
       String[] protocols = options.enabledSslProtocolSuites.split("[,;\\s]+");
@@ -1266,7 +1317,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
    * @param sslSocket current ssl socket
    * @throws SQLException if a cipher isn't known
    */
-  private void enabledSslCipherSuites(SSLSocket sslSocket) throws SQLException {
+  private static void enabledSslCipherSuites(SSLSocket sslSocket, Options options) throws SQLException {
     if (options.enabledSslCipherSuites != null) {
       List<String> possibleCiphers = Arrays.asList(sslSocket.getSupportedCipherSuites());
       String[] ciphers = options.enabledSslCipherSuites.split("[,;\\s]+");

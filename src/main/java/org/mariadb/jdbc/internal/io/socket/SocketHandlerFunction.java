@@ -2,10 +2,10 @@ package org.mariadb.jdbc.internal.io.socket;
 
 import java.io.IOException;
 import java.net.Socket;
-import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.internal.util.Options;
 
 @FunctionalInterface
 public interface SocketHandlerFunction {
 
-  Socket apply(UrlParser urlParser, String host) throws IOException;
+  Socket apply(Options options, String host) throws IOException;
 }
