@@ -28,62 +28,64 @@ cache:
 matrix:
   allow_failures:
     - env: DB=build PACKET=8M
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mysql:8.0 PACKET=8M ADDITIONAL_CONF=--default-authentication-plugin=mysql_native_password
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.4 PACKET=8M
-      jdk: oraclejdk8
+      jdk: openjdk11
   include:
     - env: DB=build PACKET=8M
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: AURORA=true
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mysql:5.5 PACKET=8M
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mysql:5.6 PACKET=8M
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mysql:5.7 PACKET=8M
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mysql:8.0 PACKET=8M ADDITIONAL_CONF=--default-authentication-plugin=mysql_native_password
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:5.5 PACKET=8M
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.0 PACKET=8M
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.1 PACKET=8M
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.2 PACKET=8M
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.2 PACKET=8M
       jdk: oraclejdk11
     - env: DB=mariadb:10.2 PACKET=8M GALERA=true
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.2 PACKET=8M PROFILE=true
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.2 PACKET=8M TYPE=PREPARE
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.2 PACKET=8M TYPE=REWRITE
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.2 PACKET=8M TYPE=MULTI
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.2 PACKET=20M
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.2 PACKET=40M
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.2 PACKET=40M TYPE=BULK_SERVER
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.2 PACKET=40M TYPE=NO_BULK_CLIENT
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.2 PACKET=40M TYPE=NO_BULK_SERVER
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.2 PACKET=40M COMPRESSION=true
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.3 PACKET=8M
-      jdk: oraclejdk8
+      jdk: openjdk11
     - env: DB=mariadb:10.4 PACKET=8M
-      jdk: oraclejdk8
+      jdk: openjdk11
+    - env: DB=mariadb:10.4 PACKET=8M
+      jdk: openjdk12
     - env: DB=mariadb:10.2 PACKET=8M MAXSCALE_VERSION=2.2.9
-      jdk: oraclejdk8
+      jdk: openjdk11
 
 script:
   - if [ "$DB" = "build" ] ; then .travis/build/build.sh; fi
