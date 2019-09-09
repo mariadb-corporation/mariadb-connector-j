@@ -615,6 +615,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
           ErrorPacket errorPacket = new ErrorPacket(buffer);
           if (password != null
               && !password.isEmpty()
+              && options.passwordCharacterEncoding == null
               && errorPacket.getErrorNumber() == 1045
               && "28000".equals(errorPacket.getSqlState())) {
             //Access denied
@@ -1184,9 +1185,13 @@ public abstract class AbstractConnectProtocol implements Protocol {
         return;
       } catch (SQLException e) {
         if (hosts.isEmpty()) {
+          if (e.getSQLState() != null) {
+            throw ExceptionMapper.get("Could not connect to "
+                + HostAddress.toString(addrs) + " : " + e.getMessage() + getTraces(),
+                e.getSQLState(), e.getErrorCode(), e, false);
+          }
           throw ExceptionMapper.connException(
-              "Could not connect to " + HostAddress.toString(addrs) + " : " + e.getMessage()
-                  + getTraces(),
+              "Could not connect to " + currentHost + ". " + e.getMessage() + getTraces(),
               e);
         }
       }
