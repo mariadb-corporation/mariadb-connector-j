@@ -62,6 +62,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import org.mariadb.jdbc.internal.util.DefaultOptions;
+import org.mariadb.jdbc.internal.util.DeRegister;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.constant.Version;
 
@@ -70,7 +71,7 @@ public final class Driver implements java.sql.Driver {
 
   static {
     try {
-      DriverManager.registerDriver(new Driver());
+      DriverManager.registerDriver(new Driver(), new DeRegister());
     } catch (SQLException e) {
       throw new RuntimeException("Could not register driver", e);
     }

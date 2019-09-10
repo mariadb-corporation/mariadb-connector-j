@@ -148,6 +148,11 @@ public class SchedulerServiceProviderHolderTest {
       public ScheduledThreadPoolExecutor getBulkScheduler() {
         throw new UnsupportedOperationException();
       }
+
+      @Override
+      public void close() {
+        throw new UnsupportedOperationException();
+      }
     };
 
     SchedulerServiceProviderHolder.setSchedulerProvider(emptyProvider);

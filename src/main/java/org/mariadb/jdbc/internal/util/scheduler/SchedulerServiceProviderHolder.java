@@ -59,42 +59,102 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Provider for when ever an internal thread pool is needed.  This can allow library users to
+ * Provider for when ever an internal thread pool is needed. This can allow library users to
  * override our default pooling behavior with possibly better and faster options.
  */
 public class SchedulerServiceProviderHolder {
 
-  /**
-   * The default provider will construct a new pool on every request.
-   */
-  public static final SchedulerProvider DEFAULT_PROVIDER = new SchedulerProvider() {
-    @Override
-    public DynamicSizedSchedulerInterface getScheduler(int minimumThreads, String poolName,
-        int maximumPoolSize) {
-      return new DynamicSizedSchedulerImpl(minimumThreads, poolName, maximumPoolSize);
-    }
+  /** The default provider will construct a new pool on every request. */
+  public static final SchedulerProvider DEFAULT_PROVIDER =
+      new SchedulerProvider() {
 
-    @Override
-    public ScheduledThreadPoolExecutor getFixedSizeScheduler(int minimumThreads, String poolName) {
-      return new FixedSizedSchedulerImpl(minimumThreads, poolName);
-    }
+        private DynamicSizedSchedulerInterface dynamicSizedScheduler;
+        private FixedSizedSchedulerImpl fixedSizedScheduler;
+        private ScheduledThreadPoolExecutor timeoutScheduler;
+        private ThreadPoolExecutor threadPoolExecutor;
 
-    @Override
-    public ScheduledThreadPoolExecutor getTimeoutScheduler() {
-      ScheduledThreadPoolExecutor timeoutScheduler = new ScheduledThreadPoolExecutor(1,
-          new MariaDbThreadFactory("MariaDb-timeout"));
-      timeoutScheduler.setRemoveOnCancelPolicy(true);
-      return timeoutScheduler;
-    }
+        @Override
+        public DynamicSizedSchedulerInterface getScheduler(
+            int minimumThreads, String poolName, int maximumPoolSize) {
+          if (dynamicSizedScheduler == null) {
+            synchronized (this) {
+              if (dynamicSizedScheduler == null) {
+                dynamicSizedScheduler =
+                    new DynamicSizedSchedulerImpl(minimumThreads, poolName, maximumPoolSize);
+              }
+            }
+          }
+          return dynamicSizedScheduler;
+        }
 
-    @Override
-    @SuppressWarnings("unchecked")
-    public ThreadPoolExecutor getBulkScheduler() {
-      return new ThreadPoolExecutor(5, 100, 1, TimeUnit.MINUTES, new SynchronousQueue(),
-          new MariaDbThreadFactory("MariaDb-bulk"));
-    }
+        @Override
+        public ScheduledThreadPoolExecutor getFixedSizeScheduler(
+            int minimumThreads, String poolName) {
+          if (fixedSizedScheduler == null) {
+            synchronized (this) {
+              if (fixedSizedScheduler == null) {
+                fixedSizedScheduler = new FixedSizedSchedulerImpl(minimumThreads, poolName);
+              }
+            }
+          }
+          return fixedSizedScheduler;
+        }
 
-  };
+        @Override
+        public ScheduledThreadPoolExecutor getTimeoutScheduler() {
+          if (timeoutScheduler == null) {
+            synchronized (this) {
+              if (timeoutScheduler == null) {
+                timeoutScheduler =
+                    new ScheduledThreadPoolExecutor(1, new MariaDbThreadFactory("MariaDb-timeout"));
+                timeoutScheduler.setRemoveOnCancelPolicy(true);
+              }
+            }
+          }
+          return timeoutScheduler;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public ThreadPoolExecutor getBulkScheduler() {
+          if (threadPoolExecutor == null) {
+            synchronized (this) {
+              if (threadPoolExecutor == null) {
+                threadPoolExecutor =
+                    new ThreadPoolExecutor(
+                        5,
+                        100,
+                        1,
+                        TimeUnit.MINUTES,
+                        new SynchronousQueue(),
+                        new MariaDbThreadFactory("MariaDb-bulk"));
+              }
+            }
+          }
+          return threadPoolExecutor;
+        }
+
+        public synchronized void close() {
+
+          if (dynamicSizedScheduler != null) {
+            dynamicSizedScheduler.shutdownNow();
+          }
+          if (fixedSizedScheduler != null) {
+            fixedSizedScheduler.shutdownNow();
+          }
+          if (timeoutScheduler != null) {
+            timeoutScheduler.shutdownNow();
+          }
+          if (threadPoolExecutor != null) {
+            threadPoolExecutor.shutdownNow();
+          }
+
+          dynamicSizedScheduler = null;
+          fixedSizedScheduler = null;
+          timeoutScheduler = null;
+          threadPoolExecutor = null;
+        }
+      };
 
   private static volatile SchedulerProvider currentProvider = null;
 
@@ -193,6 +253,8 @@ public class SchedulerServiceProviderHolder {
     ScheduledThreadPoolExecutor getTimeoutScheduler();
 
     ThreadPoolExecutor getBulkScheduler();
+
+    void close();
   }
 
 

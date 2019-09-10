@@ -78,8 +78,10 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
@@ -90,6 +92,7 @@ import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.DefaultOptions;
+import org.mariadb.jdbc.internal.util.DeRegister;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 
@@ -1687,4 +1690,57 @@ public class DriverTest extends BaseTest {
       }
     }
   }
+
+  @Test
+  public void forcePoolClose() throws SQLException {
+    try (Connection conn = setConnection()) {
+      Statement stmt = conn.createStatement();
+      stmt.execute("CREATE TEMPORARY TABLE forcePoolClose(id int)");
+      //force use (and launch) of pipeline thread pool
+      try (PreparedStatement p = conn.prepareStatement("INSERT INTO forcePoolClose(id) VALUES (?)")) {
+        p.setInt(1, 1);
+        p.addBatch();
+        p.setInt(1, 2);
+        p.addBatch();
+        p.executeBatch();
+      }
+      new Thread(() -> {
+        try {
+          stmt.setQueryTimeout(1);
+          stmt.execute("select sleep(0.5)");
+        } catch (SQLException sqle) {
+
+        }
+      }).start();
+
+    }
+
+    //force de-registration
+    for (java.sql.Driver drv : Collections.list(DriverManager.getDrivers())) {
+      if (drv.acceptsURL("jdbc:mariadb:")) {
+        DriverManager.deregisterDriver(drv);
+
+        Iterator<Thread> it = Thread.getAllStackTraces().keySet().iterator();
+        Thread thread;
+        while (it.hasNext()) {
+          thread = it.next();
+          if (thread.getName().contains("MariaDb-bulk-")) {
+            for (StackTraceElement ste : thread.getStackTrace()) {
+              System.out.println(ste);
+            }
+            assertFalse(thread.isAlive());
+          }
+        }
+      }
+    }
+
+    //force registration
+    DriverManager.registerDriver(new org.mariadb.jdbc.Driver(), new DeRegister());
+
+    //ensure registration is ok
+    try (Connection conn = setConnection()) {
+
+    }
+  }
+
 }
