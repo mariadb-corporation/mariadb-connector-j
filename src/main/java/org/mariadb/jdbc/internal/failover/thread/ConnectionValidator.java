@@ -62,7 +62,7 @@ import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 
 public class ConnectionValidator {
 
-  private static final ScheduledExecutorService fixedSizedScheduler = SchedulerServiceProviderHolder
+  private final ScheduledExecutorService fixedSizedScheduler = SchedulerServiceProviderHolder
       .getFixedSizeScheduler(1, "validator");
   private static final int MINIMUM_CHECK_DELAY_MILLIS = 100;
 

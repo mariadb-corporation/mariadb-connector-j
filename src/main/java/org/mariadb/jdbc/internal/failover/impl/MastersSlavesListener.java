@@ -90,11 +90,15 @@ import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
  */
 public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
-  private static final DynamicSizedSchedulerInterface dynamicSizedScheduler;
+  private static DynamicSizedSchedulerInterface dynamicSizedScheduler;
   private static final AtomicInteger listenerCount = new AtomicInteger();
   private static final Logger logger = LoggerFactory.getLogger(MastersSlavesListener.class);
 
   static {
+    loadScheduler();
+  }
+
+  private static void loadScheduler() {
     dynamicSizedScheduler = SchedulerServiceProviderHolder.getScheduler(1, "MariaDb-failover", 8);
 
     // fail loop scaling happens async and only from a single thread
@@ -145,6 +149,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
    */
   public MastersSlavesListener(final UrlParser urlParser, final GlobalStateInfo globalInfo) {
     super(urlParser, globalInfo);
+    if (dynamicSizedScheduler.isTerminated()) loadScheduler();
     listenerCount.incrementAndGet();
     masterProtocol = null;
     secondaryProtocol = null;

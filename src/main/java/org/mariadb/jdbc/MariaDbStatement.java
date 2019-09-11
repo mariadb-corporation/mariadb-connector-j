@@ -84,9 +84,8 @@ import org.mariadb.jdbc.internal.util.scheduler.SchedulerServiceProviderHolder;
 public class MariaDbStatement implements Statement, Cloneable {
 
   //timeout scheduler
-  private static final ScheduledExecutorService timeoutScheduler = SchedulerServiceProviderHolder
-      .getTimeoutScheduler();
   private static final Logger logger = LoggerFactory.getLogger(MariaDbStatement.class);
+  private ScheduledExecutorService timeoutScheduler;
   protected final ReentrantLock lock;
   protected final int resultSetScrollType;
   protected final int resultSetConcurrency;
@@ -161,7 +160,9 @@ public class MariaDbStatement implements Statement, Cloneable {
   // Part of query prolog - setup timeout timer
   protected void setTimerTask(boolean isBatch) {
     assert (timerTaskFuture == null);
-
+    if (timeoutScheduler == null) {
+      timeoutScheduler = SchedulerServiceProviderHolder.getTimeoutScheduler();
+    }
     timerTaskFuture = timeoutScheduler.schedule(() -> {
       try {
         isTimedout = true;
