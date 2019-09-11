@@ -132,7 +132,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   private static final Logger logger = LoggerFactory.getLogger(AbstractQueryProtocol.class);
   private static final String CHECK_GALERA_STATE_QUERY = "show status like 'wsrep_local_state'";
 
-  protected static ThreadPoolExecutor readScheduler = null;
+  private ThreadPoolExecutor readScheduler = null;
   private final LogQueryTool logQuery;
   private int transactionIsolationLevel = 0;
   private InputStream localInfileInputStream;
@@ -583,12 +583,8 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
   }
 
   private void initializeBatchReader() {
-    if (options.useBatchMultiSend && readScheduler == null) {
-      synchronized (AbstractQueryProtocol.class) {
-        if (readScheduler == null) {
-          readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
-        }
-      }
+    if (options.useBatchMultiSend) {
+      readScheduler = SchedulerServiceProviderHolder.getBulkScheduler();
     }
   }
 
@@ -605,7 +601,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
 
     cmdPrologue();
     initializeBatchReader();
-    new AbstractMultiSend(this, writer, results, clientPrepareResult, parametersList) {
+    new AbstractMultiSend(this, writer, results, clientPrepareResult, parametersList, readScheduler) {
 
       @Override
       public void sendCmd(PacketOutputStream writer, Results results,
@@ -743,7 +739,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       return;
     }
     initializeBatchReader();
-    new AbstractMultiSend(this, writer, results, queries) {
+    new AbstractMultiSend(this, writer, results, queries, readScheduler) {
 
       @Override
       public void sendCmd(PacketOutputStream pos, Results results,
@@ -955,7 +951,7 @@ public class AbstractQueryProtocol extends AbstractConnectProtocol implements Pr
       return false;
     }
     initializeBatchReader();
-    new AbstractMultiSend(this, writer, results, serverPrepareResult, parametersList, true, sql) {
+    new AbstractMultiSend(this, writer, results, serverPrepareResult, parametersList, true, sql, readScheduler) {
       @Override
       public void sendCmd(PacketOutputStream writer, Results results,
           List<ParameterHolder[]> parametersList, List<String> queries, int paramCount,

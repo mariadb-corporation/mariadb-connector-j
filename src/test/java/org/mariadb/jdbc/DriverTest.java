@@ -1737,8 +1737,18 @@ public class DriverTest extends BaseTest {
     //force registration
     DriverManager.registerDriver(new org.mariadb.jdbc.Driver(), new DeRegister());
 
-    //ensure registration is ok
+    //ensure registration is ok and new thread pool is created if needed
     try (Connection conn = setConnection()) {
+      Statement stmt = conn.createStatement();
+      stmt.execute("CREATE TEMPORARY TABLE forcePoolClose(id int)");
+      //force use (and launch) of pipeline thread pool
+      try (PreparedStatement p = conn.prepareStatement("INSERT INTO forcePoolClose(id) VALUES (?)")) {
+        p.setInt(1, 1);
+        p.addBatch();
+        p.setInt(1, 2);
+        p.addBatch();
+        p.executeBatch();
+      }
 
     }
   }

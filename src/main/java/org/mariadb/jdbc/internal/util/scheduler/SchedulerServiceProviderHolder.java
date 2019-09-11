@@ -57,6 +57,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Provider for when ever an internal thread pool is needed. This can allow library users to
@@ -134,29 +135,31 @@ public class SchedulerServiceProviderHolder {
           return threadPoolExecutor;
         }
 
-        public synchronized void close() {
+        public void close() {
+          synchronized (this) {
+            if (dynamicSizedScheduler != null) {
+              dynamicSizedScheduler.shutdownNow();
+            }
+            if (fixedSizedScheduler != null) {
+              fixedSizedScheduler.shutdownNow();
+            }
+            if (timeoutScheduler != null) {
+              timeoutScheduler.shutdownNow();
+            }
+            if (threadPoolExecutor != null) {
+              threadPoolExecutor.shutdownNow();
+            }
 
-          if (dynamicSizedScheduler != null) {
-            dynamicSizedScheduler.shutdownNow();
+            dynamicSizedScheduler = null;
+            fixedSizedScheduler = null;
+            timeoutScheduler = null;
+            threadPoolExecutor = null;
           }
-          if (fixedSizedScheduler != null) {
-            fixedSizedScheduler.shutdownNow();
-          }
-          if (timeoutScheduler != null) {
-            timeoutScheduler.shutdownNow();
-          }
-          if (threadPoolExecutor != null) {
-            threadPoolExecutor.shutdownNow();
-          }
-
-          dynamicSizedScheduler = null;
-          fixedSizedScheduler = null;
-          timeoutScheduler = null;
-          threadPoolExecutor = null;
         }
       };
 
-  private static volatile SchedulerProvider currentProvider = null;
+  private static AtomicReference<SchedulerProvider> currentProvider =
+      new AtomicReference<>(DEFAULT_PROVIDER);
 
   /**
    * Get the currently set {@link SchedulerProvider} from set invocations via {@link
@@ -166,12 +169,7 @@ public class SchedulerServiceProviderHolder {
    * @return Provider to get scheduler pools from
    */
   public static SchedulerProvider getSchedulerProvider() {
-    SchedulerProvider result = currentProvider;
-    if (result == null) {
-      return DEFAULT_PROVIDER;
-    } else {
-      return result;
-    }
+    return currentProvider.get();
   }
 
   /**
@@ -181,7 +179,17 @@ public class SchedulerServiceProviderHolder {
    * @param newProvider New provider to use, or {@code null} to use the default provider
    */
   public static void setSchedulerProvider(SchedulerProvider newProvider) {
-    currentProvider = newProvider;
+    if (newProvider == null) {
+      newProvider = DEFAULT_PROVIDER;
+    }
+    currentProvider.getAndSet(newProvider).close();
+  }
+
+  /**
+   * Close currentProvider.
+   */
+  public static void close() {
+    currentProvider.get().close();
   }
 
   /**

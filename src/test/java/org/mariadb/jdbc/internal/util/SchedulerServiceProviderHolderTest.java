@@ -151,7 +151,7 @@ public class SchedulerServiceProviderHolderTest {
 
       @Override
       public void close() {
-        throw new UnsupportedOperationException();
+        //do nothing
       }
     };
 

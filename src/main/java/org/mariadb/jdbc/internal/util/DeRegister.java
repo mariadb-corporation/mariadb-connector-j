@@ -8,6 +8,6 @@ public class DeRegister implements DriverAction {
 
   @Override
   public void deregister() {
-    SchedulerServiceProviderHolder.getSchedulerProvider().close();
+    SchedulerServiceProviderHolder.close();
   }
 }
