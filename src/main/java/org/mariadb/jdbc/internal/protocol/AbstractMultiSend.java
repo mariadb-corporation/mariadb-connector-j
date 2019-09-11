@@ -61,6 +61,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
 import org.mariadb.jdbc.internal.com.send.ComStmtPrepare;
@@ -84,6 +85,7 @@ public abstract class AbstractMultiSend {
   private PrepareResult prepareResult;
   private List<String> queries;
   private String sql;
+  private ThreadPoolExecutor readScheduler;
 
   /**
    * Bulk execute for Server PreparedStatement.executeBatch (when no COM_MULTI)
@@ -95,10 +97,12 @@ public abstract class AbstractMultiSend {
    * @param parametersList        parameters
    * @param readPrepareStmtResult must execute prepare result
    * @param sql                   sql query.
+   * @param readScheduler reading thread-pool
    */
   public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results,
-      ServerPrepareResult serverPrepareResult,
-      List<ParameterHolder[]> parametersList, boolean readPrepareStmtResult, String sql) {
+                           ServerPrepareResult serverPrepareResult,
+                           List<ParameterHolder[]> parametersList, boolean readPrepareStmtResult,
+                           String sql, ThreadPoolExecutor readScheduler) {
     this.protocol = protocol;
     this.writer = writer;
     this.results = results;
@@ -107,6 +111,7 @@ public abstract class AbstractMultiSend {
     this.binaryProtocol = true;
     this.readPrepareStmtResult = readPrepareStmtResult;
     this.sql = sql;
+    this.readScheduler = readScheduler;
   }
 
   /**
@@ -117,9 +122,12 @@ public abstract class AbstractMultiSend {
    * @param results             results
    * @param clientPrepareResult clientPrepareResult
    * @param parametersList      parameters
+   * @param readScheduler reading thread-pool
    */
   public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results,
-      final ClientPrepareResult clientPrepareResult, List<ParameterHolder[]> parametersList) {
+                           final ClientPrepareResult clientPrepareResult,
+                           List<ParameterHolder[]> parametersList,
+                           ThreadPoolExecutor readScheduler) {
     this.protocol = protocol;
     this.writer = writer;
     this.results = results;
@@ -127,6 +135,7 @@ public abstract class AbstractMultiSend {
     this.parametersList = parametersList;
     this.binaryProtocol = false;
     this.readPrepareStmtResult = false;
+    this.readScheduler = readScheduler;
   }
 
   /**
@@ -136,15 +145,17 @@ public abstract class AbstractMultiSend {
    * @param writer   outputStream
    * @param results  results
    * @param queries  query list
+   * @param readScheduler reading thread-pool
    */
   public AbstractMultiSend(Protocol protocol, PacketOutputStream writer, Results results,
-      List<String> queries) {
+                           List<String> queries, ThreadPoolExecutor readScheduler) {
     this.protocol = protocol;
     this.writer = writer;
     this.results = results;
     this.queries = queries;
     this.binaryProtocol = false;
     this.readPrepareStmtResult = false;
+    this.readScheduler = readScheduler;
   }
 
   public abstract void sendCmd(PacketOutputStream writer, Results results,
@@ -257,7 +268,7 @@ public abstract class AbstractMultiSend {
               futureReadTask = new FutureTask<>(new AsyncMultiRead(comStmtPrepare, status,
                   protocol, false, this, paramCount,
                   results, parametersList, queries, prepareResult));
-              AbstractQueryProtocol.readScheduler.execute(futureReadTask);
+              readScheduler.execute(futureReadTask);
             } catch (RejectedExecutionException r) {
               useCurrentThread = true;
               try {

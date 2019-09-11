@@ -396,7 +396,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
       compressionHandler(options);
     } catch (IOException ioException) {
-      closeSocket();
+      destroySocket();
       if (host == null) {
         throw ExceptionMapper.connException(
             "Could not connect to socket : " + ioException.getMessage(),
@@ -407,7 +407,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
               .getMessage(),
           ioException);
     } catch (SQLException sqlException) {
-      closeSocket();
+      destroySocket();
       throw sqlException;
     }
 
@@ -471,7 +471,10 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
   }
 
-  public void closeSocket() {
+  /**
+   * Closing socket in case of Connection error after socket creation.
+   */
+  public void destroySocket() {
     if (this.reader != null) {
       try {
         this.reader.close();
@@ -671,7 +674,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
       }
 
     } catch (IOException ioe) {
-      closeSocket();
+      destroySocket();
       throw ExceptionMapper.connException("Socket error: " + ioe.getMessage(), ioe);
     }
   }
@@ -721,12 +724,12 @@ public abstract class AbstractConnectProtocol implements Protocol {
       activeStreamingResult = null;
       hostFailed = false;
     } catch (IOException ioException) {
-      closeSocket();
+      destroySocket();
       throw ExceptionMapper.connException(
           "Socket error during post connection queries: " + ioException.getMessage(),
           ioException);
     } catch (SQLException sqlException) {
-      closeSocket();
+      destroySocket();
       throw sqlException;
     }
   }

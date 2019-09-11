@@ -91,10 +91,9 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.util.DefaultOptions;
 import org.mariadb.jdbc.internal.util.DeRegister;
+import org.mariadb.jdbc.internal.util.DefaultOptions;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
-
 
 public class DriverTest extends BaseTest {
 
@@ -1709,7 +1708,7 @@ public class DriverTest extends BaseTest {
           stmt.setQueryTimeout(1);
           stmt.execute("select sleep(0.5)");
         } catch (SQLException sqle) {
-
+          //eat
         }
       }).start();
 
