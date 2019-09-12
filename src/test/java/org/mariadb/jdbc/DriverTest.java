@@ -1691,7 +1691,7 @@ public class DriverTest extends BaseTest {
   }
 
   @Test
-  public void forcePoolClose() throws SQLException {
+  public void deregisterDriver() throws Throwable {
     try (Connection conn = setConnection()) {
       Statement stmt = conn.createStatement();
       stmt.execute("CREATE TEMPORARY TABLE forcePoolClose(id int)");
@@ -1718,7 +1718,7 @@ public class DriverTest extends BaseTest {
     for (java.sql.Driver drv : Collections.list(DriverManager.getDrivers())) {
       if (drv.acceptsURL("jdbc:mariadb:")) {
         DriverManager.deregisterDriver(drv);
-
+        Thread.sleep(1000);
         Iterator<Thread> it = Thread.getAllStackTraces().keySet().iterator();
         Thread thread;
         while (it.hasNext()) {
