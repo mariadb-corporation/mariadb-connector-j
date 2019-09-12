@@ -149,7 +149,9 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
    */
   public MastersSlavesListener(final UrlParser urlParser, final GlobalStateInfo globalInfo) {
     super(urlParser, globalInfo);
-    if (dynamicSizedScheduler.isTerminated()) loadScheduler();
+    if (dynamicSizedScheduler.isTerminated()) {
+      loadScheduler();
+    }
     listenerCount.incrementAndGet();
     masterProtocol = null;
     secondaryProtocol = null;
@@ -1021,8 +1023,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
    * @return boolean
    */
   public boolean inTransaction() {
-    if (masterProtocol != null) {
-      return masterProtocol.inTransaction();
+    if (currentProtocol != null) {
+      return currentProtocol.inTransaction();
     }
     return true;
   }

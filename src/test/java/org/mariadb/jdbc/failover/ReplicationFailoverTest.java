@@ -52,11 +52,13 @@
 
 package org.mariadb.jdbc.failover;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.TimeUnit;
@@ -228,6 +230,34 @@ public class ReplicationFailoverTest extends BaseReplication {
         //normal error
       }
       assertFalse(connection.isReadOnly());
+    }
+  }
+
+  @Test
+  public void commitExecutionOnSlave() throws SQLException {
+    try (Connection conn = getNewConnection()) {
+      Statement stmt = conn.createStatement();
+      stmt.execute("CREATE TABLE IF NOT EXISTS commitExecution(id int, val varchar(256))");
+      stmt.execute("TRUNCATE TABLE commitExecution");
+      stmt.execute("INSERT INTO commitExecution value (1, 'test')");
+      conn.setAutoCommit(false);
+      assertFalse(conn.getAutoCommit());
+      conn.setReadOnly(true);
+      assertFalse(conn.getAutoCommit());
+
+      ResultSet rs = conn.createStatement()
+          .executeQuery("SELECT COUNT(*) FROM commitExecution");
+      rs.next();
+      assertEquals(rs.getInt(1), 1);
+
+      conn.setReadOnly(false);
+      conn.createStatement().execute("INSERT INTO commitExecution value (2, 'test3')");
+      conn.commit();
+      conn.setReadOnly(true);
+      conn.commit();
+      rs = conn.createStatement().executeQuery("SELECT COUNT(*) FROM commitExecution");
+      rs.next();
+      assertEquals(rs.getInt(1), 2);
     }
   }
 
