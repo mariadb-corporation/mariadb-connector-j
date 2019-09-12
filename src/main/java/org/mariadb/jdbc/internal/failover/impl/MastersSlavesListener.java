@@ -1016,8 +1016,8 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
    * @return boolean
    */
   public boolean inTransaction() {
-    if (masterProtocol != null) {
-      return masterProtocol.inTransaction();
+    if (currentProtocol != null) {
+      return currentProtocol.inTransaction();
     }
     return true;
   }
