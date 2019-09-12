@@ -136,6 +136,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
 
   protected Protocol masterProtocol;
   protected Protocol secondaryProtocol;
+  protected List<HostAddress> hostAddresses;
 
   /**
    * Initialisation.
@@ -148,6 +149,7 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     listenerCount.incrementAndGet();
     masterProtocol = null;
     secondaryProtocol = null;
+    hostAddresses = urlParser.getHostAddresses();
     setMasterHostFail();
     setSecondaryHostFail();
   }
@@ -502,11 +504,11 @@ public class MastersSlavesListener extends AbstractMastersSlavesListener {
     // - random order not blacklist and not connected host
     // - random order blacklist host
     // - connected host
-    List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+    List<HostAddress> loopAddress = new LinkedList<>(hostAddresses);
     loopAddress.removeAll(getBlacklistKeys());
     Collections.shuffle(loopAddress);
     List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
-    blacklistShuffle.retainAll(urlParser.getHostAddresses());
+    blacklistShuffle.retainAll(hostAddresses);
     Collections.shuffle(blacklistShuffle);
     loopAddress.addAll(blacklistShuffle);
 

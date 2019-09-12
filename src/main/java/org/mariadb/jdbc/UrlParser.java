@@ -105,7 +105,7 @@ public class UrlParser implements Cloneable {
   private UrlParser() {
   }
 
-  protected UrlParser(String database, List<HostAddress> addresses, Options options,
+  public UrlParser(String database, List<HostAddress> addresses, Options options,
       HaMode haMode) {
     this.options = options;
     this.database = database;
@@ -422,10 +422,6 @@ public class UrlParser implements Cloneable {
 
   public List<HostAddress> getHostAddresses() {
     return this.addresses;
-  }
-
-  public void setHostAddresses(List<HostAddress> addresses) {
-    this.addresses = addresses;
   }
 
   public Options getOptions() {

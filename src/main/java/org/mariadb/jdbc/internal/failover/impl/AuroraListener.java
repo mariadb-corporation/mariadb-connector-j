@@ -91,19 +91,15 @@ public class AuroraListener extends MastersSlavesListener {
    */
   public AuroraListener(UrlParser urlParser, final GlobalStateInfo globalInfo) throws SQLException {
     super(urlParser, globalInfo);
-    masterProtocol = null;
-    secondaryProtocol = null;
-    clusterHostAddress = findClusterHostAddress(urlParser);
+    clusterHostAddress = findClusterHostAddress();
   }
 
   /**
    * Retrieves the cluster host address from the UrlParser instance.
    *
-   * @param urlParser object that holds the connection information
    * @return cluster host address
    */
-  private HostAddress findClusterHostAddress(UrlParser urlParser) throws SQLException {
-    List<HostAddress> hostAddresses = urlParser.getHostAddresses();
+  private HostAddress findClusterHostAddress() throws SQLException {
     Matcher matcher;
     for (HostAddress hostAddress : hostAddresses) {
       matcher = auroraDnsPattern.matcher(hostAddress.host);
@@ -179,11 +175,11 @@ public class AuroraListener extends MastersSlavesListener {
     // - random order not connected host and not blacklisted
     // - random blacklisted host
     // - connected host at end.
-    List<HostAddress> loopAddress = new LinkedList<>(urlParser.getHostAddresses());
+    List<HostAddress> loopAddress = new LinkedList<>(hostAddresses);
     loopAddress.removeAll(getBlacklistKeys());
     Collections.shuffle(loopAddress);
     List<HostAddress> blacklistShuffle = new LinkedList<>(getBlacklistKeys());
-    blacklistShuffle.retainAll(urlParser.getHostAddresses());
+    blacklistShuffle.retainAll(hostAddresses);
     Collections.shuffle(blacklistShuffle);
     loopAddress.addAll(blacklistShuffle);
 
@@ -198,7 +194,7 @@ public class AuroraListener extends MastersSlavesListener {
       loopAddress.add(secondaryProtocol.getHostAddress());
     }
 
-    if (urlParser.getHostAddresses().size() <= 1) {
+    if (hostAddresses.size() <= 1) {
       searchFilter = new SearchFilter(true, false);
     }
     if ((isMasterHostFail() || isSecondaryHostFail())
@@ -303,13 +299,14 @@ public class AuroraListener extends MastersSlavesListener {
   private void setUrlParserFromEndpoints(List<String> endpoints, int port) {
     List<HostAddress> addresses = new ArrayList<>();
     for (String endpoint : endpoints) {
-      HostAddress newHostAddress = new HostAddress(endpoint, port, null);
-      addresses.add(newHostAddress);
+      if (endpoint != null) {
+        addresses.add(new HostAddress(endpoint, port, null));
+      }
     }
-
-    synchronized (urlParser) {
-      urlParser.setHostAddresses(addresses);
+    if (addresses.isEmpty()) {
+      addresses.addAll(urlParser.getHostAddresses());
     }
+    hostAddresses = addresses;
   }
 
   /**
@@ -418,7 +415,7 @@ public class AuroraListener extends MastersSlavesListener {
       masterHostAddress = new HostAddress(masterHostName + "." + clusterDnsSuffix,
           protocol.getPort(), null);
       loopAddress.add(masterHostAddress);
-      urlParser.setHostAddresses(loopAddress);
+      if (!hostAddresses.contains(masterHostAddress)) hostAddresses.add(masterHostAddress);
       return masterHostAddress;
     }
 
