@@ -1,4 +1,11 @@
 
+== 2.4.4 - Released on 14 Sept. 2019
+
+* [CONJ-724] Do not ignore the Calendar parameter in ResultSet#getTime(int, Calendar)
+* [CONJ-725] Connection Failure when using PAM authenticated user on 10.4 MariaDB server
+* [CONJ-729] master-slave regression: commit on read-only server Executed only when there is an active transaction on master connection
+* [CONJ-726] removing possible NPE after failover on aurora cluster
+
 == 2.4.3 - Released on 02 Jul. 2019
 
 * [CONJ-717] conversion function support for other data type than default MariaDB conversion type

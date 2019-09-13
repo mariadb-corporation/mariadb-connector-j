@@ -415,7 +415,9 @@ public class AuroraListener extends MastersSlavesListener {
       masterHostAddress = new HostAddress(masterHostName + "." + clusterDnsSuffix,
           protocol.getPort(), null);
       loopAddress.add(masterHostAddress);
-      if (!hostAddresses.contains(masterHostAddress)) hostAddresses.add(masterHostAddress);
+      if (!hostAddresses.contains(masterHostAddress)) {
+        hostAddresses.add(masterHostAddress);
+      }
       return masterHostAddress;
     }
 

@@ -105,6 +105,14 @@ public class UrlParser implements Cloneable {
   private UrlParser() {
   }
 
+  /**
+   * Constructor.
+   *
+   * @param database database
+   * @param addresses list of hosts
+   * @param options connection option
+   * @param haMode High availability mode
+   */
   public UrlParser(String database, List<HostAddress> addresses, Options options,
       HaMode haMode) {
     this.options = options;
