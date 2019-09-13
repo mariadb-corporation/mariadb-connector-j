@@ -104,8 +104,9 @@ public class GaleraFailoverTest extends SequentialFailoverTest {
     List<HostAddress> initAddresses = urlParser.getHostAddresses();
 
     for (int i = 0; i < initAddresses.size(); i++) {
-      urlParser.setHostAddresses(Arrays.asList(initAddresses.get(i)));
-      try (Connection master = MariaDbConnection.newConnection(urlParser, null)) {
+      UrlParser urlParserMono = new UrlParser(urlParser.getDatabase(), Arrays.asList(initAddresses.get(i)),
+          urlParser.getOptions(), urlParser.getHaMode());
+      try (Connection master = MariaDbConnection.newConnection(urlParserMono, null)) {
         Statement stmt = master.createStatement();
         ResultSet rs = stmt.executeQuery("show status like 'wsrep_local_state'");
         assertTrue(rs.next());
