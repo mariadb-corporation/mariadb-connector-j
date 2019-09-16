@@ -47,6 +47,31 @@ public class DefaultOptionsTest {
     Assert.assertEquals(driverPropertyInfos[0].description, "Database user name");
   }
 
+  @Test
+  public void getDefaultPropertyInfoNoUrl() throws Exception {
+    //check that default option object correspond to default
+    Driver driver = new Driver();
+    DriverPropertyInfo[] driverPropertyInfos = driver
+        .getPropertyInfo(null,
+            new Properties());
+    assertTrue(driverPropertyInfos.length > 30);
+    Assert.assertEquals(driverPropertyInfos[0].name, "user");
+    Assert.assertEquals(driverPropertyInfos[0].value, null);
+    Assert.assertEquals(driverPropertyInfos[0].description, "Database user name");
+  }
+
+  @Test
+  public void getPropertyInfoNoUrl() throws Exception {
+    //check that default option object correspond to default
+    Driver driver = new Driver();
+    Properties properties = new Properties();
+    properties.put("user", "t2");
+    DriverPropertyInfo[] driverPropertyInfos = driver.getPropertyInfo(null, properties);
+    assertTrue(driverPropertyInfos.length > 30);
+    Assert.assertEquals(driverPropertyInfos[0].name, "user");
+    Assert.assertEquals(driverPropertyInfos[0].value, "t2");
+    Assert.assertEquals(driverPropertyInfos[0].description, "Database user name");
+  }
 
   @Test
   public void parseDefaultDriverManagerTimeout() throws Exception {

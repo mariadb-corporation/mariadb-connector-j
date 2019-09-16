@@ -64,6 +64,7 @@ import java.util.Properties;
 import org.mariadb.jdbc.internal.util.DeRegister;
 import org.mariadb.jdbc.internal.util.DefaultOptions;
 import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.Version;
 
 
@@ -111,36 +112,38 @@ public final class Driver implements java.sql.Driver {
    *
    * @param url  the url to get properties for
    * @param info the info props
-   * @return something - not implemented
+   * @return all possible connector options
    * @throws SQLException if there is a problem getting the property info
    */
   public DriverPropertyInfo[] getPropertyInfo(String url,
       Properties info)
       throws SQLException {
-    if (url != null) {
+    Options options;
+    if (url != null && !url.isEmpty()) {
       UrlParser urlParser = UrlParser.parse(url, info);
       if (urlParser == null || urlParser.getOptions() == null) {
         return new DriverPropertyInfo[0];
       }
-
-      List<DriverPropertyInfo> props = new ArrayList<>();
-      for (DefaultOptions o : DefaultOptions.values()) {
-        try {
-          Field field = Options.class.getField(o.getOptionName());
-          Object value = field.get(urlParser.getOptions());
-          DriverPropertyInfo propertyInfo = new DriverPropertyInfo(field.getName(),
-              value == null ? null : value.toString());
-          propertyInfo.description = o.getDescription();
-          propertyInfo.required = o.isRequired();
-          props.add(propertyInfo);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-          //eat error
-        }
-      }
-      return props.toArray(new DriverPropertyInfo[props.size()]);
+      options = urlParser.getOptions();
+    } else {
+      options = DefaultOptions.parse(HaMode.NONE, "", info, null);;
     }
 
-    return new DriverPropertyInfo[0];
+    List<DriverPropertyInfo> props = new ArrayList<>();
+    for (DefaultOptions o : DefaultOptions.values()) {
+      try {
+        Field field = Options.class.getField(o.getOptionName());
+        Object value = field.get(options);
+        DriverPropertyInfo propertyInfo = new DriverPropertyInfo(field.getName(),
+            value == null ? null : value.toString());
+        propertyInfo.description = o.getDescription();
+        propertyInfo.required = o.isRequired();
+        props.add(propertyInfo);
+      } catch (NoSuchFieldException | IllegalAccessException e) {
+        //eat error
+      }
+    }
+    return props.toArray(new DriverPropertyInfo[props.size()]);
   }
 
   /**
@@ -162,12 +165,12 @@ public final class Driver implements java.sql.Driver {
   }
 
   /**
-   * checks if the driver is jdbc compliant (not yet!).
+   * checks if the driver is jdbc compliant.
    *
-   * @return false since the driver is not compliant
+   * @return true since the driver is not compliant
    */
   public boolean jdbcCompliant() {
-    return false;
+    return true;
   }
 
   public java.util.logging.Logger getParentLogger() throws SQLFeatureNotSupportedException {
