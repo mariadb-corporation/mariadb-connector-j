@@ -93,7 +93,7 @@ import org.junit.runner.Description;
 import org.mariadb.jdbc.failover.TcpProxy;
 import org.mariadb.jdbc.internal.failover.AbstractMastersListener;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.util.Options;
 
 /**
  * Base util class. For testing mvn test -DdbUrl=jdbc:mariadb://localhost:3306/testj?user=root

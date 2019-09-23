@@ -61,8 +61,8 @@ import org.mariadb.jdbc.authentication.AuthenticationPlugin;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.util.Options;
 
 public class NativePasswordPlugin implements AuthenticationPlugin {
 
@@ -82,6 +82,13 @@ public class NativePasswordPlugin implements AuthenticationPlugin {
     return TYPE;
   }
 
+  /**
+   * Initialized data.
+   *
+   * @param authenticationData authentication data (password/token)
+   * @param seed server provided seed
+   * @param options Connection string options
+   */
   public void initialize(String authenticationData, byte[] seed, Options options) {
     this.seed = seed;
     this.authenticationData = authenticationData;

@@ -59,6 +59,7 @@ import java.nio.ByteBuffer;
 import java.sql.SQLException;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
+import org.mariadb.jdbc.util.Options;
 
 public class LogQueryTool {
 

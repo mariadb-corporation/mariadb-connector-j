@@ -59,8 +59,8 @@ import org.mariadb.jdbc.authentication.AuthenticationPlugin;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.util.Options;
 
 public class OldPasswordPlugin implements AuthenticationPlugin {
   public static final String TYPE = "mysql_old_password";

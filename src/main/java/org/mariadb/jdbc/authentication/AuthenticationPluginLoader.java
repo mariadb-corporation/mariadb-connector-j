@@ -25,24 +25,31 @@ package org.mariadb.jdbc.authentication;
 import java.sql.SQLException;
 import java.util.ServiceLoader;
 
-/**
- * Provider to handle plugin authentication. This can allow library users to override our default
- * Authentication provider.
- */
 public class AuthenticationPluginLoader {
 
-  public static AuthenticationPlugin get(String key) throws SQLException {
-    if (key == null || key.isEmpty()) return null;
+  /**
+   * Get authentication plugin from type String.
+   * Customs authentication plugin can be added implementing AuthenticationPlugin and registering
+   * new type in resources services.
+   *
+   * @param type authentication plugin type
+   * @return Authentication plugin corresponding to type
+   * @throws SQLException if no authentication plugin in classpath have indicated type
+   */
+  public static AuthenticationPlugin get(String type) throws SQLException {
+    if (type == null || type.isEmpty()) {
+      return null;
+    }
     ServiceLoader<AuthenticationPlugin> loader = ServiceLoader.load(AuthenticationPlugin.class);
     for (AuthenticationPlugin implClass : loader) {
-      if (key.equals(implClass.type())) {
+      if (type.equals(implClass.type())) {
         return implClass;
       }
     }
     throw new SQLException(
         "Client does not support authentication protocol requested by server. "
-            + "Consider upgrading MariaDB client. plugin was = "
-            + key,
+            + "Consider upgrading MariaDB client. plugin type was = "
+            + type,
         "08004",
         1251);
   }

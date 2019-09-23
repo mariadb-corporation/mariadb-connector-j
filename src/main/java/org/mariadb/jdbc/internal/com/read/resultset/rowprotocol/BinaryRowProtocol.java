@@ -71,8 +71,8 @@ import java.time.format.DateTimeParseException;
 import java.util.Calendar;
 import java.util.TimeZone;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.util.Options;
 
 public class BinaryRowProtocol extends RowProtocol {
 

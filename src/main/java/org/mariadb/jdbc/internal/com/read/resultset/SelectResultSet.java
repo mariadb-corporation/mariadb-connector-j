@@ -83,8 +83,8 @@ import org.mariadb.jdbc.internal.com.read.resultset.rowprotocol.TextRowProtocol;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.util.Options;
 
 @SuppressWarnings({"deprecation", "BigDecimalMethodWithoutRoundingCalled",
     "StatementWithEmptyBody", "SynchronizationOnLocalVariableOrMethodParameter"})

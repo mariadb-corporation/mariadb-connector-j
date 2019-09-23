@@ -20,10 +20,12 @@
  *
  */
 
-package org.mariadb.jdbc.internal.util;
+package org.mariadb.jdbc.util;
 
 import java.lang.reflect.Field;
 import java.util.Properties;
+
+import org.mariadb.jdbc.internal.util.OptionUtils;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
 public enum DefaultOptions {
@@ -880,8 +882,8 @@ public enum DefaultOptions {
                         + " must be greater or equal to "
                         + o.minValue
                         + (((Integer) o.maxValue != Integer.MAX_VALUE)
-                            ? " and smaller than " + o.maxValue
-                            : " ")
+                        ? " and smaller than " + o.maxValue
+                        : " ")
                         + ", was \""
                         + propertyValue
                         + "\"");
@@ -908,8 +910,8 @@ public enum DefaultOptions {
                         + " must be greater or equal to "
                         + o.minValue
                         + (((Long) o.maxValue != Long.MAX_VALUE)
-                            ? " and smaller than " + o.maxValue
-                            : " ")
+                        ? " and smaller than " + o.maxValue
+                        : " ")
                         + ", was \""
                         + propertyValue
                         + "\"");

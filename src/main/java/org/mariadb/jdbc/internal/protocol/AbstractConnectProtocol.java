@@ -85,17 +85,17 @@ import javax.net.ssl.SSLSocketFactory;
 import org.mariadb.jdbc.HostAddress;
 import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
+import org.mariadb.jdbc.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.authentication.AuthenticationPluginLoader;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
 import org.mariadb.jdbc.internal.com.read.OkPacket;
 import org.mariadb.jdbc.internal.com.read.ReadInitialHandShakePacket;
 import org.mariadb.jdbc.internal.com.read.dao.Results;
-
 import org.mariadb.jdbc.internal.com.send.SendClosePacket;
 import org.mariadb.jdbc.internal.com.send.SendHandshakeResponsePacket;
 import org.mariadb.jdbc.internal.com.send.SendSslConnectionRequestPacket;
-import org.mariadb.jdbc.authentication.AuthenticationPlugin;
 import org.mariadb.jdbc.internal.com.send.authentication.OldPasswordPlugin;
 import org.mariadb.jdbc.internal.failover.FailoverProxy;
 import org.mariadb.jdbc.internal.io.LruTraceCache;
@@ -107,10 +107,8 @@ import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.io.output.StandardPacketOutputStream;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.authentication.AuthenticationPluginLoader;
 import org.mariadb.jdbc.internal.protocol.tls.HostnameVerifierImpl;
 import org.mariadb.jdbc.internal.protocol.tls.SslFactory;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
@@ -118,6 +116,7 @@ import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.util.Options;
 
 public abstract class AbstractConnectProtocol implements Protocol {
 
@@ -593,9 +592,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
       switch (buffer.getByteAt(0) & 0xFF) {
         case 0xFE:
           /**
-           * ******************************************************************** Authentication
-           * Switch Request see
-           * https://mariadb.com/kb/en/library/connection/#authentication-switch-request
+           * ********************************************************************
+           * Authentication Switch Request
+           * see https://mariadb.com/kb/en/library/connection/#authentication-switch-request
            * *******************************************************************
            */
           sequence.set(reader.getLastPacketSeq());
@@ -638,8 +637,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         case 0xFF:
           /**
-           * ******************************************************************** ERR_Packet see
-           * https://mariadb.com/kb/en/library/err_packet/
+           * ********************************************************************
+           * ERR_Packet
+           * see https://mariadb.com/kb/en/library/err_packet/
            * *******************************************************************
            */
           ErrorPacket errorPacket = new ErrorPacket(buffer);
@@ -663,7 +663,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
         case 0x00:
           /**
-           * ******************************************************************** Authenticated !
+           * ********************************************************************
+           * Authenticated !
            * OK_Packet see https://mariadb.com/kb/en/library/ok_packet/
            * *******************************************************************
            */
@@ -1243,6 +1244,11 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
   }
 
+  /**
+   * Indicate for Old reconnection if can reconnect without throwing exception.
+   *
+   * @return true if can reconnect without issue
+   */
   public boolean shouldReconnectWithoutProxy() {
     return (((serverStatus & ServerStatus.IN_TRANSACTION) == 0)
         && hostFailed

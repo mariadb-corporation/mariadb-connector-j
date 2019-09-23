@@ -92,8 +92,8 @@ import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.util.DeRegister;
-import org.mariadb.jdbc.internal.util.DefaultOptions;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.util.DefaultOptions;
 
 public class DriverTest extends BaseTest {
 

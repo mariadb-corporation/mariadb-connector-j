@@ -73,8 +73,8 @@ import java.util.UUID;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.SqlStates;
+import org.mariadb.jdbc.util.Options;
 
 public class MariaDbX509TrustManager implements X509TrustManager {
 

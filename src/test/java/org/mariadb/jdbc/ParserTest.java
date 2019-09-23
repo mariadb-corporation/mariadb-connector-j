@@ -66,8 +66,8 @@ import java.util.ArrayList;
 import java.util.Properties;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mariadb.jdbc.internal.util.DefaultOptions;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.util.DefaultOptions;
 
 public class ParserTest extends BaseTest {
 

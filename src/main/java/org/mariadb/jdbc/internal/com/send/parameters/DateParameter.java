@@ -59,7 +59,7 @@ import java.util.Calendar;
 import java.util.TimeZone;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.util.Options;
 
 public class DateParameter implements Cloneable, ParameterHolder {
 

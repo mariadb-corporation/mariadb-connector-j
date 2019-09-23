@@ -27,7 +27,6 @@ import java.io.Closeable;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -35,12 +34,12 @@ import java.util.logging.Logger;
 import javax.sql.DataSource;
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
-import org.mariadb.jdbc.internal.util.DefaultOptions;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.pool.Pool;
 import org.mariadb.jdbc.internal.util.pool.Pools;
+import org.mariadb.jdbc.util.DefaultOptions;
+import org.mariadb.jdbc.util.Options;
 
 
 public class MariaDbPoolDataSource implements DataSource, XADataSource, Closeable, AutoCloseable {

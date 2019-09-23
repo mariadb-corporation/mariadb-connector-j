@@ -61,7 +61,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.util.Options;
 
 public class OffsetTimeParameter implements Cloneable, ParameterHolder {
 

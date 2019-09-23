@@ -92,7 +92,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mariadb.jdbc.internal.protocol.tls.SslFactory;
-import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.util.Options;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class SslTest extends BaseTest {

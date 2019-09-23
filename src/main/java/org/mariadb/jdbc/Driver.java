@@ -62,10 +62,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import org.mariadb.jdbc.internal.util.DeRegister;
-import org.mariadb.jdbc.internal.util.DefaultOptions;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.Version;
+import org.mariadb.jdbc.util.DefaultOptions;
+import org.mariadb.jdbc.util.Options;
 
 
 public final class Driver implements java.sql.Driver {

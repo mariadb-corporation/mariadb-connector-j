@@ -20,11 +20,12 @@
  *
  */
 
-package org.mariadb.jdbc.internal.util;
+package org.mariadb.jdbc.util;
 
 import java.lang.reflect.Field;
 import java.sql.DriverManager;
 import java.util.Objects;
+import java.util.Properties;
 
 @SuppressWarnings("ConstantConditions")
 public class Options implements Cloneable {

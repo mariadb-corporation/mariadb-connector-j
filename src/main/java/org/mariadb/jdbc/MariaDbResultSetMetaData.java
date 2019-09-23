@@ -27,9 +27,9 @@ import java.sql.SQLException;
 import java.sql.Types;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.constant.ColumnFlags;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
+import org.mariadb.jdbc.util.Options;
 
 public class MariaDbResultSetMetaData implements ResultSetMetaData {
 

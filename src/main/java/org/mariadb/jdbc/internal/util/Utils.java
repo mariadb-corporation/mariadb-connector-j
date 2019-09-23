@@ -80,6 +80,7 @@ import org.mariadb.jdbc.internal.protocol.MasterProtocol;
 import org.mariadb.jdbc.internal.protocol.MastersSlavesProtocol;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.util.Options;
 
 
 @SuppressWarnings("Annotator")

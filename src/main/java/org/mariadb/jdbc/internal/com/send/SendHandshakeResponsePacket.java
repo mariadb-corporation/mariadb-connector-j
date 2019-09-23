@@ -63,10 +63,10 @@ import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.send.authentication.ClearPasswordPlugin;
 import org.mariadb.jdbc.internal.com.send.authentication.NativePasswordPlugin;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.pid.PidFactory;
+import org.mariadb.jdbc.util.Options;
 
 /** See https://mariadb.com/kb/en/library/connection/#client-handshake-response for reference. */
 public class SendHandshakeResponsePacket {

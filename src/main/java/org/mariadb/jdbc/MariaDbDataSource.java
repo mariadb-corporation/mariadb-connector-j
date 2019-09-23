@@ -56,7 +56,6 @@ package org.mariadb.jdbc;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.SQLFeatureNotSupportedException;
 import java.util.Collections;
 import java.util.Properties;
 import java.util.logging.Logger;
@@ -65,11 +64,11 @@ import javax.sql.DataSource;
 import javax.sql.PooledConnection;
 import javax.sql.XAConnection;
 import javax.sql.XADataSource;
-import org.mariadb.jdbc.internal.util.DefaultOptions;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.pool.Pool;
+import org.mariadb.jdbc.util.DefaultOptions;
+import org.mariadb.jdbc.util.Options;
 
 
 public class MariaDbDataSource implements DataSource, ConnectionPoolDataSource, XADataSource {

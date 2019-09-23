@@ -70,10 +70,10 @@ import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
 import org.mariadb.jdbc.internal.com.read.resultset.SelectResultSet;
 import org.mariadb.jdbc.internal.io.input.StandardPacketInputStream;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.dao.Identifier;
+import org.mariadb.jdbc.util.Options;
 
 public class MariaDbDatabaseMetaData implements DatabaseMetaData {
 

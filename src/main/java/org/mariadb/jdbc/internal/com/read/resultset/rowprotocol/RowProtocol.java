@@ -68,7 +68,7 @@ import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.regex.Pattern;
 import org.mariadb.jdbc.internal.com.read.resultset.ColumnInformation;
-import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.util.Options;
 
 public abstract class RowProtocol {
 

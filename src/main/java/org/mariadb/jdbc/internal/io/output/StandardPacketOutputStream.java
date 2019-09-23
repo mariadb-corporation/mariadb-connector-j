@@ -60,8 +60,8 @@ import java.util.Arrays;
 import org.mariadb.jdbc.internal.io.TraceObject;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
+import org.mariadb.jdbc.util.Options;
 
 public class StandardPacketOutputStream extends AbstractPacketOutputStream {
 

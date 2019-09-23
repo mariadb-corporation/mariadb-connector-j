@@ -60,7 +60,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import org.mariadb.jdbc.internal.ColumnType;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.util.Options;
 
 /**
  * server doesn't support temporal with timezone (MDEV-10018) for the moment. So driver parse String

@@ -62,10 +62,10 @@ import java.util.List;
 import org.mariadb.jdbc.internal.com.send.parameters.ParameterHolder;
 import org.mariadb.jdbc.internal.protocol.Protocol;
 import org.mariadb.jdbc.internal.util.LogQueryTool;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.dao.ClientPrepareResult;
 import org.mariadb.jdbc.internal.util.dao.PrepareResult;
 import org.mariadb.jdbc.internal.util.dao.ServerPrepareResult;
+import org.mariadb.jdbc.util.Options;
 
 public class ProtocolLoggingProxy implements InvocationHandler {
 

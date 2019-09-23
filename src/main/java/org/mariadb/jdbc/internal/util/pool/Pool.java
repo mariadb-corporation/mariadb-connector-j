@@ -51,10 +51,10 @@ import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.Protocol;
-import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.scheduler.MariaDbThreadFactory;
+import org.mariadb.jdbc.util.Options;
 
 public class Pool implements AutoCloseable, PoolMBean {
 

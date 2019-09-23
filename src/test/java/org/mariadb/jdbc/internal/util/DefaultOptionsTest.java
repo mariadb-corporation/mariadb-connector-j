@@ -13,6 +13,8 @@ import org.junit.Test;
 import org.mariadb.jdbc.Driver;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
+import org.mariadb.jdbc.util.DefaultOptions;
+import org.mariadb.jdbc.util.Options;
 
 public class DefaultOptionsTest {
 
@@ -97,7 +99,7 @@ public class DefaultOptionsTest {
     for (HaMode haMode : HaMode.values()) {
       Options resultOptions = DefaultOptions.parse(haMode, param, new Properties(), null);
       for (Field field : Options.class.getFields()) {
-        if (!java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+        if (!java.lang.reflect.Modifier.isStatic(field.getModifiers()) && !"nonMappedOptions".equals(field.getName())) {
           switch (field.getType().getName()) {
             case "java.lang.String":
               assertEquals("field " + field.getName() + " value error for param" + param,

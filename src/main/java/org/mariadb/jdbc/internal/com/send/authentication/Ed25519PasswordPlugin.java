@@ -38,7 +38,7 @@ import org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec.EdDSANamed
 import org.mariadb.jdbc.internal.com.send.authentication.ed25519.spec.EdDSAParameterSpec;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.util.Options;
+import org.mariadb.jdbc.util.Options;
 
 public class Ed25519PasswordPlugin implements AuthenticationPlugin {
 
@@ -56,6 +56,13 @@ public class Ed25519PasswordPlugin implements AuthenticationPlugin {
     return "client_ed25519";
   }
 
+  /**
+   * Initialization.
+   *
+   * @param authenticationData authentication data (password/token)
+   * @param seed server provided seed
+   * @param options Connection string options
+   */
   public void initialize(String authenticationData, byte[] seed, Options options) {
     this.seed = seed;
     this.authenticationData = authenticationData;
