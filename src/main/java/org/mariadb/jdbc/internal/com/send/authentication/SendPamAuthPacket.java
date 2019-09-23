@@ -52,10 +52,6 @@
 
 package org.mariadb.jdbc.internal.com.send.authentication;
 
-import static org.mariadb.jdbc.internal.com.Packet.EOF;
-import static org.mariadb.jdbc.internal.com.Packet.ERROR;
-import static org.mariadb.jdbc.internal.com.Packet.OK;
-
 import java.awt.HeadlessException;
 import java.io.Console;
 import java.io.IOException;
@@ -67,57 +63,66 @@ import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
 import javax.swing.event.AncestorEvent;
 import javax.swing.event.AncestorListener;
+
+import org.mariadb.jdbc.authentication.AuthenticationPlugin;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.Options;
 
 public class SendPamAuthPacket implements AuthenticationPlugin {
 
-  private final String password;
-  private final String passwordCharacterEncoding;
-  private byte[] authData;
+  private String authenticationData;
+  private String passwordCharacterEncoding;
+  private byte[] seed;
 
-  /**
-   * Pam plugin contrusctor.
-   * @param password                    password
-   * @param authData                    authentication data
-   * @param passwordCharacterEncoding   password encoding option
-   */
-  public SendPamAuthPacket(String password, byte[] authData, String passwordCharacterEncoding) {
-    this.authData = authData;
-    this.password = password;
-    this.passwordCharacterEncoding = passwordCharacterEncoding;
+  @Override
+  public String name() {
+    return "PAM client authentication";
+  }
+
+  @Override
+  public String type() {
+    return "dialog";
+  }
+
+  public void initialize(String authenticationData, byte[] seed, Options options) {
+    this.seed = seed;
+    this.authenticationData = authenticationData;
+    this.passwordCharacterEncoding = options.passwordCharacterEncoding;
   }
 
   /**
-   * Process PAM plugin authentication.
-   * see https://mariadb.com/kb/en/library/authentication-plugin-pam/
+   * Process PAM plugin authentication. see
+   * https://mariadb.com/kb/en/library/authentication-plugin-pam/
    *
-   * @param out       out stream
-   * @param in        in stream
-   * @param sequence  packet sequence
+   * @param out out stream
+   * @param in in stream
+   * @param sequence packet sequence
    * @return response packet
-   * @throws IOException  if socket error
+   * @throws IOException if socket error
    * @throws SQLException if plugin exception
    */
   public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
-          throws IOException, SQLException {
-    int type = authData.length == 0 ? 0 : authData[0];
+      throws IOException, SQLException {
+    int type = seed.length == 0 ? 0 : seed[0];
     String promptb;
-    //conversation is :
+    // conversation is :
     // - first byte is information tell if question is a password or clear text.
     // - other bytes are the question to user
 
     while (true) {
-      promptb = authData.length <= 1 ? null : new String(Arrays.copyOfRange(authData, 1, authData.length));
-      if ((promptb == null || "Password: ".equals(promptb)) && password != null && !"".equals(password)) {
-        //ask for password
+      promptb = seed.length <= 1 ? null : new String(Arrays.copyOfRange(seed, 1, seed.length));
+      if ((promptb == null || "Password: ".equals(promptb))
+          && authenticationData != null
+          && !"".equals(authenticationData)) {
+        // ask for password
         out.startPacket(sequence.incrementAndGet());
         byte[] bytePwd;
         if (passwordCharacterEncoding != null && !passwordCharacterEncoding.isEmpty()) {
-          bytePwd = password.getBytes(passwordCharacterEncoding);
+          bytePwd = authenticationData.getBytes(passwordCharacterEncoding);
         } else {
-          bytePwd = password.getBytes();
+          bytePwd = authenticationData.getBytes();
         }
         out.write(bytePwd, 0, bytePwd.length);
         out.write(0);
@@ -126,7 +131,7 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
         // 4 means "password-like input, echo disabled"
 
         boolean isPassword = type == 4;
-        //ask user to answer
+        // ask user to answer
         String password = showInputDialog(promptb, isPassword);
         if (password == null) {
           throw new SQLException("Error during PAM authentication : dialog input cancelled");
@@ -147,13 +152,13 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
       sequence.set(in.getLastPacketSeq());
       type = buffer.getByteAt(0) & 0xff;
 
-      //PAM continue until finish.
-      if (type == 0xfe //Switch Request
-              || type == 0x00 // OK_Packet
-              || type == 0xff) { //ERR_Packet
+      // PAM continue until finish.
+      if (type == 0xfe // Switch Request
+          || type == 0x00 // OK_Packet
+          || type == 0xff) { // ERR_Packet
         return buffer;
       }
-      authData = buffer.readRawBytes(buffer.remaining());
+      seed = buffer.readRawBytes(buffer.remaining());
     }
   }
 
@@ -173,7 +178,7 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
         password = JOptionPane.showInputDialog(label);
       }
     } catch (HeadlessException noGraphicalEnvironment) {
-      //no graphical environment
+      // no graphical environment
       Console console = System.console();
       if (console == null) {
         throw new IOException("Error during PAM authentication : input by console not possible");
@@ -191,13 +196,9 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
     } else {
       throw new IOException("Error during PAM authentication : dialog input cancelled");
     }
-
   }
 
-
-  /**
-   * Force focus to input field.
-   */
+  /** Force focus to input field. */
   public class RequestFocusListener implements AncestorListener {
 
     private final boolean removeListener;
@@ -221,12 +222,12 @@ public class SendPamAuthPacket implements AuthenticationPlugin {
 
     @Override
     public void ancestorMoved(AncestorEvent ancestorEvent) {
-      //do nothing
+      // do nothing
     }
 
     @Override
     public void ancestorRemoved(AncestorEvent ancestorEvent) {
-      //do nothing
+      // do nothing
     }
   }
 }

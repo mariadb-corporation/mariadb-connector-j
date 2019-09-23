@@ -160,7 +160,7 @@ public class JdbcParserTest {
     assertTrue(jdbc.getOptions().useSsl);
 
     jdbc = UrlParser.parse("jdbc:mariadb://localhost/test");
-    assertFalse(jdbc.getOptions().useSsl);
+    assertNull(jdbc.getOptions().useSsl);
   }
 
   @Test
@@ -171,7 +171,7 @@ public class JdbcParserTest {
 
   @Test
   public void testBooleanDefault() throws Throwable {
-    assertFalse(UrlParser.parse("jdbc:mariadb:///test").getOptions().useSsl);
+    assertNull(UrlParser.parse("jdbc:mariadb:///test").getOptions().useSsl);
     assertTrue(UrlParser.parse("jdbc:mariadb:///test?useSSL=true").getOptions().useSsl);
     assertTrue(UrlParser.parse("jdbc:mariadb:///test?useSSL").getOptions().useSsl);
   }

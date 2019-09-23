@@ -335,8 +335,10 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
     if (length < 251) {
 
       write((byte) length);
+      return;
+    }
 
-    } else if (length < 65536) {
+    if (length < 65536) {
 
       if (3 > buf.length - pos) {
         //not enough space remaining
@@ -352,8 +354,10 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
       buf[pos + 1] = (byte) length;
       buf[pos + 2] = (byte) (length >>> 8);
       pos += 3;
+      return;
+    }
 
-    } else if (length < 16777216) {
+    if (length < 16777216) {
 
       if (4 > buf.length - pos) {
         //not enough space remaining
@@ -371,37 +375,35 @@ public abstract class AbstractPacketOutputStream extends FilterOutputStream impl
       buf[pos + 2] = (byte) (length >>> 8);
       buf[pos + 3] = (byte) (length >>> 16);
       pos += 4;
-
-    } else {
-
-      if (9 > buf.length - pos) {
-        //not enough space remaining
-        byte[] arr = new byte[9];
-        arr[0] = (byte) 0xfe;
-        arr[1] = (byte) length;
-        arr[2] = (byte) (length >>> 8);
-        arr[3] = (byte) (length >>> 16);
-        arr[4] = (byte) (length >>> 24);
-        arr[5] = (byte) (length >>> 32);
-        arr[6] = (byte) (length >>> 40);
-        arr[7] = (byte) (length >>> 48);
-        arr[8] = (byte) (length >>> 54);
-        write(arr, 0, 9);
-        return;
-      }
-
-      buf[pos] = (byte) 0xfe;
-      buf[pos + 1] = (byte) length;
-      buf[pos + 2] = (byte) (length >>> 8);
-      buf[pos + 3] = (byte) (length >>> 16);
-      buf[pos + 4] = (byte) (length >>> 24);
-      buf[pos + 5] = (byte) (length >>> 32);
-      buf[pos + 6] = (byte) (length >>> 40);
-      buf[pos + 7] = (byte) (length >>> 48);
-      buf[pos + 8] = (byte) (length >>> 54);
-      pos += 9;
-
+      return;
     }
+
+    if (9 > buf.length - pos) {
+      //not enough space remaining
+      byte[] arr = new byte[9];
+      arr[0] = (byte) 0xfe;
+      arr[1] = (byte) length;
+      arr[2] = (byte) (length >>> 8);
+      arr[3] = (byte) (length >>> 16);
+      arr[4] = (byte) (length >>> 24);
+      arr[5] = (byte) (length >>> 32);
+      arr[6] = (byte) (length >>> 40);
+      arr[7] = (byte) (length >>> 48);
+      arr[8] = (byte) (length >>> 54);
+      write(arr, 0, 9);
+      return;
+    }
+
+    buf[pos] = (byte) 0xfe;
+    buf[pos + 1] = (byte) length;
+    buf[pos + 2] = (byte) (length >>> 8);
+    buf[pos + 3] = (byte) (length >>> 16);
+    buf[pos + 4] = (byte) (length >>> 24);
+    buf[pos + 5] = (byte) (length >>> 32);
+    buf[pos + 6] = (byte) (length >>> 40);
+    buf[pos + 7] = (byte) (length >>> 48);
+    buf[pos + 8] = (byte) (length >>> 54);
+    pos += 9;
   }
 
   /**

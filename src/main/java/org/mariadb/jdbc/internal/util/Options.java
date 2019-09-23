@@ -68,7 +68,7 @@ public class Options implements Cloneable {
   public String passwordCharacterEncoding;
   public boolean blankTableNameMeta;
 
-  public boolean useSsl;
+  public Boolean useSsl = null;
   public String enabledSslCipherSuites;
   public String sessionVariables;
   public boolean tinyInt1isBit = true;

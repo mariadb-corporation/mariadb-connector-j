@@ -50,64 +50,61 @@
  *
  */
 
-package org.mariadb.jdbc.internal.protocol.authentication;
+package org.mariadb.jdbc.authentication;
 
+import java.io.IOException;
 import java.sql.SQLException;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import org.mariadb.jdbc.internal.com.send.authentication.AuthenticationPlugin;
+import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.io.input.PacketInputStream;
+import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
 import org.mariadb.jdbc.internal.util.Options;
 
 
-/**
- * Provider to handle plugin authentication. This can allow library users to override our default
- * Authentication provider.
- */
-public class AuthenticationProviderHolder {
-
+public interface AuthenticationPlugin {
   /**
-   * The default provider will construct a new pool on every request.
-   */
-  public static final AuthenticationProvider DEFAULT_PROVIDER = DefaultAuthenticationProvider::processAuthPlugin;
-
-  private static volatile AuthenticationProvider currentProvider = null;
-
-  /**
-   * Get the currently set {@link AuthenticationProvider} from set invocations via {@link
-   * #setAuthenticationProvider(AuthenticationProvider)}. If none has been set a default provider
-   * will be provided (never a {@code null} result).
+   * Authentication plugin name.
    *
-   * @return Provider to get an AuthenticationProvider
+   * @return authentication plugin name. ex: Mysql native password
    */
-  public static AuthenticationProvider getAuthenticationProvider() {
-    AuthenticationProvider result = currentProvider;
-    if (result == null) {
-      return DEFAULT_PROVIDER;
-    } else {
-      return result;
-    }
-  }
+  String name();
 
   /**
-   * Change the current set authentication provider.  This provider will be provided in future
-   * requests to {@link #getAuthenticationProvider()}.
+   * Authentication plugin type.
    *
-   * @param newProvider New provider to use, or {@code null} to use the default provider
+   * @return authentication plugin type. ex: mysql_native_password
    */
-  public static void setAuthenticationProvider(AuthenticationProvider newProvider) {
-    currentProvider = newProvider;
+  String type();
+
+  /**
+   * Indicate if use of this plugins need SSL enabled.
+   *
+   * @return true if SSL is mandatory
+   */
+  default boolean mustUseSsl() {
+    return false;
   }
 
   /**
-   * Provider to handle authentication.
+   * Plugin initialization.
+   *
+   * @param authenticationData authentication data (password/token)
+   * @param seed server provided seed
+   * @param options Connection string options
    */
-  public interface AuthenticationProvider {
+  void initialize(String authenticationData, byte[] seed, Options options);
 
-    AuthenticationPlugin processAuthPlugin(String plugin,
-                                           String password,
-                                           byte[] authData,
-                                           Options options)
-        throws SQLException;
-  }
-
-
+  /**
+   * Process plugin authentication.
+   *
+   * @param out out stream
+   * @param in in stream
+   * @param sequence packet sequence
+   * @return response packet
+   * @throws IOException if socket error
+   * @throws SQLException if plugin exception
+   */
+  Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
+      throws IOException, SQLException;
 }

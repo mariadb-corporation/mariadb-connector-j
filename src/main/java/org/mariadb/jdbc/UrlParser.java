@@ -131,7 +131,7 @@ public class UrlParser implements Cloneable {
       }
     }
 
-    DefaultOptions.optionCoherenceValidation(options);
+    DefaultOptions.postOptionProcess(options);
     setInitialUrl();
     loadMultiMasterValue();
   }
@@ -248,7 +248,7 @@ public class UrlParser implements Cloneable {
         urlParser.database = matcher.group(2);
         urlParser.options = DefaultOptions
             .parse(urlParser.haMode, matcher.group(4), properties, urlParser.options);
-        DefaultOptions.optionCoherenceValidation(urlParser.options);
+        DefaultOptions.postOptionProcess(urlParser.options);
         if (urlParser.database != null && urlParser.database.isEmpty()) {
           urlParser.database = null;
         }
@@ -258,16 +258,14 @@ public class UrlParser implements Cloneable {
         urlParser.database = null;
         urlParser.options = DefaultOptions
             .parse(urlParser.haMode, "", properties, urlParser.options);
-        DefaultOptions.optionCoherenceValidation(urlParser.options);
-
+        DefaultOptions.postOptionProcess(urlParser.options);
       }
 
     } else {
 
       urlParser.database = null;
       urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
-      DefaultOptions.optionCoherenceValidation(urlParser.options);
-
+      DefaultOptions.postOptionProcess(urlParser.options);
     }
 
     LoggerFactory.init(urlParser.options.log

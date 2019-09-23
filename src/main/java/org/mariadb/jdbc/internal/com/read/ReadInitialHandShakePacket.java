@@ -74,14 +74,14 @@ public class ReadInitialHandShakePacket {
   private final short serverStatus;
   private final byte[] seed;
   private String serverVersion;
-  private String pluginName;
+  private String authenticationPluginType = "";
   private boolean serverMariaDb;
 
   /**
    * Read database initial stream.
    *
    * @param reader packetFetcher
-   * @throws IOException  if a connection error occur
+   * @throws IOException if a connection error occur
    * @throws SQLException if received an error packet
    */
   public ReadInitialHandShakePacket(final PacketInputStream reader)
@@ -91,7 +91,6 @@ public class ReadInitialHandShakePacket {
       ErrorPacket errorPacket = new ErrorPacket(buffer);
       throw new SQLException(errorPacket.getMessage());
     }
-    pluginName = "";
     protocolVersion = buffer.readByte();
     serverVersion = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
     serverThreadId = buffer.readInt();
@@ -110,8 +109,8 @@ public class ReadInitialHandShakePacket {
     }
     buffer.skipBytes(6);
 
-    //mariaDb additional capabilities.valid only if mariadb server.
-    //has value since server 10.2 (was 0 before)
+    // MariaDB additional capabilities.
+    // Filled only if MariaDB server 10.2+
     long mariaDbAdditionalCapacities = buffer.readInt();
 
     if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.SECURE_CONNECTION) != 0) {
@@ -119,7 +118,7 @@ public class ReadInitialHandShakePacket {
       if (saltLength > 0) {
         seed2 = buffer.readRawBytes(saltLength);
       } else {
-        //for servers before 5.5 version
+        // for servers before 5.5 version
         seed2 = buffer.readBytesNullEnd();
       }
       seed = Utils.copyWithLength(seed1, seed1.length + seed2.length);
@@ -141,7 +140,7 @@ public class ReadInitialHandShakePacket {
       serverMariaDb = this.serverVersion.contains("MariaDB");
     }
 
-    //since MariaDB 10.2
+    // since MariaDB 10.2
     if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.CLIENT_MYSQL) == 0) {
       serverCapabilities =
           (serverCapabilities4FirstBytes & 0xffffffffL) + (mariaDbAdditionalCapacities << 32);
@@ -151,31 +150,34 @@ public class ReadInitialHandShakePacket {
     }
 
     if ((serverCapabilities4FirstBytes & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-      pluginName = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
+      authenticationPluginType = buffer.readStringNullEnd(StandardCharsets.US_ASCII);
     }
   }
 
   @Override
   public String toString() {
-    return protocolVersion + ":"
-        + serverVersion + ":"
-        + serverThreadId + ":"
-        + new String(seed) + ":"
-        + serverCapabilities + ":"
-        + serverLanguage + ":"
+    return protocolVersion
+        + ":"
+        + serverVersion
+        + ":"
+        + serverThreadId
+        + ":"
+        + new String(seed)
+        + ":"
+        + serverCapabilities
+        + ":"
+        + serverLanguage
+        + ":"
         + serverStatus;
   }
-
 
   public String getServerVersion() {
     return serverVersion;
   }
 
-
   public byte getProtocolVersion() {
     return protocolVersion;
   }
-
 
   public long getServerThreadId() {
     return serverThreadId;
@@ -197,8 +199,8 @@ public class ReadInitialHandShakePacket {
     return serverStatus;
   }
 
-  public String getPluginName() {
-    return pluginName;
+  public String getAuthenticationPluginType() {
+    return authenticationPluginType;
   }
 
   public boolean isServerMariaDb() {

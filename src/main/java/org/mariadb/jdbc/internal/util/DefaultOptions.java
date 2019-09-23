@@ -774,7 +774,7 @@ public enum DefaultOptions {
     Properties properties = new Properties();
     properties.setProperty("pool", String.valueOf(pool));
     Options options = parse(haMode, "", properties);
-    optionCoherenceValidation(options);
+    postOptionProcess(options);
     return options;
   }
 
@@ -788,13 +788,13 @@ public enum DefaultOptions {
   public static void parse(final HaMode haMode, final String urlParameters, final Options options) {
     Properties prop = new Properties();
     parse(haMode, urlParameters, prop, options);
-    optionCoherenceValidation(options);
+    postOptionProcess(options);
   }
 
   private static Options parse(
       final HaMode haMode, final String urlParameters, final Properties properties) {
     Options options = parse(haMode, urlParameters, properties, null);
-    optionCoherenceValidation(options);
+    postOptionProcess(options);
     return options;
   }
 
@@ -947,7 +947,7 @@ public enum DefaultOptions {
    *
    * @param options options
    */
-  public static void optionCoherenceValidation(final Options options) {
+  public static void postOptionProcess(final Options options) {
 
     // disable use server prepare id using client rewrite
     if (options.rewriteBatchedStatements) {

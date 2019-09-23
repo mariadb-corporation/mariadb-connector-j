@@ -20,10 +20,10 @@ public class DefaultOptionsTest {
   public void parseDefault() throws Exception {
     //check that default option object correspond to default
     Options option = new Options();
-    DefaultOptions.optionCoherenceValidation(option);
+    DefaultOptions.postOptionProcess(option);
     for (HaMode haMode : HaMode.values()) {
       Options defaultOption = DefaultOptions.parse(haMode, "", new Properties(), null);
-      DefaultOptions.optionCoherenceValidation(defaultOption);
+      DefaultOptions.postOptionProcess(defaultOption);
       for (DefaultOptions o : DefaultOptions.values()) {
         Field field = Options.class.getField(o.getOptionName());
         assertEquals("field :" + field.getName(), field.get(DefaultOptions.defaultValues(HaMode.NONE)),

@@ -53,42 +53,54 @@
 package org.mariadb.jdbc.internal.com.send.authentication;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.mariadb.jdbc.authentication.AuthenticationPlugin;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.io.input.PacketInputStream;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
+import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
 
 public class OldPasswordPlugin implements AuthenticationPlugin {
+  public static final String TYPE = "mysql_old_password";
+  private String authenticationData;
+  private byte[] seed;
 
-  private final String password;
-  private byte[] authData;
+  @Override
+  public String name() {
+    return "mysql pre 4.1 password encoding";
+  }
 
-  public OldPasswordPlugin(String password, byte[] authData) {
-    this.authData = authData;
-    this.password = password;
+  @Override
+  public String type() {
+    return TYPE;
+  }
+
+  public void initialize(String authenticationData, byte[] seed, Options options) {
+    this.seed = seed;
+    this.authenticationData = authenticationData;
   }
 
   /**
-   * Process old password plugin authentication.
-   * see https://mariadb.com/kb/en/library/authentication-plugin-mysql_old_password/
+   * Process old password plugin authentication. see
+   * https://mariadb.com/kb/en/library/authentication-plugin-mysql_old_password/
    *
-   * @param out       out stream
-   * @param in        in stream
-   * @param sequence  packet sequence
+   * @param out out stream
+   * @param in in stream
+   * @param sequence packet sequence
    * @return response packet
-   * @throws IOException  if socket error
+   * @throws IOException if socket error
    */
-  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence) throws IOException {
+  public Buffer process(PacketOutputStream out, PacketInputStream in, AtomicInteger sequence)
+      throws IOException {
 
-    if (password == null || password.isEmpty()) {
+    if (authenticationData == null || authenticationData.isEmpty()) {
       out.writeEmptyPacket(sequence.incrementAndGet());
     } else {
       out.startPacket(sequence.incrementAndGet());
-      byte[] seed = Utils.copyWithLength(authData, 8);
-      out.write(cryptOldFormatPassword(password, new String(seed)));
+      byte[] seed = Utils.copyWithLength(this.seed, 8);
+      out.write(cryptOldFormatPassword(authenticationData, new String(seed)));
       out.write((byte) 0x00);
       out.flush();
     }
@@ -97,7 +109,6 @@ public class OldPasswordPlugin implements AuthenticationPlugin {
     sequence.set(in.getLastPacketSeq());
     return buffer;
   }
-
 
   private byte[] cryptOldFormatPassword(String password, String seed) {
     byte[] result = new byte[seed.length()];
@@ -109,8 +120,7 @@ public class OldPasswordPlugin implements AuthenticationPlugin {
     long[] seedHash = hashPassword(seed);
     long[] passHash = hashPassword(password);
 
-    RandStruct randSeed = new RandStruct(seedHash[0] ^ passHash[0],
-        seedHash[1] ^ passHash[1]);
+    RandStruct randSeed = new RandStruct(seedHash[0] ^ passHash[0], seedHash[1] ^ passHash[1]);
 
     for (int i = 0; i < seed.length(); i++) {
       result[i] = (byte) Math.floor((random(randSeed) * 31) + 64);
@@ -141,9 +151,9 @@ public class OldPasswordPlugin implements AuthenticationPlugin {
 
       nr ^= (((nr & 63) + add) * (long) currChar) + (nr << 8);
       nr2 += (nr2 << 8) ^ nr;
-      add += (long) currChar;
+      add += currChar;
     }
-    return new long[]{nr & 0x7FFFFFFF, nr2 & 0x7FFFFFFF};
+    return new long[] {nr & 0x7FFFFFFF, nr2 & 0x7FFFFFFF};
   }
 
   private class RandStruct {

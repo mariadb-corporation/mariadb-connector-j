@@ -60,16 +60,15 @@ import java.util.function.Supplier;
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
+import org.mariadb.jdbc.internal.com.send.authentication.ClearPasswordPlugin;
+import org.mariadb.jdbc.internal.com.send.authentication.NativePasswordPlugin;
 import org.mariadb.jdbc.internal.io.output.PacketOutputStream;
-import org.mariadb.jdbc.internal.protocol.authentication.DefaultAuthenticationProvider;
 import org.mariadb.jdbc.internal.util.Options;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.Version;
 import org.mariadb.jdbc.internal.util.pid.PidFactory;
 
-/**
- * See https://mariadb.com/kb/en/library/connection/#client-handshake-response for reference.
- */
+/** See https://mariadb.com/kb/en/library/connection/#client-handshake-response for reference. */
 public class SendHandshakeResponsePacket {
 
   private static final Supplier<String> pidRequest = PidFactory.getInstance();
@@ -85,23 +84,25 @@ public class SendHandshakeResponsePacket {
   /**
    * Send handshake response packet.
    *
-   * @param pos                output stream
-   * @param username           user name
-   * @param password           password
-   * @param host               current hostname
-   * @param database           database name
+   * @param pos output stream
+   * @param username user name
+   * @param password password
+   * @param host current hostname
+   * @param database database name
    * @param clientCapabilities client capabilities
    * @param serverCapabilities server capabilities
-   * @param serverLanguage     server language (utf8 / utf8mb4 collation)
-   * @param packetSeq          packet sequence
-   * @param options            user options
-   * @param pluginName         plugin name
-   * @param seed               seed
+   * @param serverLanguage server language (utf8 / utf8mb4 collation)
+   * @param packetSeq packet sequence
+   * @param options user options
+   * @param authenticationPluginType Authentication plugin type. ex: mysql_native_password
+   * @param seed seed
    * @throws IOException if socket exception occur
-   * @see <a href="https://mariadb.com/kb/en/mariadb/1-connecting-connecting/#handshake-response-packet">protocol
-   * documentation</a>
+   * @see <a
+   *     href="https://mariadb.com/kb/en/mariadb/1-connecting-connecting/#handshake-response-packet">protocol
+   *     documentation</a>
    */
-  public static void send(final PacketOutputStream pos,
+  public static void send(
+      final PacketOutputStream pos,
       final String username,
       final String password,
       final String host,
@@ -111,27 +112,29 @@ public class SendHandshakeResponsePacket {
       final byte serverLanguage,
       final byte packetSeq,
       final Options options,
-      final String pluginName,
-      final byte[] seed) throws IOException {
+      String authenticationPluginType,
+      final byte[] seed)
+      throws IOException {
 
     pos.startPacket(packetSeq);
 
     final byte[] authData;
-    switch (pluginName) {
-      case "": //CONJ-274 : permit connection mysql 5.1 db
-      case DefaultAuthenticationProvider.MYSQL_NATIVE_PASSWORD:
+
+    switch (authenticationPluginType) {
+      case "": // CONJ-274 : permit connection mysql 5.1 db
+      case NativePasswordPlugin.TYPE:
         pos.permitTrace(false);
         try {
           authData = Utils.encryptPassword(password, seed, options.passwordCharacterEncoding);
           break;
         } catch (NoSuchAlgorithmException e) {
-          //cannot occur :
+          // cannot occur :
           throw new IOException("Unknown algorithm SHA-1. Cannot encrypt password", e);
         }
-      case DefaultAuthenticationProvider.MYSQL_CLEAR_PASSWORD:
+      case ClearPasswordPlugin.TYPE:
         pos.permitTrace(false);
-        if (options.passwordCharacterEncoding != null && !options.passwordCharacterEncoding
-            .isEmpty()) {
+        if (options.passwordCharacterEncoding != null
+            && !options.passwordCharacterEncoding.isEmpty()) {
           authData = password.getBytes(options.passwordCharacterEncoding);
         } else {
           authData = password.getBytes();
@@ -143,18 +146,18 @@ public class SendHandshakeResponsePacket {
 
     pos.writeInt((int) clientCapabilities);
     pos.writeInt(1024 * 1024 * 1024);
-    pos.write(serverLanguage); //1
+    pos.write(serverLanguage); // 1
 
-    pos.writeBytes((byte) 0, 19);    //19
-    pos.writeInt((int) (clientCapabilities >> 32)); //Maria extended flag
+    pos.writeBytes((byte) 0, 19); // 19
+    pos.writeInt((int) (clientCapabilities >> 32)); // Maria extended flag
 
     if (username == null || username.isEmpty()) {
-      pos.write(System.getProperty("user.name").getBytes()); //to permit SSO
+      pos.write(System.getProperty("user.name").getBytes()); // to permit SSO
     } else {
-      pos.write(username.getBytes());     //strlen username
+      pos.write(username.getBytes()); // strlen username
     }
 
-    pos.write((byte) 0);        //1
+    pos.write((byte) 0); // 1
 
     if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH_LENENC_CLIENT_DATA) != 0) {
       pos.writeFieldLength(authData.length);
@@ -173,7 +176,7 @@ public class SendHandshakeResponsePacket {
     }
 
     if ((serverCapabilities & MariaDbServerCapabilities.PLUGIN_AUTH) != 0) {
-      pos.write(pluginName);
+      pos.write(authenticationPluginType);
       pos.write((byte) 0);
     }
 
@@ -185,8 +188,8 @@ public class SendHandshakeResponsePacket {
     pos.permitTrace(true);
   }
 
-  private static void writeConnectAttributes(PacketOutputStream pos, String connectionAttributes,
-      String host) throws IOException {
+  private static void writeConnectAttributes(
+      PacketOutputStream pos, String connectionAttributes, String host) throws IOException {
     Buffer buffer = new Buffer(new byte[200]);
 
     buffer.writeStringSmallLength(_CLIENT_NAME);
@@ -232,5 +235,4 @@ public class SendHandshakeResponsePacket {
     pos.writeFieldLength(buffer.position);
     pos.write(buffer.buf, 0, buffer.position);
   }
-
 }
