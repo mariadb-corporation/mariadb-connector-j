@@ -59,6 +59,8 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.mariadb.jdbc.credential.CredentialPlugin;
+import org.mariadb.jdbc.credential.CredentialPluginLoader;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
@@ -101,6 +103,7 @@ public class UrlParser implements Cloneable {
   private HaMode haMode;
   private String initialUrl;
   private boolean multiMaster;
+  private CredentialPlugin credentialPlugin;
 
   private UrlParser() {
   }
@@ -112,9 +115,10 @@ public class UrlParser implements Cloneable {
    * @param addresses list of hosts
    * @param options connection option
    * @param haMode High availability mode
+   * @throws SQLException if credential plugin cannot be loaded
    */
   public UrlParser(String database, List<HostAddress> addresses, Options options,
-      HaMode haMode) {
+      HaMode haMode) throws SQLException {
     this.options = options;
     this.database = database;
     this.addresses = addresses;
@@ -130,8 +134,8 @@ public class UrlParser implements Cloneable {
         }
       }
     }
-
-    DefaultOptions.postOptionProcess(options);
+    this.credentialPlugin = CredentialPluginLoader.get(options.credentialType);
+    DefaultOptions.postOptionProcess(options, credentialPlugin);
     setInitialUrl();
     loadMultiMasterValue();
   }
@@ -234,10 +238,11 @@ public class UrlParser implements Cloneable {
    * @param properties           properties
    * @param hostAddressesString  string that holds all the host addresses
    * @param additionalParameters string that holds all parameters defined for the connection
+   * @throws SQLException if credential plugin cannot be loaded
    */
   private static void defineUrlParserParameters(UrlParser urlParser, Properties properties,
       String hostAddressesString,
-      String additionalParameters) {
+      String additionalParameters) throws SQLException {
 
     if (additionalParameters != null) {
       //noinspection Annotator
@@ -264,7 +269,8 @@ public class UrlParser implements Cloneable {
       urlParser.database = null;
       urlParser.options = DefaultOptions.parse(urlParser.haMode, "", properties, urlParser.options);
     }
-    DefaultOptions.postOptionProcess(urlParser.options);
+    urlParser.credentialPlugin = CredentialPluginLoader.get(urlParser.options.credentialType);
+    DefaultOptions.postOptionProcess(urlParser.options, urlParser.credentialPlugin);
 
     LoggerFactory.init(urlParser.options.log
         || urlParser.options.profileSql
@@ -435,6 +441,10 @@ public class UrlParser implements Cloneable {
   protected void setProperties(String urlParameters) {
     DefaultOptions.parse(this.haMode, urlParameters, this.options);
     setInitialUrl();
+  }
+
+  public CredentialPlugin getCredentialPlugin() {
+    return credentialPlugin;
   }
 
   /**

@@ -58,6 +58,7 @@ import java.util.StringTokenizer;
 import java.util.function.Supplier;
 
 import org.mariadb.jdbc.MariaDbDatabaseMetaData;
+import org.mariadb.jdbc.credential.Credential;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.send.authentication.ClearPasswordPlugin;
@@ -85,8 +86,7 @@ public class SendHandshakeResponsePacket {
    * Send handshake response packet.
    *
    * @param pos output stream
-   * @param username user name
-   * @param password password
+   * @param credential credential
    * @param host current hostname
    * @param database database name
    * @param clientCapabilities client capabilities
@@ -103,8 +103,7 @@ public class SendHandshakeResponsePacket {
    */
   public static void send(
       final PacketOutputStream pos,
-      final String username,
-      final String password,
+      final Credential credential,
       final String host,
       final String database,
       final long clientCapabilities,
@@ -125,7 +124,7 @@ public class SendHandshakeResponsePacket {
       case NativePasswordPlugin.TYPE:
         pos.permitTrace(false);
         try {
-          authData = Utils.encryptPassword(password, seed, options.passwordCharacterEncoding);
+          authData = Utils.encryptPassword(credential.getPassword(), seed, options.passwordCharacterEncoding);
           break;
         } catch (NoSuchAlgorithmException e) {
           // cannot occur :
@@ -133,11 +132,15 @@ public class SendHandshakeResponsePacket {
         }
       case ClearPasswordPlugin.TYPE:
         pos.permitTrace(false);
-        if (options.passwordCharacterEncoding != null
-            && !options.passwordCharacterEncoding.isEmpty()) {
-          authData = password.getBytes(options.passwordCharacterEncoding);
+        if (credential.getPassword() == null) {
+          authData = new byte[0];
         } else {
-          authData = password.getBytes();
+          if (options.passwordCharacterEncoding != null
+              && !options.passwordCharacterEncoding.isEmpty()) {
+            authData = credential.getPassword().getBytes(options.passwordCharacterEncoding);
+          } else {
+            authData = credential.getPassword().getBytes();
+          }
         }
         break;
       default:
@@ -151,10 +154,10 @@ public class SendHandshakeResponsePacket {
     pos.writeBytes((byte) 0, 19); // 19
     pos.writeInt((int) (clientCapabilities >> 32)); // Maria extended flag
 
-    if (username == null || username.isEmpty()) {
+    if (credential.getUser() == null || credential.getUser().isEmpty()) {
       pos.write(System.getProperty("user.name").getBytes()); // to permit SSO
     } else {
-      pos.write(username.getBytes()); // strlen username
+      pos.write(credential.getUser().getBytes()); // strlen username
     }
 
     pos.write((byte) 0); // 1

@@ -87,6 +87,8 @@ import org.mariadb.jdbc.MariaDbConnection;
 import org.mariadb.jdbc.UrlParser;
 import org.mariadb.jdbc.authentication.AuthenticationPlugin;
 import org.mariadb.jdbc.authentication.AuthenticationPluginLoader;
+import org.mariadb.jdbc.credential.Credential;
+import org.mariadb.jdbc.credential.CredentialPlugin;
 import org.mariadb.jdbc.internal.MariaDbServerCapabilities;
 import org.mariadb.jdbc.internal.com.read.Buffer;
 import org.mariadb.jdbc.internal.com.read.ErrorPacket;
@@ -335,10 +337,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
 
     try {
-      createConnection(
-          (currentHost != null) ? currentHost.host : null,
-          (currentHost != null) ? currentHost.port : 3306,
-          username);
+      createConnection(currentHost, username);
     } catch (SQLException exception) {
       throw ExceptionMapper.connException(
           "Could not connect to " + currentHost + ". " + exception.getMessage() + getTraces(),
@@ -346,7 +345,21 @@ public abstract class AbstractConnectProtocol implements Protocol {
     }
   }
 
-  private void createConnection(String host, int port, String username) throws SQLException {
+  private void createConnection(HostAddress hostAddress, String username) throws SQLException {
+
+    String host = hostAddress != null ? hostAddress.host : null;
+    int port = hostAddress != null ? hostAddress.port : 3306;
+
+    Credential credential;
+    CredentialPlugin credentialPlugin = urlParser.getCredentialPlugin();
+    if (credentialPlugin != null) {
+      credential = credentialPlugin
+          .initialize(options, username, hostAddress)
+          .get();
+    } else {
+      credential = new Credential(username, urlParser.getPassword());
+    }
+
     this.socket = createSocket(host, port, options);
     assignStream(this.socket, options);
 
@@ -375,15 +388,19 @@ public abstract class AbstractConnectProtocol implements Protocol {
           exchangeCharset,
           serverThreadId);
 
+      String authenticationPluginType = greetingPacket.getAuthenticationPluginType();
+      if (credentialPlugin != null && credentialPlugin.defaultAuthenticationPluginType() != null) {
+        authenticationPluginType = credentialPlugin.defaultAuthenticationPluginType();
+      }
+
       authenticationHandler(
           exchangeCharset,
           clientCapabilities,
-          greetingPacket.getAuthenticationPluginType(),
+          authenticationPluginType,
           greetingPacket.getSeed(),
           options,
           database,
-          username,
-          (urlParser.getPassword() == null ? "" : urlParser.getPassword()),
+          credential,
           host);
 
       compressionHandler(options);
@@ -562,16 +579,14 @@ public abstract class AbstractConnectProtocol implements Protocol {
       byte[] seed,
       Options options,
       String database,
-      String username,
-      String authenticationData,
+      Credential credential,
       String host)
       throws SQLException, IOException {
 
     // send Client Handshake Response
     SendHandshakeResponsePacket.send(
         writer,
-        username,
-        authenticationData,
+        credential,
         host,
         database,
         clientCapabilities,
@@ -631,7 +646,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
                 1251);
           }
 
-          authenticationPlugin.initialize(authenticationData, seed, options);
+          authenticationPlugin.initialize(credential.getPassword(), seed, options);
           buffer = authenticationPlugin.process(writer, reader, sequence);
           break;
 
@@ -643,8 +658,8 @@ public abstract class AbstractConnectProtocol implements Protocol {
            * *******************************************************************
            */
           ErrorPacket errorPacket = new ErrorPacket(buffer);
-          if (authenticationData != null
-              && !authenticationData.isEmpty()
+          if (credential.getPassword() != null
+              && !credential.getPassword().isEmpty()
               && options.passwordCharacterEncoding == null
               && errorPacket.getErrorNumber() == 1045
               && "28000".equals(errorPacket.getSqlState())) {
@@ -1202,7 +1217,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     // CONJ-293 : handle name-pipe without host
     if (hosts.isEmpty() && options.pipe != null) {
       try {
-        createConnection(null, 0, username);
+        createConnection(null, username);
         return;
       } catch (SQLException exception) {
         throw ExceptionMapper.connException(
@@ -1221,7 +1236,7 @@ public abstract class AbstractConnectProtocol implements Protocol {
     while (!hosts.isEmpty()) {
       currentHost = hosts.poll();
       try {
-        createConnection(currentHost.host, currentHost.port, username);
+        createConnection(currentHost, username);
         return;
       } catch (SQLException e) {
         if (hosts.isEmpty()) {

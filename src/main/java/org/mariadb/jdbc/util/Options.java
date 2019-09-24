@@ -68,7 +68,7 @@ public class Options implements Cloneable {
   public boolean interactiveClient;
   public String passwordCharacterEncoding;
   public boolean blankTableNameMeta;
-
+  public String credentialType;
   public Boolean useSsl = null;
   public String enabledSslCipherSuites;
   public String sessionVariables;
@@ -104,6 +104,7 @@ public class Options implements Cloneable {
   public boolean includeThreadDumpInDeadlockExceptions;
   public String servicePrincipalName;
   public int defaultFetchSize;
+  public Properties nonMappedOptions = new Properties();
 
   // logging options
   public boolean log;
@@ -435,6 +436,12 @@ public class Options implements Cloneable {
     if (!Objects.equals(galeraAllowedState, opt.galeraAllowedState)) {
       return false;
     }
+    if (!Objects.equals(credentialType, opt.credentialType)) {
+      return false;
+    }
+    if (!Objects.equals(nonMappedOptions, opt.nonMappedOptions)) {
+      return false;
+    }
     return Objects.equals(minPoolSize, opt.minPoolSize);
   }
 
@@ -530,6 +537,8 @@ public class Options implements Cloneable {
     result = 31 * result + maxIdleTime;
     result = 31 * result + poolValidMinDelay;
     result = 31 * result + (autocommit ? 1 : 0);
+    result = 31 * result + (credentialType != null ? credentialType.hashCode() : 0);
+    result = 31 * result + (nonMappedOptions != null ? nonMappedOptions.hashCode() : 0);
 
     return result;
   }

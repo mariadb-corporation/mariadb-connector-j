@@ -1,3 +1,24 @@
+/*
+ * MariaDB Client for Java
+ *
+ * Copyright (c) 2012-2014 Monty Program Ab.
+ * Copyright (c) 2015-2019 MariaDB Ab.
+ *
+ * This library is free software; you can redistribute it and/or modify it under
+ * the terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation; either version 2.1 of the License, or (at your option)
+ * any later version.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License along
+ * with this library; if not, write to Monty Program Ab info@montyprogram.com.
+ *
+ */
+
 package org.mariadb.jdbc.internal.util;
 
 import static org.junit.Assert.assertEquals;
@@ -22,10 +43,10 @@ public class DefaultOptionsTest {
   public void parseDefault() throws Exception {
     //check that default option object correspond to default
     Options option = new Options();
-    DefaultOptions.postOptionProcess(option);
+    DefaultOptions.postOptionProcess(option, null);
     for (HaMode haMode : HaMode.values()) {
       Options defaultOption = DefaultOptions.parse(haMode, "", new Properties(), null);
-      DefaultOptions.postOptionProcess(defaultOption);
+      DefaultOptions.postOptionProcess(defaultOption, null);
       for (DefaultOptions o : DefaultOptions.values()) {
         Field field = Options.class.getField(o.getOptionName());
         assertEquals("field :" + field.getName(), field.get(DefaultOptions.defaultValues(HaMode.NONE)),

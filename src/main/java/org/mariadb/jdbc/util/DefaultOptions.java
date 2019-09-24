@@ -25,6 +25,7 @@ package org.mariadb.jdbc.util;
 import java.lang.reflect.Field;
 import java.util.Properties;
 
+import org.mariadb.jdbc.credential.CredentialPlugin;
 import org.mariadb.jdbc.internal.util.OptionUtils;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
 
@@ -659,6 +660,12 @@ public enum DefaultOptions {
       "2.4.3",
       "Resultset metadata getTableName always return blank. "
           + "This option is mainly for ORACLE db compatibility",
+      false),
+  CREDENTIAL_TYPE(
+      "credentialType",
+      (String) null,
+      "2.5.0",
+      "Indicate the credential plugin type to use. Plugin must be present in classpath",
       false);
 
   private final String optionName;
@@ -776,7 +783,7 @@ public enum DefaultOptions {
     Properties properties = new Properties();
     properties.setProperty("pool", String.valueOf(pool));
     Options options = parse(haMode, "", properties);
-    postOptionProcess(options);
+    postOptionProcess(options, null);
     return options;
   }
 
@@ -790,13 +797,13 @@ public enum DefaultOptions {
   public static void parse(final HaMode haMode, final String urlParameters, final Options options) {
     Properties prop = new Properties();
     parse(haMode, urlParameters, prop, options);
-    postOptionProcess(options);
+    postOptionProcess(options, null);
   }
 
   private static Options parse(
       final HaMode haMode, final String urlParameters, final Properties properties) {
     Options options = parse(haMode, urlParameters, properties, null);
-    postOptionProcess(options);
+    postOptionProcess(options, null);
     return options;
   }
 
@@ -882,8 +889,8 @@ public enum DefaultOptions {
                         + " must be greater or equal to "
                         + o.minValue
                         + (((Integer) o.maxValue != Integer.MAX_VALUE)
-                        ? " and smaller than " + o.maxValue
-                        : " ")
+                            ? " and smaller than " + o.maxValue
+                            : " ")
                         + ", was \""
                         + propertyValue
                         + "\"");
@@ -910,8 +917,8 @@ public enum DefaultOptions {
                         + " must be greater or equal to "
                         + o.minValue
                         + (((Long) o.maxValue != Long.MAX_VALUE)
-                        ? " and smaller than " + o.maxValue
-                        : " ")
+                            ? " and smaller than " + o.maxValue
+                            : " ")
                         + ", was \""
                         + propertyValue
                         + "\"");
@@ -926,6 +933,10 @@ public enum DefaultOptions {
                       + "\"");
             }
           }
+        } else {
+          // keep unknown option:
+          // those might be used in authentication or identity plugin
+          options.nonMappedOptions.setProperty(key, properties.getProperty(key));
         }
       }
 
@@ -948,8 +959,9 @@ public enum DefaultOptions {
    * Option initialisation end : set option value to a coherent state.
    *
    * @param options options
+   * @param credentialPlugin credential plugin
    */
-  public static void postOptionProcess(final Options options) {
+  public static void postOptionProcess(final Options options, CredentialPlugin credentialPlugin) {
 
     // disable use server prepare id using client rewrite
     if (options.rewriteBatchedStatements) {
@@ -973,6 +985,10 @@ public enum DefaultOptions {
     // if fetchSize is set to less than 0, default it to 0
     if (options.defaultFetchSize < 0) {
       options.defaultFetchSize = 0;
+    }
+
+    if (credentialPlugin != null && credentialPlugin.mustUseSsl()) {
+      options.useSsl = Boolean.TRUE;
     }
   }
 
