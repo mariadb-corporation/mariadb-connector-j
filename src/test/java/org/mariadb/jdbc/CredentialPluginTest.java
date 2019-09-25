@@ -41,14 +41,15 @@ public class CredentialPluginTest extends BaseTest {
   @Before
   public void before() throws SQLException {
     boolean useOldNotation = true;
-    if ((isMariadbServer() && minVersion(10, 2, 0)) || (!isMariadbServer() && minVersion(8, 0,
-        0))) {
+    if ((isMariadbServer() && minVersion(10, 2, 0))
+        || (!isMariadbServer() && minVersion(8, 0, 0))) {
       useOldNotation = false;
     }
     Statement stmt = sharedConnection.createStatement();
     if (useOldNotation) {
       stmt.execute("CREATE USER 'identityUser'@'%'");
-      stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'identityUser'@'%' IDENTIFIED BY 'identityUserPwd'");
+      stmt.execute(
+          "GRANT ALL PRIVILEGES ON *.* TO 'identityUser'@'%' IDENTIFIED BY 'identityUserPwd'");
     } else {
       stmt.execute("CREATE USER 'identityUser'@'%' IDENTIFIED BY 'identityUserPwd'");
       stmt.execute("GRANT ALL PRIVILEGES ON *.* TO 'identityUser'@'%'");
@@ -72,7 +73,14 @@ public class CredentialPluginTest extends BaseTest {
     System.setProperty("mariadb.pwd", "identityUserPwd");
 
     try (Connection conn =
-             DriverManager.getConnection("jdbc:mariadb://localhost/testj?credentialType=PROPERTY")) {
+        DriverManager.getConnection(
+            "jdbc:mariadb://"
+                + ((hostname == null) ? "localhost" : hostname)
+                + ":"
+                + port
+                + "/"
+                + ((database == null) ? "" : database)
+                + "?credentialType=PROPERTY")) {
       Statement stmt = conn.createStatement();
 
       ResultSet rs = stmt.executeQuery("SELECT '5'");
@@ -87,8 +95,15 @@ public class CredentialPluginTest extends BaseTest {
     System.setProperty("myPwdKey", "identityUserPwd");
 
     try (Connection conn =
-             DriverManager.getConnection("jdbc:mariadb://localhost/testj?credentialType=PROPERTY"
-                 + "&userKey=myUserKey&pwdKey=myPwdKey")) {
+        DriverManager.getConnection(
+            "jdbc:mariadb://"
+                + ((hostname == null) ? "localhost" : hostname)
+                + ":"
+                + port
+                + "/"
+                + ((database == null) ? "" : database)
+                + "?credentialType=PROPERTY"
+                + "&userKey=myUserKey&pwdKey=myPwdKey")) {
       Statement stmt = conn.createStatement();
 
       ResultSet rs = stmt.executeQuery("SELECT '5'");
@@ -96,5 +111,4 @@ public class CredentialPluginTest extends BaseTest {
       Assert.assertEquals("5", rs.getString(1));
     }
   }
-
 }

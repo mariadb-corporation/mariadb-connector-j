@@ -1666,7 +1666,7 @@ public class MariaDbDatabaseMetaData implements DatabaseMetaData {
   }
 
   public String getSchemaTerm() {
-    return "";
+    return "schema";
   }
 
   public String getProcedureTerm() {
