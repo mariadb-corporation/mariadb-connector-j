@@ -688,6 +688,7 @@ public class ConnectionTest extends BaseTest {
 
   @Test
   public void multiAuthPlugin() throws Throwable {
+    Assume.assumeTrue(System.getenv("MAXSCALE_VERSION") == null);
     Assume.assumeTrue(isMariadbServer() && minVersion(10, 4, 2));
     Statement stmt = sharedConnection.createStatement();
     try {
