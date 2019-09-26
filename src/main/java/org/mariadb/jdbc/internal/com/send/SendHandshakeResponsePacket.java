@@ -120,16 +120,7 @@ public class SendHandshakeResponsePacket {
     final byte[] authData;
 
     switch (authenticationPluginType) {
-      case "": // CONJ-274 : permit connection mysql 5.1 db
-      case NativePasswordPlugin.TYPE:
-        pos.permitTrace(false);
-        try {
-          authData = Utils.encryptPassword(credential.getPassword(), seed, options.passwordCharacterEncoding);
-          break;
-        } catch (NoSuchAlgorithmException e) {
-          // cannot occur :
-          throw new IOException("Unknown algorithm SHA-1. Cannot encrypt password", e);
-        }
+
       case ClearPasswordPlugin.TYPE:
         pos.permitTrace(false);
         if (credential.getPassword() == null) {
@@ -143,8 +134,18 @@ public class SendHandshakeResponsePacket {
           }
         }
         break;
+
       default:
-        authData = new byte[0];
+        authenticationPluginType = NativePasswordPlugin.TYPE;
+        pos.permitTrace(false);
+        try {
+          authData = Utils.encryptPassword(credential.getPassword(), seed,
+              options.passwordCharacterEncoding);
+          break;
+        } catch (NoSuchAlgorithmException e) {
+          // cannot occur :
+          throw new IOException("Unknown algorithm SHA-1. Cannot encrypt password", e);
+        }
     }
 
     pos.writeInt((int) clientCapabilities);

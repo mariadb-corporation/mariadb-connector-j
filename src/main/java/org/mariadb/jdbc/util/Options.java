@@ -135,6 +135,10 @@ public class Options implements Cloneable {
   public boolean useResetConnection;
   public boolean useReadAheadInput = true;
 
+  // MySQL sha authentication
+  public String serverRsaPublicKeyFile;
+  public boolean allowPublicKeyRetrieval;
+
   @Override
   public String toString() {
     StringBuilder result = new StringBuilder();

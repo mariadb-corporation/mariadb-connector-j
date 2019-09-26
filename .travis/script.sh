@@ -49,7 +49,8 @@ cmd=( mvn clean test $ADDITIONNAL_VARIABLES -DjobId=${TRAVIS_JOB_ID}  \
     -Dkeystore2Path="$SSLCERT/fullclient-keystore.jks" \
     -Dkeystore2Password="kspass" -DkeyPassword="kspasskey"  \
     -Dkeystore2PathP12="$SSLCERT/fullclient-keystore.p12" \
-    -DrunLongTest=true )
+    -DrunLongTest=true \
+    -DserverPublicKey="$SSLCERT/public.key" )
 
 if [ -n "$AURORA" ] ; then
     if [ -n "$AURORA_STRING_URL" ] ; then

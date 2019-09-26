@@ -22,3 +22,5 @@ org.mariadb.jdbc.internal.com.send.authentication.Ed25519PasswordPlugin
 org.mariadb.jdbc.internal.com.send.authentication.NativePasswordPlugin
 org.mariadb.jdbc.internal.com.send.authentication.OldPasswordPlugin
 org.mariadb.jdbc.internal.com.send.authentication.SendPamAuthPacket
+org.mariadb.jdbc.internal.com.send.authentication.Sha256PasswordPlugin
+org.mariadb.jdbc.internal.com.send.authentication.CachingSha2PasswordPlugin

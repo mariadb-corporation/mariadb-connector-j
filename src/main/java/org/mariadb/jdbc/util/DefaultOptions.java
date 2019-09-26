@@ -666,6 +666,18 @@ public enum DefaultOptions {
       (String) null,
       "2.5.0",
       "Indicate the credential plugin type to use. Plugin must be present in classpath",
+      false),
+  SERVER_KEY_FILE(
+      "serverRsaPublicKeyFile",
+      (String) null,
+      "2.5.0",
+      "Indicate path to MySQL server public key file",
+      false),
+  ALLOW_SERVER_KEY_RETRIEVAL(
+      "allowPublicKeyRetrieval",
+      Boolean.FALSE,
+      "2.5.0",
+      "Permit to get MySQL server key retrieval",
       false);
 
   private final String optionName;
