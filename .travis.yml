@@ -29,7 +29,7 @@ matrix:
   allow_failures:
     - env: DB=build PACKET=8M
       jdk: openjdk11
-    - env: DB=mysql:8.0 PACKET=8M ADDITIONAL_CONF=--default-authentication-plugin=mysql_native_password
+    - env: DB=mysql:8.0 PACKET=8M ADDITIONAL_CONF=--default-authentication-plugin=mysql_native_password --caching_sha2_password_private_key_path=/etc/sslcert/server.key --caching_sha2_password_public_key_path=/etc/sslcert/public.key
       jdk: openjdk11
   include:
     - env: DB=build PACKET=8M
@@ -40,7 +40,7 @@ matrix:
       jdk: openjdk11
     - env: DB=mysql:5.7 PACKET=8M
       jdk: openjdk11
-    - env: DB=mysql:8.0 PACKET=8M ADDITIONAL_CONF=--default-authentication-plugin=mysql_native_password
+    - env: DB=mysql:8.0 PACKET=8M ADDITIONAL_CONF=--default-authentication-plugin=mysql_native_password --caching_sha2_password_private_key_path=/etc/sslcert/server.key --caching_sha2_password_public_key_path=/etc/sslcert/public.key
       jdk: openjdk11
     - env: DB=mariadb:5.5 PACKET=8M
       jdk: openjdk11
