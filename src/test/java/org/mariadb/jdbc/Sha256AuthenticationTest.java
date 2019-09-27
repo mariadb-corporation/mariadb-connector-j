@@ -27,7 +27,7 @@ public class Sha256AuthenticationTest extends BaseTest {
    */
   @Before
   public void checkSsl() throws SQLException {
-    Assume.assumeFalse(isMariadbServer());
+    Assume.assumeTrue(!isMariadbServer() && minVersion(5, 7));
     serverPublicKey = System.getProperty("serverPublicKey");
 
     Statement stmt = sharedConnection.createStatement();
@@ -60,7 +60,7 @@ public class Sha256AuthenticationTest extends BaseTest {
   @Test
   public void sha256PluginTestWithServerRsaKey() throws SQLException {
     Assume.assumeNotNull(serverPublicKey);
-    Assume.assumeFalse(Platform.isWindows() && !minVersion(8, 0, 0));
+    Assume.assumeTrue(!Platform.isWindows() && minVersion(8, 0, 0));
 
     try (Connection conn =
         DriverManager.getConnection(
@@ -82,7 +82,8 @@ public class Sha256AuthenticationTest extends BaseTest {
 
   @Test
   public void sha256PluginTestWithoutServerRsaKey() throws SQLException {
-    Assume.assumeFalse(Platform.isWindows() && !minVersion(8, 0, 0));
+    Assume.assumeTrue(!Platform.isWindows() && minVersion(8, 0, 0));
+
     try (Connection conn =
         DriverManager.getConnection(
             "jdbc:mariadb://"
