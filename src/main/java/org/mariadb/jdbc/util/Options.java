@@ -105,6 +105,7 @@ public class Options implements Cloneable {
   public String servicePrincipalName;
   public int defaultFetchSize;
   public Properties nonMappedOptions = new Properties();
+  public String tlsSocketType;
 
   // logging options
   public boolean log;
@@ -446,6 +447,9 @@ public class Options implements Cloneable {
     if (!Objects.equals(nonMappedOptions, opt.nonMappedOptions)) {
       return false;
     }
+    if (!Objects.equals(tlsSocketType, opt.tlsSocketType)) {
+      return false;
+    }
     return Objects.equals(minPoolSize, opt.minPoolSize);
   }
 
@@ -543,7 +547,7 @@ public class Options implements Cloneable {
     result = 31 * result + (autocommit ? 1 : 0);
     result = 31 * result + (credentialType != null ? credentialType.hashCode() : 0);
     result = 31 * result + (nonMappedOptions != null ? nonMappedOptions.hashCode() : 0);
-
+    result = 31 * result + (tlsSocketType != null ? tlsSocketType.hashCode() : 0);
     return result;
   }
 

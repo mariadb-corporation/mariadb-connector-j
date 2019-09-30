@@ -678,6 +678,12 @@ public enum DefaultOptions {
       Boolean.FALSE,
       "2.5.0",
       "Permit to get MySQL server key retrieval",
+      false),
+  TLS_SOCKET_TYPE(
+      "tlsSocketType",
+      (String) null,
+      "2.5.0",
+      "Indicate TLS socket type implementation",
       false);
 
   private final String optionName;

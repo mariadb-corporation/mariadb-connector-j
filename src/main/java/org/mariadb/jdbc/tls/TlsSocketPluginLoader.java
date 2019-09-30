@@ -3,7 +3,7 @@
  * MariaDB Client for Java
  *
  * Copyright (c) 2012-2014 Monty Program Ab.
- * Copyright (c) 2015-2019 MariaDB Ab.
+ * Copyright (c) 2015-2017 MariaDB Ab.
  *
  * This library is free software; you can redistribute it and/or modify it under
  * the terms of the GNU Lesser General Public License as published by the Free
@@ -20,12 +20,13 @@
  *
  */
 
-package org.mariadb.jdbc.authentication;
+package org.mariadb.jdbc.tls;
 
 import java.sql.SQLException;
 import java.util.ServiceLoader;
+import org.mariadb.jdbc.internal.protocol.tls.*;
 
-public class AuthenticationPluginLoader {
+public class TlsSocketPluginLoader {
 
   /**
    * Get authentication plugin from type String.
@@ -36,23 +37,22 @@ public class AuthenticationPluginLoader {
    * @return Authentication plugin corresponding to type
    * @throws SQLException if no authentication plugin in classpath have indicated type
    */
-  public static AuthenticationPlugin get(String type) throws SQLException {
+  public static TlsSocketPlugin get(String type) throws SQLException {
     if (type == null || type.isEmpty()) {
-      return null;
+      return new DefaultTlsSocketPlugin();
     }
-    ServiceLoader<AuthenticationPlugin> loader = ServiceLoader.load(AuthenticationPlugin.class);
-    for (AuthenticationPlugin implClass : loader) {
+    ServiceLoader<TlsSocketPlugin> loader = ServiceLoader.load(TlsSocketPlugin.class);
+    for (TlsSocketPlugin implClass : loader) {
       if (type.equals(implClass.type())) {
         return implClass;
       }
     }
     throw new SQLException(
-        "Client does not support authentication protocol requested by server. "
-            + "plugin type was = "
-            + type,
+        "Client has not found any TLS factory plugin with name '"
+            + type
+            + "'.",
         "08004",
         1251);
   }
-
 
 }

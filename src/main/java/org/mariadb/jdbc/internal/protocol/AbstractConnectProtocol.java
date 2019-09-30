@@ -63,8 +63,6 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLNonTransientConnectionException;
@@ -110,7 +108,6 @@ import org.mariadb.jdbc.internal.io.output.StandardPacketOutputStream;
 import org.mariadb.jdbc.internal.logging.Logger;
 import org.mariadb.jdbc.internal.logging.LoggerFactory;
 import org.mariadb.jdbc.internal.protocol.tls.HostnameVerifierImpl;
-import org.mariadb.jdbc.internal.protocol.tls.SslFactory;
 import org.mariadb.jdbc.internal.util.ServerPrepareStatementCache;
 import org.mariadb.jdbc.internal.util.Utils;
 import org.mariadb.jdbc.internal.util.constant.HaMode;
@@ -118,6 +115,8 @@ import org.mariadb.jdbc.internal.util.constant.ParameterConstant;
 import org.mariadb.jdbc.internal.util.constant.ServerStatus;
 import org.mariadb.jdbc.internal.util.exceptions.ExceptionMapper;
 import org.mariadb.jdbc.internal.util.pool.GlobalStateInfo;
+import org.mariadb.jdbc.tls.TlsSocketPlugin;
+import org.mariadb.jdbc.tls.TlsSocketPluginLoader;
 import org.mariadb.jdbc.util.Options;
 
 public abstract class AbstractConnectProtocol implements Protocol {
@@ -526,15 +525,9 @@ public abstract class AbstractConnectProtocol implements Protocol {
       }
       clientCapabilities |= MariaDbServerCapabilities.SSL;
       SendSslConnectionRequestPacket.send(writer, clientCapabilities, exchangeCharset);
-
-      SSLSocketFactory sslSocketFactory = SslFactory.getSslSocketFactory(options);
-      SSLSocket sslSocket =
-          (SSLSocket)
-              sslSocketFactory.createSocket(
-                  socket,
-                  socket.getInetAddress() == null ? null : socket.getInetAddress().getHostAddress(),
-                  socket.getPort(),
-                  true);
+      TlsSocketPlugin socketPlugin = TlsSocketPluginLoader.get(options.tlsSocketType);
+      SSLSocketFactory sslSocketFactory = socketPlugin.getSocketFactory(options);
+      SSLSocket sslSocket = socketPlugin.createSocket(socket, sslSocketFactory);
 
       enabledSslProtocolSuites(sslSocket, options);
       enabledSslCipherSuites(sslSocket, options);
@@ -544,27 +537,19 @@ public abstract class AbstractConnectProtocol implements Protocol {
 
       // perform hostname verification
       // (rfc2818 indicate that if "client has external information as to the expected identity of
-      // the server,
-      // the hostname check MAY be omitted")
+      // the server, the hostname check MAY be omitted")
       if (!options.disableSslHostnameVerification && !options.trustServerCertificate) {
         HostnameVerifierImpl hostnameVerifier = new HostnameVerifierImpl();
         SSLSession session = sslSocket.getSession();
-        if (!hostnameVerifier.verify(host, session, serverThreadId)) {
-
-          // Use proprietary verify method in order to have an exception with a better description
-          // of error.
-          try {
-            Certificate[] certs = session.getPeerCertificates();
-            X509Certificate cert = (X509Certificate) certs[0];
-            hostnameVerifier.verify(host, cert, serverThreadId);
-          } catch (SSLException ex) {
-            throw new SQLNonTransientConnectionException(
-                "SSL hostname verification failed : "
-                    + ex.getMessage()
-                    + "\nThis verification can be disabled using the option \"disableSslHostnameVerification\" "
-                    + "but won't prevent man-in-the-middle attacks anymore",
-                "08006");
-          }
+        try {
+          socketPlugin.verify(host, session, options, serverThreadId);
+        } catch (SSLException ex) {
+          throw new SQLNonTransientConnectionException(
+              "SSL hostname verification failed : "
+                  + ex.getMessage()
+                  + "\nThis verification can be disabled using the option \"disableSslHostnameVerification\" "
+                  + "but won't prevent man-in-the-middle attacks anymore",
+              "08006");
         }
       }
 
